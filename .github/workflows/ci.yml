@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend (Maven verify)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - run: mvn -B -ntp verify
+
+  frontend:
+    name: frontend (lint, tipos, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instalar dependencias
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning::Sin package-lock.json: se genera con npm install y se publica como artefacto."
+            npm install --no-audit --no-fund
+          fi
+      - name: Publicar package-lock.json generado
+        if: hashFiles('frontend/package-lock.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-package-lock
+          path: frontend/package-lock.json
+          retention-days: 7
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  infra-local:
+    name: infra local (docker compose)
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_PASSWORD: ci-only
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f docker/compose.yaml config --quiet
+      - run: docker compose -f docker/compose.yaml up -d --wait --wait-timeout 180
+      - name: Floci acepta conexiones
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4566/ || true)
+            if [ "$code" != "000" ]; then echo "Floci respondió HTTP $code"; exit 0; fi
+            sleep 2
+          done
+          docker compose -f docker/compose.yaml logs floci; exit 1
+      - if: always()
+        run: docker compose -f docker/compose.yaml down -v

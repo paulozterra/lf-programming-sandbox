@@ -1,0 +1,17 @@
+# Java / Maven
+backend/target/
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+frontend/*.tsbuildinfo
+# Entorno
+.env
+.env.*
+!.env.example
+# IDE / SO
+.idea/
+.vscode/
+*.iml
+.DS_Store
