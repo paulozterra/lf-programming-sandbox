@@ -31,8 +31,6 @@ jobs:
   frontend:
     name: frontend (lint, tipos, build)
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     defaults:
       run:
         working-directory: frontend
@@ -41,27 +39,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Instalar dependencias
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            echo "::warning::Sin package-lock.json: se genera con npm install."
-            npm install --no-audit --no-fund
-          fi
-      # Paso temporal de arranque: la sesión que armó el repo no alcanza el registro de npm,
-      # así que el CI genera el lockfile y lo sube a la rama del PR. Se retira en el commit siguiente.
-      - name: Subir package-lock.json generado a la rama del PR (arranque)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          if git -C .. ls-files --error-unmatch frontend/package-lock.json >/dev/null 2>&1; then exit 0; fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin "${{ github.head_ref }}"
-          git checkout -B "${{ github.head_ref }}" "origin/${{ github.head_ref }}"
-          git add package-lock.json
-          git commit -m "chore(frontend): agregar package-lock.json generado por CI"
-          git push origin "HEAD:${{ github.head_ref }}"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
