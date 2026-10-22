@@ -1,8 +1,8 @@
-# Glosario ES→EN · v0.2.0
+# Glosario ES→EN · v0.3.0
 
 > Generado desde `standards/glossary/*.json` con `standards/tools/glossary.py render`. No editar a mano.
 
-Digest: `8a79b2ba796bd3193ca67952a7500c9f18beaa984c252b0b4c604a8f22ef5a97`
+Digest: `8e118f5e99a361ec75025de3eabc228102ed0aae8fa39e3f9f729a8bfb71612e`
 
 **Precedencia de nombres:** contrato existente consumido > glosario del proyecto > glosario base > propuesta nueva (`REQUIRES_DECISION`). Una forma heredada vale solo en sus contratos exactos.
 
@@ -65,6 +65,104 @@ Autorización explícita de una persona para que una operación continúe. Plura
 - ✅ `approval_status`
 - ❌ `aprobacion_estado`
 - Fuentes: paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-08; paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-27; supabase: approval en 10 columnas · Decisión: GLOSS-DEC-LF-001
+
+### error → `error` · GLOSS-BASE-ERROR-001 · APROBADO
+
+errores comunes Plural: `errors`. Contextos: domain, database, api.
+- ✅ `error_id`
+- ❌ `nombre_no_canonico_error`
+- Fuentes: STD-MSG-01 · Decisión: GLOSS-DEC-BASE-002
+
+### error occurrence → `error_occurrence` · GLOSS-BASE-ERROR-OCCURRENCE-001 · APROBADO
+
+ocurrencia trazable de error Plural: `error_occurrences`. Contextos: domain, database, api.
+- ✅ `error_occurrence_id`
+- ❌ `nombre_no_canonico_error_occurrence`
+- Fuentes: D2 · Decisión: GLOSS-DEC-BASE-002
+
+### message → `message` · GLOSS-BASE-MESSAGE-001 · APROBADO
+
+mensaje configurable Plural: `messages`. Contextos: domain, database, api.
+- ✅ `message_id`
+- ❌ `nombre_no_canonico_message`
+- Fuentes: STD-MSG-01 · Decisión: GLOSS-DEC-BASE-002
+
+### suggested action → `suggested_action` · GLOSS-BASE-SUGGESTED-ACTION-001 · APROBADO
+
+acción sugerida al usuario Plural: `suggested_actions`. Contextos: domain, database, api.
+- ✅ `suggested_action_id`
+- ❌ `nombre_no_canonico_suggested_action`
+- Fuentes: STD-MSG-03 · Decisión: GLOSS-DEC-BASE-002
+
+### audit event → `audit_event` · GLOSS-BASE-AUDIT-EVENT-001 · APROBADO
+
+evento de auditoría Plural: `audit_events`. Contextos: domain, database, api.
+- ✅ `audit_event_id`
+- ❌ `nombre_no_canonico_audit_event`
+- Fuentes: STD-AUD-01 · Decisión: GLOSS-DEC-BASE-002
+
+### navigation event → `navigation_event` · GLOSS-BASE-NAVIGATION-EVENT-001 · APROBADO
+
+evento de navegación Plural: `navigation_events`. Contextos: domain, database, api.
+- ✅ `navigation_event_id`
+- ❌ `nombre_no_canonico_navigation_event`
+- Fuentes: STD-NAV-01 · Decisión: GLOSS-DEC-BASE-002
+
+### event category → `event_category` · GLOSS-BASE-EVENT-CATEGORY-001 · APROBADO
+
+categoría de evento de navegación Plural: `event_categories`. Contextos: domain, database, api.
+- ✅ `event_category_id`
+- ❌ `nombre_no_canonico_event_category`
+- Fuentes: STD-NAV-01 · Decisión: GLOSS-DEC-BASE-002
+
+### screen → `screen` · GLOSS-BASE-SCREEN-001 · APROBADO
+
+pantalla Plural: `screens`. Contextos: domain, database, api.
+- ✅ `screen_id`
+- ❌ `nombre_no_canonico_screen`
+- Fuentes: STD-NAV-01 · Decisión: GLOSS-DEC-BASE-002
+
+### session → `session` · GLOSS-BASE-SESSION-001 · APROBADO
+
+sesión de navegación Plural: `sessions`. Contextos: domain, database, api.
+- ✅ `session_id`
+- ❌ `nombre_no_canonico_session`
+- Fuentes: STD-NAV-01 · Decisión: GLOSS-DEC-BASE-002
+
+### legal document → `legal_document` · GLOSS-BASE-LEGAL-DOCUMENT-001 · APROBADO
+
+documento legal versionado Plural: `legal_documents`. Contextos: domain, database, api.
+- ✅ `legal_document_id`
+- ❌ `nombre_no_canonico_legal_document`
+- Fuentes: STD-CONS-01 · Decisión: GLOSS-DEC-BASE-002
+
+### consent → `consent` · GLOSS-BASE-CONSENT-001 · APROBADO
+
+acto de consentimiento Plural: `consents`. Contextos: domain, database, api.
+- ✅ `consent_id`
+- ❌ `nombre_no_canonico_consent`
+- Fuentes: STD-CONS-02 · Decisión: GLOSS-DEC-BASE-002
+
+### trace code → `trace_code` · GLOSS-BASE-TRACE-CODE-001 · APROBADO
+
+código de referencia de soporte Plural: `trace_codes`. Contextos: domain, database, api.
+- ✅ `trace_code_id`
+- ❌ `nombre_no_canonico_trace_code`
+- Fuentes: D12 · Decisión: GLOSS-DEC-BASE-002
+
+### correlation id → `correlation_id` · GLOSS-BASE-CORRELATION-ID-001 · APROBADO
+
+identificador transversal de correlación Plural: `correlation_ids`. Contextos: domain, database, api.
+- ✅ `correlation_id_id`
+- ❌ `nombre_no_canonico_correlation_id`
+- Fuentes: D9 · Decisión: GLOSS-DEC-BASE-002
+
+### request id → `request_id` · GLOSS-BASE-REQUEST-ID-001 · APROBADO
+
+identificador de petición HTTP Plural: `request_ids`. Contextos: domain, database, api.
+- ✅ `request_id_id`
+- ❌ `nombre_no_canonico_request_id`
+- Fuentes: D9 · Decisión: GLOSS-DEC-BASE-002
 
 
 ## Glosario del proyecto LF (L3) · `CANDIDATO_EN_REPO_DE_CALIFICACION`
