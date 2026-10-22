@@ -189,7 +189,10 @@ def classify_fields(changes):
 def check_transition(base_objects,head_objects,changed_paths,chg=None):
     findings=[];warnings=[];flags=[]
     for path in changed_paths:
-        if path.startswith("standards/changes/") or path in ("standards/CAMBIOS.md","standards/CATALOGO.md","standards/GLOSARIO.md","standards/WAIVERS.md"):
+        if path in ("standards/CAMBIOS.md","standards/CATALOGO.md","standards/GLOSARIO.md","standards/WAIVERS.md"):
+            if chg is None: findings.append("DERIVED_ONLY_EDIT")
+            continue
+        if path.startswith("standards/changes/"):
             continue
         if path in VERSIONS:
             old=base_objects.get(path);new=head_objects.get(path)
