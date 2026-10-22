@@ -1,0 +1,1 @@
+CREATE FUNCTION ${schema}.unsafe_fn() RETURNS integer LANGUAGE sql SECURITY DEFINER AS 'SELECT 1';
