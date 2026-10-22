@@ -52,6 +52,14 @@ def validate(glossaries: list[dict]) -> list[str]:
     for glossary in glossaries:
         if glossary.get("schema_version") != "LF_GLOSSARY_V1":
             errors.append("schema_version debe ser LF_GLOSSARY_V1")
+        technical = glossary.get("technical_tokens", [])
+        canonical_tokens = {token for term in glossary.get("terms", [])
+                            for token in term.get("term_en", "").split("_")}
+        for token in technical:
+            if not isinstance(token, str) or not token.strip():
+                errors.append("technical_tokens: token vacío o inválido")
+            elif token in canonical_tokens:
+                errors.append(f"technical_tokens: '{token}' coincide con token canónico")
         contexts = set(glossary.get("context_paths", {}))
         decisions = {d["id"] for d in glossary.get("decisions", [])}
         for term in glossary.get("terms", []):
