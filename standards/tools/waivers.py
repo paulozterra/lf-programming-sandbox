@@ -159,8 +159,9 @@ def parse_suppression(line):
             targets.append({"kind": "STD_RULE", "rule_id": "STD-FE-03", "controls": [control]})
     if "prettier-ignore" in line:
         targets.append({"kind": "STD_RULE", "rule_id": "STD-FE-07", "controls": []})
-    # Java: forma singular y array; una regla por cada literal.
-    java = re.search(r"""@SuppressWarnings\s*\(\s*(\{[^}]*\}|"[^"]*"|'[^']*')\s*\)""", line)
+    # Java: literal/array, con o sin el atributo explícito value =.
+    # Una anotación ilegible se mantiene en UNPARSED_SUPPRESSION (fail closed).
+    java = re.search(r"""@SuppressWarnings\s*\(\s*(?:value\s*=\s*)?(\{[^}]*\}|"[^"]*"|'[^']*')\s*\)""", line)
     if java:
         values = re.findall(r"""["']([^"']+)["']""", java.group(1))
         targets.extend({"kind": "LINTER_RULE", "tool": "java", "rule": value} for value in values)
