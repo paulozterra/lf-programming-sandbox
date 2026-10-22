@@ -245,7 +245,7 @@ def main(argv=None):
                 query("DROP SCHEMA kit_empty;")
                 print(json.dumps({"schema":schema,"test":"apply-reapply-detected-rollback-reapply","verdict":"PASS"}))
             except (ValueError,subprocess.CalledProcessError) as exc:
-                print("MIGRATE_TEST_FAILED",str(exc))
+                print("MIGRATE_TEST_FAILED",str(exc), getattr(exc,"stderr",""))
                 return 1
         return 0
     try:
