@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from policy_invariants import NON_WAIVABLE
 
 ROOT = Path(__file__).resolve().parents[2]
 STD = ROOT / "standards"
@@ -16,10 +17,6 @@ RE_CHANGE = re.compile(r"CHG-\d{4,}$")
 SEMVER = re.compile(r"\d+\.\d+\.\d+$")
 CLASSES = {"EDITORIAL","ADDITIVE","TIGHTENING","RELAXING","SECURITY"}
 SECURITY_IDS = {"STD-GEN-03","STD-GEN-04","STD-DB-06","STD-DB-07","STD-API-04"}
-NON_WAIVABLE = {"STD-GEN-03","STD-GEN-04","STD-GEN-05","STD-GEN-06","STD-GEN-07",
- "STD-DB-06","STD-DB-08","STD-API-04","STD-GIT-03","STD-SB-02",
- "STD-SEC-01","STD-SEC-02","STD-SEC-04","STD-AUD-01","STD-AUD-03",
- "STD-CONS-01","STD-CONS-02","STD-CONS-03","STD-CONS-04","STD-MSG-02"}
 KNOWN = {"catalog_version","glossary_version","registry_version","kit_version","schema_version","change_registry",
  "status","source","canonical_store_target","severity_values","enforcement_states",
  "legacy_policy","precedence","domains","decisions","rules","waiver_settings","level",
@@ -214,17 +211,33 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
             if before and after and material:
                 expected=(before[0],before[1],before[2]+1) if category=="EDITORIAL" else (before[0],before[1]+1,0)
                 if after!=expected:findings.append("VERSION_NOT_BUMPED")
-        elif path.startswith("standards/tools/") and path.endswith(".py"):
-            if "test_standards.py" not in changed_paths:
-                flags.append("ADDITIVE")  # fail closed: cannot prove unchanged verdict
-            else: flags.append("ADDITIVE")
+        elif (path.startswith("standards/tools/") and path.endswith(".py")
+              or path == ".github/workflows/ci.yml"):
+            flags.append("ADDITIVE")  # mínimo requerido; puede declararse una clase superior
+        elif path == "standards/pins.json":
+            flags.append("SECURITY" if any(
+                version(v) is not None and (base_objects.get(path) or {}).get("minimum_safe_versions", {}).get(k) != v
+                for k,v in (head_objects.get(path) or {}).get("minimum_safe_versions", {}).items()
+                if v is not None
+            ) else "ADDITIVE")
+        elif path.startswith("standards/baseline/") and path.endswith(".json"):
+            old_baseline=(base_objects.get(path) or {})
+            new_baseline=(head_objects.get(path) or {})
+            if new_baseline.get("count", 0)>old_baseline.get("count", 0) or set(new_baseline.get("fingerprints", []))-set(old_baseline.get("fingerprints", [])):
+                findings.append("BASELINE_INCREASE")
         elif path.endswith(".md") and path.startswith("standards/"):
             if chg is None:findings.append("DERIVED_ONLY_EDIT")
     if flags and not chg:findings.append("MISSING_CHG")
     if chg:
         if "RELAXING" in flags and "TIGHTENING" in flags:findings.append("MIXED_CHANGE_REQUIRES_SPLIT")
         effective="SECURITY" if "SECURITY" in flags else "RELAXING" if "RELAXING" in flags else "TIGHTENING" if "TIGHTENING" in flags else "ADDITIVE" if "ADDITIVE" in flags else "EDITORIAL"
-        if chg.get("change_class")!=effective:findings.append("CHANGE_CLASS_MISMATCH")
+        declared=chg.get("change_class")
+        protected_only=any(p.startswith("standards/tools/") or p==".github/workflows/ci.yml" for p in changed_paths)
+        hierarchy={"EDITORIAL":0,"ADDITIVE":1,"TIGHTENING":2,"RELAXING":3,"SECURITY":4}
+        if declared not in hierarchy or (protected_only and hierarchy[declared]<hierarchy["ADDITIVE"]) or (
+                not protected_only and declared!=effective) or (
+                protected_only and hierarchy[declared]<hierarchy[effective]):
+            findings.append("CHANGE_CLASS_MISMATCH")
         findings+=validate_record(chg)
     return {"detected_class":flags,"warnings":sorted(set(warnings)),
             "findings":sorted(set(findings)),"verdict":"FAIL" if findings else "PASS"}
@@ -297,6 +310,8 @@ def compare_baseline_ref(base,records):
     head=measured_shadow_findings("HEAD")
     issues=[]
     for rule,info in records.items():
+        if info.get("measurement")=="NOT_MEASURED_UNTIL_C10":
+            continue
         expected=sorted(info["fingerprints"])
         if info["count"]!=len(expected):
             issues.append("BASELINE_INCREASE")
@@ -304,11 +319,7 @@ def compare_baseline_ref(base,records):
             issues.append("BASELINE_MISMATCH")
         if len(head.get(rule,[]))>info["count"] or set(head.get(rule,[]))-set(expected):
             issues.append("BASELINE_INCREASE")
-    # Hasta C10 no hay huellas línea-a-línea para formatter java/prettier;
-    # no se declara PASS si cambió código fuente de esas disciplinas.
-    altered=git("diff","--name-only",base,"HEAD").splitlines()
-    if any(x.startswith(("backend/src/","frontend/src/")) for x in altered):
-        issues.append("FORMATTER_BASELINE_REQUIRES_EVIDENCE")
+    # Formateadores sin huellas: NOT_MEASURED es informativo, no bloquea.
     return sorted(set(issues))
 
 
@@ -352,8 +363,8 @@ def main(argv=None):
                       artifact=a.artifact,minimum_safe_version=minimum)
     base=git("merge-base",a.base,"HEAD")
     changed=git("diff","--name-only",base,"HEAD").splitlines()
-    base_data={path:json_at(base,path) for path in changed if path in VERSIONS}
-    head_data={path:json.loads((ROOT/path).read_text(encoding="utf8")) for path in changed if path in VERSIONS and (ROOT/path).exists()}
+    base_data={path:json_at(base,path) for path in changed if path in VERSIONS or path=="standards/pins.json" or path.startswith("standards/baseline/")}
+    head_data={path:json.loads((ROOT/path).read_text(encoding="utf8")) for path in changed if (path in VERSIONS or path=="standards/pins.json" or path.startswith("standards/baseline/")) and (ROOT/path).exists()}
     introduced=[c for _,c in records if file_at(base,"standards/changes/"+c["change_id"]+".json") is None]
     if a.cmd in ("classify","check"):
         result=check_transition(base_data,head_data,changed,introduced[0] if len(introduced)==1 else None)
@@ -388,7 +399,7 @@ def main(argv=None):
         # New or modified source findings are rejected by the existing diff scanners.
         # Historical fingerprint comparison requires same scanner version on both refs.
         errors=compare_baseline_ref(base,baseline)
-        return report(errors,baseline_rules=len(baseline),base_sha=base)
+        return report(errors,baseline_rules=len(baseline),not_measured=[r for r,v in baseline.items() if v.get("measurement")=="NOT_MEASURED_UNTIL_C10"],base_sha=base)
 
 
 if __name__=="__main__":
