@@ -1,0 +1,1 @@
+-- The deliberately invalid migration is represented by this filename, not executed.
