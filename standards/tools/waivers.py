@@ -215,7 +215,8 @@ def check_refs(catalog, registry, roots, as_of):
                     eligible = {w["waiver_id"] for w in registry["waivers"] if w["waiver_id"] in refs}
                     decision, reason, ids = evaluate(catalog, {"waivers": [w for w in registry["waivers"] if w["waiver_id"] in eligible]}, rel, target, as_of)
                     if decision != "AUTHORIZED":
-                        errors.append(f"STD-GEN-05 {rel}:{number}: {reason or 'TARGET_MISMATCH'} {refs}")
+                        code = "TARGET_MISMATCH" if reason == "NO_WAIVER" and eligible else (reason or "TARGET_MISMATCH")
+                        errors.append(f"STD-GEN-05 {rel}:{number}: {code} {refs}")
                 for ref in refs:
                     if not any(w["waiver_id"] == ref for w in registry["waivers"]):
                         errors.append(f"STD-GEN-05 {rel}:{number}: NO_WAIVER {ref}")
@@ -274,9 +275,12 @@ def main(argv=None):
         return 0
     if args.cmd == "audit":
         used = set()
-        for path in (ROOT / "standards/tests/fixtures").rglob("*"):
-            if path.is_file():
-                used.update(REF.findall(path.read_text(encoding="utf-8", errors="replace")))
+        for directory in ("backend/src", "frontend/src", "standards/tests/fixtures"):
+            root = ROOT / directory
+            if root.exists():
+                for path in root.rglob("*"):
+                    if path.is_file() and path.suffix in (".ts", ".tsx", ".js", ".jsx", ".java", ".py", ".mjs"):
+                        used.update(REF.findall(path.read_text(encoding="utf-8", errors="replace")))
         for w in registry["waivers"]:
             flags = []
             if w["status"] == "REVOKED": flags.append("REVOKED")
