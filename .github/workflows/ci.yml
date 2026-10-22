@@ -58,10 +58,10 @@ jobs:
           python-version: "3.12"
       - run: python3 standards/tools/changes.py validate
       - run: python3 standards/tools/changes.py render --check
-      - name: Circuito C9: clasificación y versiones (solo PR)
+      - name: "Circuito C9: clasificación y versiones (solo PR)"
         if: github.event_name == 'pull_request'
         run: python3 standards/tools/changes.py check --base "origin/${{ github.base_ref }}"
-      - name: Circuito C9: baseline D11 (solo PR)
+      - name: "Circuito C9: baseline D11 (solo PR)"
         if: github.event_name == 'pull_request'
         run: python3 standards/tools/changes.py baseline-check --base "origin/${{ github.base_ref }}"
       - run: python3 standards/tools/validate_catalog.py
