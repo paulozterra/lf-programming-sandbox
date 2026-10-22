@@ -205,6 +205,11 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
                 findings.append("VERSION_NOT_BUMPED")
             if not material and before!=after:findings.append("UNEXPLAINED_VERSION_BUMP")
             category,warns,errs=classify_fields(material);warnings+=warns;findings+=errs
+            if chg and (material or before!=after):
+                covered=any(a.get("path")==path and a.get("from_version")==old.get(vfield)
+                            and a.get("to_version")==new.get(vfield)
+                            for a in chg.get("artifacts",[]))
+                if not covered:findings.append("MISSING_CHG")
             if material:flags.append(category)
             if before and after and material:
                 expected=(before[0],before[1],before[2]+1) if category=="EDITORIAL" else (before[0],before[1]+1,0)
@@ -359,6 +364,13 @@ def main(argv=None):
             bpin=json_at(base,"standards/pins.json")
             hpin=json.loads(PINFILE.read_text(encoding="utf8"))
             errors+=check_pins(hpin,bpin)
+            kit=json.loads((STD/"kit-base/kit.json").read_text(encoding="utf8"))
+            cat=json.loads((STD/"catalog.json").read_text(encoding="utf8"))
+            gloss=json.loads((STD/"glossary/base.json").read_text(encoding="utf8"))
+            for old_v,current_v in ((kit["catalog_version"],cat["catalog_version"]),
+                                    (kit["glossary_version"],gloss["glossary_version"])):
+                if version(old_v) is None or version(current_v) is None or version(old_v)>version(current_v):
+                    errors.append("KIT_PIN_INCOMPATIBLE")
             if introduced and introduced[0].get("change_class")=="SECURITY":
                 review=introduced[0].get("independent_review") or {}
                 if review.get("reviewed_sha256")!=review_content_digest(base):
