@@ -8,6 +8,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from policy_invariants import NON_WAIVABLE
 
 RULE_ID = re.compile(r"^STD-[A-Z]+-\d{2}$")
 REQUIRED_RULE_FIELDS = {"id", "domain", "rule", "severity", "status", "enforcement"}
@@ -71,13 +72,7 @@ def validate(catalog: dict) -> list[str]:
                 errors.append(f"{rid}: waiver_policy.allowed inválido")
             elif policy["allowed"]:
                 # Invariantes C8: L1 de seguridad nunca se vuelve dispensable por un CHG.
-                non_waivable = {
-                    "STD-GEN-03", "STD-GEN-04", "STD-GEN-05", "STD-GEN-06", "STD-GEN-07",
-                    "STD-DB-06", "STD-DB-08", "STD-API-04", "STD-GIT-03", "STD-SB-02",
-                    "STD-SEC-01", "STD-SEC-02", "STD-SEC-04", "STD-AUD-01", "STD-AUD-03",
-                    "STD-CONS-01", "STD-CONS-02", "STD-CONS-03", "STD-CONS-04", "STD-MSG-02"
-                }
-                if rid in non_waivable:
+                if rid in NON_WAIVABLE:
                     errors.append(f"{rid}: L1/security no admite waiver")
                 if rid == "STD-FE-03" and policy.get("eligible_controls") != ["@ts-ignore", "@ts-expect-error"]:
                     errors.append(f"{rid}: eligible_controls inválidos")
