@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LF_STANDARD_CHANGE_V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "change_id",
+    "change_class",
+    "title",
+    "reason",
+    "trigger",
+    "artifacts",
+    "affected",
+    "existing_code_impact",
+    "security_pin_invalidation",
+    "requested_by",
+    "approved_by",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "LF_STANDARD_CHANGE_V1"
+    },
+    "change_id": {
+      "type": "string",
+      "pattern": "^CHG-[0-9]{4,}$"
+    },
+    "change_class": {
+      "enum": [
+        "EDITORIAL",
+        "ADDITIVE",
+        "TIGHTENING",
+        "RELAXING",
+        "SECURITY"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trigger": {
+      "type": "object",
+      "required": [
+        "kind",
+        "reference"
+      ]
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1
+    },
+    "affected": {
+      "type": "object"
+    },
+    "existing_code_impact": {
+      "type": "object"
+    },
+    "security_pin_invalidation": {
+      "type": "object"
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "approved_by": {
+      "const": "paulozterra"
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "pr_url"
+      ]
+    },
+    "decision_ref": {
+      "type": "string"
+    },
+    "risk": {
+      "type": "string"
+    },
+    "compensating_control": {
+      "type": "string"
+    },
+    "independent_review": {
+      "type": "object"
+    },
+    "review_content_sha256": {
+      "type": "string"
+    }
+  }
+}
