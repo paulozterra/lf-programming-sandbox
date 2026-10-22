@@ -151,7 +151,7 @@ def parse_suppression(line):
             targets.append({"kind": "STD_RULE", "rule_id": "STD-FE-03", "controls": [control]})
     if "prettier-ignore" in line:
         targets.append({"kind": "STD_RULE", "rule_id": "STD-FE-07", "controls": []})
-    m = re.search(r'@SuppressWarnings\(["\\']([^"\\']+)["\\']\)', line)
+    m = re.search(r"@SuppressWarnings\\([\\\"']([^\\\"']+)[\\\"']\\)", line)
     if m:
         targets.append({"kind": "LINTER_RULE", "tool": "java", "rule": m.group(1)})
     m = re.search(r"#\s*noqa:\s*([\w, ]+)", line)
