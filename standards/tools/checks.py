@@ -19,10 +19,6 @@ KEBAB = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 FRONTEND_ALLOWED = {"next-env.d.ts"}
 FRONTEND_SUFFIXES = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".css")
 SKIP_DIRS = {"node_modules", ".next", "out", "target", ".git"}
-SUPPRESSION = re.compile(
-    r"eslint-disable|@ts-ignore|@ts-expect-error|@SuppressWarnings|NOSONAR|# noqa|# type: ignore|prettier-ignore"
-)
-WAIVER = re.compile(r"WAIVER-\d{4,}")
 SOURCE_SUFFIXES = (".java", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".py")
 BRANCH = re.compile(r"^lf/prog-[A-Za-z0-9-]+/[a-z0-9]+(?:-[a-z0-9]+)*$")
 
