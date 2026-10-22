@@ -1362,7 +1362,10 @@
             "api"
           ],
           "reason": "D5: condition aislado no identifica la condición de la oferta.",
-          "match": "standalone"
+          "match": "standalone",
+          "except_after": [
+            "http"
+          ]
         }
       ],
       "legacy_en": [],
