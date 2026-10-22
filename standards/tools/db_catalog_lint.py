@@ -55,7 +55,7 @@ SELECT json_build_object(
  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='{schema}'),'[]'::json),
  'public_privileges',coalesce((SELECT json_agg(json_build_object('name',c.relname,'privilege',x.privilege_type))
  FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
- JOIN LATERAL aclexplode(coalesce(c.relacl,acldefault(CASE WHEN c.relkind='S' THEN 'S' ELSE 'r' END,c.relowner))) x ON true
+ JOIN LATERAL aclexplode(coalesce(c.relacl,acldefault((CASE WHEN c.relkind='S' THEN 'S' ELSE 'r' END)::"char",c.relowner))) x ON true
  WHERE n.nspname='{schema}' AND c.relkind IN ('r','v','S') AND x.grantee=0),'[]'::json)
 )::text;
 """.replace("{schema}", schema)
