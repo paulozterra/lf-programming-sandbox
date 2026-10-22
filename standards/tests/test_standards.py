@@ -137,6 +137,55 @@ class GlossaryTests(unittest.TestCase):
         term["rejected_en"][0]["match"] = "substring"
         self.assertTrue(any("match inválido" in e for e in glossary.validate(bad)))
 
+
+    def test_waiver_registry_and_reference(self):
+        import waivers
+        import datetime as dt
+        catalog, registry = waivers.load()
+        self.assertEqual(waivers.validate(catalog, registry), [])
+        day = dt.datetime(2026, 10, 23, tzinfo=dt.timezone.utc)
+        target = {"kind": "LINTER_RULE", "tool": "eslint", "rule": "no-console"}
+        self.assertEqual(waivers.evaluate(catalog, registry, "standards/tests/fixtures/suppressions/good.ts", target, day)[0], "AUTHORIZED")
+        self.assertEqual(waivers.evaluate(catalog, registry, "frontend/src/demo.ts", target, day)[1], "OUT_OF_SCOPE")
+
+    def test_waiver_negative_cases(self):
+        import waivers
+        import datetime as dt
+        catalog, registry = waivers.load()
+        day = dt.datetime(2026, 10, 23, tzinfo=dt.timezone.utc)
+        good = "standards/tests/fixtures/suppressions/good.ts"
+        target = {"kind": "LINTER_RULE", "tool": "eslint", "rule": "no-console"}
+        cases = [
+            ("duplicate", lambda c, r: r["waivers"].append(copy.deepcopy(r["waivers"][0])), "id duplicado"),
+            ("approver_empty", lambda c, r: r["waivers"][0].update(approved_by=""), "approved_by inválido"),
+            ("approver_same", lambda c, r: r["waivers"][0].update(approved_by="agent:gpt"), "approved_by inválido"),
+            ("expired_period", lambda c, r: r["waivers"][0].update(expires_at="2028-10-22T00:00:00Z"), "plazo máximo"),
+            ("universal", lambda c, r: r["waivers"][0]["scope"].update(paths=["**/*"]), "scope.paths inválido"),
+            ("parent", lambda c, r: r["waivers"][0]["scope"].update(paths=["../bad.ts"]), "scope.paths inválido"),
+            ("fixture_escape", lambda c, r: r["waivers"][0]["scope"].update(paths=["frontend/src/a.ts"]), "TEST_FIXTURE fuera"),
+            ("denylist", lambda c, r: r["waivers"][0]["target"].update(rule="no-eval"), "RULE_NOT_WAIVABLE"),
+            ("std_gen_05", lambda c, r: r["waivers"][0].update(target={"kind":"STD_RULE","rule_id":"STD-GEN-05","controls":[]}), "RULE_NOT_WAIVABLE"),
+            ("std_not_allowed", lambda c, r: r["waivers"][0].update(target={"kind":"STD_RULE","rule_id":"STD-SEC-02","controls":[]}), "RULE_NOT_WAIVABLE"),
+            ("std_default_deny", lambda c, r: r["waivers"][0].update(target={"kind":"STD_RULE","rule_id":"STD-DB-01","controls":[]}), "RULE_NOT_WAIVABLE"),
+            ("revoked_missing", lambda c, r: r["waivers"][0].update(status="REVOKED"), "REVOKED"),
+        ]
+        for label, mutate, message in cases:
+            with self.subTest(label=label):
+                c, r = copy.deepcopy(catalog), copy.deepcopy(registry)
+                mutate(c, r)
+                self.assertIn(message, " ".join(waivers.validate(c, r)))
+        expired = copy.deepcopy(registry)
+        expired["waivers"][0]["expires_at"] = "2026-10-23T00:00:00Z"
+        self.assertEqual(waivers.evaluate(catalog, expired, good, target, day)[1], "EXPIRED")
+        revoked = copy.deepcopy(registry)
+        revoked["waivers"][0]["status"] = "REVOKED"
+        self.assertEqual(waivers.evaluate(catalog, revoked, good, target, day)[1], "REVOKED")
+        self.assertEqual(waivers.evaluate(catalog, registry, good, {"kind":"LINTER_RULE","tool":"eslint","rule":"no-debugger"}, day)[0], "NOT_AUTHORIZED")
+        self.assertEqual(waivers.evaluate(catalog, {"waivers":[]}, good, target, day)[1], "NO_WAIVER")
+        self.assertEqual(waivers.parse_suppression("// eslint-disable -- WAIVER-0001"), [("MISSING_LINTER_RULE", None)])
+        self.assertEqual(waivers.render(registry), waivers.OUTPUT.read_text(encoding="utf-8"))
+        self.assertNotEqual(waivers.render(registry), waivers.render({**registry, "registry_version":"9.9.9"}))
+
     def test_coverage_positive(self):
         mapping = json.loads((GLOSSARY_FIXTURES / "coverage_ok.json").read_text(encoding="utf-8"))
         self.assertEqual(glossary.coverage(self.glossaries, mapping), [])
