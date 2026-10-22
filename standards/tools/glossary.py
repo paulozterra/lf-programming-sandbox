@@ -80,6 +80,14 @@ def validate(glossaries: list[dict]) -> list[str]:
                 errors.append(f"{label}: faltan ejemplos ✅/❌")
             if not set(term["contexts"]) <= contexts:
                 errors.append(f"{label}: contexto desconocido en {term['contexts']}")
+            if "values" in term:
+                values = term["values"]
+                if not isinstance(values, dict) or not values:
+                    errors.append(f"{label}: values debe ser diccionario español → inglés no vacío")
+                else:
+                    for es, en in values.items():
+                        if not isinstance(es, str) or not es.strip() or not isinstance(en, str) or not SNAKE.fullmatch(en):
+                            errors.append(f"{label}: values contiene una traducción inválida")
             for rejected in term["rejected_en"]:
                 if rejected.get("form") == term["term_en"]:
                     errors.append(f"{label}: la forma canónica aparece como rechazada")
@@ -127,6 +135,8 @@ def render(glossaries: list[dict]) -> str:
                 lines.append(f"- Rechazado `{rejected['form']}` en {', '.join(rejected['contexts'])}: {rejected['reason']}.")
             for legacy in term["legacy_en"]:
                 lines.append(f"- Heredado `{legacy['form']}` solo en: {', '.join(f'`{c}`' for c in legacy['contracts'])}.")
+            if term.get("values"):
+                lines.append("- Valores: " + ", ".join(f"`{es}` → `{en}`" for es, en in term["values"].items()) + ".")
             if term.get("notes"):
                 lines.append(f"- Nota: {term['notes']}")
             lines += [f"- ✅ `{example}`" for example in term["examples"]["good"]]
@@ -174,6 +184,7 @@ class Scanner:
     def __init__(self, glossaries: list[dict]):
         self.context_paths = glossaries[0]["context_paths"]
         self.spanish_paths = glossaries[0]["spanish_check_paths"]
+        self.exclusions = set().union(*(set(g.get("spanish_token_exclusions", [])) for g in glossaries))
         self.spanish: dict[str, str] = {}
         self.rejected: list[tuple[list[str], set[str], set[str], dict]] = []
         self.legacy: list[tuple[str, str]] = []
@@ -181,7 +192,7 @@ class Scanner:
             words = [term["term_es"], *term["synonyms_es"]]
             for word in words:
                 for token in _ascii(word).split():
-                    if len(token) > 2:
+                    if len(token) > 2 and token not in self.exclusions:
                         for form in (token, token + "s", token + "es"):
                             self.spanish.setdefault(form, term["term_id"])
             for rejected in term["rejected_en"]:
@@ -217,7 +228,7 @@ class Scanner:
                     tokens = split_tokens(name)
                     if spanish_on:
                         for token in tokens:
-                            if token in self.spanish:
+                            if token in self.spanish and token not in self.exclusions:
                                 violations.append(
                                     f"STD-GEN-01 {path}:{number}: '{name}' usa '{token}' en español (ver {self.spanish[token]})"
                                 )
