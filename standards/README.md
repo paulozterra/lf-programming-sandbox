@@ -10,6 +10,9 @@ manifiesto del perfil técnico de cada proyecto.
 | `CATALOGO.md` | Agente (LLM) y personas | Generado desde `catalog.json`; no se edita a mano |
 | `tools/validate_catalog.py` | CI | Valida la estructura del catálogo |
 | `tools/render_llm.py` | CI / autor | Regenera `CATALOGO.md` (`--check` verifica que esté al día) |
+| `glossary/base.json`, `glossary/projects/*.json` | Herramientas | Glosario ES→EN: base (L1) y por proyecto (L3, candidato hasta que el proyecto lo adopte) |
+| `GLOSARIO.md` | Agente (LLM) y personas | Generado desde los JSON del glosario; no se edita a mano |
+| `tools/glossary.py` | CI, agente y PG-11 | Valida y genera el glosario, check en sombra del diff (STD-GEN-01) y cobertura positiva por `term_id` |
 | `tools/checks.py` | CI y agente | Checks propios: nombres de archivo, supresiones con waiver, rama |
 | `tests/` | CI | Cada check falla con su caso negativo (PG-00·C7) |
 

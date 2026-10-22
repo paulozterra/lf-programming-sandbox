@@ -1,0 +1,4 @@
+{"identifiers": [
+  {"identifier": "debt_collection_status", "context": "database", "glossary_refs": ["GLOSS-LF-DEBT-001", "GLOSS-BASE-STATUS-001"]},
+  {"identifier": "offer_id", "context": "database", "glossary_refs": ["GLOSS-LF-NOPE-001"]}
+]}

@@ -1,0 +1,473 @@
+{
+  "level": "project",
+  "project": "LF",
+  "owner": "Proyecto LF (Paulo + Cristhian); el agente propone, LF adopta",
+  "status": "CANDIDATO_EN_REPO_DE_CALIFICACION",
+  "schema_version": "LF_GLOSSARY_V1",
+  "glossary_version": "0.1.0",
+  "decisions": [
+    {
+      "id": "GLOSS-DEC-LF-001",
+      "date": "2026-10-22",
+      "approver": "Paulo (owner Fase 2)",
+      "reviewed_by": "GPT, revisión independiente (22/10)",
+      "scope": "Lote 1 · 16 términos",
+      "ref": "claude/glosario-c4-lote1-2026-10-22.md (proyecto LF)"
+    }
+  ],
+  "context_paths": {
+    "database": [
+      "**/*.sql"
+    ],
+    "api": [
+      "**/openapi*.yaml",
+      "**/openapi*.yml",
+      "**/openapi*.json"
+    ],
+    "domain": [
+      "backend/src/main/java/**/*.java"
+    ]
+  },
+  "technical_tokens": [
+    "id",
+    "ids",
+    "at",
+    "by",
+    "on",
+    "is",
+    "has",
+    "can",
+    "code",
+    "name",
+    "type",
+    "kind",
+    "number",
+    "count",
+    "total",
+    "created",
+    "updated",
+    "deleted",
+    "valid",
+    "from",
+    "to",
+    "until",
+    "date",
+    "version",
+    "external",
+    "ref",
+    "url",
+    "hash",
+    "key",
+    "current",
+    "previous",
+    "new",
+    "old",
+    "last",
+    "first",
+    "paid",
+    "max",
+    "min",
+    "due"
+  ],
+  "terms": [
+    {
+      "term_id": "GLOSS-LF-COMPANY-001",
+      "term_es": "empresa compradora",
+      "term_en": "company",
+      "plural_en": "companies",
+      "definition": "Empresa que compra cartera y opera en LF; cada una es un tenant aislado.",
+      "level": "project",
+      "synonyms_es": [
+        "empresa"
+      ],
+      "rejected_en": [
+        {
+          "form": "tenant",
+          "contexts": [
+            "domain",
+            "api"
+          ],
+          "reason": "tenant es el concepto técnico de aislamiento (RLS, autorización), no la entidad"
+        },
+        {
+          "form": "organization",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "Alternativa descartada en el Lote 1"
+        }
+      ],
+      "legacy_en": [
+        {
+          "form": "empresas",
+          "contracts": [
+            "lf_ops.empresas"
+          ]
+        },
+        {
+          "form": "empresa",
+          "contracts": [
+            "lf_ops.empresa_usuarios",
+            "lf_ops.empresa_usuarios_perfiles",
+            "lf_ops.empresa_usuarios_permisos"
+          ]
+        }
+      ],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "company_id"
+        ],
+        "bad": [
+          "tenant_id como entidad de negocio",
+          "empresa_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-05",
+        "supabase: company en 15 columnas y 5 tablas"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO",
+      "notes": "tenant se reserva para aislamiento multi-tenant, autorización y partición lógica (en BD sí se permite, p. ej. políticas RLS)."
+    },
+    {
+      "term_id": "GLOSS-LF-CUSTOMER-001",
+      "term_es": "cliente deudor",
+      "term_en": "customer",
+      "plural_en": "customers",
+      "definition": "Persona que tiene una deuda gestionada en LF y la consulta o paga en el portal.",
+      "level": "project",
+      "synonyms_es": [
+        "cliente",
+        "deudor",
+        "titular"
+      ],
+      "rejected_en": [
+        {
+          "form": "client",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "Ambiguo en código (cliente HTTP, de API, app OAuth)",
+          "except_after": [
+            "http",
+            "api",
+            "rest",
+            "web",
+            "oauth",
+            "s3",
+            "sqs",
+            "sns",
+            "supabase",
+            "feign",
+            "grpc",
+            "redis",
+            "kafka",
+            "mail",
+            "smtp",
+            "db",
+            "jdbc"
+          ]
+        },
+        {
+          "form": "debtor",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "Alternativa descartada en el Lote 1"
+        }
+      ],
+      "legacy_en": [
+        {
+          "form": "client",
+          "contracts": [
+            "lf_client.client_accounts",
+            "lf_client.client_auth_sessions",
+            "lf_client.client_phone_bindings",
+            "lf_client.client_accounts.client_id",
+            "lf_client.client_auth_sessions.client_id",
+            "lf_client.client_phone_bindings.client_id",
+            "lf_client.onboarding_sessions.client_id",
+            "lf_client.security_events.client_id"
+          ]
+        }
+      ],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "customer_id"
+        ],
+        "bad": [
+          "client_id (fuera de los contratos heredados)",
+          "deudor_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-01",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-15"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO",
+      "notes": "La excepción client vale solo para esos objetos exactos; no autoriza nombres nuevos en el esquema lf_client."
+    },
+    {
+      "term_id": "GLOSS-LF-DEBT-001",
+      "term_es": "deuda",
+      "term_en": "debt",
+      "plural_en": "debts",
+      "definition": "Obligación de pago de un cliente con una empresa compradora de cartera.",
+      "level": "project",
+      "synonyms_es": [
+        "adeudo"
+      ],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "debt_id"
+        ],
+        "bad": [
+          "deuda_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-15",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-25"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO",
+      "notes": "Contexto dominio: no confundir con deuda técnica (p. ej. v_lf_event_contract_debt_v3). loan (préstamo) es otro concepto y no está prohibido."
+    },
+    {
+      "term_id": "GLOSS-LF-PORTFOLIO-001",
+      "term_es": "cartera",
+      "term_en": "portfolio",
+      "plural_en": "portfolios",
+      "definition": "Conjunto de deudas que una empresa carga y gestiona en LF.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "portfolio_id"
+        ],
+        "bad": [
+          "cartera_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-07",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-08"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-PORTFOLIO-LOAD-001",
+      "term_es": "carga de cartera",
+      "term_en": "portfolio_load",
+      "plural_en": "portfolio_loads",
+      "definition": "Proceso o lote que incorpora una cartera al dominio a partir de un archivo.",
+      "level": "project",
+      "synonyms_es": [
+        "carga"
+      ],
+      "rejected_en": [
+        {
+          "form": "portfolio_upload",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "upload es la transferencia del archivo, no el lote de carga"
+        }
+      ],
+      "legacy_en": [
+        {
+          "form": "cargas",
+          "contracts": [
+            "lf_ops.cargas_lotes",
+            "lf_ops.cargas_archivos"
+          ]
+        }
+      ],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "portfolio_load_id"
+        ],
+        "bad": [
+          "portfolio_upload_id",
+          "carga_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-07",
+        "supabase: vistas lf_ops.v_b2b_rel_load_*"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO",
+      "notes": "upload se usa solo para la transferencia del archivo (p. ej. upload_url)."
+    },
+    {
+      "term_id": "GLOSS-LF-SEGMENT-001",
+      "term_es": "segmento",
+      "term_en": "segment",
+      "plural_en": "segments",
+      "definition": "Grupo de deudas o clientes definido por variables y rangos.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "segment_id"
+        ],
+        "bad": [
+          "segmento_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-09"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-OFFER-001",
+      "term_es": "oferta",
+      "term_en": "offer",
+      "plural_en": "offers",
+      "definition": "Propuesta de pago (único o en cuotas) que se presenta al cliente, con vigencia.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "offer_id"
+        ],
+        "bad": [
+          "oferta_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-12",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-17",
+        "supabase: offer en 4 columnas"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-INSTALLMENT-001",
+      "term_es": "cuota",
+      "term_en": "installment",
+      "plural_en": "installments",
+      "definition": "Cada pago parcial de un plan en cuotas.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "installment_number"
+        ],
+        "bad": [
+          "cuota_numero"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-12",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-16"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-PAYMENT-001",
+      "term_es": "pago",
+      "term_en": "payment",
+      "plural_en": "payments",
+      "definition": "Intento o transacción de pago de una deuda, oferta o cuota.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "payment_id"
+        ],
+        "bad": [
+          "pago_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-20",
+        "supabase: payment en 2 columnas"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    }
+  ],
+  "spanish_check_paths": [
+    "**/*.sql",
+    "**/openapi*.yaml",
+    "**/openapi*.yml",
+    "**/openapi*.json",
+    "backend/src/main/java/**/*.java",
+    "frontend/src/**/*.ts",
+    "frontend/src/**/*.tsx"
+  ]
+}
