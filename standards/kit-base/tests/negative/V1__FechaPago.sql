@@ -1,0 +1,1 @@
+-- Fixture negativo STD-DB-09: formato de descripción no snake_case.
