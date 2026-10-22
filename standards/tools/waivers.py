@@ -61,8 +61,16 @@ def validate(catalog, registry):
         if wid in ids:
             errors.append(f"{wid}: id duplicado")
         ids.add(wid)
-        if w.get("catalog_version") != catalog.get("catalog_version"):
-            errors.append(f"{wid}: catalog_version diferente del catálogo")
+        approved_version = w.get("catalog_version")
+        current_version = catalog.get("catalog_version")
+        version_pattern = r"\d+\.\d+\.\d+"
+        if (not isinstance(approved_version, str)
+                or not re.fullmatch(version_pattern, approved_version)):
+            errors.append(f"{wid}: catalog_version semver inválido")
+        elif (not isinstance(current_version, str)
+                or not re.fullmatch(version_pattern, current_version)
+                or tuple(map(int, approved_version.split("."))) > tuple(map(int, current_version.split(".")))):
+            errors.append(f"{wid}: catalog_version posterior al catálogo actual")
         if w.get("kind") not in ("REAL", "TEST_FIXTURE"):
             errors.append(f"{wid}: kind inválido")
         if w.get("status") not in ("ACTIVE", "REVOKED"):
@@ -151,9 +159,11 @@ def parse_suppression(line):
             targets.append({"kind": "STD_RULE", "rule_id": "STD-FE-03", "controls": [control]})
     if "prettier-ignore" in line:
         targets.append({"kind": "STD_RULE", "rule_id": "STD-FE-07", "controls": []})
-    m = re.search(r"@SuppressWarnings\\([\\\"']([^\\\"']+)[\\\"']\\)", line)
-    if m:
-        targets.append({"kind": "LINTER_RULE", "tool": "java", "rule": m.group(1)})
+    # Java: forma singular y array; una regla por cada literal.
+    java = re.search(r"""@SuppressWarnings\s*\(\s*(\{[^}]*\}|"[^"]*"|'[^']*')\s*\)""", line)
+    if java:
+        values = re.findall(r"""["']([^"']+)["']""", java.group(1))
+        targets.extend({"kind": "LINTER_RULE", "tool": "java", "rule": value} for value in values)
     m = re.search(r"#\s*noqa:\s*([\w, ]+)", line)
     if m:
         targets += [{"kind": "LINTER_RULE", "tool": "python", "rule": x.strip()} for x in m.group(1).split(",") if x.strip()]
@@ -201,8 +211,11 @@ def check_refs(catalog, registry, roots, as_of):
                 continue
             rel = path.relative_to(ROOT).as_posix()
             for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                if not SUPPRESS.search(line):
+                    continue
                 targets = parse_suppression(line)
                 if not targets:
+                    errors.append(f"STD-GEN-05 {rel}:{number}: UNPARSED_SUPPRESSION")
                     continue
                 refs = REF.findall(line)
                 if not refs:
