@@ -218,7 +218,7 @@ class GlossaryTests(unittest.TestCase):
         future["catalog_version"] = "0.3.1"
         self.assertEqual(waivers.validate(future, registry), [])
         future_waiver = copy.deepcopy(registry)
-        future_waiver["waivers"][0]["catalog_version"] = "0.4.0"
+        future_waiver["waivers"][0]["catalog_version"] = "99.0.0"
         self.assertTrue(any("posterior" in msg for msg in waivers.validate(catalog, future_waiver)))
         invalid = copy.deepcopy(registry)
         invalid["waivers"][0]["catalog_version"] = "not-semver"
