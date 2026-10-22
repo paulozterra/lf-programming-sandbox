@@ -412,6 +412,52 @@ class ChangeCircuitTests(unittest.TestCase):
         self.assertIn("DERIVED_ONLY_EDIT",changes.check_transition({}, {},
             ["standards/GLOSARIO.md"],None)["findings"])
 
+
+    def test_c9_protected_paths_and_baseline(self):
+        import changes
+        from policy_invariants import NON_WAIVABLE
+        import validate_catalog
+        catalog=json.loads((ROOT / "catalog.json").read_text(encoding="utf-8"))
+        nonwaivable={r["id"] for r in catalog["rules"]
+                    if r.get("waiver_policy",{}).get("allowed") is False
+                    and r.get("waiver_policy",{}).get("reason")}
+        self.assertEqual(NON_WAIVABLE,nonwaivable)
+        self.assertEqual(len(NON_WAIVABLE),20)
+        self.assertEqual(validate_catalog.validate(catalog), [])
+        example={"schema_version":"LF_STANDARD_CHANGE_V1","change_id":"CHG-0001",
+             "change_class":"ADDITIVE","title":"test","reason":"test",
+             "trigger":{"kind":"C9","reference":"synthetic"},
+             "artifacts":[],"affected":{},"existing_code_impact":{},
+             "security_pin_invalidation":{"invalidates":False},
+             "requested_by":"test","approved_by":"paulozterra","evidence":{}}
+        tool=["standards/tools/waivers.py"]
+        result=lambda files,chg=None,base=None,head=None: changes.check_transition(base or {},head or {},files,chg)["findings"]
+        self.assertIn("MISSING_CHG",result(tool))
+        self.assertIn("CHANGE_CLASS_MISMATCH",result(tool,{**example,"change_class":"EDITORIAL"}))
+        relaxing={**example,"change_class":"RELAXING","risk":"Riesgo aceptado","compensating_control":"Control alternativo"}
+        self.assertEqual(result(tool,relaxing),[])
+        self.assertIn("MISSING_RELAXING_EVIDENCE",result(tool,{**example,"change_class":"RELAXING"}))
+        self.assertIn("MISSING_CHG",result([".github/workflows/ci.yml"]))
+        self.assertEqual(result([".github/workflows/ci.yml"],example),[])
+        pin="standards/pins.json"
+        old={pin:{"minimum_safe_versions":{"catalog":None}}}
+        new={pin:{"minimum_safe_versions":{"catalog":"0.6.0"}}}
+        self.assertIn("MISSING_CHG",result([pin],None,old,new))
+        self.assertIn("CHANGE_CLASS_MISMATCH",result([pin],example,old,new))
+        baseline="standards/baseline/STD-GEN-01.json"
+        prior={baseline:{"count":0,"fingerprints":[]}}
+        increased={baseline:{"count":1,"fingerprints":["new"]}}
+        self.assertIn("BASELINE_INCREASE",result([baseline],None,prior,increased))
+        self.assertEqual(result([baseline],None,increased,prior),[])
+        self.assertEqual(changes.compare_measured_baseline(
+            {"STD-GEN-01":{"count":0,"fingerprints":[]},
+             "STD-FE-07":{"count":0,"fingerprints":[],"measurement":"NOT_MEASURED_UNTIL_C10"}},
+            {"STD-GEN-01":[],"STD-FE-07":[]},
+            {"STD-GEN-01":[],"STD-FE-07":["unmeasured"]}),[])
+        self.assertIn("BASELINE_INCREASE",changes.compare_measured_baseline(
+            {"STD-GEN-05":{"count":0,"fingerprints":[]}},
+            {"STD-GEN-05":[]},{"STD-GEN-05":["new-suppression"]}))
+
     def test_semver_and_security_domains(self):
         import changes
         for key in ("STD-SEC-01","STD-GEN-03","STD-DB-06","STD-API-04",
