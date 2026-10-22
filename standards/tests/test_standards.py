@@ -111,6 +111,32 @@ class GlossaryTests(unittest.TestCase):
     def test_false_positives_are_not_flagged(self):
         self.assertEqual(self.scan("FalsePositive.java", "backend/src/main/java/lf/sandbox/core/PaymentGateway.java"), [])
 
+    def test_standalone_rejections_preserve_canonical_and_unrelated_names(self):
+        path = "db/V10__offer_rules.sql"
+        for identifier in (
+            "offer_rule_id", "offer_condition_id", "prevention_rule",
+            "lint_rule", "http_condition",
+        ):
+            with self.subTest(identifier=identifier):
+                self.assertEqual(self.scanner.scan(path, f"CREATE TABLE {identifier} (id bigint);"), [])
+
+    def test_standalone_rejections_flag_bare_and_plural_forms(self):
+        path = "db/V11__bare_rules.sql"
+        for sql, rejected in (
+            ("CREATE TABLE rules (id bigint);", "'rules' usa 'rule'"),
+            ("CREATE TABLE example (rule_id bigint);", "'rule_id' usa 'rule'"),
+            ("CREATE TABLE example (condition text);", "'condition' usa 'condition'"),
+        ):
+            with self.subTest(sql=sql):
+                found = "\\n".join(self.scanner.scan(path, sql))
+                self.assertIn(rejected, found)
+
+    def test_invalid_rejection_match_is_rejected(self):
+        bad = copy.deepcopy(self.glossaries)
+        term = next(t for g in bad for t in g["terms"] if t["term_en"] == "offer_rule")
+        term["rejected_en"][0]["match"] = "substring"
+        self.assertTrue(any("match inválido" in e for e in glossary.validate(bad)))
+
     def test_coverage_positive(self):
         mapping = json.loads((GLOSSARY_FIXTURES / "coverage_ok.json").read_text(encoding="utf-8"))
         self.assertEqual(glossary.coverage(self.glossaries, mapping), [])
