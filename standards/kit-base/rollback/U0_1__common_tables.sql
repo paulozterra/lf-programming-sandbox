@@ -1,0 +1,2 @@
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='${schema}' AND c.relkind='r' AND c.reltuples>0) THEN RAISE EXCEPTION 'bootstrap rollback requires empty tables'; END IF; END $$;
+DROP TABLE ${schema}.consents,${schema}.legal_documents,${schema}.navigation_events,${schema}.navigation_event_types,${schema}.audit_events,${schema}.messages,${schema}.error_occurrences,${schema}.errors;
