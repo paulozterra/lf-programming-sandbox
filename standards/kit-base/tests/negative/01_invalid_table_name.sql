@@ -1,0 +1,1 @@
+CREATE TABLE ${schema}."FechaPago"(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY);
