@@ -10,6 +10,6 @@
   ],
   "count": 0,
   "fingerprints": [],
-  "measurement": "Main source files inspected, 0 matching findings; formatter checks require CI confirmation.",
+  "measurement": "NOT_MEASURED_UNTIL_C10",
   "evidence": "https://github.com/paulozterra/lf-programming-sandbox/commit/25169e491907c59b47176abdc8c14be346bfd708"
 }
