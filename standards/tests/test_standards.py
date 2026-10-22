@@ -421,7 +421,7 @@ class ChangeCircuitTests(unittest.TestCase):
         self.assertEqual(changes.classify_fields([("/rules/STD-FE-07/severity","WARN","BLOCK")])[0],"TIGHTENING")
         self.assertEqual(changes.classify_fields([("/rules/STD-FE-07/waiver_policy/allowed",False,True)])[0],"RELAXING")
         self.assertEqual(changes.classify_fields([("/rules/STD-SEC-01/severity","WARN","BLOCK")])[0],"SECURITY")
-        self.assertEqual(changes.classify_fields([("/rules/STD-FE-07/new_rule",None,"new")])[0],"ADDITIVE")
+        self.assertEqual(changes.classify_fields([("/rules/STD-NEW-01",None,{"id":"STD-NEW-01"})])[0],"ADDITIVE")
 
 if __name__ == "__main__":
     unittest.main()
