@@ -11,9 +11,9 @@ ROOT = Path(__file__).resolve().parents[2]
 CATALOG = ROOT / "standards/catalog.json"
 REGISTRY = ROOT / "standards/waivers/waivers.json"
 OUTPUT = ROOT / "standards/WAIVERS.md"
-ID = re.compile(r"^WAIVER-\\d{4,}$")
-REF = re.compile(r"WAIVER-\\d{4,}")
-SUPPRESS = re.compile(r"eslint-disable(?:-next-line|-line)?|@ts-ignore|@ts-expect-error|prettier-ignore|@SuppressWarnings|#\\s*noqa|NOSONAR|#\\s*type:\\s*ignore")
+ID = re.compile(r"^WAIVER-\d{4,}$")
+REF = re.compile(r"WAIVER-\d{4,}")
+SUPPRESS = re.compile(r"eslint-disable(?:-next-line|-line)?|@ts-ignore|@ts-expect-error|prettier-ignore|@SuppressWarnings|#\s*noqa|NOSONAR|#\s*type:\s*ignore")
 UTC = dt.timezone.utc
 
 
@@ -47,7 +47,7 @@ def validate(catalog, registry):
         return ["waivers debe ser lista"]
     if registry.get("schema_version") != "LF_WAIVERS_V1":
         errors.append("schema_version inválido")
-    if not re.fullmatch(r"\\d+\\.\\d+\\.\\d+", str(registry.get("registry_version", ""))):
+    if not re.fullmatch(r"\d+\.\d+\.\d+", str(registry.get("registry_version", ""))):
         errors.append("registry_version inválido")
     ids = set()
     for w in waivers:
@@ -75,7 +75,7 @@ def validate(catalog, registry):
             errors.append(f"{wid}: requested_by obligatorio")
         if approver not in settings["approvers"] or approver == requester or (isinstance(approver, str) and approver.startswith("agent:")):
             errors.append(f"{wid}: approved_by inválido")
-        if not isinstance(w.get("evidence"), str) or not re.fullmatch(r"https://github\\.com/[^/]+/[^/]+/pull/\\d+", w["evidence"]):
+        if not isinstance(w.get("evidence"), str) or not re.fullmatch(r"https://github\.com/[^/]+/[^/]+/pull/\d+", w["evidence"]):
             errors.append(f"{wid}: evidence debe ser URL real de PR")
         scope = w.get("scope", {})
         paths = scope.get("paths", []) if isinstance(scope, dict) else []
@@ -83,7 +83,7 @@ def validate(catalog, registry):
             errors.append(f"{wid}: scope.paths obligatorio")
             paths = []
         for path in paths:
-            if not isinstance(path, str) or path.startswith("/") or ".." in Path(path).parts or path in ("*", "**", "**/*") or "\\\\" in path:
+            if not isinstance(path, str) or path.startswith("/") or ".." in Path(path).parts or path in ("*", "**", "**/*") or "\\" in path:
                 errors.append(f"{wid}: scope.paths inválido")
             if w.get("kind") == "TEST_FIXTURE" and not path.startswith("standards/tests/fixtures/"):
                 errors.append(f"{wid}: TEST_FIXTURE fuera de fixtures")
@@ -139,9 +139,9 @@ def parse_suppression(line):
     if not SUPPRESS.search(line):
         return []
     targets = []
-    m = re.search(r"eslint-disable(?:-next-line|-line)?\\b([^\\n]*)", line)
+    m = re.search(r"eslint-disable(?:-next-line|-line)?\b([^\n]*)", line)
     if m:
-        fragment = re.split(r"\\s+--|\\*/|\\n", m.group(1))[0].strip()
+        fragment = re.split(r"\s+--|\*/|\n", m.group(1))[0].strip()
         rules = [x.strip() for x in fragment.split(",") if x.strip()]
         if not rules:
             return [("MISSING_LINTER_RULE", None)]
@@ -151,17 +151,17 @@ def parse_suppression(line):
             targets.append({"kind": "STD_RULE", "rule_id": "STD-FE-03", "controls": [control]})
     if "prettier-ignore" in line:
         targets.append({"kind": "STD_RULE", "rule_id": "STD-FE-07", "controls": []})
-    m = re.search(r'@SuppressWarnings\\(["\\\']([^"\\\']+)["\\\']\\)', line)
+    m = re.search(r'@SuppressWarnings\(["\\']([^"\\']+)["\\']\)', line)
     if m:
         targets.append({"kind": "LINTER_RULE", "tool": "java", "rule": m.group(1)})
-    m = re.search(r"#\\s*noqa:\\s*([\\w, ]+)", line)
+    m = re.search(r"#\s*noqa:\s*([\w, ]+)", line)
     if m:
         targets += [{"kind": "LINTER_RULE", "tool": "python", "rule": x.strip()} for x in m.group(1).split(",") if x.strip()]
-    elif re.search(r"#\\s*noqa\\b", line):
+    elif re.search(r"#\s*noqa\b", line):
         return [("MISSING_LINTER_RULE", None)]
     if "NOSONAR" in line:
         targets.append({"kind": "LINTER_RULE", "tool": "sonar", "rule": "NOSONAR"})
-    if re.search(r"#\\s*type:\\s*ignore", line):
+    if re.search(r"#\s*type:\s*ignore", line):
         targets.append({"kind": "LINTER_RULE", "tool": "mypy", "rule": "type-ignore"})
     return targets
 
@@ -228,7 +228,7 @@ def render(registry):
         target = w["target"]
         obj = target.get("rule_id") or f"{target.get('tool')}:{target.get('rule')}"
         rows.append(f"| {w['waiver_id']} | {w['kind']} | {obj} | {', '.join(w['scope']['paths'])} | {w['status']} | {w['approved_by']} | {w['expires_at']} | {w['evidence']} |")
-    return "\\n".join(rows) + "\\n"
+    return "\n".join(rows) + "\n"
 
 
 def main(argv=None):
