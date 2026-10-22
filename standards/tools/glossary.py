@@ -89,6 +89,8 @@ def validate(glossaries: list[dict]) -> list[str]:
                         if not isinstance(es, str) or not es.strip() or not isinstance(en, str) or not SNAKE.fullmatch(en):
                             errors.append(f"{label}: values contiene una traducción inválida")
             for rejected in term["rejected_en"]:
+                if rejected.get("match", "token") not in ("token", "standalone"):
+                    errors.append(f"{label}: rechazo '{rejected.get('form')}' con match inválido")
                 if rejected.get("form") == term["term_en"]:
                     errors.append(f"{label}: la forma canónica aparece como rechazada")
                 if not rejected.get("reason") or not set(rejected.get("contexts", [])) or not set(rejected["contexts"]) <= contexts:
@@ -186,7 +188,8 @@ class Scanner:
         self.spanish_paths = glossaries[0]["spanish_check_paths"]
         self.exclusions = set().union(*(set(g.get("spanish_token_exclusions", [])) for g in glossaries))
         self.spanish: dict[str, str] = {}
-        self.rejected: list[tuple[list[str], set[str], set[str], dict]] = []
+        self.rejected: list[tuple[list[str], set[str], set[str], str, dict]] = []
+        self.technical_tokens = set(glossaries[0]["technical_tokens"])
         self.legacy: list[tuple[str, str]] = []
         for term in terms(glossaries):
             words = [term["term_es"], *term["synonyms_es"]]
@@ -196,7 +199,7 @@ class Scanner:
                         for form in (token, token + "s", token + "es"):
                             self.spanish.setdefault(form, term["term_id"])
             for rejected in term["rejected_en"]:
-                self.rejected.append((rejected["form"].split("_"), set(rejected["contexts"]), set(rejected.get("except_after", [])), term))
+                self.rejected.append((rejected["form"].split("_"), set(rejected["contexts"]), set(rejected.get("except_after", [])), rejected.get("match", "token"), term))
             for legacy in term["legacy_en"]:
                 for contract in legacy["contracts"]:
                     parts = contract.split(".")
@@ -232,9 +235,17 @@ class Scanner:
                                 violations.append(
                                     f"STD-GEN-01 {path}:{number}: '{name}' usa '{token}' en español (ver {self.spanish[token]})"
                                 )
-                    for form, where, except_after, term in self.rejected:
+                    for form, where, except_after, match_mode, term in self.rejected:
                         if not contexts & where:
                             continue
+                        canonical = split_tokens(term["term_en"])
+                        if any(tokens[i:i + len(canonical)] == canonical for i in range(len(tokens) - len(canonical) + 1)):
+                            continue
+                        if match_mode == "standalone":
+                            semantic = [token for token in tokens if token not in self.technical_tokens]
+                            forms = (form, [*form[:-1], form[-1] + "s"])
+                            if semantic not in forms:
+                                continue
                         for i in range(len(tokens) - len(form) + 1):
                             if tokens[i : i + len(form)] == form and not (i > 0 and tokens[i - 1] in except_after):
                                 violations.append(
