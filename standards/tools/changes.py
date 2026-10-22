@@ -253,6 +253,60 @@ def review_content_digest(base):
     return sha(b"\n".join(items))
 
 
+def measured_shadow_findings(ref):
+    """Mide de forma reproducible fuentes reales, no acepta contadores inventados."""
+    import glossary
+    import waivers
+    records={rule:[] for rule in SHADOW}
+    gl=glossary.load()
+    scanner=glossary.Scanner(gl)
+    paths=git("ls-tree","-r","--name-only",ref,"--","backend/src","frontend/src").splitlines()
+    for path in paths:
+        if ref=="HEAD" and (ROOT/path).is_file():
+            content=(ROOT/path).read_text(encoding="utf8",errors="replace")
+        else:
+            content=file_at(ref,path)
+        if content is None:continue
+        lines=content.splitlines()
+        if path.startswith("frontend/src/") and Path(path).suffix in (".ts",".tsx",".js",".jsx",".mjs",".css"):
+            stem=Path(path).name.split(".")[0]
+            if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*",stem) and Path(path).name!="next-env.d.ts":
+                records["STD-FE-02"].append(baseline_fingerprint("STD-FE-02",path,"INVALID_FILENAME",Path(path).name))
+        if Path(path).suffix in (".ts",".tsx",".js",".jsx",".mjs",".java",".py"):
+            for number,line in enumerate(lines,1):
+                if waivers.SUPPRESS.search(line) and not waivers.REF.search(line):
+                    records["STD-GEN-05"].append(baseline_fingerprint("STD-GEN-05",path,"NO_WAIVER",line))
+        for item in scanner.scan(path,content):
+            match=re.search(r":(\d+):",item)
+            if match:
+                number=int(match.group(1))
+                original=lines[number-1] if number<=len(lines) else item
+                records["STD-GEN-01"].append(baseline_fingerprint("STD-GEN-01",path,"SPANISH_OR_REJECTED",original))
+    # Rama no es archivo histórico: STD-GIT-01 se evalúa en el job sombra,
+    # pero no se inventan hallazgos históricos para main.
+    return {k:sorted(set(v)) for k,v in records.items()}
+
+
+def compare_baseline_ref(base,records):
+    prior=measured_shadow_findings(base)
+    head=measured_shadow_findings("HEAD")
+    issues=[]
+    for rule,info in records.items():
+        expected=sorted(info["fingerprints"])
+        if info["count"]!=len(expected):
+            issues.append("BASELINE_INCREASE")
+        if prior.get(rule,[])!=expected:
+            issues.append("BASELINE_MISMATCH")
+        if len(head.get(rule,[]))>info["count"] or set(head.get(rule,[]))-set(expected):
+            issues.append("BASELINE_INCREASE")
+    # Hasta C10 no hay huellas línea-a-línea para formatter java/prettier;
+    # no se declara PASS si cambió código fuente de esas disciplinas.
+    altered=git("diff","--name-only",base,"HEAD").splitlines()
+    if any(x.startswith(("backend/src/","frontend/src/")) for x in altered):
+        issues.append("FORMATTER_BASELINE_REQUIRES_EVIDENCE")
+    return sorted(set(issues))
+
+
 def check_pins(pins,previous=None):
     errors=[]
     for name,minimum in pins.get("minimum_safe_versions",{}).items():
@@ -321,10 +375,8 @@ def main(argv=None):
         baseline={p.stem:json.loads(p.read_text(encoding="utf8")) for p in BASELINE.glob("*.json")}
         # New or modified source findings are rejected by the existing diff scanners.
         # Historical fingerprint comparison requires same scanner version on both refs.
-        errors=[]
-        for rule,data in baseline.items():
-            if data["count"]!=len(data["fingerprints"]):errors.append("BASELINE_INCREASE")
-        return report(errors,baseline_rules=len(baseline))
+        errors=compare_baseline_ref(base,baseline)
+        return report(errors,baseline_rules=len(baseline),base_sha=base)
 
 
 if __name__=="__main__":
