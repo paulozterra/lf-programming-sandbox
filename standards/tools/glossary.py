@@ -247,7 +247,7 @@ class Scanner:
                             if semantic not in forms:
                                 continue
                         for i in range(len(tokens) - len(form) + 1):
-                            if tokens[i : i + len(form)] == form and not (i > 0 and tokens[i - 1] in except_after):
+                            if (tokens[i : i + len(form)] == form or (match_mode == "standalone" and tokens[i : i + len(form)] == [*form[:-1], form[-1] + "s"])) and not (i > 0 and tokens[i - 1] in except_after):
                                 violations.append(
                                     f"STD-GEN-01 {path}:{number}: '{name}' usa '{'_'.join(form)}', rechazado para "
                                     f"{term['term_es']} → usar '{term['term_en']}' ({term['term_id']})"
