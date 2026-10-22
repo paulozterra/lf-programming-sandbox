@@ -20,8 +20,8 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
@@ -35,8 +35,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
@@ -50,8 +50,8 @@ jobs:
     name: estándares (catálogo y checks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: python3 standards/tools/validate_catalog.py
@@ -63,32 +63,27 @@ jobs:
     name: estándares (modo sombra)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
       - name: STD-BE-05 formato Java (Spotless + palantir)
-        continue-on-error: true
-        run: mvn -B -ntp -f backend/pom.xml spotless:check
+        run: mvn -B -ntp -f backend/pom.xml spotless:check || echo "::warning title=STD-BE-05 (sombra)::Formato Java distinto a palantir; corregir con mvn -f backend/pom.xml spotless:apply"
       - name: STD-FE-07 formato frontend (Prettier)
-        continue-on-error: true
         working-directory: frontend
-        run: npx --yes prettier@3.9.10 --check "src/**/*.{ts,tsx,css}" "*.{ts,mjs,json}"
+        run: npx --yes prettier@3.9.10 --check "src/**/*.{ts,tsx,css}" "*.{ts,mjs,json}" || echo "::warning title=STD-FE-07 (sombra)::Formato frontend distinto a Prettier"
       - name: STD-FE-02 nombres de archivo en kebab-case
-        continue-on-error: true
-        run: python3 standards/tools/checks.py filenames frontend/src
+        run: python3 standards/tools/checks.py filenames frontend/src | sed 's/^STD-/::warning title=STD-FE-02 (sombra)::STD-/' || true
       - name: STD-GEN-05 supresiones con waiver
-        continue-on-error: true
-        run: python3 standards/tools/checks.py suppressions backend/src frontend/src
+        run: python3 standards/tools/checks.py suppressions backend/src frontend/src | sed 's/^STD-/::warning title=STD-GEN-05 (sombra)::STD-/' || true
       - name: STD-GIT-01 nombre de rama
         if: github.event_name == 'pull_request'
-        continue-on-error: true
-        run: python3 standards/tools/checks.py branch "${{ github.head_ref }}"
+        run: python3 standards/tools/checks.py branch "${{ github.head_ref }}" | sed 's/^STD-/::warning title=STD-GIT-01 (sombra)::STD-/' || true
 
   infra-local:
     name: infra local (docker compose)
@@ -96,7 +91,7 @@ jobs:
     env:
       POSTGRES_PASSWORD: ci-only
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: docker compose -f docker/compose.yaml config --quiet
       - run: docker compose -f docker/compose.yaml up -d --wait --wait-timeout 180
       - name: Floci acepta conexiones
