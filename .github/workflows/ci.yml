@@ -60,6 +60,8 @@ jobs:
       - run: python3 standards/tools/glossary.py render --check
       - run: python3 standards/tools/waivers.py validate
       - run: python3 standards/tools/waivers.py render --check
+      - run: python3 standards/tools/kit.py verify
+      - run: python3 standards/tools/db_catalog_lint.py check-files standards/kit-base/migrations
       - run: python3 -m unittest discover -s standards/tests -v
 
   standards-shadow:
@@ -99,10 +101,21 @@ jobs:
     runs-on: ubuntu-latest
     env:
       POSTGRES_PASSWORD: ci-only
+      KIT_PSQL_MODE: docker
     steps:
       - uses: actions/checkout@v5
       - run: docker compose -f docker/compose.yaml config --quiet
       - run: docker compose -f docker/compose.yaml up -d --wait --wait-timeout 180
+      - name: Kit C5 render reproducible
+        run: python3 standards/tools/kit.py render --schema kit_test --trace-prefix KIT --out /tmp/kit-render
+      - name: Kit C5 migraciones y reversas
+        run: python3 standards/tools/db_catalog_lint.py migrate-test
+      - name: Kit C5 revisión PostgreSQL (bloqueante solo kit)
+        run: python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json
+      - name: Kit C5 negativos por regla
+        run: python3 standards/tools/db_catalog_lint.py test-negative
+      - name: Kit C5 conducta y roles
+        run: python3 standards/tools/db_catalog_lint.py test-behavior
       - name: Floci acepta conexiones
         run: |
           for i in $(seq 1 30); do
