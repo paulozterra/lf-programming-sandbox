@@ -186,6 +186,74 @@ class GlossaryTests(unittest.TestCase):
         self.assertEqual(waivers.render(registry), waivers.OUTPUT.read_text(encoding="utf-8"))
         self.assertNotEqual(waivers.render(registry), waivers.render({**registry, "registry_version":"9.9.9"}))
 
+
+    def test_check_refs_fail_closed_and_targets(self):
+        import waivers
+        import datetime as dt
+        catalog, registry = waivers.load()
+        as_of = dt.datetime(2026, 10, 23, tzinfo=dt.timezone.utc)
+        fixture = "standards/tests/fixtures/waivers/"
+        cases = [
+            ("java-no-waiver.java", "NO_WAIVER"),
+            ("java-array.java", "NO_WAIVER"),
+            ("unparsed.java", "UNPARSED_SUPPRESSION"),
+            ("wrong-target.ts", "TARGET_MISMATCH"),
+        ]
+        for path, reason in cases:
+            with self.subTest(path=path):
+                issues = waivers.check_refs(catalog, registry, [fixture + path], as_of)
+                self.assertTrue(any(reason in issue for issue in issues), issues)
+        java_targets = waivers.parse_suppression('@SuppressWarnings({"a","b"})')
+        self.assertEqual([t["rule"] for t in java_targets], ["a", "b"])
+        self.assertEqual(len(waivers.check_refs(catalog, registry, [fixture + "java-array.java"], as_of)), 1)
+        self.assertEqual(waivers.check_refs(catalog, registry, ["standards/tests/fixtures/suppressions/good.ts"], as_of), [])
+        self.assertTrue(any("NO_WAIVER" in issue for issue in waivers.check_refs(
+            catalog, registry, ["standards/tests/fixtures/suppressions/bad.ts"], as_of)))
+
+    def test_superseded_and_catalog_versions(self):
+        import waivers
+        import datetime as dt
+        catalog, registry = waivers.load()
+        future = copy.deepcopy(catalog)
+        future["catalog_version"] = "0.3.1"
+        self.assertEqual(waivers.validate(future, registry), [])
+        future_waiver = copy.deepcopy(registry)
+        future_waiver["waivers"][0]["catalog_version"] = "0.4.0"
+        self.assertTrue(any("posterior" in msg for msg in waivers.validate(catalog, future_waiver)))
+        invalid = copy.deepcopy(registry)
+        invalid["waivers"][0]["catalog_version"] = "not-semver"
+        self.assertTrue(any("semver" in msg for msg in waivers.validate(catalog, invalid)))
+        amended = copy.deepcopy(registry)
+        newer = copy.deepcopy(amended["waivers"][0])
+        newer["waiver_id"] = "WAIVER-0002"
+        newer["supersedes"] = "WAIVER-0001"
+        amended["waivers"].append(newer)
+        path = "standards/tests/fixtures/suppressions/good.ts"
+        target = {"kind": "LINTER_RULE", "tool": "eslint", "rule": "no-console"}
+        day = dt.datetime(2026, 10, 23, tzinfo=dt.timezone.utc)
+        self.assertEqual(waivers.evaluate(catalog, {"waivers":[amended["waivers"][0], newer]}, path, target, day)[0], "AUTHORIZED")
+        self.assertEqual(waivers.evaluate(catalog, {"waivers":[amended["waivers"][0], newer]}, path, target, day)[2], ["WAIVER-0002"])
+        self.assertEqual(waivers.evaluate(catalog, {"waivers":[amended["waivers"][0], newer], "restricted":True}, path, target, day)[0], "AUTHORIZED")
+        # A aislado de B para comprobar el motivo SUPERSEDED dentro del registro global.
+        old = amended["waivers"][0]
+        old["scope"]["paths"] = ["standards/tests/fixtures/waivers/old.ts"]
+        self.assertEqual(waivers.evaluate(catalog, amended, "standards/tests/fixtures/waivers/old.ts", target, day)[1], "SUPERSEDED")
+
+    def test_list_json_shape(self):
+        import waivers
+        import io
+        import contextlib
+        path = "standards/tests/fixtures/suppressions/good.ts"
+        args = ["list", "--path", path, "--linter", "eslint:no-console",
+                "--as-of", "2026-10-23T00:00:00Z", "--format", "json"]
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(waivers.main(args), 0)
+        payload = json.loads(output.getvalue())
+        self.assertEqual(set(payload), {"catalog_version", "registry_version", "as_of",
+                                       "path", "target", "decision", "reason_code", "matches"})
+        self.assertEqual(payload["decision"], "AUTHORIZED")
+
     def test_coverage_positive(self):
         mapping = json.loads((GLOSSARY_FIXTURES / "coverage_ok.json").read_text(encoding="utf-8"))
         self.assertEqual(glossary.coverage(self.glossaries, mapping), [])
