@@ -23,6 +23,19 @@ def validate(catalog: dict) -> list[str]:
     severities = set(catalog.get("severity_values", []))
     states = set(catalog.get("enforcement_states", {}))
     domains = {d["id"] for d in catalog.get("domains", [])}
+    settings = catalog.get("waiver_settings")
+    if not isinstance(settings, dict):
+        errors.append("waiver_settings obligatorio")
+    else:
+        if settings.get("approvers") != ["paulozterra"]:
+            errors.append("waiver_settings.approvers inválido")
+        if settings.get("max_days") != {"BLOCK": 30, "BLOCK_OR_WARN": 30, "WARN": 90}:
+            errors.append("waiver_settings.max_days inválido")
+        if settings.get("linter_rule_max_days") != 30 or settings.get("test_fixture_max_days") != 365:
+            errors.append("waiver_settings plazos inválidos")
+        deny = settings.get("linter_rule_denylist")
+        if not isinstance(deny, list) or len(deny) != len(set(deny)) or not all(isinstance(x, str) and ":" in x for x in deny):
+            errors.append("waiver_settings.linter_rule_denylist inválida")
     seen: set[str] = set()
     for rule in catalog.get("rules", []):
         rid = rule.get("id", "<sin id>")
@@ -46,6 +59,17 @@ def validate(catalog: dict) -> list[str]:
             errors.append(f"{rid}: estado de control desconocido {state}")
         if state in ENFORCEMENT_WITH_COMMAND and not rule["enforcement"].get("command"):
             errors.append(f"{rid}: un control '{state}' necesita 'command'")
+        policy = rule.get("waiver_policy")
+        if policy is not None:
+            if not isinstance(policy, dict) or type(policy.get("allowed")) is not bool:
+                errors.append(f"{rid}: waiver_policy.allowed inválido")
+            elif policy["allowed"]:
+                if rid not in {"STD-BE-05", "STD-FE-02", "STD-FE-03", "STD-FE-07"}:
+                    errors.append(f"{rid}: waiver no permitido por política inicial C8")
+                if rid == "STD-FE-03" and policy.get("eligible_controls") != ["@ts-ignore", "@ts-expect-error"]:
+                    errors.append(f"{rid}: eligible_controls inválidos")
+            elif not isinstance(policy.get("reason"), str) or not policy["reason"].strip():
+                errors.append(f"{rid}: waiver_policy.reason obligatorio")
         examples = rule.get("examples")
         if examples is not None and not (examples.get("good") and examples.get("bad")):
             errors.append(f"{rid}: 'examples' necesita 'good' y 'bad'")
