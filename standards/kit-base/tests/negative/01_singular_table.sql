@@ -1,0 +1,1 @@
+CREATE TABLE ${schema}.record(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY);

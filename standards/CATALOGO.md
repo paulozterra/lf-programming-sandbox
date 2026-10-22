@@ -1,4 +1,4 @@
-# Catálogo de estándares LF · v0.3.0
+# Catálogo de estándares LF · v0.4.0
 
 > Archivo generado desde `standards/catalog.json` con `standards/tools/render_llm.py`. No editar a mano.
 
@@ -84,7 +84,7 @@ Waiver: prohibido — Los codigos literales de Fase 1 no pueden alterarse
 
 ## STD-DB · PostgreSQL (L2)
 
-### STD-DB-01 · BLOCK · control pendiente
+### STD-DB-01 · BLOCK · exigido en CI
 
 Tablas y columnas en snake_case minúscula y en inglés (D4); tablas en plural (`debts`, `offers`)
 Waiver: prohibido (por defecto)
@@ -94,48 +94,48 @@ Waiver: prohibido (por defecto)
 - ❌ `create table Oferta (...)`
 - ❌ `column DescuentoPct`
 
-### STD-DB-02 · BLOCK (nuevas) · control pendiente
+### STD-DB-02 · BLOCK (nuevas) · exigido en CI
 
 PK y FK según D5
 Waiver: prohibido (por defecto)
 
-### STD-DB-03 · WARN · control pendiente
+### STD-DB-03 · WARN · exigido en CI
 
 Constraints e índices con el nombre por defecto de Postgres (D6)
 Waiver: prohibido (por defecto)
 
-### STD-DB-04 · BLOCK · control pendiente
+### STD-DB-04 · BLOCK · exigido en CI
 
 `created_at`/`updated_at` `timestamptz not null default now()` en tablas nuevas; `updated_at` lo mantiene un trigger común del kit base, nunca la aplicación
 Waiver: prohibido (por defecto)
 
-### STD-DB-05 · WARN · control pendiente
+### STD-DB-05 · WARN · exigido en CI
 
 Booleanos `is_`/`has_`; enums con tabla catálogo o `CHECK`, sin valores inventados
 Waiver: prohibido (por defecto)
 
 Reglas LF de origen: `PRV-SQL-008`
 
-### STD-DB-06 · BLOCK · control pendiente
+### STD-DB-06 · BLOCK · exigido en CI
 
 RLS activo en toda tabla nueva expuesta, con políticas explícitas
 Waiver: prohibido — RLS es control esencial de autorizacion
 
-### STD-DB-07 · BLOCK · control pendiente
+### STD-DB-07 · BLOCK · exigido en CI
 
 `SECURITY DEFINER` con EXECUTE revocado de PUBLIC, grants mínimos y `search_path` fijo
 Waiver: prohibido (por defecto)
 
 Reglas LF de origen: `PR-SEC-011`
 
-### STD-DB-08 · BLOCK · control pendiente
+### STD-DB-08 · BLOCK · exigido en CI
 
 Migración: apply, reapply, rollback y reapply conservando datos; expand/contract para cambios incompatibles
 Waiver: prohibido — Las migraciones deben preservar datos y reversibilidad
 
 Reglas LF de origen: `PRV-SQL-001`, `PRV-SQL-006`
 
-### STD-DB-09 · BLOCK · control pendiente
+### STD-DB-09 · BLOCK · exigido en CI
 
 Nombre de migración: plataforma LF; producto `V<n>__<descripcion_snake>.sql` (Flyway)
 Waiver: prohibido (por defecto)

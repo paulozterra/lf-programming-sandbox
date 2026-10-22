@@ -1,0 +1,1 @@
+DELETE FROM ${schema}.errors WHERE error_code IN ('${trace_prefix}-TEC-001','${trace_prefix}-TEC-002','${trace_prefix}-TEC-003','${trace_prefix}-TEC-004','${trace_prefix}-TEC-005','${trace_prefix}-TEC-006') AND copy_status='PENDING_COPY' AND user_title IS NULL AND user_message IS NULL;

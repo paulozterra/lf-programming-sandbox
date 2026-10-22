@@ -1,8 +1,8 @@
-# Glosario ES→EN · v0.2.0
+# Glosario ES→EN · v0.3.0
 
 > Generado desde `standards/glossary/*.json` con `standards/tools/glossary.py render`. No editar a mano.
 
-Digest: `8a79b2ba796bd3193ca67952a7500c9f18beaa984c252b0b4c604a8f22ef5a97`
+Digest: `69e392b388e5393aa420f454a6417269cb6994a45a9bd3de363e9b03f2e30134`
 
 **Precedencia de nombres:** contrato existente consumido > glosario del proyecto > glosario base > propuesta nueva (`REQUIRES_DECISION`). Una forma heredada vale solo en sus contratos exactos.
 
@@ -65,6 +65,115 @@ Autorización explícita de una persona para que una operación continúe. Plura
 - ✅ `approval_status`
 - ❌ `aprobacion_estado`
 - Fuentes: paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-08; paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-27; supabase: approval en 10 columnas · Decisión: GLOSS-DEC-LF-001
+
+### error → `error` · GLOSS-BASE-ERROR-001 · APROBADO
+
+Representa una categoría de error que el proyecto referencia mediante un código técnico. Plural: `errors`. Contextos: domain, database, api.
+- Nota: Homógrafo español/inglés: error se excluye de la detección española; se comprueba con el vocabulario canónico.
+- ✅ `error_id`
+- ❌ `errores`
+- Fuentes: STD-MSG-01 · Decisión: GLOSS-DEC-BASE-002
+
+### ocurrencia de error → `error_occurrence` · GLOSS-BASE-ERROR-OCCURRENCE-001 · APROBADO
+
+Registra una instancia trazable de un error generado durante una solicitud. Plural: `error_occurrences`. Contextos: domain, database, api.
+- ✅ `error_occurrence_id`
+- ❌ `ocurrencia_id`
+- ❌ `ocurrencias`
+- Fuentes: D2 · Decisión: GLOSS-DEC-BASE-002
+
+### mensaje → `message` · GLOSS-BASE-MESSAGE-001 · APROBADO
+
+Identifica un mensaje de la interfaz cuyo contenido autoriza la Fase 1. Plural: `messages`. Contextos: domain, database, api.
+- Rechazado `msg` en database, api: La abreviatura no es el nombre canónico message..
+- ✅ `message_id`
+- ❌ `mensaje`
+- ❌ `msg`
+- Fuentes: STD-MSG-01 · Decisión: GLOSS-DEC-BASE-002
+
+### acción sugerida → `suggested_action` · GLOSS-BASE-SUGGESTED-ACTION-001 · APROBADO
+
+Identifica la acción opcional que acompaña a un mensaje visible. Plural: `suggested_actions`. Contextos: domain, database, api.
+- ✅ `suggested_action_id`
+- ❌ `accion_sugerida`
+- Fuentes: STD-MSG-03 · Decisión: GLOSS-DEC-BASE-002
+
+### evento de auditoría → `audit_event` · GLOSS-BASE-AUDIT-EVENT-001 · APROBADO
+
+Registra una acción auditable producida por el servidor sin duplicar datos personales. Plural: `audit_events`. Contextos: domain, database, api.
+Sinónimos en español: auditoría.
+- ✅ `audit_event_id`
+- ❌ `audit_log`
+- ❌ `auditoria_evento`
+- Fuentes: STD-AUD-01 · Decisión: GLOSS-DEC-BASE-002
+
+### evento de navegación → `navigation_event` · GLOSS-BASE-NAVIGATION-EVENT-001 · APROBADO
+
+Identifica un evento de navegación asociado a una sesión y pantalla. Plural: `navigation_events`. Contextos: domain, database, api.
+Sinónimos en español: navegación.
+- ✅ `navigation_event_id`
+- ❌ `navegacion_evento`
+- Fuentes: STD-NAV-01 · Decisión: GLOSS-DEC-BASE-002
+
+### categoría de evento → `event_category` · GLOSS-BASE-EVENT-CATEGORY-001 · APROBADO
+
+Clasifica un evento de navegación entre las categorías técnicas permitidas. Plural: `event_categories`. Contextos: domain, database, api.
+- ✅ `event_category_id`
+- ❌ `categoria_evento`
+- Fuentes: STD-NAV-01 · Decisión: GLOSS-DEC-BASE-002
+
+### pantalla → `screen` · GLOSS-BASE-SCREEN-001 · APROBADO
+
+Identifica la pantalla de la interfaz desde la cual se registra un evento. Plural: `screens`. Contextos: domain, database, api.
+- ✅ `screen_id`
+- ❌ `pantalla`
+- ❌ `pantalla_codigo`
+- Fuentes: STD-NAV-01 · Decisión: GLOSS-DEC-BASE-002
+
+### sesión → `session` · GLOSS-BASE-SESSION-001 · APROBADO
+
+Agrupa eventos de navegación correspondientes a una sesión. Plural: `sessions`. Contextos: domain, database, api.
+- ✅ `session_id`
+- ❌ `sesion_id`
+- Fuentes: STD-NAV-01 · Decisión: GLOSS-DEC-BASE-002
+
+### documento legal → `legal_document` · GLOSS-BASE-LEGAL-DOCUMENT-001 · APROBADO
+
+Identifica la versión y vigencia de un documento legal referenciado por consentimientos. Plural: `legal_documents`. Contextos: domain, database, api.
+- Nota: Legal es homógrafo español/inglés y se excluye de la detección española; documento sigue siendo detectable.
+- ✅ `legal_document_id`
+- ❌ `documento_legal`
+- Fuentes: STD-CONS-01 · Decisión: GLOSS-DEC-BASE-002
+
+### consentimiento → `consent` · GLOSS-BASE-CONSENT-001 · APROBADO
+
+Registra la concesión o revocación de un consentimiento respecto de un documento legal. Plural: `consents`. Contextos: domain, database, api.
+- ✅ `consent_id`
+- ❌ `consentimientos`
+- Fuentes: STD-CONS-02 · Decisión: GLOSS-DEC-BASE-002
+
+### código de referencia → `trace_code` · GLOSS-BASE-TRACE-CODE-001 · APROBADO
+
+Identifica una referencia visible para localizar la traza de una incidencia. Plural: `trace_codes`. Contextos: domain, database, api.
+- Rechazado `trace_id` en database, api: La referencia visible debe conservar el nombre trace_code..
+- ✅ `trace_code_id`
+- ❌ `trace_id`
+- ❌ `codigo_referencia`
+- Fuentes: D12 · Decisión: GLOSS-DEC-BASE-002
+
+### identificador de correlación → `correlation_id` · GLOSS-BASE-CORRELATION-ID-001 · APROBADO
+
+Identifica la correlación transversal entre solicitudes y eventos relacionados. Plural: `correlation_ids`. Contextos: domain, database, api.
+- ✅ `correlation_id`
+- ❌ `correlacion_id`
+- Fuentes: D9 · Decisión: GLOSS-DEC-BASE-002
+
+### identificador de petición → `request_id` · GLOSS-BASE-REQUEST-ID-001 · APROBADO
+
+Identifica de manera única una petición HTTP. Plural: `request_ids`. Contextos: domain, database, api.
+- ✅ `request_id`
+- ❌ `peticion_id`
+- Fuentes: D9 · Decisión: GLOSS-DEC-BASE-002
 
 
 ## Glosario del proyecto LF (L3) · `CANDIDATO_EN_REPO_DE_CALIFICACION`

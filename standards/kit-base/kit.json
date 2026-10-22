@@ -1,0 +1,43 @@
+{
+  "kit_version": "0.1.0",
+  "catalog_version": "0.4.0",
+  "glossary_version": "0.3.0",
+  "placeholders": {
+    "schema": "^[a-z][a-z0-9_]*$",
+    "trace_prefix": "^[A-Z]{2,6}$"
+  },
+  "files": [
+    {
+      "path": "migrations/V0_1__common_tables.sql",
+      "sha256": "6616a9f90c52686c85b7d5dc8cd93614f4b54a86df8c498a749881249fa5ff8e"
+    },
+    {
+      "path": "migrations/V0_2__common_triggers.sql",
+      "sha256": "e6c7fec7a357667f7b520a4a28e81821b0c44383fb6aa40331764c1955dc18c5"
+    },
+    {
+      "path": "migrations/V0_3__support_views.sql",
+      "sha256": "a4127e5a3905c0beb66881caacb3186c3c57e029f3b7f1b5ff38f7b8397bd8d5"
+    },
+    {
+      "path": "migrations/V0_4__technical_errors_seed.sql",
+      "sha256": "513cfc1709acd9b7225f970338812b029ead4728941214201ed1566395561614"
+    },
+    {
+      "path": "rollback/U0_1__common_tables.sql",
+      "sha256": "f2df07ff0689c1f0de9d1ba5a93f171e16b93e9064f970e8dde2daff0a4e0493"
+    },
+    {
+      "path": "rollback/U0_2__common_triggers.sql",
+      "sha256": "798ef08a581e5d1cd5033a8495dc0a662ef076d18ec0f89cff86ac775d0f8858"
+    },
+    {
+      "path": "rollback/U0_3__support_views.sql",
+      "sha256": "5ebf93d5b3b0713b36ccacec8f19212af39a9aa1ba0d8b3dfa75d1ab124e01d6"
+    },
+    {
+      "path": "rollback/U0_4__technical_errors_seed.sql",
+      "sha256": "f78c4028101168d3a56f0b962385e0e91d9d09e556caa22545004d997a3aab40"
+    }
+  ]
+}

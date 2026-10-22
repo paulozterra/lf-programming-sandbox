@@ -2,7 +2,7 @@
   "level": "base",
   "status": "APROBADO_EN_REPO_DE_CALIFICACION",
   "schema_version": "LF_GLOSSARY_V1",
-  "glossary_version": "0.2.0",
+  "glossary_version": "0.3.0",
   "decisions": [
     {
       "id": "GLOSS-DEC-LF-001",
@@ -11,6 +11,14 @@
       "reviewed_by": "GPT, revisión independiente (22/10)",
       "scope": "Lote 1 · 16 términos",
       "ref": "claude/glosario-c4-lote1-2026-10-22.md (proyecto LF)"
+    },
+    {
+      "id": "GLOSS-DEC-BASE-002",
+      "date": "2026-10-22",
+      "approver": "Paulo (owner Fase 2)",
+      "reviewed_by": "Claude, revisión C5",
+      "scope": "Kit base PG-00·C5, términos comunes",
+      "ref": "GO owner 2026-10-22 C5"
     }
   ],
   "context_paths": {
@@ -27,7 +35,6 @@
     ]
   },
   "technical_tokens": [
-    "id",
     "ids",
     "at",
     "by",
@@ -35,7 +42,6 @@
     "is",
     "has",
     "can",
-    "code",
     "name",
     "type",
     "kind",
@@ -65,7 +71,34 @@
     "paid",
     "max",
     "min",
-    "due"
+    "technical",
+    "title",
+    "text",
+    "label",
+    "copy",
+    "active",
+    "occurred",
+    "context",
+    "actor",
+    "entity",
+    "result",
+    "details",
+    "types",
+    "duration",
+    "ms",
+    "channel",
+    "device",
+    "content",
+    "sha256",
+    "granted",
+    "ip",
+    "address",
+    "browser",
+    "info",
+    "internal",
+    "description",
+    "reference",
+    "http"
   ],
   "terms": [
     {
@@ -326,6 +359,443 @@
       ],
       "decision_ref": "GLOSS-DEC-LF-001",
       "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-ERROR-001",
+      "term_es": "error",
+      "term_en": "error",
+      "plural_en": "errors",
+      "definition": "Representa una categoría de error que el proyecto referencia mediante un código técnico.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "error_id"
+        ],
+        "bad": [
+          "errores"
+        ]
+      },
+      "sources": [
+        "STD-MSG-01"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO",
+      "notes": "Homógrafo español/inglés: error se excluye de la detección española; se comprueba con el vocabulario canónico."
+    },
+    {
+      "term_id": "GLOSS-BASE-ERROR-OCCURRENCE-001",
+      "term_es": "ocurrencia de error",
+      "term_en": "error_occurrence",
+      "plural_en": "error_occurrences",
+      "definition": "Registra una instancia trazable de un error generado durante una solicitud.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "error_occurrence_id"
+        ],
+        "bad": [
+          "ocurrencia_id",
+          "ocurrencias"
+        ]
+      },
+      "sources": [
+        "D2"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-MESSAGE-001",
+      "term_es": "mensaje",
+      "term_en": "message",
+      "plural_en": "messages",
+      "definition": "Identifica un mensaje de la interfaz cuyo contenido autoriza la Fase 1.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "msg",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "La abreviatura no es el nombre canónico message.",
+          "match": "token"
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "message_id"
+        ],
+        "bad": [
+          "mensaje",
+          "msg"
+        ]
+      },
+      "sources": [
+        "STD-MSG-01"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-SUGGESTED-ACTION-001",
+      "term_es": "acción sugerida",
+      "term_en": "suggested_action",
+      "plural_en": "suggested_actions",
+      "definition": "Identifica la acción opcional que acompaña a un mensaje visible.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "suggested_action_id"
+        ],
+        "bad": [
+          "accion_sugerida"
+        ]
+      },
+      "sources": [
+        "STD-MSG-03"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-AUDIT-EVENT-001",
+      "term_es": "evento de auditoría",
+      "term_en": "audit_event",
+      "plural_en": "audit_events",
+      "definition": "Registra una acción auditable producida por el servidor sin duplicar datos personales.",
+      "level": "base",
+      "synonyms_es": [
+        "auditoría"
+      ],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "audit_event_id"
+        ],
+        "bad": [
+          "audit_log",
+          "auditoria_evento"
+        ]
+      },
+      "sources": [
+        "STD-AUD-01"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-NAVIGATION-EVENT-001",
+      "term_es": "evento de navegación",
+      "term_en": "navigation_event",
+      "plural_en": "navigation_events",
+      "definition": "Identifica un evento de navegación asociado a una sesión y pantalla.",
+      "level": "base",
+      "synonyms_es": [
+        "navegación"
+      ],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "navigation_event_id"
+        ],
+        "bad": [
+          "navegacion_evento"
+        ]
+      },
+      "sources": [
+        "STD-NAV-01"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-EVENT-CATEGORY-001",
+      "term_es": "categoría de evento",
+      "term_en": "event_category",
+      "plural_en": "event_categories",
+      "definition": "Clasifica un evento de navegación entre las categorías técnicas permitidas.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "event_category_id"
+        ],
+        "bad": [
+          "categoria_evento"
+        ]
+      },
+      "sources": [
+        "STD-NAV-01"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-SCREEN-001",
+      "term_es": "pantalla",
+      "term_en": "screen",
+      "plural_en": "screens",
+      "definition": "Identifica la pantalla de la interfaz desde la cual se registra un evento.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "screen_id"
+        ],
+        "bad": [
+          "pantalla",
+          "pantalla_codigo"
+        ]
+      },
+      "sources": [
+        "STD-NAV-01"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-SESSION-001",
+      "term_es": "sesión",
+      "term_en": "session",
+      "plural_en": "sessions",
+      "definition": "Agrupa eventos de navegación correspondientes a una sesión.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "session_id"
+        ],
+        "bad": [
+          "sesion_id"
+        ]
+      },
+      "sources": [
+        "STD-NAV-01"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-LEGAL-DOCUMENT-001",
+      "term_es": "documento legal",
+      "term_en": "legal_document",
+      "plural_en": "legal_documents",
+      "definition": "Identifica la versión y vigencia de un documento legal referenciado por consentimientos.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "legal_document_id"
+        ],
+        "bad": [
+          "documento_legal"
+        ]
+      },
+      "sources": [
+        "STD-CONS-01"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO",
+      "notes": "Legal es homógrafo español/inglés y se excluye de la detección española; documento sigue siendo detectable."
+    },
+    {
+      "term_id": "GLOSS-BASE-CONSENT-001",
+      "term_es": "consentimiento",
+      "term_en": "consent",
+      "plural_en": "consents",
+      "definition": "Registra la concesión o revocación de un consentimiento respecto de un documento legal.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "consent_id"
+        ],
+        "bad": [
+          "consentimientos"
+        ]
+      },
+      "sources": [
+        "STD-CONS-02"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-TRACE-CODE-001",
+      "term_es": "código de referencia",
+      "term_en": "trace_code",
+      "plural_en": "trace_codes",
+      "definition": "Identifica una referencia visible para localizar la traza de una incidencia.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "trace_id",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "La referencia visible debe conservar el nombre trace_code.",
+          "match": "token"
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "trace_code_id"
+        ],
+        "bad": [
+          "trace_id",
+          "codigo_referencia"
+        ]
+      },
+      "sources": [
+        "D12"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-CORRELATION-ID-001",
+      "term_es": "identificador de correlación",
+      "term_en": "correlation_id",
+      "plural_en": "correlation_ids",
+      "definition": "Identifica la correlación transversal entre solicitudes y eventos relacionados.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "correlation_id"
+        ],
+        "bad": [
+          "correlacion_id"
+        ]
+      },
+      "sources": [
+        "D9"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-REQUEST-ID-001",
+      "term_es": "identificador de petición",
+      "term_en": "request_id",
+      "plural_en": "request_ids",
+      "definition": "Identifica de manera única una petición HTTP.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "request_id"
+        ],
+        "bad": [
+          "peticion_id"
+        ]
+      },
+      "sources": [
+        "D9"
+      ],
+      "decision_ref": "GLOSS-DEC-BASE-002",
+      "status": "APROBADO"
     }
   ],
   "spanish_check_paths": [
@@ -345,6 +815,7 @@
     "general",
     "legal",
     "normal",
-    "real"
+    "real",
+    "error"
   ]
 }

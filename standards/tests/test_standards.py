@@ -71,6 +71,33 @@ class GlossaryTests(unittest.TestCase):
     def scan(self, name, fake_path):
         return self.scanner.scan(fake_path, (GLOSSARY_FIXTURES / name).read_text(encoding="utf-8"))
 
+
+    def test_c5_spanish_forms_and_rendered_kit_are_clean(self):
+        import kit
+        import tempfile
+        sql = ("CREATE TABLE x.consentimientos(id bigint, pantalla text, mensaje text, "
+               "sesion_id uuid, ocurrencia_id bigint);")
+        findings = self.scanner.scan("backend/src/main/resources/db/migration/V1__check.sql", sql)
+        for form in ("consentimientos", "pantalla", "mensaje", "sesion", "ocurrencia"):
+            with self.subTest(form=form):
+                self.assertTrue(any(form in issue for issue in findings), findings)
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            kit.render("kit_test", "KIT", output)
+            for path in output.glob("*.sql"):
+                with self.subTest(file=path.name):
+                    findings = self.scanner.scan(
+                        "backend/src/main/resources/db/migration/" + path.name,
+                        path.read_text(encoding="utf-8"))
+                    self.assertEqual(findings, [])
+
+    def test_technical_tokens_must_not_shadow_glossary_terms(self):
+        for value, fragment in (("", "vacío"), ("consent", "canónico")):
+            with self.subTest(token=value):
+                bad = copy.deepcopy(self.glossaries)
+                bad[0]["technical_tokens"].append(value)
+                self.assertTrue(any(fragment in issue for issue in glossary.validate(bad)))
+
     def test_glossary_is_valid(self):
         self.assertEqual(glossary.validate(self.glossaries), [])
 
@@ -218,7 +245,7 @@ class GlossaryTests(unittest.TestCase):
         future["catalog_version"] = "0.3.1"
         self.assertEqual(waivers.validate(future, registry), [])
         future_waiver = copy.deepcopy(registry)
-        future_waiver["waivers"][0]["catalog_version"] = "0.4.0"
+        future_waiver["waivers"][0]["catalog_version"] = "99.0.0"
         self.assertTrue(any("posterior" in msg for msg in waivers.validate(catalog, future_waiver)))
         invalid = copy.deepcopy(registry)
         invalid["waivers"][0]["catalog_version"] = "not-semver"
@@ -289,6 +316,50 @@ class GlossaryTests(unittest.TestCase):
         self.assertEqual(scanner.scan("db/V7__legacy.sql", legacy), [])
         found = "\\n".join(scanner.scan("db/V8__new.sql", "CREATE TABLE bad (collection_amount numeric);"))
         self.assertIn("collection", found)
+
+
+
+class KitBaseTests(unittest.TestCase):
+    def test_verify_and_render(self):
+        import kit
+        import tempfile
+        self.assertEqual(kit.verify(), [])
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            kit.render("kit_test", "KIT", out)
+            self.assertEqual(len(list(out.glob("*.sql"))), 8)
+            self.assertIn("kit_test.errors", (out / "V0_1__common_tables.sql").read_text(encoding="utf-8"))
+            self.assertIn("KIT-[0-9]{8}", (out / "V0_1__common_tables.sql").read_text(encoding="utf-8"))
+            self.assertNotIn("\u0024{schema}", (out / "V0_1__common_tables.sql").read_text(encoding="utf-8"))
+            with self.assertRaisesRegex(ValueError, "INVALID_PLACEHOLDER"):
+                kit.render("../bad", "KIT", out)
+            with self.assertRaisesRegex(ValueError, "INVALID_PLACEHOLDER"):
+                kit.render("kit_test", "lowercase", out)
+
+    def test_migration_filenames(self):
+        import db_catalog_lint as lint
+        self.assertEqual(lint.check_files(str(ROOT / "kit-base/migrations")), [])
+        bad = lint.check_files(str(ROOT / "kit-base/tests/negative"))
+        self.assertTrue(any(x["reason_code"] == "INVALID_MIGRATION_NAME" and x["object"] == "V1__FechaPago.sql" for x in bad))
+
+    def test_lint_parser_negative(self):
+        import db_catalog_lint as lint
+        data = {
+            "tables": [{"name":"bad_table","comment":"mutable","rls":False}],
+            "columns":[{"table":"bad_table","name":"id","type":"integer","identity":"","nullable":False,"default":None},
+                       {"table":"bad_table","name":"created_at","type":"timestamp with time zone","nullable":False,"default":"now()"},
+                       {"table":"bad_table","name":"active","type":"boolean","nullable":True,"default":None}],
+            "constraints":[],"indexes":[{"table":"bad_table","name":"idx_custom"}],
+            "triggers":[],"functions":[{"name":"unsafe","definer":True,"search_path":None,"public_execute":True}],
+            "public_privileges":[{"name":"bad_table","privilege":"SELECT"}]}
+        result = lint.lint_data(data)
+        self.assertEqual(result["verdict"], "FAIL")
+        codes = {x["reason_code"] for x in result["findings"]}
+        self.assertTrue({"INVALID_PRIMARY_KEY", "INVALID_BOOLEAN_NAME", "INVALID_TIMESTAMP",
+                         "CUSTOM_INDEX_NAME", "MISSING_UPDATED_AT_TRIGGER", "UNSAFE_SECURITY_DEFINER",
+                         "RLS_REQUIRED"} <= codes)
+        self.assertEqual(set(result) & {"schema","catalog_version","kit_version","findings","verdict"},
+                         {"schema","catalog_version","kit_version","findings","verdict"})
 
 
 if __name__ == "__main__":

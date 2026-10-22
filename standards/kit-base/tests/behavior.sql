@@ -1,0 +1,98 @@
+-- Casos sintéticos, exclusivamente sobre kit_test en el PostgreSQL efímero del CI.
+DO $$
+DECLARE event_id bigint; doc_id bigint;
+BEGIN
+ INSERT INTO kit_test.audit_events(action_code,entity_type,result_code,correlation_id)
+ VALUES ('TEST','TEST','PASS','00000000-0000-4000-8000-000000000001') RETURNING id INTO event_id;
+ BEGIN
+  UPDATE kit_test.audit_events SET action_code='MUTATED' WHERE id=event_id;
+  RAISE EXCEPTION 'EXPECTED_UPDATE_REJECTION_NOT_RAISED';
+ EXCEPTION
+  WHEN SQLSTATE '55000' THEN NULL;
+  WHEN OTHERS THEN RAISE;
+ END;
+ BEGIN
+  DELETE FROM kit_test.audit_events WHERE id=event_id;
+  RAISE EXCEPTION 'EXPECTED_DELETE_REJECTION_NOT_RAISED';
+ EXCEPTION
+  WHEN SQLSTATE '55000' THEN NULL;
+  WHEN OTHERS THEN RAISE;
+ END;
+
+ INSERT INTO kit_test.legal_documents(document_type,document_version,content_sha256,valid_from)
+ VALUES ('TEST','v1',repeat('a',64),now()) RETURNING id INTO doc_id;
+ UPDATE kit_test.legal_documents SET valid_to=now()+interval '1 day' WHERE id=doc_id;
+ IF NOT EXISTS (SELECT 1 FROM kit_test.legal_documents WHERE id=doc_id AND valid_to IS NOT NULL) THEN
+  RAISE EXCEPTION 'LEGAL_CLOSE_FAILED';
+ END IF;
+ BEGIN
+  UPDATE kit_test.legal_documents SET valid_to=now()+interval '2 days' WHERE id=doc_id;
+  RAISE EXCEPTION 'LEGAL_SECOND_CLOSE_ALLOWED' USING ERRCODE = 'LFT01';
+ EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN NULL;
+  WHEN OTHERS THEN RAISE;
+ END;
+ BEGIN
+  UPDATE kit_test.legal_documents SET document_version='v2' WHERE id=doc_id;
+  RAISE EXCEPTION 'LEGAL_MUTATION_ALLOWED' USING ERRCODE = 'LFT01';
+ EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN NULL;
+  WHEN OTHERS THEN RAISE;
+ END;
+ BEGIN
+  DELETE FROM kit_test.legal_documents WHERE id=doc_id;
+  RAISE EXCEPTION 'LEGAL_DELETE_ALLOWED' USING ERRCODE = 'LFT01';
+ EXCEPTION
+  WHEN SQLSTATE 'P0001' THEN NULL;
+  WHEN OTHERS THEN RAISE;
+ END;
+
+ BEGIN
+  INSERT INTO kit_test.navigation_event_types(event_code,event_category) VALUES ('TEST','invalid');
+  RAISE EXCEPTION 'INVALID_NAV_CATEGORY_ACCEPTED';
+ EXCEPTION
+  WHEN SQLSTATE '23514' THEN NULL;
+  WHEN OTHERS THEN RAISE;
+ END;
+ BEGIN
+  INSERT INTO kit_test.error_occurrences(error_id,trace_code,correlation_id,request_id)
+  VALUES (1,'INVALID','00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002');
+  RAISE EXCEPTION 'INVALID_TRACE_ACCEPTED';
+ EXCEPTION
+  WHEN SQLSTATE '23514' THEN NULL;
+  WHEN OTHERS THEN RAISE;
+ END;
+END $$;
+
+DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='kit_test_runtime') THEN CREATE ROLE kit_test_runtime NOLOGIN; END IF; END $$;
+GRANT USAGE ON SCHEMA kit_test TO kit_test_runtime;
+GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA kit_test TO kit_test_runtime;
+GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA kit_test TO kit_test_runtime;
+GRANT UPDATE ON kit_test.errors,kit_test.messages,kit_test.navigation_event_types TO kit_test_runtime;
+GRANT UPDATE(valid_to) ON kit_test.legal_documents TO kit_test_runtime;
+SET ROLE kit_test_runtime;
+DO $$
+BEGIN
+ BEGIN
+  EXECUTE 'UPDATE kit_test.audit_events SET action_code=''ILLEGAL''';
+  RAISE EXCEPTION 'RUNTIME_UPDATE_ALLOWED';
+ EXCEPTION
+  WHEN SQLSTATE '42501' THEN NULL;
+  WHEN OTHERS THEN RAISE;
+ END;
+ BEGIN
+  EXECUTE 'DELETE FROM kit_test.audit_events';
+  RAISE EXCEPTION 'RUNTIME_DELETE_ALLOWED';
+ EXCEPTION
+  WHEN SQLSTATE '42501' THEN NULL;
+  WHEN OTHERS THEN RAISE;
+ END;
+ BEGIN
+  EXECUTE 'TRUNCATE kit_test.audit_events';
+  RAISE EXCEPTION 'RUNTIME_TRUNCATE_ALLOWED';
+ EXCEPTION
+  WHEN SQLSTATE '42501' THEN NULL;
+  WHEN OTHERS THEN RAISE;
+ END;
+END $$;
+RESET ROLE;

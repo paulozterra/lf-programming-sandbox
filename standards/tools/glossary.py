@@ -52,6 +52,14 @@ def validate(glossaries: list[dict]) -> list[str]:
     for glossary in glossaries:
         if glossary.get("schema_version") != "LF_GLOSSARY_V1":
             errors.append("schema_version debe ser LF_GLOSSARY_V1")
+        technical = glossary.get("technical_tokens", [])
+        canonical_tokens = {token for term in glossary.get("terms", [])
+                            for token in term.get("term_en", "").split("_")}
+        for token in technical:
+            if not isinstance(token, str) or not token.strip():
+                errors.append("technical_tokens: token vacío o inválido")
+            elif token in canonical_tokens:
+                errors.append(f"technical_tokens: '{token}' coincide con token canónico")
         contexts = set(glossary.get("context_paths", {}))
         decisions = {d["id"] for d in glossary.get("decisions", [])}
         for term in glossary.get("terms", []):
@@ -242,7 +250,7 @@ class Scanner:
                         if any(tokens[i:i + len(canonical)] == canonical for i in range(len(tokens) - len(canonical) + 1)):
                             continue
                         if match_mode == "standalone":
-                            semantic = [token for token in tokens if token not in self.technical_tokens]
+                            semantic = [token for token in tokens if token not in self.technical_tokens and token != 'id']  # D5: sufijo estructural, no término técnico
                             forms = (form, [*form[:-1], form[-1] + "s"])
                             if semantic not in forms:
                                 continue
@@ -275,7 +283,7 @@ def added_lines(base: str) -> dict[str, set[int]]:
 
 def coverage(glossaries: list[dict], mapping: dict) -> list[str]:
     by_id = {term["term_id"]: term for term in terms(glossaries)}
-    technical = set(glossaries[0]["technical_tokens"])
+    technical = set(glossaries[0]["technical_tokens"]) | {"id"}  # D5: clave estructural
     problems: list[str] = []
     for entry in mapping.get("identifiers", []):
         name, refs = entry["identifier"], entry.get("glossary_refs", [])
