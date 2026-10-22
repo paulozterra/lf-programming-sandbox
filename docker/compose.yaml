@@ -1,0 +1,33 @@
+# Entorno local de calificación: solo infraestructura (sin servicios de la app todavía).
+# Versiones fijas, nunca "latest". Puertos ligados a 127.0.0.1.
+name: lf-sandbox
+
+services:
+  postgres:
+    image: postgres:17.11
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sandbox}
+      POSTGRES_USER: ${POSTGRES_USER:-sandbox}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?definir POSTGRES_PASSWORD en .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  floci:
+    # Emulador local de AWS (S3, SQS, EventBridge, Secrets Manager, KMS).
+    image: floci/floci:2.1.0
+    environment:
+      FLOCI_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+      FLOCI_HOSTNAME: floci
+      FLOCI_SERVICES_UI_ENABLED: "false"
+    ports:
+      - "127.0.0.1:4566:4566"
+
+volumes:
+  postgres-data:
