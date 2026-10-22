@@ -20,7 +20,7 @@ NON_WAIVABLE = {"STD-GEN-03","STD-GEN-04","STD-GEN-05","STD-GEN-06","STD-GEN-07"
  "STD-DB-06","STD-DB-08","STD-API-04","STD-GIT-03","STD-SB-02",
  "STD-SEC-01","STD-SEC-02","STD-SEC-04","STD-AUD-01","STD-AUD-03",
  "STD-CONS-01","STD-CONS-02","STD-CONS-03","STD-CONS-04","STD-MSG-02"}
-KNOWN = {"catalog_version","glossary_version","registry_version","kit_version","schema_version",
+KNOWN = {"catalog_version","glossary_version","registry_version","kit_version","schema_version","change_registry",
  "status","source","canonical_store_target","severity_values","enforcement_states",
  "legacy_policy","precedence","domains","decisions","rules","waiver_settings","level",
  "context_paths","technical_tokens","terms","spanish_check_paths","spanish_token_exclusions",
