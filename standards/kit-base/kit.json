@@ -25,7 +25,7 @@
     },
     {
       "path": "rollback/U0_1__common_tables.sql",
-      "sha256": "f499bcad371d420b0ccca86d3678a3662065b6305f68bdd660e8018747589288"
+      "sha256": "f2df07ff0689c1f0de9d1ba5a93f171e16b93e9064f970e8dde2daff0a4e0493"
     },
     {
       "path": "rollback/U0_2__common_triggers.sql",
