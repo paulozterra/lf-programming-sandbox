@@ -1454,5 +1454,6 @@
       "eslint:react/no-danger",
       "eslint:@next/next/no-sync-scripts"
     ]
-  }
+  },
+  "change_registry": "standards/changes"
 }
