@@ -23,12 +23,45 @@ manifiesto del perfil técnico de cada proyecto.
 - **review:** lo verifica el revisor de PG-11 con rúbrica sí/no.
 - **planned:** control definido, aún no implementado.
 
-## Cambiar el catálogo
+## Circuito de cambio C9
 
-1. Editar `catalog.json` (subir `catalog_version`).
-2. `python3 standards/tools/render_llm.py`
-3. `python3 -m unittest discover -s standards/tests`
-4. PR con el GO del owner de la Fase 2. El circuito completo es PG-00·C9.
+La fuente es `standards/changes/CHG-NNNN.json` y la vista derivada es
+`standards/CAMBIOS.md`. El proceso obligatorio es **hallazgo → CHG →
+PR → CI → revisión por Claude → merge de Paulo → versión vigente**.
+`approved_by: paulozterra` es un aprobador previsto, **no prueba un GO**:
+la aprobación efectiva se acredita luego con los metadatos del merge de GitHub.
+No existe estado mutable en el CHG.
+
+Un PR lleva **un CHG**, clase más restrictiva según diff.
+`EDITORIAL` sube patch; `ADDITIVE`, `TIGHTENING`,
+`RELAXING` y `SECURITY` suben minor durante 0.x.
+RELAXING exige `risk` y `compensating_control`, nunca permite dispensar
+las reglas L1/no dispensables de C8. Mezclar RELAXING y TIGHTENING exige separar PRs.
+Un cambio de herramienta que altere veredictos exige CHG, aunque no cambie el
+catálogo; su versión queda fijada por Git SHA.
+
+Para SECURITY se requiere `independent_review` de otro chat, fuera del
+proyecto LF, con memoria y personalización desactivadas; incluye
+`reviewed_sha256`, `reviewer_ref` (hash de referencia privada),
+`separation_declaration` del owner y `provider_attested: false`.
+El CI valida estructura y huella, **no certifica** que la separación haya ocurrido.
+
+`standards/pins.json` declara mínimos seguros, inicialmente todos null.
+PG-01·C4 consumirá el pin; un cambio SECURITY que invalide el pin debe causar
+`PIN_INVALIDATED_SECURITY` y revalidación antes de una nueva escritura.
+El checker C9 controla coherencia; no ejecuta revalidaciones de PG-01.
+
+`standards/baseline/STD-*.json` captura la deuda D11 por regla:
+`count` y fingerprints SHA256(rule_id + path + reason_code + línea normalizada).
+El baseline no puede aumentar; la calibración, renombres y falsos positivos
+corresponden a C10. Las reglas nuevas bloquean solo lo nuevo/modificado.
+
+Herramientas: `python3 standards/tools/changes.py validate`,
+`render --check`, `check --base origin/main`,
+`baseline-check --base origin/main` y
+`pin-check --artifact catalog --version 0.5.0`.
+La política de waivers continúa en `catalog.json`, sin duplicarla
+en validadores Python; sus cambios normativos se controlan mediante CHG.
 
 Destino canónico: esquema `transversal` de LF, vía Router → Train (pendiente). Este repo es de calificación.
 

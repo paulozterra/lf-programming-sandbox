@@ -1,4 +1,4 @@
-# Catálogo de estándares LF · v0.4.0
+# Catálogo de estándares LF · v0.5.0
 
 > Archivo generado desde `standards/catalog.json` con `standards/tools/render_llm.py`. No editar a mano.
 

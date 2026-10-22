@@ -1,0 +1,15 @@
+{
+  "schema_version": "LF_STANDARD_DEBT_BASELINE_V1",
+  "rule_id": "STD-FE-07",
+  "target_repo": "paulozterra/lf-programming-sandbox",
+  "target_commit_sha": "25169e491907c59b47176abdc8c14be346bfd708",
+  "catalog_version": "0.4.0",
+  "scope": [
+    "backend/src/**",
+    "frontend/src/**"
+  ],
+  "count": 0,
+  "fingerprints": [],
+  "measurement": "NOT_MEASURED_UNTIL_C10",
+  "evidence": "https://github.com/paulozterra/lf-programming-sandbox/commit/25169e491907c59b47176abdc8c14be346bfd708"
+}

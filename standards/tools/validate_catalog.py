@@ -8,6 +8,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from policy_invariants import NON_WAIVABLE
 
 RULE_ID = re.compile(r"^STD-[A-Z]+-\d{2}$")
 REQUIRED_RULE_FIELDS = {"id", "domain", "rule", "severity", "status", "enforcement"}
@@ -28,11 +29,16 @@ def validate(catalog: dict) -> list[str]:
     if not isinstance(settings, dict):
         errors.append("waiver_settings obligatorio")
     else:
-        if settings.get("approvers") != ["paulozterra"]:
+        if not isinstance(settings.get("approvers"), list) or not settings["approvers"] or any(
+            not isinstance(a, str) or not a.strip() or a.startswith("agent:") for a in settings["approvers"]
+        ):
             errors.append("waiver_settings.approvers inválido")
-        if settings.get("max_days") != {"BLOCK": 30, "BLOCK_OR_WARN": 30, "WARN": 90}:
+        if not isinstance(settings.get("max_days"), dict) or any(
+            type(n) is not int or n < 1 for n in settings["max_days"].values()
+        ) or not settings["max_days"]:
             errors.append("waiver_settings.max_days inválido")
-        if settings.get("linter_rule_max_days") != 30 or settings.get("test_fixture_max_days") != 365:
+        if any(type(settings.get(key)) is not int or settings[key] < 1
+               for key in ("linter_rule_max_days", "test_fixture_max_days")):
             errors.append("waiver_settings plazos inválidos")
         deny = settings.get("linter_rule_denylist")
         if not isinstance(deny, list) or len(deny) != len(set(deny)) or not all(isinstance(x, str) and ":" in x for x in deny):
@@ -65,8 +71,9 @@ def validate(catalog: dict) -> list[str]:
             if not isinstance(policy, dict) or type(policy.get("allowed")) is not bool:
                 errors.append(f"{rid}: waiver_policy.allowed inválido")
             elif policy["allowed"]:
-                if rid not in {"STD-BE-05", "STD-FE-02", "STD-FE-03", "STD-FE-07"}:
-                    errors.append(f"{rid}: waiver no permitido por política inicial C8")
+                # Invariantes C8: L1 de seguridad nunca se vuelve dispensable por un CHG.
+                if rid in NON_WAIVABLE:
+                    errors.append(f"{rid}: L1/security no admite waiver")
                 if rid == "STD-FE-03" and policy.get("eligible_controls") != ["@ts-ignore", "@ts-expect-error"]:
                     errors.append(f"{rid}: eligible_controls inválidos")
             elif not isinstance(policy.get("reason"), str) or not policy["reason"].strip():

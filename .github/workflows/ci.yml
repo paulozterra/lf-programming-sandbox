@@ -51,9 +51,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - run: python3 standards/tools/changes.py validate
+      - run: python3 standards/tools/changes.py render --check
+      - name: "Circuito C9: clasificación y versiones (solo PR)"
+        if: github.event_name == 'pull_request'
+        run: python3 standards/tools/changes.py check --base "origin/${{ github.base_ref }}"
+      - name: "Circuito C9: baseline D11 (solo PR)"
+        if: github.event_name == 'pull_request'
+        run: python3 standards/tools/changes.py baseline-check --base "origin/${{ github.base_ref }}"
       - run: python3 standards/tools/validate_catalog.py
       - run: python3 standards/tools/render_llm.py --check
       - run: python3 standards/tools/glossary.py validate

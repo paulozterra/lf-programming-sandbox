@@ -1,0 +1,12 @@
+{
+  "schema_version": "LF_STANDARD_PINS_V1",
+  "pins_version": "0.1.0",
+  "minimum_safe_versions": {
+    "catalog": null,
+    "glossary_base": null,
+    "glossary_lf": null,
+    "waivers": null,
+    "kit_base": null
+  },
+  "invalidation_events": []
+}

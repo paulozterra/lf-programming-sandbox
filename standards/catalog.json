@@ -1,6 +1,6 @@
 {
   "schema_version": "LF_STANDARDS_CATALOG_V1",
-  "catalog_version": "0.4.0",
+  "catalog_version": "0.5.0",
   "status": "BORRADOR_EN_REPO_DE_CALIFICACION",
   "source": "Plan Fase 2 (proyecto LF): claude/programacion-fase2-desglose-checkpoints-estandares-2026-10-21.md",
   "canonical_store_target": "transversal (vía Router -> Train, pendiente)",
@@ -1454,5 +1454,6 @@
       "eslint:react/no-danger",
       "eslint:@next/next/no-sync-scripts"
     ]
-  }
+  },
+  "change_registry": "standards/changes"
 }
