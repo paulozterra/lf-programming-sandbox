@@ -31,3 +31,15 @@ manifiesto del perfil técnico de cada proyecto.
 4. PR con el GO del owner de la Fase 2. El circuito completo es PG-00·C9.
 
 Destino canónico: esquema `transversal` de LF, vía Router → Train (pendiente). Este repo es de calificación.
+
+## Waivers · PG-00·C8
+
+El registro `standards/waivers/waivers.json` es la única fuente; `standards/WAIVERS.md` se genera con `python3 standards/tools/waivers.py render`. Sólo el owner `paulozterra` aprueba. **La entrada y el PR proponen la excepción; la aprobación se perfecciona sólo cuando Paulo une el PR.** Que `approved_by` diga su nombre antes del merge no sustituye ese acto humano.
+
+Solicita un waiver mediante un PR con motivo, alcance y vencimiento. Sólo se admiten las reglas marcadas `waiver_policy.allowed` y reglas de linter no incluidas en la denylist. `STD-GEN-05` nunca admite excepciones. Los estados almacenados son `ACTIVE` y `REVOKED`; vencimiento y sustitución se derivan. Para renovar, agrega un ID nuevo que cite `supersedes`; nunca edites `expires_at` de la entrada anterior. Para revocar, conserva la entrada y registra `revoked_at` más `revocation_reason`. Las pruebas usan `--as-of` fijo.
+
+`WAIVER-0001` es exclusivamente un `TEST_FIXTURE` y sólo cubre `standards/tests/fixtures/suppressions/good.ts`. No autoriza supresiones en aplicaciones reales.
+
+Consultas de PG-03/PG-11: `python3 standards/tools/waivers.py list --path standards/tests/fixtures/suppressions/good.ts --linter eslint:no-console --as-of 2026-10-23T00:00:00Z --format json`. Para desviaciones que no son supresión: `Standard-Waiver: WAIVER-NNNN` en descripción del PR y `standard_deviations: [{rule_id, waiver_id, paths}]` en el paquete PG-03 (implementación posterior).
+
+La verificación estructural del registro es bloqueante; el chequeo de citas corre en sombra según D11. El circuito de cambio de reglas pertenece a C9 y la medición de falsos positivos a C10.
