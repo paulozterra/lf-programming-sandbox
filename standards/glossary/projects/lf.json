@@ -1303,7 +1303,8 @@
             "database",
             "api"
           ],
-          "reason": "D5: rule aislado se confunde con reglas técnicas y linters."
+          "reason": "D5: rule aislado se confunde con reglas técnicas y linters.",
+          "match": "standalone"
         }
       ],
       "legacy_en": [
@@ -1360,7 +1361,8 @@
             "database",
             "api"
           ],
-          "reason": "D5: condition aislado no identifica la condición de la oferta."
+          "reason": "D5: condition aislado no identifica la condición de la oferta.",
+          "match": "standalone"
         }
       ],
       "legacy_en": [],
