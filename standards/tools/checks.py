@@ -9,6 +9,8 @@ Salida: una línea por violación y código 1 si hay alguna.
 """
 
 import re
+import datetime as dt
+import waivers
 import sys
 from pathlib import Path
 
@@ -17,10 +19,6 @@ KEBAB = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 FRONTEND_ALLOWED = {"next-env.d.ts"}
 FRONTEND_SUFFIXES = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".css")
 SKIP_DIRS = {"node_modules", ".next", "out", "target", ".git"}
-SUPPRESSION = re.compile(
-    r"eslint-disable|@ts-ignore|@ts-expect-error|@SuppressWarnings|NOSONAR|# noqa|# type: ignore|prettier-ignore"
-)
-WAIVER = re.compile(r"WAIVER-\d{4,}")
 SOURCE_SUFFIXES = (".java", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".py")
 BRANCH = re.compile(r"^lf/prog-[A-Za-z0-9-]+/[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -49,12 +47,9 @@ def check_filenames(roots: list[str]) -> list[str]:
 
 
 def check_suppressions(roots: list[str]) -> list[str]:
-    violations = []
-    for path in iter_files(roots, SOURCE_SUFFIXES):
-        for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-            if SUPPRESSION.search(line) and not WAIVER.search(line):
-                violations.append(f"STD-GEN-05 {path}:{number}: supresión sin id WAIVER-")
-    return violations
+    """Un solo parser y registro: delega en waivers.py."""
+    catalog, registry = waivers.load()
+    return waivers.check_refs(catalog, registry, roots, dt.datetime.now(dt.timezone.utc))
 
 
 def check_branch(name: str) -> list[str]:

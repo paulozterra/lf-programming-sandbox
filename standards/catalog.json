@@ -1,6 +1,6 @@
 {
   "schema_version": "LF_STANDARDS_CATALOG_V1",
-  "catalog_version": "0.2.0",
+  "catalog_version": "0.3.0",
   "status": "BORRADOR_EN_REPO_DE_CALIFICACION",
   "source": "Plan Fase 2 (proyecto LF): claude/programacion-fase2-desglose-checkpoints-estandares-2026-10-21.md",
   "canonical_store_target": "transversal (vía Router -> Train, pendiente)",
@@ -301,6 +301,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "gitleaks + revisor"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Secretos y ejecucion segura son invariantes de seguridad"
       }
     },
     {
@@ -315,6 +319,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Test de logs + revisor"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "La proteccion de PII es obligatoria"
       }
     },
     {
@@ -325,9 +333,9 @@
       "status": "APROBADO",
       "enforcement": {
         "state": "shadow",
-        "tool": "standards/tools/checks.py suppressions",
-        "command": "python3 standards/tools/checks.py suppressions backend/src frontend/src",
-        "planned_control": "grep de supresiones sin `WAIVER-`"
+        "tool": "standards/tools/waivers.py check-refs",
+        "command": "python3 standards/tools/waivers.py check-refs backend/src frontend/src --as-of <fecha>",
+        "planned_control": "Exigir waiver registrado, vigente, aplicable a ruta y objetivo"
       },
       "examples": {
         "good": [
@@ -338,6 +346,10 @@
           "// eslint-disable-next-line no-console",
           "// @ts-ignore"
         ]
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "El requisito de citar un waiver no admite excepcion recursiva"
       }
     },
     {
@@ -349,6 +361,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Lint de OpenAPI + catálogo de BD"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "ISO-8601 y UTC son invariantes de interoperabilidad"
       }
     },
     {
@@ -360,6 +376,10 @@
       "enforcement": {
         "state": "review",
         "planned_control": "Revisor PG-11 + test que compara contra el catálogo"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Los codigos literales de Fase 1 no pueden alterarse"
       }
     },
     {
@@ -440,6 +460,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Advisors + lint"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "RLS es control esencial de autorizacion"
       }
     },
     {
@@ -469,6 +493,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Test BEGIN/ROLLBACK + fixture"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Las migraciones deben preservar datos y reversibilidad"
       }
     },
     {
@@ -552,6 +580,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Spectral + test de contrato"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Nunca exponer SQL ni stack traces"
       }
     },
     {
@@ -687,6 +719,9 @@
         "bad": [
           "Sangría de 2 espacios o líneas de más de 120 columnas que Spotless reescribe"
         ]
+      },
+      "waiver_policy": {
+        "allowed": true
       }
     },
     {
@@ -735,6 +770,9 @@
           "src/components/B2BShell.tsx",
           "src/lib/auth/clientSession.ts"
         ]
+      },
+      "waiver_policy": {
+        "allowed": true
       }
     },
     {
@@ -747,7 +785,14 @@
         "state": "active",
         "tool": "tsc --noEmit (parcial: falta la regla de @ts-ignore sin waiver)",
         "command": "npm run typecheck",
-        "planned_control": "`tsc --noEmit` + ESLint"
+        "planned_control": "`tsc --noEmit` + ESLint; control de supresiones en modo sombra con waivers.py"
+      },
+      "waiver_policy": {
+        "allowed": true,
+        "eligible_controls": [
+          "@ts-ignore",
+          "@ts-expect-error"
+        ]
       }
     },
     {
@@ -808,6 +853,9 @@
         "bad": [
           "Comillas, comas o saltos de línea distintos a los que deja Prettier"
         ]
+      },
+      "waiver_policy": {
+        "allowed": true
       }
     },
     {
@@ -887,6 +935,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Train / PASE"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Train, Router y PASE son controles de autoridad"
       }
     },
     {
@@ -909,6 +961,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Advisors + lint de grants"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "La superficie de datos exige RLS y politicas"
       }
     },
     {
@@ -964,6 +1020,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Test negativo por endpoint"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Validar entradas del lado servidor es obligatorio"
       }
     },
     {
@@ -975,6 +1035,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Test de acceso cruzado (usuario A no ve datos de B)"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "La autorizacion por endpoint es obligatoria"
       }
     },
     {
@@ -999,6 +1063,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Test"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Rate limits en operaciones sensibles son obligatorios"
       }
     },
     {
@@ -1054,6 +1122,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Grants + test"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "La auditoria append-only no es dispensable"
       }
     },
     {
@@ -1080,6 +1152,10 @@
       "enforcement": {
         "state": "review",
         "planned_control": "Test + revisión legal"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "No se permite PII completa en auditoria"
       }
     },
     {
@@ -1128,6 +1204,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Test"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Consentimiento legal vigente no es dispensable"
       }
     },
     {
@@ -1139,6 +1219,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Grants + test"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Integridad de consentimientos y revocaciones obligatoria"
       }
     },
     {
@@ -1153,6 +1237,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Test E2E"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Consentimiento explicito y opt-in obligatorios"
       }
     },
     {
@@ -1165,6 +1253,10 @@
       "enforcement": {
         "state": "review",
         "planned_control": "Revisión legal"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "La revision legal no es dispensable"
       }
     },
     {
@@ -1187,6 +1279,10 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "PG-01/PG-10 + revisor"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "El agente no puede inventar copy de Fase 1"
       }
     },
     {
@@ -1321,5 +1417,24 @@
         "planned_control": "PG-08 / revisor PG-11"
       }
     }
-  ]
+  ],
+  "waiver_settings": {
+    "approvers": [
+      "paulozterra"
+    ],
+    "max_days": {
+      "BLOCK": 30,
+      "BLOCK_OR_WARN": 30,
+      "WARN": 90
+    },
+    "linter_rule_max_days": 30,
+    "test_fixture_max_days": 365,
+    "linter_rule_denylist": [
+      "eslint:no-eval",
+      "eslint:no-implied-eval",
+      "eslint:no-new-func",
+      "eslint:react/no-danger",
+      "eslint:@next/next/no-sync-scripts"
+    ]
+  }
 }
