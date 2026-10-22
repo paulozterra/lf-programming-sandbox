@@ -9,6 +9,8 @@ Salida: una línea por violación y código 1 si hay alguna.
 """
 
 import re
+import datetime as dt
+import waivers
 import sys
 from pathlib import Path
 
@@ -49,12 +51,9 @@ def check_filenames(roots: list[str]) -> list[str]:
 
 
 def check_suppressions(roots: list[str]) -> list[str]:
-    violations = []
-    for path in iter_files(roots, SOURCE_SUFFIXES):
-        for number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-            if SUPPRESSION.search(line) and not WAIVER.search(line):
-                violations.append(f"STD-GEN-05 {path}:{number}: supresión sin id WAIVER-")
-    return violations
+    """Un solo parser y registro: delega en waivers.py."""
+    catalog, registry = waivers.load()
+    return waivers.check_refs(catalog, registry, roots, dt.datetime.now(dt.timezone.utc))
 
 
 def check_branch(name: str) -> list[str]:
