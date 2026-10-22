@@ -215,11 +215,12 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
               or path == ".github/workflows/ci.yml"):
             flags.append("ADDITIVE")  # mínimo requerido; puede declararse una clase superior
         elif path == "standards/pins.json":
-            flags.append("SECURITY" if any(
-                version(v) is not None and (base_objects.get(path) or {}).get("minimum_safe_versions", {}).get(k) != v
-                for k,v in (head_objects.get(path) or {}).get("minimum_safe_versions", {}).items()
-                if v is not None
-            ) else "ADDITIVE")
+            old_min=(base_objects.get(path) or {}).get("minimum_safe_versions", {})
+            new_min=(head_objects.get(path) or {}).get("minimum_safe_versions", {})
+            raised=any(version(v) is not None and (
+                old_min.get(k) is None or (version(old_min[k]) is not None and version(v)>version(old_min[k]))
+            ) for k,v in new_min.items() if v is not None)
+            flags.append("SECURITY" if raised else "ADDITIVE")
         elif path.startswith("standards/baseline/") and path.endswith(".json"):
             old_baseline=(base_objects.get(path) or {})
             new_baseline=(head_objects.get(path) or {})
@@ -305,9 +306,7 @@ def measured_shadow_findings(ref):
     return {k:sorted(set(v)) for k,v in records.items()}
 
 
-def compare_baseline_ref(base,records):
-    prior=measured_shadow_findings(base)
-    head=measured_shadow_findings("HEAD")
+def compare_measured_baseline(records,prior,head):
     issues=[]
     for rule,info in records.items():
         if info.get("measurement")=="NOT_MEASURED_UNTIL_C10":
@@ -321,6 +320,10 @@ def compare_baseline_ref(base,records):
             issues.append("BASELINE_INCREASE")
     # Formateadores sin huellas: NOT_MEASURED es informativo, no bloquea.
     return sorted(set(issues))
+
+
+def compare_baseline_ref(base,records):
+    return compare_measured_baseline(records,measured_shadow_findings(base),measured_shadow_findings("HEAD"))
 
 
 def check_pins(pins,previous=None):
