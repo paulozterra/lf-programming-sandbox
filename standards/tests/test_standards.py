@@ -122,5 +122,31 @@ class GlossaryTests(unittest.TestCase):
         self.assertIn("term_id desconocido GLOSS-LF-NOPE-001", found)
 
 
+    def test_invalid_payment_status_values_fails(self):
+        bad = copy.deepcopy(self.glossaries)
+        t = next(t for g in bad for t in g["terms"] if t["term_en"] == "payment_status")
+        t["values"] = {"aprobado": "Invalid-Camel"}
+        self.assertTrue(any("values" in e for e in glossary.validate(bad)))
+
+    def test_english_spanish_homographs_not_flagged(self):
+        scanner = glossary.Scanner(self.glossaries)
+        text = "CREATE TABLE payment_plans (payment_plan_id bigint, original_debt numeric);"
+        self.assertEqual(scanner.scan("db/V5__plans.sql", text), [])
+
+    def test_new_spanish_business_identifiers_are_flagged(self):
+        scanner = glossary.Scanner(self.glossaries)
+        text = "CREATE TABLE bad (recaudo_total numeric, plazo_maximo integer);"
+        found = "\\n".join(scanner.scan("db/V6__bad.sql", text))
+        self.assertIn("recaudo", found)
+        self.assertIn("plazo", found)
+
+    def test_collection_legacy_exact_contract_and_new_identifier(self):
+        scanner = glossary.Scanner(self.glossaries)
+        legacy = "SELECT public.lf_b2b_pricing_config.collection_channel FROM public.lf_b2b_pricing_config;"
+        self.assertEqual(scanner.scan("db/V7__legacy.sql", legacy), [])
+        found = "\\n".join(scanner.scan("db/V8__new.sql", "CREATE TABLE bad (collection_amount numeric);"))
+        self.assertIn("collection", found)
+
+
 if __name__ == "__main__":
     unittest.main()
