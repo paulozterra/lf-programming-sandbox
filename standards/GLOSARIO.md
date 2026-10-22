@@ -2,7 +2,7 @@
 
 > Generado desde `standards/glossary/*.json` con `standards/tools/glossary.py render`. No editar a mano.
 
-Digest: `6cb8c928f440f09a3c9620328e6a1f31ecebb78c40983faa50fe263bed6fee62`
+Digest: `842a4ef45f21ed97c57fe07eb571bebcae52fd6474367c3839f4abeb56d6513f`
 
 **Precedencia de nombres:** contrato existente consumido > glosario del proyecto > glosario base > propuesta nueva (`REQUIRES_DECISION`). Una forma heredada vale solo en sus contratos exactos.
 
