@@ -50,6 +50,12 @@ def render(catalog: dict) -> str:
             lines.append(f"### {rule['id']} · {severity} · {state}")
             lines.append("")
             lines.append(rule["rule"])
+            policy = rule.get("waiver_policy", {})
+            if policy.get("allowed"):
+                control = ", ".join(policy.get("eligible_controls", []))
+                lines.append(f"Waiver: permitido" + (f" solo para {control}" if control else ""))
+            else:
+                lines.append("Waiver: prohibido" + (f" — {policy['reason']}" if policy.get("reason") else " (por defecto)"))
             if rule.get("lf_rule_refs"):
                 lines.append("")
                 lines.append("Reglas LF de origen: " + ", ".join(f"`{ref}`" for ref in rule["lf_rule_refs"]))
