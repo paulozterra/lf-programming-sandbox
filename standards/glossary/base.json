@@ -35,7 +35,6 @@
     ]
   },
   "technical_tokens": [
-    "id",
     "ids",
     "at",
     "by",
@@ -43,7 +42,6 @@
     "is",
     "has",
     "can",
-    "code",
     "name",
     "type",
     "kind",
@@ -75,50 +73,29 @@
     "min",
     "due",
     "technical",
-    "category",
-    "user",
     "title",
-    "message",
     "text",
-    "action",
     "label",
     "copy",
     "active",
-    "occurrence",
     "occurred",
     "context",
-    "audit",
     "actor",
     "entity",
     "result",
     "details",
-    "navigation",
-    "event",
     "types",
-    "session",
-    "screen",
     "duration",
     "ms",
     "channel",
     "device",
-    "document",
     "content",
     "sha256",
-    "consent",
     "granted",
     "ip",
     "address",
     "browser",
     "info",
-    "customer",
-    "trace",
-    "correlation",
-    "request",
-    "error",
-    "status",
-    "",
-    "suggested",
-    "legal",
     "internal",
     "description",
     "reference",
@@ -389,7 +366,7 @@
       "term_es": "error",
       "term_en": "error",
       "plural_en": "errors",
-      "definition": "errores comunes",
+      "definition": "Representa una categoría de error que el proyecto referencia mediante un código técnico.",
       "level": "base",
       "synonyms_es": [],
       "rejected_en": [],
@@ -404,21 +381,22 @@
           "error_id"
         ],
         "bad": [
-          "nombre_no_canonico_error"
+          "errores"
         ]
       },
       "sources": [
         "STD-MSG-01"
       ],
       "decision_ref": "GLOSS-DEC-BASE-002",
-      "status": "APROBADO"
+      "status": "APROBADO",
+      "notes": "Homógrafo español/inglés: error se excluye de la detección española; se comprueba con el vocabulario canónico."
     },
     {
       "term_id": "GLOSS-BASE-ERROR-OCCURRENCE-001",
-      "term_es": "error occurrence",
+      "term_es": "ocurrencia de error",
       "term_en": "error_occurrence",
       "plural_en": "error_occurrences",
-      "definition": "ocurrencia trazable de error",
+      "definition": "Registra una instancia trazable de un error generado durante una solicitud.",
       "level": "base",
       "synonyms_es": [],
       "rejected_en": [],
@@ -433,7 +411,8 @@
           "error_occurrence_id"
         ],
         "bad": [
-          "nombre_no_canonico_error_occurrence"
+          "ocurrencia_id",
+          "ocurrencias"
         ]
       },
       "sources": [
@@ -444,13 +423,23 @@
     },
     {
       "term_id": "GLOSS-BASE-MESSAGE-001",
-      "term_es": "message",
+      "term_es": "mensaje",
       "term_en": "message",
       "plural_en": "messages",
-      "definition": "mensaje configurable",
+      "definition": "Identifica un mensaje de la interfaz cuyo contenido autoriza la Fase 1.",
       "level": "base",
       "synonyms_es": [],
-      "rejected_en": [],
+      "rejected_en": [
+        {
+          "form": "msg",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "La abreviatura no es el nombre canónico message.",
+          "match": "token"
+        }
+      ],
       "legacy_en": [],
       "contexts": [
         "domain",
@@ -462,7 +451,8 @@
           "message_id"
         ],
         "bad": [
-          "nombre_no_canonico_message"
+          "mensaje",
+          "msg"
         ]
       },
       "sources": [
@@ -473,10 +463,10 @@
     },
     {
       "term_id": "GLOSS-BASE-SUGGESTED-ACTION-001",
-      "term_es": "suggested action",
+      "term_es": "acción sugerida",
       "term_en": "suggested_action",
       "plural_en": "suggested_actions",
-      "definition": "acción sugerida al usuario",
+      "definition": "Identifica la acción opcional que acompaña a un mensaje visible.",
       "level": "base",
       "synonyms_es": [],
       "rejected_en": [],
@@ -491,7 +481,7 @@
           "suggested_action_id"
         ],
         "bad": [
-          "nombre_no_canonico_suggested_action"
+          "accion_sugerida"
         ]
       },
       "sources": [
@@ -502,12 +492,14 @@
     },
     {
       "term_id": "GLOSS-BASE-AUDIT-EVENT-001",
-      "term_es": "audit event",
+      "term_es": "evento de auditoría",
       "term_en": "audit_event",
       "plural_en": "audit_events",
-      "definition": "evento de auditoría",
+      "definition": "Registra una acción auditable producida por el servidor sin duplicar datos personales.",
       "level": "base",
-      "synonyms_es": [],
+      "synonyms_es": [
+        "auditoría"
+      ],
       "rejected_en": [],
       "legacy_en": [],
       "contexts": [
@@ -520,7 +512,8 @@
           "audit_event_id"
         ],
         "bad": [
-          "nombre_no_canonico_audit_event"
+          "audit_log",
+          "auditoria_evento"
         ]
       },
       "sources": [
@@ -531,12 +524,14 @@
     },
     {
       "term_id": "GLOSS-BASE-NAVIGATION-EVENT-001",
-      "term_es": "navigation event",
+      "term_es": "evento de navegación",
       "term_en": "navigation_event",
       "plural_en": "navigation_events",
-      "definition": "evento de navegación",
+      "definition": "Identifica un evento de navegación asociado a una sesión y pantalla.",
       "level": "base",
-      "synonyms_es": [],
+      "synonyms_es": [
+        "navegación"
+      ],
       "rejected_en": [],
       "legacy_en": [],
       "contexts": [
@@ -549,7 +544,7 @@
           "navigation_event_id"
         ],
         "bad": [
-          "nombre_no_canonico_navigation_event"
+          "navegacion_evento"
         ]
       },
       "sources": [
@@ -560,10 +555,10 @@
     },
     {
       "term_id": "GLOSS-BASE-EVENT-CATEGORY-001",
-      "term_es": "event category",
+      "term_es": "categoría de evento",
       "term_en": "event_category",
       "plural_en": "event_categories",
-      "definition": "categoría de evento de navegación",
+      "definition": "Clasifica un evento de navegación entre las categorías técnicas permitidas.",
       "level": "base",
       "synonyms_es": [],
       "rejected_en": [],
@@ -578,7 +573,7 @@
           "event_category_id"
         ],
         "bad": [
-          "nombre_no_canonico_event_category"
+          "categoria_evento"
         ]
       },
       "sources": [
@@ -589,10 +584,10 @@
     },
     {
       "term_id": "GLOSS-BASE-SCREEN-001",
-      "term_es": "screen",
+      "term_es": "pantalla",
       "term_en": "screen",
       "plural_en": "screens",
-      "definition": "pantalla",
+      "definition": "Identifica la pantalla de la interfaz desde la cual se registra un evento.",
       "level": "base",
       "synonyms_es": [],
       "rejected_en": [],
@@ -607,7 +602,8 @@
           "screen_id"
         ],
         "bad": [
-          "nombre_no_canonico_screen"
+          "pantalla",
+          "pantalla_codigo"
         ]
       },
       "sources": [
@@ -618,10 +614,10 @@
     },
     {
       "term_id": "GLOSS-BASE-SESSION-001",
-      "term_es": "session",
+      "term_es": "sesión",
       "term_en": "session",
       "plural_en": "sessions",
-      "definition": "sesión de navegación",
+      "definition": "Agrupa eventos de navegación correspondientes a una sesión.",
       "level": "base",
       "synonyms_es": [],
       "rejected_en": [],
@@ -636,7 +632,7 @@
           "session_id"
         ],
         "bad": [
-          "nombre_no_canonico_session"
+          "sesion_id"
         ]
       },
       "sources": [
@@ -647,10 +643,10 @@
     },
     {
       "term_id": "GLOSS-BASE-LEGAL-DOCUMENT-001",
-      "term_es": "legal document",
+      "term_es": "documento legal",
       "term_en": "legal_document",
       "plural_en": "legal_documents",
-      "definition": "documento legal versionado",
+      "definition": "Identifica la versión y vigencia de un documento legal referenciado por consentimientos.",
       "level": "base",
       "synonyms_es": [],
       "rejected_en": [],
@@ -665,21 +661,22 @@
           "legal_document_id"
         ],
         "bad": [
-          "nombre_no_canonico_legal_document"
+          "documento_legal"
         ]
       },
       "sources": [
         "STD-CONS-01"
       ],
       "decision_ref": "GLOSS-DEC-BASE-002",
-      "status": "APROBADO"
+      "status": "APROBADO",
+      "notes": "Legal es homógrafo español/inglés y se excluye de la detección española; documento sigue siendo detectable."
     },
     {
       "term_id": "GLOSS-BASE-CONSENT-001",
-      "term_es": "consent",
+      "term_es": "consentimiento",
       "term_en": "consent",
       "plural_en": "consents",
-      "definition": "acto de consentimiento",
+      "definition": "Registra la concesión o revocación de un consentimiento respecto de un documento legal.",
       "level": "base",
       "synonyms_es": [],
       "rejected_en": [],
@@ -694,7 +691,7 @@
           "consent_id"
         ],
         "bad": [
-          "nombre_no_canonico_consent"
+          "consentimientos"
         ]
       },
       "sources": [
@@ -705,13 +702,23 @@
     },
     {
       "term_id": "GLOSS-BASE-TRACE-CODE-001",
-      "term_es": "trace code",
+      "term_es": "código de referencia",
       "term_en": "trace_code",
       "plural_en": "trace_codes",
-      "definition": "código de referencia de soporte",
+      "definition": "Identifica una referencia visible para localizar la traza de una incidencia.",
       "level": "base",
       "synonyms_es": [],
-      "rejected_en": [],
+      "rejected_en": [
+        {
+          "form": "trace_id",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "La referencia visible debe conservar el nombre trace_code.",
+          "match": "token"
+        }
+      ],
       "legacy_en": [],
       "contexts": [
         "domain",
@@ -723,7 +730,8 @@
           "trace_code_id"
         ],
         "bad": [
-          "nombre_no_canonico_trace_code"
+          "trace_id",
+          "codigo_referencia"
         ]
       },
       "sources": [
@@ -734,10 +742,10 @@
     },
     {
       "term_id": "GLOSS-BASE-CORRELATION-ID-001",
-      "term_es": "correlation id",
+      "term_es": "identificador de correlación",
       "term_en": "correlation_id",
       "plural_en": "correlation_ids",
-      "definition": "identificador transversal de correlación",
+      "definition": "Identifica la correlación transversal entre solicitudes y eventos relacionados.",
       "level": "base",
       "synonyms_es": [],
       "rejected_en": [],
@@ -749,10 +757,10 @@
       ],
       "examples": {
         "good": [
-          "correlation_id_id"
+          "correlation_id"
         ],
         "bad": [
-          "nombre_no_canonico_correlation_id"
+          "correlacion_id"
         ]
       },
       "sources": [
@@ -763,10 +771,10 @@
     },
     {
       "term_id": "GLOSS-BASE-REQUEST-ID-001",
-      "term_es": "request id",
+      "term_es": "identificador de petición",
       "term_en": "request_id",
       "plural_en": "request_ids",
-      "definition": "identificador de petición HTTP",
+      "definition": "Identifica de manera única una petición HTTP.",
       "level": "base",
       "synonyms_es": [],
       "rejected_en": [],
@@ -778,10 +786,10 @@
       ],
       "examples": {
         "good": [
-          "request_id_id"
+          "request_id"
         ],
         "bad": [
-          "nombre_no_canonico_request_id"
+          "peticion_id"
         ]
       },
       "sources": [
@@ -808,6 +816,7 @@
     "general",
     "legal",
     "normal",
-    "real"
+    "real",
+    "error"
   ]
 }
