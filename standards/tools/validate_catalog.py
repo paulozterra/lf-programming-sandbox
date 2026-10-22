@@ -23,6 +23,7 @@ def validate(catalog: dict) -> list[str]:
     severities = set(catalog.get("severity_values", []))
     states = set(catalog.get("enforcement_states", {}))
     domains = {d["id"] for d in catalog.get("domains", [])}
+# Proteccion deliberada C8: cualquier cambio de política exige diff de código revisable en C9.
     settings = catalog.get("waiver_settings")
     if not isinstance(settings, dict):
         errors.append("waiver_settings obligatorio")
