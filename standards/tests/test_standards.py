@@ -371,7 +371,7 @@ class ChangeCircuitTests(unittest.TestCase):
         chg={"schema_version":"LF_STANDARD_CHANGE_V1","change_id":"CHG-0001",
              "change_class":"ADDITIVE","title":"test","reason":"test",
              "trigger":{"kind":"C9","reference":"synthetic"},
-             "artifacts":[{"artifact":"catalog","from_version":"0.4.0","to_version":"0.5.0"}],
+             "artifacts":[{"artifact":"catalog","path":"standards/catalog.json","from_version":"0.4.0","to_version":"0.5.0"}],
              "affected":{"rule_ids":[],"term_ids":[],"paths":[]},
              "existing_code_impact":{"mode":"NEW_OR_MODIFIED_ONLY"},
              "security_pin_invalidation":{"invalidates":False},
