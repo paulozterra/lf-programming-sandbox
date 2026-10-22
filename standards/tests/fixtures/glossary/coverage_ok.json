@@ -1,0 +1,4 @@
+{"identifiers": [
+  {"identifier": "portfolio_load_id", "context": "database", "glossary_refs": ["GLOSS-LF-PORTFOLIO-LOAD-001"]},
+  {"identifier": "debt_payment_status", "context": "database", "glossary_refs": ["GLOSS-LF-DEBT-001", "GLOSS-LF-PAYMENT-001", "GLOSS-BASE-STATUS-001"]}
+]}

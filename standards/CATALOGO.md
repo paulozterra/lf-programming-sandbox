@@ -1,4 +1,4 @@
-# Catálogo de estándares LF · v0.1.0
+# Catálogo de estándares LF · v0.2.0
 
 > Archivo generado desde `standards/catalog.json` con `standards/tools/render_llm.py`. No editar a mano.
 
@@ -35,7 +35,7 @@ Estado: `BORRADOR_EN_REPO_DE_CALIFICACION`.
 
 ## STD-GEN · Transversal (L1)
 
-### STD-GEN-01 · BLOCK (en código nuevo) · revisor PG-11
+### STD-GEN-01 · BLOCK (en código nuevo) · CI en modo sombra
 
 Identificadores en inglés (D4); glosario obligatorio: un glosario base en `transversal` y un glosario de dominio por proyecto (L3)
 

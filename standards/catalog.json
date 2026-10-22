@@ -1,6 +1,6 @@
 {
   "schema_version": "LF_STANDARDS_CATALOG_V1",
-  "catalog_version": "0.1.0",
+  "catalog_version": "0.2.0",
   "status": "BORRADOR_EN_REPO_DE_CALIFICACION",
   "source": "Plan Fase 2 (proyecto LF): claude/programacion-fase2-desglose-checkpoints-estandares-2026-10-21.md",
   "canonical_store_target": "transversal (vía Router -> Train, pendiente)",
@@ -268,9 +268,12 @@
       "severity_condition": "en código nuevo",
       "status": "APROBADO",
       "enforcement": {
-        "state": "review",
+        "state": "shadow",
+        "tool": "standards/tools/glossary.py check-diff (español y formas rechazadas en líneas nuevas) + coverage (cobertura positiva por term_id)",
+        "command": "python3 standards/tools/glossary.py check-diff --base origin/<rama base>",
         "planned_control": "Revisor PG-11 + diccionario de glosario"
-      }
+      },
+      "glossary": "standards/glossary/ (base.json + projects/lf.json) · vista standards/GLOSARIO.md"
     },
     {
       "id": "STD-GEN-02",

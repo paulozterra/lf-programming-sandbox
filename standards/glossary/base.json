@@ -1,0 +1,350 @@
+{
+  "level": "base",
+  "status": "APROBADO_EN_REPO_DE_CALIFICACION",
+  "schema_version": "LF_GLOSSARY_V1",
+  "glossary_version": "0.2.0",
+  "decisions": [
+    {
+      "id": "GLOSS-DEC-LF-001",
+      "date": "2026-10-22",
+      "approver": "Paulo (owner Fase 2)",
+      "reviewed_by": "GPT, revisión independiente (22/10)",
+      "scope": "Lote 1 · 16 términos",
+      "ref": "claude/glosario-c4-lote1-2026-10-22.md (proyecto LF)"
+    }
+  ],
+  "context_paths": {
+    "database": [
+      "**/*.sql"
+    ],
+    "api": [
+      "**/openapi*.yaml",
+      "**/openapi*.yml",
+      "**/openapi*.json"
+    ],
+    "domain": [
+      "backend/src/main/java/**/*.java"
+    ]
+  },
+  "technical_tokens": [
+    "id",
+    "ids",
+    "at",
+    "by",
+    "on",
+    "is",
+    "has",
+    "can",
+    "code",
+    "name",
+    "type",
+    "kind",
+    "number",
+    "count",
+    "total",
+    "created",
+    "updated",
+    "deleted",
+    "valid",
+    "from",
+    "to",
+    "until",
+    "date",
+    "version",
+    "external",
+    "ref",
+    "url",
+    "hash",
+    "key",
+    "current",
+    "previous",
+    "new",
+    "old",
+    "last",
+    "first",
+    "paid",
+    "max",
+    "min",
+    "due"
+  ],
+  "terms": [
+    {
+      "term_id": "GLOSS-BASE-STATUS-001",
+      "term_es": "estado",
+      "term_en": "status",
+      "plural_en": "statuses",
+      "definition": "Situación de una entidad dentro de su ciclo de vida (p. ej. pago aprobado, deuda cerrada).",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "state",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "En BD y API la situación de negocio es status"
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "payment_status"
+        ],
+        "bad": [
+          "payment_state (en BD o API)",
+          "estado_pago"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-15",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-23",
+        "supabase: status en 255 columnas"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO",
+      "notes": "state se permite para el estado interno de máquinas de estado y del frontend (p. ej. useState); no es alternativa libre a status."
+    },
+    {
+      "term_id": "GLOSS-BASE-AMOUNT-001",
+      "term_es": "monto",
+      "term_en": "amount",
+      "plural_en": "amounts",
+      "definition": "Cantidad de dinero; en API texto decimal más currency, en BD numeric(18,2) (D10).",
+      "level": "base",
+      "synonyms_es": [
+        "importe"
+      ],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "paid_amount"
+        ],
+        "bad": [
+          "monto_pagado"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-16",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-26",
+        "D10"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-CURRENCY-001",
+      "term_es": "moneda",
+      "term_en": "currency",
+      "plural_en": "currencies",
+      "definition": "Moneda de un monto, como código ISO 4217 (p. ej. PEN) (D10).",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "currency_code",
+          "contexts": [
+            "api"
+          ],
+          "reason": "D10 fija currency en la API"
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "currency"
+        ],
+        "bad": [
+          "moneda",
+          "currency_code (en API)"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RNF-41",
+        "D10"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-USER-001",
+      "term_es": "usuario",
+      "term_en": "user",
+      "plural_en": "users",
+      "definition": "Persona que inicia sesión en el sistema (backoffice o portal).",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "user_id"
+        ],
+        "bad": [
+          "usuario_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-03",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-06",
+        "supabase: user en 31 columnas y 9 tablas"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-ROLE-001",
+      "term_es": "rol",
+      "term_en": "role",
+      "plural_en": "roles",
+      "definition": "Conjunto de permisos que se asigna a un usuario (RBAC).",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "user_role"
+        ],
+        "bad": [
+          "rol_usuario"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-04"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-PERMISSION-001",
+      "term_es": "permiso",
+      "term_en": "permission",
+      "plural_en": "permissions",
+      "definition": "Autorización para realizar una operación.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [
+        {
+          "form": "permisos",
+          "contracts": [
+            "lf_ops.permisos",
+            "lf_ops.perfiles_permisos",
+            "lf_ops.menu_items_permisos",
+            "lf_ops.pantallas_permisos",
+            "lf_ops.empresa_usuarios_permisos"
+          ]
+        }
+      ],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "permission_id"
+        ],
+        "bad": [
+          "permiso_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-04",
+        "supabase: permission en 15 columnas"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-APPROVAL-001",
+      "term_es": "aprobación",
+      "term_en": "approval",
+      "plural_en": "approvals",
+      "definition": "Autorización explícita de una persona para que una operación continúe.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [
+        {
+          "form": "aprobaciones",
+          "contracts": [
+            "lf_ops.aprobaciones_registros"
+          ]
+        },
+        {
+          "form": "aprobacion",
+          "contracts": [
+            "lf_ops.politicas_aprobacion"
+          ]
+        }
+      ],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "approval_status"
+        ],
+        "bad": [
+          "aprobacion_estado"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-08",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-27",
+        "supabase: approval en 10 columnas"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-001",
+      "status": "APROBADO"
+    }
+  ],
+  "spanish_check_paths": [
+    "**/*.sql",
+    "**/openapi*.yaml",
+    "**/openapi*.yml",
+    "**/openapi*.json",
+    "backend/src/main/java/**/*.java",
+    "frontend/src/**/*.ts",
+    "frontend/src/**/*.tsx"
+  ],
+  "spanish_token_exclusions": [
+    "plan",
+    "original",
+    "total",
+    "final",
+    "general",
+    "legal",
+    "normal",
+    "real"
+  ]
+}

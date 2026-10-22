@@ -56,6 +56,8 @@ jobs:
           python-version: "3.12"
       - run: python3 standards/tools/validate_catalog.py
       - run: python3 standards/tools/render_llm.py --check
+      - run: python3 standards/tools/glossary.py validate
+      - run: python3 standards/tools/glossary.py render --check
       - run: python3 -m unittest discover -s standards/tests -v
 
   standards-shadow:
@@ -64,6 +66,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -81,6 +85,9 @@ jobs:
         run: python3 standards/tools/checks.py filenames frontend/src | sed 's/^STD-/::warning title=STD-FE-02 (sombra)::STD-/' || true
       - name: STD-GEN-05 supresiones con waiver
         run: python3 standards/tools/checks.py suppressions backend/src frontend/src | sed 's/^STD-/::warning title=STD-GEN-05 (sombra)::STD-/' || true
+      - name: STD-GEN-01 glosario en las líneas nuevas
+        if: github.event_name == 'pull_request'
+        run: python3 standards/tools/glossary.py check-diff --base "origin/${{ github.base_ref }}" | sed 's/^STD-/::warning title=STD-GEN-01 (sombra)::STD-/' || true
       - name: STD-GIT-01 nombre de rama
         if: github.event_name == 'pull_request'
         run: python3 standards/tools/checks.py branch "${{ github.head_ref }}" | sed 's/^STD-/::warning title=STD-GIT-01 (sombra)::STD-/' || true
