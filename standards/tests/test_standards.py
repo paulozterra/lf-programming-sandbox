@@ -291,5 +291,49 @@ class GlossaryTests(unittest.TestCase):
         self.assertIn("collection", found)
 
 
+
+class KitBaseTests(unittest.TestCase):
+    def test_verify_and_render(self):
+        import kit
+        import tempfile
+        self.assertEqual(kit.verify(), [])
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            kit.render("kit_test", "KIT", out)
+            self.assertEqual(len(list(out.glob("*.sql"))), 8)
+            self.assertIn("kit_test.errors", (out / "V0_1__common_tables.sql").read_text(encoding="utf-8"))
+            self.assertIn("KIT-[0-9]{8}", (out / "V0_1__common_tables.sql").read_text(encoding="utf-8"))
+            self.assertNotIn("\u0024{schema}", (out / "V0_1__common_tables.sql").read_text(encoding="utf-8"))
+            with self.assertRaisesRegex(ValueError, "INVALID_PLACEHOLDER"):
+                kit.render("../bad", "KIT", out)
+            with self.assertRaisesRegex(ValueError, "INVALID_PLACEHOLDER"):
+                kit.render("kit_test", "lowercase", out)
+
+    def test_migration_filenames(self):
+        import db_catalog_lint as lint
+        self.assertEqual(lint.check_files(str(ROOT / "kit-base/migrations")), [])
+        bad = lint.check_files(str(ROOT / "kit-base/tests/negative"))
+        self.assertTrue(any(x["reason_code"] == "INVALID_MIGRATION_NAME" and x["object"] == "V1__FechaPago.sql" for x in bad))
+
+    def test_lint_parser_negative(self):
+        import db_catalog_lint as lint
+        data = {
+            "tables": [{"name":"bad_table","comment":"mutable","rls":False}],
+            "columns":[{"table":"bad_table","name":"id","type":"integer","identity":"","nullable":False,"default":None},
+                       {"table":"bad_table","name":"created_at","type":"timestamp with time zone","nullable":False,"default":"now()"},
+                       {"table":"bad_table","name":"active","type":"boolean","nullable":True,"default":None}],
+            "constraints":[],"indexes":[{"table":"bad_table","name":"idx_custom"}],
+            "triggers":[],"functions":[{"name":"unsafe","definer":True,"search_path":None,"public_execute":True}],
+            "public_privileges":[{"name":"bad_table","privilege":"SELECT"}]}
+        result = lint.lint_data(data)
+        self.assertEqual(result["verdict"], "FAIL")
+        codes = {x["reason_code"] for x in result["findings"]}
+        self.assertTrue({"INVALID_PRIMARY_KEY", "INVALID_BOOLEAN_NAME", "INVALID_TIMESTAMP",
+                         "CUSTOM_INDEX_NAME", "MISSING_UPDATED_AT_TRIGGER", "UNSAFE_SECURITY_DEFINER",
+                         "RLS_REQUIRED"} <= codes)
+        self.assertEqual(set(result) & {"schema","catalog_version","kit_version","findings","verdict"},
+                         {"schema","catalog_version","kit_version","findings","verdict"})
+
+
 if __name__ == "__main__":
     unittest.main()
