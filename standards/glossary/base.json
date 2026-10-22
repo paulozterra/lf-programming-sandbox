@@ -2,7 +2,7 @@
   "level": "base",
   "status": "APROBADO_EN_REPO_DE_CALIFICACION",
   "schema_version": "LF_GLOSSARY_V1",
-  "glossary_version": "0.1.0",
+  "glossary_version": "0.2.0",
   "decisions": [
     {
       "id": "GLOSS-DEC-LF-001",
@@ -336,5 +336,15 @@
     "backend/src/main/java/**/*.java",
     "frontend/src/**/*.ts",
     "frontend/src/**/*.tsx"
+  ],
+  "spanish_token_exclusions": [
+    "plan",
+    "original",
+    "total",
+    "final",
+    "general",
+    "legal",
+    "normal",
+    "real"
   ]
 }
