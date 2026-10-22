@@ -238,6 +238,21 @@ def baseline_check(baselines,now):
     return sorted(set(errors))
 
 
+def review_content_digest(base):
+    """Huella de contenido revisable excluyendo el CHG auto-referencial."""
+    changed=git("diff","--name-only",base,"HEAD").splitlines()
+    items=[]
+    for path in sorted(changed):
+        if path.startswith("standards/changes/"):
+            continue
+        file=ROOT/path
+        if file.is_file():
+            items.append(path.encode("utf8")+b"\0"+hashlib.sha256(file.read_bytes()).digest())
+        else:
+            items.append(path.encode("utf8")+b"\0deleted")
+    return sha(b"\n".join(items))
+
+
 def check_pins(pins,previous=None):
     errors=[]
     for name,minimum in pins.get("minimum_safe_versions",{}).items():
@@ -290,6 +305,17 @@ def main(argv=None):
             bpin=json_at(base,"standards/pins.json")
             hpin=json.loads(PINFILE.read_text(encoding="utf8"))
             errors+=check_pins(hpin,bpin)
+            if introduced and introduced[0].get("change_class")=="SECURITY":
+                review=introduced[0].get("independent_review") or {}
+                if review.get("reviewed_sha256")!=review_content_digest(base):
+                    errors.append("REVIEW_STALE_SHA")
+                current=hpin.get("minimum_safe_versions",{})
+                previous=(bpin or {}).get("minimum_safe_versions",{})
+                artifacts=[a.get("artifact") for a in introduced[0].get("artifacts",[])]
+                if not any(current.get(a) is not None and
+                           (previous.get(a) is None or version(current[a])>version(previous[a]))
+                           for a in artifacts):
+                    errors.append("SECURITY_PIN_NOT_INVALIDATED")
         return report(errors,detected_class=result["detected_class"],warnings=result["warnings"],base_sha=base)
     if a.cmd=="baseline-check":
         baseline={p.stem:json.loads(p.read_text(encoding="utf8")) for p in BASELINE.glob("*.json")}
