@@ -1,0 +1,28 @@
+{
+  "schema_version": "LF_WAIVERS_V1",
+  "registry_version": "0.1.0",
+  "waivers": [
+    {
+      "waiver_id": "WAIVER-0001",
+      "target": {
+        "kind": "LINTER_RULE",
+        "tool": "eslint",
+        "rule": "no-console"
+      },
+      "catalog_version": "0.3.0",
+      "kind": "TEST_FIXTURE",
+      "scope": {
+        "paths": [
+          "standards/tests/fixtures/suppressions/good.ts"
+        ]
+      },
+      "reason": "Fixture de calificación: supresión puntual no-console para demostrar el circuito C8, no autoriza código de producto.",
+      "requested_by": "agent:gpt",
+      "approved_by": "paulozterra",
+      "approved_at": "2026-10-22T00:00:00Z",
+      "expires_at": "2027-10-22T00:00:00Z",
+      "status": "ACTIVE",
+      "evidence": "https://github.com/paulozterra/lf-programming-sandbox/pull/5"
+    }
+  ]
+}
