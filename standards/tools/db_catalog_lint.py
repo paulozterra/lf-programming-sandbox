@@ -51,7 +51,7 @@ SELECT json_build_object(
  FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
  WHERE n.nspname='{schema}' AND NOT t.tgisinternal),'[]'::json),
  'functions',coalesce((SELECT json_agg(json_build_object('name',p.proname,'definer',p.prosecdef,
-   'search_path',p.proconfig,'public_execute',has_function_privilege('public',p.oid,'EXECUTE')))
+   'search_path',p.proconfig,'public_execute',EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')))
  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='{schema}'),'[]'::json),
  'public_privileges',coalesce((SELECT json_agg(json_build_object('name',c.relname,'privilege',x.privilege_type))
  FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
@@ -70,6 +70,22 @@ def check_files(path):
     return findings
 
 
+def tokens_from_glossary():
+    base=json.loads((ROOT/"standards/glossary/base.json").read_text(encoding="utf-8"))
+    technical=set(base["technical_tokens"])
+    for term in base["terms"]:
+        for value in (term["term_en"],term["plural_en"]):
+            technical.update(value.split("_"))
+    return technical
+
+
+def identifier_tokens_valid(identifier):
+    known=tokens_from_glossary()
+    return all(token in known or (token.endswith("s") and token[:-1] in known)
+               or (token.endswith("ies") and token[:-3]+"y" in known)
+               for token in identifier.split("_"))
+
+
 def lint_data(data, schema="kit_test", kit_version="0.1.0", catalog_version="0.4.0"):
     findings = []
     def add(rule, obj, code):
@@ -80,11 +96,11 @@ def lint_data(data, schema="kit_test", kit_version="0.1.0", catalog_version="0.4
     constraints = data.get("constraints",[])
     triggers = {(t["table"],t["name"]) for t in data.get("triggers",[])}
     for table, info in tables.items():
-        if not SNAKE.fullmatch(table) or not table.endswith("s"):
+        if not SNAKE.fullmatch(table) or not table.endswith("s") or not identifier_tokens_valid(table):
             add("STD-DB-01",table,"INVALID_TABLE_NAME")
         cols = by_table[table]
         for name,col in cols.items():
-            if not SNAKE.fullmatch(name):
+            if not SNAKE.fullmatch(name) or not identifier_tokens_valid(name):
                 add("STD-DB-01",table+"."+name,"INVALID_COLUMN_NAME")
             if col["type"]=="boolean" and not name.startswith(("is_","has_")):
                 add("STD-DB-05",table+"."+name,"INVALID_BOOLEAN_NAME")
@@ -137,8 +153,49 @@ def main(argv=None):
         print(json.dumps(issues))
         return int(bool(issues))
     if x.action=="migrate-test":
-        print("REQUIRES_DECISION: migrate-test not implemented")
-        return 2
+        from kit import render, verify
+        import tempfile
+        if verify():
+            print("DIGEST_MISMATCH")
+            return 2
+        with tempfile.TemporaryDirectory() as tmp:
+            location=Path(tmp)
+            schema="kit_test"
+            render(schema,"KIT",location)
+            def run_file(filename):
+                sql=(location/filename).read_text(encoding="utf-8")
+                query(sql)
+            try:
+                query("DROP SCHEMA IF EXISTS kit_test CASCADE; CREATE SCHEMA kit_test;")
+                for name in ("V0_1__common_tables.sql","V0_2__common_triggers.sql",
+                             "V0_3__support_views.sql","V0_4__technical_errors_seed.sql"):
+                    run_file(name)
+                # Already-applied detector: the initial migration created all eight tables.
+                if not all(table in {t["name"] for t in collect(schema)["tables"]} for table in TABLES):
+                    raise ValueError("MIGRATION_NOT_APPLIED")
+                query("INSERT INTO kit_test.errors(error_code,technical_category,http_status) VALUES ('WITNESS','TEST',500);")
+                for name in ("U0_3__support_views.sql","U0_2__common_triggers.sql"):
+                    run_file(name)
+                if query("SELECT count(*) FROM kit_test.errors WHERE error_code='WITNESS';").strip()!="1":
+                    raise ValueError("ROLLBACK_LOST_DATA")
+                for name in ("V0_2__common_triggers.sql","V0_3__support_views.sql"):
+                    run_file(name)
+                if query("SELECT count(*) FROM kit_test.errors WHERE error_code='WITNESS';").strip()!="1":
+                    raise ValueError("REAPPLY_LOST_DATA")
+                findings=lint_data(collect(schema),schema)
+                if findings["verdict"]!="PASS":
+                    raise ValueError("LINT_FAILURE "+json.dumps(findings["findings"]))
+                # Test V0_1 rollback only against an empty schema.
+                query("DROP SCHEMA IF EXISTS kit_empty CASCADE; CREATE SCHEMA kit_empty;")
+                render("kit_empty","KIT",location)
+                run_file("V0_1__common_tables.sql")
+                run_file("U0_1__common_tables.sql")
+                query("DROP SCHEMA kit_empty;")
+                print(json.dumps({"schema":schema,"test":"apply-reapply-detected-rollback-reapply","verdict":"PASS"}))
+            except (ValueError,subprocess.CalledProcessError) as exc:
+                print("MIGRATE_TEST_FAILED",str(exc))
+                return 1
+        return 0
     try:
         result=lint_data(collect(x.schema),x.schema,
                          catalog_version=json.loads(CATALOG.read_text(encoding="utf-8"))["catalog_version"])
