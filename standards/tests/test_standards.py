@@ -71,6 +71,33 @@ class GlossaryTests(unittest.TestCase):
     def scan(self, name, fake_path):
         return self.scanner.scan(fake_path, (GLOSSARY_FIXTURES / name).read_text(encoding="utf-8"))
 
+
+    def test_c5_spanish_forms_and_rendered_kit_are_clean(self):
+        import kit
+        import tempfile
+        sql = ("CREATE TABLE x.consentimientos(id bigint, pantalla text, mensaje text, "
+               "sesion_id uuid, ocurrencia_id bigint);")
+        findings = self.scanner.scan("backend/src/main/resources/db/migration/V1__check.sql", sql)
+        for form in ("consentimientos", "pantalla", "mensaje", "sesion", "ocurrencia"):
+            with self.subTest(form=form):
+                self.assertTrue(any(form in issue for issue in findings), findings)
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            kit.render("kit_test", "KIT", output)
+            for path in output.glob("*.sql"):
+                with self.subTest(file=path.name):
+                    findings = self.scanner.scan(
+                        "backend/src/main/resources/db/migration/" + path.name,
+                        path.read_text(encoding="utf-8"))
+                    self.assertEqual(findings, [])
+
+    def test_technical_tokens_must_not_shadow_glossary_terms(self):
+        for value, fragment in (("", "vacío"), ("consent", "canónico")):
+            with self.subTest(token=value):
+                bad = copy.deepcopy(self.glossaries)
+                bad[0]["technical_tokens"].append(value)
+                self.assertTrue(any(fragment in issue for issue in glossary.validate(bad)))
+
     def test_glossary_is_valid(self):
         self.assertEqual(glossary.validate(self.glossaries), [])
 
