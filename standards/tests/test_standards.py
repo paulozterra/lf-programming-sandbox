@@ -362,5 +362,66 @@ class KitBaseTests(unittest.TestCase):
                          {"schema","catalog_version","kit_version","findings","verdict"})
 
 
+
+class ChangeCircuitTests(unittest.TestCase):
+    """Árboles sintéticos: ninguna prueba cambia main."""
+    def test_classes_and_negative_codes(self):
+        import changes
+        old={"catalog_version":"0.4.0","rules":[{"id":"STD-FE-07","severity":"WARN","rule":"Mismo texto","enforcement":{"state":"shadow"}}]}
+        chg={"schema_version":"LF_STANDARD_CHANGE_V1","change_id":"CHG-0001",
+             "change_class":"ADDITIVE","title":"test","reason":"test",
+             "trigger":{"kind":"C9","reference":"synthetic"},
+             "artifacts":[{"artifact":"catalog","from_version":"0.4.0","to_version":"0.5.0"}],
+             "affected":{"rule_ids":[],"term_ids":[],"paths":[]},
+             "existing_code_impact":{"mode":"NEW_OR_MODIFIED_ONLY"},
+             "security_pin_invalidation":{"invalidates":False},
+             "requested_by":"test","approved_by":"paulozterra",
+             "evidence":{"pr_url":"https://github.com/example/repo/pull/1"}}
+        path="standards/catalog.json"
+        changed=[path]
+        def run(new,c=chg,paths=changed):
+            return changes.check_transition({path:old},{path:new},paths,c)["findings"]
+        newer=copy.deepcopy(old);newer["change_registry"]="standards/changes";newer["catalog_version"]="0.5.0"
+        self.assertEqual(run(newer),[])
+        self.assertIn("MISSING_CHG",run(newer,None))
+        self.assertIn("VERSION_NOT_BUMPED",run({**newer,"catalog_version":"0.4.0"}))
+        self.assertIn("UNEXPLAINED_VERSION_BUMP",run({**old,"catalog_version":"0.5.0"}))
+        severity=copy.deepcopy(old);severity["rules"][0]["severity"]="BLOCK";severity["catalog_version"]="0.5.0"
+        self.assertIn("CHANGE_CLASS_MISMATCH",run(severity,{**chg,"change_class":"EDITORIAL"}))
+        mixed=copy.deepcopy(severity);mixed["rules"][0]["enforcement"]["state"]="planned"
+        self.assertIn("MIXED_CHANGE_REQUIRES_SPLIT",run(mixed))
+        self.assertIn("MISSING_RELAXING_EVIDENCE",changes.validate_record({**chg,"change_class":"RELAXING"}))
+        self.assertIn("INDEPENDENT_REVIEW_MISSING",changes.validate_record({**chg,"change_class":"SECURITY"}))
+        stale={**chg,"change_class":"SECURITY","review_content_sha256":"a",
+               "independent_review":{"reviewed_sha256":"b","reviewer_ref":"hash",
+                   "separation_declaration":"separate chat, memory off","provider_attested":False},
+               "security_pin_invalidation":{"invalidates":True}}
+        self.assertIn("REVIEW_STALE_SHA",changes.validate_record(stale))
+        self.assertIn("SECURITY_PIN_NOT_INVALIDATED",changes.validate_record({
+            **stale,"independent_review":{**stale["independent_review"],"reviewed_sha256":"a"},
+            "security_pin_invalidation":{"invalidates":False}}))
+        invalid=copy.deepcopy(newer);invalid["magic_unknown_policy"]="bad"
+        self.assertIn("UNCLASSIFIED_FIELD_CHANGE",run(invalid))
+        self.assertIn("DUPLICATE_CHG_ID",changes.validate_all([
+            (Path("CHG-0001.json"),chg),(Path("CHG-0001.json"),chg)]))
+        self.assertIn("BASELINE_INCREASE",changes.baseline_check({
+            "STD-GEN-01":{"count":0,"fingerprints":[]}},{"STD-GEN-01":["new"]}))
+        self.assertIn("PIN_MINIMUM_DECREASED",changes.check_pins(
+            {"minimum_safe_versions":{"catalog":"0.4.0"}},
+            {"minimum_safe_versions":{"catalog":"0.5.0"}}))
+        self.assertIn("DERIVED_ONLY_EDIT",changes.check_transition({}, {},
+            ["standards/GLOSARIO.md"],None)["findings"])
+
+    def test_semver_and_security_domains(self):
+        import changes
+        for key in ("STD-SEC-01","STD-GEN-03","STD-DB-06","STD-API-04",
+                    "STD-AUD-01","STD-CONS-01"):
+            self.assertTrue(changes.security_rule(key))
+        self.assertEqual(changes.classify_fields([("/rules/STD-FE-07/examples/good",["a"],["b"])])[0],"EDITORIAL")
+        self.assertEqual(changes.classify_fields([("/rules/STD-FE-07/severity","WARN","BLOCK")])[0],"TIGHTENING")
+        self.assertEqual(changes.classify_fields([("/rules/STD-FE-07/waiver_policy/allowed",False,True)])[0],"RELAXING")
+        self.assertEqual(changes.classify_fields([("/rules/STD-SEC-01/severity","WARN","BLOCK")])[0],"SECURITY")
+        self.assertEqual(changes.classify_fields([("/rules/STD-FE-07/new_rule",None,"new")])[0],"ADDITIVE")
+
 if __name__ == "__main__":
     unittest.main()
