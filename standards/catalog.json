@@ -1,6 +1,6 @@
 {
   "schema_version": "LF_STANDARDS_CATALOG_V1",
-  "catalog_version": "0.3.0",
+  "catalog_version": "0.4.0",
   "status": "BORRADOR_EN_REPO_DE_CALIFICACION",
   "source": "Plan Fase 2 (proyecto LF): claude/programacion-fase2-desglose-checkpoints-estandares-2026-10-21.md",
   "canonical_store_target": "transversal (vía Router -> Train, pendiente)",
@@ -389,8 +389,10 @@
       "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "Lint de catálogo sobre la BD local migrada"
+        "state": "active",
+        "planned_control": "Lint de catálogo sobre la BD local migrada; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
       },
       "examples": {
         "good": [
@@ -411,8 +413,10 @@
       "severity_condition": "nuevas",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "Lint de catálogo"
+        "state": "active",
+        "planned_control": "Lint de catálogo; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
       }
     },
     {
@@ -422,8 +426,10 @@
       "severity": "WARN",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "Lint de catálogo"
+        "state": "active",
+        "planned_control": "Lint de catálogo; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
       }
     },
     {
@@ -433,8 +439,10 @@
       "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "Lint de catálogo"
+        "state": "active",
+        "planned_control": "Lint de catálogo; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
       }
     },
     {
@@ -447,8 +455,10 @@
         "PRV-SQL-008"
       ],
       "enforcement": {
-        "state": "planned",
-        "planned_control": "Lint + revisor"
+        "state": "active",
+        "planned_control": "Lint + revisor; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
       }
     },
     {
@@ -458,8 +468,10 @@
       "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "Advisors + lint"
+        "state": "active",
+        "planned_control": "Advisors + lint; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
       },
       "waiver_policy": {
         "allowed": false,
@@ -476,8 +488,10 @@
         "PR-SEC-011"
       ],
       "enforcement": {
-        "state": "planned",
-        "planned_control": "Lint de funciones"
+        "state": "active",
+        "planned_control": "Lint de funciones; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
       }
     },
     {
@@ -491,8 +505,10 @@
         "PRV-SQL-006"
       ],
       "enforcement": {
-        "state": "planned",
-        "planned_control": "Test BEGIN/ROLLBACK + fixture"
+        "state": "active",
+        "planned_control": "Test BEGIN/ROLLBACK + fixture; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py migrate-test (solo kit)"
       },
       "waiver_policy": {
         "allowed": false,
@@ -509,8 +525,10 @@
         "POL-LF-MIGRATION-NAMING"
       ],
       "enforcement": {
-        "state": "planned",
-        "planned_control": "Clasificador / Flyway validate"
+        "state": "active",
+        "planned_control": "Clasificador / Flyway validate; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
       }
     },
     {
