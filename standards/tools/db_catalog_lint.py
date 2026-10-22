@@ -147,11 +147,57 @@ def main(argv=None):
     a=sub.add_parser("lint");a.add_argument("--schema",required=True);a.add_argument("--format",choices=["json"],default="json")
     b=sub.add_parser("check-files");b.add_argument("directory")
     sub.add_parser("migrate-test")
+    sub.add_parser("test-negative")
+    sub.add_parser("test-behavior")
     x=p.parse_args(argv)
     if x.action=="check-files":
         issues=check_files(x.directory)
         print(json.dumps(issues))
         return int(bool(issues))
+    if x.action=="test-negative":
+        from kit import render
+        import tempfile
+        expected={
+          "01_invalid_table_name.sql":"INVALID_TABLE_NAME",
+          "01_singular_table.sql":"INVALID_TABLE_NAME",
+          "02_serial_pk.sql":"INVALID_PRIMARY_KEY",
+          "03_custom_fk.sql":"CUSTOM_FK_NAME",
+          "03_custom_index.sql":"CUSTOM_INDEX_NAME",
+          "04_missing_updated_at.sql":"INVALID_TIMESTAMP",
+          "05_boolean_without_prefix.sql":"INVALID_BOOLEAN_NAME",
+          "06_public_grant.sql":"RLS_REQUIRED",
+          "07_unsafe_definer.sql":"UNSAFE_SECURITY_DEFINER",
+          "10_float_monetary.sql":"FLOAT_MONETARY_COLUMN"}
+        with tempfile.TemporaryDirectory() as tmp:
+            out=Path(tmp)
+            for i,(filename,code) in enumerate(expected.items()):
+                schema="kit_negative_"+str(i)
+                render(schema,"KIT",out)
+                try:
+                    query(f"DROP SCHEMA IF EXISTS {schema} CASCADE; CREATE SCHEMA {schema};")
+                    query((out/"V0_1__common_tables.sql").read_text(encoding="utf-8"))
+                    mutation=(KIT/"tests/negative"/filename).read_text(encoding="utf-8").replace("${schema}",schema)
+                    query(mutation)
+                    found=lint_data(collect(schema),schema)["findings"]
+                    if not any(item["reason_code"]==code for item in found):
+                        print("NEGATIVE_FAILURE",filename,code,json.dumps(found))
+                        return 1
+                except (subprocess.CalledProcessError,ValueError) as exc:
+                    print("NEGATIVE_SQL_FAILURE",filename,str(exc))
+                    return 1
+                finally:
+                    query(f"DROP SCHEMA IF EXISTS {schema} CASCADE;")
+        print("OK kit negative checks",len(expected))
+        return 0
+    if x.action=="test-behavior":
+        filename=KIT/"tests/behavior.sql"
+        try:
+            query(filename.read_text(encoding="utf-8"))
+        except subprocess.CalledProcessError as exc:
+            print("BEHAVIOR_FAILURE",exc.stderr)
+            return 1
+        print("OK kit behavior")
+        return 0
     if x.action=="migrate-test":
         from kit import render, verify
         import tempfile
@@ -173,6 +219,12 @@ def main(argv=None):
                 # Already-applied detector: the initial migration created all eight tables.
                 if not all(table in {t["name"] for t in collect(schema)["tables"]} for table in TABLES):
                     raise ValueError("MIGRATION_NOT_APPLIED")
+                run_file("U0_4__technical_errors_seed.sql")
+                if query("SELECT count(*) FROM kit_test.errors;").strip()!="0":
+                    raise ValueError("SEED_ROLLBACK_FAILED")
+                run_file("V0_4__technical_errors_seed.sql")
+                if query("SELECT count(*) FROM kit_test.errors;").strip()!="6":
+                    raise ValueError("SEED_REAPPLY_FAILED")
                 query("INSERT INTO kit_test.errors(error_code,technical_category,http_status) VALUES ('WITNESS','TEST',500);")
                 for name in ("U0_3__support_views.sql","U0_2__common_triggers.sql"):
                     run_file(name)
