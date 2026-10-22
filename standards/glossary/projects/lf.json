@@ -4,7 +4,7 @@
   "owner": "Proyecto LF (Paulo + Cristhian); el agente propone, LF adopta",
   "status": "CANDIDATO_EN_REPO_DE_CALIFICACION",
   "schema_version": "LF_GLOSSARY_V1",
-  "glossary_version": "0.1.0",
+  "glossary_version": "0.2.0",
   "decisions": [
     {
       "id": "GLOSS-DEC-LF-001",
@@ -13,6 +13,14 @@
       "reviewed_by": "GPT, revisión independiente (22/10)",
       "scope": "Lote 1 · 16 términos",
       "ref": "claude/glosario-c4-lote1-2026-10-22.md (proyecto LF)"
+    },
+    {
+      "id": "GLOSS-DEC-LF-002",
+      "date": "2026-10-22",
+      "approver": "Paulo (owner Fase 2)",
+      "reviewed_by": "Claude",
+      "scope": "Lote 2",
+      "ref": "Decisiones D1-D7, PG-00·C4, 22/10/2026"
     }
   ],
   "context_paths": {
@@ -459,6 +467,961 @@
       ],
       "decision_ref": "GLOSS-DEC-LF-001",
       "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-PAYMENT-PLAN-001",
+      "term_es": "plan de pagos",
+      "term_en": "payment_plan",
+      "plural_en": "payment_plans",
+      "definition": "Acuerdo para pagar una deuda mediante una o varias cuotas.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [
+        {
+          "form": "plan",
+          "contracts": [
+            "public.lf_user_offer_selections.plan_id"
+          ]
+        }
+      ],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "payment_plan_id"
+        ],
+        "bad": [
+          "plan_de_pagos_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-12",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-16",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-17"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-ONE-TIME-PAYMENT-001",
+      "term_es": "pago único",
+      "term_en": "one_time_payment",
+      "plural_en": "one_time_payments",
+      "definition": "Modalidad de pago en una sola operación.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "lump_sum_payment",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "D1: no es la forma canónica de pago único en LF."
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "one_time_payment_amount"
+        ],
+        "bad": [
+          "pago_unico"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-12",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-17"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-TERM-001",
+      "term_es": "plazo",
+      "term_en": "term",
+      "plural_en": "term",
+      "definition": "Duración pactada de un plan u oferta; se expresa siempre con calificador y unidad.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "tenor",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "D2: plazo se denomina term en contexto de oferta."
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "max_term_months"
+        ],
+        "bad": [
+          "plazo_maximo"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-10",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-12"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "Nunca usar term como identificador aislado; calificarlo, por ejemplo installment_term o max_term_months."
+    },
+    {
+      "term_id": "GLOSS-LF-DISCOUNT-001",
+      "term_es": "descuento",
+      "term_en": "discount",
+      "plural_en": "discounts",
+      "definition": "Reducción aplicable al importe a pagar.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "discount_percent"
+        ],
+        "bad": [
+          "descuento_porcentaje"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-10",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-12",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-17"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-INTEREST-001",
+      "term_es": "interés",
+      "term_en": "interest",
+      "plural_en": "interest",
+      "definition": "Cargo financiero previsto en un plan de cuotas.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "interest_rate"
+        ],
+        "bad": [
+          "interes_tasa"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-12"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-CAMPAIGN-001",
+      "term_es": "campaña",
+      "term_en": "campaign",
+      "plural_en": "campaigns",
+      "definition": "Campaña comercial de beneficios para segmentos de clientes.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "campaign_id"
+        ],
+        "bad": [
+          "campana_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-13"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "La campaign de lf_ops.system_audit_campaigns corresponde a auditoría técnica y no a esta campaña comercial."
+    },
+    {
+      "term_id": "GLOSS-LF-BENEFIT-001",
+      "term_es": "beneficio",
+      "term_en": "benefit",
+      "plural_en": "benefits",
+      "definition": "Ventaja temporal configurada en una campaña.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "campaign_benefit"
+        ],
+        "bad": [
+          "beneficio_campana"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-13"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-VALIDITY-PERIOD-001",
+      "term_es": "vigencia",
+      "term_en": "validity_period",
+      "plural_en": "validity_periods",
+      "definition": "Intervalo temporal durante el cual una regla, condición u oferta se aplica.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "valid_from"
+        ],
+        "bad": [
+          "vigencia_inicio"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-10",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-12",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-13",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-17"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "Los tokens técnicos valid y valid_until no son sinónimos libres del concepto. Ver fechas de inicio y fin."
+    },
+    {
+      "term_id": "GLOSS-LF-EXPIRATION-001",
+      "term_es": "vencimiento",
+      "term_en": "expiration",
+      "plural_en": "expirations",
+      "definition": "Finalización de la vigencia de una oferta en una fecha y hora.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "expires_at"
+        ],
+        "bad": [
+          "vencimiento_fecha"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-14"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-PAYMENT-SCHEDULE-001",
+      "term_es": "cronograma",
+      "term_en": "payment_schedule",
+      "plural_en": "payment_schedules",
+      "definition": "Fechas y condiciones programadas de cada cuota de un plan.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "payment_schedule_id"
+        ],
+        "bad": [
+          "cronograma_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-16"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-BALANCE-001",
+      "term_es": "saldo",
+      "term_en": "balance",
+      "plural_en": "balance",
+      "definition": "Importe pendiente de pago de una deuda.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "outstanding_balance"
+        ],
+        "bad": [
+          "saldo_pendiente"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-15",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-25"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-ORIGINAL-DEBT-001",
+      "term_es": "deuda original",
+      "term_en": "original_debt",
+      "plural_en": "original_debts",
+      "definition": "Deuda antes de aplicar pagos u ofertas de LF.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "original_debt"
+        ],
+        "bad": [
+          "deuda_original"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-15"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "original es también una palabra inglesa; excluir del detector léxico de español."
+    },
+    {
+      "term_id": "GLOSS-LF-TRANSACTION-001",
+      "term_es": "transacción",
+      "term_en": "transaction",
+      "plural_en": "transactions",
+      "definition": "Intento y resultado individual de una operación de pago, con referencia de proveedor.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "transaction_id"
+        ],
+        "bad": [
+          "transaccion_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-26",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-29",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-30"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-PAYMENT-METHOD-001",
+      "term_es": "medio de pago",
+      "term_en": "payment_method",
+      "plural_en": "payment_methods",
+      "definition": "Canal o instrumento usado para iniciar un pago.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "payment_method"
+        ],
+        "bad": [
+          "medio_de_pago"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-20",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-26"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-VOID-001",
+      "term_es": "anulación",
+      "term_en": "void",
+      "plural_en": "voids",
+      "definition": "Operación que anula un pago según las reglas del proveedor.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "cancellation",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "D3: en el flujo de pagos se usa void."
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "void_reason"
+        ],
+        "bad": [
+          "anulacion_motivo"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-27"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "Confirmar semántica técnica de void/voided contra documentación oficial de Niubiz cuando esté disponible."
+    },
+    {
+      "term_id": "GLOSS-LF-REVERSAL-001",
+      "term_es": "reverso",
+      "term_en": "reversal",
+      "plural_en": "reversals",
+      "definition": "Operación de reverso de pago con motivo y doble aprobación.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "reversal_id"
+        ],
+        "bad": [
+          "reverso_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-27"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-PAYMENT-RECONCILIATION-001",
+      "term_es": "conciliación",
+      "term_en": "payment_reconciliation",
+      "plural_en": "payment_reconciliations",
+      "definition": "Contraste entre pagos de LF y registros de proveedores por periodo.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "payment_reconciliation_id"
+        ],
+        "bad": [
+          "conciliacion_pago"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-29",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-37",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-41"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "reconciliation existente en GitHub/plataforma es otro contexto, no la conciliación financiera."
+    },
+    {
+      "term_id": "GLOSS-LF-RECONCILIATION-DISCREPANCY-001",
+      "term_es": "diferencia de conciliación",
+      "term_en": "reconciliation_discrepancy",
+      "plural_en": "reconciliation_discrepancies",
+      "definition": "Diferencia identificada en una conciliación: ausencia o divergencia de importe/estado.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "reconciliation_discrepancy_id"
+        ],
+        "bad": [
+          "diferencia_conciliacion"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-30",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-31"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "discrepancy en la plataforma puede corresponder a otras verificaciones; el término está acotado a pagos."
+    },
+    {
+      "term_id": "GLOSS-LF-SETTLEMENT-001",
+      "term_es": "liquidación",
+      "term_en": "settlement",
+      "plural_en": "settlements",
+      "definition": "Cierre y liquidación de operaciones por empresa y periodo.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "settlement_id"
+        ],
+        "bad": [
+          "liquidacion_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-32"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-DISPUTE-001",
+      "term_es": "controversia",
+      "term_en": "dispute",
+      "plural_en": "disputes",
+      "definition": "Disputa registrada por un cliente u operador, con seguimiento y resolución.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "dispute_id"
+        ],
+        "bad": [
+          "controversia_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-33"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-COLLECTED-AMOUNT-001",
+      "term_es": "recaudo",
+      "term_en": "collected_amount",
+      "plural_en": "collected_amount",
+      "definition": "Importe recaudado en los indicadores de empresa.",
+      "level": "project",
+      "synonyms_es": [
+        "recaudación"
+      ],
+      "rejected_en": [
+        {
+          "form": "collection",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "D4: collection significa cobranza, no importe recaudado."
+        }
+      ],
+      "legacy_en": [
+        {
+          "form": "collection",
+          "contracts": [
+            "public.lf_b2b_pricing_config.b2b_collection_cost_type",
+            "public.lf_b2b_pricing_config.b2b_collection_cost_value",
+            "public.lf_b2b_pricing_config.b2b_collection_cost_customer_visible",
+            "public.lf_b2b_pricing_config.collection_channel"
+          ]
+        }
+      ],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "collected_amount"
+        ],
+        "bad": [
+          "recaudo_total"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-41"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "collection ya se usa para cobranza en LF; no intercambiar con recaudo. La excepción de legado solo preserva las cuatro columnas concretas."
+    },
+    {
+      "term_id": "GLOSS-LF-PAYMENT-RECEIPT-001",
+      "term_es": "comprobante de pago",
+      "term_en": "payment_receipt",
+      "plural_en": "payment_receipts",
+      "definition": "Documento consultable y descargable que acredita un pago.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "payment_receipt_id"
+        ],
+        "bad": [
+          "comprobante_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-28"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "receipt ya aparece como recibo de evidencia técnica de plataforma; en LF este compuesto designa comprobante financiero."
+    },
+    {
+      "term_id": "GLOSS-LF-DEBT-CLEARANCE-LETTER-001",
+      "term_es": "carta de no adeudo",
+      "term_en": "debt_clearance_letter",
+      "plural_en": "debt_clearance_letters",
+      "definition": "Carta emitida tras confirmar el cierre de la deuda.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "no_debt_certificate",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "D6: nombre descartado para el documento de cierre."
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "debt_clearance_letter_id"
+        ],
+        "bad": [
+          "carta_no_adeudo_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-34"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-IDENTITY-VERIFICATION-001",
+      "term_es": "verificación de identidad",
+      "term_en": "identity_verification",
+      "plural_en": "identity_verifications",
+      "definition": "Validación de que el cliente es titular antes de mostrar su deuda.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "identity_verification_status"
+        ],
+        "bad": [
+          "verificacion_identidad"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-02"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-DAYS-PAST-DUE-001",
+      "term_es": "días de atraso",
+      "term_en": "days_past_due",
+      "plural_en": "days_past_due",
+      "definition": "Número de días transcurridos desde el vencimiento impago.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "days_past_due"
+        ],
+        "bad": [
+          "dias_atraso"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-09"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-OFFER-RULE-001",
+      "term_es": "regla",
+      "term_en": "offer_rule",
+      "plural_en": "offer_rules",
+      "definition": "Regla de negocio por segmento que determina qué ofertas son aplicables.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "rule",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "D5: rule aislado se confunde con reglas técnicas y linters."
+        }
+      ],
+      "legacy_en": [
+        {
+          "form": "reglas",
+          "contracts": [
+            "lf_ops.reglas",
+            "lf_ops.reglas_pantallas",
+            "lf_ops.pantallas_politicas_reglas"
+          ]
+        },
+        {
+          "form": "regla",
+          "contracts": [
+            "lf_ops.reglas_pantallas.regla_id",
+            "lf_ops.pantallas_politicas_reglas.regla_id"
+          ]
+        }
+      ],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "offer_rule_id"
+        ],
+        "bad": [
+          "regla_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-10",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-11"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "No confundir con el catálogo general lf_ops.reglas ni con reglas de linters; son reglas de aplicabilidad de ofertas."
+    },
+    {
+      "term_id": "GLOSS-LF-OFFER-CONDITION-001",
+      "term_es": "condición",
+      "term_en": "offer_condition",
+      "plural_en": "offer_conditions",
+      "definition": "Restricción versionada que debe cumplirse para aplicar una oferta.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "condition",
+          "contexts": [
+            "domain",
+            "database",
+            "api"
+          ],
+          "reason": "D5: condition aislado no identifica la condición de la oferta."
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "offer_condition_id"
+        ],
+        "bad": [
+          "condicion_id"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-10",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-11",
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-18"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-LF-PAYMENT-STATUS-001",
+      "term_es": "estado de pago",
+      "term_en": "payment_status",
+      "plural_en": "payment_statuses",
+      "definition": "Estado de una transacción de pago con valores de RF-23.",
+      "level": "project",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "payment_status"
+        ],
+        "bad": [
+          "estado_pago"
+        ]
+      },
+      "sources": [
+        "paulozterra/lf-architecture@bbe718c:docs/requisitos.md#RF-23"
+      ],
+      "decision_ref": "GLOSS-DEC-LF-002",
+      "status": "APROBADO",
+      "notes": "Los seis valores se registran juntos en una sola entrada; anulado -> voided, sujeto a confirmación posterior con documentación Niubiz.",
+      "values": {
+        "creado": "created",
+        "pendiente": "pending",
+        "aprobado": "approved",
+        "rechazado": "rejected",
+        "expirado": "expired",
+        "anulado": "voided"
+      }
     }
   ],
   "spanish_check_paths": [
@@ -469,5 +1432,15 @@
     "backend/src/main/java/**/*.java",
     "frontend/src/**/*.ts",
     "frontend/src/**/*.tsx"
+  ],
+  "spanish_token_exclusions": [
+    "plan",
+    "original",
+    "total",
+    "final",
+    "general",
+    "legal",
+    "normal",
+    "real"
   ]
 }
