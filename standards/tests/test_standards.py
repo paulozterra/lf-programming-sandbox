@@ -537,5 +537,65 @@ class ChangeCircuitTests(unittest.TestCase):
         self.assertEqual(changes.classify_fields([("/rules/STD-SEC-01/severity","WARN","BLOCK")])[0],"SECURITY")
         self.assertEqual(changes.classify_fields([("/rules/STD-NEW-01",None,{"id":"STD-NEW-01"})])[0],"ADDITIVE")
 
+
+class ConsumptionTests(unittest.TestCase):
+    def setUp(self):
+        import consumption
+        self.c=consumption
+        self.pricing,self.policy=consumption.read()
+
+    def test_contract_and_negative_codes(self):
+        self.assertEqual(self.c.validate(self.pricing,self.policy),[])
+        def issues(pricing=None,policy=None):
+            return self.c.validate(pricing or self.pricing,policy or self.policy)
+        bad=copy.deepcopy(self.pricing);bad["models"][0]["prices"]["input"]=1.25
+        self.assertIn("FLOAT_PRICE_FORBIDDEN",issues(pricing=bad))
+        bad=copy.deepcopy(self.pricing);bad["models"][0]["source_url"]=""
+        self.assertIn("MISSING_PRICE_SOURCE",issues(pricing=bad))
+        bad=copy.deepcopy(self.pricing);bad["models"].append(copy.deepcopy(bad["models"][0]))
+        self.assertIn("OVERLAPPING_PRICE_VALIDITY",issues(pricing=bad))
+        bad=copy.deepcopy(self.policy);bad["modes"]["STANDARD"]["difficulty_model_routing"]=True
+        self.assertIn("MODEL_ROUTING_FORBIDDEN",issues(policy=bad))
+        bad=copy.deepcopy(self.policy);bad["modes"]["STANDARD"]["controls"]["tests"]=False
+        self.assertIn("CONTROL_OVERRIDE_FORBIDDEN",issues(policy=bad))
+        bad=copy.deepcopy(self.policy);bad["budget"]["amount"]="100.00"
+        self.assertIn("UNAPPROVED_BUDGET_AMOUNT",issues(policy=bad))
+        self.assertEqual(self.c.budget(self.policy,"123")["decision"],"BUDGET_UNCONFIGURED_MEASURE_ONLY")
+
+    def test_calculation_and_measurement(self):
+        event={"provider":"anthropic","model":"claude-sonnet-5","service_tier":"standard",
+               "occurred_at":"2026-10-23T12:00:00Z","measurement":"MEASURED",
+               "provider_response_id":"response-test","input_tokens":1000,"output_tokens":100,
+               "cache_read_tokens":50,"cache_write_tokens":20,
+               "cache_write_ttl_breakdown":{"5m":20}}
+        result=self.c.cost(self.pricing,event)
+        self.assertEqual(result["cost_status"],"CALCULATED")
+        self.assertEqual(result["currency"],"USD")
+        def reject(obj,reason,pricing=None):
+            with self.assertRaisesRegex(ValueError,reason):
+                self.c.cost(pricing or self.pricing,obj)
+        reject({**event,"measurement":"ESTIMATED"},"ESTIMATED_TOKENS_FORBIDDEN")
+        reject({**event,"provider_response_id":None},"MEASUREMENT_WITHOUT_EVIDENCE")
+        reject({**event,"prompt":"PRIVATE"},"SCHEMA_REJECTED")
+        reject({**event,"cache_write_ttl_breakdown":{"5m":999}},"CACHE_TTL_SUM_MISMATCH")
+        bad=copy.deepcopy(self.pricing);bad["models"][1]["status"]="UNVERIFIED"
+        reject(event,"UNVERIFIED_PRICE_USED",bad)
+
+    def test_consumption_artifact_version_guard(self):
+        import changes
+        path="standards/consumption/pricing.json"
+        old=copy.deepcopy(self.pricing)
+        head=copy.deepcopy(old)
+        head["models"][0]["prices"]["input"]="1.11"
+        result=changes.check_transition({path:old},{path:head},[path],None)
+        self.assertIn("VERSION_NOT_BUMPED",result["findings"])
+        self.assertIn("MISSING_CHG",result["findings"])
+
+    def test_schema_rejects_prompt_fields(self):
+        schema=json.loads((ROOT/"consumption/schema/usage-event.schema.json").read_text(encoding="utf-8"))
+        self.assertFalse(schema["additionalProperties"])
+        self.assertTrue(all(k not in schema["properties"] for k in
+                            ("prompt","response_text","messages","context","patch","payload")))
+
 if __name__ == "__main__":
     unittest.main()
