@@ -54,6 +54,8 @@ def validate(pricing,policy):
         if mode.get("difficulty_model_routing") is not False:errors.append("MODEL_ROUTING_FORBIDDEN")
         if not all(mode.get(k) is True for k in ("stable_context_cache","minimum_context","no_rediscovery","early_stop")) or mode.get("controls")!={"standards":True,"reviews":True,"tests":True}:
             errors.append("CONTROL_OVERRIDE_FORBIDDEN")
+    if policy.get("budget",{}).get("warning_percent")!=80 or policy.get("budget",{}).get("decision_percent")!=100:
+        errors.append("BUDGET_THRESHOLD_FIXED_BY_D17")
     if policy.get("budget",{}).get("amount")!="POR_DEFINIR":
         errors.append("UNAPPROVED_BUDGET_AMOUNT")
     return sorted(set(errors))
