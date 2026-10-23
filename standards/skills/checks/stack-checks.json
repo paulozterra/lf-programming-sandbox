@@ -1,0 +1,94 @@
+{
+  "schema_version": "LF_STACK_CHECKS_V1",
+  "checks_version": "0.1.0",
+  "checks": {
+    "spring-verify": {
+      "cwd": "backend",
+      "argv": [
+        "mvn",
+        "-B",
+        "-ntp",
+        "verify"
+      ],
+      "status": "blocking"
+    },
+    "spring-spotless": {
+      "cwd": ".",
+      "argv": [
+        "mvn",
+        "-B",
+        "-ntp",
+        "-f",
+        "backend/pom.xml",
+        "spotless:check"
+      ],
+      "status": "shadow"
+    },
+    "next-lint": {
+      "cwd": "frontend",
+      "argv": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "status": "blocking"
+    },
+    "next-typecheck": {
+      "cwd": "frontend",
+      "argv": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "status": "blocking"
+    },
+    "next-build": {
+      "cwd": "frontend",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "status": "blocking"
+    },
+    "next-prettier": {
+      "cwd": "frontend",
+      "argv": [
+        "npx",
+        "--yes",
+        "prettier@3.9.10",
+        "--check",
+        "src/**/*.{ts,tsx,css}",
+        "*.{ts,mjs,json}"
+      ],
+      "status": "shadow"
+    },
+    "compose-config": {
+      "cwd": ".",
+      "argv": [
+        "docker",
+        "compose",
+        "-f",
+        "docker/compose.yaml",
+        "config",
+        "--quiet"
+      ],
+      "status": "blocking"
+    }
+  },
+  "sets": {
+    "spring-boot": [
+      "spring-verify",
+      "spring-spotless"
+    ],
+    "nextjs": [
+      "next-lint",
+      "next-typecheck",
+      "next-build",
+      "next-prettier"
+    ],
+    "postgres-flyway": [
+      "compose-config"
+    ]
+  }
+}
