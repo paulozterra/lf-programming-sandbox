@@ -13,25 +13,25 @@
       "artifact": "skill",
       "path": "standards/skills/spring-boot/skill.json",
       "from_version": null,
-      "to_version": "0.1.0"
+      "to_version": "0.2.0"
     },
     {
       "artifact": "skill",
       "path": "standards/skills/nextjs/skill.json",
       "from_version": null,
-      "to_version": "0.1.0"
+      "to_version": "0.2.0"
     },
     {
       "artifact": "skill",
       "path": "standards/skills/postgres-flyway/skill.json",
       "from_version": null,
-      "to_version": "0.1.0"
+      "to_version": "0.2.0"
     },
     {
       "artifact": "skill_checks",
       "path": "standards/skills/checks/stack-checks.json",
       "from_version": null,
-      "to_version": "0.1.0"
+      "to_version": "0.2.0"
     }
   ],
   "affected": {
@@ -41,7 +41,10 @@
       "standards/skills/",
       "standards/tools/skills.py",
       "standards/tools/stack_checks.py",
-      ".github/workflows/ci.yml"
+      ".github/workflows/ci.yml",
+      "standards/skills/README.md",
+      "standards/skills/tests/fixtures/spring-read-receipt.json",
+      "standards/tests/test_standards.py"
     ]
   },
   "existing_code_impact": {
