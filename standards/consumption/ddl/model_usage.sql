@@ -2,8 +2,8 @@
 CREATE SCHEMA IF NOT EXISTS ${schema};
 CREATE TABLE ${schema}.model_usage_events(
 id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-event_id uuid NOT NULL UNIQUE,order_ref text NOT NULL,lot_ref text NOT NULL,
-stage text NOT NULL CHECK(stage IN ('PLAN','BUILD','RETRY','QUESTION','REPAIR','REVIEW')),
+event_id uuid NOT NULL UNIQUE,work_request_ref text NOT NULL,work_batch_ref text NOT NULL,
+execution_stage text NOT NULL CHECK(execution_stage IN ('PLAN','BUILD','RETRY','QUESTION','REPAIR','REVIEW')),
 attempt integer NOT NULL CHECK(attempt>0),provider text NOT NULL,model text NOT NULL,service_tier text NOT NULL,
 pricing_version text NOT NULL,price_row_sha256 char(64) NOT NULL CHECK(price_row_sha256 ~ '^[0-9a-f]{64}$'),
 occurred_at timestamptz NOT NULL,input_tokens bigint CHECK(input_tokens>=0),
@@ -16,16 +16,18 @@ cost numeric(24,12) CHECK(cost>=0),currency text NOT NULL CHECK(currency ~ '^[A-
 expense_class text NOT NULL CHECK(expense_class IN ('USEFUL','WASTED')),
 wasted_reason text,correlation_id uuid NOT NULL,worker_receipt_ref text NOT NULL,
 created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),
+CHECK(expense_class<>'USEFUL' OR wasted_reason IS NULL),
 CHECK(expense_class<>'WASTED' OR
 (wasted_reason IS NOT NULL AND wasted_reason IN
 ('FAILED_ATTEMPT','EXPIRED_PACKAGE_REWORK','TESTING_FINDING_REWORK','NON_CONVERGENT_ITERATION'))),
 CHECK(measurement<>'MEASURED' OR
 (provider_response_id IS NOT NULL AND btrim(provider_response_id)<>'')),
+CHECK((cost_status='CALCULATED')=(cost IS NOT NULL)),
 CHECK(cost_status<>'CALCULATED' OR
 (measurement='MEASURED' AND input_tokens IS NOT NULL AND output_tokens IS NOT NULL
 AND cache_read_tokens IS NOT NULL AND cache_write_tokens IS NOT NULL AND cost IS NOT NULL)));
 COMMENT ON TABLE ${schema}.model_usage_events IS 'append-only';
-CREATE INDEX ON ${schema}.model_usage_events(order_ref,lot_ref,stage);
+CREATE INDEX ON ${schema}.model_usage_events(work_request_ref,work_batch_ref,execution_stage);
 CREATE TABLE ${schema}.model_usage_reclassifications(
 id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 usage_event_id bigint NOT NULL REFERENCES ${schema}.model_usage_events(id),
@@ -33,6 +35,7 @@ expense_class text NOT NULL CHECK(expense_class IN ('USEFUL','WASTED')),
 wasted_reason text,decided_at timestamptz NOT NULL DEFAULT now(),
 decision_ref text NOT NULL,correlation_id uuid NOT NULL,
 created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),
+CHECK(expense_class<>'USEFUL' OR wasted_reason IS NULL),
 CHECK(expense_class<>'WASTED' OR
 (wasted_reason IS NOT NULL AND wasted_reason IN
 ('FAILED_ATTEMPT','EXPIRED_PACKAGE_REWORK','TESTING_FINDING_REWORK','NON_CONVERGENT_ITERATION'))));
@@ -56,7 +59,8 @@ FOR k,v IN SELECT key,value FROM jsonb_each(NEW.cache_write_ttl_breakdown) LOOP
  THEN RAISE EXCEPTION 'INVALID_CACHE_TTL' USING ERRCODE='23514'; END IF;
  total:=total+(v::text)::numeric;
 END LOOP;
-IF NEW.cache_write_tokens IS NOT NULL AND total<>NEW.cache_write_tokens
+IF (NEW.cache_write_tokens IS NULL AND NEW.cache_write_ttl_breakdown <> '{}'::jsonb)
+ OR (NEW.cache_write_tokens IS NOT NULL AND total<>NEW.cache_write_tokens)
 THEN RAISE EXCEPTION 'CACHE_TTL_SUM_MISMATCH' USING ERRCODE='23514'; END IF;
 RETURN NEW;
 END; $$;
@@ -69,17 +73,20 @@ FROM ${schema}.model_usage_events u LEFT JOIN LATERAL (
 SELECT expense_class,wasted_reason FROM ${schema}.model_usage_reclassifications r
 WHERE r.usage_event_id=u.id ORDER BY r.id DESC LIMIT 1) r ON true;
 CREATE VIEW ${schema}.model_usage_by_stage WITH (security_invoker=true) AS
-SELECT order_ref,lot_ref,stage,currency,effective_expense_class,COUNT(*) AS calls,
+SELECT work_request_ref,work_batch_ref,execution_stage,currency,effective_expense_class,COUNT(*) AS calls,
 SUM(input_tokens) AS input_tokens,SUM(output_tokens) AS output_tokens,
-SUM(cache_read_tokens) AS cache_read_tokens,SUM(cache_write_tokens) AS cache_write_tokens,SUM(cost) AS cost
-FROM ${schema}.model_usage_effective_class GROUP BY order_ref,lot_ref,stage,currency,effective_expense_class;
-CREATE VIEW ${schema}.model_usage_by_lot WITH (security_invoker=true) AS
-SELECT order_ref,lot_ref,currency,effective_expense_class,COUNT(*) AS calls,SUM(cost) AS cost,
+SUM(cache_read_tokens) AS cache_read_tokens,SUM(cache_write_tokens) AS cache_write_tokens,SUM(cost) FILTER (WHERE cost_status='CALCULATED') AS cost,
+COUNT(*) FILTER (WHERE cost_status<>'CALCULATED') AS unmeasured_calls
+FROM ${schema}.model_usage_effective_class GROUP BY work_request_ref,work_batch_ref,execution_stage,currency,effective_expense_class;
+CREATE VIEW ${schema}.model_usage_by_work_batch WITH (security_invoker=true) AS
+SELECT work_request_ref,work_batch_ref,currency,effective_expense_class,COUNT(*) AS calls,SUM(cost) FILTER (WHERE cost_status='CALCULATED') AS cost,
+COUNT(*) FILTER (WHERE cost_status<>'CALCULATED') AS unmeasured_calls,
 SUM(cache_read_tokens) AS cache_read_tokens,SUM(input_tokens) AS input_tokens
-FROM ${schema}.model_usage_effective_class GROUP BY order_ref,lot_ref,currency,effective_expense_class;
-CREATE VIEW ${schema}.model_usage_by_order WITH (security_invoker=true) AS
-SELECT order_ref,currency,effective_expense_class,COUNT(*) AS calls,SUM(cost) AS cost,
+FROM ${schema}.model_usage_effective_class GROUP BY work_request_ref,work_batch_ref,currency,effective_expense_class;
+CREATE VIEW ${schema}.model_usage_by_work_request WITH (security_invoker=true) AS
+SELECT work_request_ref,currency,effective_expense_class,COUNT(*) AS calls,SUM(cost) FILTER (WHERE cost_status='CALCULATED') AS cost,
+COUNT(*) FILTER (WHERE cost_status<>'CALCULATED') AS unmeasured_calls,
 SUM(cache_read_tokens) AS cache_read_tokens,SUM(input_tokens) AS input_tokens
-FROM ${schema}.model_usage_effective_class GROUP BY order_ref,currency,effective_expense_class;
+FROM ${schema}.model_usage_effective_class GROUP BY work_request_ref,currency,effective_expense_class;
 REVOKE ALL ON ALL TABLES IN SCHEMA ${schema} FROM PUBLIC;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA ${schema} FROM PUBLIC;
