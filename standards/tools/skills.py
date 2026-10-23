@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 STD=ROOT/"standards";DIR=STD/"skills"
 SLUGS=("spring-boot","nextjs","postgres-flyway")
+EXCLUDED_V1_DOMAINS=frozenset({"STD-PY","STD-SB","STD-IAC","STD-CONT"})
 def digest(raw):return hashlib.sha256(raw).hexdigest()
 def load_json(p):return json.loads(p.read_text(encoding="utf-8"))
 def violations(skill,text,catalog,checks):
@@ -41,6 +42,8 @@ def select(evidence,active):
     hits=[]
     if evidence.get("spring_boot"):hits.append("spring-boot")
     if evidence.get("next"):hits.append("nextjs")
+    if bool(evidence.get("flyway")) != bool(evidence.get("migration")):
+        raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION: Flyway declaration and migration evidence incomplete")
     if evidence.get("flyway") and evidence.get("migration"):hits.append("postgres-flyway")
     if not hits:raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION")
     return hits
@@ -85,6 +88,9 @@ def main():
     q=p.parse_args();catalog=load_json(STD/"catalog.json");checks=load_json(DIR/"checks/stack-checks.json")
     if q.cmd=="validate":
         errors=[]
+        covered=set().union(*(set(load_json(DIR/slug/"skill.json")["domains"]) for slug in SLUGS))
+        for domain in (d["id"] for d in catalog["domains"]):
+            if domain not in covered and domain not in EXCLUDED_V1_DOMAINS:errors.append("UNCOVERED_DOMAIN")
         for slug in SLUGS:
             obj=load_json(DIR/slug/"skill.json")
             errors+=violations(obj,(DIR/slug/"SKILL.md").read_text(encoding="utf-8"),catalog,checks)
