@@ -38,13 +38,18 @@ def inspect_repository(root):
     evidence["migration"]=bool(list(root.glob("**/V[0-9]*__*.sql")))
     return evidence
 
+class StackDecisionError(ValueError):
+    def __init__(self,message,selected_skills):
+        super().__init__(message)
+        self.selected_skills=selected_skills
+
 def select(evidence,active):
     if not active:raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION: missing active domains")
     hits=[]
     if evidence.get("spring_boot"):hits.append("spring-boot")
     if evidence.get("next"):hits.append("nextjs")
     if bool(evidence.get("flyway")) != bool(evidence.get("migration")):
-        raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION: Flyway declaration and migration evidence incomplete")
+        raise StackDecisionError("STACK_UNRECOGNIZED: REQUIRES_DECISION: Flyway declaration and migration evidence incomplete",hits)
     if evidence.get("flyway") and evidence.get("migration"):hits.append("postgres-flyway")
     if not hits:raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION")
     return hits
@@ -98,7 +103,7 @@ def main():
         print(json.dumps({"findings":sorted(set(errors))}));return int(bool(errors))
     if q.cmd=="select":
         try:out=select(inspect_repository(q.repo) if q.repo else load_json(Path(q.evidence)),q.domains.split(","))
-        except ValueError as e:print(json.dumps({"error":str(e)}));return 1
+        except ValueError as e:print(json.dumps({"error":str(e),"skills":getattr(e,"selected_skills",[])}));return 1
         print(json.dumps({"skills":out}));return 0
     try:content,receipt=assemble(load_json(Path(q.pin)),q.skills.split(","),q.domains.split(","))
     except (ValueError,KeyError) as e:print(json.dumps({"error":str(e)}));return 1
