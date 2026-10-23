@@ -1,6 +1,6 @@
 {
   "schema_version": "LF_STACK_CHECKS_V1",
-  "checks_version": "0.1.0",
+  "checks_version": "0.2.0",
   "checks": {
     "spring-verify": {
       "cwd": "backend",
@@ -74,6 +74,16 @@
         "--quiet"
       ],
       "status": "blocking"
+    },
+    "db-catalog-files": {
+      "cwd": ".",
+      "argv": [
+        "python3",
+        "standards/tools/db_catalog_lint.py",
+        "check-files",
+        "standards/kit-base/migrations"
+      ],
+      "status": "blocking"
     }
   },
   "sets": {
@@ -88,7 +98,8 @@
       "next-prettier"
     ],
     "postgres-flyway": [
-      "compose-config"
+      "compose-config",
+      "db-catalog-files"
     ]
   }
 }
