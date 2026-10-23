@@ -166,6 +166,9 @@ def classify_fields(changes, path=""):
             effect="ADDITIVE"
         elif tail in ("severity",):
             effect="TIGHTENING" if str(new) in ("BLOCK","BLOCK_OR_WARN") else "RELAXING"
+        elif tail=="status":
+            # Aprobar vuelve obligatoria la regla; retirar la aprobación la relaja.
+            effect="TIGHTENING" if new=="APROBADO" else "RELAXING" if old=="APROBADO" else "TIGHTENING"
         elif tail=="state":
             effect="TIGHTENING" if new=="active" else "ADDITIVE" if new=="shadow" else "RELAXING"
         elif tail=="allowed":
@@ -263,8 +266,14 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
         declared=chg.get("change_class")
         protected_only=any(p.startswith("standards/tools/") or p==".github/workflows/ci.yml" for p in changed_paths)
         hierarchy={"EDITORIAL":0,"ADDITIVE":1,"TIGHTENING":2,"RELAXING":3,"SECURITY":4}
+        # C9: prosa normativa es juicio humano, no la interpreta el parser.
+        # Permitir declarar RELAXING (exige risk y compensating_control) sobre
+        # EDITORIAL/ADDITIVE/TIGHTENING detectado; nunca rebajar SECURITY.
+        prose_review="PROSE_CHANGE_REVIEW" in warnings
         if declared not in hierarchy or (protected_only and hierarchy[declared]<hierarchy["ADDITIVE"]) or (
-                not protected_only and declared!=effective) or (
+                not protected_only and declared!=effective and not (
+                    prose_review and declared=="RELAXING" and hierarchy[effective]<=hierarchy["TIGHTENING"]
+                )) or (
                 protected_only and hierarchy[declared]<hierarchy[effective]):
             findings.append("CHANGE_CLASS_MISMATCH")
         findings+=validate_record(chg)
