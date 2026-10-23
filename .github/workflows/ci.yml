@@ -133,6 +133,8 @@ jobs:
           docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox -c 'DROP SCHEMA IF EXISTS consumption_test CASCADE'
           sed 's/${schema}/consumption_test/g' standards/consumption/ddl/model_usage.sql | docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox
           docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox < standards/consumption/tests/behavior.sql
+          docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox < standards/consumption/tests/aggregates.sql
+          docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox < standards/consumption/tests/new_negatives.sql
           docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox -c 'DROP SCHEMA consumption_test CASCADE'
       - name: Floci acepta conexiones
         run: |
