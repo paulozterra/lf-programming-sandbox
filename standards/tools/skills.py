@@ -39,6 +39,7 @@ def inspect_repository(root):
     return evidence
 
 def select(evidence,active):
+    if not active:raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION: missing active domains")
     hits=[]
     if evidence.get("spring_boot"):hits.append("spring-boot")
     if evidence.get("next"):hits.append("nextjs")
