@@ -56,7 +56,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: python3 standards/tools/stack_checks.py validate
+      - run: python3 standards/tools/stack_checks.py validate --ci .github/workflows/ci.yml
       - run: python3 standards/tools/skills.py validate
       - name: "C6: ensamblado sintético Spring offline"
         run: |
@@ -79,7 +79,7 @@ jobs:
       - run: python3 standards/tools/waivers.py validate
       - run: python3 standards/tools/waivers.py render --check
       - run: python3 standards/tools/kit.py verify
-      - run: python3 standards/tools/db_catalog_lint.py check-files standards/kit-base/migrations
+      - run: python3 standards/tools/stack_checks.py run --set postgres-flyway --check-id db-catalog-files
       - run: python3 -m unittest discover -s standards/tests -v
 
   standards-shadow:
