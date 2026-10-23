@@ -159,10 +159,19 @@ def parse_suppression(line):
             targets.append({"kind": "STD_RULE", "rule_id": "STD-FE-03", "controls": [control]})
     if "prettier-ignore" in line:
         targets.append({"kind": "STD_RULE", "rule_id": "STD-FE-07", "controls": []})
-    # Java: forma singular y array; una regla por cada literal.
-    java = re.search(r"""@SuppressWarnings\s*\(\s*(\{[^}]*\}|"[^"]*"|'[^']*')\s*\)""", line)
+    # Java: literal/array, con o sin el atributo explícito value =.
+    # Una anotación ilegible se mantiene en UNPARSED_SUPPRESSION (fail closed).
+    java = re.search(r"""@SuppressWarnings\s*\(\s*(?:value\s*=\s*)?(\{[^}]*\}|"[^"]*"|'[^']*')\s*\)""", line)
     if java:
-        values = re.findall(r"""["']([^"']+)["']""", java.group(1))
+        body = java.group(1)
+        items = [x.strip() for x in body.strip("{}").split(",")] if body.startswith("{") else [body]
+        if items and items[-1] == "" and len(items) > 1:
+            items.pop()  # coma final permitida por Java
+        literal = re.compile(r"""^(?:"([^"]+)"|'([^']+)')$""")
+        if not items or not all(literal.match(x) for x in items):
+            # Constante, expresión o elemento vacío: no se puede saber qué se suprime.
+            return []
+        values = [literal.match(x).group(1) or literal.match(x).group(2) for x in items]
         targets.extend({"kind": "LINTER_RULE", "tool": "java", "rule": value} for value in values)
     m = re.search(r"#\s*noqa:\s*([\w, ]+)", line)
     if m:

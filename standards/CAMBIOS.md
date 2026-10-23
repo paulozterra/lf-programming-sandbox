@@ -5,3 +5,4 @@
 | ID | Clase | Título | Artefactos | Aprobador previsto | PR |
 |---|---|---|---|---|---|
 | CHG-0001 | ADDITIVE | Introducir circuito de cambios del reglamento C9 | catalog 0.4.0 → 0.5.0 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/7 |
+| CHG-0002 | ADDITIVE | Reconocer SuppressWarnings con atributo Java value | tool None → None | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/8 |

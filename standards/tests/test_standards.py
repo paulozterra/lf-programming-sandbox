@@ -458,6 +458,74 @@ class ChangeCircuitTests(unittest.TestCase):
             {"STD-GEN-05":{"count":0,"fingerprints":[]}},
             {"STD-GEN-05":[]},{"STD-GEN-05":["new-suppression"]}))
 
+
+    def test_c9_pilot_java_explicit_value_suppressions(self):
+        import waivers
+        import datetime as dt
+        import changes
+        import copy as _copy
+        day = dt.datetime(2026, 10, 23, tzinfo=dt.timezone.utc)
+        for statement, expected in (
+            ('@SuppressWarnings(value = "unchecked")', ["unchecked"]),
+            ('@SuppressWarnings(value = {"a","b"})', ["a", "b"]),
+            ('@SuppressWarnings(value={"a", "b"})', ["a", "b"]),
+        ):
+            with self.subTest(statement=statement):
+                self.assertEqual(
+                    [t["rule"] for t in waivers.parse_suppression(statement)],
+                    expected)
+        self.assertEqual(waivers.parse_suppression('@SuppressWarnings(value = unknown)'), [])
+        # Fail closed: una constante dentro del arreglo no puede colarse sin waiver.
+        for statement in ('@SuppressWarnings({"unchecked", OTHER})',
+                          '@SuppressWarnings(value = {"a", OTHER})',
+                          '@SuppressWarnings(value = {})'):
+            with self.subTest(statement=statement):
+                self.assertEqual(waivers.parse_suppression(statement), [])
+        self.assertEqual(
+            [t["rule"] for t in waivers.parse_suppression('@SuppressWarnings({"a", "b",})')],
+            ["a", "b"])
+        catalog, registry = waivers.load()
+        import tempfile
+        import pathlib
+        test_dir = pathlib.Path("standards/tests/fixtures/waivers")
+        for statement, expected_code in (
+            ('@SuppressWarnings(value = "unchecked")', "NO_WAIVER"),
+            ('@SuppressWarnings(value = {"a","b"})', "NO_WAIVER"),
+            ('@SuppressWarnings(value = unknown)', "UNPARSED_SUPPRESSION"),
+        ):
+            with self.subTest(statement=statement):
+                with tempfile.TemporaryDirectory(dir=waivers.ROOT / test_dir) as temp:
+                    sample = pathlib.Path(temp) / "Example.java"
+                    sample.write_text(statement + "\\n", encoding="utf-8")
+                    relative = sample.relative_to(waivers.ROOT).as_posix()
+                    found = waivers.check_refs(catalog, registry, [relative], day)
+                    self.assertTrue(any(expected_code in item for item in found), found)
+
+    def test_c9_pilot_missing_chg_and_class_mismatch(self):
+        import changes
+        path = "standards/catalog.json"
+        old = {"catalog_version": "0.5.0",
+               "rules": [{"id": "STD-FE-07", "severity": "WARN"}]}
+        new = {"catalog_version": "0.6.0",
+               "rules": [{"id": "STD-FE-07", "severity": "BLOCK"}]}
+        self.assertIn("MISSING_CHG", changes.check_transition(
+            {path: old}, {path: new}, [path], None)["findings"])
+        editorial = {
+            "schema_version": "LF_STANDARD_CHANGE_V1",
+            "change_id": "CHG-0002", "change_class": "EDITORIAL",
+            "title": "Synthetic", "reason": "Synthetic test",
+            "trigger": {"kind": "TEST", "reference": "synthetic"},
+            "artifacts": [{"artifact": "catalog", "path": path,
+                           "from_version": "0.5.0", "to_version": "0.6.0"}],
+            "affected": {"rule_ids": ["STD-FE-07"], "term_ids": [], "paths": []},
+            "existing_code_impact": {"mode": "NEW_OR_MODIFIED_ONLY"},
+            "security_pin_invalidation": {"invalidates": False},
+            "requested_by": "test", "approved_by": "paulozterra",
+            "evidence": {"pr_url": "https://github.com/example/repo/pull/1"}
+        }
+        self.assertIn("CHANGE_CLASS_MISMATCH", changes.check_transition(
+            {path: old}, {path: new}, [path], editorial)["findings"])
+
     def test_semver_and_security_domains(self):
         import changes
         for key in ("STD-SEC-01","STD-GEN-03","STD-DB-06","STD-API-04",
