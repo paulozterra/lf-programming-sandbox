@@ -755,6 +755,9 @@ class C6StackSkillsTests(unittest.TestCase):
         pin={"catalog_version":catalog["catalog_version"],
              "catalog_sha256":hashlib.sha256((ROOT/"catalog.json").read_bytes()).hexdigest()}
         content,receipt=skills.assemble(pin,["spring-boot"],["STD-CONS","STD-NAV"])
+        expected=json.loads((ROOT/"skills/tests/fixtures/spring-read-with-nav-cons-receipt.json").read_text())
+        for field in ("bytes","approx_tokens","skills","rule_ids","pending_rule_ids","assembled_sha256"):
+            self.assertEqual(receipt[field],expected[field],field)
         ids={f"STD-CONS-{i:02d}" for i in range(1,5)}
         self.assertTrue(ids.issubset(set(receipt["rule_ids"])))
         self.assertTrue(ids.issubset(set(receipt["pending_rule_ids"])))
