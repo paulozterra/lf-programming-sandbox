@@ -195,6 +195,11 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
             continue
         if path in VERSIONS:
             old=base_objects.get(path);new=head_objects.get(path)
+            if old is None and new is not None and path.startswith("standards/consumption/"):
+                flags.append("ADDITIVE")
+                if not chg or not any(a.get("path")==path and a.get("to_version")==new.get(VERSIONS[path]) for a in chg.get("artifacts",[])):
+                    findings.append("MISSING_CHG")
+                continue
             if old is None or new is None:
                 findings.append("UNCLASSIFIED_FIELD_CHANGE");continue
             differences=walk(normalized(old),normalized(new))
