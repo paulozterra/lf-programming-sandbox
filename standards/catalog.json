@@ -1,6 +1,6 @@
 {
   "schema_version": "LF_STANDARDS_CATALOG_V1",
-  "catalog_version": "0.6.0",
+  "catalog_version": "0.6.1",
   "status": "BORRADOR_EN_REPO_DE_CALIFICACION",
   "source": "Plan Fase 2 (proyecto LF): claude/programacion-fase2-desglose-checkpoints-estandares-2026-10-21.md",
   "canonical_store_target": "transversal (vía Router -> Train, pendiente)",
@@ -273,7 +273,15 @@
         "command": "python3 standards/tools/glossary.py check-diff --base origin/<rama base>",
         "planned_control": "Revisor PG-11 + diccionario de glosario"
       },
-      "glossary": "standards/glossary/ (base.json + projects/lf.json) · vista standards/GLOSARIO.md"
+      "glossary": "standards/glossary/ (base.json + projects/lf.json) · vista standards/GLOSARIO.md",
+      "examples": {
+        "good": [
+          "String correlationId = request.getHeader(\"X-Correlation-Id\");"
+        ],
+        "bad": [
+          "String identificadorCorrelacion = request.getHeader(\"X-Correlation-Id\");"
+        ]
+      }
     },
     {
       "id": "STD-GEN-02",
@@ -305,6 +313,14 @@
       "waiver_policy": {
         "allowed": false,
         "reason": "Secretos y ejecucion segura son invariantes de seguridad"
+      },
+      "examples": {
+        "good": [
+          "String apiKey = System.getenv(\"SERVICE_API_KEY\"); // entorno permitido por allowlist"
+        ],
+        "bad": [
+          "private static final String API_KEY = \"sk-example-secret\";"
+        ]
       }
     },
     {
@@ -323,6 +339,14 @@
       "waiver_policy": {
         "allowed": false,
         "reason": "La proteccion de PII es obligatoria"
+      },
+      "examples": {
+        "good": [
+          "logger.info(\"request_id={}\", requestId);"
+        ],
+        "bad": [
+          "logger.info(\"customer_email={}\", customerEmail);"
+        ]
       }
     },
     {
@@ -365,6 +389,14 @@
       "waiver_policy": {
         "allowed": false,
         "reason": "ISO-8601 y UTC son invariantes de interoperabilidad"
+      },
+      "examples": {
+        "good": [
+          "2026-10-23T14:30:00Z"
+        ],
+        "bad": [
+          "2026-10-23 14:30"
+        ]
       }
     },
     {
@@ -554,6 +586,14 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Spectral / lint de catálogo"
+      },
+      "examples": {
+        "good": [
+          "GET /api/v1/work-requests"
+        ],
+        "bad": [
+          "GET /work-requests"
+        ]
       }
     },
     {
@@ -565,6 +605,14 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Spectral"
+      },
+      "examples": {
+        "good": [
+          "GET /api/v1/work-batches/{workBatchId}"
+        ],
+        "bad": [
+          "GET /api/v1/work_batch/{workBatchId}"
+        ]
       }
     },
     {
@@ -602,6 +650,14 @@
       "waiver_policy": {
         "allowed": false,
         "reason": "Nunca exponer SQL ni stack traces"
+      },
+      "examples": {
+        "good": [
+          "HTTP 500: {\"code\":\"INTERNAL_ERROR\",\"message\":\"Request could not be completed\"}"
+        ],
+        "bad": [
+          "HTTP 500: {\"error\":\"SELECT * FROM accounts; stack trace ...\"}"
+        ]
       }
     },
     {
@@ -616,6 +672,14 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Spectral + test"
+      },
+      "examples": {
+        "good": [
+          "POST /api/v1/work-requests + Idempotency-Key: example-key; X-Request-Id: example-request; X-Correlation-Id: example-correlation"
+        ],
+        "bad": [
+          "HTTP 429 without Retry-After"
+        ]
       }
     },
     {
@@ -627,6 +691,14 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Diff contrato vs. código"
+      },
+      "examples": {
+        "good": [
+          "Define OpenAPI operation GET /api/v1/work-requests before implementing Spring controller; generate FE client from spec"
+        ],
+        "bad": [
+          "Implement Spring controller first and manually write incompatible frontend fetch calls"
+        ]
       }
     },
     {
@@ -669,6 +741,14 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "Detector de breaking changes en OpenAPI (p. ej., oasdiff)"
+      },
+      "examples": {
+        "good": [
+          "Keep GET /api/v1/work-requests and add GET /api/v2/work-requests for breaking response changes"
+        ],
+        "bad": [
+          "Replace /api/v1/work-requests response incompatibly without publishing /api/v2/"
+        ]
       }
     },
     {
@@ -1042,6 +1122,14 @@
       "waiver_policy": {
         "allowed": false,
         "reason": "Validar entradas del lado servidor es obligatorio"
+      },
+      "examples": {
+        "good": [
+          "server.validate(input, { type: \"string\", maxLength: 64 });"
+        ],
+        "bad": [
+          "// Only browser checks input length; server persists unchecked input"
+        ]
       }
     },
     {
@@ -1057,6 +1145,14 @@
       "waiver_policy": {
         "allowed": false,
         "reason": "La autorizacion por endpoint es obligatoria"
+      },
+      "examples": {
+        "good": [
+          "if (!authorization.canRead(actor, resource)) return forbidden();"
+        ],
+        "bad": [
+          "// UI hides button; backend handler returns protected resource unconditionally"
+        ]
       }
     },
     {
@@ -1085,6 +1181,14 @@
       "waiver_policy": {
         "allowed": false,
         "reason": "Rate limits en operaciones sensibles son obligatorios"
+      },
+      "examples": {
+        "good": [
+          "POST /api/v1/auth/otp: enforce per-identity attempt limit and return HTTP 429 on excess"
+        ],
+        "bad": [
+          "POST /api/v1/auth/otp: unlimited verification attempts"
+        ]
       }
     },
     {
