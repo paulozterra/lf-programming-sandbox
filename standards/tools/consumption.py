@@ -20,7 +20,9 @@ def read():
 
 
 def digest(row):
-    return hashlib.sha256(json.dumps(row,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode()).hexdigest()
+    # El cierre permitido de valid_to no altera la identidad histórica del precio.
+    immutable={k:v for k,v in row.items() if k!="valid_to"}
+    return hashlib.sha256(json.dumps(immutable,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode()).hexdigest()
 
 
 def date(s):
