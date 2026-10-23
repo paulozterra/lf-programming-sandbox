@@ -316,10 +316,12 @@
       },
       "examples": {
         "good": [
-          "String apiKey = System.getenv(\"SERVICE_API_KEY\"); // entorno permitido por allowlist"
+          "String apiKey = System.getenv(\"SERVICE_API_KEY\");",
+          "ProcessBuilder pb = new ProcessBuilder(command); pb.environment().keySet().retainAll(Set.of(\"PATH\", \"LANG\"));"
         ],
         "bad": [
-          "private static final String API_KEY = \"sk-example-secret\";"
+          "private static final String API_KEY = \"example-secret-value\";",
+          "logger.info(\"api_key={}\", apiKey);"
         ]
       }
     },
@@ -653,10 +655,11 @@
       },
       "examples": {
         "good": [
-          "HTTP 500: {\"code\":\"INTERNAL_ERROR\",\"message\":\"Request could not be completed\"}"
+          "HTTP 500 Content-Type: application/problem+json {\"type\":\"about:blank\",\"title\":\"Internal Server Error\",\"status\":500,\"code\":\"INTERNAL_ERROR\",\"trace_code\":\"7f3a9c21\"}"
         ],
         "bad": [
-          "HTTP 500: {\"error\":\"SELECT * FROM accounts; stack trace ...\"}"
+          "HTTP 500: {\"error\":\"SELECT * FROM accounts; stack trace ...\"}",
+          "HTTP 404: {\"error_id\":17,\"message\":\"texto inventado por el agente\"}"
         ]
       }
     },
@@ -1125,10 +1128,11 @@
       },
       "examples": {
         "good": [
-          "server.validate(input, { type: \"string\", maxLength: 64 });"
+          "public record CreateWorkRequest(@NotBlank @Size(max = 64) String title) {}",
+          "ResponseEntity<WorkRequestResponse> create(@Valid @RequestBody CreateWorkRequest body)"
         ],
         "bad": [
-          "// Only browser checks input length; server persists unchecked input"
+          "ResponseEntity<WorkRequestResponse> create(@RequestBody CreateWorkRequest body) // sin @Valid: solo valida el navegador"
         ]
       }
     },
@@ -1148,10 +1152,10 @@
       },
       "examples": {
         "good": [
-          "if (!authorization.canRead(actor, resource)) return forbidden();"
+          "@PreAuthorize(\"hasAuthority('work_request:read')\") @GetMapping(\"/api/v1/work-requests/{workRequestId}\")"
         ],
         "bad": [
-          "// UI hides button; backend handler returns protected resource unconditionally"
+          "@GetMapping(\"/api/v1/work-requests/{workRequestId}\") // sin control de autorización: la pantalla oculta el botón"
         ]
       }
     },

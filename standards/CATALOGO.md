@@ -57,8 +57,10 @@ Waiver: prohibido — Secretos y ejecucion segura son invariantes de seguridad
 
 Reglas LF de origen: `PR-SEC-010`
 
-- ✅ `String apiKey = System.getenv("SERVICE_API_KEY"); // entorno permitido por allowlist`
-- ❌ `private static final String API_KEY = "sk-example-secret";`
+- ✅ `String apiKey = System.getenv("SERVICE_API_KEY");`
+- ✅ `ProcessBuilder pb = new ProcessBuilder(command); pb.environment().keySet().retainAll(Set.of("PATH", "LANG"));`
+- ❌ `private static final String API_KEY = "example-secret-value";`
+- ❌ `logger.info("api_key={}", apiKey);`
 
 ### STD-GEN-04 · BLOCK · control pendiente
 
@@ -195,8 +197,9 @@ Waiver: prohibido — Nunca exponer SQL ni stack traces
 
 Reglas LF de origen: `REG_TEC_010`
 
-- ✅ `HTTP 500: {"code":"INTERNAL_ERROR","message":"Request could not be completed"}`
+- ✅ `HTTP 500 Content-Type: application/problem+json {"type":"about:blank","title":"Internal Server Error","status":500,"code":"INTERNAL_ERROR","trace_code":"7f3a9c21"}`
 - ❌ `HTTP 500: {"error":"SELECT * FROM accounts; stack trace ..."}`
+- ❌ `HTTP 404: {"error_id":17,"message":"texto inventado por el agente"}`
 
 ### STD-API-05 · BLOCK · control pendiente
 
@@ -410,16 +413,17 @@ Waiver: prohibido (por defecto)
 Toda entrada se valida del lado servidor (tipo, formato, longitud, rango), aunque el frontend ya la valide
 Waiver: prohibido — Validar entradas del lado servidor es obligatorio
 
-- ✅ `server.validate(input, { type: "string", maxLength: 64 });`
-- ❌ `// Only browser checks input length; server persists unchecked input`
+- ✅ `public record CreateWorkRequest(@NotBlank @Size(max = 64) String title) {}`
+- ✅ `ResponseEntity<WorkRequestResponse> create(@Valid @RequestBody CreateWorkRequest body)`
+- ❌ `ResponseEntity<WorkRequestResponse> create(@RequestBody CreateWorkRequest body) // sin @Valid: solo valida el navegador`
 
 ### STD-SEC-02 · BLOCK · control pendiente
 
 Autorización verificada en cada endpoint o función, no solo en la pantalla
 Waiver: prohibido — La autorizacion por endpoint es obligatoria
 
-- ✅ `if (!authorization.canRead(actor, resource)) return forbidden();`
-- ❌ `// UI hides button; backend handler returns protected resource unconditionally`
+- ✅ `@PreAuthorize("hasAuthority('work_request:read')") @GetMapping("/api/v1/work-requests/{workRequestId}")`
+- ❌ `@GetMapping("/api/v1/work-requests/{workRequestId}") // sin control de autorización: la pantalla oculta el botón`
 
 ### STD-SEC-03 · BLOCK (para severidad alta) · control pendiente
 
