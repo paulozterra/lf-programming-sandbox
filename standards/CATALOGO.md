@@ -2,7 +2,7 @@
 
 > Archivo generado desde `standards/catalog.json` con `standards/tools/render_llm.py`. No editar a mano.
 
-Estado: `BORRADOR_EN_REPO_DE_CALIFICACION`. 
+Estado: `BORRADOR_EN_REPO_DE_CALIFICACION`.
 
 ## Precedencia
 
