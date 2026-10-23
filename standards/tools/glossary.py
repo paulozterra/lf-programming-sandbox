@@ -234,7 +234,7 @@ class Scanner:
                 continue
             for match in IDENT.finditer(line):
                 # ORDER BY es sintaxis SQL, no un nombre de dominio rechazado.
-                if suffix == ".sql" and match.group(0).lower() == "order" and re.match(r"\\s+by\\b", line[match.end():], re.I):
+                if suffix == ".sql" and match.group(0).lower() == "order" and re.match(r"\s+by\b", line[match.end():], re.I):
                     continue
                 for name in match.group(0).split("."):
                     if self._legacy_ok(name, file_text):
