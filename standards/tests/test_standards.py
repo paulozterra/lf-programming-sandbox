@@ -608,6 +608,7 @@ class ConsumptionTests(unittest.TestCase):
         valid=copy.deepcopy(original)
         valid["pricing_version"]="0.2.0"
         valid["models"][0]["valid_to"]="2026-11-01T00:00:00Z"
+        self.assertEqual(self.c.digest(original["models"][0]),self.c.digest(valid["models"][0]))
         new=copy.deepcopy(valid["models"][0])
         new["valid_from"]="2026-11-01T00:00:00Z"
         new["valid_to"]=None
