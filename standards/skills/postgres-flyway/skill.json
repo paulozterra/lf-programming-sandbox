@@ -1,0 +1,18 @@
+{
+  "schema_version": "LF_STACK_SKILL_V1",
+  "skill_id": "postgres-flyway",
+  "skill_version": "0.1.0",
+  "catalog_compat": "0.6",
+  "glossary_compat": "0.4",
+  "domains": [
+    "STD-DB",
+    "STD-GEN",
+    "STD-SEC",
+    "STD-AUD",
+    "STD-GIT"
+  ],
+  "exclude_rule_ids": [],
+  "check_set_ref": "postgres-flyway",
+  "procedure_path": "SKILL.md",
+  "scope": "L2_STACK_ONLY"
+}
