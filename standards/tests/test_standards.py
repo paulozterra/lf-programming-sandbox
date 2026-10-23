@@ -754,7 +754,7 @@ class C6StackSkillsTests(unittest.TestCase):
         self.assertEqual(domains-declared, skills.EXCLUDED_V1_DOMAINS)
         pin={"catalog_version":catalog["catalog_version"],
              "catalog_sha256":hashlib.sha256((ROOT/"catalog.json").read_bytes()).hexdigest()}
-        content,receipt=skills.assemble(pin,["spring-boot"],["STD-CONS","STD-NAV"])
+        content,receipt=skills.assemble(pin,["spring-boot"],["STD-BE","STD-API","STD-SEC","STD-GEN","STD-LOG","STD-MSG","STD-AUD","STD-GIT","STD-NAV","STD-CONS"])
         expected=json.loads((ROOT/"skills/tests/fixtures/spring-read-with-nav-cons-receipt.json").read_text())
         for field in ("bytes","approx_tokens","skills","rule_ids","pending_rule_ids","assembled_sha256"):
             self.assertEqual(receipt[field],expected[field],field)
@@ -803,7 +803,7 @@ class C6StackSkillsTests(unittest.TestCase):
         ci=(ROOT.parent/".github/workflows/ci.yml").read_text()
         self.assertEqual(stack_checks.validate_ci(checks,ci),[])
         self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(checks,"- run: python3 tools/checks.py"))
-        self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(checks,ci+"\\n      - run: npm run lint\\n"))
+        self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(checks,ci+chr(10)+"      - run: npm run lint"+chr(10)))
         with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED.*REQUIRES_DECISION.*Flyway"):
             skills.select({"spring_boot":True,"flyway":True,"migration":False},["STD-DB"])
         with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED.*REQUIRES_DECISION.*Flyway"):
