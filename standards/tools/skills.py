@@ -9,6 +9,7 @@ def load_json(p):return json.loads(p.read_text(encoding="utf-8"))
 def violations(skill,text,catalog,checks):
     errs=[]
     if not skill.get("catalog_compat"):errs.append("MISSING_SKILL_CATALOG_VERSION")
+    if not skill.get("glossary_compat"):errs.append("MISSING_SKILL_GLOSSARY_VERSION")
     if skill.get("check_set_ref") not in checks["sets"]:errs.append("COMMAND_DRIFT")
     known={r["id"] for r in catalog["rules"]}
     if any(x["rule_id"] not in known or not x.get("reason") for x in skill["exclude_rule_ids"]):errs.append("UNKNOWN_RULE_ID")
@@ -21,6 +22,21 @@ def violations(skill,text,catalog,checks):
         if any(tuple(words[i:i+8]) in grams for i in range(max(0,len(words)-7))):
             errs.append("SKILL_RULE_TEXT_DUPLICATED");break
     return sorted(set(errs))
+def inspect_repository(root):
+    root=Path(root)
+    evidence={}
+    pom=root/"backend/pom.xml"
+    if pom.is_file():
+        source=pom.read_text(encoding="utf-8")
+        evidence["spring_boot"]="spring-boot" in source
+        evidence["flyway"]="flyway" in source.lower()
+    pkg=root/"frontend/package.json"
+    if pkg.is_file():
+        raw=load_json(pkg)
+        evidence["next"]="next" in {**raw.get("dependencies",{}),**raw.get("devDependencies",{})}
+    evidence["migration"]=bool(list(root.glob("**/V[0-9]*__*.sql")))
+    return evidence
+
 def select(evidence,active):
     hits=[]
     if evidence.get("spring_boot"):hits.append("spring-boot")
@@ -37,6 +53,8 @@ def assemble(pin,selected,active):
         obj=load_json(DIR/slug/"skill.json")
         if obj["catalog_compat"]!=".".join(pin["catalog_version"].split(".")[:2]):
             raise ValueError("BLOCK_SKILL_CATALOG_PIN_MISMATCH")
+        if obj["glossary_compat"]!=".".join(load_json(STD/"glossary/base.json")["glossary_version"].split(".")[:2]):
+            raise ValueError("BLOCK_SKILL_GLOSSARY_PIN_MISMATCH")
         proc=(DIR/slug/"SKILL.md").read_text(encoding="utf-8")
         applicable=set(obj["domains"]) & set(active)
         excluded={x["rule_id"] for x in obj["exclude_rule_ids"]}
@@ -47,7 +65,7 @@ def assemble(pin,selected,active):
     selected_rules=[r for r in catalog["rules"] if r["id"] in ids]
     for r in selected_rules:
         if r.get("status") in ("PENDIENTE_REVISION","VALIDAR_CON_LEGAL"):pending.append(r["id"])
-        title=f"{r['id']} [{r.get('status','')}]"
+        title=f"{r['id']} [{r.get('status','')}]" + (" (pendiente, no obligatoria)" if r["id"] in pending else "")
         detail=r["rule"]
         if r.get("examples"):
             detail+="\n"+"".join("✅ "+x+"\n" for x in r["examples"]["good"])+"".join("❌ "+x+"\n" for x in r["examples"]["bad"])
@@ -62,7 +80,7 @@ def assemble(pin,selected,active):
 def main():
     p=argparse.ArgumentParser();sp=p.add_subparsers(dest="cmd",required=True)
     sp.add_parser("validate")
-    s=sp.add_parser("select");s.add_argument("--evidence",required=True);s.add_argument("--domains",required=True)
+    s=sp.add_parser("select");s.add_argument("--evidence");s.add_argument("--repo");s.add_argument("--domains",required=True)
     a=sp.add_parser("assemble");a.add_argument("--pin",required=True);a.add_argument("--skills",default="spring-boot");a.add_argument("--domains",default="STD-BE,STD-API,STD-SEC,STD-GEN");a.add_argument("--out",required=True)
     q=p.parse_args();catalog=load_json(STD/"catalog.json");checks=load_json(DIR/"checks/stack-checks.json")
     if q.cmd=="validate":
@@ -72,7 +90,7 @@ def main():
             errors+=violations(obj,(DIR/slug/"SKILL.md").read_text(encoding="utf-8"),catalog,checks)
         print(json.dumps({"findings":sorted(set(errors))}));return int(bool(errors))
     if q.cmd=="select":
-        try:out=select(load_json(Path(q.evidence)),q.domains.split(","))
+        try:out=select(inspect_repository(q.repo) if q.repo else load_json(Path(q.evidence)),q.domains.split(","))
         except ValueError as e:print(json.dumps({"error":str(e)}));return 1
         print(json.dumps({"skills":out}));return 0
     try:content,receipt=assemble(load_json(Path(q.pin)),q.skills.split(","),q.domains.split(","))
