@@ -160,6 +160,8 @@ def classify_fields(changes):
         if tail in ("rule","definition","title","description","notes","good","bad","examples"):
             warnings.append("PROSE_CHANGE_REVIEW")
             if sec and security_rule(sec):warnings.append("SECURITY_DOMAIN_PROSE_REVIEW")
+        elif tail=="decisions" and isinstance(old,list) and isinstance(new,list) and new[:len(old)]==old:
+            effect="ADDITIVE"
         elif tail in ("severity",):
             effect="TIGHTENING" if str(new) in ("BLOCK","BLOCK_OR_WARN") else "RELAXING"
         elif tail=="state":
