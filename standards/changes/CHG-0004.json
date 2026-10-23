@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "GO Paulo 2026-10-23 revisión STD-BE"
   },
-  "reason": "Aprobar BE-01/02 sin cambios normativos y generalizar BE-03/04/06 para respetar la frontera L2/L3 de D15 sin imponer perfiles específicos de LF a otros proyectos.",
+  "reason": "Aprobar BE-01/02 sin cambios normativos y generalizar BE-03/04/06 para respetar la frontera L2/L3 de D15 sin imponer perfiles específicos de LF a otros proyectos. Ajusta changes.py: aprobar una regla se clasifica TIGHTENING, retirar la aprobación RELAXING, y un cambio de prosa normativa puede declararse RELAXING con evidencia sobre una clase detectada menor (nunca SECURITY).",
   "risk": "Un proyecto podría no exigir campos de log adicionales o límites de módulo.",
   "compensating_control": "El manifiesto L3 del proyecto (D15 y tipo B de la sección 1.5) exige los límites y campos adicionales donde aplican; LF conserva REG_TEC_012 y B2B-RULE-TIMEOUT-001.",
   "artifacts": [
@@ -29,7 +29,9 @@
     "term_ids": [],
     "paths": [
       "standards/catalog.json",
-      "standards/CATALOGO.md"
+      "standards/CATALOGO.md",
+      "standards/tools/changes.py",
+      "standards/tests/test_standards.py"
     ]
   },
   "existing_code_impact": {

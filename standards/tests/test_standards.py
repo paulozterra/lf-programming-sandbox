@@ -680,5 +680,15 @@ class C6BackendDecisionTests(unittest.TestCase):
         self.assertIn("MISSING_RELAXING_EVIDENCE",changes.check_transition(
             {path:original},{path:updated},[path],incomplete)["findings"])
 
+    def test_c9_status_approval_is_tightening(self):
+        import changes
+        p="standards/catalog.json"
+        def fields(a,b):
+            return changes.classify_fields(changes.walk(
+                {"rules":{"STD-BE-01":{"status":a}}},{"rules":{"STD-BE-01":{"status":b}}}),p)[0]
+        self.assertEqual(fields("PENDIENTE_REVISION","APROBADO"),"TIGHTENING")
+        self.assertEqual(fields("VALIDAR_CON_LEGAL","APROBADO"),"TIGHTENING")
+        self.assertEqual(fields("APROBADO","PENDIENTE_REVISION"),"RELAXING")
+
 if __name__ == "__main__":
     unittest.main()
