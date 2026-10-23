@@ -11,7 +11,7 @@
   "models": [
     {
       "provider": "openai",
-      "model": "gpt-5.6-terra",
+      "model": "gpt-6.1-sol",
       "service_tier": "standard",
       "status": "VERIFIED",
       "approved_for_use": false,
@@ -21,14 +21,15 @@
       "valid_to": null,
       "cache_accounting": "INPUT_INCLUDES_CACHE",
       "prices": {
-        "input": "1.00",
-        "output": "6.00",
+        "input": "2.00",
+        "output": "10.00",
         "cache_read": "0.10",
         "cache_write_by_ttl": {
-          "30m": "1.25",
-          "12h": "2.50"
+          "30m": "2.50",
+          "12h": "5.00"
         }
-      }
+      },
+      "source_table": "Flagship models / Standard / Prompt caching"
     },
     {
       "provider": "anthropic",
