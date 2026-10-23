@@ -13,6 +13,7 @@ def run(name,dry_run=False,check_id=None):
         try:rc=subprocess.run(c["argv"],cwd=ROOT/c["cwd"],check=False).returncode
         except OSError:rc=127
         results.append({"check_id":ident,"exit_code":rc,"status":c["status"]})
+        if rc and c["status"]=="shadow":print(f"::warning title={ident} (sombra)::Check falló con {rc}; sigue en sombra",flush=True)
     print(json.dumps({"results":results},ensure_ascii=False))
     return int(any(x.get("exit_code",0)!=0 and x["status"]=="blocking" for x in results))
 def main():
