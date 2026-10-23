@@ -794,8 +794,13 @@ class C6StackSkillsTests(unittest.TestCase):
             self.assertIn("UNCLASSIFIED_FIELD_CHANGE",
                           changes.classify_skill_fields([(pointer,1,2)],route)[2])
         base={"standards/skills/spring-boot/skill.json":{"skill_version":"0.1.0"}}
+        synthetic={"schema_version":"LF_STANDARD_CHANGE_V1","change_id":"CHG-9999",
+                   "change_class":"ADDITIVE","title":"fixture","reason":"fixture",
+                   "trigger":{"kind":"TEST","reference":"fixture"},"artifacts":[],
+                   "affected":{},"existing_code_impact":{},"security_pin_invalidation":{"invalidates":False},
+                   "requested_by":"test","approved_by":"paulozterra","evidence":{}}
         self.assertIn("SKILL_VERSION_NOT_BUMPED",
-           changes.check_transition(base,base,["standards/skills/spring-boot/SKILL.md"],None)["findings"])
+           changes.check_transition(base,base,["standards/skills/spring-boot/SKILL.md"],synthetic)["findings"])
 
     def test_c6_ci_drift_synthetic_negatives(self):
         import stack_checks,skills
@@ -804,8 +809,9 @@ class C6StackSkillsTests(unittest.TestCase):
         self.assertEqual(stack_checks.validate_ci(checks,ci),[])
         self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(checks,"- run: python3 tools/checks.py"))
         self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(checks,ci+chr(10)+"      - run: npm run lint"+chr(10)))
-        with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED.*REQUIRES_DECISION.*Flyway"):
+        with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED.*REQUIRES_DECISION.*Flyway") as first:
             skills.select({"spring_boot":True,"flyway":True,"migration":False},["STD-DB"])
+        self.assertEqual(first.exception.selected_skills,["spring-boot"])
         with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED.*REQUIRES_DECISION.*Flyway"):
             skills.select({"spring_boot":True,"flyway":False,"migration":True},["STD-DB"])
 
