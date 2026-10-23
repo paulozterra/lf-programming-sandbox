@@ -31,8 +31,8 @@
   "affected": {
     "rule_ids": [],
     "term_ids": [
-      "GLOSS-BASE-C11-WORK-REQUEST-001",
-      "GLOSS-BASE-C11-WORK-BATCH-001"
+      "GLOSS-BASE-WORK-REQUEST-001",
+      "GLOSS-BASE-WORK-BATCH-001"
     ],
     "paths": [
       "standards/consumption",
