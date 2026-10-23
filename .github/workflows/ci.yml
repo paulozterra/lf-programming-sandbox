@@ -62,6 +62,7 @@ jobs:
         run: |
           python3 -c 'import hashlib,json,pathlib; p=pathlib.Path("standards/catalog.json"); d=json.loads(p.read_text()); print(json.dumps({"catalog_version":d["catalog_version"],"catalog_sha256":hashlib.sha256(p.read_bytes()).hexdigest()}))' > /tmp/skill-pin.json
           python3 standards/tools/skills.py assemble --pin /tmp/skill-pin.json --skills spring-boot --domains STD-BE,STD-API,STD-SEC,STD-GEN,STD-LOG,STD-MSG,STD-AUD,STD-GIT --out /tmp/c6-spring.txt
+          python3 standards/tools/skills.py assemble --pin /tmp/skill-pin.json --skills spring-boot --domains STD-BE,STD-API,STD-SEC,STD-GEN,STD-LOG,STD-MSG,STD-AUD,STD-GIT,STD-NAV,STD-CONS --out /tmp/c6-spring-all.txt
       - run: python3 standards/tools/consumption.py validate
       - run: python3 standards/tools/consumption.py render --check
       - run: python3 standards/tools/changes.py validate
