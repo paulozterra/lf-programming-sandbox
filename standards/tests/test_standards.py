@@ -475,6 +475,15 @@ class ChangeCircuitTests(unittest.TestCase):
                     [t["rule"] for t in waivers.parse_suppression(statement)],
                     expected)
         self.assertEqual(waivers.parse_suppression('@SuppressWarnings(value = unknown)'), [])
+        # Fail closed: una constante dentro del arreglo no puede colarse sin waiver.
+        for statement in ('@SuppressWarnings({"unchecked", OTHER})',
+                          '@SuppressWarnings(value = {"a", OTHER})',
+                          '@SuppressWarnings(value = {})'):
+            with self.subTest(statement=statement):
+                self.assertEqual(waivers.parse_suppression(statement), [])
+        self.assertEqual(
+            [t["rule"] for t in waivers.parse_suppression('@SuppressWarnings({"a", "b",})')],
+            ["a", "b"])
         catalog, registry = waivers.load()
         import tempfile
         import pathlib
