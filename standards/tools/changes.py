@@ -149,6 +149,46 @@ def security_rule(rule_id):
     return bool(rule_id.startswith(("STD-SEC-","STD-AUD-","STD-CONS-")) or rule_id in SECURITY_IDS)
 
 
+def classify_skill_fields(changes, path):
+    """Only standards/skills paths: classify semantic effects without changing C9's other artifacts."""
+    effects=[]; errors=[]
+    critical={"STD-SEC","STD-AUD","STD-CONS"}
+    for pointer,old,new in changes:
+        parts=[x for x in pointer.split("/") if x]
+        tail=parts[-1] if parts else ""
+        effect=None
+        if path.endswith("/skill.json"):
+            if tail=="skill_version":continue
+            if tail=="domains" and isinstance(old,list) and isinstance(new,list):
+                removed=set(old)-set(new);added=set(new)-set(old)
+                if removed and added:errors.append("MIXED_CHANGE_REQUIRES_SPLIT")
+                if removed:effect="SECURITY" if removed&critical else "RELAXING"
+                elif added:effect="TIGHTENING"
+            elif tail=="exclude_rule_ids" and isinstance(old,list) and isinstance(new,list):
+                a={x["rule_id"] for x in old};b={x["rule_id"] for x in new}
+                added=b-a;removed=a-b
+                if added and removed:errors.append("MIXED_CHANGE_REQUIRES_SPLIT")
+                if added:effect="SECURITY" if any(security_rule(x) for x in added) else "RELAXING"
+                elif removed:effect="TIGHTENING"
+            elif tail in ("catalog_compat","glossary_compat","check_set_ref"):
+                effect="TIGHTENING"
+        elif path.endswith("/stack-checks.json"):
+            if tail=="checks_version":continue
+            if tail=="status" and old in ("shadow","blocking") and new in ("shadow","blocking"):
+                effect="TIGHTENING" if new=="blocking" else "RELAXING"
+            elif tail in ("argv","cwd"):effect="TIGHTENING"
+            elif len(parts)==2 and parts[0]=="sets" and isinstance(old,list) and isinstance(new,list):
+                removed=set(old)-set(new);added=set(new)-set(old)
+                if removed and added:errors.append("MIXED_CHANGE_REQUIRES_SPLIT")
+                if removed:effect="RELAXING"
+                elif added:effect="TIGHTENING"
+        if effect:effects.append(effect)
+        else:errors.append("UNCLASSIFIED_FIELD_CHANGE")
+    if "RELAXING" in effects and "TIGHTENING" in effects:errors.append("MIXED_CHANGE_REQUIRES_SPLIT")
+    ranking=["EDITORIAL","ADDITIVE","TIGHTENING","RELAXING","SECURITY"]
+    return (max(effects,key=ranking.index) if effects else "EDITORIAL"), [], sorted(set(errors))
+
+
 def classify_fields(changes, path=""):
     flags=set(); warnings=[]; errors=[]
     for pointer,old,new in changes:
@@ -236,7 +276,7 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
                             findings.append("PRICE_ROW_REWRITE")
                 if "PRICE_ROW_REWRITE" not in findings and old.get("models")!=new.get("models"):
                     material=[("/models",None,"NEW_PRICE_VERSION")]
-            category,warns,errs=classify_fields(material,path);warnings+=warns;findings+=errs
+            category,warns,errs=(classify_skill_fields(material,path) if path.startswith("standards/skills/") else classify_fields(material,path));warnings+=warns;findings+=errs
             if chg and (material or before!=after):
                 covered=any(a.get("path")==path and a.get("from_version")==old.get(vfield)
                             and a.get("to_version")==new.get(vfield)
@@ -247,7 +287,16 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
                 expected=(before[0],before[1],before[2]+1) if category=="EDITORIAL" else (before[0],before[1]+1,0)
                 if after!=expected:findings.append("VERSION_NOT_BUMPED")
         elif path.startswith("standards/skills/") and path.endswith("/SKILL.md"):
-            flags.append("ADDITIVE")  # fuente versionada por skill.json correspondiente
+            slug=path.split("/")[2]
+            skill_path=f"standards/skills/{slug}/skill.json"
+            old_skill=base_objects.get(skill_path)
+            new_skill=head_objects.get(skill_path)
+            if old_skill is None or new_skill is None:
+                findings.append("SKILL_VERSION_NOT_BUMPED")
+            else:
+                if not version(old_skill.get("skill_version")) or not version(new_skill.get("skill_version")) or version(new_skill["skill_version"])<=version(old_skill["skill_version"]):
+                    findings.append("SKILL_VERSION_NOT_BUMPED")
+            flags.append("ADDITIVE")
         elif (path.startswith("standards/tools/") and path.endswith(".py")
               or path == ".github/workflows/ci.yml"):
             flags.append("ADDITIVE")  # mínimo requerido; puede declararse una clase superior
