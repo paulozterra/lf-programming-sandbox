@@ -460,6 +460,12 @@ def main(argv=None):
     changed=git("diff","--name-only",base,"HEAD").splitlines()
     base_data={path:json_at(base,path) for path in changed if path in VERSIONS or path=="standards/pins.json" or path.startswith("standards/baseline/")}
     head_data={path:json.loads((ROOT/path).read_text(encoding="utf8")) for path in changed if (path in VERSIONS or path=="standards/pins.json" or path.startswith("standards/baseline/")) and (ROOT/path).exists()}
+    # Lookup of sibling skill.json is required even when a PR only changes SKILL.md.
+    for md in (p for p in changed if p.startswith("standards/skills/") and p.endswith("/SKILL.md")):
+        sibling=md.rsplit("/",1)[0]+"/skill.json"
+        if sibling not in base_data:base_data[sibling]=json_at(base,sibling)
+        if sibling not in head_data and (ROOT/sibling).exists():
+            head_data[sibling]=json.loads((ROOT/sibling).read_text(encoding="utf8"))
     introduced=[c for _,c in records if file_at(base,"standards/changes/"+c["change_id"]+".json") is None]
     if a.cmd in ("classify","check"):
         result=check_transition(base_data,head_data,changed,introduced[0] if len(introduced)==1 else None)
