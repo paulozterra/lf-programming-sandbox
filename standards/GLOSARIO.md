@@ -1,8 +1,8 @@
-# Glosario ES→EN · v0.3.0
+# Glosario ES→EN · v0.4.0
 
 > Generado desde `standards/glossary/*.json` con `standards/tools/glossary.py render`. No editar a mano.
 
-Digest: `69e392b388e5393aa420f454a6417269cb6994a45a9bd3de363e9b03f2e30134`
+Digest: `f27c119f27189ebd00fdb30a5ef72772d27bb910fe80274f0f825ec3bbab73d4`
 
 **Precedencia de nombres:** contrato existente consumido > glosario del proyecto > glosario base > propuesta nueva (`REQUIRES_DECISION`). Una forma heredada vale solo en sus contratos exactos.
 
@@ -174,6 +174,49 @@ Identifica de manera única una petición HTTP. Plural: `request_ids`. Contextos
 - ✅ `request_id`
 - ❌ `peticion_id`
 - Fuentes: D9 · Decisión: GLOSS-DEC-BASE-002
+
+### pedido → `work_request` · GLOSS-BASE-C11-WORK-REQUEST-001 · APROBADO
+
+Solicitud de trabajo admitida para programación, distinta de una orden comercial. Plural: `work_requests`. Contextos: domain, database, api.
+- Nota: Evitar order por ambigüedad con orden comercial; request_id está reservado al X-Request-Id de D9.
+- ✅ `work_request_id`
+- ❌ `pedido_id`
+- Fuentes: D16; D17 · Decisión: CHG-0003
+
+### lote → `work_batch` · GLOSS-BASE-C11-WORK-BATCH-001 · APROBADO
+
+Unidad de trabajo de un pedido cuya ejecución se mide. Plural: `work_batches`. Contextos: domain, database, api.
+- ✅ `work_batch_id`
+- ❌ `lote_id`
+- Fuentes: D16; D17 · Decisión: CHG-0003
+
+### etapa → `execution_stage` · GLOSS-BASE-C11-EXECUTION-STAGE-001 · APROBADO
+
+Fase del proceso en la que se consume una llamada al modelo. Plural: `execution_stages`. Contextos: domain, database, api.
+- ✅ `execution_stage_id`
+- ❌ `etapa_id`
+- Fuentes: D16; D17 · Decisión: CHG-0003
+
+### intento → `attempt` · GLOSS-BASE-C11-ATTEMPT-001 · APROBADO
+
+Ejecución numerada de un lote que puede requerir repetición. Plural: `attempts`. Contextos: domain, database, api.
+- ✅ `attempt_id`
+- ❌ `intento_id`
+- Fuentes: D16; D17 · Decisión: CHG-0003
+
+### consumo → `model_usage` · GLOSS-BASE-C11-MODEL-USAGE-001 · APROBADO
+
+Medición técnica de tokens y costo por llamada al modelo. Plural: `model_usages`. Contextos: domain, database, api.
+- ✅ `model_usage_id`
+- ❌ `consumo_id`
+- Fuentes: D16; D17 · Decisión: CHG-0003
+
+### clase de gasto → `expense_class` · GLOSS-BASE-C11-EXPENSE-CLASS-001 · APROBADO
+
+Clasificación del consumo entre gasto útil o desperdiciado. Plural: `expense_classes`. Contextos: domain, database, api.
+- ✅ `expense_class_id`
+- ❌ `clase_de_gasto_id`
+- Fuentes: D16; D17 · Decisión: CHG-0003
 
 
 ## Glosario del proyecto LF (L3) · `CANDIDATO_EN_REPO_DE_CALIFICACION`
