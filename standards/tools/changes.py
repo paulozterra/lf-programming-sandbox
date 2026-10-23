@@ -17,7 +17,7 @@ RE_CHANGE = re.compile(r"CHG-\d{4,}$")
 SEMVER = re.compile(r"\d+\.\d+\.\d+$")
 CLASSES = {"EDITORIAL","ADDITIVE","TIGHTENING","RELAXING","SECURITY"}
 SECURITY_IDS = {"STD-GEN-03","STD-GEN-04","STD-DB-06","STD-DB-07","STD-API-04"}
-KNOWN = {"catalog_version","glossary_version","registry_version","kit_version","schema_version","change_registry",
+KNOWN = {"catalog_version","glossary_version","registry_version","kit_version","schema_version","change_registry","pricing_version","policy_version","models","prices","cache_accounting","approved_for_use","source_url","checked_at","valid_from","valid_to","currency","unit","allowed_ttls","service_tier","status","input","output","cache_read","cache_write_by_ttl","mode","modes","budget","amount","warning_percent","decision_percent","unconfigured_action","unmeasured_at_warning","cost_precision","postgres","json","scope","business_amounts","decision_refs","stable_context_cache","minimum_context","no_rediscovery","early_stop","difficulty_model_routing","controls","standards","reviews","tests",
  "status","source","canonical_store_target","severity_values","enforcement_states",
  "legacy_policy","precedence","domains","decisions","rules","waiver_settings","level",
  "context_paths","technical_tokens","terms","spanish_check_paths","spanish_token_exclusions",
@@ -37,7 +37,9 @@ VERSIONS = {"standards/catalog.json":"catalog_version",
  "standards/glossary/base.json":"glossary_version",
  "standards/glossary/projects/lf.json":"glossary_version",
  "standards/waivers/waivers.json":"registry_version",
- "standards/kit-base/kit.json":"kit_version"}
+ "standards/kit-base/kit.json":"kit_version",
+ "standards/consumption/pricing.json":"pricing_version",
+ "standards/consumption/policy.json":"policy_version"}
 SHADOW = ["STD-FE-02","STD-GEN-05","STD-GEN-01","STD-GIT-01","STD-BE-05","STD-FE-07"]
 
 
