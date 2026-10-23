@@ -1,0 +1,27 @@
+{
+  "schema_version": "LF_SKILL_SELECTION_V1",
+  "stacks": {
+    "spring-boot": {
+      "evidence": {
+        "path": "backend/pom.xml",
+        "contains": "spring-boot"
+      },
+      "skill": "spring-boot"
+    },
+    "nextjs": {
+      "evidence": {
+        "path": "frontend/package.json",
+        "json_dependency": "next"
+      },
+      "skill": "nextjs"
+    },
+    "postgres-flyway": {
+      "evidence": {
+        "path": "backend/pom.xml",
+        "contains": "flyway",
+        "migration_pattern": "V[0-9]+__*.sql"
+      },
+      "skill": "postgres-flyway"
+    }
+  }
+}
