@@ -40,7 +40,11 @@ VERSIONS = {"standards/catalog.json":"catalog_version",
  "standards/waivers/waivers.json":"registry_version",
  "standards/kit-base/kit.json":"kit_version",
  "standards/consumption/pricing.json":"pricing_version",
- "standards/consumption/policy.json":"policy_version"}
+ "standards/consumption/policy.json":"policy_version",
+ "standards/skills/spring-boot/skill.json":"skill_version",
+ "standards/skills/nextjs/skill.json":"skill_version",
+ "standards/skills/postgres-flyway/skill.json":"skill_version",
+ "standards/skills/checks/stack-checks.json":"checks_version"}
 SHADOW = ["STD-FE-02","STD-GEN-05","STD-GEN-01","STD-GIT-01","STD-BE-05","STD-FE-07"]
 
 
@@ -204,7 +208,7 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
             continue
         if path in VERSIONS:
             old=base_objects.get(path);new=head_objects.get(path)
-            if old is None and new is not None and path.startswith("standards/consumption/"):
+            if old is None and new is not None and (path.startswith("standards/consumption/") or path.startswith("standards/skills/")):
                 flags.append("ADDITIVE")
                 if not chg or not any(a.get("path")==path and a.get("to_version")==new.get(VERSIONS[path]) for a in chg.get("artifacts",[])):
                     findings.append("MISSING_CHG")
@@ -242,6 +246,8 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
             if before and after and material:
                 expected=(before[0],before[1],before[2]+1) if category=="EDITORIAL" else (before[0],before[1]+1,0)
                 if after!=expected:findings.append("VERSION_NOT_BUMPED")
+        elif path.startswith("standards/skills/") and path.endswith("/SKILL.md"):
+            flags.append("ADDITIVE")  # fuente versionada por skill.json correspondiente
         elif (path.startswith("standards/tools/") and path.endswith(".py")
               or path == ".github/workflows/ci.yml"):
             flags.append("ADDITIVE")  # mínimo requerido; puede declararse una clase superior
