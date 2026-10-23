@@ -44,7 +44,8 @@
       ".github/workflows/ci.yml",
       "standards/skills/README.md",
       "standards/skills/tests/fixtures/spring-read-receipt.json",
-      "standards/tests/test_standards.py"
+      "standards/tests/test_standards.py",
+      "standards/tools/changes.py"
     ]
   },
   "existing_code_impact": {

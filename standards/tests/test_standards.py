@@ -815,5 +815,29 @@ class C6StackSkillsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED.*REQUIRES_DECISION.*Flyway"):
             skills.select({"spring_boot":True,"flyway":False,"migration":True},["STD-DB"])
 
+
+class C6ReviewFixTests(unittest.TestCase):
+    def test_skill_md_change_with_skill_version_bump_passes(self):
+        import changes,copy
+        P="standards/skills/spring-boot/skill.json";M="standards/skills/spring-boot/SKILL.md"
+        old=json.loads((ROOT/"skills/spring-boot/skill.json").read_text())
+        new=copy.deepcopy(old);major,minor,patch=map(int,old["skill_version"].split("."))
+        new["skill_version"]=f"{major}.{minor}.{patch+1}"
+        chg={"schema_version":"LF_STANDARD_CHANGE_V1","change_id":"CHG-0099","change_class":"ADDITIVE",
+             "title":"t","reason":"r","trigger":{},"affected":{},"existing_code_impact":{},
+             "security_pin_invalidation":{"invalidates":False},"requested_by":"test",
+             "approved_by":"paulozterra","evidence":{},
+             "artifacts":[{"path":P,"from_version":old["skill_version"],"to_version":new["skill_version"]}]}
+        self.assertEqual(changes.check_transition({P:old},{P:new},[M,P],chg)["findings"],[])
+        self.assertIn("UNEXPLAINED_VERSION_BUMP",changes.check_transition({P:old},{P:new},[P],chg)["findings"])
+
+    def test_ci_cannot_mask_runner_exit_code(self):
+        import stack_checks
+        cfg=json.loads((ROOT/"skills/checks/stack-checks.json").read_text())
+        ci=(ROOT.parent/".github/workflows/ci.yml").read_text()
+        self.assertEqual(stack_checks.validate_ci(cfg,ci),[])
+        masked=ci.replace("--check-id spring-verify","--check-id spring-verify || true")
+        self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(cfg,masked))
+
 if __name__ == "__main__":
     unittest.main()

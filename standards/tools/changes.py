@@ -260,7 +260,12 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
             material=[x for x in differences if x[0]!="/"+vfield]
             if material and (not before or not after or after<=before):
                 findings.append("VERSION_NOT_BUMPED")
-            if not material and before!=after:findings.append("UNEXPLAINED_VERSION_BUMP")
+            if not material and before!=after:
+                # skill.json sube su versión cuando solo cambia su SKILL.md hermano.
+                sibling_md=path.rsplit("/",1)[0]+"/SKILL.md"
+                if not (path.startswith("standards/skills/") and path.endswith("/skill.json")
+                        and sibling_md in changed_paths and before and after and after>before):
+                    findings.append("UNEXPLAINED_VERSION_BUMP")
             if path=="standards/consumption/pricing.json":
                 before_rows={(r["provider"],r["model"],r["service_tier"],r["valid_from"]):r
                              for r in old.get("models",[])}

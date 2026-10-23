@@ -22,6 +22,9 @@ def validate_ci(cfg,ci_text):
             def get(flag):
                 return args[args.index(flag)+1] if flag in args and args.index(flag)+1<len(args) else None
             check=get("--check-id");set_name=get("--set")
+            if "||" in match.group(1) or ";" in match.group(1):
+                errors.append("COMMAND_DRIFT")  # el CI no puede ignorar el código de salida del runner
+                continue
             if check:used.add(check)
             elif set_name in cfg["sets"]:used.update(cfg["sets"][set_name])
     for set_name,checks in cfg["sets"].items():
