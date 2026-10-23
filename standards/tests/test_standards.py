@@ -562,6 +562,10 @@ class ConsumptionTests(unittest.TestCase):
         self.assertIn("UNAPPROVED_BUDGET_AMOUNT",issues(policy=bad))
         self.assertEqual(self.c.budget(self.policy,"123")["decision"],"BUDGET_UNCONFIGURED_MEASURE_ONLY")
 
+        bad=copy.deepcopy(self.policy);bad["budget"]["warning_percent"]=140;bad["budget"]["decision_percent"]=150
+        self.assertIn("BUDGET_THRESHOLD_FIXED_BY_D17",issues(policy=bad))
+
+
     def test_calculation_and_measurement(self):
         event={"provider":"anthropic","model":"claude-sonnet-5","service_tier":"standard",
                "occurred_at":"2026-10-23T12:00:00Z","measurement":"MEASURED",
@@ -590,6 +594,40 @@ class ConsumptionTests(unittest.TestCase):
         result=changes.check_transition({path:old},{path:head},[path],None)
         self.assertIn("VERSION_NOT_BUMPED",result["findings"])
         self.assertIn("MISSING_CHG",result["findings"])
+
+    def test_c11_price_history_and_threshold_classes(self):
+        import changes
+        path="standards/consumption/pricing.json"
+        original=copy.deepcopy(self.pricing)
+        def test_price(head):
+            return changes.check_transition({path:original},{path:head},[path],None)["findings"]
+        rewritten=copy.deepcopy(original)
+        rewritten["pricing_version"]="0.2.0"
+        rewritten["models"][0]["prices"]["input"]="9.00"
+        self.assertIn("PRICE_ROW_REWRITE",test_price(rewritten))
+        valid=copy.deepcopy(original)
+        valid["pricing_version"]="0.2.0"
+        valid["models"][0]["valid_to"]="2026-11-01T00:00:00Z"
+        new=copy.deepcopy(valid["models"][0])
+        new["valid_from"]="2026-11-01T00:00:00Z"
+        new["valid_to"]=None
+        new["prices"]["input"]="9.00"
+        valid["models"].append(new)
+        chg={"schema_version":"LF_STANDARD_CHANGE_V1","change_id":"CHG-0003",
+             "change_class":"ADDITIVE","title":"New price","reason":"Provider",
+             "trigger":{"kind":"OWNER","reference":"synthetic"},
+             "artifacts":[{"artifact":"pricing","path":path,"from_version":"0.1.0","to_version":"0.2.0"}],
+             "affected":{},"existing_code_impact":{},"security_pin_invalidation":{"invalidates":False},
+             "requested_by":"test","approved_by":"paulozterra","evidence":{}}
+        self.assertEqual(changes.check_transition({path:original},{path:valid},[path],chg)["findings"],[])
+        policy_path="standards/consumption/policy.json"
+        altered=copy.deepcopy(self.policy)
+        altered["policy_version"]="0.2.0"
+        altered["budget"]["warning_percent"]=140
+        self.assertEqual(changes.classify_fields([("/budget/warning_percent",80,140)],policy_path)[0],"RELAXING")
+        self.assertEqual(changes.classify_fields([("/budget/warning_percent",80,60)],policy_path)[0],"TIGHTENING")
+        self.assertIn("CHANGE_CLASS_MISMATCH",changes.check_transition({policy_path:self.policy},
+          {policy_path:altered},[policy_path],{**chg,"change_class":"TIGHTENING"})["findings"])
 
     def test_schema_rejects_prompt_fields(self):
         schema=json.loads((ROOT/"consumption/schema/usage-event.schema.json").read_text(encoding="utf-8"))
