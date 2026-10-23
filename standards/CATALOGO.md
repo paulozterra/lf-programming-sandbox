@@ -1,8 +1,8 @@
-# Catálogo de estándares LF · v0.5.0
+# Catálogo de estándares LF · v0.6.0
 
 > Archivo generado desde `standards/catalog.json` con `standards/tools/render_llm.py`. No editar a mano.
 
-Estado: `BORRADOR_EN_REPO_DE_CALIFICACION`.
+Estado: `BORRADOR_EN_REPO_DE_CALIFICACION`. 
 
 ## Precedencia
 
@@ -223,12 +223,12 @@ Waiver: prohibido (por defecto)
 
 ### STD-BE-03 · BLOCK · control pendiente
 
-Límites de módulo: `ApplicationModules.verify()` (plan M1)
+Si el perfil de arquitectura del proyecto (D15) declara módulos, sus límites se verifican con una prueba automatizada en el CI (en Spring Modulith: `ApplicationModules.verify()`). Sin módulos declarados, no aplica.
 Waiver: prohibido (por defecto)
 
 ### STD-BE-04 · BLOCK · control pendiente
 
-Logs JSON con campos obligatorios y correlación (D9)
+Logs técnicos en JSON con el formato estructurado nativo de Spring Boot. Campos mínimos: `timestamp`, `level`, `logger`, `message`, `request_id` y `correlation_id` (D9). Nunca PII (STD-GEN-04). El proyecto puede exigir campos adicionales (L3).
 Waiver: prohibido (por defecto)
 
 Reglas LF de origen: `REG_TEC_012`
@@ -243,7 +243,7 @@ Waiver: permitido
 
 ### STD-BE-06 · BLOCK · revisor PG-11
 
-Timeouts y reintentos desde la política central
+Toda llamada saliente (HTTP, BD, colas) tiene un timeout explícito tomado de la configuración, nunca un literal en el código ni el valor por defecto sin límite. Solo se reintentan operaciones idempotentes, con límite y espera configurados. La política concreta la fija el proyecto (L3).
 Waiver: prohibido (por defecto)
 
 Reglas LF de origen: `B2B-RULE-TIMEOUT-001`
