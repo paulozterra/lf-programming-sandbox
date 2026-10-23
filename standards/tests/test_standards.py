@@ -690,5 +690,41 @@ class C6BackendDecisionTests(unittest.TestCase):
         self.assertEqual(fields("VALIDAR_CON_LEGAL","APROBADO"),"TIGHTENING")
         self.assertEqual(fields("APROBADO","PENDIENTE_REVISION"),"RELAXING")
 
+
+class C6StackSkillsTests(unittest.TestCase):
+    def test_catalog_pin_and_coverage(self):
+        import skills,hashlib
+        catalog=(ROOT/"catalog.json").read_bytes()
+        pin={"catalog_version":"0.6.1","catalog_sha256":hashlib.sha256(catalog).hexdigest()}
+        assembled,receipt=skills.assemble(pin,["spring-boot"],[
+            "STD-BE","STD-GEN","STD-API","STD-SEC","STD-LOG","STD-MSG","STD-AUD","STD-GIT"])
+        data=json.loads(catalog)
+        expected={r["id"] for r in data["rules"] if r["domain"] in
+          {"STD-BE","STD-GEN","STD-API","STD-SEC","STD-LOG","STD-MSG","STD-AUD","STD-GIT"}}
+        self.assertEqual(set(receipt["rule_ids"]),expected)
+        self.assertEqual(receipt["bytes"],len(assembled.encode()))
+        with self.assertRaisesRegex(ValueError,"PIN_DIGEST_MISMATCH"):
+            skills.assemble({**pin,"catalog_sha256":"0"*64},["spring-boot"],["STD-BE"])
+        with self.assertRaisesRegex(ValueError,"BLOCK_SKILL_CATALOG_PIN_MISMATCH"):
+            skills.assemble({**pin,"catalog_version":"0.7.0"},["spring-boot"],["STD-BE"])
+
+    def test_skill_negative_codes(self):
+        import skills
+        catalog=json.loads((ROOT/"catalog.json").read_text())
+        checks=json.loads((ROOT/"skills/checks/stack-checks.json").read_text())
+        item=json.loads((ROOT/"skills/spring-boot/skill.json").read_text())
+        procedure=(ROOT/"skills/spring-boot/SKILL.md").read_text()
+        def error(changes,text=procedure):
+            return skills.violations({**item,**changes},text,catalog,checks)
+        self.assertIn("MISSING_SKILL_CATALOG_VERSION",error({"catalog_compat":None}))
+        self.assertIn("COMMAND_DRIFT",error({"check_set_ref":"unknown"}))
+        self.assertIn("UNKNOWN_RULE_ID",error({"exclude_rule_ids":[{"rule_id":"STD-BE-99","reason":"test"}]}))
+        self.assertIn("SKILL_L3_CONTAMINATION",error({},procedure+"\nREG_TEC_012\n"))
+        rule=next(x["rule"] for x in catalog["rules"] if x["id"]=="STD-BE-06")
+        self.assertIn("SKILL_RULE_TEXT_DUPLICATED",error({},procedure+"\n"+rule+"\n"))
+        with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED"):
+            skills.select({},["STD-BE"])
+        self.assertEqual(skills.select({"spring_boot":True},["STD-BE"]),["spring-boot"])
+
 if __name__ == "__main__":
     unittest.main()
