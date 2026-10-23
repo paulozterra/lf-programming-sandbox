@@ -1,0 +1,50 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0004",
+  "title": "Revisión y generalización de reglas backend STD-BE",
+  "change_class": "RELAXING",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "GO Paulo 2026-10-23 revisión STD-BE"
+  },
+  "reason": "Aprobar BE-01/02 sin cambios normativos y generalizar BE-03/04/06 para respetar la frontera L2/L3 de D15 sin imponer perfiles específicos de LF a otros proyectos.",
+  "risk": "Un proyecto podría no exigir campos de log adicionales o límites de módulo.",
+  "compensating_control": "El manifiesto L3 del proyecto (D15 y tipo B de la sección 1.5) exige los límites y campos adicionales donde aplican; LF conserva REG_TEC_012 y B2B-RULE-TIMEOUT-001.",
+  "artifacts": [
+    {
+      "artifact": "catalog",
+      "path": "standards/catalog.json",
+      "from_version": "0.5.0",
+      "to_version": "0.6.0"
+    }
+  ],
+  "affected": {
+    "rule_ids": [
+      "STD-BE-01",
+      "STD-BE-02",
+      "STD-BE-03",
+      "STD-BE-04",
+      "STD-BE-06"
+    ],
+    "term_ids": [],
+    "paths": [
+      "standards/catalog.json",
+      "standards/CATALOGO.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/10"
+  },
+  "decision_ref": "GO Paulo 2026-10-23 revisión STD-BE"
+}
