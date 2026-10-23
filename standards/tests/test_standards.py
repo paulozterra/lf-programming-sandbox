@@ -744,5 +744,67 @@ class C6StackSkillsTests(unittest.TestCase):
             skills.select({},["STD-BE"])
         self.assertEqual(skills.select({"spring_boot":True},["STD-BE"]),["spring-boot"])
 
+
+    def test_c6_v1_domain_coverage_and_pending_rules(self):
+        import skills, hashlib
+        catalog=json.loads((ROOT/"catalog.json").read_text())
+        domains={d["id"] for d in catalog["domains"]}
+        declared=set().union(*(set(json.loads((ROOT/"skills"/slug/"skill.json").read_text())["domains"])
+                              for slug in skills.SLUGS))
+        self.assertEqual(domains-declared, skills.EXCLUDED_V1_DOMAINS)
+        pin={"catalog_version":catalog["catalog_version"],
+             "catalog_sha256":hashlib.sha256((ROOT/"catalog.json").read_bytes()).hexdigest()}
+        content,receipt=skills.assemble(pin,["spring-boot"],["STD-CONS","STD-NAV"])
+        ids={f"STD-CONS-{i:02d}" for i in range(1,5)}
+        self.assertTrue(ids.issubset(set(receipt["rule_ids"])))
+        self.assertTrue(ids.issubset(set(receipt["pending_rule_ids"])))
+        for rule_id in ids:
+            self.assertIn(rule_id+" [VALIDAR_CON_LEGAL] (pendiente, no obligatoria)",content)
+
+    def test_c6_specific_change_classes(self):
+        import changes
+        path="standards/skills/spring-boot/skill.json"
+        checks="standards/skills/checks/stack-checks.json"
+        cases=[
+           (path,"/domains",["STD-BE","STD-SEC"],["STD-BE"],"SECURITY"),
+           (path,"/domains",["STD-BE","STD-LOG"],["STD-BE"],"RELAXING"),
+           (path,"/domains",["STD-BE"],["STD-BE","STD-LOG"],"TIGHTENING"),
+           (path,"/exclude_rule_ids",[],[{"rule_id":"STD-BE-01","reason":"fixture"}],"RELAXING"),
+           (path,"/exclude_rule_ids",[],[{"rule_id":"STD-CONS-01","reason":"fixture"}],"SECURITY"),
+           (path,"/exclude_rule_ids",[{"rule_id":"STD-BE-01","reason":"fixture"}],[],"TIGHTENING"),
+           (path,"/catalog_compat","0.6","0.7","TIGHTENING"),
+           (path,"/glossary_compat","0.4","0.5","TIGHTENING"),
+           (path,"/check_set_ref","spring-boot","nextjs","TIGHTENING"),
+           (checks,"/checks/spring-spotless/status","shadow","blocking","TIGHTENING"),
+           (checks,"/checks/spring-verify/status","blocking","shadow","RELAXING"),
+           (checks,"/checks/spring-verify/argv",["mvn"],["mvn","verify"],"TIGHTENING"),
+           (checks,"/checks/spring-verify/cwd","backend",".","TIGHTENING"),
+           (checks,"/sets/spring-boot",["spring-verify"],["spring-verify","spring-spotless"],"TIGHTENING"),
+           (checks,"/sets/spring-boot",["spring-verify","spring-spotless"],["spring-verify"],"RELAXING"),
+        ]
+        for route,pointer,old,new,want in cases:
+            with self.subTest(route=route,pointer=pointer,expected=want):
+                effective,_,errors=changes.classify_skill_fields([(pointer,old,new)],route)
+                self.assertEqual(errors,[])
+                self.assertEqual(effective,want)
+        for route,pointer in ((path,"/nonexistent"),(checks,"/checks/spring-verify/unexpected")):
+            self.assertIn("UNCLASSIFIED_FIELD_CHANGE",
+                          changes.classify_skill_fields([(pointer,1,2)],route)[2])
+        base={"standards/skills/spring-boot/skill.json":{"skill_version":"0.1.0"}}
+        self.assertIn("SKILL_VERSION_NOT_BUMPED",
+           changes.check_transition(base,base,["standards/skills/spring-boot/SKILL.md"],None)["findings"])
+
+    def test_c6_ci_drift_synthetic_negatives(self):
+        import stack_checks,skills
+        checks=stack_checks.load()
+        ci=(ROOT.parent/".github/workflows/ci.yml").read_text()
+        self.assertEqual(stack_checks.validate_ci(checks,ci),[])
+        self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(checks,"- run: python3 tools/checks.py"))
+        self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(checks,ci+"\\n      - run: npm run lint\\n"))
+        with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED.*REQUIRES_DECISION.*Flyway"):
+            skills.select({"spring_boot":True,"flyway":True,"migration":False},["STD-DB"])
+        with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED.*REQUIRES_DECISION.*Flyway"):
+            skills.select({"spring_boot":True,"flyway":False,"migration":True},["STD-DB"])
+
 if __name__ == "__main__":
     unittest.main()
