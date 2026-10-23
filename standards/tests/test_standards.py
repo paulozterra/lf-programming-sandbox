@@ -629,6 +629,15 @@ class ConsumptionTests(unittest.TestCase):
         self.assertIn("CHANGE_CLASS_MISMATCH",changes.check_transition({policy_path:self.policy},
           {policy_path:altered},[policy_path],{**chg,"change_class":"TIGHTENING"})["findings"])
 
+    def test_consumption_keys_scoped_to_consumption(self):
+        import changes
+        catalog=changes.classify_fields([("/rules/STD-FE-07/models",None,[])],
+                                        "standards/catalog.json")
+        self.assertIn("UNCLASSIFIED_FIELD_CHANGE",catalog[2])
+        valid=changes.classify_fields([("/models",None,[])],
+                                      "standards/consumption/pricing.json")
+        self.assertNotIn("UNCLASSIFIED_FIELD_CHANGE",valid[2])
+
     def test_schema_rejects_prompt_fields(self):
         schema=json.loads((ROOT/"consumption/schema/usage-event.schema.json").read_text(encoding="utf-8"))
         self.assertFalse(schema["additionalProperties"])
