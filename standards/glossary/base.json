@@ -821,7 +821,24 @@
       "definition": "Solicitud de trabajo admitida para programación, distinta de una orden comercial.",
       "level": "base",
       "synonyms_es": [],
-      "rejected_en": [],
+      "rejected_en": [
+        {
+          "form": "order",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "Orden comercial; pedido de ejecución utiliza work_request."
+        },
+        {
+          "form": "order_ref",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "Debe usarse work_request_ref."
+        }
+      ],
       "legacy_en": [],
       "contexts": [
         "domain",
@@ -852,7 +869,24 @@
       "definition": "Unidad de trabajo de un pedido cuya ejecución se mide.",
       "level": "base",
       "synonyms_es": [],
-      "rejected_en": [],
+      "rejected_en": [
+        {
+          "form": "lot",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "Para lote de ejecución usar work_batch."
+        },
+        {
+          "form": "lot_ref",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "Debe usarse work_batch_ref."
+        }
+      ],
       "legacy_en": [],
       "contexts": [
         "domain",
