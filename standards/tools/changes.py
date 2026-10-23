@@ -227,8 +227,8 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
                     elif current["valid_to"] is not None and prior.get("valid_to") is None:
                         if current["valid_to"]<=current["valid_from"]:
                             findings.append("PRICE_ROW_REWRITE")
-                if set(after_rows)-set(before_rows) and "PRICE_ROW_REWRITE" not in findings:
-                    material=[("/models",None,"ADDED_PRICE_ROW")]
+                if "PRICE_ROW_REWRITE" not in findings and old.get("models")!=new.get("models"):
+                    material=[("/models",None,"NEW_PRICE_VERSION")]
             category,warns,errs=classify_fields(material,path);warnings+=warns;findings+=errs
             if chg and (material or before!=after):
                 covered=any(a.get("path")==path and a.get("from_version")==old.get(vfield)
