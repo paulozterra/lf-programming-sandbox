@@ -1,0 +1,56 @@
+{
+  "pricing_version": "0.1.0",
+  "currency": "USD",
+  "unit": "per_million_tokens",
+  "allowed_ttls": [
+    "5m",
+    "1h",
+    "30m",
+    "12h"
+  ],
+  "models": [
+    {
+      "provider": "openai",
+      "model": "gpt-6.1-sol",
+      "service_tier": "standard",
+      "status": "VERIFIED",
+      "approved_for_use": false,
+      "source_url": "https://developers.openai.com/api/docs/pricing",
+      "checked_at": "2026-10-23",
+      "valid_from": "2026-10-23T00:00:00Z",
+      "valid_to": null,
+      "cache_accounting": "INPUT_INCLUDES_CACHE",
+      "prices": {
+        "input": "2.00",
+        "output": "10.00",
+        "cache_read": "0.10",
+        "cache_write_by_ttl": {
+          "30m": "2.50",
+          "12h": "5.00"
+        }
+      },
+      "source_table": "Flagship models / Standard / Prompt caching"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5",
+      "service_tier": "standard",
+      "status": "VERIFIED",
+      "approved_for_use": false,
+      "source_url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "checked_at": "2026-10-23",
+      "valid_from": "2026-10-23T00:00:00Z",
+      "valid_to": null,
+      "cache_accounting": "INPUT_EXCLUDES_CACHE",
+      "prices": {
+        "input": "2.00",
+        "output": "10.00",
+        "cache_read": "0.20",
+        "cache_write_by_ttl": {
+          "5m": "2.50",
+          "1h": "4.00"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LF_MODEL_USAGE_EVENT_V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "work_request_ref",
+    "work_batch_ref",
+    "execution_stage",
+    "attempt",
+    "provider",
+    "model",
+    "service_tier",
+    "pricing_version",
+    "price_row_sha256",
+    "occurred_at",
+    "input_tokens",
+    "output_tokens",
+    "cache_read_tokens",
+    "cache_write_tokens",
+    "cache_write_ttl_breakdown",
+    "measurement",
+    "cost_status",
+    "cost",
+    "currency",
+    "expense_class",
+    "wasted_reason",
+    "correlation_id",
+    "worker_receipt_ref",
+    "provider_response_id"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "provider": {
+      "enum": [
+        "openai",
+        "anthropic"
+      ]
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "service_tier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pricing_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "price_row_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "input_tokens": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "output_tokens": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "cache_read_tokens": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "cache_write_tokens": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "cache_write_ttl_breakdown": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "propertyNames": {
+        "enum": [
+          "5m",
+          "1h",
+          "30m",
+          "12h"
+        ]
+      }
+    },
+    "measurement": {
+      "enum": [
+        "MEASURED",
+        "UNMEASURED"
+      ]
+    },
+    "cost_status": {
+      "enum": [
+        "CALCULATED",
+        "UNMEASURED"
+      ]
+    },
+    "cost": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9]+\\.[0-9]{1,12}$"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "expense_class": {
+      "enum": [
+        "USEFUL",
+        "WASTED"
+      ]
+    },
+    "wasted_reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "FAILED_ATTEMPT",
+        "EXPIRED_PACKAGE_REWORK",
+        "TESTING_FINDING_REWORK",
+        "NON_CONVERGENT_ITERATION",
+        null
+      ]
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "worker_receipt_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provider_response_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "work_request_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "work_batch_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execution_stage": {
+      "enum": [
+        "PLAN",
+        "BUILD",
+        "RETRY",
+        "QUESTION",
+        "REPAIR",
+        "REVIEW"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "measurement": {
+            "const": "MEASURED"
+          }
+        },
+        "required": [
+          "measurement"
+        ]
+      },
+      "then": {
+        "properties": {
+          "provider_response_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "expense_class": {
+            "const": "WASTED"
+          }
+        },
+        "required": [
+          "expense_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "wasted_reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cost_status": {
+            "const": "CALCULATED"
+          }
+        },
+        "required": [
+          "cost_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "input_tokens": {
+            "type": "integer"
+          },
+          "output_tokens": {
+            "type": "integer"
+          },
+          "cache_read_tokens": {
+            "type": "integer"
+          },
+          "cache_write_tokens": {
+            "type": "integer"
+          },
+          "cost": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -537,5 +537,113 @@ class ChangeCircuitTests(unittest.TestCase):
         self.assertEqual(changes.classify_fields([("/rules/STD-SEC-01/severity","WARN","BLOCK")])[0],"SECURITY")
         self.assertEqual(changes.classify_fields([("/rules/STD-NEW-01",None,{"id":"STD-NEW-01"})])[0],"ADDITIVE")
 
+
+class ConsumptionTests(unittest.TestCase):
+    def setUp(self):
+        import consumption
+        self.c=consumption
+        self.pricing,self.policy=consumption.read()
+
+    def test_contract_and_negative_codes(self):
+        self.assertEqual(self.c.validate(self.pricing,self.policy),[])
+        def issues(pricing=None,policy=None):
+            return self.c.validate(pricing or self.pricing,policy or self.policy)
+        bad=copy.deepcopy(self.pricing);bad["models"][0]["prices"]["input"]=1.25
+        self.assertIn("FLOAT_PRICE_FORBIDDEN",issues(pricing=bad))
+        bad=copy.deepcopy(self.pricing);bad["models"][0]["source_url"]=""
+        self.assertIn("MISSING_PRICE_SOURCE",issues(pricing=bad))
+        bad=copy.deepcopy(self.pricing);bad["models"].append(copy.deepcopy(bad["models"][0]))
+        self.assertIn("OVERLAPPING_PRICE_VALIDITY",issues(pricing=bad))
+        bad=copy.deepcopy(self.policy);bad["modes"]["STANDARD"]["difficulty_model_routing"]=True
+        self.assertIn("MODEL_ROUTING_FORBIDDEN",issues(policy=bad))
+        bad=copy.deepcopy(self.policy);bad["modes"]["STANDARD"]["controls"]["tests"]=False
+        self.assertIn("CONTROL_OVERRIDE_FORBIDDEN",issues(policy=bad))
+        bad=copy.deepcopy(self.policy);bad["budget"]["amount"]="100.00"
+        self.assertIn("UNAPPROVED_BUDGET_AMOUNT",issues(policy=bad))
+        self.assertEqual(self.c.budget(self.policy,"123")["decision"],"BUDGET_UNCONFIGURED_MEASURE_ONLY")
+
+        bad=copy.deepcopy(self.policy);bad["budget"]["warning_percent"]=140;bad["budget"]["decision_percent"]=150
+        self.assertIn("BUDGET_THRESHOLD_FIXED_BY_D17",issues(policy=bad))
+
+
+    def test_calculation_and_measurement(self):
+        event={"provider":"anthropic","model":"claude-sonnet-5","service_tier":"standard",
+               "occurred_at":"2026-10-23T12:00:00Z","measurement":"MEASURED",
+               "provider_response_id":"response-test","input_tokens":1000,"output_tokens":100,
+               "cache_read_tokens":50,"cache_write_tokens":20,
+               "cache_write_ttl_breakdown":{"5m":20}}
+        result=self.c.cost(self.pricing,event)
+        self.assertEqual(result["cost_status"],"CALCULATED")
+        self.assertEqual(result["currency"],"USD")
+        def reject(obj,reason,pricing=None):
+            with self.assertRaisesRegex(ValueError,reason):
+                self.c.cost(pricing or self.pricing,obj)
+        reject({**event,"measurement":"ESTIMATED"},"ESTIMATED_TOKENS_FORBIDDEN")
+        reject({**event,"provider_response_id":None},"MEASUREMENT_WITHOUT_EVIDENCE")
+        reject({**event,"prompt":"PRIVATE"},"SCHEMA_REJECTED")
+        reject({**event,"cache_write_ttl_breakdown":{"5m":999}},"CACHE_TTL_SUM_MISMATCH")
+        bad=copy.deepcopy(self.pricing);bad["models"][1]["status"]="UNVERIFIED"
+        reject(event,"UNVERIFIED_PRICE_USED",bad)
+
+    def test_consumption_artifact_version_guard(self):
+        import changes
+        path="standards/consumption/pricing.json"
+        old=copy.deepcopy(self.pricing)
+        head=copy.deepcopy(old)
+        head["models"][0]["prices"]["input"]="1.11"
+        result=changes.check_transition({path:old},{path:head},[path],None)
+        self.assertIn("VERSION_NOT_BUMPED",result["findings"])
+        self.assertIn("MISSING_CHG",result["findings"])
+
+    def test_c11_price_history_and_threshold_classes(self):
+        import changes
+        path="standards/consumption/pricing.json"
+        original=copy.deepcopy(self.pricing)
+        def test_price(head):
+            return changes.check_transition({path:original},{path:head},[path],None)["findings"]
+        rewritten=copy.deepcopy(original)
+        rewritten["pricing_version"]="0.2.0"
+        rewritten["models"][0]["prices"]["input"]="9.00"
+        self.assertIn("PRICE_ROW_REWRITE",test_price(rewritten))
+        valid=copy.deepcopy(original)
+        valid["pricing_version"]="0.2.0"
+        valid["models"][0]["valid_to"]="2026-11-01T00:00:00Z"
+        self.assertEqual(self.c.digest(original["models"][0]),self.c.digest(valid["models"][0]))
+        new=copy.deepcopy(valid["models"][0])
+        new["valid_from"]="2026-11-01T00:00:00Z"
+        new["valid_to"]=None
+        new["prices"]["input"]="9.00"
+        valid["models"].append(new)
+        chg={"schema_version":"LF_STANDARD_CHANGE_V1","change_id":"CHG-0003",
+             "change_class":"ADDITIVE","title":"New price","reason":"Provider",
+             "trigger":{"kind":"OWNER","reference":"synthetic"},
+             "artifacts":[{"artifact":"pricing","path":path,"from_version":"0.1.0","to_version":"0.2.0"}],
+             "affected":{},"existing_code_impact":{},"security_pin_invalidation":{"invalidates":False},
+             "requested_by":"test","approved_by":"paulozterra","evidence":{}}
+        self.assertEqual(changes.check_transition({path:original},{path:valid},[path],chg)["findings"],[])
+        policy_path="standards/consumption/policy.json"
+        altered=copy.deepcopy(self.policy)
+        altered["policy_version"]="0.2.0"
+        altered["budget"]["warning_percent"]=140
+        self.assertEqual(changes.classify_fields([("/budget/warning_percent",80,140)],policy_path)[0],"RELAXING")
+        self.assertEqual(changes.classify_fields([("/budget/warning_percent",80,60)],policy_path)[0],"TIGHTENING")
+        self.assertIn("CHANGE_CLASS_MISMATCH",changes.check_transition({policy_path:self.policy},
+          {policy_path:altered},[policy_path],{**chg,"change_class":"TIGHTENING"})["findings"])
+
+    def test_consumption_keys_scoped_to_consumption(self):
+        import changes
+        catalog=changes.classify_fields([("/rules/STD-FE-07/models",None,[])],
+                                        "standards/catalog.json")
+        self.assertIn("UNCLASSIFIED_FIELD_CHANGE",catalog[2])
+        valid=changes.classify_fields([("/models",None,[])],
+                                      "standards/consumption/pricing.json")
+        self.assertNotIn("UNCLASSIFIED_FIELD_CHANGE",valid[2])
+
+    def test_schema_rejects_prompt_fields(self):
+        schema=json.loads((ROOT/"consumption/schema/usage-event.schema.json").read_text(encoding="utf-8"))
+        self.assertFalse(schema["additionalProperties"])
+        self.assertTrue(all(k not in schema["properties"] for k in
+                            ("prompt","response_text","messages","context","patch","payload")))
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,37 @@
+{
+  "policy_version": "0.1.0",
+  "decision_refs": [
+    "D10",
+    "D16",
+    "D17"
+  ],
+  "mode": "STANDARD",
+  "modes": {
+    "STANDARD": {
+      "stable_context_cache": true,
+      "minimum_context": true,
+      "no_rediscovery": true,
+      "early_stop": true,
+      "difficulty_model_routing": false,
+      "controls": {
+        "standards": true,
+        "reviews": true,
+        "tests": true
+      }
+    }
+  },
+  "budget": {
+    "amount": "POR_DEFINIR",
+    "currency": "USD",
+    "warning_percent": 80,
+    "decision_percent": 100,
+    "unconfigured_action": "BUDGET_UNCONFIGURED_MEASURE_ONLY",
+    "unmeasured_at_warning": "REQUIRES_DECISION"
+  },
+  "cost_precision": {
+    "postgres": "numeric(24,12)",
+    "json": "decimal-string",
+    "scope": "token-cost-only",
+    "business_amounts": "D10 numeric(18,2) remains unchanged"
+  }
+}

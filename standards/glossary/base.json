@@ -2,7 +2,7 @@
   "level": "base",
   "status": "APROBADO_EN_REPO_DE_CALIFICACION",
   "schema_version": "LF_GLOSSARY_V1",
-  "glossary_version": "0.3.0",
+  "glossary_version": "0.4.0",
   "decisions": [
     {
       "id": "GLOSS-DEC-LF-001",
@@ -19,6 +19,22 @@
       "reviewed_by": "Claude, revisión C5",
       "scope": "Kit base PG-00·C5, términos comunes",
       "ref": "GO owner 2026-10-22 C5"
+    },
+    {
+      "id": "GLOSS-DEC-C11-001",
+      "date": "2026-10-23",
+      "approver": "Paulo (GO de implementación, revisión de merge pendiente)",
+      "reviewed_by": "Claude, revisión pendiente",
+      "scope": "Nomenclatura consumo C11",
+      "ref": "CHG-0003"
+    },
+    {
+      "id": "CHG-0003",
+      "date": "2026-10-23",
+      "approver": "paulozterra (merge pendiente)",
+      "reviewed_by": "Claude (revisión pendiente)",
+      "scope": "C11 términos de consumo",
+      "ref": "standards/changes/CHG-0003.json"
     }
   ],
   "context_paths": {
@@ -796,6 +812,226 @@
       ],
       "decision_ref": "GLOSS-DEC-BASE-002",
       "status": "APROBADO"
+    },
+    {
+      "term_id": "GLOSS-BASE-WORK-REQUEST-001",
+      "term_es": "pedido",
+      "term_en": "work_request",
+      "plural_en": "work_requests",
+      "definition": "Solicitud de trabajo admitida para programación, distinta de una orden comercial.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "order",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "Orden comercial; pedido de ejecución utiliza work_request."
+        },
+        {
+          "form": "order_ref",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "Debe usarse work_request_ref."
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "work_request_id"
+        ],
+        "bad": [
+          "pedido_id"
+        ]
+      },
+      "sources": [
+        "D16",
+        "D17"
+      ],
+      "decision_ref": "CHG-0003",
+      "status": "APROBADO",
+      "notes": "Evitar order por ambigüedad con orden comercial; request_id está reservado al X-Request-Id de D9."
+    },
+    {
+      "term_id": "GLOSS-BASE-WORK-BATCH-001",
+      "term_es": "lote",
+      "term_en": "work_batch",
+      "plural_en": "work_batches",
+      "definition": "Unidad de trabajo de un pedido cuya ejecución se mide.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [
+        {
+          "form": "lot",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "Para lote de ejecución usar work_batch."
+        },
+        {
+          "form": "lot_ref",
+          "contexts": [
+            "database",
+            "api"
+          ],
+          "reason": "Debe usarse work_batch_ref."
+        }
+      ],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "work_batch_id"
+        ],
+        "bad": [
+          "lote_id"
+        ]
+      },
+      "sources": [
+        "D16",
+        "D17"
+      ],
+      "decision_ref": "CHG-0003",
+      "status": "APROBADO",
+      "notes": ""
+    },
+    {
+      "term_id": "GLOSS-BASE-EXECUTION-STAGE-001",
+      "term_es": "etapa",
+      "term_en": "execution_stage",
+      "plural_en": "execution_stages",
+      "definition": "Fase del proceso en la que se consume una llamada al modelo.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "execution_stage_id"
+        ],
+        "bad": [
+          "etapa_id"
+        ]
+      },
+      "sources": [
+        "D16",
+        "D17"
+      ],
+      "decision_ref": "CHG-0003",
+      "status": "APROBADO",
+      "notes": ""
+    },
+    {
+      "term_id": "GLOSS-BASE-ATTEMPT-001",
+      "term_es": "intento",
+      "term_en": "attempt",
+      "plural_en": "attempts",
+      "definition": "Ejecución numerada de un lote que puede requerir repetición.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "attempt_id"
+        ],
+        "bad": [
+          "intento_id"
+        ]
+      },
+      "sources": [
+        "D16",
+        "D17"
+      ],
+      "decision_ref": "CHG-0003",
+      "status": "APROBADO",
+      "notes": ""
+    },
+    {
+      "term_id": "GLOSS-BASE-MODEL-USAGE-001",
+      "term_es": "consumo",
+      "term_en": "model_usage",
+      "plural_en": "model_usages",
+      "definition": "Medición técnica de tokens y costo por llamada al modelo.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "model_usage_id"
+        ],
+        "bad": [
+          "consumo_id"
+        ]
+      },
+      "sources": [
+        "D16",
+        "D17"
+      ],
+      "decision_ref": "CHG-0003",
+      "status": "APROBADO",
+      "notes": ""
+    },
+    {
+      "term_id": "GLOSS-BASE-EXPENSE-CLASS-001",
+      "term_es": "clase de gasto",
+      "term_en": "expense_class",
+      "plural_en": "expense_classes",
+      "definition": "Clasificación del consumo entre gasto útil o desperdiciado.",
+      "level": "base",
+      "synonyms_es": [],
+      "rejected_en": [],
+      "legacy_en": [],
+      "contexts": [
+        "domain",
+        "database",
+        "api"
+      ],
+      "examples": {
+        "good": [
+          "expense_class_id"
+        ],
+        "bad": [
+          "clase_de_gasto_id"
+        ]
+      },
+      "sources": [
+        "D16",
+        "D17"
+      ],
+      "decision_ref": "CHG-0003",
+      "status": "APROBADO",
+      "notes": ""
     }
   ],
   "spanish_check_paths": [

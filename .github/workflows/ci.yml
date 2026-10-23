@@ -56,6 +56,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - run: python3 standards/tools/consumption.py validate
+      - run: python3 standards/tools/consumption.py render --check
       - run: python3 standards/tools/changes.py validate
       - run: python3 standards/tools/changes.py render --check
       - name: "Circuito C9: clasificación y versiones (solo PR)"
@@ -126,6 +128,14 @@ jobs:
         run: python3 standards/tools/db_catalog_lint.py test-negative
       - name: Kit C5 conducta y roles
         run: python3 standards/tools/db_catalog_lint.py test-behavior
+      - name: "C11: DDL PostgreSQL 17 y pruebas negativas"
+        run: |
+          docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox -c 'DROP SCHEMA IF EXISTS consumption_test CASCADE'
+          sed 's/${schema}/consumption_test/g' standards/consumption/ddl/model_usage.sql | docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox
+          docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox < standards/consumption/tests/behavior.sql
+          docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox < standards/consumption/tests/aggregates.sql
+          docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox < standards/consumption/tests/new_negatives.sql
+          docker compose -f docker/compose.yaml exec -T postgres psql -X -v ON_ERROR_STOP=1 -U sandbox -d sandbox -c 'DROP SCHEMA consumption_test CASCADE'
       - name: Floci acepta conexiones
         run: |
           for i in $(seq 1 30); do
