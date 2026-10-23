@@ -27,6 +27,14 @@
       "reviewed_by": "Claude, revisión pendiente",
       "scope": "Nomenclatura consumo C11",
       "ref": "CHG-0003"
+    },
+    {
+      "id": "CHG-0003",
+      "date": "2026-10-23",
+      "approver": "paulozterra (merge pendiente)",
+      "reviewed_by": "Claude (revisión pendiente)",
+      "scope": "C11 términos de consumo",
+      "ref": "standards/changes/CHG-0003.json"
     }
   ],
   "context_paths": {
@@ -806,7 +814,7 @@
       "status": "APROBADO"
     },
     {
-      "term_id": "GLOSS-BASE-C11-WORK-REQUEST-001",
+      "term_id": "GLOSS-BASE-WORK-REQUEST-001",
       "term_es": "pedido",
       "term_en": "work_request",
       "plural_en": "work_requests",
@@ -837,7 +845,7 @@
       "notes": "Evitar order por ambigüedad con orden comercial; request_id está reservado al X-Request-Id de D9."
     },
     {
-      "term_id": "GLOSS-BASE-C11-WORK-BATCH-001",
+      "term_id": "GLOSS-BASE-WORK-BATCH-001",
       "term_es": "lote",
       "term_en": "work_batch",
       "plural_en": "work_batches",
@@ -868,7 +876,7 @@
       "notes": ""
     },
     {
-      "term_id": "GLOSS-BASE-C11-EXECUTION-STAGE-001",
+      "term_id": "GLOSS-BASE-EXECUTION-STAGE-001",
       "term_es": "etapa",
       "term_en": "execution_stage",
       "plural_en": "execution_stages",
@@ -899,7 +907,7 @@
       "notes": ""
     },
     {
-      "term_id": "GLOSS-BASE-C11-ATTEMPT-001",
+      "term_id": "GLOSS-BASE-ATTEMPT-001",
       "term_es": "intento",
       "term_en": "attempt",
       "plural_en": "attempts",
@@ -930,7 +938,7 @@
       "notes": ""
     },
     {
-      "term_id": "GLOSS-BASE-C11-MODEL-USAGE-001",
+      "term_id": "GLOSS-BASE-MODEL-USAGE-001",
       "term_es": "consumo",
       "term_en": "model_usage",
       "plural_en": "model_usages",
@@ -961,7 +969,7 @@
       "notes": ""
     },
     {
-      "term_id": "GLOSS-BASE-C11-EXPENSE-CLASS-001",
+      "term_id": "GLOSS-BASE-EXPENSE-CLASS-001",
       "term_es": "clase de gasto",
       "term_en": "expense_class",
       "plural_en": "expense_classes",
