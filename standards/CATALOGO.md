@@ -1,4 +1,4 @@
-# Catálogo de estándares LF · v0.6.0
+# Catálogo de estándares LF · v0.6.1
 
 > Archivo generado desde `standards/catalog.json` con `standards/tools/render_llm.py`. No editar a mano.
 
@@ -40,6 +40,9 @@ Estado: `BORRADOR_EN_REPO_DE_CALIFICACION`.
 Identificadores en inglés (D4); glosario obligatorio: un glosario base en `transversal` y un glosario de dominio por proyecto (L3)
 Waiver: prohibido (por defecto)
 
+- ✅ `String correlationId = request.getHeader("X-Correlation-Id");`
+- ❌ `String identificadorCorrelacion = request.getHeader("X-Correlation-Id");`
+
 ### STD-GEN-02 · BLOCK · control pendiente
 
 Nada de configuración, montos, timeouts ni URLs hardcodeados
@@ -54,12 +57,20 @@ Waiver: prohibido — Secretos y ejecucion segura son invariantes de seguridad
 
 Reglas LF de origen: `PR-SEC-010`
 
+- ✅ `String apiKey = System.getenv("SERVICE_API_KEY");`
+- ✅ `ProcessBuilder pb = new ProcessBuilder(command); pb.environment().keySet().retainAll(Set.of("PATH", "LANG"));`
+- ❌ `private static final String API_KEY = "example-secret-value";`
+- ❌ `logger.info("api_key={}", apiKey);`
+
 ### STD-GEN-04 · BLOCK · control pendiente
 
 PII fuera de logs, eventos y Sentry
 Waiver: prohibido — La proteccion de PII es obligatoria
 
 Reglas LF de origen: `REG_AUD_002, REG_OBS_002`
+
+- ✅ `logger.info("request_id={}", requestId);`
+- ❌ `logger.info("customer_email={}", customerEmail);`
 
 ### STD-GEN-05 · BLOCK · CI en modo sombra
 
@@ -75,6 +86,9 @@ Waiver: prohibido — El requisito de citar un waiver no admite excepcion recurs
 
 Fechas en ISO-8601 con zona y almacenadas en UTC
 Waiver: prohibido — ISO-8601 y UTC son invariantes de interoperabilidad
+
+- ✅ `2026-10-23T14:30:00Z`
+- ❌ `2026-10-23 14:30`
 
 ### STD-GEN-07 · BLOCK · revisor PG-11
 
@@ -157,10 +171,16 @@ Waiver: prohibido (por defecto)
 
 Reglas LF de origen: `antecedente REG_API_001`
 
+- ✅ `GET /api/v1/work-requests`
+- ❌ `GET /work-requests`
+
 ### STD-API-02 · BLOCK · control pendiente
 
 APIs REST propias — rutas: recursos como sustantivos en plural y kebab-case; acciones solo como subrecurso verbal (`/checkout/confirm`); path params en el casing de D3
 Waiver: prohibido (por defecto)
+
+- ✅ `GET /api/v1/work-batches/{workBatchId}`
+- ❌ `GET /api/v1/work_batch/{workBatchId}`
 
 ### STD-API-03 · BLOCK · control pendiente
 
@@ -177,6 +197,10 @@ Waiver: prohibido — Nunca exponer SQL ni stack traces
 
 Reglas LF de origen: `REG_TEC_010`
 
+- ✅ `HTTP 500 Content-Type: application/problem+json {"type":"about:blank","title":"Internal Server Error","status":500,"code":"INTERNAL_ERROR","trace_code":"7f3a9c21"}`
+- ❌ `HTTP 500: {"error":"SELECT * FROM accounts; stack trace ..."}`
+- ❌ `HTTP 404: {"error_id":17,"message":"texto inventado por el agente"}`
+
 ### STD-API-05 · BLOCK · control pendiente
 
 Headers: `Idempotency-Key` (D8), `X-Request-Id` y `X-Correlation-Id` (D9), rate limit 429 + `Retry-After`
@@ -184,10 +208,16 @@ Waiver: prohibido (por defecto)
 
 Reglas LF de origen: `REG_API_005`
 
+- ✅ `POST /api/v1/work-requests + Idempotency-Key: example-key; X-Request-Id: example-request; X-Correlation-Id: example-correlation`
+- ❌ `HTTP 429 without Retry-After`
+
 ### STD-API-06 · BLOCK · control pendiente
 
 Contrato primero: en Spring, OpenAPI antes del código y cliente FE generado; en Supabase, firma de la función RPC o de la Edge Function definida antes y tipos generados (`supabase gen types`)
 Waiver: prohibido (por defecto)
+
+- ✅ `Define OpenAPI operation GET /api/v1/work-requests before implementing Spring controller; generate FE client from spec`
+- ❌ `Implement Spring controller first and manually write incompatible frontend fetch calls`
 
 ### STD-API-07 · WARN · control pendiente
 
@@ -207,6 +237,9 @@ Waiver: prohibido (por defecto)
 
 Cambio incompatible significa nueva versión, sin romper la anterior: `/api/v2/` en REST propia; `_v2` en Supabase, manteniendo `_v1` hasta que no tenga consumidores
 Waiver: prohibido (por defecto)
+
+- ✅ `Keep GET /api/v1/work-requests and add GET /api/v2/work-requests for breaking response changes`
+- ❌ `Replace /api/v1/work-requests response incompatibly without publishing /api/v2/`
 
 
 ## STD-BE · Java / Spring Boot (L2) · PENDIENTE_REVISION
@@ -380,10 +413,17 @@ Waiver: prohibido (por defecto)
 Toda entrada se valida del lado servidor (tipo, formato, longitud, rango), aunque el frontend ya la valide
 Waiver: prohibido — Validar entradas del lado servidor es obligatorio
 
+- ✅ `public record CreateWorkRequest(@NotBlank @Size(max = 64) String title) {}`
+- ✅ `ResponseEntity<WorkRequestResponse> create(@Valid @RequestBody CreateWorkRequest body)`
+- ❌ `ResponseEntity<WorkRequestResponse> create(@RequestBody CreateWorkRequest body) // sin @Valid: solo valida el navegador`
+
 ### STD-SEC-02 · BLOCK · control pendiente
 
 Autorización verificada en cada endpoint o función, no solo en la pantalla
 Waiver: prohibido — La autorizacion por endpoint es obligatoria
+
+- ✅ `@PreAuthorize("hasAuthority('work_request:read')") @GetMapping("/api/v1/work-requests/{workRequestId}")`
+- ❌ `@GetMapping("/api/v1/work-requests/{workRequestId}") // sin control de autorización: la pantalla oculta el botón`
 
 ### STD-SEC-03 · BLOCK (para severidad alta) · control pendiente
 
@@ -394,6 +434,9 @@ Waiver: prohibido (por defecto)
 
 Límite de intentos en endpoints sensibles (login, OTP, pagos)
 Waiver: prohibido — Rate limits en operaciones sensibles son obligatorios
+
+- ✅ `POST /api/v1/auth/otp: enforce per-identity attempt limit and return HTTP 429 on excess`
+- ❌ `POST /api/v1/auth/otp: unlimited verification attempts`
 
 
 ## STD-LOG · Logs y eventos (L1)

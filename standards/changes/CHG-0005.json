@@ -1,0 +1,56 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0005",
+  "title": "Ejemplos positivos y negativos P0 del catálogo V1",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "GO Paulo 2026-10-23 C6 ejemplos P0"
+  },
+  "reason": "Agregar ejemplos de cumplimiento e incumplimiento a trece reglas prioritarias sin modificar sus textos normativos, severidad, estado ni enforcement.",
+  "artifacts": [
+    {
+      "artifact": "catalog",
+      "path": "standards/catalog.json",
+      "from_version": "0.6.0",
+      "to_version": "0.6.1"
+    }
+  ],
+  "affected": {
+    "rule_ids": [
+      "STD-API-01",
+      "STD-API-02",
+      "STD-API-04",
+      "STD-API-05",
+      "STD-API-06",
+      "STD-API-09",
+      "STD-SEC-01",
+      "STD-SEC-02",
+      "STD-SEC-04",
+      "STD-GEN-01",
+      "STD-GEN-03",
+      "STD-GEN-04",
+      "STD-GEN-06"
+    ],
+    "term_ids": [],
+    "paths": [
+      "standards/catalog.json",
+      "standards/CATALOGO.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/11"
+  },
+  "decision_ref": "GO Paulo 2026-10-23 C6 ejemplos P0"
+}
