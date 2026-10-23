@@ -1,6 +1,6 @@
 {
   "schema_version": "LF_STANDARDS_CATALOG_V1",
-  "catalog_version": "0.5.0",
+  "catalog_version": "0.6.0",
   "status": "BORRADOR_EN_REPO_DE_CALIFICACION",
   "source": "Plan Fase 2 (proyecto LF): claude/programacion-fase2-desglose-checkpoints-estandares-2026-10-21.md",
   "canonical_store_target": "transversal (vía Router -> Train, pendiente)",
@@ -676,7 +676,7 @@
       "domain": "STD-BE",
       "rule": "Paquetes en minúscula; clases e interfaces en PascalCase; métodos y variables en camelCase; constantes en UPPER_SNAKE",
       "severity": "BLOCK",
-      "status": "PENDIENTE_REVISION",
+      "status": "APROBADO",
       "enforcement": {
         "state": "planned",
         "planned_control": "Checkstyle"
@@ -687,7 +687,7 @@
       "domain": "STD-BE",
       "rule": "DTOs separados de las entidades (`…Request`/`…Response`); nunca exponer entidades JPA",
       "severity": "BLOCK",
-      "status": "PENDIENTE_REVISION",
+      "status": "APROBADO",
       "enforcement": {
         "state": "planned",
         "planned_control": "ArchUnit"
@@ -696,9 +696,9 @@
     {
       "id": "STD-BE-03",
       "domain": "STD-BE",
-      "rule": "Límites de módulo: `ApplicationModules.verify()` (plan M1)",
+      "rule": "Si el perfil de arquitectura del proyecto (D15) declara módulos, sus límites se verifican con una prueba automatizada en el CI (en Spring Modulith: `ApplicationModules.verify()`). Sin módulos declarados, no aplica.",
       "severity": "BLOCK",
-      "status": "PENDIENTE_REVISION",
+      "status": "APROBADO",
       "enforcement": {
         "state": "planned",
         "planned_control": "Test en CI"
@@ -707,9 +707,9 @@
     {
       "id": "STD-BE-04",
       "domain": "STD-BE",
-      "rule": "Logs JSON con campos obligatorios y correlación (D9)",
+      "rule": "Logs técnicos en JSON con el formato estructurado nativo de Spring Boot. Campos mínimos: `timestamp`, `level`, `logger`, `message`, `request_id` y `correlation_id` (D9). Nunca PII (STD-GEN-04). El proyecto puede exigir campos adicionales (L3).",
       "severity": "BLOCK",
-      "status": "PENDIENTE_REVISION",
+      "status": "APROBADO",
       "lf_rule_refs": [
         "REG_TEC_012"
       ],
@@ -745,9 +745,9 @@
     {
       "id": "STD-BE-06",
       "domain": "STD-BE",
-      "rule": "Timeouts y reintentos desde la política central",
+      "rule": "Toda llamada saliente (HTTP, BD, colas) tiene un timeout explícito tomado de la configuración, nunca un literal en el código ni el valor por defecto sin límite. Solo se reintentan operaciones idempotentes, con límite y espera configurados. La política concreta la fija el proyecto (L3).",
       "severity": "BLOCK",
-      "status": "PENDIENTE_REVISION",
+      "status": "APROBADO",
       "lf_rule_refs": [
         "B2B-RULE-TIMEOUT-001"
       ],
