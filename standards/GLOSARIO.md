@@ -2,7 +2,7 @@
 
 > Generado desde `standards/glossary/*.json` con `standards/tools/glossary.py render`. No editar a mano.
 
-Digest: `c3cad72e179a71feb07df8ae518720c22c445e4175b128360dae41160d32a9c5`
+Digest: `a0292317f23726586e5fa7e626d039dd90d0bb122f23b9b43e184406a500e16c`
 
 **Precedencia de nombres:** contrato existente consumido > glosario del proyecto > glosario base > propuesta nueva (`REQUIRES_DECISION`). Una forma heredada vale solo en sus contratos exactos.
 
@@ -178,6 +178,8 @@ Identifica de manera única una petición HTTP. Plural: `request_ids`. Contextos
 ### pedido → `work_request` · GLOSS-BASE-WORK-REQUEST-001 · APROBADO
 
 Solicitud de trabajo admitida para programación, distinta de una orden comercial. Plural: `work_requests`. Contextos: domain, database, api.
+- Rechazado `order` en database, api: Orden comercial; pedido de ejecución utiliza work_request..
+- Rechazado `order_ref` en database, api: Debe usarse work_request_ref..
 - Nota: Evitar order por ambigüedad con orden comercial; request_id está reservado al X-Request-Id de D9.
 - ✅ `work_request_id`
 - ❌ `pedido_id`
@@ -186,6 +188,8 @@ Solicitud de trabajo admitida para programación, distinta de una orden comercia
 ### lote → `work_batch` · GLOSS-BASE-WORK-BATCH-001 · APROBADO
 
 Unidad de trabajo de un pedido cuya ejecución se mide. Plural: `work_batches`. Contextos: domain, database, api.
+- Rechazado `lot` en database, api: Para lote de ejecución usar work_batch..
+- Rechazado `lot_ref` en database, api: Debe usarse work_batch_ref..
 - ✅ `work_batch_id`
 - ❌ `lote_id`
 - Fuentes: D16; D17 · Decisión: CHG-0003
