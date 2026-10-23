@@ -17,7 +17,8 @@ RE_CHANGE = re.compile(r"CHG-\d{4,}$")
 SEMVER = re.compile(r"\d+\.\d+\.\d+$")
 CLASSES = {"EDITORIAL","ADDITIVE","TIGHTENING","RELAXING","SECURITY"}
 SECURITY_IDS = {"STD-GEN-03","STD-GEN-04","STD-DB-06","STD-DB-07","STD-API-04"}
-KNOWN = {"catalog_version","glossary_version","registry_version","kit_version","schema_version","change_registry","pricing_version","policy_version","models","prices","cache_accounting","approved_for_use","source_url","checked_at","valid_from","valid_to","currency","unit","allowed_ttls","service_tier","status","input","output","cache_read","cache_write_by_ttl","mode","modes","budget","amount","warning_percent","decision_percent","unconfigured_action","unmeasured_at_warning","cost_precision","postgres","json","scope","business_amounts","decision_refs","stable_context_cache","minimum_context","no_rediscovery","early_stop","difficulty_model_routing","controls","standards","reviews","tests",
+CONSUMPTION_KEYS = {"pricing_version","policy_version","models","prices","cache_accounting","approved_for_use","source_url","checked_at","valid_from","valid_to","currency","unit","allowed_ttls","service_tier","input","output","cache_read","cache_write_by_ttl","mode","modes","budget","amount","warning_percent","decision_percent","unconfigured_action","unmeasured_at_warning","cost_precision","postgres","json","business_amounts","decision_refs","stable_context_cache","minimum_context","no_rediscovery","early_stop","difficulty_model_routing","standards","reviews","tests"}
+KNOWN = {"catalog_version","glossary_version","registry_version","kit_version","schema_version","change_registry","status","scope","controls",
  "status","source","canonical_store_target","severity_values","enforcement_states",
  "legacy_policy","precedence","domains","decisions","rules","waiver_settings","level",
  "context_paths","technical_tokens","terms","spanish_check_paths","spanish_token_exclusions",
@@ -144,12 +145,13 @@ def security_rule(rule_id):
     return bool(rule_id.startswith(("STD-SEC-","STD-AUD-","STD-CONS-")) or rule_id in SECURITY_IDS)
 
 
-def classify_fields(changes):
+def classify_fields(changes, path=""):
     flags=set(); warnings=[]; errors=[]
     for pointer,old,new in changes:
         parts=[x for x in pointer.split("/") if x]
         if not parts: continue
-        if any(x not in KNOWN and not (x.startswith("STD-") or x.startswith("GLOSS-") or x.isdigit())
+        allowed=KNOWN | (CONSUMPTION_KEYS if path.startswith("standards/consumption/") else set())
+        if any(x not in allowed and not (x.startswith("STD-") or x.startswith("GLOSS-") or x.isdigit())
                for x in parts):
             errors.append("UNCLASSIFIED_FIELD_CHANGE"); continue
         if parts[-1] in ("catalog_version","glossary_version","registry_version","kit_version"):
@@ -169,6 +171,8 @@ def classify_fields(changes):
         elif tail=="allowed":
             effect="RELAXING" if new is True else "TIGHTENING"
             if sec in NON_WAIVABLE and new is True:errors.append("L1_WAIVER_PROHIBITED")
+        elif path=="standards/consumption/policy.json" and tail in ("warning_percent","decision_percent"):
+            effect="RELAXING" if new>old else "TIGHTENING"
         elif tail in ("max_days","linter_rule_max_days","test_fixture_max_days"):
             effect="RELAXING" if new is not None and old is not None and new>old else "TIGHTENING"
         elif tail=="linter_rule_denylist":
@@ -210,7 +214,22 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
             if material and (not before or not after or after<=before):
                 findings.append("VERSION_NOT_BUMPED")
             if not material and before!=after:findings.append("UNEXPLAINED_VERSION_BUMP")
-            category,warns,errs=classify_fields(material);warnings+=warns;findings+=errs
+            if path=="standards/consumption/pricing.json":
+                before_rows={(r["provider"],r["model"],r["service_tier"],r["valid_from"]):r
+                             for r in old.get("models",[])}
+                after_rows={(r["provider"],r["model"],r["service_tier"],r["valid_from"]):r
+                            for r in new.get("models",[])}
+                for identity, prior in before_rows.items():
+                    current=after_rows.get(identity)
+                    if current is None or any(current.get(k)!=v for k,v in prior.items() if k!="valid_to") or (
+                      prior.get("valid_to") is not None and (current or {}).get("valid_to")!=prior["valid_to"]):
+                        findings.append("PRICE_ROW_REWRITE")
+                    elif current["valid_to"] is not None and prior.get("valid_to") is None:
+                        if current["valid_to"]<=current["valid_from"]:
+                            findings.append("PRICE_ROW_REWRITE")
+                if set(after_rows)-set(before_rows) and "PRICE_ROW_REWRITE" not in findings:
+                    material=[("/models",None,"ADDED_PRICE_ROW")]
+            category,warns,errs=classify_fields(material,path);warnings+=warns;findings+=errs
             if chg and (material or before!=after):
                 covered=any(a.get("path")==path and a.get("from_version")==old.get(vfield)
                             and a.get("to_version")==new.get(vfield)
