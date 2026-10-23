@@ -35,7 +35,7 @@ BEGIN
     ELSIF statement='DELETE' THEN
       EXECUTE format('DELETE FROM consumption_test.%I',tbl);
     ELSE
-      EXECUTE format('TRUNCATE consumption_test.%I',tbl);
+      EXECUTE format('TRUNCATE consumption_test.%I CASCADE',tbl);
     END IF;
     RAISE EXCEPTION 'MUTATION_WAS_ALLOWED';
    EXCEPTION WHEN SQLSTATE '55000' THEN NULL; WHEN OTHERS THEN RAISE;
