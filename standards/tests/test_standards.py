@@ -645,5 +645,40 @@ class ConsumptionTests(unittest.TestCase):
         self.assertTrue(all(k not in schema["properties"] for k in
                             ("prompt","response_text","messages","context","patch","payload")))
 
+
+class C6BackendDecisionTests(unittest.TestCase):
+    def test_be_approvals_preserve_enforcement(self):
+        data=json.loads((ROOT/"catalog.json").read_text(encoding="utf-8"))
+        selected={r["id"]:r for r in data["rules"] if r["id"] in
+                  {"STD-BE-01","STD-BE-02","STD-BE-03","STD-BE-04","STD-BE-06"}}
+        self.assertEqual(len(selected),5)
+        self.assertTrue(all(r["status"]=="APROBADO" for r in selected.values()))
+        self.assertEqual(selected["STD-BE-04"]["lf_rule_refs"],["REG_TEC_012"])
+        self.assertEqual(selected["STD-BE-06"]["lf_rule_refs"],["B2B-RULE-TIMEOUT-001"])
+        self.assertTrue(all(r["enforcement"]["state"] in ("planned","review")
+                            and r["severity"]=="BLOCK" for r in selected.values()))
+
+    def test_c9_prose_relaxation_requires_evidence(self):
+        import changes
+        path="standards/catalog.json"
+        original={"catalog_version":"0.5.0","rules":[
+            {"id":"STD-BE-03","status":"PENDIENTE_REVISION","rule":"old text"}]}
+        updated={"catalog_version":"0.6.0","rules":[
+            {"id":"STD-BE-03","status":"APROBADO","rule":"generalized text"}]}
+        chg={"schema_version":"LF_STANDARD_CHANGE_V1","change_id":"CHG-0004",
+             "change_class":"RELAXING","title":"Synthetic","reason":"Synthetic",
+             "trigger":{"kind":"OWNER","reference":"test"},
+             "artifacts":[{"artifact":"catalog","path":path,
+                           "from_version":"0.5.0","to_version":"0.6.0"}],
+             "affected":{},"existing_code_impact":{},
+             "security_pin_invalidation":{"invalidates":False},
+             "requested_by":"test","approved_by":"paulozterra","evidence":{},
+             "risk":"risk","compensating_control":"L3 manifest"}
+        self.assertNotIn("CHANGE_CLASS_MISMATCH",changes.check_transition(
+            {path:original},{path:updated},[path],chg)["findings"])
+        incomplete={k:v for k,v in chg.items() if k not in ("risk","compensating_control")}
+        self.assertIn("MISSING_RELAXING_EVIDENCE",changes.check_transition(
+            {path:original},{path:updated},[path],incomplete)["findings"])
+
 if __name__ == "__main__":
     unittest.main()
