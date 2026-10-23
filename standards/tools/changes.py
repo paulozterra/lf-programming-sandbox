@@ -291,8 +291,12 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
             skill_path=f"standards/skills/{slug}/skill.json"
             old_skill=base_objects.get(skill_path)
             new_skill=head_objects.get(skill_path)
-            if old_skill is None or new_skill is None:
+            if new_skill is None:
                 findings.append("SKILL_VERSION_NOT_BUMPED")
+            elif old_skill is None:
+                # New skill and its SKILL.md land together in the same CHG.
+                if version(new_skill.get("skill_version")) is None:
+                    findings.append("SKILL_VERSION_NOT_BUMPED")
             else:
                 if not version(old_skill.get("skill_version")) or not version(new_skill.get("skill_version")) or version(new_skill["skill_version"])<=version(old_skill["skill_version"]):
                     findings.append("SKILL_VERSION_NOT_BUMPED")
