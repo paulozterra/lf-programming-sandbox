@@ -708,6 +708,24 @@ class C6StackSkillsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"BLOCK_SKILL_CATALOG_PIN_MISMATCH"):
             skills.assemble({**pin,"catalog_version":"0.7.0"},["spring-boot"],["STD-BE"])
 
+    def test_spring_receipt_fixture_and_flyway_evidence(self):
+        import hashlib,skills
+        fixture=json.loads((ROOT/"skills/tests/fixtures/spring-read-receipt.json").read_text())
+        blob=(ROOT/"catalog.json").read_bytes()
+        pin={"catalog_version":fixture["catalog_version"],"catalog_sha256":hashlib.sha256(blob).hexdigest()}
+        text,actual=skills.assemble(pin,["spring-boot"],["STD-BE","STD-API","STD-SEC","STD-GEN","STD-LOG","STD-MSG","STD-AUD","STD-GIT"])
+        for key in ("bytes","approx_tokens","catalog_sha256","glossary_sha256",
+                    "skills","rule_ids","pending_rule_ids","assembled_sha256","warnings"):
+            self.assertEqual(actual[key],fixture[key],key)
+        source=ROOT/"skills/tests/fixtures/flyway"
+        evidence=skills.inspect_repository(source)
+        self.assertEqual(skills.select(evidence,["STD-DB"]),["spring-boot","postgres-flyway"])
+
+    def test_c9_skill_md_requires_change(self):
+        import changes
+        result=changes.check_transition({}, {},["standards/skills/spring-boot/SKILL.md"],None)
+        self.assertIn("MISSING_CHG",result["findings"])
+
     def test_skill_negative_codes(self):
         import skills
         catalog=json.loads((ROOT/"catalog.json").read_text())
