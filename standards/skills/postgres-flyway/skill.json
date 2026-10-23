@@ -1,7 +1,7 @@
 {
   "schema_version": "LF_STACK_SKILL_V1",
   "skill_id": "postgres-flyway",
-  "skill_version": "0.1.0",
+  "skill_version": "0.2.0",
   "catalog_compat": "0.6",
   "glossary_compat": "0.4",
   "domains": [
@@ -9,7 +9,9 @@
     "STD-GEN",
     "STD-SEC",
     "STD-AUD",
-    "STD-GIT"
+    "STD-GIT",
+    "STD-NAV",
+    "STD-CONS"
   ],
   "exclude_rule_ids": [],
   "check_set_ref": "postgres-flyway",
