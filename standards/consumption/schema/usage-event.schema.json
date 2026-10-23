@@ -5,9 +5,9 @@
   "additionalProperties": false,
   "required": [
     "event_id",
-    "order_ref",
-    "lot_ref",
-    "stage",
+    "work_request_ref",
+    "work_batch_ref",
+    "execution_stage",
     "attempt",
     "provider",
     "model",
@@ -34,24 +34,6 @@
     "event_id": {
       "type": "string",
       "format": "uuid"
-    },
-    "order_ref": {
-      "type": "string",
-      "minLength": 1
-    },
-    "lot_ref": {
-      "type": "string",
-      "minLength": 1
-    },
-    "stage": {
-      "enum": [
-        "PLAN",
-        "BUILD",
-        "RETRY",
-        "QUESTION",
-        "REPAIR",
-        "REVIEW"
-      ]
     },
     "attempt": {
       "type": "integer",
@@ -180,6 +162,24 @@
       "type": [
         "string",
         "null"
+      ]
+    },
+    "work_request_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "work_batch_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execution_stage": {
+      "enum": [
+        "PLAN",
+        "BUILD",
+        "RETRY",
+        "QUESTION",
+        "REPAIR",
+        "REVIEW"
       ]
     }
   },
