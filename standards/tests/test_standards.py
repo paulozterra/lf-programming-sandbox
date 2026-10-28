@@ -690,5 +690,154 @@ class C6BackendDecisionTests(unittest.TestCase):
         self.assertEqual(fields("VALIDAR_CON_LEGAL","APROBADO"),"TIGHTENING")
         self.assertEqual(fields("APROBADO","PENDIENTE_REVISION"),"RELAXING")
 
+
+class C6StackSkillsTests(unittest.TestCase):
+    def test_catalog_pin_and_coverage(self):
+        import skills,hashlib
+        catalog=(ROOT/"catalog.json").read_bytes()
+        pin={"catalog_version":"0.6.1","catalog_sha256":hashlib.sha256(catalog).hexdigest()}
+        assembled,receipt=skills.assemble(pin,["spring-boot"],[
+            "STD-BE","STD-GEN","STD-API","STD-SEC","STD-LOG","STD-MSG","STD-AUD","STD-GIT"])
+        data=json.loads(catalog)
+        expected={r["id"] for r in data["rules"] if r["domain"] in
+          {"STD-BE","STD-GEN","STD-API","STD-SEC","STD-LOG","STD-MSG","STD-AUD","STD-GIT"}}
+        self.assertEqual(set(receipt["rule_ids"]),expected)
+        self.assertEqual(receipt["bytes"],len(assembled.encode()))
+        with self.assertRaisesRegex(ValueError,"PIN_DIGEST_MISMATCH"):
+            skills.assemble({**pin,"catalog_sha256":"0"*64},["spring-boot"],["STD-BE"])
+        with self.assertRaisesRegex(ValueError,"BLOCK_SKILL_CATALOG_PIN_MISMATCH"):
+            skills.assemble({**pin,"catalog_version":"0.7.0"},["spring-boot"],["STD-BE"])
+
+    def test_spring_receipt_fixture_and_flyway_evidence(self):
+        import hashlib,skills
+        fixture=json.loads((ROOT/"skills/tests/fixtures/spring-read-receipt.json").read_text())
+        blob=(ROOT/"catalog.json").read_bytes()
+        pin={"catalog_version":fixture["catalog_version"],"catalog_sha256":hashlib.sha256(blob).hexdigest()}
+        text,actual=skills.assemble(pin,["spring-boot"],["STD-BE","STD-API","STD-SEC","STD-GEN","STD-LOG","STD-MSG","STD-AUD","STD-GIT"])
+        for key in ("bytes","approx_tokens","catalog_sha256","glossary_sha256",
+                    "skills","rule_ids","pending_rule_ids","assembled_sha256","warnings"):
+            self.assertEqual(actual[key],fixture[key],key)
+        source=ROOT/"skills/tests/fixtures/flyway"
+        evidence=skills.inspect_repository(source)
+        self.assertEqual(skills.select(evidence,["STD-DB"]),["spring-boot","postgres-flyway"])
+
+    def test_c9_skill_md_requires_change(self):
+        import changes
+        result=changes.check_transition({}, {},["standards/skills/spring-boot/SKILL.md"],None)
+        self.assertIn("MISSING_CHG",result["findings"])
+
+    def test_skill_negative_codes(self):
+        import skills
+        catalog=json.loads((ROOT/"catalog.json").read_text())
+        checks=json.loads((ROOT/"skills/checks/stack-checks.json").read_text())
+        item=json.loads((ROOT/"skills/spring-boot/skill.json").read_text())
+        procedure=(ROOT/"skills/spring-boot/SKILL.md").read_text()
+        def error(changes,text=procedure):
+            return skills.violations({**item,**changes},text,catalog,checks)
+        self.assertIn("MISSING_SKILL_CATALOG_VERSION",error({"catalog_compat":None}))
+        self.assertIn("COMMAND_DRIFT",error({"check_set_ref":"unknown"}))
+        self.assertIn("UNKNOWN_RULE_ID",error({"exclude_rule_ids":[{"rule_id":"STD-BE-99","reason":"test"}]}))
+        self.assertIn("SKILL_L3_CONTAMINATION",error({},procedure+"\nREG_TEC_012\n"))
+        rule=next(x["rule"] for x in catalog["rules"] if x["id"]=="STD-BE-06")
+        self.assertIn("SKILL_RULE_TEXT_DUPLICATED",error({},procedure+"\n"+rule+"\n"))
+        with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED"):
+            skills.select({},["STD-BE"])
+        self.assertEqual(skills.select({"spring_boot":True},["STD-BE"]),["spring-boot"])
+
+
+    def test_c6_v1_domain_coverage_and_pending_rules(self):
+        import skills, hashlib
+        catalog=json.loads((ROOT/"catalog.json").read_text())
+        domains={d["id"] for d in catalog["domains"]}
+        declared=set().union(*(set(json.loads((ROOT/"skills"/slug/"skill.json").read_text())["domains"])
+                              for slug in skills.SLUGS))
+        self.assertEqual(domains-declared, skills.EXCLUDED_V1_DOMAINS)
+        pin={"catalog_version":catalog["catalog_version"],
+             "catalog_sha256":hashlib.sha256((ROOT/"catalog.json").read_bytes()).hexdigest()}
+        content,receipt=skills.assemble(pin,["spring-boot"],["STD-BE","STD-API","STD-SEC","STD-GEN","STD-LOG","STD-MSG","STD-AUD","STD-GIT","STD-NAV","STD-CONS"])
+        expected=json.loads((ROOT/"skills/tests/fixtures/spring-read-with-nav-cons-receipt.json").read_text())
+        for field in ("bytes","approx_tokens","skills","rule_ids","pending_rule_ids","assembled_sha256"):
+            self.assertEqual(receipt[field],expected[field],field)
+        ids={f"STD-CONS-{i:02d}" for i in range(1,5)}
+        self.assertTrue(ids.issubset(set(receipt["rule_ids"])))
+        self.assertTrue(ids.issubset(set(receipt["pending_rule_ids"])))
+        for rule_id in ids:
+            self.assertIn(rule_id+" [VALIDAR_CON_LEGAL] (pendiente, no obligatoria)",content)
+
+    def test_c6_specific_change_classes(self):
+        import changes
+        path="standards/skills/spring-boot/skill.json"
+        checks="standards/skills/checks/stack-checks.json"
+        cases=[
+           (path,"/domains",["STD-BE","STD-SEC"],["STD-BE"],"SECURITY"),
+           (path,"/domains",["STD-BE","STD-LOG"],["STD-BE"],"RELAXING"),
+           (path,"/domains",["STD-BE"],["STD-BE","STD-LOG"],"TIGHTENING"),
+           (path,"/exclude_rule_ids",[],[{"rule_id":"STD-BE-01","reason":"fixture"}],"RELAXING"),
+           (path,"/exclude_rule_ids",[],[{"rule_id":"STD-CONS-01","reason":"fixture"}],"SECURITY"),
+           (path,"/exclude_rule_ids",[{"rule_id":"STD-BE-01","reason":"fixture"}],[],"TIGHTENING"),
+           (path,"/catalog_compat","0.6","0.7","TIGHTENING"),
+           (path,"/glossary_compat","0.4","0.5","TIGHTENING"),
+           (path,"/check_set_ref","spring-boot","nextjs","TIGHTENING"),
+           (checks,"/checks/spring-spotless/status","shadow","blocking","TIGHTENING"),
+           (checks,"/checks/spring-verify/status","blocking","shadow","RELAXING"),
+           (checks,"/checks/spring-verify/argv",["mvn"],["mvn","verify"],"TIGHTENING"),
+           (checks,"/checks/spring-verify/cwd","backend",".","TIGHTENING"),
+           (checks,"/sets/spring-boot",["spring-verify"],["spring-verify","spring-spotless"],"TIGHTENING"),
+           (checks,"/sets/spring-boot",["spring-verify","spring-spotless"],["spring-verify"],"RELAXING"),
+        ]
+        for route,pointer,old,new,want in cases:
+            with self.subTest(route=route,pointer=pointer,expected=want):
+                effective,_,errors=changes.classify_skill_fields([(pointer,old,new)],route)
+                self.assertEqual(errors,[])
+                self.assertEqual(effective,want)
+        for route,pointer in ((path,"/nonexistent"),(checks,"/checks/spring-verify/unexpected")):
+            self.assertIn("UNCLASSIFIED_FIELD_CHANGE",
+                          changes.classify_skill_fields([(pointer,1,2)],route)[2])
+        base={"standards/skills/spring-boot/skill.json":{"skill_version":"0.1.0"}}
+        synthetic={"schema_version":"LF_STANDARD_CHANGE_V1","change_id":"CHG-9999",
+                   "change_class":"ADDITIVE","title":"fixture","reason":"fixture",
+                   "trigger":{"kind":"TEST","reference":"fixture"},"artifacts":[],
+                   "affected":{},"existing_code_impact":{},"security_pin_invalidation":{"invalidates":False},
+                   "requested_by":"test","approved_by":"paulozterra","evidence":{}}
+        self.assertIn("SKILL_VERSION_NOT_BUMPED",
+           changes.check_transition(base,base,["standards/skills/spring-boot/SKILL.md"],synthetic)["findings"])
+
+    def test_c6_ci_drift_synthetic_negatives(self):
+        import stack_checks,skills
+        checks=stack_checks.load()
+        ci=(ROOT.parent/".github/workflows/ci.yml").read_text()
+        self.assertEqual(stack_checks.validate_ci(checks,ci),[])
+        self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(checks,"- run: python3 tools/checks.py"))
+        self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(checks,ci+chr(10)+"      - run: npm run lint"+chr(10)))
+        with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED.*REQUIRES_DECISION.*Flyway") as first:
+            skills.select({"spring_boot":True,"flyway":True,"migration":False},["STD-DB"])
+        self.assertEqual(first.exception.selected_skills,["spring-boot"])
+        with self.assertRaisesRegex(ValueError,"STACK_UNRECOGNIZED.*REQUIRES_DECISION.*Flyway"):
+            skills.select({"spring_boot":True,"flyway":False,"migration":True},["STD-DB"])
+
+
+class C6ReviewFixTests(unittest.TestCase):
+    def test_skill_md_change_with_skill_version_bump_passes(self):
+        import changes,copy
+        P="standards/skills/spring-boot/skill.json";M="standards/skills/spring-boot/SKILL.md"
+        old=json.loads((ROOT/"skills/spring-boot/skill.json").read_text())
+        new=copy.deepcopy(old);major,minor,patch=map(int,old["skill_version"].split("."))
+        new["skill_version"]=f"{major}.{minor}.{patch+1}"
+        chg={"schema_version":"LF_STANDARD_CHANGE_V1","change_id":"CHG-0099","change_class":"ADDITIVE",
+             "title":"t","reason":"r","trigger":{},"affected":{},"existing_code_impact":{},
+             "security_pin_invalidation":{"invalidates":False},"requested_by":"test",
+             "approved_by":"paulozterra","evidence":{},
+             "artifacts":[{"path":P,"from_version":old["skill_version"],"to_version":new["skill_version"]}]}
+        self.assertEqual(changes.check_transition({P:old},{P:new},[M,P],chg)["findings"],[])
+        self.assertIn("UNEXPLAINED_VERSION_BUMP",changes.check_transition({P:old},{P:new},[P],chg)["findings"])
+
+    def test_ci_cannot_mask_runner_exit_code(self):
+        import stack_checks
+        cfg=json.loads((ROOT/"skills/checks/stack-checks.json").read_text())
+        ci=(ROOT.parent/".github/workflows/ci.yml").read_text()
+        self.assertEqual(stack_checks.validate_ci(cfg,ci),[])
+        masked=ci.replace("--check-id spring-verify","--check-id spring-verify || true")
+        self.assertIn("COMMAND_DRIFT",stack_checks.validate_ci(cfg,masked))
+
 if __name__ == "__main__":
     unittest.main()

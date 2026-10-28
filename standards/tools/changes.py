@@ -40,7 +40,11 @@ VERSIONS = {"standards/catalog.json":"catalog_version",
  "standards/waivers/waivers.json":"registry_version",
  "standards/kit-base/kit.json":"kit_version",
  "standards/consumption/pricing.json":"pricing_version",
- "standards/consumption/policy.json":"policy_version"}
+ "standards/consumption/policy.json":"policy_version",
+ "standards/skills/spring-boot/skill.json":"skill_version",
+ "standards/skills/nextjs/skill.json":"skill_version",
+ "standards/skills/postgres-flyway/skill.json":"skill_version",
+ "standards/skills/checks/stack-checks.json":"checks_version"}
 SHADOW = ["STD-FE-02","STD-GEN-05","STD-GEN-01","STD-GIT-01","STD-BE-05","STD-FE-07"]
 
 
@@ -145,6 +149,46 @@ def security_rule(rule_id):
     return bool(rule_id.startswith(("STD-SEC-","STD-AUD-","STD-CONS-")) or rule_id in SECURITY_IDS)
 
 
+def classify_skill_fields(changes, path):
+    """Only standards/skills paths: classify semantic effects without changing C9's other artifacts."""
+    effects=[]; errors=[]
+    critical={"STD-SEC","STD-AUD","STD-CONS"}
+    for pointer,old,new in changes:
+        parts=[x for x in pointer.split("/") if x]
+        tail=parts[-1] if parts else ""
+        effect=None
+        if path.endswith("/skill.json"):
+            if tail=="skill_version":continue
+            if tail=="domains" and isinstance(old,list) and isinstance(new,list):
+                removed=set(old)-set(new);added=set(new)-set(old)
+                if removed and added:errors.append("MIXED_CHANGE_REQUIRES_SPLIT")
+                if removed:effect="SECURITY" if removed&critical else "RELAXING"
+                elif added:effect="TIGHTENING"
+            elif tail=="exclude_rule_ids" and isinstance(old,list) and isinstance(new,list):
+                a={x["rule_id"] for x in old};b={x["rule_id"] for x in new}
+                added=b-a;removed=a-b
+                if added and removed:errors.append("MIXED_CHANGE_REQUIRES_SPLIT")
+                if added:effect="SECURITY" if any(security_rule(x) for x in added) else "RELAXING"
+                elif removed:effect="TIGHTENING"
+            elif tail in ("catalog_compat","glossary_compat","check_set_ref"):
+                effect="TIGHTENING"
+        elif path.endswith("/stack-checks.json"):
+            if tail=="checks_version":continue
+            if tail=="status" and old in ("shadow","blocking") and new in ("shadow","blocking"):
+                effect="TIGHTENING" if new=="blocking" else "RELAXING"
+            elif tail in ("argv","cwd"):effect="TIGHTENING"
+            elif len(parts)==2 and parts[0]=="sets" and isinstance(old,list) and isinstance(new,list):
+                removed=set(old)-set(new);added=set(new)-set(old)
+                if removed and added:errors.append("MIXED_CHANGE_REQUIRES_SPLIT")
+                if removed:effect="RELAXING"
+                elif added:effect="TIGHTENING"
+        if effect:effects.append(effect)
+        else:errors.append("UNCLASSIFIED_FIELD_CHANGE")
+    if "RELAXING" in effects and "TIGHTENING" in effects:errors.append("MIXED_CHANGE_REQUIRES_SPLIT")
+    ranking=["EDITORIAL","ADDITIVE","TIGHTENING","RELAXING","SECURITY"]
+    return (max(effects,key=ranking.index) if effects else "EDITORIAL"), [], sorted(set(errors))
+
+
 def classify_fields(changes, path=""):
     flags=set(); warnings=[]; errors=[]
     for pointer,old,new in changes:
@@ -204,7 +248,7 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
             continue
         if path in VERSIONS:
             old=base_objects.get(path);new=head_objects.get(path)
-            if old is None and new is not None and path.startswith("standards/consumption/"):
+            if old is None and new is not None and (path.startswith("standards/consumption/") or path.startswith("standards/skills/")):
                 flags.append("ADDITIVE")
                 if not chg or not any(a.get("path")==path and a.get("to_version")==new.get(VERSIONS[path]) for a in chg.get("artifacts",[])):
                     findings.append("MISSING_CHG")
@@ -216,7 +260,12 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
             material=[x for x in differences if x[0]!="/"+vfield]
             if material and (not before or not after or after<=before):
                 findings.append("VERSION_NOT_BUMPED")
-            if not material and before!=after:findings.append("UNEXPLAINED_VERSION_BUMP")
+            if not material and before!=after:
+                # skill.json sube su versión cuando solo cambia su SKILL.md hermano.
+                sibling_md=path.rsplit("/",1)[0]+"/SKILL.md"
+                if not (path.startswith("standards/skills/") and path.endswith("/skill.json")
+                        and sibling_md in changed_paths and before and after and after>before):
+                    findings.append("UNEXPLAINED_VERSION_BUMP")
             if path=="standards/consumption/pricing.json":
                 before_rows={(r["provider"],r["model"],r["service_tier"],r["valid_from"]):r
                              for r in old.get("models",[])}
@@ -232,7 +281,7 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
                             findings.append("PRICE_ROW_REWRITE")
                 if "PRICE_ROW_REWRITE" not in findings and old.get("models")!=new.get("models"):
                     material=[("/models",None,"NEW_PRICE_VERSION")]
-            category,warns,errs=classify_fields(material,path);warnings+=warns;findings+=errs
+            category,warns,errs=(classify_skill_fields(material,path) if path.startswith("standards/skills/") else classify_fields(material,path));warnings+=warns;findings+=errs
             if chg and (material or before!=after):
                 covered=any(a.get("path")==path and a.get("from_version")==old.get(vfield)
                             and a.get("to_version")==new.get(vfield)
@@ -242,6 +291,21 @@ def check_transition(base_objects,head_objects,changed_paths,chg=None):
             if before and after and material:
                 expected=(before[0],before[1],before[2]+1) if category=="EDITORIAL" else (before[0],before[1]+1,0)
                 if after!=expected:findings.append("VERSION_NOT_BUMPED")
+        elif path.startswith("standards/skills/") and path.endswith("/SKILL.md"):
+            slug=path.split("/")[2]
+            skill_path=f"standards/skills/{slug}/skill.json"
+            old_skill=base_objects.get(skill_path)
+            new_skill=head_objects.get(skill_path)
+            if new_skill is None:
+                findings.append("SKILL_VERSION_NOT_BUMPED")
+            elif old_skill is None:
+                # New skill and its SKILL.md land together in the same CHG.
+                if version(new_skill.get("skill_version")) is None:
+                    findings.append("SKILL_VERSION_NOT_BUMPED")
+            else:
+                if not version(old_skill.get("skill_version")) or not version(new_skill.get("skill_version")) or version(new_skill["skill_version"])<=version(old_skill["skill_version"]):
+                    findings.append("SKILL_VERSION_NOT_BUMPED")
+            flags.append("ADDITIVE")
         elif (path.startswith("standards/tools/") and path.endswith(".py")
               or path == ".github/workflows/ci.yml"):
             flags.append("ADDITIVE")  # mínimo requerido; puede declararse una clase superior
@@ -405,6 +469,12 @@ def main(argv=None):
     changed=git("diff","--name-only",base,"HEAD").splitlines()
     base_data={path:json_at(base,path) for path in changed if path in VERSIONS or path=="standards/pins.json" or path.startswith("standards/baseline/")}
     head_data={path:json.loads((ROOT/path).read_text(encoding="utf8")) for path in changed if (path in VERSIONS or path=="standards/pins.json" or path.startswith("standards/baseline/")) and (ROOT/path).exists()}
+    # Lookup of sibling skill.json is required even when a PR only changes SKILL.md.
+    for md in (p for p in changed if p.startswith("standards/skills/") and p.endswith("/SKILL.md")):
+        sibling=md.rsplit("/",1)[0]+"/skill.json"
+        if sibling not in base_data:base_data[sibling]=json_at(base,sibling)
+        if sibling not in head_data and (ROOT/sibling).exists():
+            head_data[sibling]=json.loads((ROOT/sibling).read_text(encoding="utf8"))
     introduced=[c for _,c in records if file_at(base,"standards/changes/"+c["change_id"]+".json") is None]
     if a.cmd in ("classify","check"):
         result=check_transition(base_data,head_data,changed,introduced[0] if len(introduced)==1 else None)

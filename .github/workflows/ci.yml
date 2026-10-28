@@ -26,7 +26,7 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - run: mvn -B -ntp verify
+      - run: python3 ../standards/tools/stack_checks.py run --set spring-boot --check-id spring-verify
 
   frontend:
     name: frontend (lint, tipos, build)
@@ -42,9 +42,9 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run build
+      - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-lint
+      - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-typecheck
+      - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-build
 
   standards-catalog:
     name: estándares (catálogo y checks)
@@ -56,6 +56,13 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - run: python3 standards/tools/stack_checks.py validate --ci .github/workflows/ci.yml
+      - run: python3 standards/tools/skills.py validate
+      - name: "C6: ensamblado sintético Spring offline"
+        run: |
+          python3 -c 'import hashlib,json,pathlib; p=pathlib.Path("standards/catalog.json"); d=json.loads(p.read_text()); print(json.dumps({"catalog_version":d["catalog_version"],"catalog_sha256":hashlib.sha256(p.read_bytes()).hexdigest()}))' > /tmp/skill-pin.json
+          python3 standards/tools/skills.py assemble --pin /tmp/skill-pin.json --skills spring-boot --domains STD-BE,STD-API,STD-SEC,STD-GEN,STD-LOG,STD-MSG,STD-AUD,STD-GIT --out /tmp/c6-spring.txt
+          python3 standards/tools/skills.py assemble --pin /tmp/skill-pin.json --skills spring-boot --domains STD-BE,STD-API,STD-SEC,STD-GEN,STD-LOG,STD-MSG,STD-AUD,STD-GIT,STD-NAV,STD-CONS --out /tmp/c6-spring-all.txt
       - run: python3 standards/tools/consumption.py validate
       - run: python3 standards/tools/consumption.py render --check
       - run: python3 standards/tools/changes.py validate
@@ -73,7 +80,7 @@ jobs:
       - run: python3 standards/tools/waivers.py validate
       - run: python3 standards/tools/waivers.py render --check
       - run: python3 standards/tools/kit.py verify
-      - run: python3 standards/tools/db_catalog_lint.py check-files standards/kit-base/migrations
+      - run: python3 standards/tools/stack_checks.py run --set postgres-flyway --check-id db-catalog-files
       - run: python3 -m unittest discover -s standards/tests -v
 
   standards-shadow:
@@ -93,10 +100,10 @@ jobs:
         with:
           node-version: "22"
       - name: STD-BE-05 formato Java (Spotless + palantir)
-        run: mvn -B -ntp -f backend/pom.xml spotless:check || echo "::warning title=STD-BE-05 (sombra)::Formato Java distinto a palantir; corregir con mvn -f backend/pom.xml spotless:apply"
+        run: python3 standards/tools/stack_checks.py run --set spring-boot --check-id spring-spotless
       - name: STD-FE-07 formato frontend (Prettier)
         working-directory: frontend
-        run: npx --yes prettier@3.9.10 --check "src/**/*.{ts,tsx,css}" "*.{ts,mjs,json}" || echo "::warning title=STD-FE-07 (sombra)::Formato frontend distinto a Prettier"
+        run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-prettier
       - name: STD-FE-02 nombres de archivo en kebab-case
         run: python3 standards/tools/checks.py filenames frontend/src | sed 's/^STD-/::warning title=STD-FE-02 (sombra)::STD-/' || true
       - name: STD-GEN-05 supresiones con waiver
@@ -116,7 +123,7 @@ jobs:
       KIT_PSQL_MODE: docker
     steps:
       - uses: actions/checkout@v5
-      - run: docker compose -f docker/compose.yaml config --quiet
+      - run: python3 standards/tools/stack_checks.py run --set postgres-flyway
       - run: docker compose -f docker/compose.yaml up -d --wait --wait-timeout 180
       - name: Kit C5 render reproducible
         run: python3 standards/tools/kit.py render --schema kit_test --trace-prefix KIT --out /tmp/kit-render

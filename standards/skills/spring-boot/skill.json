@@ -1,0 +1,23 @@
+{
+  "schema_version": "LF_STACK_SKILL_V1",
+  "skill_id": "spring-boot",
+  "skill_version": "0.2.0",
+  "catalog_compat": "0.6",
+  "glossary_compat": "0.4",
+  "domains": [
+    "STD-BE",
+    "STD-GEN",
+    "STD-API",
+    "STD-SEC",
+    "STD-LOG",
+    "STD-MSG",
+    "STD-AUD",
+    "STD-GIT",
+    "STD-NAV",
+    "STD-CONS"
+  ],
+  "exclude_rule_ids": [],
+  "check_set_ref": "spring-boot",
+  "procedure_path": "SKILL.md",
+  "scope": "L2_STACK_ONLY"
+}
