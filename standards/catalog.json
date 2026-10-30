@@ -1548,10 +1548,14 @@
       "domain": "STD-MSG",
       "rule": "ADR-PROG-STD-012: El código técnico de error nunca se muestra al usuario; el trace_code debe existir y propagarse en la respuesta. El spec de Fase 1 determina si se presenta el código de referencia. En LF, el conflicto REG_ACC_002 / B2B-RULE-ERROR-003 queda REQUIRES_DECISION de Cristhian; nunca inferir su resolución.",
       "severity": "BLOCK",
-      "status": "REQUIERE_DECISION_LF",
+      "status": "CANDIDATO_CHG_0007",
       "enforcement": {
         "state": "review",
         "planned_control": "Contrato API + revisor PG-11 + decisión LF explícita"
+      },
+      "examples": {
+        "good": "Respuesta API con trace_code; UI usa solo el texto aprobado por Fase 1; conflicto LF explícitamente sin resolver",
+        "bad": "Mostrar LF_OTP_EXPIRADO como texto visible o suprimir trace_code"
       }
     },
     {
@@ -1563,6 +1567,10 @@
       "enforcement": {
         "state": "review",
         "planned_control": "PG-08 + revisor PG-11 + prueba emulador local"
+      },
+      "examples": {
+        "good": "El PR incluye Terraform para la cola de aplicación y prueba Floci, sin aplicar recursos en AWS",
+        "bad": "El agente ejecuta terraform apply contra AWS o omite IaC del recurso nuevo"
       }
     },
     {
@@ -1574,6 +1582,10 @@
       "enforcement": {
         "state": "review",
         "planned_control": "Prueba de instrumentación del Worker + revisión PG-16"
+      },
+      "examples": {
+        "good": "Registrar tokens in/out y cache read/write por etapa y modelo incluso si falta tabla de precios",
+        "bad": "Deshabilitar captura de tokens al faltar pricing o no registrar reintentos fallidos"
       }
     },
     {
@@ -1585,6 +1597,10 @@
       "enforcement": {
         "state": "review",
         "planned_control": "PG-16/18 + pruebas presupuestales y de invariancia de controles"
+      },
+      "examples": {
+        "good": "Modo elegido por pedido; 80 % del presupuesto aprobado avisa; 100 % devuelve REQUIRES_DECISION; modelo dinámico apagado en V1",
+        "bad": "Omitir controles o habilitar selección dinámica por dificultad sin PG-18"
       }
     }
   ],
