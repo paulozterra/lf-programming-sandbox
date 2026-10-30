@@ -695,7 +695,7 @@ class C6StackSkillsTests(unittest.TestCase):
     def test_catalog_pin_and_coverage(self):
         import skills,hashlib
         catalog=(ROOT/"catalog.json").read_bytes()
-        pin={"catalog_version":"0.6.1","catalog_sha256":hashlib.sha256(catalog).hexdigest()}
+        pin={"catalog_version":json.loads(catalog)["catalog_version"],"catalog_sha256":hashlib.sha256(catalog).hexdigest()}
         assembled,receipt=skills.assemble(pin,["spring-boot"],[
             "STD-BE","STD-GEN","STD-API","STD-SEC","STD-LOG","STD-MSG","STD-AUD","STD-GIT"])
         data=json.loads(catalog)
@@ -706,7 +706,7 @@ class C6StackSkillsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"PIN_DIGEST_MISMATCH"):
             skills.assemble({**pin,"catalog_sha256":"0"*64},["spring-boot"],["STD-BE"])
         with self.assertRaisesRegex(ValueError,"BLOCK_SKILL_CATALOG_PIN_MISMATCH"):
-            skills.assemble({**pin,"catalog_version":"0.7.0"},["spring-boot"],["STD-BE"])
+            skills.assemble({**pin,"catalog_version":"0.6.1"},["spring-boot"],["STD-BE"])
 
     def test_spring_receipt_fixture_and_flyway_evidence(self):
         import hashlib,skills
@@ -714,6 +714,7 @@ class C6StackSkillsTests(unittest.TestCase):
         blob=(ROOT/"catalog.json").read_bytes()
         pin={"catalog_version":fixture["catalog_version"],"catalog_sha256":hashlib.sha256(blob).hexdigest()}
         text,actual=skills.assemble(pin,["spring-boot"],["STD-BE","STD-API","STD-SEC","STD-GEN","STD-LOG","STD-MSG","STD-AUD","STD-GIT"])
+        print("C3_FIXTURE_SPRING:"+json.dumps(actual,sort_keys=True),flush=True)
         for key in ("bytes","approx_tokens","catalog_sha256","glossary_sha256",
                     "skills","rule_ids","pending_rule_ids","assembled_sha256","warnings"):
             self.assertEqual(actual[key],fixture[key],key)
@@ -756,6 +757,7 @@ class C6StackSkillsTests(unittest.TestCase):
              "catalog_sha256":hashlib.sha256((ROOT/"catalog.json").read_bytes()).hexdigest()}
         content,receipt=skills.assemble(pin,["spring-boot"],["STD-BE","STD-API","STD-SEC","STD-GEN","STD-LOG","STD-MSG","STD-AUD","STD-GIT","STD-NAV","STD-CONS"])
         expected=json.loads((ROOT/"skills/tests/fixtures/spring-read-with-nav-cons-receipt.json").read_text())
+        print("C3_FIXTURE_NAV:"+json.dumps(receipt,sort_keys=True),flush=True)
         for field in ("bytes","approx_tokens","skills","rule_ids","pending_rule_ids","assembled_sha256"):
             self.assertEqual(receipt[field],expected[field],field)
         ids={f"STD-CONS-{i:02d}" for i in range(1,5)}
