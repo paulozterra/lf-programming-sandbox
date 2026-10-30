@@ -23,7 +23,7 @@ class CHG0007CoverageTest(unittest.TestCase):
          assert x["examples"]["good"] and x["examples"]["bad"]
          assert x["examples"]["good"]!=x["examples"]["bad"]
          assert x["enforcement"]["state"]=="review"
-     assert all(r[id]["severity"]=="BLOCK" for id in ("STD-IAC-01","STD-IAC-05","STD-IAC-06"))
+     assert all(r[id]["severity"]=="POR_DEFINIR" for id in ("STD-IAC-01","STD-IAC-05","STD-IAC-06"))
      assert "STD-IAC-08" not in r
      assert "REQUIRES_DECISION" in r["STD-MSG-04"]["rule"]
      assert "80 %" in r["STD-GEN-08"]["rule"] and "100 %" in r["STD-GEN-08"]["rule"]
