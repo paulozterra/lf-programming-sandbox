@@ -82,7 +82,7 @@ def assemble(pin,selected,active):
             detail+="\n"+"".join("✅ "+x+"\n" for x in r["examples"]["good"])+"".join("❌ "+x+"\n" for x in r["examples"]["bad"])
         text_sections.append(title+"\n"+detail)
     content="\n\n".join(text_sections)+"\n"
-    receipt={"bytes":len(content.encode()),"approx_tokens":(len(content)+3)//4,"catalog_sha256":actual,
+    receipt={"bytes":len(content.encode()),"approx_tokens":(len(content)+3)//4,"catalog_version":catalog["catalog_version"],"catalog_sha256":actual,
        "glossary_sha256":digest((STD/"glossary/base.json").read_bytes()),"skills":skill_data,
        "rule_ids":[x["id"] for x in selected_rules],"pending_rule_ids":pending,
        "assembled_sha256":digest(content.encode()),"warnings":[]}
