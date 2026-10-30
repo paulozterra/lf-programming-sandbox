@@ -13,13 +13,13 @@
       "artifact": "catalog",
       "path": "standards/catalog.json",
       "from_version": "0.6.1",
-      "to_version": "0.6.2"
+      "to_version": "0.7.0"
     },
     {
       "artifact": "llm_generated",
       "path": "standards/CATALOGO.md",
       "from_version": "0.6.1",
-      "to_version": "0.6.2"
+      "to_version": "0.7.0"
     }
   ],
   "affected": {
