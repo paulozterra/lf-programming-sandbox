@@ -1,13 +1,13 @@
 {
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0007",
-  "title": "ADR-012/016/017 cobertura y ADR-014 endurecimiento IaC",
-  "change_class": "TIGHTENING",
+  "title": "Cobertura aditiva ADR-012/016/017 en catálogo STD",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Decisión 29/10/2026: adoptar catálogo canónico PG-00_C3 y preparar CHG"
   },
-  "reason": "Completar obligaciones omitidas en v0.6.1 sin reemplazar códigos existentes ni resolver conflictos LF o montos D17; compatibilidad de skill Spring Boot ajustada al salto menor 0.7 para que el ensamblado C6 siga cerrado por pin exacto.; ADR-014 endurece STD-IAC-01/05/06 en vez de duplicar reglas.",
+  "reason": "Agregar cobertura verificable de ADR-012, ADR-016 y ADR-017, sin sustituir decisiones LF. El endurecimiento de IaC ADR-014 se separa a un CHG posterior para evitar cambios mixtos.",
   "artifacts": [
     {
       "artifact": "catalog",
@@ -44,10 +44,7 @@
     "rule_ids": [
       "STD-MSG-04",
       "STD-LOG-05",
-      "STD-GEN-08",
-      "STD-IAC-01",
-      "STD-IAC-05",
-      "STD-IAC-06"
+      "STD-GEN-08"
     ],
     "term_ids": [],
     "paths": [
