@@ -20,6 +20,7 @@ class C6PinIntegrityTests(unittest.TestCase):
                "catalog_version": actual_version}
         _, receipt = skills.assemble(pin, ["spring-boot"], ["STD-BE"])
         self.assertEqual(receipt["catalog_sha256"], pin["catalog_sha256"])
+        self.assertEqual(receipt["catalog_version"], actual_version)
         altered = dict(pin, catalog_version=actual_version.rsplit(".", 1)[0] + ".999")
         with self.assertRaisesRegex(ValueError, "BLOCK_SKILL_CATALOG_PIN_MISMATCH"):
             skills.assemble(altered, ["spring-boot"], ["STD-BE"])
@@ -47,6 +48,29 @@ class C9ClassificationRegressions(unittest.TestCase):
             "standards/skills/spring-boot/skill.json")
         self.assertIn("MIXED_CHANGE_REQUIRES_SPLIT", errors)
         self.assertEqual(category, "SECURITY")
+
+    def test_removing_skill_exclusion_is_tightening(self):
+        old = [{"rule_id":"STD-BE-01","reason":"not applicable"}]
+        category, _, errors = changes.classify_skill_fields(
+            [("/exclude_rule_ids", old, [])],
+            "standards/skills/spring-boot/skill.json")
+        self.assertEqual(category, "TIGHTENING")
+        self.assertFalse(errors)
+
+    def test_adding_security_exclusion_is_security_change(self):
+        added = [{"rule_id":"STD-SEC-01","reason":"attempt bypass"}]
+        category, _, errors = changes.classify_skill_fields(
+            [("/exclude_rule_ids", [], added)],
+            "standards/skills/spring-boot/skill.json")
+        self.assertEqual(category, "SECURITY")
+        self.assertFalse(errors)
+
+    def test_rule_removal_is_not_additive(self):
+        category, _, errors = changes.classify_fields(
+            [("/rules/STD-GEN-08", {"id":"STD-GEN-08"}, None)],
+            "standards/catalog.json")
+        self.assertEqual(category, "RELAXING")
+        self.assertFalse(errors)
 
     def test_undeclared_skill_field_rejected(self):
         _, _, errors = changes.classify_skill_fields(
