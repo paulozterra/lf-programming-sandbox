@@ -1429,7 +1429,7 @@
       "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "review",
+        "state": "planned",
         "planned_control": "PG-08, revisor PG-11 y pruebas contra emulador local"
       },
       "examples": {
@@ -1481,7 +1481,7 @@
       "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "review",
+        "state": "planned",
         "planned_control": "PG-08, revisor PG-11 y pruebas contra emulador local"
       },
       "examples": {
@@ -1500,7 +1500,7 @@
       "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "review",
+        "state": "planned",
         "planned_control": "PG-08, revisor PG-11 y pruebas contra emulador local"
       },
       "examples": {
