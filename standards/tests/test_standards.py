@@ -695,7 +695,7 @@ class C6StackSkillsTests(unittest.TestCase):
     def test_catalog_pin_and_coverage(self):
         import skills,hashlib
         catalog=(ROOT/"catalog.json").read_bytes()
-        pin={"catalog_version":"0.6.1","catalog_sha256":hashlib.sha256(catalog).hexdigest()}
+        pin={"catalog_version":json.loads(catalog)["catalog_version"],"catalog_sha256":hashlib.sha256(catalog).hexdigest()}
         assembled,receipt=skills.assemble(pin,["spring-boot"],[
             "STD-BE","STD-GEN","STD-API","STD-SEC","STD-LOG","STD-MSG","STD-AUD","STD-GIT"])
         data=json.loads(catalog)
@@ -706,7 +706,7 @@ class C6StackSkillsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"PIN_DIGEST_MISMATCH"):
             skills.assemble({**pin,"catalog_sha256":"0"*64},["spring-boot"],["STD-BE"])
         with self.assertRaisesRegex(ValueError,"BLOCK_SKILL_CATALOG_PIN_MISMATCH"):
-            skills.assemble({**pin,"catalog_version":"0.7.0"},["spring-boot"],["STD-BE"])
+            skills.assemble({**pin,"catalog_version":"0.6.1"},["spring-boot"],["STD-BE"])
 
     def test_spring_receipt_fixture_and_flyway_evidence(self):
         import hashlib,skills

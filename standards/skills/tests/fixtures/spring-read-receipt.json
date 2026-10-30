@@ -1,17 +1,10 @@
 {
-  "fixture": "synthetic-spring-read-endpoint",
-  "catalog_version": "0.6.1",
-  "bytes": 10002,
-  "approx_tokens": 2456,
-  "catalog_sha256": "26ca9cf9936ef01b50f9af504e4a9b796ee7d7d538d5724ff388c9fb90e8ddb3",
+  "approx_tokens": 2864,
+  "assembled_sha256": "f52c067f7a6775cdb28367f9f8f6f23516e2bc4da2c996f0565796c5c1895842",
+  "bytes": 11667,
+  "catalog_sha256": "d4522145b37cb14411fafc77151ad8201ce256d1c2a7bfa786702abc4f409b89",
   "glossary_sha256": "17fe5299587487dac51e2866ba9484970be4461758cb78eaf6529105343d5b59",
-  "skills": [
-    {
-      "skill": "spring-boot",
-      "skill_json_sha256": "140fedf32527f3953ba8489e74f2d012afb86d18df0696166990b93e05357896",
-      "skill_md_sha256": "bc0ff865799596a22bbcc638f7d2703993ada906f29c3f6b655515da7a386d52"
-    }
-  ],
+  "pending_rule_ids": [],
   "rule_ids": [
     "STD-GEN-01",
     "STD-GEN-02",
@@ -51,9 +44,18 @@
     "STD-AUD-03",
     "STD-MSG-01",
     "STD-MSG-02",
-    "STD-MSG-03"
+    "STD-MSG-03",
+    "STD-MSG-04",
+    "STD-LOG-05",
+    "STD-GEN-08"
   ],
-  "pending_rule_ids": [],
-  "assembled_sha256": "e23785266813f56bb34477ac664dd4828c1de1496eb0b83683dfad2a3e649885",
-  "warnings": []
+  "skills": [
+    {
+      "skill": "spring-boot",
+      "skill_json_sha256": "74d085f7b28fd1e40dd73a4a04d527b29c280b321916629e8fad04fa3d73b180",
+      "skill_md_sha256": "bc0ff865799596a22bbcc638f7d2703993ada906f29c3f6b655515da7a386d52"
+    }
+  ],
+  "warnings": [],
+  "catalog_version": "0.7.0"
 }

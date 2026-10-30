@@ -57,6 +57,8 @@ def assemble(pin,selected,active):
     catalog_bytes=(STD/"catalog.json").read_bytes();catalog=json.loads(catalog_bytes)
     actual=digest(catalog_bytes)
     if actual!=pin["catalog_sha256"]:raise ValueError("PIN_DIGEST_MISMATCH")
+    if pin.get("catalog_version")!=catalog["catalog_version"]:
+        raise ValueError("BLOCK_SKILL_CATALOG_PIN_MISMATCH")
     skill_data=[];text_sections=[];ids=set();pending=[]
     for slug in selected:
         obj=load_json(DIR/slug/"skill.json")
@@ -80,7 +82,7 @@ def assemble(pin,selected,active):
             detail+="\n"+"".join("✅ "+x+"\n" for x in r["examples"]["good"])+"".join("❌ "+x+"\n" for x in r["examples"]["bad"])
         text_sections.append(title+"\n"+detail)
     content="\n\n".join(text_sections)+"\n"
-    receipt={"bytes":len(content.encode()),"approx_tokens":(len(content)+3)//4,"catalog_sha256":actual,
+    receipt={"bytes":len(content.encode()),"approx_tokens":(len(content)+3)//4,"catalog_version":catalog["catalog_version"],"catalog_sha256":actual,
        "glossary_sha256":digest((STD/"glossary/base.json").read_bytes()),"skills":skill_data,
        "rule_ids":[x["id"] for x in selected_rules],"pending_rule_ids":pending,
        "assembled_sha256":digest(content.encode()),"warnings":[]}

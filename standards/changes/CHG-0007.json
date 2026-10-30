@@ -1,0 +1,84 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0007",
+  "title": "Cobertura aditiva ADR-012/016/017 en catálogo STD",
+  "change_class": "TIGHTENING",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Decisión 29/10/2026: adoptar catálogo canónico PG-00_C3 y preparar CHG"
+  },
+  "reason": "Agregar cobertura verificable de ADR-012, ADR-016 y ADR-017, sin sustituir decisiones LF. El endurecimiento de IaC ADR-014 se separa a un CHG posterior para evitar cambios mixtos. La actualización de compatibilidad de las tres skills incrementa el rigor del pin y el clasificador C9 efectivo es TIGHTENING; las tres reglas nuevas son ADDITIVE. La revisión C6 refuerza la igualdad exacta entre versión declarada y catálogo real, y C9 incorpora regresiones de clasificación sin relajar el validador. Corrección H-01: incluir versión verificada en recibo real; regresiones adversariales de exclusiones y eliminación de reglas.",
+  "artifacts": [
+    {
+      "artifact": "catalog",
+      "path": "standards/catalog.json",
+      "from_version": "0.6.1",
+      "to_version": "0.7.0"
+    },
+    {
+      "artifact": "llm_generated",
+      "path": "standards/CATALOGO.md",
+      "from_version": "0.6.1",
+      "to_version": "0.7.0"
+    },
+    {
+      "artifact": "skill",
+      "path": "standards/skills/spring-boot/skill.json",
+      "from_version": "0.2.0",
+      "to_version": "0.3.0"
+    },
+    {
+      "artifact": "skill",
+      "path": "standards/skills/nextjs/skill.json",
+      "from_version": "0.2.0",
+      "to_version": "0.3.0"
+    },
+    {
+      "artifact": "skill",
+      "path": "standards/skills/postgres-flyway/skill.json",
+      "from_version": "0.2.0",
+      "to_version": "0.3.0"
+    }
+  ],
+  "affected": {
+    "rule_ids": [
+      "STD-MSG-04",
+      "STD-LOG-05",
+      "STD-GEN-08"
+    ],
+    "term_ids": [],
+    "paths": [
+      "standards/catalog.json",
+      "standards/CATALOGO.md",
+      "standards/tests/test_pg00_c3_chg0007.py",
+      "standards/skills/spring-boot/skill.json",
+      "standards/skills/nextjs/skill.json",
+      "standards/skills/postgres-flyway/skill.json",
+      "standards/tools/skills.py",
+      "standards/tests/test_pg00_c6_c9_pin_integrity.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "review": "CONDITIONAL_GO_FOR_ADMISSION_REVIEW_HEAD_3bf88edf_20261030_SUPERSEDED_BY_NEW_CODE",
+    "pase": "NOT_RUN",
+    "train": "NOT_APPLIED",
+    "owner_approval_context": "User requested 'Ok hazlo' after proposal to review/approve CHG-0007",
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/13",
+    "independent_review": "REPORT_IN_CHAT_ONLY_NOT_GITHUB_ATTESTED_NEW_HEAD_REVIEW_REQUIRED",
+    "independent_review_limitations": "External chat reviewer inspected GitHub diff and CI, did not execute independent isolated adversarial suite; H-01 receipt missing catalog_version was fixed after reviewed HEAD, so old verdict does not approve new HEAD.",
+    "context_size_policy": "CONTEXT_SIZE_WARNING remains non-blocking in C6; PG pipeline must block or require explicit decision before sending an oversized assembled context.",
+    "source_integrity_limitation": "Matching a self-supplied digest cannot attest trusted source; governed source commit and authenticated release provenance needed before C3."
+  },
+  "decision_ref": "Owner approval in conversation on 2026-10-30 to proceed with review/approval of CHG-0007; independent review and merge remain pending"
+}

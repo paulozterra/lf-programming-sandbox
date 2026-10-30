@@ -1,6 +1,6 @@
 {
   "schema_version": "LF_STANDARDS_CATALOG_V1",
-  "catalog_version": "0.6.1",
+  "catalog_version": "0.7.0",
   "status": "BORRADOR_EN_REPO_DE_CALIFICACION",
   "source": "Plan Fase 2 (proyecto LF): claude/programacion-fase2-desglose-checkpoints-estandares-2026-10-21.md",
   "canonical_store_target": "transversal (vía Router -> Train, pendiente)",
@@ -1541,6 +1541,63 @@
       "enforcement": {
         "state": "planned",
         "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-MSG-04",
+      "domain": "STD-MSG",
+      "rule": "ADR-PROG-STD-012: El código técnico de error nunca se muestra al usuario; el trace_code debe existir y propagarse en la respuesta. El spec de Fase 1 determina si se presenta el código de referencia. En LF, el conflicto REG_ACC_002 / B2B-RULE-ERROR-003 queda REQUIRES_DECISION de Cristhian; nunca inferir su resolución.",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Contrato API + revisor PG-11 + decisión LF explícita"
+      },
+      "examples": {
+        "good": [
+          "Respuesta API con trace_code; UI usa solo el texto aprobado por Fase 1; conflicto LF explícitamente sin resolver"
+        ],
+        "bad": [
+          "Mostrar LF_OTP_EXPIRADO como texto visible o suprimir trace_code"
+        ]
+      }
+    },
+    {
+      "id": "STD-LOG-05",
+      "domain": "STD-LOG",
+      "rule": "ADR-PROG-STD-016: medir en TODA llamada de modelo tokens de entrada, salida y caché (lectura y escritura), modelo, pedido, lote y etapa; distinguir gasto útil y desperdiciado. El cálculo de costo requiere tabla de precios versionada y su ausencia no desactiva la medición de tokens.",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Prueba de instrumentación del Worker + revisión PG-16"
+      },
+      "examples": {
+        "good": [
+          "Registrar tokens in/out y cache read/write por etapa y modelo incluso si falta tabla de precios"
+        ],
+        "bad": [
+          "Deshabilitar captura de tokens al faltar pricing o no registrar reintentos fallidos"
+        ]
+      }
+    },
+    {
+      "id": "STD-GEN-08",
+      "domain": "STD-GEN",
+      "rule": "ADR-PROG-STD-017: seleccionar modo de optimización por pedido sin relajar controles; reutilizar caché estable, contexto mínimo, no redescubrimiento y freno temprano. Selección dinámica de modelo por dificultad permanece APAGADA en V1 hasta calificación PG-18. Con presupuesto aprobado, avisar al 80 % y exigir REQUIRES_DECISION al 100 %; montos pendientes de decisión D17 y nunca inferidos.",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "review",
+        "planned_control": "PG-16/18 + pruebas presupuestales y de invariancia de controles"
+      },
+      "examples": {
+        "good": [
+          "Modo elegido por pedido; 80 % del presupuesto aprobado avisa; 100 % devuelve REQUIRES_DECISION; modelo dinámico apagado en V1"
+        ],
+        "bad": [
+          "Omitir controles o habilitar selección dinámica por dificultad sin PG-18"
+        ]
       }
     }
   ],
