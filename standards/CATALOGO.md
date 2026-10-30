@@ -571,9 +571,9 @@ Waiver: prohibido (por defecto)
 
 ## STD-IAC · Infraestructura como código (L1)
 
-### STD-IAC-01 · BLOCK · revisor PG-11
+### STD-IAC-01 · POR_DEFINIR · control pendiente
 
-La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa (ADR-PROG-STD-014).
+La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa
 Waiver: prohibido (por defecto)
 
 ### STD-IAC-02 · POR_DEFINIR · control pendiente
@@ -591,14 +591,14 @@ Waiver: prohibido (por defecto)
 Nombres y etiquetas obligatorias según la convención del proyecto (L3)
 Waiver: prohibido (por defecto)
 
-### STD-IAC-05 · BLOCK · revisor PG-11
+### STD-IAC-05 · POR_DEFINIR · control pendiente
 
-Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local (ADR-PROG-STD-014).
+Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local
 Waiver: prohibido (por defecto)
 
-### STD-IAC-06 · BLOCK · revisor PG-11
+### STD-IAC-06 · POR_DEFINIR · control pendiente
 
-El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona (ADR-PROG-STD-014).
+El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona
 Waiver: prohibido (por defecto)
 
 ### STD-IAC-07 · POR_DEFINIR · control pendiente
