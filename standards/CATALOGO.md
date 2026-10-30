@@ -1,4 +1,4 @@
-# Catálogo de estándares LF · v0.7.0
+# Catálogo de estándares LF · v0.8.0
 
 > Archivo generado desde `standards/catalog.json` con `standards/tools/render_llm.py`. No editar a mano.
 
@@ -571,10 +571,13 @@ Waiver: prohibido (por defecto)
 
 ## STD-IAC · Infraestructura como código (L1)
 
-### STD-IAC-01 · POR_DEFINIR · control pendiente
+### STD-IAC-01 · BLOCK · control pendiente
 
-La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa
+ADR-PROG-STD-014: La IaC de recursos de aplicación requeridos por una funcionalidad (colas, buckets, secretos de aplicación o eventos) se entrega en el mismo PR que el código que los utiliza. Los recursos compartidos de red, cómputo, borde, identidad, entornos y secretos reales son responsabilidad de Fase 4.
 Waiver: prohibido (por defecto)
+
+- ✅ `PR de código incluye definición de cola de aplicación; componentes compartidos se mantienen en Fase 4`
+- ❌ `Crear cola de aplicación sin IaC versionada o aprovisionar VPC desde Fase 2`
 
 ### STD-IAC-02 · POR_DEFINIR · control pendiente
 
@@ -591,15 +594,21 @@ Waiver: prohibido (por defecto)
 Nombres y etiquetas obligatorias según la convención del proyecto (L3)
 Waiver: prohibido (por defecto)
 
-### STD-IAC-05 · POR_DEFINIR · control pendiente
+### STD-IAC-05 · BLOCK · control pendiente
 
-Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local
+ADR-PROG-STD-014: PG-08 ejecuta terraform fmt/validate y lint; plan/apply de recursos de aplicación se comprueba solo contra emulador local (Floci), nunca contra infraestructura cloud real.
 Waiver: prohibido (por defecto)
 
-### STD-IAC-06 · POR_DEFINIR · control pendiente
+- ✅ `Formato y plan de Terraform comprobados localmente en Floci`
+- ❌ `Ejecutar plan/apply contra cuenta cloud real desde PG-08`
 
-El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona
+### STD-IAC-06 · BLOCK · control pendiente
+
+ADR-PROG-STD-014: El agente de Programación tiene prohibido aplicar recursos en la nube. Toda promoción o cambio real de infraestructura corresponde a Fase 4 mediante plan revisado y autorización humana.
 Waiver: prohibido (por defecto)
+
+- ✅ `No se ejecuta terraform apply contra AWS; Fase 4 tramita la infraestructura`
+- ❌ `Ejecutar terraform apply cloud con credenciales del agente de Programación`
 
 ### STD-IAC-07 · POR_DEFINIR · control pendiente
 

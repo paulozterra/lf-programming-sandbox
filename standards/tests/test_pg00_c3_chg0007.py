@@ -7,7 +7,7 @@ class CHG0007CoverageTest(unittest.TestCase):
      root=Path(__file__).resolve().parents[1]
      d=json.loads((root/"catalog.json").read_text())
      chg=json.loads((root/"changes"/"CHG-0007.json").read_text())
-     assert d["catalog_version"]=="0.7.0"
+     assert tuple(map(int,d["catalog_version"].split("."))) >= (0,7,0)
      assert chg["approved_by"]=="paulozterra"  # named approver, not proof of GitHub review
      assert chg["evidence"]["train"]=="NOT_APPLIED"
      r={x["id"]:x for x in d["rules"]}
@@ -23,7 +23,7 @@ class CHG0007CoverageTest(unittest.TestCase):
          assert x["examples"]["good"] and x["examples"]["bad"]
          assert x["examples"]["good"]!=x["examples"]["bad"]
          assert x["enforcement"]["state"]=="review"
-     assert all(r[id]["severity"]=="POR_DEFINIR" for id in ("STD-IAC-01","STD-IAC-05","STD-IAC-06"))
+     assert all(r[id]["severity"]=="BLOCK" for id in ("STD-IAC-01","STD-IAC-05","STD-IAC-06"))
      assert "STD-IAC-08" not in r
      assert "REQUIRES_DECISION" in r["STD-MSG-04"]["rule"]
      assert "80 %" in r["STD-GEN-08"]["rule"] and "100 %" in r["STD-GEN-08"]["rule"]
