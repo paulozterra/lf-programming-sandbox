@@ -1,0 +1,56 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0007",
+  "title": "Cobertura aditiva de ADR-012/014/016/017 en catálogo STD canónico",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Decisión 29/10/2026: adoptar catálogo canónico PG-00_C3 y preparar CHG"
+  },
+  "reason": "Completar obligaciones omitidas en v0.6.1 sin reemplazar códigos existentes ni resolver conflictos LF o montos D17",
+  "artifacts": [
+    {
+      "artifact": "catalog",
+      "path": "standards/catalog.json",
+      "from_version": "0.6.1",
+      "to_version": "0.6.2"
+    },
+    {
+      "artifact": "llm_generated",
+      "path": "standards/CATALOGO.md",
+      "from_version": "0.6.1",
+      "to_version": "0.6.2"
+    }
+  ],
+  "affected": {
+    "rule_ids": [
+      "STD-MSG-04",
+      "STD-IAC-08",
+      "STD-LOG-05",
+      "STD-GEN-08"
+    ],
+    "term_ids": [],
+    "paths": [
+      "standards/catalog.json",
+      "standards/CATALOGO.md",
+      "standards/tests/test_pg00_c3_chg0007.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": null,
+  "evidence": {
+    "review": "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
+    "pase": "NOT_RUN",
+    "train": "NOT_APPLIED"
+  },
+  "decision_ref": "PG-00_C3 source canonical choice; CHG additive pending owner approval"
+}
