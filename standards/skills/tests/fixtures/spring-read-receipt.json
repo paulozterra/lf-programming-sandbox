@@ -1,6 +1,6 @@
 {
   "fixture": "synthetic-spring-read-endpoint",
-  "catalog_version": "0.6.1",
+  "catalog_version": "0.7.0",
   "bytes": 10002,
   "approx_tokens": 2456,
   "catalog_sha256": "26ca9cf9936ef01b50f9af504e4a9b796ee7d7d538d5724ff388c9fb90e8ddb3",
