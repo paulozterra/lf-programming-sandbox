@@ -26,6 +26,18 @@
       "path": "standards/skills/spring-boot/skill.json",
       "from_version": "0.2.0",
       "to_version": "0.3.0"
+    },
+    {
+      "artifact": "skill",
+      "path": "standards/skills/nextjs/skill.json",
+      "from_version": "0.2.0",
+      "to_version": "0.3.0"
+    },
+    {
+      "artifact": "skill",
+      "path": "standards/skills/postgres-flyway/skill.json",
+      "from_version": "0.2.0",
+      "to_version": "0.3.0"
     }
   ],
   "affected": {
@@ -40,7 +52,9 @@
       "standards/catalog.json",
       "standards/CATALOGO.md",
       "standards/tests/test_pg00_c3_chg0007.py",
-      "standards/skills/spring-boot/skill.json"
+      "standards/skills/spring-boot/skill.json",
+      "standards/skills/nextjs/skill.json",
+      "standards/skills/postgres-flyway/skill.json"
     ]
   },
   "existing_code_impact": {
