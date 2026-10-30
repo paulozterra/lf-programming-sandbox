@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Decisión 29/10/2026: adoptar catálogo canónico PG-00_C3 y preparar CHG"
   },
-  "reason": "Completar obligaciones omitidas en v0.6.1 sin reemplazar códigos existentes ni resolver conflictos LF o montos D17",
+  "reason": "Completar obligaciones omitidas en v0.6.1 sin reemplazar códigos existentes ni resolver conflictos LF o montos D17; compatibilidad de skill Spring Boot ajustada al salto menor 0.7 para que el ensamblado C6 siga cerrado por pin exacto.",
   "artifacts": [
     {
       "artifact": "catalog",
@@ -20,6 +20,12 @@
       "path": "standards/CATALOGO.md",
       "from_version": "0.6.1",
       "to_version": "0.7.0"
+    },
+    {
+      "artifact": "skill",
+      "path": "standards/skills/spring-boot/skill.json",
+      "from_version": "0.2.0",
+      "to_version": "0.3.0"
     }
   ],
   "affected": {
@@ -33,7 +39,8 @@
     "paths": [
       "standards/catalog.json",
       "standards/CATALOGO.md",
-      "standards/tests/test_pg00_c3_chg0007.py"
+      "standards/tests/test_pg00_c3_chg0007.py",
+      "standards/skills/spring-boot/skill.json"
     ]
   },
   "existing_code_impact": {
