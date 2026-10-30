@@ -11,3 +11,4 @@
 | CHG-0005 | EDITORIAL | Ejemplos positivos y negativos P0 del catálogo V1 | catalog 0.6.0 → 0.6.1 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/11 |
 | CHG-0006 | ADDITIVE | Skills L2 por stack y ensamblador determinista | skill None → 0.2.0, skill None → 0.2.0, skill None → 0.2.0, skill_checks None → 0.2.0 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/12 |
 | CHG-0007 | TIGHTENING | Cobertura aditiva ADR-012/016/017 en catálogo STD | catalog 0.6.1 → 0.7.0, llm_generated 0.6.1 → 0.7.0, skill 0.2.0 → 0.3.0, skill 0.2.0 → 0.3.0, skill 0.2.0 → 0.3.0 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/13 |
+| CHG-0008 | TIGHTENING | Endurecer normas IaC existentes con ADR-PROG-STD-014 | catalog 0.7.0 → 0.8.0, llm_generated 0.7.0 → 0.8.0, skill 0.3.0 → 0.4.0, skill 0.3.0 → 0.4.0, skill 0.3.0 → 0.4.0 | paulozterra | |
