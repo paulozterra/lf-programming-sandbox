@@ -714,7 +714,6 @@ class C6StackSkillsTests(unittest.TestCase):
         blob=(ROOT/"catalog.json").read_bytes()
         pin={"catalog_version":fixture["catalog_version"],"catalog_sha256":hashlib.sha256(blob).hexdigest()}
         text,actual=skills.assemble(pin,["spring-boot"],["STD-BE","STD-API","STD-SEC","STD-GEN","STD-LOG","STD-MSG","STD-AUD","STD-GIT"])
-        print("C3_FIXTURE_SPRING:"+json.dumps(actual,sort_keys=True),flush=True)
         for key in ("bytes","approx_tokens","catalog_sha256","glossary_sha256",
                     "skills","rule_ids","pending_rule_ids","assembled_sha256","warnings"):
             self.assertEqual(actual[key],fixture[key],key)
@@ -757,7 +756,6 @@ class C6StackSkillsTests(unittest.TestCase):
              "catalog_sha256":hashlib.sha256((ROOT/"catalog.json").read_bytes()).hexdigest()}
         content,receipt=skills.assemble(pin,["spring-boot"],["STD-BE","STD-API","STD-SEC","STD-GEN","STD-LOG","STD-MSG","STD-AUD","STD-GIT","STD-NAV","STD-CONS"])
         expected=json.loads((ROOT/"skills/tests/fixtures/spring-read-with-nav-cons-receipt.json").read_text())
-        print("C3_FIXTURE_NAV:"+json.dumps(receipt,sort_keys=True),flush=True)
         for field in ("bytes","approx_tokens","skills","rule_ids","pending_rule_ids","assembled_sha256"):
             self.assertEqual(receipt[field],expected[field],field)
         ids={f"STD-CONS-{i:02d}" for i in range(1,5)}
