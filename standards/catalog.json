@@ -1,6 +1,6 @@
 {
   "schema_version": "LF_STANDARDS_CATALOG_V1",
-  "catalog_version": "0.7.0",
+  "catalog_version": "0.8.0",
   "status": "BORRADOR_EN_REPO_DE_CALIFICACION",
   "source": "Plan Fase 2 (proyecto LF): claude/programacion-fase2-desglose-checkpoints-estandares-2026-10-21.md",
   "canonical_store_target": "transversal (vía Router -> Train, pendiente)",
@@ -1425,12 +1425,20 @@
     {
       "id": "STD-IAC-01",
       "domain": "STD-IAC",
-      "rule": "La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa",
-      "severity": "POR_DEFINIR",
+      "rule": "ADR-PROG-STD-014: La IaC de recursos de aplicación requeridos por una funcionalidad (colas, buckets, secretos de aplicación o eventos) se entrega en el mismo PR que el código que los utiliza. Los recursos compartidos de red, cómputo, borde, identidad, entornos y secretos reales son responsabilidad de Fase 4.",
+      "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "PG-08 / revisor PG-11"
+        "state": "review",
+        "planned_control": "PG-08, revisor PG-11 y pruebas contra emulador local"
+      },
+      "examples": {
+        "good": [
+          "PR de código incluye definición de cola de aplicación; componentes compartidos se mantienen en Fase 4"
+        ],
+        "bad": [
+          "Crear cola de aplicación sin IaC versionada o aprovisionar VPC desde Fase 2"
+        ]
       }
     },
     {
@@ -1469,23 +1477,39 @@
     {
       "id": "STD-IAC-05",
       "domain": "STD-IAC",
-      "rule": "Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local",
-      "severity": "POR_DEFINIR",
+      "rule": "ADR-PROG-STD-014: PG-08 ejecuta terraform fmt/validate y lint; plan/apply de recursos de aplicación se comprueba solo contra emulador local (Floci), nunca contra infraestructura cloud real.",
+      "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "PG-08 / revisor PG-11"
+        "state": "review",
+        "planned_control": "PG-08, revisor PG-11 y pruebas contra emulador local"
+      },
+      "examples": {
+        "good": [
+          "Formato y plan de Terraform comprobados localmente en Floci"
+        ],
+        "bad": [
+          "Ejecutar plan/apply contra cuenta cloud real desde PG-08"
+        ]
       }
     },
     {
       "id": "STD-IAC-06",
       "domain": "STD-IAC",
-      "rule": "El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona",
-      "severity": "POR_DEFINIR",
+      "rule": "ADR-PROG-STD-014: El agente de Programación tiene prohibido aplicar recursos en la nube. Toda promoción o cambio real de infraestructura corresponde a Fase 4 mediante plan revisado y autorización humana.",
+      "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "PG-08 / revisor PG-11"
+        "state": "review",
+        "planned_control": "PG-08, revisor PG-11 y pruebas contra emulador local"
+      },
+      "examples": {
+        "good": [
+          "No se ejecuta terraform apply contra AWS; Fase 4 tramita la infraestructura"
+        ],
+        "bad": [
+          "Ejecutar terraform apply cloud con credenciales del agente de Programación"
+        ]
       }
     },
     {
