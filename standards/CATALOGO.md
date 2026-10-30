@@ -571,9 +571,9 @@ Waiver: prohibido (por defecto)
 
 ## STD-IAC · Infraestructura como código (L1)
 
-### STD-IAC-01 · POR_DEFINIR · control pendiente
+### STD-IAC-01 · BLOCK · revisor PG-11
 
-La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa
+La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa (ADR-PROG-STD-014).
 Waiver: prohibido (por defecto)
 
 ### STD-IAC-02 · POR_DEFINIR · control pendiente
@@ -591,28 +591,20 @@ Waiver: prohibido (por defecto)
 Nombres y etiquetas obligatorias según la convención del proyecto (L3)
 Waiver: prohibido (por defecto)
 
-### STD-IAC-05 · POR_DEFINIR · control pendiente
+### STD-IAC-05 · BLOCK · revisor PG-11
 
-Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local
+Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local (ADR-PROG-STD-014).
 Waiver: prohibido (por defecto)
 
-### STD-IAC-06 · POR_DEFINIR · control pendiente
+### STD-IAC-06 · BLOCK · revisor PG-11
 
-El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona
+El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona (ADR-PROG-STD-014).
 Waiver: prohibido (por defecto)
 
 ### STD-IAC-07 · POR_DEFINIR · control pendiente
 
 Solo servicios y patrones del perfil de arquitectura (D15); otro → `REQUIRES_DECISION`
 Waiver: prohibido (por defecto)
-
-### STD-IAC-08 · BLOCK · revisor PG-11
-
-ADR-PROG-STD-014: En Fase 2, la IaC de recursos de aplicación (colas, buckets, secretos de aplicación o eventos) se incluye con el código en el mismo PR y se valida contra emulador local. Red, cómputo, borde, identidad, entornos, secretos reales y promoción corresponden a Fase 4. El agente de Programación nunca aplica recursos en la nube.
-Waiver: prohibido (por defecto)
-
-- ✅ `El PR incluye Terraform para la cola de aplicación y prueba Floci, sin aplicar recursos en AWS`
-- ❌ `El agente ejecuta terraform apply contra AWS o omite IaC del recurso nuevo`
 
 
 ## STD-CONT · Contenedores (L1)
