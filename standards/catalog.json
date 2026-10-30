@@ -1425,12 +1425,12 @@
     {
       "id": "STD-IAC-01",
       "domain": "STD-IAC",
-      "rule": "La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa",
-      "severity": "POR_DEFINIR",
+      "rule": "La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa (ADR-PROG-STD-014).",
+      "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "PG-08 / revisor PG-11"
+        "state": "review",
+        "planned_control": "PG-08 / revisor PG-11; ADR-PROG-STD-014"
       }
     },
     {
@@ -1469,23 +1469,23 @@
     {
       "id": "STD-IAC-05",
       "domain": "STD-IAC",
-      "rule": "Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local",
-      "severity": "POR_DEFINIR",
+      "rule": "Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local (ADR-PROG-STD-014).",
+      "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "PG-08 / revisor PG-11"
+        "state": "review",
+        "planned_control": "PG-08 / revisor PG-11; ADR-PROG-STD-014"
       }
     },
     {
       "id": "STD-IAC-06",
       "domain": "STD-IAC",
-      "rule": "El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona",
-      "severity": "POR_DEFINIR",
+      "rule": "El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona (ADR-PROG-STD-014).",
+      "severity": "BLOCK",
       "status": "APROBADO",
       "enforcement": {
-        "state": "planned",
-        "planned_control": "PG-08 / revisor PG-11"
+        "state": "review",
+        "planned_control": "PG-08 / revisor PG-11; ADR-PROG-STD-014"
       }
     },
     {
@@ -1548,7 +1548,7 @@
       "domain": "STD-MSG",
       "rule": "ADR-PROG-STD-012: El código técnico de error nunca se muestra al usuario; el trace_code debe existir y propagarse en la respuesta. El spec de Fase 1 determina si se presenta el código de referencia. En LF, el conflicto REG_ACC_002 / B2B-RULE-ERROR-003 queda REQUIRES_DECISION de Cristhian; nunca inferir su resolución.",
       "severity": "BLOCK",
-      "status": "CANDIDATO_CHG_0007",
+      "status": "APROBADO",
       "enforcement": {
         "state": "review",
         "planned_control": "Contrato API + revisor PG-11 + decisión LF explícita"
@@ -1563,30 +1563,11 @@
       }
     },
     {
-      "id": "STD-IAC-08",
-      "domain": "STD-IAC",
-      "rule": "ADR-PROG-STD-014: En Fase 2, la IaC de recursos de aplicación (colas, buckets, secretos de aplicación o eventos) se incluye con el código en el mismo PR y se valida contra emulador local. Red, cómputo, borde, identidad, entornos, secretos reales y promoción corresponden a Fase 4. El agente de Programación nunca aplica recursos en la nube.",
-      "severity": "BLOCK",
-      "status": "CANDIDATO_CHG_0007",
-      "enforcement": {
-        "state": "review",
-        "planned_control": "PG-08 + revisor PG-11 + prueba emulador local"
-      },
-      "examples": {
-        "good": [
-          "El PR incluye Terraform para la cola de aplicación y prueba Floci, sin aplicar recursos en AWS"
-        ],
-        "bad": [
-          "El agente ejecuta terraform apply contra AWS o omite IaC del recurso nuevo"
-        ]
-      }
-    },
-    {
       "id": "STD-LOG-05",
       "domain": "STD-LOG",
       "rule": "ADR-PROG-STD-016: medir en TODA llamada de modelo tokens de entrada, salida y caché (lectura y escritura), modelo, pedido, lote y etapa; distinguir gasto útil y desperdiciado. El cálculo de costo requiere tabla de precios versionada y su ausencia no desactiva la medición de tokens.",
       "severity": "BLOCK",
-      "status": "CANDIDATO_CHG_0007",
+      "status": "APROBADO",
       "enforcement": {
         "state": "review",
         "planned_control": "Prueba de instrumentación del Worker + revisión PG-16"
@@ -1605,7 +1586,7 @@
       "domain": "STD-GEN",
       "rule": "ADR-PROG-STD-017: seleccionar modo de optimización por pedido sin relajar controles; reutilizar caché estable, contexto mínimo, no redescubrimiento y freno temprano. Selección dinámica de modelo por dificultad permanece APAGADA en V1 hasta calificación PG-18. Con presupuesto aprobado, avisar al 80 % y exigir REQUIRES_DECISION al 100 %; montos pendientes de decisión D17 y nunca inferidos.",
       "severity": "BLOCK",
-      "status": "CANDIDATO_CHG_0007",
+      "status": "APROBADO",
       "enforcement": {
         "state": "review",
         "planned_control": "PG-16/18 + pruebas presupuestales y de invariancia de controles"
