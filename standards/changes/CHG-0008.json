@@ -1,0 +1,76 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0008",
+  "title": "Endurecer normas IaC existentes con ADR-PROG-STD-014",
+  "change_class": "TIGHTENING",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Auditoría independiente PG-00_C3 30/10/2026: evitar duplicar STD-IAC-08 y endurecer IAC-01/05/06"
+  },
+  "reason": "Aplicar ADR-014 sin duplicar controles ni relajar el catálogo; IaC de aplicación en Fase 2 con emuladores, aplicación real reservada a Fase 4.",
+  "artifacts": [
+    {
+      "artifact": "catalog",
+      "path": "standards/catalog.json",
+      "from_version": "0.7.0",
+      "to_version": "0.8.0"
+    },
+    {
+      "artifact": "llm_generated",
+      "path": "standards/CATALOGO.md",
+      "from_version": "0.7.0",
+      "to_version": "0.8.0"
+    },
+    {
+      "artifact": "skill",
+      "path": "standards/skills/spring-boot/skill.json",
+      "from_version": "0.3.0",
+      "to_version": "0.4.0"
+    },
+    {
+      "artifact": "skill",
+      "path": "standards/skills/nextjs/skill.json",
+      "from_version": "0.3.0",
+      "to_version": "0.4.0"
+    },
+    {
+      "artifact": "skill",
+      "path": "standards/skills/postgres-flyway/skill.json",
+      "from_version": "0.3.0",
+      "to_version": "0.4.0"
+    }
+  ],
+  "affected": {
+    "rule_ids": [
+      "STD-IAC-01",
+      "STD-IAC-05",
+      "STD-IAC-06"
+    ],
+    "term_ids": [],
+    "paths": [
+      "standards/catalog.json",
+      "standards/CATALOGO.md",
+      "standards/tests/test_pg00_c3_chg0008.py",
+      "standards/skills/spring-boot/skill.json",
+      "standards/skills/nextjs/skill.json",
+      "standards/skills/postgres-flyway/skill.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "review": "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
+    "pase": "NOT_RUN",
+    "train": "NOT_APPLIED"
+  },
+  "decision_ref": "ADR-PROG-STD-014; independent reviewer requested splitting from CHG-0007"
+}
