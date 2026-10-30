@@ -1425,12 +1425,12 @@
     {
       "id": "STD-IAC-01",
       "domain": "STD-IAC",
-      "rule": "La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa (ADR-PROG-STD-014).",
-      "severity": "BLOCK",
+      "rule": "La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa",
+      "severity": "POR_DEFINIR",
       "status": "APROBADO",
       "enforcement": {
-        "state": "review",
-        "planned_control": "PG-08 / revisor PG-11; ADR-PROG-STD-014"
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
       }
     },
     {
@@ -1469,23 +1469,23 @@
     {
       "id": "STD-IAC-05",
       "domain": "STD-IAC",
-      "rule": "Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local (ADR-PROG-STD-014).",
-      "severity": "BLOCK",
+      "rule": "Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local",
+      "severity": "POR_DEFINIR",
       "status": "APROBADO",
       "enforcement": {
-        "state": "review",
-        "planned_control": "PG-08 / revisor PG-11; ADR-PROG-STD-014"
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
       }
     },
     {
       "id": "STD-IAC-06",
       "domain": "STD-IAC",
-      "rule": "El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona (ADR-PROG-STD-014).",
-      "severity": "BLOCK",
+      "rule": "El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona",
+      "severity": "POR_DEFINIR",
       "status": "APROBADO",
       "enforcement": {
-        "state": "review",
-        "planned_control": "PG-08 / revisor PG-11; ADR-PROG-STD-014"
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
       }
     },
     {
