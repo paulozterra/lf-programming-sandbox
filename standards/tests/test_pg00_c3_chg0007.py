@@ -18,6 +18,7 @@ def test_additive_adr_coverage():
     }.items():
         x=r[id]
         assert fragment in x["rule"],id
+        assert isinstance(x["examples"]["good"],list) and isinstance(x["examples"]["bad"],list)
         assert x["examples"]["good"] and x["examples"]["bad"]
         assert x["examples"]["good"]!=x["examples"]["bad"]
         assert x["enforcement"]["state"]=="review"
