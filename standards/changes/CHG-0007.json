@@ -46,11 +46,14 @@
     "affected_artifacts": []
   },
   "requested_by": "agent:gpt",
-  "approved_by": null,
+  "approved_by": "paulozterra",
   "evidence": {
     "review": "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
     "pase": "NOT_RUN",
-    "train": "NOT_APPLIED"
+    "train": "NOT_APPLIED",
+    "owner_approval_context": "User requested 'Ok hazlo' after proposal to review/approve CHG-0007",
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/13",
+    "independent_review": "PENDING"
   },
-  "decision_ref": "PG-00_C3 source canonical choice; CHG additive pending owner approval"
+  "decision_ref": "Owner approval in conversation on 2026-10-30 to proceed with review/approval of CHG-0007; independent review and merge remain pending"
 }
