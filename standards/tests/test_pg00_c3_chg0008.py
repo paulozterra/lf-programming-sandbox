@@ -19,7 +19,7 @@ class CHG0008IaCTest(unittest.TestCase):
             self.assertEqual(rule["severity"],"BLOCK")
             self.assertEqual(rule["status"],"APROBADO")
             self.assertIn("ADR-PROG-STD-014",rule["rule"])
-            self.assertEqual(rule["enforcement"]["state"],"review")
+            self.assertEqual(rule["enforcement"]["state"],"planned")
             self.assertTrue(rule["examples"]["good"])
             self.assertTrue(rule["examples"]["bad"])
         self.assertIn("Fase 4",rules["STD-IAC-01"]["rule"])
