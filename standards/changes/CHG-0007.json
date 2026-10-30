@@ -2,12 +2,12 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0007",
   "title": "Cobertura aditiva ADR-012/016/017 en catálogo STD",
-  "change_class": "ADDITIVE",
+  "change_class": "TIGHTENING",
   "trigger": {
     "kind": "OWNER",
     "reference": "Decisión 29/10/2026: adoptar catálogo canónico PG-00_C3 y preparar CHG"
   },
-  "reason": "Agregar cobertura verificable de ADR-012, ADR-016 y ADR-017, sin sustituir decisiones LF. El endurecimiento de IaC ADR-014 se separa a un CHG posterior para evitar cambios mixtos.",
+  "reason": "Agregar cobertura verificable de ADR-012, ADR-016 y ADR-017, sin sustituir decisiones LF. El endurecimiento de IaC ADR-014 se separa a un CHG posterior para evitar cambios mixtos. La actualización de compatibilidad de las tres skills incrementa el rigor del pin y el clasificador C9 efectivo es TIGHTENING; las tres reglas nuevas son ADDITIVE.",
   "artifacts": [
     {
       "artifact": "catalog",
