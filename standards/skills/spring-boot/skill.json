@@ -1,8 +1,8 @@
 {
   "schema_version": "LF_STACK_SKILL_V1",
   "skill_id": "spring-boot",
-  "skill_version": "0.3.0",
-  "catalog_compat": "0.7",
+  "skill_version": "0.4.0",
+  "catalog_compat": "0.8",
   "glossary_compat": "0.4",
   "domains": [
     "STD-BE",
