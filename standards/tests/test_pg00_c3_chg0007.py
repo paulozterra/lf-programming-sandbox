@@ -5,7 +5,7 @@ def test_additive_adr_coverage():
     root=Path(__file__).resolve().parents[1]
     d=json.loads((root/"catalog.json").read_text())
     chg=json.loads((root/"changes"/"CHG-0007.json").read_text())
-    assert d["catalog_version"]=="0.6.2"
+    assert d["catalog_version"]=="0.7.0"
     assert chg["approved_by"] is None
     assert chg["evidence"]["train"]=="NOT_APPLIED"
     r={x["id"]:x for x in d["rules"]}
