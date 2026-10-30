@@ -57,6 +57,8 @@ def assemble(pin,selected,active):
     catalog_bytes=(STD/"catalog.json").read_bytes();catalog=json.loads(catalog_bytes)
     actual=digest(catalog_bytes)
     if actual!=pin["catalog_sha256"]:raise ValueError("PIN_DIGEST_MISMATCH")
+    if pin.get("catalog_version")!=catalog["catalog_version"]:
+        raise ValueError("BLOCK_SKILL_CATALOG_PIN_MISMATCH")
     skill_data=[];text_sections=[];ids=set();pending=[]
     for slug in selected:
         obj=load_json(DIR/slug/"skill.json")
