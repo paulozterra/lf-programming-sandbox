@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Decisión 29/10/2026: adoptar catálogo canónico PG-00_C3 y preparar CHG"
   },
-  "reason": "Agregar cobertura verificable de ADR-012, ADR-016 y ADR-017, sin sustituir decisiones LF. El endurecimiento de IaC ADR-014 se separa a un CHG posterior para evitar cambios mixtos. La actualización de compatibilidad de las tres skills incrementa el rigor del pin y el clasificador C9 efectivo es TIGHTENING; las tres reglas nuevas son ADDITIVE.",
+  "reason": "Agregar cobertura verificable de ADR-012, ADR-016 y ADR-017, sin sustituir decisiones LF. El endurecimiento de IaC ADR-014 se separa a un CHG posterior para evitar cambios mixtos. La actualización de compatibilidad de las tres skills incrementa el rigor del pin y el clasificador C9 efectivo es TIGHTENING; las tres reglas nuevas son ADDITIVE. La revisión C6 refuerza la igualdad exacta entre versión declarada y catálogo real, y C9 incorpora regresiones de clasificación sin relajar el validador.",
   "artifacts": [
     {
       "artifact": "catalog",
@@ -53,7 +53,9 @@
       "standards/tests/test_pg00_c3_chg0007.py",
       "standards/skills/spring-boot/skill.json",
       "standards/skills/nextjs/skill.json",
-      "standards/skills/postgres-flyway/skill.json"
+      "standards/skills/postgres-flyway/skill.json",
+      "standards/tools/skills.py",
+      "standards/tests/test_pg00_c6_c9_pin_integrity.py"
     ]
   },
   "existing_code_impact": {
