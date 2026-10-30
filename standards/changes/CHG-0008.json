@@ -70,7 +70,8 @@
   "evidence": {
     "review": "PENDING_INDEPENDENT_SEMANTIC_REVIEW",
     "pase": "NOT_RUN",
-    "train": "NOT_APPLIED"
+    "train": "NOT_APPLIED",
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/15"
   },
   "decision_ref": "ADR-PROG-STD-014; independent reviewer requested splitting from CHG-0007"
 }
