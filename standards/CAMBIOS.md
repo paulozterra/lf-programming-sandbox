@@ -10,4 +10,4 @@
 | CHG-0004 | RELAXING | Revisión y generalización de reglas backend STD-BE | catalog 0.5.0 → 0.6.0 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/10 |
 | CHG-0005 | EDITORIAL | Ejemplos positivos y negativos P0 del catálogo V1 | catalog 0.6.0 → 0.6.1 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/11 |
 | CHG-0006 | ADDITIVE | Skills L2 por stack y ensamblador determinista | skill None → 0.2.0, skill None → 0.2.0, skill None → 0.2.0, skill_checks None → 0.2.0 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/12 |
-| CHG-0007 | ADDITIVE | Cobertura aditiva de ADR-012/014/016/017 en catálogo STD canónico | catalog 0.6.1 → 0.7.0, llm_generated 0.6.1 → 0.7.0, skill 0.2.0 → 0.3.0 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/13 |
+| CHG-0007 | ADDITIVE | Cobertura aditiva de ADR-012/014/016/017 en catálogo STD canónico | catalog 0.6.1 → 0.7.0, llm_generated 0.6.1 → 0.7.0, skill 0.2.0 → 0.3.0, skill 0.2.0 → 0.3.0, skill 0.2.0 → 0.3.0 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/13 |
