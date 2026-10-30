@@ -2,7 +2,7 @@
   "approx_tokens": 3358,
   "assembled_sha256": "1f633488a6f8d25b0a5411a036beebe54e753e0e1f2a536c4eb67e1d7fbe4851",
   "bytes": 13665,
-  "catalog_sha256": "d4522145b37cb14411fafc77151ad8201ce256d1c2a7bfa786702abc4f409b89",
+  "catalog_sha256": "b2dcd223a8df989ed130ce080dd3c85456cb690faf112b772ade09ad3f94e15f",
   "glossary_sha256": "17fe5299587487dac51e2866ba9484970be4461758cb78eaf6529105343d5b59",
   "pending_rule_ids": [
     "STD-CONS-01",
@@ -64,7 +64,7 @@
   "skills": [
     {
       "skill": "spring-boot",
-      "skill_json_sha256": "74d085f7b28fd1e40dd73a4a04d527b29c280b321916629e8fad04fa3d73b180",
+      "skill_json_sha256": "6c2eb815a4e16c3d596129adb8f598d2c8f11c0820d921345a07505619e72eab",
       "skill_md_sha256": "bc0ff865799596a22bbcc638f7d2703993ada906f29c3f6b655515da7a386d52"
     }
   ],
