@@ -1,4 +1,4 @@
-# Catálogo de estándares LF · v0.6.1
+# Catálogo de estándares LF · v0.6.2
 
 > Archivo generado desde `standards/catalog.json` con `standards/tools/render_llm.py`. No editar a mano.
 
@@ -94,6 +94,14 @@ Waiver: prohibido — ISO-8601 y UTC son invariantes de interoperabilidad
 
 Los códigos de catálogo provenientes de la Fase 1 se usan literales; la configuración del linter los excluye (por ejemplo, como strings o enums generados desde el catálogo, nunca como identificadores reescritos)
 Waiver: prohibido — Los codigos literales de Fase 1 no pueden alterarse
+
+### STD-GEN-08 · BLOCK · revisor PG-11
+
+ADR-PROG-STD-017: seleccionar modo de optimización por pedido sin relajar controles; reutilizar caché estable, contexto mínimo, no redescubrimiento y freno temprano. Selección dinámica de modelo por dificultad permanece APAGADA en V1 hasta calificación PG-18. Con presupuesto aprobado, avisar al 80 % y exigir REQUIRES_DECISION al 100 %; montos pendientes de decisión D17 y nunca inferidos.
+Waiver: prohibido (por defecto)
+
+- ✅ `Modo elegido por pedido; 80 % del presupuesto aprobado avisa; 100 % devuelve REQUIRES_DECISION; modelo dinámico apagado en V1`
+- ❌ `Omitir controles o habilitar selección dinámica por dificultad sin PG-18`
 
 
 ## STD-DB · PostgreSQL (L2)
@@ -461,6 +469,14 @@ Waiver: prohibido (por defecto)
 Excepción: el payload crudo de un proveedor externo (webhook de pago) se guarda **una vez**, con hash, como prueba. Su versión parseada se obtiene por vista; si es grande, va a S3 con referencia
 Waiver: prohibido (por defecto)
 
+### STD-LOG-05 · BLOCK · revisor PG-11
+
+ADR-PROG-STD-016: medir en TODA llamada de modelo tokens de entrada, salida y caché (lectura y escritura), modelo, pedido, lote y etapa; distinguir gasto útil y desperdiciado. El cálculo de costo requiere tabla de precios versionada y su ausencia no desactiva la medición de tokens.
+Waiver: prohibido (por defecto)
+
+- ✅ `Registrar tokens in/out y cache read/write por etapa y modelo incluso si falta tabla de precios`
+- ❌ `Deshabilitar captura de tokens al faltar pricing o no registrar reintentos fallidos`
+
 
 ## STD-AUD · Auditoría e historial de valores (L1)
 
@@ -544,6 +560,14 @@ Waiver: prohibido — El agente no puede inventar copy de Fase 1
 Estructura técnica que todo mensaje debe poder mostrar: título, mensaje, acción sugerida con botón y código de referencia (`trace_code`). Qué se muestra en cada caso lo decide el spec
 Waiver: prohibido (por defecto)
 
+### STD-MSG-04 · BLOCK · revisor PG-11
+
+ADR-PROG-STD-012: El código técnico de error nunca se muestra al usuario; el trace_code debe existir y propagarse en la respuesta. El spec de Fase 1 determina si se presenta el código de referencia. En LF, el conflicto REG_ACC_002 / B2B-RULE-ERROR-003 queda REQUIRES_DECISION de Cristhian; nunca inferir su resolución.
+Waiver: prohibido (por defecto)
+
+- ✅ `Respuesta API con trace_code; UI usa solo el texto aprobado por Fase 1; conflicto LF explícitamente sin resolver`
+- ❌ `Mostrar LF_OTP_EXPIRADO como texto visible o suprimir trace_code`
+
 
 ## STD-IAC · Infraestructura como código (L1)
 
@@ -581,6 +605,14 @@ Waiver: prohibido (por defecto)
 
 Solo servicios y patrones del perfil de arquitectura (D15); otro → `REQUIRES_DECISION`
 Waiver: prohibido (por defecto)
+
+### STD-IAC-08 · BLOCK · revisor PG-11
+
+ADR-PROG-STD-014: En Fase 2, la IaC de recursos de aplicación (colas, buckets, secretos de aplicación o eventos) se incluye con el código en el mismo PR y se valida contra emulador local. Red, cómputo, borde, identidad, entornos, secretos reales y promoción corresponden a Fase 4. El agente de Programación nunca aplica recursos en la nube.
+Waiver: prohibido (por defecto)
+
+- ✅ `El PR incluye Terraform para la cola de aplicación y prueba Floci, sin aplicar recursos en AWS`
+- ❌ `El agente ejecuta terraform apply contra AWS o omite IaC del recurso nuevo`
 
 
 ## STD-CONT · Contenedores (L1)
