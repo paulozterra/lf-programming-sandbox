@@ -1,7 +1,7 @@
 diff --git a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_reuse_binding_v1.py b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_reuse_binding_v1.py
 --- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_reuse_binding_v1.py
 +++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_reuse_binding_v1.py
-@@ -7,3 +7,8 @@ def validate_reuse(*, strategy, upstream_reuse, technical_bindings):
+@@ -7,4 +7,9 @@ def validate_reuse(*, strategy, upstream_reuse, technical_bindings):
      if not isinstance(strategy,dict) or strategy.get("status")!="CANDIDATE_NOT_ADMITTED" or strategy.get("handoff_allowed") is not False:
          raise StrategyBlocked("STRATEGY_NOT_CANDIDATE")
 +    digest = strategy.get("candidate_sha256")
