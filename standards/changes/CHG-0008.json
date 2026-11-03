@@ -1,0 +1,48 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0008",
+  "title": "Restringir el selector de Skills C6 al stack y los dominios activos PG-02",
+  "change_class": "TIGHTENING",
+  "trigger": {
+    "kind": "TEST",
+    "reference": "PG-03_C2 encontró que select(evidence,active) ignoraba active; PR #16"
+  },
+  "reason": "Evitar selección de Skills de otro dominio detectadas en el mismo repositorio. Mantener Spring+Flyway para STD-DB según pruebas originales, exigir cobertura y rechazar combinaciones inconsistentes; no conceder autoridad productiva ni alterar el catálogo.",
+  "artifacts": [
+    {
+      "artifact": "tool",
+      "path": "standards/tools/skills.py",
+      "from_version": null,
+      "to_version": null
+    }
+  ],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "standards/tools/skills.py",
+      "standards/tests/test_c6_pg03_domain_selection_v1.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "approval_status": "PENDING_OWNER_EXPLICIT_APPROVAL",
+    "owner_approval": "PENDING",
+    "independent_review": "PENDING",
+    "pase": "NOT_APPLICABLE_IN_THIS_REPO",
+    "ci": "PENDING",
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/16",
+    "limit": "The approved_by field names the planned owner approver per C9 schema; it is not an executed approval."
+  },
+  "decision_ref": "Owner approval and independent review required prior to any merge/release."
+}
