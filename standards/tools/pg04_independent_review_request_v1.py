@@ -4,6 +4,7 @@ Does not dispatch a reviewer, fetch evidence, attest provenance, or grant author
 """
 import hashlib
 import json
+from copy import deepcopy
 import re
 
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -92,7 +93,7 @@ def prepare_partition_review_request(*, partition, sources, producer_execution_i
         "candidate_sha256": expected,
         "source_manifest_sha256": _sha(sources),
         "strategy_sha256": strategy_sha,
-        "source_manifest": sources,
+        "source_manifest": deepcopy(sources),
         "solution_ids": sorted(ids),
         "producer_execution_id": producer_execution_id,
         "reviewer_execution_id": None,
