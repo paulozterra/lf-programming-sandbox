@@ -73,6 +73,12 @@ def select(evidence,active):
         raise StackDecisionError("STACK_UNRECOGNIZED: REQUIRES_DECISION: Flyway declaration and migration evidence incomplete",hits)
     if evidence.get("flyway") and evidence.get("migration") and applicable("postgres-flyway","STD-DB"):
         hits.append("postgres-flyway")
+    # Shared-only domains do not identify which target stack/front is in scope.
+    # Multiple matches would load unrelated Skills and rule context. Require
+    # an explicit PG-02/target choice rather than broadening context silently.
+    if not specialized and len(hits) > 1:
+        raise StackDecisionError(
+            "STACK_AMBIGUOUS: REQUIRES_DECISION: shared domains match multiple stacks", hits)
     if not hits:
         raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION: active domains have no matching stack")
     covered=set().union(*(set(load_json(DIR/slug/"skill.json")["domains"]) for slug in hits))
