@@ -1,0 +1,48 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0010",
+  "title": "Vincular selección, ensamblado y recibo candidato de Skills para PG-03",
+  "change_class": "TIGHTENING",
+  "trigger": {
+    "kind": "TEST",
+    "reference": "PG-03_C2: repos con Spring+Next o Spring+Flyway, dominios compartidos sin frente especializado producen selección múltiple"
+  },
+  "reason": "El selector original podía cargar múltiples Skills en un pedido solo STD-API/STD-GEN/STD-SEC sin vinculación a frente PG-02, aumentando contexto y riesgo. El cambio exige REQUIRES_DECISION y conserva selección exacta con BE/FE/DB. Registro obligatorio del cambio de herramienta según C9, sin cambio del catálogo ni aprobación normativa implícita. Impedir también que llamadas directas a assemble() salten select() mediante Skills desconocidas, duplicadas, fuera de alcance o con cobertura incompleta, sin atestar el origen de los dominios. Además, select_and_assemble invoca ambos componentes sin permitir al llamador elegir Skills tras la selección y entrega un recibo explícitamente sin autoridad para consumo posterior por PG-03_C3.",
+  "artifacts": [
+    {
+      "artifact": "tool",
+      "path": "standards/tools/skills.py",
+      "from_version": null,
+      "to_version": null
+    }
+  ],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "standards/tools/skills.py",
+      "standards/tests/test_c6_pg03_domain_selection_v1.py",
+      "standards/tests/test_pg03_c2_assembler_scope_v1.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "approval_status": "PENDING_OWNER_EXPLICIT_APPROVAL",
+    "owner_approval": "PENDING",
+    "independent_review": "PENDING",
+    "ci": "PENDING",
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/19",
+    "limit": "approved_by is the registered prospective approver only; no merge or release is authorized"
+  },
+  "decision_ref": "Pending separate owner GO and review before merge"
+}

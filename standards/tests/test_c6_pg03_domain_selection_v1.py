@@ -40,6 +40,24 @@ class C6PG03ActiveDomainSelectionTests(unittest.TestCase):
         self.assertEqual(skills.select({"spring_boot":True},["STD-API"]),["spring-boot"])
         self.assertEqual(skills.select({"next":True},["STD-API"]),["nextjs"])
 
+    def test_shared_api_domain_multiple_stacks_requires_typed_decision(self):
+        evidence={"spring_boot":True,"next":True}
+        with self.assertRaisesRegex(skills.StackDecisionError,
+                                    "STACK_AMBIGUOUS.*REQUIRES_DECISION") as ctx:
+            skills.select(evidence,["STD-API"])
+        self.assertEqual(ctx.exception.selected_skills,["spring-boot","nextjs"])
+
+    def test_shared_domains_with_database_and_backend_are_ambiguous(self):
+        evidence={"spring_boot":True,"flyway":True,"migration":True}
+        with self.assertRaisesRegex(skills.StackDecisionError,"STACK_AMBIGUOUS") as ctx:
+            skills.select(evidence,["STD-GEN","STD-SEC"])
+        self.assertEqual(ctx.exception.selected_skills,["spring-boot","postgres-flyway"])
+
+    def test_specialized_domain_eliminates_shared_only_ambiguity(self):
+        evidence={"spring_boot":True,"next":True}
+        self.assertEqual(skills.select(evidence,["STD-BE","STD-API"]),["spring-boot"])
+        self.assertEqual(skills.select(evidence,["STD-FE","STD-API"]),["nextjs"])
+
     def test_reject_uncovered_active_domain(self):
         with self.assertRaisesRegex(skills.StackDecisionError,"active domains not covered"):
             skills.select({"spring_boot":True},["STD-BE","STD-PY"])

@@ -73,6 +73,12 @@ def select(evidence,active):
         raise StackDecisionError("STACK_UNRECOGNIZED: REQUIRES_DECISION: Flyway declaration and migration evidence incomplete",hits)
     if evidence.get("flyway") and evidence.get("migration") and applicable("postgres-flyway","STD-DB"):
         hits.append("postgres-flyway")
+    # Shared-only domains do not identify which target stack/front is in scope.
+    # Multiple matches would load unrelated Skills and rule context. Require
+    # an explicit PG-02/target choice rather than broadening context silently.
+    if not specialized and len(hits) > 1:
+        raise StackDecisionError(
+            "STACK_AMBIGUOUS: REQUIRES_DECISION: shared domains match multiple stacks", hits)
     if not hits:
         raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION: active domains have no matching stack")
     covered=set().union(*(set(load_json(DIR/slug/"skill.json")["domains"]) for slug in hits))
@@ -80,6 +86,29 @@ def select(evidence,active):
         raise StackDecisionError("STACK_UNRECOGNIZED: REQUIRES_DECISION: active domains not covered by selected skills",hits)
     return hits
 def assemble(pin,selected,active):
+    # Never trust a direct assembler caller to have run select() correctly.
+    # This validates local domain/Skill consistency, not source provenance.
+    if (not isinstance(active,(list,tuple)) or not active
+        or any(not isinstance(x,str) or not x for x in active)
+        or len(active)!=len(set(active))):
+        raise ValueError("ACTIVE_DOMAINS_INVALID")
+    if (not isinstance(selected,(list,tuple)) or not selected
+        or any(not isinstance(s,str) or s not in SLUGS for s in selected)
+        or len(selected)!=len(set(selected))):
+        raise ValueError("SELECTED_SKILLS_INVALID")
+    selected_domains={slug:set(load_json(DIR/slug/"skill.json")["domains"]) for slug in selected}
+    requested=set(active)
+    if requested-set().union(*selected_domains.values()):
+        raise ValueError("SKILL_ACTIVE_DOMAIN_UNCOVERED")
+    specialized=requested & {"STD-BE","STD-FE","STD-DB"}
+    if not specialized and len(selected)>1:
+        raise ValueError("SKILL_AMBIGUOUS_SHARED_ONLY")
+    permitted_core={"spring-boot":"STD-BE","nextjs":"STD-FE","postgres-flyway":"STD-DB"}
+    for slug in selected:
+        if specialized and permitted_core[slug] not in specialized:
+            if not (slug=="spring-boot" and "STD-DB" in specialized
+                    and "postgres-flyway" in selected):
+                raise ValueError("SKILL_NOT_IN_ACTIVE_SCOPE")
     catalog_bytes=(STD/"catalog.json").read_bytes();catalog=json.loads(catalog_bytes)
     actual=digest(catalog_bytes)
     if actual!=pin["catalog_sha256"]:raise ValueError("PIN_DIGEST_MISMATCH")
@@ -114,6 +143,21 @@ def assemble(pin,selected,active):
        "assembled_sha256":digest(content.encode()),"warnings":[]}
     if receipt["approx_tokens"]>3000:receipt["warnings"].append("CONTEXT_SIZE_WARNING")
     return content,receipt
+def select_and_assemble(*, evidence, active, pin):
+    """Atomic offline PG-03 context input: caller cannot override selected Skills.
+
+    Selection and assembly reuse the original functions; this cannot attest PG-02,
+    Git source, C3 CURRENT or a production run, and grants no authority.
+    """
+    selected = select(evidence, active)
+    content, receipt = assemble(pin, selected, active)
+    if [x["skill"] for x in receipt["skills"]] != selected:
+        raise ValueError("SKILL_SELECTION_ASSEMBLY_MISMATCH")
+    receipt["selection_status"] = "CANDIDATE_NOT_ADMITTED"
+    receipt["production_authority"] = False
+    receipt["pg02_source_verified"] = False
+    return content, receipt
+
 def main():
     p=argparse.ArgumentParser();sp=p.add_subparsers(dest="cmd",required=True)
     sp.add_parser("validate")

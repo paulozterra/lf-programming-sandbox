@@ -1,0 +1,69 @@
+diff --git a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_exception_routing_v1.py b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_exception_routing_v1.py
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_exception_routing_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_exception_routing_v1.py
+@@ -4,6 +4,8 @@
+ issued; current authority and authorization must be checked externally.
+ """
+ from collections.abc import Mapping
++import hashlib
++import json
+ 
+ class ExceptionRoutingBlocked(ValueError):
+     pass
+@@ -13,6 +15,10 @@
+ def classify_exceptions(*, strategy, exceptions):
+     if not isinstance(strategy, Mapping) or strategy.get("status") != "CANDIDATE_NOT_ADMITTED" or strategy.get("production_authority") is not False or strategy.get("handoff_allowed") is not False:
+         raise ExceptionRoutingBlocked("STRATEGY_UNTRUSTED")
++    digest = strategy.get("candidate_sha256")
++    unsigned = {k: val for k, val in strategy.items() if k != "candidate_sha256"}
++    if not isinstance(digest,str) or hashlib.sha256(json.dumps(unsigned,sort_keys=True,separators=(",",":")).encode()).hexdigest() != digest:
++        raise ExceptionRoutingBlocked("STRATEGY_DIGEST_MISMATCH")
+     if not isinstance(exceptions, list):
+         raise ExceptionRoutingBlocked("EXCEPTIONS_INVALID")
+     seen=set()
+@@ -31,7 +37,7 @@
+         scope=item.get("scope_id")
+         if not isinstance(scope,str) or not scope.strip() or scope not in strategy.get("scope_ids",[]):
+             raise ExceptionRoutingBlocked("SCOPE_NOT_CLASSIFIED")
+-        if item.get("approved") is True or item.get("waiver_granted") is True:
++        if any(item.get(field) is not None and item.get(field) is not False for field in ("approved", "waiver_granted")):
+             raise ExceptionRoutingBlocked("UNVERIFIED_APPROVAL_FORBIDDEN")
+         if kind=="EVIDENCE_GAP":
+             route="TARGETED_ANALYSIS_EVIDENCE"
+diff --git a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_exception_routing_v1.py b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_exception_routing_v1.py
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_exception_routing_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_exception_routing_v1.py
+@@ -1,10 +1,13 @@
+ import unittest
++import hashlib
++import json
+ try:
+     from .pg03_exception_routing_v1 import classify_exceptions, ExceptionRoutingBlocked
+ except ImportError:
+     from pg03_exception_routing_v1 import classify_exceptions, ExceptionRoutingBlocked
+ 
+ S={"status":"CANDIDATE_NOT_ADMITTED","production_authority":False,"handoff_allowed":False,"scope_ids":["S1"]}
++S["candidate_sha256"] = hashlib.sha256(json.dumps(S,sort_keys=True,separators=(",",":")).encode()).hexdigest()
+ def check(kind="EVIDENCE_GAP", **changes):
+     e={"id":"E1","kind":kind,"source_ref":"analysis:E1","scope_id":"S1"}
+     e.update(changes)
+@@ -38,6 +41,19 @@
+         e={"id":"E1","kind":"EVIDENCE_GAP","source_ref":"analysis:E1","scope_id":"S1"}
+         with self.assertRaises(ExceptionRoutingBlocked):
+             classify_exceptions(strategy=S,exceptions=[e,e])
++    def test_strategy_content_tampering_rejected(self):
++        strategy=dict(S,scope_ids=["FORGED"])
++        with self.assertRaisesRegex(ExceptionRoutingBlocked,"STRATEGY_DIGEST_MISMATCH"):
++            classify_exceptions(strategy=strategy,exceptions=[])
++    def test_missing_strategy_digest_rejected(self):
++        strategy=dict(S);strategy.pop("candidate_sha256")
++        with self.assertRaisesRegex(ExceptionRoutingBlocked,"STRATEGY_DIGEST_MISMATCH"):
++            classify_exceptions(strategy=strategy,exceptions=[])
++    def test_unverified_approval_non_boolean_rejected(self):
++        for field in ("approved","waiver_granted"):
++            for value in ("true",1,"GRANTED",{}):
++                with self.subTest(field=field,value=value),self.assertRaisesRegex(ExceptionRoutingBlocked,"UNVERIFIED_APPROVAL_FORBIDDEN"):
++                    check(**{field:value})
+     def test_authority_escalation_rejected(self):
+         with self.assertRaises(ExceptionRoutingBlocked):
+             classify_exceptions(strategy=dict(S,production_authority=True),exceptions=[])

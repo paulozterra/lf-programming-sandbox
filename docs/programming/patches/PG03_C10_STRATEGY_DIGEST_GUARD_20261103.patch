@@ -1,0 +1,59 @@
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_architecture_d15_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_architecture_d15_v1.py
+@@ -4,6 +4,8 @@
+ Never authenticates repository provenance, approves ADRs, or grants deployment authority.
+ """
+ from collections.abc import Mapping
++import hashlib
++import json
+ import re
+ 
+ SHA40 = re.compile(r"^[0-9a-f]{40}$")
+@@ -20,6 +22,11 @@
+ def assess_architecture(*, strategy, profile, pieces):
+     if not isinstance(strategy, Mapping) or strategy.get("status") != "CANDIDATE_NOT_ADMITTED" or strategy.get("production_authority") is not False or strategy.get("handoff_allowed") is not False:
+         raise ArchitectureBlocked("STRATEGY_UNTRUSTED")
++    digest = strategy.get("candidate_sha256")
++    unsigned = {key: value for key, value in strategy.items() if key != "candidate_sha256"}
++    if (not isinstance(digest, str) or not SHA64.fullmatch(digest) or
++            hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode()).hexdigest() != digest):
++        raise ArchitectureBlocked("STRATEGY_DIGEST_MISMATCH")
+     if not isinstance(profile, Mapping):
+         raise ArchitectureBlocked("D15_PROFILE_MISSING")
+     for name in ("repository", "source_ref"):
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_architecture_d15_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_architecture_d15_v1.py
+@@ -1,4 +1,6 @@
+ import unittest
++import hashlib
++import json
+ from copy import deepcopy
+ try:
+     from .pg03_architecture_d15_v1 import assess_architecture, ArchitectureBlocked
+@@ -6,6 +8,7 @@
+     from pg03_architecture_d15_v1 import assess_architecture, ArchitectureBlocked
+ 
+ S={"status":"CANDIDATE_NOT_ADMITTED","production_authority":False,"handoff_allowed":False,"scope_ids":["S1"]}
++S["candidate_sha256"] = hashlib.sha256(json.dumps(S,sort_keys=True,separators=(",", ":")).encode()).hexdigest()
+ P={"repository":"repo/example","source_ref":"git:d15","commit_sha":"a"*40,"sha256":"b"*64,"deployment_units":[{"id":"api","modules":["backend"],"allowed_resources":["postgres"]}]}
+ ROWS=[{"piece_id":"P1","scope_id":"S1","deployment_unit":"api","module":"backend","resources":["postgres"]}]
+ def run(**kwargs):
+@@ -34,6 +37,18 @@
+     def test_unknown_scope_blocks(self):
+         rows=deepcopy(ROWS);rows[0]["scope_id"]="S2"
+         with self.assertRaises(ArchitectureBlocked):run(pieces=rows)
++    def test_strategy_mutation_with_stale_digest_blocks(self):
++        strategy=deepcopy(S);strategy["capability_selector"]="FORGED_BUILD_ALL"
++        with self.assertRaisesRegex(ArchitectureBlocked,"STRATEGY_DIGEST_MISMATCH"):
++            run(strategy=strategy)
++    def test_missing_strategy_digest_blocks(self):
++        strategy=deepcopy(S);strategy.pop("candidate_sha256")
++        with self.assertRaisesRegex(ArchitectureBlocked,"STRATEGY_DIGEST_MISMATCH"):
++            run(strategy=strategy)
++    def test_wrong_strategy_digest_blocks(self):
++        strategy=deepcopy(S);strategy["candidate_sha256"]="f"*64
++        with self.assertRaisesRegex(ArchitectureBlocked,"STRATEGY_DIGEST_MISMATCH"):
++            run(strategy=strategy)
+     def test_missing_profile_blocks(self):
+         with self.assertRaises(ArchitectureBlocked):run(profile=None)
+     def test_invalid_exact_sha_blocks(self):

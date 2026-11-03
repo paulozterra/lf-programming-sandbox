@@ -1,0 +1,60 @@
+diff --git a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_sufficiency_v1.py b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_sufficiency_v1.py
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_sufficiency_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_sufficiency_v1.py
+@@ -4,6 +4,8 @@
+ All input provenance is caller-supplied and remains untrusted.
+ """
+ from collections.abc import Mapping, Sequence
++import hashlib
++import json
+ 
+ class SufficiencyBlocked(ValueError):
+     pass
+@@ -31,6 +33,11 @@
+     """
+     if not isinstance(strategy, Mapping) or strategy.get("status") != "CANDIDATE_NOT_ADMITTED" or strategy.get("production_authority") is not False or strategy.get("handoff_allowed") is not False:
+         raise SufficiencyBlocked("STRATEGY_AUTHORITY_INVALID")
++    digest = strategy.get("candidate_sha256")
++    unsigned = {k: v for k, v in strategy.items() if k != "candidate_sha256"}
++    computed = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
++    if not isinstance(digest, str) or computed != digest:
++        raise SufficiencyBlocked("STRATEGY_DIGEST_MISMATCH")
+     required = {}
+     for key in ("requirement_ids", "acceptance_ids"):
+         values = strategy.get(key)
+diff --git a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_sufficiency_v1.py b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_sufficiency_v1.py
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_sufficiency_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_sufficiency_v1.py
+@@ -1,5 +1,7 @@
+ """Adversarial unit checks for the source-only PG-03_C6 boundary."""
+ import copy
++import hashlib
++import json
+ import unittest
+ try:
+     from .pg03_sufficiency_v1 import assess_sufficiency, SufficiencyBlocked
+@@ -7,6 +9,7 @@
+     from pg03_sufficiency_v1 import assess_sufficiency, SufficiencyBlocked
+ 
+ BASE = {"status": "CANDIDATE_NOT_ADMITTED", "production_authority": False, "handoff_allowed": False, "requirement_ids": ["R1"], "acceptance_ids": ["A1"], "candidate_sha256": "test"}
++BASE["candidate_sha256"] = hashlib.sha256(json.dumps({k: v for k, v in BASE.items() if k != "candidate_sha256"}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+ R = [{"id": "R1", "source_ref": "analysis:R1"}]
+ A = [{"id": "A1", "source_ref": "analysis:A1"}]
+ Q = [{"id": "Q1", "source_ref": "PG01:Q1", "status": "RESOLVED", "evidence_ref": "evidence:q1"}]
+@@ -25,6 +28,16 @@
+         self.assertFalse(result["production_authority"])
+         self.assertFalse(result["handoff_allowed"])
+         self.assertEqual(result["gaps"], [])
++    def test_strategy_digest_mismatch_blocks(self):
++        altered=copy.deepcopy(BASE)
++        altered["capability_selector"]="FORGED_BUILD_ALL"
++        with self.assertRaisesRegex(SufficiencyBlocked,"STRATEGY_DIGEST_MISMATCH"):
++            run(strategy=altered)
++    def test_strategy_digest_missing_blocks(self):
++        altered=copy.deepcopy(BASE)
++        altered.pop("candidate_sha256")
++        with self.assertRaisesRegex(SufficiencyBlocked,"STRATEGY_DIGEST_MISMATCH"):
++            run(strategy=altered)
+     def test_missing_requirement_blocks(self):
+         self.assertEqual(run(requirements=[])["gaps"][0]["code"], "REQUIREMENT_EVIDENCE_MISSING")
+     def test_missing_acceptance_blocks(self):
