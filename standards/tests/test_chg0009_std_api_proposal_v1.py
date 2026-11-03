@@ -49,12 +49,37 @@ class ProposalTests(unittest.TestCase):
         self.assertEqual({k for k,v in LEVELS.items() if v=="SPLIT"},
                          set(self.d["provisional_splits"]))
         for original,parts in self.d["provisional_splits"].items():
-            self.assertEqual(parts,[original+"-L1",original+"-L2"])
+            self.assertEqual(parts,{"STD-API-04":["STD-API-10","STD-API-11"],"STD-API-05":["STD-API-12","STD-API-13"],"STD-API-08":["STD-API-14","STD-API-15"]}[original])
+            self.assertTrue(all(__import__("re").fullmatch(r"STD-[A-Z]+-[0-9]{2}", x) for x in parts))
             self.assertTrue(set(parts).isdisjoint(LEVELS))
-        self.assertEqual(self.d["readiness"]["canonical_new_ids"],"PENDING")
-        self.assertEqual(self.d["readiness"]["reference_migration"],"PENDING")
-        self.assertEqual(self.d["readiness"]["security_pin_invalidation_decision"],"PENDING")
+        self.assertEqual(self.d["readiness"]["canonical_new_ids"],"PROPOSED_NOT_APPROVED")
+        self.assertEqual(self.d["readiness"]["reference_migration"],"PROPOSED_NOT_APPLIED")
+        self.assertEqual(self.d["readiness"]["security_pin_invalidation_decision"],"SECURITY_REVIEW_AND_INVALIDATION_REQUIRED_IF_NORMATIVE_DIFF")
         self.assertEqual(self.d["change_class_proposed"],"SECURITY_REVIEW_REQUIRED")
+
+    def test_security_carry_forward_is_explicit_and_inactive(self):
+        security=self.d["proposed_security_carry_forward"]
+        self.assertEqual(security["source_id"],"STD-API-04")
+        self.assertIn("STD-API-10",security["non_waivable_ids"])
+        self.assertIn("STD-API-10",security["security_change_class_ids"])
+        self.assertTrue(security["policy_invariants_update_required"])
+        self.assertTrue(security["changes_security_ids_update_required"])
+        invariants=(STD/"tools/policy_invariants.py").read_text(encoding="utf8")
+        checks=(STD/"tools/changes.py").read_text(encoding="utf8")
+        self.assertIn('"STD-API-04"',invariants)
+        self.assertIn('"STD-API-04"',checks)
+        self.assertNotIn('"STD-API-10"',invariants)
+        self.assertNotIn('"STD-API-10"',checks)
+        self.assertFalse(self.d["readiness"]["owner_normative_go"])
+
+    def test_obligation_trace_matrix(self):
+        for part in self.d["proposed_split_levels"]:
+            self.assertIn(part,self.doc)
+        for required in ["REG_TEC_010","REG_API_005","Retry-After","X-Request-Id",
+                         "X-Correlation-Id","numeric(18,2)","Idempotency-Key","D10"]:
+            self.assertIn(required,self.doc)
+        self.assertEqual(len(self.d["proposed_split_levels"]),6)
+        self.assertEqual(self.d["proposed_reference_migration"],self.d["provisional_splits"])
 
 if __name__ == "__main__":
     unittest.main()
