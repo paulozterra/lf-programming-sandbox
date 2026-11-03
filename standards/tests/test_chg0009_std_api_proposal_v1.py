@@ -81,5 +81,40 @@ class ProposalTests(unittest.TestCase):
         self.assertEqual(len(self.d["proposed_split_levels"]),6)
         self.assertEqual(self.d["proposed_reference_migration"],self.d["provisional_splits"])
 
+    def test_document_single_header_and_uncorrupted_ids_section(self):
+        self.assertEqual(self.doc.count("# CHG-0009 —"),1)
+        self.assertEqual(self.doc.count("## Diseño de la descomposición"),1)
+        self.assertEqual(self.doc.count("## Matriz: nueve reglas"),1)
+        self.assertIn("compatibles con la expresión", self.doc)
+        self.assertIn("provisionales y sin reservar", self.doc)
+        self.assertNotIn("d{2}# CHG-0009",self.doc)
+        self.assertNotIn("\\n del validador actual.",self.doc)
+        self.assertEqual(self.doc.count("| STD-API-04 | `STD-API-10`"),1)
+
+    def test_security_hardening_requires_both_catalog_and_policy_migration(self):
+        security=self.d["proposed_security_carry_forward"]
+        self.assertTrue(security["negative_waiver_tests_required"])
+        self.assertTrue(security["security_pin_invalidation_required_if_security_change"])
+        self.assertTrue(security["policy_invariants_update_required"])
+        self.assertTrue(security["changes_security_ids_update_required"])
+        self.assertEqual(set(security["security_change_class_ids"]),{"STD-API-10","STD-API-11"})
+        self.assertEqual(set(security["non_waivable_ids"]),{"STD-API-10"})
+        self.assertIn("manteniendo el ID original protegido durante la transición",self.doc)
+        self.assertIn("waiver_policy.allowed=false",self.doc)
+        self.assertIn("SECURITY",self.doc)
+        self.assertNotIn('"owner_normative_go": true',json.dumps(self.d))
+
+    def test_proposed_ids_are_unique_and_not_in_source_catalog(self):
+        new=list(self.d["proposed_split_levels"])
+        originals=set(LEVELS)
+        existing={r["id"] for r in self.cat["rules"]}
+        self.assertEqual(len(new),len(set(new)))
+        self.assertTrue(set(new).isdisjoint(existing))
+        self.assertEqual(set(self.d["proposed_reference_migration"]),{
+            "STD-API-04","STD-API-05","STD-API-08"})
+        for old,parts in self.d["proposed_reference_migration"].items():
+            self.assertEqual(len(parts),2)
+            self.assertTrue(all(new_id not in originals for new_id in parts))
+
 if __name__ == "__main__":
     unittest.main()
