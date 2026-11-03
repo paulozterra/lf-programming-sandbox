@@ -82,5 +82,47 @@ class C2C3ContractBoundaryTests(unittest.TestCase):
             )
 
 
+    def test_source_bound_candidate_envelope_in_test_only_same_scope(self):
+        # This is a TEST envelope, not a runtime adapter or assurance receipt.
+        active = ["STD-BE", "STD-API"]
+        _, receipt = skills.select_and_assemble(
+            evidence={"spring_boot": True}, active=active, pin=self.pin)
+        c1 = {"status": "CANDIDATE_NOT_ADMITTED", "authority": False,
+              "commit_sha": "a"*40, "sources": [
+                  {"path": "pom.xml", "sha256": hashlib.sha256(b"synthetic-pom").hexdigest()}]}
+        pg02 = {"status": "CANDIDATE_NOT_ADMITTED", "dispatch_allowed": False,
+                "candidate": {"status": "CANDIDATE_NOT_ADMITTED", "scopes": [
+                    {"scope_id": "S1", "state": "READY_FOR_CLASSIFICATION",
+                     "candidate_domains": active}]}}
+        domains = sorted({domain for scope in pg02["candidate"]["scopes"]
+                          for domain in scope["candidate_domains"]})
+        self.assertEqual(domains, sorted(active))
+        self.assertEqual(receipt["catalog_sha256"], self.pin["catalog_sha256"])
+        self.assertEqual([s["skill"] for s in receipt["skills"]], ["spring-boot"])
+        self.assertEqual(c1["commit_sha"], "a"*40)
+        self.assertIs(c1["authority"], False)
+        self.assertIs(pg02["dispatch_allowed"], False)
+        self.assertIs(receipt["production_authority"], False)
+        # Critically, the result cannot prove cross-run identity from C2 alone.
+        self.assertNotIn("run_id", receipt)
+        self.assertNotIn("stack_commit", receipt)
+
+    def test_synthetic_cross_contract_rejects_domain_and_commit_drift(self):
+        active = ["STD-BE", "STD-API"]
+        _, receipt = skills.select_and_assemble(
+            evidence={"spring_boot": True}, active=active, pin=self.pin)
+        source_commit = "a"*40  # synthetic C1 evidence, not authenticated
+        for observed_domains, observed_commit in [
+            (["STD-FE"], source_commit),
+            (active, "b"*40),
+        ]:
+            with self.subTest(domains=observed_domains, commit=observed_commit):
+                # Assertion belongs ONLY to the test; it is not a runtime guard.
+                self.assertFalse(
+                    sorted(observed_domains) == sorted(active)
+                    and observed_commit == source_commit
+                    and receipt["catalog_sha256"] == self.pin["catalog_sha256"])
+                self.assertIs(receipt["production_authority"], False)
+
 if __name__ == "__main__":
     unittest.main()
