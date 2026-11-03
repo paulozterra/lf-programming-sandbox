@@ -40,3 +40,16 @@ La fuente real `J02_SCREEN_DECOMPOSITION v0.8`, en `skills/creating-integral-use
 - Sin cambios al repositorio propietario, Supabase ni `main`. No se ha ejecutado el handoff real.
 
 **Dictamen:** `PG04_C1_SOURCE_CONTRACT_IDENTIFIED_J02_EXTRACTION_MISSING / PG04_C3_SHARED_CONTRACTS_NEGATIVE_REPRODUCED / PG04_OFFLINE_INTEGRATION_PENDING`.
+
+## Ensayo adicional PG04_C4 — implementation_state sin decisión inventada
+
+Sobre el mismo Git blob exacto de PG03_C8 `d824f3c61021ada7ebb6aec2e6b1fa984f69ec57`, fixture sintético de un requisito/aceptación y SOLUTION-1; se probó:
+```text
+missing_implementation_state CANDIDATE_NOT_ADMITTED False
+explicit_existing_no_delta CANDIDATE_NOT_ADMITTED False
+explicit_new_no_reuse_proof CANDIDATE_NOT_ADMITTED False
+```
+
+`False` final = `production_authority`. El guard C8 no interpreta ni exige `implementation_state` y tampoco valida AS-IS+DELTA o evidencia de no-reutilización. **PG04_C4 no queda acreditado por PG03_C8**. La política normativa existente #1912 sí exige preservar el estado del paquete y no reconstruir un activo existente. Una futura prueba PG04 debe comparar con el `implementation_state` **ya resuelto** por A9, no volver a inferirlo. No se recomienda añadir un reclasificador nuevo.
+
+**Corte operativo del carril:** C1 sin núcleo J02 adaptado demostrado y C2 sin particionador por solución comprobado. C3/C4 tienen pruebas de frontera adversariales reproducidas. La siguiente implementación requiere definir el punto propietario de PG04 y reuse-before-build; no falsear un cierre con más asserts sobre C8.
