@@ -119,6 +119,10 @@ class Tests(unittest.TestCase):
             a["obligations"][0].update(coimplement_with=["UI"],coimplement_evidence_ref="analysis://join",risk_level="HIGH")
             a["obligations"][2].update(coimplement_with=["API"],coimplement_evidence_ref="analysis://join",risk_level="LOW")
         self.denied("COIMPLEMENT_RISK_CONFLICT",bad)
+    def test_high_risk_same_outcome_gets_separate_solution(self):
+        a=args()
+        a["obligations"][1]["risk_level"]="HIGH"
+        self.assertEqual(len(partition(**a)["solutions"]),3)
     def test_partition_policy_drift(self):
         self.denied("PARTITION_POLICY_DRIFT",lambda a:a["partition_contract"]["partition_policy"].update(semantic_boundary_first=False))
     def test_no_authority_or_semantic_judge(self):
