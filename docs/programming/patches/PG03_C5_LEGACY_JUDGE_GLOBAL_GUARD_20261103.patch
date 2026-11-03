@@ -1,0 +1,28 @@
+diff --git a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_domain_judges_v1.py b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_domain_judges_v1.py
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_domain_judges_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_domain_judges_v1.py
+@@ -10,6 +10,8 @@
+ def project_rules(*, strategy, catalog, requested_domains, global_domains=("GLOBAL",)):
+     if not isinstance(strategy,dict) or strategy.get("status")!="CANDIDATE_NOT_ADMITTED" or strategy.get("production_authority") is not False:
+         raise DomainJudgeBlocked("STRATEGY_UNTRUSTED")
++    if global_domains != ("GLOBAL",):
++        raise DomainJudgeBlocked("GLOBAL_SCOPE_OVERRIDE_FORBIDDEN")
+     active=strategy.get("active_domains")
+     if not isinstance(active,list) or not active or any(not isinstance(x,str) for x in active):
+         raise DomainJudgeBlocked("ACTIVE_DOMAINS_INVALID")
+@@ -50,6 +52,15 @@
+     rules=projection.get("rules",[])
+     if not isinstance(rules,list) or not isinstance(mandatory_ids,list) or len(set(mandatory_ids))!=len(mandatory_ids):
+         return {"status":"BLOCKED","code":"REQUIRED_RULE_SET_INVALID"}
++    if not mandatory_ids or any(not isinstance(x,str) or not x for x in mandatory_ids):
++        return {"status":"BLOCKED","code":"REQUIRED_RULE_SET_INVALID"}
++    payload={k:v for k,v in projection.items() if k not in ("projection_sha256","estimated_tokens")}
++    raw=json.dumps(payload,sort_keys=True,separators=(",",":")).encode()
++    if (projection.get("projection_sha256")!=hashlib.sha256(raw).hexdigest() or
++            projection.get("estimated_tokens")!=(len(raw)+3)//4):
++        return {"status":"BLOCKED","code":"PROJECTION_CONTENT_DIGEST_DRIFT"}
++    if any(isinstance(r,dict) and r.get("domain")=="GLOBAL" and r.get("id") not in mandatory_ids for r in rules):
++        return {"status":"BLOCKED","code":"GLOBAL_REQUIRED_RULE_OMITTED"}
+     ids={r.get("id") for r in rules if isinstance(r,dict)}
+     if not set(mandatory_ids).issubset(ids):
+         return {"status":"BLOCKED","code":"REQUIRED_RULE_OMITTED"}
