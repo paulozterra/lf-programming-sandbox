@@ -80,6 +80,17 @@ class Tests(unittest.TestCase):
                             source_refs=sources,solutions=p["solutions"])
         self.assertEqual(x["status"],"CANDIDATE_NOT_ADMITTED")
         self.assertEqual(x["solution_count"],2)
+    def test_unicode_canonical_strategy_and_outcome(self):
+        a=args()
+        a["strategy"]["description"]="Confirmación de pago"
+        a["strategy"]["candidate_sha256"]=hashlib.sha256(
+            json.dumps({k:v for k,v in a["strategy"].items() if k!="candidate_sha256"},
+                       sort_keys=True,separators=(",",":"),ensure_ascii=True).encode()).hexdigest()
+        a["outcome_registry"][0]["business_outcome"]="Confirmación de pago"
+        out=partition(**a)
+        unsigned={k:v for k,v in out.items() if k!="candidate_sha256"}
+        self.assertEqual(out["candidate_sha256"],hashlib.sha256(
+            json.dumps(unsigned,sort_keys=True,separators=(",",":"),ensure_ascii=True).encode()).hexdigest())
     def test_strategy_mutation(self):
         self.denied("STRATEGY_DIGEST_DRIFT",lambda a:a["strategy"].update(requirement_ids=["OTHER"]))
     def test_unknown_outcome(self):
