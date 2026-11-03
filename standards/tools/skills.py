@@ -143,6 +143,21 @@ def assemble(pin,selected,active):
        "assembled_sha256":digest(content.encode()),"warnings":[]}
     if receipt["approx_tokens"]>3000:receipt["warnings"].append("CONTEXT_SIZE_WARNING")
     return content,receipt
+def select_and_assemble(*, evidence, active, pin):
+    """Atomic offline PG-03 context input: caller cannot override selected Skills.
+
+    Selection and assembly reuse the original functions; this cannot attest PG-02,
+    Git source, C3 CURRENT or a production run, and grants no authority.
+    """
+    selected = select(evidence, active)
+    content, receipt = assemble(pin, selected, active)
+    if [x["skill"] for x in receipt["skills"]] != selected:
+        raise ValueError("SKILL_SELECTION_ASSEMBLY_MISMATCH")
+    receipt["selection_status"] = "CANDIDATE_NOT_ADMITTED"
+    receipt["production_authority"] = False
+    receipt["pg02_source_verified"] = False
+    return content, receipt
+
 def main():
     p=argparse.ArgumentParser();sp=p.add_subparsers(dest="cmd",required=True)
     sp.add_parser("validate")
