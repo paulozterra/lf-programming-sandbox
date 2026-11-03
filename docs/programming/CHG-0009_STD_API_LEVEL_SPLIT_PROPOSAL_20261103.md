@@ -30,39 +30,7 @@ El catálogo aún no contiene IDs secundarios. Proponer separaciones internas de
 | STD-API-05 | `STD-API-12` garantías operativas aplicables | `STD-API-13` nomenclatura/protocolo | preservar REG_API_005, D8/D9, idempotencia, request/correlation ID, rate limit |
 | STD-API-08 | `STD-API-14` precisión monetaria | `STD-API-15` representación bajo contrato | preservar D10, decimal y currency |
 
-**H01 — corrección propuesta, no normativa:** se proponen seis nuevos IDs `STD-API-10` a `STD-API-15`, que cumplen el regex `^STD-[A-Z]+-\\d{2}# CHG-0009 — Propuesta de clasificación STD-API por regla (C9 / PG-03_C2)
-
-**Estado:** `DRAFT_FOR_INDEPENDENT_REVIEW`. **No aprobado como norma**, sin merge, sin publicación C3 y sin autorización productiva.  
-**Decisión del owner:** 03/11/2026, acepta como **base de trabajo** 2 L1, 4 L2 y 3 mixtas, y ordena preparar C9 sin publicar ni fusionar antes de las revisiones. Esto **no** equivale a aprobar textos definitivos, división de IDs, clase de cambio o release.  
-**Origen congelado:** `paulozterra/lf-programming-sandbox@ab361cf947fb9a34c874bf3e786b7f7478c85aa9`, `standards/catalog.json` v0.7.0 en BORRADOR. Inventario previo: PR #17 HEAD `75ae4b84d2a1d213985b2d60412b4bf507520713`. Se reutiliza, no se reemplaza.
-
-## Matriz: nueve reglas completas, sin omisiones
-
-| Regla fuente | Propuesta | Qué conservar / decisión a revisar |
-|---|---|---|
-| STD-API-01 | L2 | Convención de versión `/api/v1/` en REST propia y `_vN` en Supabase; sin debilitar compatibilidad de STD-API-09 |
-| STD-API-02 | L2 | Rutas/params (recursos plurales, kebab-case, excepciones contractuales) |
-| STD-API-03 | L2 | `snake_case` según D3, sin renombrar contratos legados sin migración |
-| STD-API-04 | MIXTA | L1 no exponer stack trace, SQL ni secretos/detalles internos; L2 forma exacta de errores sujeta a D1/D2 y contratos actuales |
-| STD-API-05 | MIXTA | L1 garantías de idempotencia, trazabilidad y limitación/protección de abuso **cuando apliquen al riesgo/operación**; L2 convenciones concretas de headers, respuestas 429 y `Retry-After` según contratos D8/D9 |
-| STD-API-06 | L1 | Contrato antes de la implementación de API o RPC **cuando se crea o modifica la interfaz**; no implica crear API inexistente |
-| STD-API-07 | L2 | Convenciones para `page,size,sort` y `p_limit,p_offset` |
-| STD-API-08 | MIXTA | L1 precisión y seguridad de cálculos/montos; L2 transporte como string decimal, currency y `numeric(18,2)` según D10 y contrato vigente; no cambiar representación sin migración |
-| STD-API-09 | L1 | Compatibilidad con consumidores ante cambios incompatibles; no romper API previa en silencio; versionado concreto subordinado a contrato existente |
-
-Distribución **2 L1, 4 L2 y 3 MIXTAS**. La severidad `BLOCK/WARN` **no** determina el nivel. El catálogo actual no contiene campo `rules[].level` para este dominio; nunca atribuir valores actuales a la fuente.
-
-## Diseño de la descomposición (ID provisional; sujeto a revisión)
-
-El catálogo aún no contiene IDs secundarios. Proponer separaciones internas de las tres reglas, sin eliminar el ID original antes de aprobar migración de referencias:
-
-| Regla | Propuesta L1 | Propuesta L2 | Trazabilidad y cobertura |
-|---|---|---|---|
-| STD-API-04 | `STD-API-10` protección de información interna | `STD-API-11` formato de error | preservar referencias REG_TEC_010, D1/D2 |
-| STD-API-05 | `STD-API-12` garantías operativas aplicables | `STD-API-13` nomenclatura/protocolo | preservar REG_API_005, D8/D9, idempotencia, request/correlation ID, rate limit |
-| STD-API-08 | `STD-API-14` precisión monetaria | `STD-API-15` representación bajo contrato | preservar D10, decimal y currency |
-
- del validador actual. Son **provisionales, no reservados ni aprobados**, y requieren comprobar colisiones al HEAD final y aprobar la migración `04→10/11`, `05→12/13`, `08→14/15`. En toda variante, las referencias de Skills, tests, excepciones y consumidores deben migrar explícitamente, sin silenciosa pérdida de obligaciones. No se puede conservar como regla operativa simultáneamente el original mixto y sus desdobles sin política de precedencia/cobertura.
+**H01 — IDs propuestos, no normativos:** se proponen seis identificadores `STD-API-10` a `STD-API-15`, compatibles con la expresión `^STD-[A-Z]+-[0-9]{2}$` del validador vigente. Estos identificadores siguen **provisionales y sin reservar**; la auditoría definitiva debe confirmar que no colisionan con un HEAD posterior y aprobar el mapa `04→10/11`, `05→12/13`, `08→14/15`. Las referencias de consumidores, Skills, tests y waivers requieren migración explícita. No se debe mantener simultáneamente el original mixto y ambos desdobles como reglas operativas sin política de transición y cobertura.
 
 ## Remedios de H01–H04 propuestos para revisión (sin modificación normativa)
 
