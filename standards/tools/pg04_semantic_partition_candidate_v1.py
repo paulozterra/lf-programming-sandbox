@@ -101,7 +101,7 @@ def partition_by_semantic_outcome(*,strategy,partition_contract,obligations,outc
     # compatible implementation bindings. Explicit coimplementation is reciprocal.
     groups=defaultdict(set)
     for oid,a in atoms.items():
-        groups[(a["outcome_id"],a["_binding"])].add(oid)
+        groups[(a["outcome_id"],a["_binding"],"HIGH" if a["risk_level"]=="HIGH" else "NON_HIGH")].add(oid)
     parent={oid:oid for oid in atoms}
     def root(x):
         while parent[x]!=x:
