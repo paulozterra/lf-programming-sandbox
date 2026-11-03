@@ -86,6 +86,29 @@ def select(evidence,active):
         raise StackDecisionError("STACK_UNRECOGNIZED: REQUIRES_DECISION: active domains not covered by selected skills",hits)
     return hits
 def assemble(pin,selected,active):
+    # Never trust a direct assembler caller to have run select() correctly.
+    # This validates local domain/Skill consistency, not source provenance.
+    if (not isinstance(active,(list,tuple)) or not active
+        or any(not isinstance(x,str) or not x for x in active)
+        or len(active)!=len(set(active))):
+        raise ValueError("ACTIVE_DOMAINS_INVALID")
+    if (not isinstance(selected,(list,tuple)) or not selected
+        or any(not isinstance(s,str) or s not in SLUGS for s in selected)
+        or len(selected)!=len(set(selected))):
+        raise ValueError("SELECTED_SKILLS_INVALID")
+    selected_domains={slug:set(load_json(DIR/slug/"skill.json")["domains"]) for slug in selected}
+    requested=set(active)
+    if requested-set().union(*selected_domains.values()):
+        raise ValueError("SKILL_ACTIVE_DOMAIN_UNCOVERED")
+    specialized=requested & {"STD-BE","STD-FE","STD-DB"}
+    if not specialized and len(selected)>1:
+        raise ValueError("SKILL_AMBIGUOUS_SHARED_ONLY")
+    permitted_core={"spring-boot":"STD-BE","nextjs":"STD-FE","postgres-flyway":"STD-DB"}
+    for slug in selected:
+        if specialized and permitted_core[slug] not in specialized:
+            if not (slug=="spring-boot" and "STD-DB" in specialized
+                    and "postgres-flyway" in selected):
+                raise ValueError("SKILL_NOT_IN_ACTIVE_SCOPE")
     catalog_bytes=(STD/"catalog.json").read_bytes();catalog=json.loads(catalog_bytes)
     actual=digest(catalog_bytes)
     if actual!=pin["catalog_sha256"]:raise ValueError("PIN_DIGEST_MISMATCH")
