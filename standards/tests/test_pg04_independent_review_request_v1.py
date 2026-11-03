@@ -34,6 +34,16 @@ class ReviewPreflightTests(unittest.TestCase):
                   "semantic_judge_executed","source_readback_verified",
                   "ledger_receipt_verified","reviewer_independence_attested"):
             self.assertIs(p[x],False)
+    def test_unicode_partition_subject_digest(self):
+        p=baseline()
+        p["partition"]["solutions"][0]["business_outcome"]="Confirmación de pago"
+        p["partition"]["candidate_sha256"]=hashlib.sha256(json.dumps(
+            {k:v for k,v in p["partition"].items() if k!="candidate_sha256"},
+            sort_keys=True,separators=(",",":"),ensure_ascii=True).encode()).hexdigest()
+        packet=prepare_partition_review_request(**p)
+        self.assertEqual(packet["subject_sha256"],hashlib.sha256(json.dumps(
+            p["partition"],sort_keys=True,separators=(",",":"),ensure_ascii=True).encode()).hexdigest())
+        self.assertFalse(packet["review_execution_allowed"])
     def test_determinism(self):
         self.assertEqual(prepare_partition_review_request(**baseline()),prepare_partition_review_request(**baseline()))
     def test_deepcopy_manifest(self):
