@@ -44,6 +44,13 @@ class ReviewPreflightTests(unittest.TestCase):
         self.assertEqual(packet["subject_sha256"],hashlib.sha256(json.dumps(
             p["partition"],sort_keys=True,separators=(",",":"),ensure_ascii=True).encode()).hexdigest())
         self.assertFalse(packet["review_execution_allowed"])
+    def test_generic_assurance_receipt_is_explicitly_missing(self):
+        p=prepare_partition_review_request(**baseline())
+        self.assertIsNone(p["subject_receipt_id"])
+        self.assertEqual(p["subject_ref"],"PG04_SOLUTION_PARTITION_CANDIDATE/"+p["candidate_sha256"])
+        self.assertEqual(p["first_runtime_blocker"],"PG04_VERIFIED_SUBJECT_RECEIPT_MISSING")
+        self.assertIn("EVIDENCE_LEDGER_VERIFIED_SUBJECT_RECEIPT",p["required_runtime_binding"])
+        self.assertFalse(p["review_execution_allowed"])
     def test_determinism(self):
         self.assertEqual(prepare_partition_review_request(**baseline()),prepare_partition_review_request(**baseline()))
     def test_deepcopy_manifest(self):
