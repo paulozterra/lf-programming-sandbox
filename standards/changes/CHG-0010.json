@@ -1,13 +1,13 @@
 {
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0010",
-  "title": "Bloquear selección ambigua de Skills para dominios compartidos de PG-03",
+  "title": "Validar selección y ensamblado de Skills frente a dominios activos PG-03",
   "change_class": "TIGHTENING",
   "trigger": {
     "kind": "TEST",
     "reference": "PG-03_C2: repos con Spring+Next o Spring+Flyway, dominios compartidos sin frente especializado producen selección múltiple"
   },
-  "reason": "El selector original podía cargar múltiples Skills en un pedido solo STD-API/STD-GEN/STD-SEC sin vinculación a frente PG-02, aumentando contexto y riesgo. El cambio exige REQUIRES_DECISION y conserva selección exacta con BE/FE/DB. Registro obligatorio del cambio de herramienta según C9, sin cambio del catálogo ni aprobación normativa implícita.",
+  "reason": "El selector original podía cargar múltiples Skills en un pedido solo STD-API/STD-GEN/STD-SEC sin vinculación a frente PG-02, aumentando contexto y riesgo. El cambio exige REQUIRES_DECISION y conserva selección exacta con BE/FE/DB. Registro obligatorio del cambio de herramienta según C9, sin cambio del catálogo ni aprobación normativa implícita. Impedir también que llamadas directas a assemble() salten select() mediante Skills desconocidas, duplicadas, fuera de alcance o con cobertura incompleta, sin atestar el origen de los dominios.",
   "artifacts": [
     {
       "artifact": "tool",
@@ -21,7 +21,8 @@
     "term_ids": [],
     "paths": [
       "standards/tools/skills.py",
-      "standards/tests/test_c6_pg03_domain_selection_v1.py"
+      "standards/tests/test_c6_pg03_domain_selection_v1.py",
+      "standards/tests/test_pg03_c2_assembler_scope_v1.py"
     ]
   },
   "existing_code_impact": {
