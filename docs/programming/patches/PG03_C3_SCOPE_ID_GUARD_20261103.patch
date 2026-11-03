@@ -1,0 +1,33 @@
+diff --git a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_strategy_v1.py b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_strategy_v1.py
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_strategy_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_strategy_v1.py
+@@ -19,6 +19,11 @@ def prepare_strategy(*, classification, stack_evidence, partition_contract, requ
+         raise StrategyBlocked("SCOPES_INVALID")
+     if any(r.get("state")!="READY_FOR_CLASSIFICATION" for r in rows):
+         raise StrategyBlocked("NON_READY_SCOPE")
++    scope_ids=[r.get("scope_id") for r in rows]
++    if any(not isinstance(x,str) or not x.strip() for x in scope_ids):
++        raise StrategyBlocked("SCOPE_IDS_INVALID")
++    if len(set(scope_ids))!=len(scope_ids):
++        raise StrategyBlocked("SCOPE_IDS_DUPLICATED")
+     if not isinstance(stack_evidence,dict) or stack_evidence.get("status")!="CANDIDATE_NOT_ADMITTED" or stack_evidence.get("authority") is not False:
+         raise StrategyBlocked("STACK_EVIDENCE_INVALID")
+diff --git a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_strategy_v1.py b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_strategy_v1.py
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_strategy_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_strategy_v1.py
+@@ -50,4 +50,15 @@ negative("requirement_ids",[],"COVERAGE_NOT_ESTABLISHED")
+ negative("alternatives",[],"STRATEGY_DECISION_MISSING")
+-print("PG03_C3_STRATEGY_CANDIDATE_PASS positive=1 deterministic=1 negatives=6 authority=0")
++def negative_scope_ids(scope_ids, reason):
++    bad=copy.deepcopy(c)
++    bad["candidate"]["scopes"]=[
++        {"scope_id":sid,"state":"READY_FOR_CLASSIFICATION","candidate_domains":["STD-BE"]}
++        for sid in scope_ids
++    ]
++    negative("classification",bad,reason)
++negative_scope_ids(["S1","S1"],"SCOPE_IDS_DUPLICATED")
++negative_scope_ids([""],"SCOPE_IDS_INVALID")
++negative_scope_ids([None],"SCOPE_IDS_INVALID")
++negative_scope_ids([42],"SCOPE_IDS_INVALID")
++negative_scope_ids(["S1",None],"SCOPE_IDS_INVALID")
++print("PG03_C3_STRATEGY_CANDIDATE_PASS positive=1 deterministic=1 negatives=11 authority=0")
