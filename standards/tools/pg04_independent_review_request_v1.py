@@ -15,7 +15,7 @@ class ReviewRequestBlocked(ValueError):
 
 def _sha(value):
     return hashlib.sha256(json.dumps(
-        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=True
     ).encode()).hexdigest()
 
 def _block(reason):
