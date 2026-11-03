@@ -18,7 +18,7 @@ def _ids(v,code,empty=False):
     return v
 
 def _sha(v):
-    return hashlib.sha256(json.dumps(v,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode()).hexdigest()
+    return hashlib.sha256(json.dumps(v,sort_keys=True,separators=(",",":"),ensure_ascii=True).encode()).hexdigest()
 
 def partition_by_semantic_outcome(*,strategy,partition_contract,obligations,outcome_registry):
     """Group obligations with same evidenced outcome/binding. Dependencies only order."""
