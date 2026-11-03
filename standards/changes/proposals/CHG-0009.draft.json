@@ -1,0 +1,94 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_PROPOSAL_V1",
+  "proposal_id": "CHG-0009",
+  "status": "DRAFT_FOR_INDEPENDENT_REVIEW",
+  "change_class_proposed": "SECURITY_REVIEW_REQUIRED",
+  "owner_decision_scope": "CLASSIFICATION_BASE_ONLY_NOT_FINAL_NORMATIVE_GO",
+  "source": {
+    "repo": "paulozterra/lf-programming-sandbox",
+    "commit": "ab361cf947fb9a34c874bf3e786b7f7478c85aa9",
+    "path": "standards/catalog.json",
+    "catalog_version": "0.7.0",
+    "catalog_status": "BORRADOR_EN_REPO_DE_CALIFICACION"
+  },
+  "precedence": [
+    "L1",
+    "A",
+    "B",
+    "L2"
+  ],
+  "proposed_levels": {
+    "STD-API-01": "L2",
+    "STD-API-02": "L2",
+    "STD-API-03": "L2",
+    "STD-API-04": "SPLIT",
+    "STD-API-05": "SPLIT",
+    "STD-API-06": "L1",
+    "STD-API-07": "L2",
+    "STD-API-08": "SPLIT",
+    "STD-API-09": "L1"
+  },
+  "provisional_splits": {
+    "STD-API-04": [
+      "STD-API-10",
+      "STD-API-11"
+    ],
+    "STD-API-05": [
+      "STD-API-12",
+      "STD-API-13"
+    ],
+    "STD-API-08": [
+      "STD-API-14",
+      "STD-API-15"
+    ]
+  },
+  "readiness": {
+    "catalog_modified": false,
+    "change_active": false,
+    "owner_normative_go": false,
+    "independent_security_review": false,
+    "reviewed_head_sha": null,
+    "security_pin_invalidation_decision": "SECURITY_REVIEW_AND_INVALIDATION_REQUIRED_IF_NORMATIVE_DIFF",
+    "canonical_new_ids": "PROPOSED_NOT_APPROVED",
+    "reference_migration": "PROPOSED_NOT_APPLIED",
+    "C3_release_verified": false,
+    "PG03_C2_admitted": false
+  },
+  "proposal_document": "docs/programming/CHG-0009_STD_API_LEVEL_SPLIT_PROPOSAL_20261103.md",
+  "proposed_split_levels": {
+    "STD-API-10": "L1",
+    "STD-API-11": "L2",
+    "STD-API-12": "L1",
+    "STD-API-13": "L2",
+    "STD-API-14": "L1",
+    "STD-API-15": "L2"
+  },
+  "proposed_security_carry_forward": {
+    "non_waivable_ids": [
+      "STD-API-10"
+    ],
+    "security_change_class_ids": [
+      "STD-API-10",
+      "STD-API-11"
+    ],
+    "source_id": "STD-API-04",
+    "policy_invariants_update_required": true,
+    "changes_security_ids_update_required": true,
+    "negative_waiver_tests_required": true,
+    "security_pin_invalidation_required_if_security_change": true
+  },
+  "proposed_reference_migration": {
+    "STD-API-04": [
+      "STD-API-10",
+      "STD-API-11"
+    ],
+    "STD-API-05": [
+      "STD-API-12",
+      "STD-API-13"
+    ],
+    "STD-API-08": [
+      "STD-API-14",
+      "STD-API-15"
+    ]
+  }
+}
