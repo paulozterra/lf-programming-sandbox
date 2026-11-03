@@ -1,0 +1,66 @@
+diff --git a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_handoff_boundary_v1.py b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_handoff_boundary_v1.py
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_handoff_boundary_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_handoff_boundary_v1.py
+@@ -19,6 +19,11 @@
+ def prepare_pg04_handoff(*, strategy, sufficiency, exceptions_result, partition_contract, solution_coverage, assurance_receipt=None):
+     if not isinstance(strategy,Mapping) or strategy.get("status")!="CANDIDATE_NOT_ADMITTED" or strategy.get("production_authority") is not False or strategy.get("handoff_allowed") is not False:
+         raise HandoffBlocked("STRATEGY_NOT_ADMITTED")
++    strategy_digest=strategy.get("candidate_sha256")
++    unsigned={k:v for k,v in strategy.items() if k!="candidate_sha256"}
++    if (not isinstance(strategy_digest,str) or
++        hashlib.sha256(json.dumps(unsigned,sort_keys=True,separators=(",",":")).encode()).hexdigest()!=strategy_digest):
++        raise HandoffBlocked("STRATEGY_DIGEST_MISMATCH")
+     requirements=_identifiers(strategy.get("requirement_ids"),"REQUIREMENTS")
+     acceptance=_identifiers(strategy.get("acceptance_ids"),"ACCEPTANCE")
+     scopes=_identifiers(strategy.get("scope_ids"),"SCOPES")
+@@ -56,6 +61,8 @@
+         seen.add(identifier)
+         if not isinstance(row.get("strategy_ref"),str) or not row["strategy_ref"].strip():
+             raise HandoffBlocked("PARTITION_STRATEGY_REF_MISSING")
++        if row["strategy_ref"]!=strategy_digest:
++            raise HandoffBlocked("PARTITION_STRATEGY_REF_DRIFT")
+         row_scopes=_identifiers(row.get("scope_ids"),"SOLUTION_SCOPES")
+         if not row_scopes.issubset(scopes):
+             raise HandoffBlocked("UNCLASSIFIED_SCOPE")
+diff --git a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_handoff_boundary_v1.py b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_handoff_boundary_v1.py
+--- a/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_handoff_boundary_v1.py
++++ b/sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_handoff_boundary_v1.py
+@@ -1,5 +1,7 @@
+ import unittest
+ from copy import deepcopy
++import hashlib
++import json
+ try:
+     from .pg03_handoff_boundary_v1 import prepare_pg04_handoff,HandoffBlocked
+ except ImportError:
+@@ -7,7 +9,8 @@
+     from pg03_handoff_boundary_v1 import prepare_pg04_handoff,HandoffBlocked
+ 
+ S={"status":"CANDIDATE_NOT_ADMITTED","production_authority":False,"handoff_allowed":False,"candidate_sha256":"sha-test","requirement_ids":["R1","R2"],"acceptance_ids":["A1","A2"],"scope_ids":["S1"]}
+-C6={"status":"CANDIDATE_SUFFICIENT_NOT_ADMITTED","production_authority":False,"handoff_allowed":False,"gaps":[],"source_strategy_sha256":"sha-test"}
++S["candidate_sha256"]=hashlib.sha256(json.dumps({k:v for k,v in S.items() if k!="candidate_sha256"},sort_keys=True,separators=(",",":")).encode()).hexdigest()
++C6={"status":"CANDIDATE_SUFFICIENT_NOT_ADMITTED","production_authority":False,"handoff_allowed":False,"gaps":[],"source_strategy_sha256":S["candidate_sha256"]}
+ C7={"status":"CANDIDATE_NOT_ADMITTED","production_authority":False,"handoff_allowed":False,"waiver_authorized":False,"exceptions":[]}
+ P={"schema_version":"PROGRAMMING_SOLUTION_PARTITION_CONTRACT_V1","partition_policy":{"canonical_spec_count":1,"partition_unit":"SOLUTION","minimum_rule":"SMALLEST_COHERENT_VALID_CHANGE"},"coverage":{"material_requirement_coverage_required_percent":100,"acceptance_obligation_coverage_required_percent":100}}
+ ROWS=[{"solution_id":"SOL1","scope_ids":["S1"],"strategy_ref":"pg03:strategy","requirement_ids":["R1"],"acceptance_ids":["A1"],"depends_on":[]},
+@@ -15,6 +18,8 @@
+ {"solution_id":"SOL2","scope_ids":["S1"],"strategy_ref":"pg03:strategy","requirement_ids":["R2"],"acceptance_ids":["A2"],"depends_on":["SOL1"]}]
++for row in ROWS:
++    row["strategy_ref"]=S["candidate_sha256"]
+ 
+ def check(**changes):
+     args={"strategy":deepcopy(S),"sufficiency":deepcopy(C6),"exceptions_result":deepcopy(C7),"partition_contract":deepcopy(P),"solution_coverage":deepcopy(ROWS)}
+@@ -52,6 +57,15 @@
+     def test_missing_strategy_ref(self):
+         rows=deepcopy(ROWS);rows[0]["strategy_ref"]=""
+         with self.assertRaises(HandoffBlocked):check(solution_coverage=rows)
++    def test_wrong_strategy_ref_rejected(self):
++        rows=deepcopy(ROWS);rows[0]["strategy_ref"]="pg03:other"
++        with self.assertRaisesRegex(HandoffBlocked,"PARTITION_STRATEGY_REF_DRIFT"):
++            check(solution_coverage=rows)
++    def test_strategy_mutation_with_old_digest_rejected(self):
++        strategy=deepcopy(S);strategy["requirement_ids"]=["R1","R2","FORGED"]
++        with self.assertRaisesRegex(HandoffBlocked,"STRATEGY_DIGEST_MISMATCH"):
++            check(strategy=strategy)
+     def test_insufficient_c6(self):
+         with self.assertRaises(HandoffBlocked):check(sufficiency=dict(C6,status="BLOCKED"))
