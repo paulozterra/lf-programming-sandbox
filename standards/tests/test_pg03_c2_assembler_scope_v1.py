@@ -52,5 +52,34 @@ class AssemblyAdmissionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"SKILL_NOT_IN_ACTIVE_SCOPE"):
             skills.assemble(self.pin,["spring-boot","postgres-flyway"],["STD-BE","STD-GEN"])
 
+    def test_atomic_selection_assembly_binds_exact_skill_receipt(self):
+        content,receipt=skills.select_and_assemble(
+            evidence={"spring_boot":True,"next":True},
+            active=["STD-BE","STD-API"],pin=self.pin)
+        self.assertTrue(content)
+        self.assertEqual([s["skill"] for s in receipt["skills"]],["spring-boot"])
+        self.assertEqual(receipt["selection_status"],"CANDIDATE_NOT_ADMITTED")
+        self.assertFalse(receipt["production_authority"])
+        self.assertFalse(receipt["pg02_source_verified"])
+
+    def test_atomic_selection_rejects_ambiguous_shared_stack(self):
+        with self.assertRaisesRegex(skills.StackDecisionError,"STACK_AMBIGUOUS"):
+            skills.select_and_assemble(
+                evidence={"spring_boot":True,"next":True},
+                active=["STD-API"],pin=self.pin)
+
+    def test_atomic_selection_rejects_invalid_pin(self):
+        with self.assertRaisesRegex(ValueError,"PIN_DIGEST_MISMATCH"):
+            skills.select_and_assemble(
+                evidence={"spring_boot":True},active=["STD-BE"],
+                pin=dict(self.pin,catalog_sha256="0"*64))
+
+    def test_atomic_selection_db_dependency(self):
+        _,receipt=skills.select_and_assemble(
+            evidence={"spring_boot":True,"flyway":True,"migration":True},
+            active=["STD-DB"],pin=self.pin)
+        self.assertEqual([s["skill"] for s in receipt["skills"]],
+                         ["spring-boot","postgres-flyway"])
+
 if __name__=="__main__":
     unittest.main()
