@@ -44,14 +44,40 @@ class StackDecisionError(ValueError):
         self.selected_skills=selected_skills
 
 def select(evidence,active):
-    if not active:raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION: missing active domains")
+    """Select only stack-detected skills applicable to the active PG-02 domains.
+
+    Specialized domain requests (BE/FE/DB) choose the matching stack. The
+    Flyway+Spring pairing remains an explicit DB dependency from C6 tests.
+    Shared domains apply to the chosen stack, not every stack in the repo.
+    No input here authenticates PG-02, the repo or an approved C3 release.
+    """
+    if not isinstance(evidence,dict) or not isinstance(active,(list,tuple,set,frozenset)) or not active or any(
+        not isinstance(x,str) or not x for x in active
+    ):
+        raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION: missing active domains")
+    domains=set(active)
+    if len(domains)!=len(active):
+        raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION: duplicate active domains")
+    specialized=domains & {"STD-BE","STD-FE","STD-DB"}
+    def applicable(slug,core_domain):
+        if specialized:
+            return core_domain in specialized
+        return bool(domains & set(load_json(DIR/slug/"skill.json")["domains"]))
+    spring_db_dependency="STD-DB" in specialized and (bool(evidence.get("flyway")) or bool(evidence.get("migration")))
     hits=[]
-    if evidence.get("spring_boot"):hits.append("spring-boot")
-    if evidence.get("next"):hits.append("nextjs")
+    if evidence.get("spring_boot") and (applicable("spring-boot","STD-BE") or spring_db_dependency):
+        hits.append("spring-boot")
+    if evidence.get("next") and applicable("nextjs","STD-FE"):
+        hits.append("nextjs")
     if bool(evidence.get("flyway")) != bool(evidence.get("migration")):
         raise StackDecisionError("STACK_UNRECOGNIZED: REQUIRES_DECISION: Flyway declaration and migration evidence incomplete",hits)
-    if evidence.get("flyway") and evidence.get("migration"):hits.append("postgres-flyway")
-    if not hits:raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION")
+    if evidence.get("flyway") and evidence.get("migration") and applicable("postgres-flyway","STD-DB"):
+        hits.append("postgres-flyway")
+    if not hits:
+        raise ValueError("STACK_UNRECOGNIZED: REQUIRES_DECISION: active domains have no matching stack")
+    covered=set().union(*(set(load_json(DIR/slug/"skill.json")["domains"]) for slug in hits))
+    if domains-covered:
+        raise StackDecisionError("STACK_UNRECOGNIZED: REQUIRES_DECISION: active domains not covered by selected skills",hits)
     return hits
 def assemble(pin,selected,active):
     catalog_bytes=(STD/"catalog.json").read_bytes();catalog=json.loads(catalog_bytes)
