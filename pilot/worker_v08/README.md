@@ -70,3 +70,29 @@ Claude debe confirmar el resultado de estos comandos, la equivalencia byte a byt
 La corrida histórica gratuita puede reproducirse aparte con `run_fake_e2e.py` y checkouts externos; ese script de demostración no es ejecutado por el workflow real.
 
 **Autoridad:** `CANDIDATE_SANDBOX_ONLY`, `QUALITY_CLI_NOT_USED=true`, `PG07_ADMITTED=false`, `production_authority=false`.
+
+## Ajuste posterior a la primera corrida real — modelo e intentos (pendiente de revisión)
+
+La corrida real **42114542965** fue declarada FAIL `PROPOSAL_INVALID`: el Worker original rechazó un parche que no contenía exclusivamente bloques de git unified-diff. Evidencia aportada: Haiku 5.5, 1 intento, entrada 2775 tokens, salida 546 tokens, USD 0.0005505, sin aplicación de cambios. **No se modificaron prompts, instrucciones ni código en `vendor/`**.
+
+Ahora `worker-pilot.yml` permite seleccionar solamente `claude-haiku-5-5` o `claude-sonnet-5-5`, y `max_attempts` 1/2/3 (tope duro 3). El gate adicional `pilot/worker_v08/budget_gate.py` se ejecuta antes de entregar `ANTHROPIC_API_KEY` al paso del Worker y se verifica nuevamente dentro del runner. Emplea el pricing **versionado ya existente** en `pilot/worker_v08/cost_adapter/pricing_v1.json` (Haiku USD 0.10 / 0.50; Sonnet USD 2 / 10 por millón de entrada/salida); no altera la copia verificada de ese adaptador.
+
+Cálculo conservador de peor caso, usando 60 000 bytes de contexto **como 60 000 unidades de tokens de entrada** y 8000 tokens máximos de salida, sin una conversión favorable bytes→tokens:
+
+`costo_peor_caso = max_attempts × ((60000 × precio_entrada + 8000 × precio_salida)/1000000)`
+
+| Modelo | 1 intento | 2 intentos | 3 intentos | Límite de corrida |
+|---|---:|---:|---:|---:|
+| Haiku 5.5 | USD 0.010 | USD 0.020 | USD 0.030 | USD 0.01 |
+| Sonnet 5.5 | USD 0.20 | USD 0.40 | USD 0.60 | USD 0.05 |
+
+**Consecuencia intencional:** con estos máximos y presupuestos, solo Haiku × 1 pasa la autorización previa; Haiku × 2/3 y todas las combinaciones de Sonnet se bloquean **antes** de llamar al modelo, aunque estén presentes como entradas de UI. No se reducen contexto ni salida sin aprobación explícita. Este cálculo es conservador, pero **no es un límite de facturación impuesto por Anthropic** y el uso real de tokens puede contener sobrecarga adicional; el recibo real sigue sometido al gate **posterior** de USD 0.01 (Haiku) o USD 0.05 (Sonnet). Si el problema de unified-diff reaparece, se reporta; no se altera el prompt del Worker.
+
+Pruebas offline nuevas, sin modelo ni clave:
+
+```bash
+python3 pilot/worker_v08/test_budget_gate.py
+python3 pilot/worker_v08/test_workflow_policy.py
+```
+
+El workflow **no se ha ejecutado** desde este cambio y queda para revisión de Claude antes de la siguiente corrida.
