@@ -15,14 +15,27 @@ class TaskSelectionTests(unittest.TestCase):
         self.assertEqual(task["holdout_sha256"],selector.EX1_SHA)
         self.assertEqual(task["write_path_patterns"],["standards/tools/checks.py"])
 
-    def test_exercise2_spec_available_but_holdout_unregistered(self):
-        task=selector.select("exercise-2",require_holdout=False)
+    def test_exercise2_registered_sha_and_scope_reach_offline_preflight(self):
+        task=selector.select("exercise-2")
         self.assertEqual(task["spec_sha256"],selector.SPEC_SHA)
-        self.assertIsNone(task["holdout_sha256"])
+        self.assertEqual(task["holdout_sha256"],
+            "44f75fa89fa6974cdcecc43bb2c2669d73eb4bf45fbebb3ec0f2308fce3551ee")
         self.assertEqual(task["write_path_patterns"],[
             "standards/tools/migrations.py","standards/tools/checks.py"])
-        with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_HOLDOUT_SHA_UNREGISTERED:exercise-2"):
-            selector.select("exercise-2")
+        self.assertEqual(task["context_path_patterns"],[
+            "standards/tools/MIGRATIONS_SPEC.md","standards/tools/checks.py",
+            "standards/tests/test_migrations.py"])
+
+    def test_exercise2_reusing_exercise1_holdout_is_blocked(self):
+        saved=json.loads(selector.CATALOG.read_text(encoding="utf-8"))
+        tampered=copy.deepcopy(saved)
+        tampered["tasks"]["exercise-2"]["holdout_sha256"]=selector.EX1_SHA
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)/"tasks.json"
+            root.write_text(json.dumps(tampered),encoding="utf-8")
+            with patch.object(selector,"CATALOG",root):
+                with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_EXERCISE2_HOLDOUT_SHA_DRIFT"):
+                    selector.select("exercise-2")
 
     def test_unknown_exercise_blocked(self):
         with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_TASK_NOT_ALLOWED"):
