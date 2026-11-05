@@ -33,7 +33,7 @@ need(r"^  cancel-in-progress: false$","IN_FLIGHT_CANCELLATION_FORBIDDEN")
 for required in ("anthropic","claude-haiku-5-5","claude-sonnet-5-5"):
     need(r"^          - "+re.escape(required)+r"$","PROVIDER_MODEL_NOT_PINNED")
 for v in ("1","2","3"):
-    need(r'^          - "'+v+r'"
+    need(r'^          - "'+v+r'"$',"MAX_ATTEMPTS_NOT_PINNED:"+v)
 need(r"^      PYTHONDONTWRITEBYTECODE: \"1\"$","VENDOR_DIRTY_RISK")
 need(r"^          python3 source/pilot/worker_v08/verify_vendor.py \\","VENDOR_INTEGRITY_GATE_MISSING")
 need(r"^          python3 source/pilot/worker_v08/test_verify_vendor.py$","VENDOR_NEGATIVE_TEST_MISSING")
