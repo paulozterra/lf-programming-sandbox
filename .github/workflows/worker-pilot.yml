@@ -16,13 +16,16 @@ on:
         type: choice
         options:
           - claude-haiku-5-5
+          - claude-sonnet-5-5
         default: claude-haiku-5-5
       max_attempts:
-        description: "Exactly one attempt"
+        description: "One, two or three Worker attempts (budget-gated)"
         required: true
         type: choice
         options:
           - "1"
+          - "2"
+          - "3"
         default: "1"
 
 permissions:
@@ -62,8 +65,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$PILOT_PROVIDER" = "anthropic"
-          test "$PILOT_MODEL" = "claude-haiku-5-5"
-          test "$PILOT_MAX_ATTEMPTS" = "1"
+          case "$PILOT_MODEL" in claude-haiku-5-5|claude-sonnet-5-5) ;; *) exit 1 ;; esac
+          case "$PILOT_MAX_ATTEMPTS" in 1|2|3) ;; *) exit 1 ;; esac
           python3 source/pilot/worker_v08/verify_vendor.py \
             --root "$GITHUB_WORKSPACE/source/vendor/programming-agent"
           python3 source/pilot/worker_v08/test_verify_vendor.py
@@ -115,7 +118,16 @@ jobs:
           python3 source/pilot/worker_v08/run_live_pilot.py prepare \
             --private "$RUNNER_TEMP/lf-worker-pilot"
 
-      - name: Execute REAL vendored run_verified_worker (one attempt; max output 8000)
+      - name: Conservative pre-model budget gate (no API call if exceeded)
+        id: budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 source/pilot/worker_v08/budget_gate.py \
+            --model "$PILOT_MODEL" \
+            --attempts "$PILOT_MAX_ATTEMPTS"
+
+      - name: Execute REAL vendored run_verified_worker (max 3 attempts; max output 8000)
         id: worker
         shell: bash
         env:
@@ -125,7 +137,7 @@ jobs:
           python3 source/pilot/worker_v08/run_live_pilot.py execute \
             --private "$RUNNER_TEMP/lf-worker-pilot"
 
-      - name: Mandatory actual-usage USD 0.10 cost gate (fail closed)
+      - name: Mandatory actual-usage model-specific USD cost gate (fail closed)
         id: cost
         if: always() && steps.worker.outcome != 'skipped'
         shell: bash
