@@ -133,3 +133,14 @@ python3 pilot/worker_v08/test_task_selector.py
 Las tres primeras pruebas son la puerta solicitada. La cuarta demuestra que el ejercicio 2 permanece bloqueado sin el SHA del examen oculto.
 
 **Bloqueo esperado:** `PILOT_HOLDOUT_SHA_UNREGISTERED:exercise-2`. No cargar ni invocar la tarea 2 hasta que Claude registre un SHA auténtico, prepare el holdout privado y califique la configuración. No se ejecuta el modelo en este PR.
+
+## Registro gobernado del examen oculto del ejercicio 2 (sin contenido)
+
+- Única información recibida y registrada: SHA-256 `44f75fa89fa6974cdcecc43bb2c2669d73eb4bf45fbebb3ec0f2308fce3551ee`. No se ha visto ni almacenado el examen.
+- `tasks.json` fija esa huella exclusivamente en `exercise-2`. `task_selector.py` rechaza que se sustituya por la del ejercicio 1 (`PILOT_EXERCISE2_HOLDOUT_SHA_DRIFT`).
+- `run_live_pilot.py` obtiene SHA, contexto y alcance de escritura del ejercicio seleccionado en `tasks.json`, y mantiene las comprobaciones del manifiesto heredado para `exercise-1`.
+- El workflow selecciona `PILOT_HOLDOUT_B64` solo en el paso `if: exercise-1` y `PILOT_HOLDOUT_EX2_B64` solo en el paso `if: exercise-2`; **no hay fallback entre secretos**. Cada paso comprueba la huella que exporta el selector.
+- `standards/changes/CHG-0007.json` registra el cambio autorizado y `standards/CAMBIOS.md` es la vista generada. C9 no se desactiva.
+- Las 14 pruebas visibles del ejercicio 2 se omiten **exclusivamente cuando todavía no existe** `standards/tools/migrations.py` en el PR preparatorio. Cuando el Worker crea ese módulo, vuelven a ejecutarse íntegramente; si hay un módulo roto o faltan dependencias distintas, el test no se omite.
+
+Pruebas adicionales offline: `python3 pilot/worker_v08/test_preflight_routing.py` verifica la ruta de preflight de ambos ejercicios con una huella **simulada solo en la unidad de prueba**, sin usar ni reproducir los bytes reales del holdout. No equivale a validación criptográfica del secreto. La verificación SHA real se conserva en el workflow/preflight.
