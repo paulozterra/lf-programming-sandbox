@@ -21,7 +21,7 @@ El adaptador de costo de #3676 está incluido separadamente y **sin alteraciones
 
 `pilot/worker_v08/run_live_pilot.py` llama a **`run_verified_worker` REAL** del Worker vendorizado con `AnthropicMessagesClient`, NO al CLI endurecido ni a `run_programming_quality_worker_hardened`. El artefacto/recibo candidato declara **`QUALITY_CLI_NOT_USED=true`**; ningún baseline ficticio se crea ni se necesita. Esto NO significa que se haya superado el pipeline de calidad endurecido.
 
-Tarea de ensayo declarada en `pilot/worker_v08/manifest.json`: editar solo `standards/tools/checks.py::check_branch`; pruebas visibles **ya existentes** `standards/tests/test_standards.py::CheckTests.test_branch_positive/test_branch_negative`. Un WorkerTaskSpec V1 con **exactamente 14 campos** se valida usando `parse_worker_task` del Worker original y `check_limits` del adaptador. Restricciones: **max_attempts=1, max_context_bytes=60000, max_patch_bytes=20000, max_changed_files=3, allow_deletions=false, max_output_tokens=8000**. Cualquier falta o exceso BLOQUEA.
+`pilot/worker_v08/tasks.json` selecciona dos tareas autorizadas: ejercicio 1 (validación `check_branch()` en `checks.py`) y ejercicio 2 (`check_migrations()` nuevo más integración con `checks.py`). El manifiesto `manifest.json` conserva únicamente los parámetros heredados del ejercicio 1. Un WorkerTaskSpec V1 con **exactamente 14 campos** se valida con `parse_worker_task` original. Restricciones: **max_attempts hasta 3 (Haiku) / 1 (Sonnet), max_context_bytes=60000, max_patch_bytes=20000, max_changed_files=3, allow_deletions=false, max_output_tokens=8000**. Cualquier exceso BLOQUEA.
 
 El Worker crea un repositorio desechable para pruebas y entrega un parche, NO realiza commits, pushes, merges ni PR. La admisión PG-07 permanece **false** sin evidencia auténtica de los contratos de esa etapa.
 
@@ -115,9 +115,9 @@ Las 14 pruebas **visibles** (`standards/tests/test_migrations.py`) incluyen una 
 
 `pilot/worker_v08/tasks.json` contiene exclusivamente dos opciones fijadas para el selector manual, con:
 - `exercise-1`: objetivo/ámbito/holdout existentes; SHA `979a661f…ab821`.
-- `exercise-2`: contexto `MIGRATIONS_SPEC.md`, `checks.py` y prueba visible; escritura exclusiva `migrations.py` y `checks.py`; `standards/tests/**` protegido; objetivo incluye SHA normativo; **`holdout_sha256=null`** hasta que Claude proporcione los bytes/sha.
+- `exercise-2`: contexto `MIGRATIONS_SPEC.md`, `checks.py` y prueba visible; escritura exclusiva `migrations.py` y `checks.py`; `standards/tests/**` protegido; objetivo incluye SHA normativo; **SHA registrado `44f75fa89fa6974cdcecc43bb2c2669d73eb4bf45fbebb3ec0f2308fce3551ee`** aportado por Claude, sin contenido del examen en el repositorio.
 
-`task_selector.py` verifica la especificación por bytes, los dos scopes permitidos, tareas canónicas y la existencia del SHA por ejercicio **antes** de la instalación y de exponer secretos. Si el ejercicio 2 no tiene SHA registrado, responde `PILOT_HOLDOUT_SHA_UNREGISTERED:exercise-2` y el workflow se detiene sin API. El holdout del ejercicio 1 conserva el secreto `PILOT_HOLDOUT_B64`; el del ejercicio 2 usará el secreto separado `PILOT_HOLDOUT_EX2_B64` cuando Claude lo entregue. Ambos se decodifican en `RUNNER_TEMP`; solo el SHA del ejercicio seleccionado se acepta.
+`task_selector.py` verifica la especificación por bytes, los dos scopes permitidos, tareas canónicas y la existencia del SHA por ejercicio **antes** de la instalación y de exponer secretos. Si alguna tarea no tiene SHA auténtico, el workflow se detiene sin API. El holdout del ejercicio 1 utiliza solo `PILOT_HOLDOUT_B64`; el del ejercicio 2 utiliza solo `PILOT_HOLDOUT_EX2_B64`, con pasos separados, sin fallback. Ambos se decodifican en `RUNNER_TEMP`; solo el SHA del ejercicio seleccionado se acepta.
 
 Conserva los topes, el motor `run_verified_worker` original, el Worker vendorizado sin cambios, el flujo manual, el control preventivo/posterior de USD y el upload condicional del parche.
 
@@ -132,7 +132,7 @@ python3 pilot/worker_v08/test_task_selector.py
 
 Las tres primeras pruebas son la puerta solicitada. La cuarta demuestra que el ejercicio 2 permanece bloqueado sin el SHA del examen oculto.
 
-**Bloqueo esperado:** `PILOT_HOLDOUT_SHA_UNREGISTERED:exercise-2`. No cargar ni invocar la tarea 2 hasta que Claude registre un SHA auténtico, prepare el holdout privado y califique la configuración. No se ejecuta el modelo en este PR.
+**Bloqueo esperado si no existe el secreto correcto:** `PILOT_HOLDOUT_B64_MISSING` o `HIDDEN_HOLDOUT_SHA_MISMATCH`. El SHA del ejercicio 2 está registrado, pero la ejecución real requiere que el secreto privado corresponda exactamente a esa huella. No se ejecuta el modelo en este PR.
 
 ## Registro gobernado del examen oculto del ejercicio 2 (sin contenido)
 
