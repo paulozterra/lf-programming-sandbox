@@ -18,6 +18,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 PIN="298307e2f9cac72abfde2b181f3554b0e28bad24"
+ADAPTER_PIN="a0ec3385e322b51793e6f06c7d8d580d83cd15d6"
 EXPECTED_HOLDOUT_SHA="979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
 SCRIPT=Path(__file__).resolve()
 REPO=SCRIPT.parents[2].resolve()
@@ -94,26 +95,27 @@ class FakeModel:
                resolved_model="fake-code-model-001",
                output_text=json.dumps(self.proposal,sort_keys=True),
                usage={"input_tokens":10,"output_tokens":10,"total_tokens":20})
-def fake_cost(visible_receipt):
-    """Fake-only zero-USD cost bridge; original sealed receipt is read-only."""
-    if visible_receipt.get("model_provider")!="fake" or visible_receipt.get("resolved_model")!="fake-code-model-001":
-        die("FAKE_COST_PROVIDER_INVALID")
-    attempts=visible_receipt.get("attempts",[])
-    if not isinstance(attempts,list) or len(attempts)!=1:die("FAKE_COST_ATTEMPTS_INVALID")
-    data=[]
-    for a in attempts:
-        usage=a.get("usage")
-        if not isinstance(usage,dict):die("FAKE_COST_USAGE_MISSING")
-        i,o=usage.get("input_tokens"),usage.get("output_tokens")
-        if type(i) is not int or i<0 or type(o) is not int or o<0:
-            die("FAKE_COST_USAGE_INVALID")
-        data.append({"attempt":a["attempt"],"input_tokens":i,"output_tokens":o,
-                     "estimated_usd":"0.00"})
-    return {"schema_version":"LF_FREE_FAKE_COST_V1","source_receipt_sha256":visible_receipt["receipt_sha256"],
-            "model_provider":"fake","price_policy":"FAKE_MODEL_NO_BILLING","price_version":"FAKE_ONLY_V1",
-            "attempts":data,"total_input_tokens":sum(v["input_tokens"] for v in data),
-            "total_output_tokens":sum(v["output_tokens"] for v in data),
-            "total_estimated_usd":"0.00","real_api_usage":False}
+def load_cost_adapter(checkout:Path):
+    source=checkout.resolve(strict=True)
+    got=subprocess.run(["git","-C",str(source),"rev-parse","HEAD"],
+                       check=True,capture_output=True,text=True).stdout.strip()
+    if got!=ADAPTER_PIN:die("COST_ADAPTER_COMMIT_MISMATCH")
+    module=source/"sandbox/lf_contract_gate_test/programming_agent_four_stage/worker_pilot_adapter_exp"
+    if not (module/"worker_cost_report_v1.py").is_file():
+        die("COST_ADAPTER_REAL_MODULE_MISSING")
+    sys.path.insert(0,str(module))
+    from worker_cost_report_v1 import price_receipt
+    return price_receipt
+def fake_cost(visible_receipt,price_receipt):
+    """Call the ACTUAL LF #3676 cost adapter against sealed visible Worker receipt."""
+    before=canonical_bytes(visible_receipt)
+    report=price_receipt(visible_receipt)
+    if canonical_bytes(visible_receipt)!=before:die("COST_ADAPTER_CHANGED_SEALED_RECEIPT")
+    if (report.get("model_provider")!="fake" or report.get("real_api_usage") is not False
+        or report.get("total_estimated_usd")!="0" or
+        report.get("price_table_version")!="FAKE_MODEL_NO_BILLING_V1"):
+        die("COST_ADAPTER_FAKE_ZERO_POLICY_FAILED")
+    return report
 def link_pg07_candidate(verified_receipt,cost_record,source_path=None):
     """Exact verified evidence; PG07 admission remains FALSE absent real PG07 package."""
     original={"schema_version":"PG07_WORKER_PILOT_RECEIPT_LINK_CANDIDATE_V1",
@@ -146,6 +148,7 @@ def run(args):
     if not REPO.joinpath("standards/tools/checks.py").is_file() or not REPO.joinpath("standards/tests/test_standards.py").is_file():
         die("EXISTING_FUNCTION_OR_VISIBLE_TEST_MISSING")
     require_pinned(args.worker_checkout.resolve())
+    cost_adapter=load_cost_adapter(args.adapter_checkout)
     from programming_agent_runner.hashutil import source_snapshot_sha256
     from programming_agent_runner.worker_spec import parse_worker_task
     from programming_agent_runner.worker_receipt import validate_worker_receipt
@@ -156,7 +159,9 @@ def run(args):
         run_verified_worker,validate_verified_worker_receipt)
     import programming_agent_runner.verified_worker as vw
     task_decl=json.loads(MANIFEST.read_text(encoding="utf-8"))
-    if task_decl["worker_commit"]!=PIN or task_decl["external_holdout_sha256"]!=EXPECTED_HOLDOUT_SHA:
+    if (task_decl["worker_commit"]!=PIN or
+        task_decl["cost_adapter_source_commit"]!=ADAPTER_PIN or
+        task_decl["external_holdout_sha256"]!=EXPECTED_HOLDOUT_SHA):
         die("PILOT_DECLARATION_DRIFT")
     target=task_decl["target_file"]
     original=REPO.joinpath(target).read_text(encoding="utf-8")
@@ -214,7 +219,7 @@ def run(args):
             if any("holdout" in str(k).lower() or "oracle" in str(k).lower()
                    for k in fake.payloads[0].get("workspace",{})):
                 die("HIDDEN_ORACLE_LEAKED_TO_FAKE_BUILDER")
-            cost=fake_cost(visible.receipt)
+            cost=fake_cost(visible.receipt,cost_adapter)
             link=link_pg07_candidate(outcome.receipt,cost)
             report.append({"case":label,"expected_status":expect,
                            "status":outcome.receipt["status"],
@@ -241,12 +246,14 @@ def run(args):
                     dest.write_bytes(file.read_bytes());dest.chmod(0o600)
         print(json.dumps({"status":"FREE_FAKE_E2E_PASS","worker_commit":PIN,
             "source_head":task["base_head_sha"],"task_sha256":spec.sha256,
+            "cost_adapter_commit":ADAPTER_PIN,
             "holdout_sha256":EXPECTED_HOLDOUT_SHA,
             "quality_plan_file_sha256":qhash,"readback_manifest_file_sha256":rhash,
             "cases":report,"workflow_authorized":False},sort_keys=True))
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--worker-checkout",type=Path,required=True)
+    parser.add_argument("--adapter-checkout",type=Path,required=True)
     parser.add_argument("--holdout",type=Path,required=True)
     parser.add_argument("--output",type=Path)
     args=parser.parse_args()
