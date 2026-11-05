@@ -215,8 +215,11 @@ def cost(args):
         fail("REAL_VISIBLE_USAGE_NOT_AVAILABLE")
     visible=read(visible_path)
     hardened=read(overall_path)
-    if visible.get("status")!="PASS" or hardened.get("status")!="PASS":
-        fail("WORKER_STATUS_NOT_PASS")
+    if (visible.get("model_provider")!="anthropic" or
+        hardened.get("model_provider")!="anthropic" or
+        visible.get("task_id")!=hardened.get("task_id")):
+        fail("WORKER_RECEIPTS_NOT_BOUND")
+    # Failed patches can still spend tokens: always account for actual usage.
     result=price_receipt(visible)
     if result.get("model_provider")!="anthropic" or result.get("real_api_usage") is not True:
         fail("PRICE_PROVIDER_OR_USAGE_INVALID")
@@ -232,13 +235,19 @@ def cost(args):
     for filename in ("verified-worker-receipt.json","visible-worker-receipt.json"):
         shutil.copyfile(private/filename,artifact/filename)
     put(artifact/"cost.json",result)
-    (artifact/"worker.patch").write_bytes((private/"worker.patch").read_bytes())
-    (artifact/"worker.patch").chmod(0o600)
+    patch=private/"worker.patch"
+    if hardened.get("status")=="PASS":
+        if not patch.is_file() or not patch.stat().st_size:
+            fail("PASS_WITHOUT_PATCH")
+        shutil.copyfile(patch,artifact/"worker.patch")
+        (artifact/"worker.patch").chmod(0o600)
     (artifact/"pilot-summary.log").write_text(
-        "PILOT_PASS; Anthropic model pinned; attempts=1; cost_usd="
+        "PILOT_WORKER_STATUS="+str(hardened.get("status"))+
+        "; Anthropic model pinned; attempts=1; cost_usd="
         +str(amount)+"; oracle content excluded; stage7_admitted=false\n",
         encoding="utf-8")
-    print("PILOT_COST_GATE_PASS_USD_"+str(amount))
+    print("PILOT_COST_GATE_PASS_USD_"+str(amount)+
+          "_WORKER_STATUS_"+str(hardened.get("status")))
 
 def main():
     p=argparse.ArgumentParser()
