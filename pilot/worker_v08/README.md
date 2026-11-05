@@ -41,12 +41,14 @@ El vínculo PG-07 se materializa solo como `PG07_WORKER_PILOT_RECEIPT_LINK_CANDI
 
 ## Comando para Claude (sin API)
 
-El auditor necesita tres elementos: un checkout limpio de esta rama; un checkout limpio del Worker pinneado; y el oráculo entregado por separado, en una ruta fuera de ambos repositorios.
+El auditor necesita cuatro elementos: esta rama limpia, un checkout del Worker pinneado, un checkout de #3676 en el commit del adaptador de costo, y el oráculo entregado por separado fuera de los repositorios.
 
 ```bash
 export WORKER_CHECKOUT=/ruta/programming-agent
+export COST_ADAPTER_CHECKOUT=/ruta/claude-persona-lf-patch-en-a0ec3385
 export HOLDOUT=/ruta/externa/lf_worker_pilot_branch_holdout_private_20261105.json
 test "$(git -C "$WORKER_CHECKOUT" rev-parse HEAD)" = "298307e2f9cac72abfde2b181f3554b0e28bad24"
+test "$(git -C "$COST_ADAPTER_CHECKOUT" rev-parse HEAD)" = "a0ec3385e322b51793e6f06c7d8d580d83cd15d6"
 sha256sum "$HOLDOUT"
 python3 pilot/worker_v08/run_fake_e2e.py \
   --worker-checkout "$WORKER_CHECKOUT" \
