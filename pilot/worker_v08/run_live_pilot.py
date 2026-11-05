@@ -304,7 +304,11 @@ def execute(private: Path) -> None:
     from receipt_diagnostics import write_public_receipt
     if seen:
         write_public_receipt(private / "public", seen[0], "visible")
-    write_public_receipt(private / "public", outcome.receipt, "verified")
+    model_category=next((
+        a.get("proposal_reason") for a in (seen[0].get("attempts",[]) if seen else [])
+        if isinstance(a,dict) and a.get("proposal_reason") in ("MODEL_ERROR","MODEL_REFUSAL")
+    ),None)
+    write_public_receipt(private / "public", outcome.receipt, "verified",model_category)
     if outcome.receipt["status"] == "PASS":
         raw = outcome.patch.encode("utf-8")
         if not raw or len(raw) > LIMITS["max_patch_bytes"]:
