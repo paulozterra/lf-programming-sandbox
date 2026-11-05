@@ -54,9 +54,13 @@
     "pricing_path": "pilot/worker_v08/cost_adapter/pricing_v1.json",
     "max_context_input_token_units": 60000,
     "max_output_tokens": 8000,
-    "haiku_ceiling_usd": "0.01",
-    "sonnet_ceiling_usd": "0.05",
+    "haiku_ceiling_usd": "0.03",
+    "sonnet_ceiling_usd": "0.20",
     "formula": "attempts * ((60000 * input_usd_per_million + 8000 * output_usd_per_million) / 1000000)",
-    "fail_closed": true
+    "fail_closed": true,
+    "model_attempt_limits": {
+      "claude-haiku-5-5": 3,
+      "claude-sonnet-5-5": 1
+    }
   }
 }
