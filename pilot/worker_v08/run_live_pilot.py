@@ -81,7 +81,12 @@ def verify_adapter_snapshot() -> None:
     expected = proof.get("files")
     if not isinstance(expected, dict) or len(expected) != 3:
         block("COST_ADAPTER_FILE_LIST_INVALID")
-    actual = {p.name for p in ADAPTER.iterdir() if p.is_file()}
+    if not ADAPTER.is_dir() or ADAPTER.is_symlink():
+        block("COST_ADAPTER_DIRECTORY_INVALID")
+    observed = list(ADAPTER.iterdir())
+    if any(p.is_symlink() or not p.is_file() for p in observed):
+        block("COST_ADAPTER_UNAPPROVED_ENTRY")
+    actual = {p.name for p in observed}
     if actual != set(expected) | {"PROVENANCE.json"}:
         block("COST_ADAPTER_FILES_DRIFT")
     for name, row in expected.items():
