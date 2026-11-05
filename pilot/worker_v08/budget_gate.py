@@ -14,8 +14,9 @@ from pathlib import Path
 PRICING = Path(__file__).resolve().parent/"cost_adapter/pricing_v1.json"
 MAX_CONTEXT_UNITS=60000
 MAX_OUTPUT_TOKENS=8000
-ALLOWED={"claude-haiku-5-5":Decimal("0.01"),
-         "claude-sonnet-5-5":Decimal("0.05")}
+ALLOWED={"claude-haiku-5-5":Decimal("0.03"),
+         "claude-sonnet-5-5":Decimal("0.20")}
+MODEL_ATTEMPT_LIMITS={"claude-haiku-5-5":3,"claude-sonnet-5-5":1}
 MAX_ATTEMPTS=3
 
 class BudgetBlocked(ValueError):
@@ -25,6 +26,8 @@ def quote(model: str,attempts: int,pricing_path:Path=PRICING) -> dict:
     if model not in ALLOWED:raise BudgetBlocked("PILOT_MODEL_FORBIDDEN")
     if type(attempts) is not int or not 1<=attempts<=MAX_ATTEMPTS:
         raise BudgetBlocked("PILOT_ATTEMPTS_FORBIDDEN")
+    if attempts>MODEL_ATTEMPT_LIMITS[model]:
+        raise BudgetBlocked("PILOT_MODEL_ATTEMPTS_EXCEEDED")
     table=json.loads(pricing_path.read_text(encoding="utf-8"))
     if (table.get("schema_version")!="LF_WORKER_PILOT_PRICE_TABLE_V1" or
         table.get("currency")!="USD" or
