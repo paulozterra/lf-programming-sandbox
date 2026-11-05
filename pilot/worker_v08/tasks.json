@@ -78,7 +78,7 @@
           "max_output_bytes": 16000
         }
       ],
-      "holdout_sha256": null,
+      "holdout_sha256": "44f75fa89fa6974cdcecc43bb2c2669d73eb4bf45fbebb3ec0f2308fce3551ee",
       "spec_path": "standards/tools/MIGRATIONS_SPEC.md",
       "spec_sha256": "b699c77f46df4c1be31865d3568ee5c1f2673f6b0cfbe1745bba60d7b068251c",
       "source_precondition": {
