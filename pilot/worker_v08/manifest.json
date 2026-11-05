@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_WORKER_V08_PILOT_TASK_V1",
+  "status": "CANDIDATE_SANDBOX_ONLY",
+  "source_repo": "paulozterra/lf-programming-sandbox",
+  "target_file": "standards/tools/checks.py",
+  "existing_visible_tests": "standards/tests/test_standards.py::CheckTests.test_branch_positive / test_branch_negative",
+  "objective": "Tighten the existing check_branch work_code segment so that the work code is one or more ASCII alphanumeric groups separated by exactly one hyphen; reject leading/trailing/double hyphens in work_code. Preserve the existing valid branch example and invalid feature/ branch behavior.",
+  "old_line": "BRANCH = re.compile(r\"^lf/prog-[A-Za-z0-9-]+/[a-z0-9]+(?:-[a-z0-9]+)*$\")",
+  "good_line": "BRANCH = re.compile(r\"^lf/prog-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*$\")",
+  "bad_line": "BRANCH = re.compile(r\"^lf/prog-[A-Za-z0-9-]+/[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$\")",
+  "visible_acceptance_command": {
+    "name": "existing-branch-tests",
+    "argv": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "standards/tests",
+      "-p",
+      "test_standards.py",
+      "-k",
+      "test_branch"
+    ],
+    "timeout_seconds": 90,
+    "max_output_bytes": 16000
+  },
+  "limits": {
+    "max_attempts": 1,
+    "max_context_bytes": 60000,
+    "max_patch_bytes": 20000,
+    "max_changed_files": 3,
+    "max_output_tokens": 8000,
+    "allow_deletions": false
+  },
+  "external_holdout_sha256": "979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821",
+  "external_holdout_embedded_in_repo": false,
+  "worker_commit": "298307e2f9cac72abfde2b181f3554b0e28bad24",
+  "role_skill_policy": "no fabricated stage7 assignment; receipt candidate remains non-admitted until PG07 evidence supplied"
+}
