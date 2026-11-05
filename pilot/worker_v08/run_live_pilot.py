@@ -21,9 +21,11 @@ from unittest.mock import patch
 PIN_WORKER = "298307e2f9cac72abfde2b181f3554b0e28bad24"
 PIN_ADAPTER = "5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e"
 PIN_HOLDOUT = "979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
-MAX_COST = Decimal("0.10")
+MAX_COST_BY_MODEL = {"claude-haiku-5-5": Decimal("0.01"),
+                     "claude-sonnet-5-5": Decimal("0.05")}
+MAX_ATTEMPTS = 3
 LIMITS = {
-    "max_attempts": 1,
+    "max_attempts": 3,
     "max_context_bytes": 60000,
     "max_patch_bytes": 20000,
     "max_changed_files": 3,
@@ -101,6 +103,32 @@ def verify_adapter_snapshot() -> None:
             block("COST_ADAPTER_BYTES_DRIFT:" + name)
 
 
+def selected_policy():
+    model=os.environ.get("PILOT_MODEL")
+    attempts=os.environ.get("PILOT_MAX_ATTEMPTS")
+    if os.environ.get("PILOT_PROVIDER")!="anthropic" or model not in MAX_COST_BY_MODEL:
+        block("PILOT_PROVIDER_MODEL_FORBIDDEN")
+    if attempts not in ("1","2","3"):
+        block("PILOT_ATTEMPTS_FORBIDDEN")
+    from budget_gate import require, BudgetBlocked
+    try:
+        verified=require(model,int(attempts))
+    except BudgetBlocked as exc:
+        block(str(exc))
+    return model,int(attempts),verified
+
+
+def enforce_task_limits(task,attempts):
+    if not isinstance(task,dict) or task.get("max_attempts")!=attempts:
+        block("PILOT_TASK_ATTEMPTS_INVALID")
+    for field in ("max_attempts","max_context_bytes","max_patch_bytes","max_changed_files"):
+        value=task.get(field)
+        if type(value) is not int or value<1 or value>LIMITS[field]:
+            block("PILOT_TASK_LIMIT_EXCEEDED:"+field)
+    if task.get("allow_deletions") is not False:
+        block("PILOT_DELETIONS_FORBIDDEN")
+
+
 def validate_common(private: Path) -> None:
     if REPO != REPO.resolve():
         block("PILOT_REPO_IS_SYMLINK")
@@ -126,12 +154,10 @@ def validate_common(private: Path) -> None:
     if (config.get("target_file") != "standards/tools/checks.py"
         or config.get("limits") != {
             **LIMITS, "max_output_tokens": 8000, "allow_deletions": False,
-        }):
+        } or config.get("allowed_models") != list(MAX_COST_BY_MODEL)
+        or config.get("attempts_options") != [1,2,3]):
         block("PILOT_MANIFEST_LIMIT_DRIFT")
-    if (os.environ.get("PILOT_PROVIDER") != "anthropic"
-        or os.environ.get("PILOT_MODEL") != "claude-haiku-5-5"
-        or os.environ.get("PILOT_MAX_ATTEMPTS") != "1"):
-        block("PILOT_INPUT_OVERRIDE_FORBIDDEN")
+    selected_policy()
     holdout = private / "holdout.oracle.json"
     if not holdout.is_file() or holdout.is_symlink() or digest(holdout.read_bytes()) != PIN_HOLDOUT:
         block("HIDDEN_HOLDOUT_SHA_MISMATCH")
@@ -160,7 +186,8 @@ def prepare(private: Path) -> None:
     source = (REPO / target).read_text(encoding="utf-8")
     if source.count(config["old_line"]) != 1:
         block("PILOT_TARGET_SOURCE_DRIFT")
-    (_, check_limits, parse, snapshot, load_oracle, assert_external, *_) = importer()
+    (_, _legacy_check_limits, parse, snapshot, load_oracle, assert_external, *_) = importer()
+    model,attempts,budget=selected_policy()
     task = {
         "schema_version": 1,
         "task_id": "LF-WORKER-PILOT-REAL-001",
@@ -171,13 +198,13 @@ def prepare(private: Path) -> None:
         "write_path_patterns": [target],
         "protected_path_patterns": ["standards/tests/**"],
         "acceptance_commands": [config["visible_acceptance_command"]],
-        "max_attempts": 1,
+        "max_attempts": attempts,
         "max_context_bytes": 60000,
         "max_patch_bytes": 20000,
         "max_changed_files": 3,
         "allow_deletions": False,
     }
-    check_limits(task)
+    enforce_task_limits(task,attempts)
     spec = parse(task)
     oracle = load_oracle(private / "holdout.oracle.json", PIN_HOLDOUT)
     assert_external(REPO, oracle)
@@ -192,7 +219,8 @@ def prepare(private: Path) -> None:
         "verified_worker_path": "run_verified_worker",
         "worker_commit": PIN_WORKER,
     })
-    print("PILOT_PREPARED_QUALITY_CLI_NOT_USED=true_NO_MODEL")
+    print("PILOT_PREPARED_QUALITY_CLI_NOT_USED=true_NO_MODEL model="+model+
+          " attempts="+str(attempts)+" worst_usd="+budget["worst_case_usd"])
 
 
 def execute(private: Path) -> None:
@@ -200,10 +228,11 @@ def execute(private: Path) -> None:
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         block("ANTHROPIC_API_KEY_MISSING")
-    (price_receipt, check_limits, parse, snapshot, load_oracle, assert_external,
+    (price_receipt, _legacy_check_limits, parse, snapshot, load_oracle, assert_external,
      validate_visible, run_verified, validate_verified) = importer()
+    model,attempts,_budget=selected_policy()
     task = read(private / "task.v1.json")
-    check_limits(task)
+    enforce_task_limits(task,attempts)
     spec = parse(task)
     if spec.base_head_sha != git_head(REPO) or spec.source_snapshot_sha256 != snapshot(REPO):
         block("PILOT_SOURCE_CHANGED_AFTER_PREFLIGHT")
@@ -212,7 +241,7 @@ def execute(private: Path) -> None:
     from programming_agent_runner.anthropic_messages import AnthropicMessagesClient
     import programming_agent_runner.verified_worker as verified_module
     client = AnthropicMessagesClient(
-        api_key=api_key, model="claude-haiku-5-5", timeout_seconds=90,
+        api_key=api_key, model=model, timeout_seconds=90,
         max_output_tokens=8000,
     )
     # Keep key out of persistent locals longer than necessary.
@@ -255,16 +284,20 @@ def cost(private: Path) -> None:
     if not path.is_file() or not verified_path.is_file():
         block("WORKER_RECEIPT_OR_USAGE_MISSING")
     (price_receipt, *_) = importer()
+    model,attempts,_budget=selected_policy()
     visible = read(path)
     verified = read(verified_path)
     if (visible.get("task_id") != verified.get("task_id")
         or visible.get("receipt_sha256") != verified.get("visible_receipt_sha256")
-        or visible.get("model_provider") != "anthropic"):
+        or visible.get("model_provider") != "anthropic"
+        or visible.get("requested_model") != model
+        or verified.get("requested_model") != model):
         block("WORKER_VISIBLE_VERIFIED_RECEIPT_BINDING_INVALID")
     result = price_receipt(visible)
     if (result.get("model_provider") != "anthropic"
         or result.get("real_api_usage") is not True
-        or len(result.get("attempts", [])) != 1):
+        or not 1<=len(result.get("attempts", []))<=attempts
+        or result.get("model") != model):
         block("PILOT_UNPRICED_OR_MULTIATTEMPT")
     try:
         usd = Decimal(result["total_estimated_usd"])
@@ -282,7 +315,7 @@ def cost(private: Path) -> None:
     put(public / "cost.json", result)
     # Preserve read-only receipts and cost even when over budget; NEVER expose
     # patch if this gate rejects the paid attempt.
-    if usd > MAX_COST:
+    if usd > MAX_COST_BY_MODEL[model]:
         block("PILOT_COST_OVER_USD_0_10")
     if verified.get("status") == "PASS":
         if not (private / "worker.patch").is_file():
@@ -292,7 +325,8 @@ def cost(private: Path) -> None:
         "QUALITY_CLI_NOT_USED=true\n"
         "WORKER=run_verified_worker\n"
         "PG07_ADMITTED=false\n"
-        "COST_ESTIMATE_USD=" + str(usd) + "\n",
+        "COST_ESTIMATE_USD=" + str(usd) + "\n"
+        "COST_CEILING_USD=" + str(MAX_COST_BY_MODEL[model]) + "\n",
         encoding="utf-8",
     )
     print("PILOT_COST_GATE_PASS_USD_" + str(usd) + "_QUALITY_CLI_NOT_USED=true")
