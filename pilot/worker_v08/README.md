@@ -21,7 +21,7 @@ El adaptador de costo de #3676 está incluido separadamente y **sin alteraciones
 
 `pilot/worker_v08/run_live_pilot.py` llama a **`run_verified_worker` REAL** del Worker vendorizado con `AnthropicMessagesClient`, NO al CLI endurecido ni a `run_programming_quality_worker_hardened`. El artefacto/recibo candidato declara **`QUALITY_CLI_NOT_USED=true`**; ningún baseline ficticio se crea ni se necesita. Esto NO significa que se haya superado el pipeline de calidad endurecido.
 
-Tarea de ensayo declarada en `pilot/worker_v08/manifest.json`: editar solo `standards/tools/checks.py::check_branch`; pruebas visibles **ya existentes** `standards/tests/test_standards.py::CheckTests.test_branch_positive/test_branch_negative`. Un WorkerTaskSpec V1 con **exactamente 14 campos** se valida usando `parse_worker_task` del Worker original y `check_limits` del adaptador. Restricciones: **max_attempts=1, max_context_bytes=60000, max_patch_bytes=20000, max_changed_files=3, allow_deletions=false, max_output_tokens=8000**. Cualquier falta o exceso BLOQUEA.
+`pilot/worker_v08/tasks.json` selecciona dos tareas autorizadas: ejercicio 1 (validación `check_branch()` en `checks.py`) y ejercicio 2 (`check_migrations()` nuevo más integración con `checks.py`). El manifiesto `manifest.json` conserva únicamente los parámetros heredados del ejercicio 1. Un WorkerTaskSpec V1 con **exactamente 14 campos** se valida con `parse_worker_task` original. Restricciones: **max_attempts hasta 3 (Haiku) / 1 (Sonnet), max_context_bytes=60000, max_patch_bytes=20000, max_changed_files=3, allow_deletions=false, max_output_tokens=8000**. Cualquier exceso BLOQUEA.
 
 El Worker crea un repositorio desechable para pruebas y entrega un parche, NO realiza commits, pushes, merges ni PR. La admisión PG-07 permanece **false** sin evidencia auténtica de los contratos de esa etapa.
 
@@ -100,3 +100,47 @@ python3 pilot/worker_v08/verify_vendor.py
 ```
 
 Las opciones del selector son Haiku/Sonnet y 1/2/3, pero la autorización se determina por modelo y costo **antes de llamar a la API**. El error de formato del diff no justifica alterar el prompt del Worker: si persiste, se registra.
+
+## Ejercicio 2 — migraciones (PR nuevo, sin solución anticipada)
+
+Archivo normativo: `standards/tools/MIGRATIONS_SPEC.md`, SHA-256:
+
+```
+b699c77f46df4c1be31865d3568ee5c1f2673f6b0cfbe1745bba60d7b068251c
+```
+
+Define `check_migrations(paths: list[str]) -> list[str]` con siete reglas `MIG-01`…`MIG-07`: nombre `V<n>__<desc>.sql`, descripción `[a-z0-9_]` de 1–60 caracteres, unicidad de versión, secuencia desde 1, ceros iniciales prohibidos, ignorar no-`.sql` y ordenar diagnósticos por versión/nombre. Contiene un ejemplo por regla y reglas precisas para nombres sin versión y diagnósticos múltiples.
+
+Las 14 pruebas **visibles** (`standards/tests/test_migrations.py`) incluyen una positiva y otra negativa por ID. Se dejan **deliberadamente RED** hasta que el Worker implemente el archivo nuevo `standards/tools/migrations.py` e integre el subcomando `migrations` en `standards/tools/checks.py`. El PR no contiene esa implementación. No se han visto ni creado casos del examen oculto; Claude lo diseña fuera de GitHub.
+
+`pilot/worker_v08/tasks.json` contiene exclusivamente dos opciones fijadas para el selector manual, con:
+- `exercise-1`: objetivo/ámbito/holdout existentes; SHA `979a661f…ab821`.
+- `exercise-2`: contexto `MIGRATIONS_SPEC.md`, `checks.py` y prueba visible; escritura exclusiva `migrations.py` y `checks.py`; `standards/tests/**` protegido; objetivo incluye SHA normativo; **SHA registrado `44f75fa89fa6974cdcecc43bb2c2669d73eb4bf45fbebb3ec0f2308fce3551ee`** aportado por Claude, sin contenido del examen en el repositorio.
+
+`task_selector.py` verifica la especificación por bytes, los dos scopes permitidos, tareas canónicas y la existencia del SHA por ejercicio **antes** de la instalación y de exponer secretos. Si alguna tarea no tiene SHA auténtico, el workflow se detiene sin API. El holdout del ejercicio 1 utiliza solo `PILOT_HOLDOUT_B64`; el del ejercicio 2 utiliza solo `PILOT_HOLDOUT_EX2_B64`, con pasos separados, sin fallback. Ambos se decodifican en `RUNNER_TEMP`; solo el SHA del ejercicio seleccionado se acepta.
+
+Conserva los topes, el motor `run_verified_worker` original, el Worker vendorizado sin cambios, el flujo manual, el control preventivo/posterior de USD y el upload condicional del parche.
+
+### Verificación offline
+
+```bash
+python3 pilot/worker_v08/test_workflow_policy.py
+python3 pilot/worker_v08/test_budget_gate.py
+python3 pilot/worker_v08/verify_vendor.py
+python3 pilot/worker_v08/test_task_selector.py
+```
+
+Las tres primeras pruebas son la puerta solicitada. La cuarta demuestra que el ejercicio 2 permanece bloqueado sin el SHA del examen oculto.
+
+**Bloqueo esperado si no existe el secreto correcto:** `PILOT_HOLDOUT_B64_MISSING` o `HIDDEN_HOLDOUT_SHA_MISMATCH`. El SHA del ejercicio 2 está registrado, pero la ejecución real requiere que el secreto privado corresponda exactamente a esa huella. No se ejecuta el modelo en este PR.
+
+## Registro gobernado del examen oculto del ejercicio 2 (sin contenido)
+
+- Única información recibida y registrada: SHA-256 `44f75fa89fa6974cdcecc43bb2c2669d73eb4bf45fbebb3ec0f2308fce3551ee`. No se ha visto ni almacenado el examen.
+- `tasks.json` fija esa huella exclusivamente en `exercise-2`. `task_selector.py` rechaza que se sustituya por la del ejercicio 1 (`PILOT_EXERCISE2_HOLDOUT_SHA_DRIFT`).
+- `run_live_pilot.py` obtiene SHA, contexto y alcance de escritura del ejercicio seleccionado en `tasks.json`, y mantiene las comprobaciones del manifiesto heredado para `exercise-1`.
+- El workflow selecciona `PILOT_HOLDOUT_B64` solo en el paso `if: exercise-1` y `PILOT_HOLDOUT_EX2_B64` solo en el paso `if: exercise-2`; **no hay fallback entre secretos**. Cada paso comprueba la huella que exporta el selector.
+- `standards/changes/CHG-0007.json` registra el cambio autorizado y `standards/CAMBIOS.md` es la vista generada. C9 no se desactiva.
+- Las 14 pruebas visibles del ejercicio 2 se omiten **exclusivamente cuando todavía no existe** `standards/tools/migrations.py` en el PR preparatorio. Cuando el Worker crea ese módulo, vuelven a ejecutarse íntegramente; si hay un módulo roto o faltan dependencias distintas, el test no se omite.
+
+Pruebas adicionales offline: `python3 pilot/worker_v08/test_preflight_routing.py` verifica la ruta de preflight de ambos ejercicios con una huella **simulada solo en la unidad de prueba**, sin usar ni reproducir los bytes reales del holdout. No equivale a validación criptográfica del secreto. La verificación SHA real se conserva en el workflow/preflight.

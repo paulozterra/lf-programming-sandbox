@@ -3,6 +3,14 @@ name: LF Worker v0.8 pilot — manual verified Worker only
 on:
   workflow_dispatch:
     inputs:
+      task:
+        description: "Fixed pilot exercise; exercise-2 requires Claude's holdout SHA"
+        required: true
+        type: choice
+        options:
+          - exercise-1
+          - exercise-2
+        default: exercise-1
       provider:
         description: "Pilot provider (only anthropic)"
         required: true
@@ -44,6 +52,7 @@ jobs:
       contents: read
     env:
       PYTHONDONTWRITEBYTECODE: "1"
+      PILOT_TASK: ${{ inputs.task }}
       PILOT_PROVIDER: ${{ inputs.provider }}
       PILOT_MODEL: ${{ inputs.model }}
       PILOT_MAX_ATTEMPTS: ${{ inputs.max_attempts }}
@@ -64,12 +73,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          case "$PILOT_TASK" in exercise-1|exercise-2) ;; *) exit 1 ;; esac
           test "$PILOT_PROVIDER" = "anthropic"
           case "$PILOT_MODEL" in claude-haiku-5-5|claude-sonnet-5-5) ;; *) exit 1 ;; esac
           case "$PILOT_MAX_ATTEMPTS" in 1|2|3) ;; *) exit 1 ;; esac
           python3 source/pilot/worker_v08/verify_vendor.py \
             --root "$GITHUB_WORKSPACE/source/vendor/programming-agent"
           python3 source/pilot/worker_v08/test_verify_vendor.py
+
+      - name: Block missing task-specific holdout SHA before model or secrets
+        id: task_sha
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 source/pilot/worker_v08/task_selector.py \
+            --task "$PILOT_TASK" \
+            --github-output "$GITHUB_OUTPUT"
 
       - name: Install Worker from exact vendored source with clean checkout
         shell: bash
@@ -82,10 +101,12 @@ jobs:
           python3 -m pip install --no-input --disable-pip-version-check \
             --no-cache-dir "$RUNNER_TEMP/lf-worker-pilot/worker-install-src"
 
-      - name: Decode owner holdout from base64 and verify pinned SHA256 privately
+      - name: Decode exercise-1 holdout from its OWN base64 secret (no fallback)
+        if: ${{ inputs.task == 'exercise-1' }}
         shell: bash
         env:
           PILOT_HOLDOUT_B64: ${{ secrets.PILOT_HOLDOUT_B64 }}
+          PILOT_HOLDOUT_EXPECTED_SHA: ${{ steps.task_sha.outputs.sha256 }}
         run: |
           set -euo pipefail
           umask 077
@@ -101,7 +122,9 @@ jobs:
               raw=base64.b64decode(encoded,validate=True)
           except (ValueError,base64.binascii.Error):
               raise SystemExit("PILOT_HOLDOUT_BASE64_INVALID")
-          expected="979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
+          expected=os.environ.get("PILOT_HOLDOUT_EXPECTED_SHA", "")
+          if len(expected)!=64 or any(c not in "0123456789abcdef" for c in expected):
+              raise SystemExit("PILOT_HOLDOUT_SHA_UNREGISTERED")
           if hashlib.sha256(raw).hexdigest()!=expected:
               raise SystemExit("HIDDEN_HOLDOUT_SHA_MISMATCH")
           path=Path(os.environ["RUNNER_TEMP"])/"lf-worker-pilot"/"holdout.oracle.json"
@@ -109,6 +132,40 @@ jobs:
               handle.write(raw)
           path.chmod(0o600)
           PY
+
+
+      - name: Decode exercise-2 holdout from its OWN base64 secret (no fallback)
+        if: ${{ inputs.task == 'exercise-2' }}
+        shell: bash
+        env:
+          PILOT_HOLDOUT_B64: ${{ secrets.PILOT_HOLDOUT_EX2_B64 }}
+          PILOT_HOLDOUT_EXPECTED_SHA: ${{ steps.task_sha.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import base64
+          import hashlib
+          import os
+          from pathlib import Path
+          encoded=os.environ.get("PILOT_HOLDOUT_B64")
+          if not encoded:
+              raise SystemExit("PILOT_HOLDOUT_B64_MISSING")
+          try:
+              raw=base64.b64decode(encoded,validate=True)
+          except (ValueError,base64.binascii.Error):
+              raise SystemExit("PILOT_HOLDOUT_BASE64_INVALID")
+          expected=os.environ.get("PILOT_HOLDOUT_EXPECTED_SHA", "")
+          if len(expected)!=64 or any(c not in "0123456789abcdef" for c in expected):
+              raise SystemExit("PILOT_HOLDOUT_SHA_UNREGISTERED")
+          if hashlib.sha256(raw).hexdigest()!=expected:
+              raise SystemExit("HIDDEN_HOLDOUT_SHA_MISMATCH")
+          path=Path(os.environ["RUNNER_TEMP"])/"lf-worker-pilot"/"holdout.oracle.json"
+          with path.open("xb") as handle:
+              handle.write(raw)
+          path.chmod(0o600)
+          PY
+
 
       - name: Offline WorkerTaskSpec preflight, source/holdout/cost-adapter verification
         id: preflight

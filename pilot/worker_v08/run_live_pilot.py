@@ -146,20 +146,34 @@ def validate_common(private: Path) -> None:
     verify(VENDOR)
     verify_adapter_snapshot()
     config = read(MANIFEST)
+    selected_policy()
+    from task_selector import select
+    task = select(os.environ.get("PILOT_TASK"), require_holdout=True)
+    # The manifest is the immutable legacy exercise-1 catalog. Never treat
+    # its single target / holdout as a global authority for exercise-2.
     if (config.get("worker_commit") != PIN_WORKER
         or config.get("cost_adapter_source_commit") != PIN_ADAPTER
-        or config.get("external_holdout_sha256") != PIN_HOLDOUT
         or config.get("source_repo") != "paulozterra/lf-programming-sandbox"):
         block("PILOT_MANIFEST_SOURCE_DRIFT")
-    if (config.get("target_file") != "standards/tools/checks.py"
-        or config.get("limits") != {
+    if (config.get("limits") != {
             **LIMITS, "max_output_tokens": 8000, "allow_deletions": False,
         } or config.get("allowed_models") != list(MAX_COST_BY_MODEL)
         or config.get("attempts_options") != [1,2,3]):
         block("PILOT_MANIFEST_LIMIT_DRIFT")
-    selected_policy()
+    if os.environ["PILOT_TASK"] == "exercise-1":
+        if (config.get("target_file") != task["write_path_patterns"][0]
+            or config.get("external_holdout_sha256") != task["holdout_sha256"]
+            or config.get("objective") != task["objective"]
+            or config.get("visible_acceptance_command") != task["acceptance_commands"][0]):
+            block("PILOT_EXERCISE1_LEGACY_CONTRACT_DRIFT")
+    else:
+        if (task["write_path_patterns"] != [
+                "standards/tools/migrations.py", "standards/tools/checks.py"]
+            or task["spec_sha256"] is None):
+            block("PILOT_EXERCISE2_SCOPE_INVALID")
     holdout = private / "holdout.oracle.json"
-    if not holdout.is_file() or holdout.is_symlink() or digest(holdout.read_bytes()) != PIN_HOLDOUT:
+    if (not holdout.is_file() or holdout.is_symlink()
+        or digest(holdout.read_bytes()) != task["holdout_sha256"]):
         block("HIDDEN_HOLDOUT_SHA_MISMATCH")
 
 
@@ -181,23 +195,30 @@ def importer():
 
 def prepare(private: Path) -> None:
     validate_common(private)
-    config = read(MANIFEST)
-    target = config["target_file"]
-    source = (REPO / target).read_text(encoding="utf-8")
-    if source.count(config["old_line"]) != 1:
-        block("PILOT_TARGET_SOURCE_DRIFT")
+    from task_selector import select
+    task_decl = select(os.environ.get("PILOT_TASK"), require_holdout=True)
+    pre = task_decl["source_precondition"]
+    path = REPO / pre["path"]
+    if pre["kind"] == "EXACT_LINE_ONCE":
+        if not path.is_file() or path.read_text(encoding="utf-8").count(pre["value"]) != 1:
+            block("PILOT_TARGET_SOURCE_DRIFT")
+    elif pre["kind"] == "NEW_FILE_ABSENT":
+        if path.exists():
+            block("PILOT_NEW_TARGET_ALREADY_EXISTS")
+    else:
+        block("PILOT_SOURCE_PRECONDITION_INVALID")
     (_, _legacy_check_limits, parse, snapshot, load_oracle, assert_external, *_) = importer()
     model,attempts,budget=selected_policy()
     task = {
         "schema_version": 1,
-        "task_id": "LF-WORKER-PILOT-REAL-001",
-        "objective": config["objective"],
+        "task_id": task_decl["task_id"],
+        "objective": task_decl["objective"],
         "base_head_sha": git_head(REPO),
         "source_snapshot_sha256": snapshot(REPO),
-        "context_path_patterns": [target],
-        "write_path_patterns": [target],
-        "protected_path_patterns": ["standards/tests/**"],
-        "acceptance_commands": [config["visible_acceptance_command"]],
+        "context_path_patterns": task_decl["context_path_patterns"],
+        "write_path_patterns": task_decl["write_path_patterns"],
+        "protected_path_patterns": task_decl["protected_path_patterns"],
+        "acceptance_commands": task_decl["acceptance_commands"],
         "max_attempts": attempts,
         "max_context_bytes": 60000,
         "max_patch_bytes": 20000,
@@ -206,7 +227,7 @@ def prepare(private: Path) -> None:
     }
     enforce_task_limits(task,attempts)
     spec = parse(task)
-    oracle = load_oracle(private / "holdout.oracle.json", PIN_HOLDOUT)
+    oracle = load_oracle(private / "holdout.oracle.json", task_decl["holdout_sha256"])
     assert_external(REPO, oracle)
     put(private / "task.v1.json", task)
     put(private / "extra.envelope.json", {
@@ -218,6 +239,9 @@ def prepare(private: Path) -> None:
         "QUALITY_CLI_NOT_USED": True,
         "verified_worker_path": "run_verified_worker",
         "worker_commit": PIN_WORKER,
+        "pilot_task": os.environ.get("PILOT_TASK"),
+        "spec_sha256": task_decl["spec_sha256"],
+        "holdout_sha256": task_decl["holdout_sha256"],
     })
     print("PILOT_PREPARED_QUALITY_CLI_NOT_USED=true_NO_MODEL model="+model+
           " attempts="+str(attempts)+" worst_usd="+budget["worst_case_usd"])
@@ -231,12 +255,21 @@ def execute(private: Path) -> None:
     (price_receipt, _legacy_check_limits, parse, snapshot, load_oracle, assert_external,
      validate_visible, run_verified, validate_verified) = importer()
     model,attempts,_budget=selected_policy()
+    from task_selector import select
+    task_decl = select(os.environ.get("PILOT_TASK"), require_holdout=True)
     task = read(private / "task.v1.json")
+    if (task.get("task_id")!=task_decl["task_id"]
+        or task.get("objective")!=task_decl["objective"]
+        or task.get("context_path_patterns")!=task_decl["context_path_patterns"]
+        or task.get("write_path_patterns")!=task_decl["write_path_patterns"]
+        or task.get("protected_path_patterns")!=task_decl["protected_path_patterns"]
+        or task.get("acceptance_commands")!=task_decl["acceptance_commands"]):
+        block("PILOT_TASK_SCOPE_DRIFT")
     enforce_task_limits(task,attempts)
     spec = parse(task)
     if spec.base_head_sha != git_head(REPO) or spec.source_snapshot_sha256 != snapshot(REPO):
         block("PILOT_SOURCE_CHANGED_AFTER_PREFLIGHT")
-    oracle = load_oracle(private / "holdout.oracle.json", PIN_HOLDOUT)
+    oracle = load_oracle(private / "holdout.oracle.json", task_decl["holdout_sha256"])
     assert_external(REPO, oracle)
     from programming_agent_runner.anthropic_messages import AnthropicMessagesClient
     import programming_agent_runner.verified_worker as verified_module
@@ -285,8 +318,12 @@ def cost(private: Path) -> None:
         block("WORKER_RECEIPT_OR_USAGE_MISSING")
     (price_receipt, *_) = importer()
     model,attempts,_budget=selected_policy()
+    from task_selector import select
+    task_decl=select(os.environ.get("PILOT_TASK"),require_holdout=True)
     visible = read(path)
     verified = read(verified_path)
+    if visible.get("task_id")!=task_decl["task_id"]:
+        block("PILOT_RECEIPT_TASK_DRIFT")
     if (visible.get("task_id") != verified.get("task_id")
         or visible.get("receipt_sha256") != verified.get("visible_receipt_sha256")
         or visible.get("model_provider") != "anthropic"

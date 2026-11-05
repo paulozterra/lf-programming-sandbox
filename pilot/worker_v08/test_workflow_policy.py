@@ -30,6 +30,9 @@ need(r"^permissions:\s*\n  contents: read\s*$","GLOBAL_WRITE_PERMISSION_FORBIDDE
 need(r"^    timeout-minutes: 10$","JOB_TIMEOUT_INVALID")
 need(r"^  group: lf-worker-v08-pilot-single-running-job$","CONCURRENCY_INVALID")
 need(r"^  cancel-in-progress: false$","IN_FLIGHT_CANCELLATION_FORBIDDEN")
+for exercise in ("exercise-1","exercise-2"):
+    need(r"^          - "+re.escape(exercise)+r"$","TASK_INPUT_MISSING:"+exercise)
+need(r"^      PILOT_TASK: .*inputs.task","TASK_ENV_MISSING")
 for required in ("anthropic","claude-haiku-5-5","claude-sonnet-5-5"):
     need(r"^          - "+re.escape(required)+r"$","PROVIDER_MODEL_NOT_PINNED")
 for v in ("1", "2", "3"):
@@ -42,9 +45,21 @@ need(r"^          cp -a .*source/vendor/programming-agent","VENDOR_COPY_INSTALL_
 need(r"^            --no-cache-dir .*worker-install-src","VENDOR_INSTALL_PATH_INVALID")
 need(r"^          PILOT_HOLDOUT_B64: .*secrets.PILOT_HOLDOUT_B64","HOLDOUT_MUST_BE_B64_SECRET")
 need(r"base64.b64decode\(encoded,validate=True\)","HOLDOUT_BASE64_MUST_BE_STRICT")
-need(r"979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821","HOLDOUT_PIN_MISSING")
+need(r"^      - name: Block missing task-specific holdout SHA before model or secrets$","TASK_SHA_GATE_MISSING")
+need(r"--github-output \"\$GITHUB_OUTPUT\"","TASK_SHA_NOT_EXPORTED")
+need(r"PILOT_HOLDOUT_EXPECTED_SHA: .*steps.task_sha.outputs.sha256","TASK_SHA_NOT_BOUND_TO_HOLDOUT")
+need(r"^      - name: Decode exercise-1 holdout from its OWN base64 secret", "EXERCISE1_STEP_MISSING")
+need(r"^      - name: Decode exercise-2 holdout from its OWN base64 secret", "EXERCISE2_STEP_MISSING")
+need(r"if: .*inputs.task == 'exercise-1'", "EXERCISE1_CONDITION_MISSING")
+need(r"if: .*inputs.task == 'exercise-2'", "EXERCISE2_CONDITION_MISSING")
+need(r"^          PILOT_HOLDOUT_B64: .*secrets.PILOT_HOLDOUT_EX2_B64", "EXERCISE2_SECRET_MISSING")
+if "&& secrets." in yaml or "|| secrets." in yaml:
+    raise AssertionError("HOLDOUT_SECRET_FALLBACK_FORBIDDEN")
+
 need(r"^          ANTHROPIC_API_KEY: .*secrets.ANTHROPIC_API_KEY","ANTHROPIC_KEY_NOT_SECRET")
 need(r"^      - name: Conservative pre-model budget gate","PREMODEL_BUDGET_GATE_MISSING")
+if yaml.index("Block missing task-specific holdout SHA") > yaml.index("ANTHROPIC_API_KEY:"):
+    raise AssertionError("TASK_SHA_GATE_TOO_LATE")
 need(r"^      - name: Mandatory actual-usage model-specific USD cost gate","COST_GATE_MISSING")
 need(r"steps.worker.outcome == 'success' && steps.cost.outcome == 'success'","PATCH_PASS_GATE_MISSING")
 need(r"^            .*public/cost.json$","COST_ARTIFACT_MISSING")

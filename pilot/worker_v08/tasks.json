@@ -1,0 +1,90 @@
+{
+  "schema_version": "LF_WORKER_PILOT_TASK_CATALOG_V1",
+  "allowed_tasks": [
+    "exercise-1",
+    "exercise-2"
+  ],
+  "tasks": {
+    "exercise-1": {
+      "task_id": "LF-WORKER-PILOT-REAL-001",
+      "objective": "Tighten the existing check_branch work_code segment so that the work code is one or more ASCII alphanumeric groups separated by exactly one hyphen; reject leading/trailing/double hyphens in work_code. Preserve the existing valid branch example and invalid feature/ branch behavior.",
+      "context_path_patterns": [
+        "standards/tools/checks.py"
+      ],
+      "write_path_patterns": [
+        "standards/tools/checks.py"
+      ],
+      "protected_path_patterns": [
+        "standards/tests/**"
+      ],
+      "acceptance_commands": [
+        {
+          "name": "existing-branch-tests",
+          "argv": [
+            "python3",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "standards/tests",
+            "-p",
+            "test_standards.py",
+            "-k",
+            "test_branch"
+          ],
+          "timeout_seconds": 90,
+          "max_output_bytes": 16000
+        }
+      ],
+      "holdout_sha256": "979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821",
+      "spec_path": null,
+      "spec_sha256": null,
+      "source_precondition": {
+        "kind": "EXACT_LINE_ONCE",
+        "path": "standards/tools/checks.py",
+        "value": "BRANCH = re.compile(r\"^lf/prog-[A-Za-z0-9-]+/[a-z0-9]+(?:-[a-z0-9]+)*$\")"
+      }
+    },
+    "exercise-2": {
+      "task_id": "LF-WORKER-PILOT-REAL-002",
+      "objective": "Implement check_migrations(paths: list[str]) -> list[str] in standards/tools/migrations.py and connect 'migrations' CLI subcommand in standards/tools/checks.py, following standards/tools/MIGRATIONS_SPEC.md exactly. NORMATIVE SPEC SHA256=b699c77f46df4c1be31865d3568ee5c1f2673f6b0cfbe1745bba60d7b068251c. Do not modify the specification, any visible or protected tests, vendor/ or the Worker instructions. Implement both authorized files; preserve all existing CLI behavior. Visible test: standards/tests/test_migrations.py; hidden oracle is external and must never enter context.",
+      "context_path_patterns": [
+        "standards/tools/MIGRATIONS_SPEC.md",
+        "standards/tools/checks.py",
+        "standards/tests/test_migrations.py"
+      ],
+      "write_path_patterns": [
+        "standards/tools/migrations.py",
+        "standards/tools/checks.py"
+      ],
+      "protected_path_patterns": [
+        "standards/tests/**"
+      ],
+      "acceptance_commands": [
+        {
+          "name": "migrations-visible-tests",
+          "argv": [
+            "python3",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "standards/tests",
+            "-p",
+            "test_migrations.py",
+            "-v"
+          ],
+          "timeout_seconds": 120,
+          "max_output_bytes": 16000
+        }
+      ],
+      "holdout_sha256": "44f75fa89fa6974cdcecc43bb2c2669d73eb4bf45fbebb3ec0f2308fce3551ee",
+      "spec_path": "standards/tools/MIGRATIONS_SPEC.md",
+      "spec_sha256": "b699c77f46df4c1be31865d3568ee5c1f2673f6b0cfbe1745bba60d7b068251c",
+      "source_precondition": {
+        "kind": "NEW_FILE_ABSENT",
+        "path": "standards/tools/migrations.py"
+      }
+    }
+  }
+}

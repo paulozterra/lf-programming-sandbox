@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0007",
+  "title": "Piloto Worker: contrato MIG-01 a MIG-07 y admisión segura del examen por tarea",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Decisión explícita de Paulo 2026-11-05: registrar solo SHA del holdout de ejercicio 2 y resolver C9 del PR #23"
+  },
+  "reason": "Registrar el contrato documental nuevo de migraciones, pruebas visibles, selector de tareas y segregación estricta de secretos sin cambiar el Worker original ni las normas existentes.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "standards/tools/MIGRATIONS_SPEC.md",
+      "standards/tests/test_migrations.py",
+      "pilot/worker_v08/tasks.json",
+      "pilot/worker_v08/task_selector.py",
+      "pilot/worker_v08/run_live_pilot.py",
+      ".github/workflows/worker-pilot.yml",
+      ".github/workflows/ci.yml"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/23"
+  },
+  "decision_ref": "Paulo: ejercicio 2 SHA autorizado, dos secretos sin fallback y cierre C9 del PR #23"
+}
