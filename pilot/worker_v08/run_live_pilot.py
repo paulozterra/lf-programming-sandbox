@@ -146,20 +146,31 @@ def validate_common(private: Path) -> None:
     verify(VENDOR)
     verify_adapter_snapshot()
     config = read(MANIFEST)
+    selected_policy()
+    from task_selector import select
+    task = select(os.environ.get("PILOT_TASK"), require_holdout=True)
+    # The manifest is the immutable legacy exercise-1 catalog. Never treat
+    # its single target / holdout as a global authority for exercise-2.
     if (config.get("worker_commit") != PIN_WORKER
         or config.get("cost_adapter_source_commit") != PIN_ADAPTER
-        or config.get("external_holdout_sha256") != PIN_HOLDOUT
         or config.get("source_repo") != "paulozterra/lf-programming-sandbox"):
         block("PILOT_MANIFEST_SOURCE_DRIFT")
-    if (config.get("target_file") != "standards/tools/checks.py"
-        or config.get("limits") != {
+    if (config.get("limits") != {
             **LIMITS, "max_output_tokens": 8000, "allow_deletions": False,
         } or config.get("allowed_models") != list(MAX_COST_BY_MODEL)
         or config.get("attempts_options") != [1,2,3]):
         block("PILOT_MANIFEST_LIMIT_DRIFT")
-    selected_policy()
-    from task_selector import select
-    task = select(os.environ.get("PILOT_TASK"), require_holdout=True)
+    if os.environ["PILOT_TASK"] == "exercise-1":
+        if (config.get("target_file") != task["write_path_patterns"][0]
+            or config.get("external_holdout_sha256") != task["holdout_sha256"]
+            or config.get("objective") != task["objective"]
+            or config.get("visible_acceptance_command") != task["acceptance_commands"][0]):
+            block("PILOT_EXERCISE1_LEGACY_CONTRACT_DRIFT")
+    else:
+        if (task["write_path_patterns"] != [
+                "standards/tools/migrations.py", "standards/tools/checks.py"]
+            or task["spec_sha256"] is None):
+            block("PILOT_EXERCISE2_SCOPE_INVALID")
     holdout = private / "holdout.oracle.json"
     if (not holdout.is_file() or holdout.is_symlink()
         or digest(holdout.read_bytes()) != task["holdout_sha256"]):
