@@ -70,3 +70,33 @@ Claude debe confirmar el resultado de estos comandos, la equivalencia byte a byt
 La corrida histórica gratuita puede reproducirse aparte con `run_fake_e2e.py` y checkouts externos; ese script de demostración no es ejecutado por el workflow real.
 
 **Autoridad:** `CANDIDATE_SANDBOX_ONLY`, `QUALITY_CLI_NOT_USED=true`, `PG07_ADMITTED=false`, `production_authority=false`.
+
+## Límites preventivos autorizados tras la primera corrida real
+
+Primera corrida (run `42114542965`): Haiku ×1, `PROPOSAL_INVALID` por formato del diff; entrada 2775, salida 546, USD 0.0005505. No se aplicó parche. **El Worker original y su prompt no se modifican**.
+
+Paulo autorizó expresamente estos presupuestos máximos estimados, utilizando el pricing versionado existente del adaptador: Haiku 5.5 USD 0.10/0.50 y Sonnet 5.5 USD 2.00/10.00 por millón de tokens de entrada/salida, respectivamente. Sin cambiar los 60 000 bytes de contexto ni los 8000 tokens máximos de salida:
+
+| Selección | Peor caso por corrida | Límite | Decisión |
+|---|---:|---:|---|
+| Haiku ×1 | USD 0.010 | USD 0.03 | PASS preventivo |
+| Haiku ×2 | USD 0.020 | USD 0.03 | PASS preventivo |
+| Haiku ×3 | USD 0.030 | USD 0.03 | PASS preventivo |
+| Haiku ×4 | Fuera del tope de 3 intentos | USD 0.03 | BLOCK |
+| Sonnet ×1 | USD 0.200 | USD 0.20 | PASS preventivo |
+| Sonnet ×2 | USD 0.400 | USD 0.20 | BLOCK |
+| Sonnet ×3 | USD 0.600 | USD 0.20 | BLOCK |
+
+El cálculo anterior es `max_attempts × (60000 × precio_entrada + 8000 × precio_salida) / 1_000_000`; trata los bytes de contexto como unidades de tokens de entrada a favor de una cota conservadora, **no** es una garantía de facturación máxima ofrecida por Anthropic. `budget_gate.py` bloquea antes del paso con clave, y `run_live_pilot.py` repite la decisión tanto en prepare como en execute. El control posterior exige tokens reales y el mismo tope por modelo.
+
+La tabla de precios en `pilot/worker_v08/cost_adapter/pricing_v1.json` **ya** incluía Sonnet y está vinculada a la huella inmutable del adaptador de #3676. No fue editada; su versión es `2026-11-05-owner-assumption`.
+
+Pruebas estáticas para Claude (sin clave/modelo):
+
+```bash
+python3 pilot/worker_v08/test_budget_gate.py
+python3 pilot/worker_v08/test_workflow_policy.py
+python3 pilot/worker_v08/verify_vendor.py
+```
+
+Las opciones del selector son Haiku/Sonnet y 1/2/3, pero la autorización se determina por modelo y costo **antes de llamar a la API**. El error de formato del diff no justifica alterar el prompt del Worker: si persiste, se registra.
