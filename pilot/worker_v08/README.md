@@ -35,7 +35,7 @@ Los lectores originales `load_quality_plan`, `load_readback_manifest` y `load_hi
 1. **Correcto:** parche regex restringido, pasan las pruebas visibles existentes + el holdout oculto; `run_verified_worker` debe emitir `PASS` y parche.
 2. **Incorrecto:** parche sintácticamente válido y que conserva las pruebas visibles, pero sigue permitiendo work_code con doble guion; el holdout debe producir `FAIL` y `patch_delivered=false`, parche vacío.
 
-Se validan ambos recibos reales con validadores originales. Un wrapper de observación captura el recibo **sellado real** del Worker visible sin modificarlo, y calcula `FAKE_MODEL_NO_BILLING` (USD 0 por intento, tokens del uso simulado del FakeModel y marcado `real_api_usage=false`). Es una extensión explícita para modelo falso; **no sustituye** el precio de Haiku/Sonnet ni modifica `pricing_v1.json` del adaptador de #3676.
+Se validan ambos recibos reales con validadores originales. Un wrapper captura el recibo **sellado real** del Worker visible sin modificarlo. El costo se obtiene mediante el **adaptador real** `worker_cost_report_v1.price_receipt` de #3676, fijado al commit `a0ec3385e322b51793e6f06c7d8d580d83cd15d6`. Este admite expresamente el FakeModel original como proveedor de prueba sin facturación: USD 0 por intento con los contadores de `attempts[].usage` reales del Worker, `real_api_usage=false`, y sin alterar tarifas Haiku/Sonnet ni re-sellar el recibo.
 
 El vínculo PG-07 se materializa solo como `PG07_WORKER_PILOT_RECEIPT_LINK_CANDIDATE_V1` con hashes genuinos de task, recibo y costo, y con `pg07_admitted=false`, `pg07_receipt_guard_executed=false`, `production_authority=false`. Sin sobre fuente PG-07 con aprobación real **no** se reclama un recibo admitido por la etapa 7.
 
@@ -52,6 +52,7 @@ test "$(git -C "$COST_ADAPTER_CHECKOUT" rev-parse HEAD)" = "a0ec3385e322b51793e6
 sha256sum "$HOLDOUT"
 python3 pilot/worker_v08/run_fake_e2e.py \
   --worker-checkout "$WORKER_CHECKOUT" \
+  --adapter-checkout "$COST_ADAPTER_CHECKOUT" \
   --holdout "$HOLDOUT" \
   --output /tmp/lf-worker-v08-free-receipts
 ```
