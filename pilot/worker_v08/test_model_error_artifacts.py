@@ -24,7 +24,7 @@ from programming_agent_runner.worker_receipt import validate_worker_receipt
 from programming_agent_runner.model_client import ModelError
 import programming_agent_runner.verified_worker as verified_module
 from unittest.mock import patch
-from receipt_diagnostics import (write_public_receipt,write_usage_unavailable,
+from receipt_diagnostics import (write_public_receipt,write_no_visible_receipt,write_usage_unavailable,
                                  MISSING_USAGE_MESSAGE)
 
 SECRET="sk-notreal-sentinel-THIS-MUST-NEVER-LEAK"
@@ -41,6 +41,18 @@ def git(repo,*args):
                           check=True,text=True).stdout.strip()
 
 class OriginalWorkerErrorArtifactTests(unittest.TestCase):
+    def test_no_visible_receipt_is_not_forged(self):
+        with tempfile.TemporaryDirectory(prefix="lf-no-visible-") as temp:
+            public=Path(temp)/"public"
+            write_no_visible_receipt(public,{"task_id":"LF-BLOCKED",
+                    "receipt_sha256":"a"*64})
+            value=json.loads((public/"visible-worker-receipt.json").read_text())
+            self.assertFalse(value["original_visible_receipt_available"])
+            self.assertTrue(value["original_seal_not_claimed"])
+            self.assertEqual(value["attempts"],[])
+            self.assertEqual(value["status"],"NOT_EMITTED")
+            self.assertNotIn("receipt_sha256",value)
+
     def test_model_error_blocked_receipts_uploaded_safely(self):
         with tempfile.TemporaryDirectory(prefix="lf-original-worker-error-") as tmp:
             parent=Path(tmp)
