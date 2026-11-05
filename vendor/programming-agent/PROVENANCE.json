@@ -1,0 +1,75 @@
+{
+  "schema_version": "LF_VENDOR_PROGRAMMING_AGENT_PROVENANCE_V1",
+  "source_repository": "cristhianlujan/programming-agent",
+  "source_commit": "298307e2f9cac72abfde2b181f3554b0e28bad24",
+  "copied_on_date_utc": "2026-11-05",
+  "copy_scope": [
+    "pyproject.toml",
+    "src/**"
+  ],
+  "file_count": 72,
+  "total_bytes": 675415,
+  "files": {
+    "pyproject.toml": {
+      "sha256": "4a9d0ca2f9413b57f68860366a218d43042a2bb8cd2126b2ef81d4cac3d270d2",
+      "bytes": 652,
+      "source_git_blob_sha1": "199d79462f032a406dd358110f627d5c9b62fbc8"
+    },
+    "src/programming_agent_runner/__init__.py": {
+      "sha256": "02a50c1ca59dcbc5fcdc293477bf5dfbaf21451ff86fdd6938322c08ed3b639e",
+      "bytes": 71,
+      "source_git_blob_sha1": "02f22ecb4965d3bca930f99d0b6a046218c1cc2e"
+    },
+    "src/programming_agent_runner/analysis_checks.py": {
+      "sha256": "0e56e3584706d7bb2654abac5d3b240f52067fb8e0d34fd62413aa943e11c1bc",
+      "bytes": 3394,
+      "source_git_blob_sha1": "d45eb90d9c13784966ed38839f16f6d5dfb1cdbc"
+    },
+    "src/programming_agent_runner/anthropic_messages.py": {
+      "sha256": "fb1607374c706bff19450fe30d673973e2d8f3231bcfde6e6fceeb1596f841c2",
+      "bytes": 7438,
+      "source_git_blob_sha1": "a7bc3a2ae4abdd087d4465083ec1ad0a1051819e"
+    },
+    "src/programming_agent_runner/ast_analysis.py": {
+      "sha256": "96b4e592a646c82323f2fa1118d6ba201f5e7db1d40493932d5a7d9137ec7dce",
+      "bytes": 2058,
+      "source_git_blob_sha1": "02a7505df6bb8a913e7fef82dcd4f17a6dc85ada"
+    },
+    "src/programming_agent_runner/authority_signatures.py": {
+      "sha256": "4743a0e9d1b6b6d31d9e11032cd77465a8ab667c95f1199cb013d7ac61f66fc9",
+      "bytes": 3220,
+      "source_git_blob_sha1": "c3689fe4949048301bf8a9c5c734498e161743d6"
+    },
+    "src/programming_agent_runner/baseline_guard_v1.py": {
+      "sha256": "a410f3eeee265753509ee6a3a02057126a06d9e579f2c16e49c7120c48c4865c",
+      "bytes": 4685,
+      "source_git_blob_sha1": "335206c00264b811d1d47845924dc9133e94760d"
+    },
+    "src/programming_agent_runner/ci_reconcile.py": {
+      "sha256": "4b4b670363e05569c1e582ad37005aaaafdb857f13852b446233418044f8265f",
+      "bytes": 8180,
+      "source_git_blob_sha1": "e4879d8b3784e8eb16be232635fb776ea2f82388"
+    },
+    "src/programming_agent_runner/cli.py": {
+      "sha256": "0b4af6349e49d4b20bfd6f8936afce6f35cb4629f5d868a3e9fbc9171109acb7",
+      "bytes": 3653,
+      "source_git_blob_sha1": "8a921755b96b8d72806d06e40d1060ef6c9c49d0"
+    },
+    "src/programming_agent_runner/command_discovery.py": {
+      "sha256": "eb75ec8afb1d43150a575accfb190ba365eb6ea11100c85bac367c9d95b15c2c",
+      "bytes": 3435,
+      "source_git_blob_sha1": "c67b42a2e8b44878dd650002187267dbb264cc46"
+    },
+    "src/programming_agent_runner/context_builder.py": {
+      "sha256": "1b924950b0cbdd43fdb4070e86eee2e42ebb8138a1b6ffe007983732e2e5afdc",
+      "bytes": 1226,
+      "source_git_blob_sha1": "4d47ec371df6e39869129492ae092e157fe74788"
+    },
+    "src/programming_agent_runner/dependency_verify.py": {
+      "sha256": "fbd96cc1b44f6a5030f6e122ed03d066e6439dcb64a10630ed7ff5f394e9680d",
+      "bytes": 2601,
+      "source_git_blob_sha1": "182cdd6dfd6c298c758ba40918918d8c73ed3224"
+    }
+  },
+  "immutable_source": true
+}

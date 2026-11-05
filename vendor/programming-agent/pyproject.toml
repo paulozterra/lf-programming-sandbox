@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "programming-agent-runner"
+version = "0.8.0"
+description = "Fail-closed multi-provider Worker with isolated hidden holdout acceptance and review evidence."
+requires-python = ">=3.11"
+dependencies = ["cryptography==49.0.0"]
+
+[project.scripts]
+programming-agent-runner = "programming_agent_runner.cli:main"
+programming-agent-worker = "programming_agent_runner.worker_cli:main"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_optional = true
