@@ -48,7 +48,14 @@ need(r"base64.b64decode\(encoded,validate=True\)","HOLDOUT_BASE64_MUST_BE_STRICT
 need(r"^      - name: Block missing task-specific holdout SHA before model or secrets$","TASK_SHA_GATE_MISSING")
 need(r"--github-output \"\$GITHUB_OUTPUT\"","TASK_SHA_NOT_EXPORTED")
 need(r"PILOT_HOLDOUT_EXPECTED_SHA: .*steps.task_sha.outputs.sha256","TASK_SHA_NOT_BOUND_TO_HOLDOUT")
-need(r'PILOT_HOLDOUT_B64: .*inputs.task == \'exercise-1\'.*PILOT_HOLDOUT_EX2_B64',"TASK_HOLDOUT_SECRET_NOT_SEPARATED")
+need(r"^      - name: Decode exercise-1 holdout from its OWN base64 secret", "EXERCISE1_STEP_MISSING")
+need(r"^      - name: Decode exercise-2 holdout from its OWN base64 secret", "EXERCISE2_STEP_MISSING")
+need(r"if: .*inputs.task == 'exercise-1'", "EXERCISE1_CONDITION_MISSING")
+need(r"if: .*inputs.task == 'exercise-2'", "EXERCISE2_CONDITION_MISSING")
+need(r"^          PILOT_HOLDOUT_B64: .*secrets.PILOT_HOLDOUT_EX2_B64", "EXERCISE2_SECRET_MISSING")
+if "&& secrets." in yaml or "|| secrets." in yaml:
+    raise AssertionError("HOLDOUT_SECRET_FALLBACK_FORBIDDEN")
+
 need(r"^          ANTHROPIC_API_KEY: .*secrets.ANTHROPIC_API_KEY","ANTHROPIC_KEY_NOT_SECRET")
 need(r"^      - name: Conservative pre-model budget gate","PREMODEL_BUDGET_GATE_MISSING")
 if yaml.index("Block missing task-specific holdout SHA") > yaml.index("ANTHROPIC_API_KEY:"):
