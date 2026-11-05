@@ -1,0 +1,183 @@
+name: LF Worker v0.8 pilot — manual verified Worker only
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Pilot provider (only anthropic)"
+        required: true
+        type: choice
+        options:
+          - anthropic
+        default: anthropic
+      model:
+        description: "Only approved model in this phase"
+        required: true
+        type: choice
+        options:
+          - claude-haiku-5-5
+        default: claude-haiku-5-5
+      max_attempts:
+        description: "Exactly one attempt"
+        required: true
+        type: choice
+        options:
+          - "1"
+        default: "1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lf-worker-v08-pilot-single-running-job
+  cancel-in-progress: false
+
+jobs:
+  worker-pilot:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PILOT_PROVIDER: ${{ inputs.provider }}
+      PILOT_MODEL: ${{ inputs.model }}
+      PILOT_MAX_ATTEMPTS: ${{ inputs.max_attempts }}
+    steps:
+      - name: Checkout private sandbox source without persistent credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, SHA pinned
+        with:
+          path: source
+          persist-credentials: false
+
+      - name: Set up Python runtime (SHA pinned)
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5, SHA pinned
+        with:
+          python-version: "3.12"
+
+      - name: Validate manual inputs and verify every vendored Worker byte BEFORE install
+        id: vendor
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$PILOT_PROVIDER" = "anthropic"
+          test "$PILOT_MODEL" = "claude-haiku-5-5"
+          test "$PILOT_MAX_ATTEMPTS" = "1"
+          python3 source/pilot/worker_v08/verify_vendor.py \
+            --root "$GITHUB_WORKSPACE/source/vendor/programming-agent"
+          python3 source/pilot/worker_v08/test_verify_vendor.py
+
+      - name: Install Worker from exact vendored source with clean checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$RUNNER_TEMP/lf-worker-pilot"
+          # Build/install from a private copy; pip cannot modify tracked source.
+          cp -a "$GITHUB_WORKSPACE/source/vendor/programming-agent" \
+            "$RUNNER_TEMP/lf-worker-pilot/worker-install-src"
+          python3 -m pip install --no-input --disable-pip-version-check \
+            --no-cache-dir "$RUNNER_TEMP/lf-worker-pilot/worker-install-src"
+
+      - name: Decode owner holdout from base64 and verify pinned SHA256 privately
+        shell: bash
+        env:
+          PILOT_HOLDOUT_B64: ${{ secrets.PILOT_HOLDOUT_B64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import base64
+          import hashlib
+          import os
+          from pathlib import Path
+          encoded=os.environ.get("PILOT_HOLDOUT_B64")
+          if not encoded:
+              raise SystemExit("PILOT_HOLDOUT_B64_MISSING")
+          try:
+              raw=base64.b64decode(encoded,validate=True)
+          except (ValueError,base64.binascii.Error):
+              raise SystemExit("PILOT_HOLDOUT_BASE64_INVALID")
+          expected="979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
+          if hashlib.sha256(raw).hexdigest()!=expected:
+              raise SystemExit("HIDDEN_HOLDOUT_SHA_MISMATCH")
+          path=Path(os.environ["RUNNER_TEMP"])/"lf-worker-pilot"/"holdout.oracle.json"
+          with path.open("xb") as handle:
+              handle.write(raw)
+          path.chmod(0o600)
+          PY
+
+      - name: Offline WorkerTaskSpec preflight, source/holdout/cost-adapter verification
+        id: preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 source/pilot/worker_v08/run_live_pilot.py prepare \
+            --private "$RUNNER_TEMP/lf-worker-pilot"
+
+      - name: Execute REAL vendored run_verified_worker (one attempt; max output 8000)
+        id: worker
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          python3 source/pilot/worker_v08/run_live_pilot.py execute \
+            --private "$RUNNER_TEMP/lf-worker-pilot"
+
+      - name: Mandatory actual-usage USD 0.10 cost gate (fail closed)
+        id: cost
+        if: always() && steps.worker.outcome != 'skipped'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 source/pilot/worker_v08/run_live_pilot.py cost \
+            --private "$RUNNER_TEMP/lf-worker-pilot"
+
+      - name: Write sanitized status log, never secret or holdout
+        if: always()
+        shell: bash
+        env:
+          VENDOR_STATUS: ${{ steps.vendor.outcome }}
+          PREP_STATUS: ${{ steps.preflight.outcome }}
+          WORKER_STATUS: ${{ steps.worker.outcome }}
+          COST_STATUS: ${{ steps.cost.outcome }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          directory=Path(os.environ["RUNNER_TEMP"])/"lf-worker-pilot"/"public"
+          directory.mkdir(parents=True,exist_ok=True)
+          log="VENDOR="+os.getenv("VENDOR_STATUS","not-run")+"\n"
+          log+="PREFLIGHT="+os.getenv("PREP_STATUS","not-run")+"\n"
+          log+="WORKER="+os.getenv("WORKER_STATUS","not-run")+"\n"
+          log+="COST="+os.getenv("COST_STATUS","not-run")+"\n"
+          log+="QUALITY_CLI_NOT_USED=true\n"
+          log+="RUN_VERIFIED_WORKER=true\nPG07_ADMITTED=false\n"
+          log+="SECRETS_NOT_LOGGED=true\nHOLDOUT_NOT_UPLOADED=true\n"
+          (directory/"pilot-status.log").write_text(log,encoding="utf-8")
+          PY
+
+      - name: Upload sealed receipts, cost and sanitized logs only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, SHA pinned
+        with:
+          name: worker-pilot-receipts-cost-logs
+          if-no-files-found: warn
+          retention-days: 3
+          path: |
+            ${{ runner.temp }}/lf-worker-pilot/public/verified-worker-receipt.json
+            ${{ runner.temp }}/lf-worker-pilot/public/visible-worker-receipt.json
+            ${{ runner.temp }}/lf-worker-pilot/public/cost.json
+            ${{ runner.temp }}/lf-worker-pilot/public/pilot-summary.log
+            ${{ runner.temp }}/lf-worker-pilot/public/pilot-status.log
+
+      - name: Upload patch ONLY if verified PASS and cost gate PASS
+        if: ${{ steps.worker.outcome == 'success' && steps.cost.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, SHA pinned
+        with:
+          name: worker-pilot-verified-patch
+          if-no-files-found: error
+          retention-days: 3
+          path: ${{ runner.temp }}/lf-worker-pilot/public/worker.patch

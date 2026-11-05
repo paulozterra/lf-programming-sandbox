@@ -1,0 +1,19 @@
+{
+  "schema_version": "LF_WORKER_PILOT_PRICE_TABLE_V1",
+  "version": "2026-11-05-owner-assumption",
+  "currency": "USD",
+  "price_unit": "per_1_000_000_tokens",
+  "source_kind": "OWNER_SUPPLIED_PILOT_ASSUMPTIONS_NOT_PROVIDER_VERIFIED",
+  "models": {
+    "claude-haiku-5-5": {
+      "provider": "anthropic",
+      "input_usd_per_million": "0.10",
+      "output_usd_per_million": "0.50"
+    },
+    "claude-sonnet-5-5": {
+      "provider": "anthropic",
+      "input_usd_per_million": "2.00",
+      "output_usd_per_million": "10.00"
+    }
+  }
+}

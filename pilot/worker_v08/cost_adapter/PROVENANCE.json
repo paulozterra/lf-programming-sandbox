@@ -1,0 +1,18 @@
+{
+  "schema_version": "LF_PILOT_COST_ADAPTER_PIN_V1",
+  "source_repository": "cristhianlujan/claude-persona-lf-patch",
+  "source_commit": "5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e",
+  "source_root": "sandbox/lf_contract_gate_test/programming_agent_four_stage/worker_pilot_adapter_exp/",
+  "files": {
+    "pg07_to_worker_v1_adapter.py": {
+      "source_git_blob_sha1": "1ef77862d8ded73bd7ef443e8d41f8a9ffb48351"
+    },
+    "worker_cost_report_v1.py": {
+      "source_git_blob_sha1": "48fba819b1d53146775dd84fb92330f2176c3d73"
+    },
+    "pricing_v1.json": {
+      "source_git_blob_sha1": "c725d3b67299d2c2d348ff84d6abcd3f8dc24521"
+    }
+  },
+  "original_source_files_unchanged": true
+}
