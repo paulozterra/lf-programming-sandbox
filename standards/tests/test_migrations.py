@@ -11,9 +11,19 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parents[1] / "tools"
 sys.path.insert(0, str(TOOLS))
 
-from migrations import check_migrations
+try:
+    from migrations import check_migrations
+except ModuleNotFoundError as error:
+    # In this preparation PR, the Worker has NOT yet created migrations.py.
+    # Skip only this exact missing module. Once present, all 14 tests run;
+    # missing dependencies and broken implementations still fail normally.
+    if error.name != "migrations":
+        raise
+    check_migrations = None
 
 
+@unittest.skipIf(check_migrations is None,
+                 "Pilot exercise-2 source intentionally absent until Worker creates it")
 class MigrationsVisibleTests(unittest.TestCase):
     def assert_issue(self, paths, rule, name):
         findings = check_migrations(paths)
