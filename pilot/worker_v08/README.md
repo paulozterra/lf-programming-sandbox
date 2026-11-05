@@ -35,7 +35,7 @@ Los lectores originales `load_quality_plan`, `load_readback_manifest` y `load_hi
 1. **Correcto:** parche regex restringido, pasan las pruebas visibles existentes + el holdout oculto; `run_verified_worker` debe emitir `PASS` y parche.
 2. **Incorrecto:** parche sintácticamente válido y que conserva las pruebas visibles, pero sigue permitiendo work_code con doble guion; el holdout debe producir `FAIL` y `patch_delivered=false`, parche vacío.
 
-Se validan ambos recibos reales con validadores originales. Un wrapper captura el recibo **sellado real** del Worker visible sin modificarlo. El costo se obtiene mediante el **adaptador real** `worker_cost_report_v1.price_receipt` de #3676, fijado al commit `a0ec3385e322b51793e6f06c7d8d580d83cd15d6`. Este admite expresamente el FakeModel original como proveedor de prueba sin facturación: USD 0 por intento con los contadores de `attempts[].usage` reales del Worker, `real_api_usage=false`, y sin alterar tarifas Haiku/Sonnet ni re-sellar el recibo.
+Se validan ambos recibos reales con validadores originales. Un wrapper captura el recibo **sellado real** del Worker visible sin modificarlo. El costo se obtiene mediante el **adaptador real** `worker_cost_report_v1.price_receipt` de #3676, fijado al commit `5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e`. Este admite expresamente el FakeModel original como proveedor de prueba sin facturación: USD 0 por intento con los contadores de `attempts[].usage` reales del Worker, `real_api_usage=false`, y sin alterar tarifas Haiku/Sonnet ni re-sellar el recibo.
 
 El vínculo PG-07 se materializa solo como `PG07_WORKER_PILOT_RECEIPT_LINK_CANDIDATE_V1` con hashes genuinos de task, recibo y costo, y con `pg07_admitted=false`, `pg07_receipt_guard_executed=false`, `production_authority=false`. Sin sobre fuente PG-07 con aprobación real **no** se reclama un recibo admitido por la etapa 7.
 
@@ -48,7 +48,7 @@ export WORKER_CHECKOUT=/ruta/programming-agent
 export COST_ADAPTER_CHECKOUT=/ruta/claude-persona-lf-patch-en-a0ec3385
 export HOLDOUT=/ruta/externa/lf_worker_pilot_branch_holdout_private_20261105.json
 test "$(git -C "$WORKER_CHECKOUT" rev-parse HEAD)" = "298307e2f9cac72abfde2b181f3554b0e28bad24"
-test "$(git -C "$COST_ADAPTER_CHECKOUT" rev-parse HEAD)" = "a0ec3385e322b51793e6f06c7d8d580d83cd15d6"
+test "$(git -C "$COST_ADAPTER_CHECKOUT" rev-parse HEAD)" = "5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e"
 sha256sum "$HOLDOUT"
 python3 pilot/worker_v08/run_fake_e2e.py \
   --worker-checkout "$WORKER_CHECKOUT" \
