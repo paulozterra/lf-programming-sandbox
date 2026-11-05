@@ -16,6 +16,7 @@ SPEC="standards/tools/MIGRATIONS_SPEC.md"
 SHA=re.compile(r"^[0-9a-f]{64}$")
 TASKS=("exercise-1","exercise-2")
 EX1_SHA="979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
+EX2_SHA="44f75fa89fa6974cdcecc43bb2c2669d73eb4bf45fbebb3ec0f2308fce3551ee"
 SPEC_SHA="b699c77f46df4c1be31865d3568ee5c1f2673f6b0cfbe1745bba60d7b068251c"
 
 class TaskBlocked(ValueError):
@@ -57,6 +58,8 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
             or task["spec_path"]!=SPEC or task["spec_sha256"]!=SPEC_SHA
             or ("NORMATIVE SPEC SHA256="+SPEC_SHA) not in task["objective"]):
             block("PILOT_EXERCISE2_SCOPE_DRIFT")
+        if task["holdout_sha256"]!=EX2_SHA or task["holdout_sha256"]==EX1_SHA:
+            block("PILOT_EXERCISE2_HOLDOUT_SHA_DRIFT")
         p=ROOT/SPEC
         if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=SPEC_SHA:
             block("PILOT_MIGRATIONS_SPEC_SHA_DRIFT")
