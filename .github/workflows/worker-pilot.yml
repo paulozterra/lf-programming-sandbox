@@ -101,10 +101,11 @@ jobs:
           python3 -m pip install --no-input --disable-pip-version-check \
             --no-cache-dir "$RUNNER_TEMP/lf-worker-pilot/worker-install-src"
 
-      - name: Decode owner holdout from base64 and verify pinned SHA256 privately
+      - name: Decode exercise-1 holdout from its OWN base64 secret (no fallback)
+        if: ${{ inputs.task == 'exercise-1' }}
         shell: bash
         env:
-          PILOT_HOLDOUT_B64: ${{ inputs.task == 'exercise-1' && secrets.PILOT_HOLDOUT_B64 || secrets.PILOT_HOLDOUT_EX2_B64 }}
+          PILOT_HOLDOUT_B64: ${{ secrets.PILOT_HOLDOUT_B64 }}
           PILOT_HOLDOUT_EXPECTED_SHA: ${{ steps.task_sha.outputs.sha256 }}
         run: |
           set -euo pipefail
@@ -131,6 +132,40 @@ jobs:
               handle.write(raw)
           path.chmod(0o600)
           PY
+
+
+      - name: Decode exercise-2 holdout from its OWN base64 secret (no fallback)
+        if: ${{ inputs.task == 'exercise-2' }}
+        shell: bash
+        env:
+          PILOT_HOLDOUT_B64: ${{ secrets.PILOT_HOLDOUT_EX2_B64 }}
+          PILOT_HOLDOUT_EXPECTED_SHA: ${{ steps.task_sha.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import base64
+          import hashlib
+          import os
+          from pathlib import Path
+          encoded=os.environ.get("PILOT_HOLDOUT_B64")
+          if not encoded:
+              raise SystemExit("PILOT_HOLDOUT_B64_MISSING")
+          try:
+              raw=base64.b64decode(encoded,validate=True)
+          except (ValueError,base64.binascii.Error):
+              raise SystemExit("PILOT_HOLDOUT_BASE64_INVALID")
+          expected=os.environ.get("PILOT_HOLDOUT_EXPECTED_SHA", "")
+          if len(expected)!=64 or any(c not in "0123456789abcdef" for c in expected):
+              raise SystemExit("PILOT_HOLDOUT_SHA_UNREGISTERED")
+          if hashlib.sha256(raw).hexdigest()!=expected:
+              raise SystemExit("HIDDEN_HOLDOUT_SHA_MISMATCH")
+          path=Path(os.environ["RUNNER_TEMP"])/"lf-worker-pilot"/"holdout.oracle.json"
+          with path.open("xb") as handle:
+              handle.write(raw)
+          path.chmod(0o600)
+          PY
+
 
       - name: Offline WorkerTaskSpec preflight, source/holdout/cost-adapter verification
         id: preflight
