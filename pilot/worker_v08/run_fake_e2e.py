@@ -18,7 +18,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 PIN="298307e2f9cac72abfde2b181f3554b0e28bad24"
-ADAPTER_PIN="a0ec3385e322b51793e6f06c7d8d580d83cd15d6"
+ADAPTER_PIN="5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e"
 EXPECTED_HOLDOUT_SHA="979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
 SCRIPT=Path(__file__).resolve()
 REPO=SCRIPT.parents[2].resolve()
