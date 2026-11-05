@@ -104,6 +104,7 @@ jobs:
           PILOT_HOLDOUT_JSON: ${{ secrets.PILOT_HOLDOUT_JSON }}
         run: |
           set -euo pipefail
+          umask 077
           python3 - <<'PY'
           import hashlib
           import os
