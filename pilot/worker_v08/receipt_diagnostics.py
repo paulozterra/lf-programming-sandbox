@@ -99,3 +99,27 @@ def write_usage_unavailable(directory:Path,visible:dict,verified:dict):
     path.write_bytes(json.dumps(value,sort_keys=True,indent=2,ensure_ascii=False).encode()+b"\n")
     path.chmod(0o600)
     return True
+
+def write_no_visible_receipt(directory:Path,verified:dict):
+    """Truthful placeholder only if the ORIGINAL Worker produced no visible receipt.
+
+    Never forge original seal or fabricate attempts/usage.
+    """
+    directory.mkdir(mode=0o700,parents=True,exist_ok=True)
+    path=directory/"visible-worker-receipt.json"
+    if path.exists():
+        raise ValueError("PUBLIC_RECEIPT_ALREADY_PRESENT")
+    value={"diagnostic_kind":"visible",
+           "sanitized":True,
+           "original_seal_not_claimed":True,
+           "original_visible_receipt_available":False,
+           "reason":"VISIBLE_WORKER_NOT_INVOKED_OR_RECEIPT_NOT_EMITTED",
+           "task_id":verified.get("task_id"),
+           "verified_source_receipt_sha256":verified.get("receipt_sha256"),
+           "status":"NOT_EMITTED",
+           "attempts":[],
+           "usage_available":False,
+           "response_text_exported":False}
+    path.write_bytes(json.dumps(value,sort_keys=True,indent=2).encode()+b"\n")
+    path.chmod(0o600)
+    return path
