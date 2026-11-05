@@ -39,6 +39,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Checkout sandbox pilot (no persistent token)
         uses: actions/checkout@v4
