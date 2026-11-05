@@ -1,0 +1,206 @@
+name: LF Worker v0.8 pilot (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Provider pinned for this pilot"
+        required: true
+        type: choice
+        options:
+          - anthropic
+        default: anthropic
+      model:
+        description: "Only approved pilot model"
+        required: true
+        type: choice
+        options:
+          - claude-haiku-5-5
+        default: claude-haiku-5-5
+      max_attempts:
+        description: "Hard maximum attempts (not overridable)"
+        required: true
+        type: choice
+        options:
+          - "1"
+        default: "1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lf-worker-v08-pilot-single-running-job
+  cancel-in-progress: false
+
+jobs:
+  worker-pilot:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout sandbox pilot (no persistent token)
+        uses: actions/checkout@v4
+        with:
+          path: source
+          persist-credentials: false
+
+      - name: Checkout original Worker at immutable audited commit
+        uses: actions/checkout@v4
+        with:
+          repository: cristhianlujan/programming-agent
+          ref: 298307e2f9cac72abfde2b181f3554b0e28bad24
+          path: worker
+          persist-credentials: false
+
+      - name: Checkout cost and task adapter at immutable audited commit
+        uses: actions/checkout@v4
+        with:
+          repository: cristhianlujan/claude-persona-lf-patch
+          ref: 5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e
+          path: adapter
+          persist-credentials: false
+
+      - name: Set up pinned-runtime Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check manual-only inputs, exact HEADs and mandatory owner baseline
+        id: gates
+        shell: bash
+        env:
+          PILOT_PROVIDER: ${{ inputs.provider }}
+          PILOT_MODEL: ${{ inputs.model }}
+          PILOT_MAX_ATTEMPTS: ${{ inputs.max_attempts }}
+        run: |
+          set -euo pipefail
+          test "$PILOT_PROVIDER" = "anthropic"
+          test "$PILOT_MODEL" = "claude-haiku-5-5"
+          test "$PILOT_MAX_ATTEMPTS" = "1"
+          test "$(git -C worker rev-parse HEAD)" = "298307e2f9cac72abfde2b181f3554b0e28bad24"
+          test "$(git -C adapter rev-parse HEAD)" = "5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e"
+          test -f source/pilot/worker_v08/manifest.json
+          # Hardened Worker v7 @298307e requires this genuine baseline.
+          # It is not synthesized by the workflow. Fail without model spend.
+          if [ ! -f source/quality/programming_quality/baseline_v1.json ]; then
+            echo "HARDENED_WORKER_QUALITY_BASELINE_MISSING_NO_MODEL_CALL"
+            exit 1
+          fi
+          mkdir -m 700 "$RUNNER_TEMP/lf-worker-pilot"
+
+      - name: Install original pinned Worker (before API secret exposure)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --no-input --disable-pip-version-check --quiet ./worker
+
+      - name: Write private owner holdout and verify exact raw SHA-256
+        shell: bash
+        env:
+          PILOT_HOLDOUT_JSON: ${{ secrets.PILOT_HOLDOUT_JSON }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          value=os.environ.get("PILOT_HOLDOUT_JSON")
+          if not value:
+              raise SystemExit("PILOT_HOLDOUT_SECRET_MISSING")
+          raw=value.encode("utf-8")
+          expected="979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
+          if hashlib.sha256(raw).hexdigest()!=expected:
+              raise SystemExit("HIDDEN_HOLDOUT_SHA_MISMATCH")
+          path=Path(os.environ["RUNNER_TEMP"])/"lf-worker-pilot"/"holdout.oracle.json"
+          with path.open("xb") as f:
+              f.write(raw)
+          path.chmod(0o600)
+          PY
+
+      - name: Offline strict task, manifest and cost-limit preflight
+        id: preflight
+        shell: bash
+        env:
+          PILOT_PROVIDER: ${{ inputs.provider }}
+          PILOT_MODEL: ${{ inputs.model }}
+          PILOT_MAX_ATTEMPTS: ${{ inputs.max_attempts }}
+        run: |
+          set -euo pipefail
+          python3 source/pilot/worker_v08/run_live_pilot.py prepare \
+            --repo "$GITHUB_WORKSPACE/source" \
+            --worker "$GITHUB_WORKSPACE/worker" \
+            --adapter "$GITHUB_WORKSPACE/adapter" \
+            --private "$RUNNER_TEMP/lf-worker-pilot"
+
+      - name: Execute original Worker CLI (one attempt, maximum 8000 output tokens)
+        id: worker
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          python3 source/pilot/worker_v08/run_live_pilot.py execute \
+            --repo "$GITHUB_WORKSPACE/source" \
+            --worker "$GITHUB_WORKSPACE/worker" \
+            --adapter "$GITHUB_WORKSPACE/adapter" \
+            --private "$RUNNER_TEMP/lf-worker-pilot"
+
+      - name: Mandatory real-usage cost gate — FAIL above USD 0.10 or missing usage
+        id: cost
+        if: always() && steps.worker.outcome != 'skipped'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 source/pilot/worker_v08/run_live_pilot.py cost \
+            --repo "$GITHUB_WORKSPACE/source" \
+            --worker "$GITHUB_WORKSPACE/worker" \
+            --adapter "$GITHUB_WORKSPACE/adapter" \
+            --private "$RUNNER_TEMP/lf-worker-pilot"
+
+      - name: Write non-secret status log only
+        if: always()
+        shell: bash
+        env:
+          GATE_STATUS: ${{ steps.gates.outcome }}
+          PREP_STATUS: ${{ steps.preflight.outcome }}
+          WORKER_STATUS: ${{ steps.worker.outcome }}
+          COST_STATUS: ${{ steps.cost.outcome }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          directory=Path(os.environ["RUNNER_TEMP"])/"lf-worker-pilot"/"public"
+          directory.mkdir(parents=True,exist_ok=True)
+          data="GATES="+os.getenv("GATE_STATUS","not-run")+"\n"
+          data+="PREFLIGHT="+os.getenv("PREP_STATUS","not-run")+"\n"
+          data+="WORKER="+os.getenv("WORKER_STATUS","not-run")+"\n"
+          data+="COST_GATE="+os.getenv("COST_STATUS","not-run")+"\n"
+          data+="MODEL_KEY_NOT_LOGGED=true\nHOLDOUT_NOT_LOGGED=true\n"
+          (directory/"pilot-status.log").write_text(data,encoding="utf-8")
+          PY
+
+      - name: Upload only sanitized receipts, usage-cost and status logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-pilot-receipts-cost-logs
+          if-no-files-found: warn
+          retention-days: 3
+          path: |
+            ${{ runner.temp }}/lf-worker-pilot/public/verified-worker-receipt.json
+            ${{ runner.temp }}/lf-worker-pilot/public/visible-worker-receipt.json
+            ${{ runner.temp }}/lf-worker-pilot/public/cost.json
+            ${{ runner.temp }}/lf-worker-pilot/public/pilot-summary.log
+            ${{ runner.temp }}/lf-worker-pilot/public/pilot-status.log
+
+      - name: Upload patch only after PASS and cost at most USD 0.10
+        if: ${{ steps.worker.outcome == 'success' && steps.cost.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-pilot-verified-patch
+          if-no-files-found: error
+          retention-days: 3
+          path: ${{ runner.temp }}/lf-worker-pilot/public/worker.patch
