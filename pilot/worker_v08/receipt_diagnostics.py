@@ -17,7 +17,7 @@ PUBLIC_FIELDS=("schema_version","task_id","task_sha256","base_head_sha",
                "visible_receipt_sha256","receipt_sha256")
 TOKEN_REASON=re.compile(r"^(MODEL_ERROR|MODEL_REFUSAL|MODEL_NOT_CALLED|PROPOSAL_INVALID|"
                         r"ACCEPTANCE_FAILED|VISIBLE_[A-Z_]+|BLOCKED|FAIL|PASS)")
-HTTP_CODE=re.compile(r"\\b(?:HTTP|status(?:_code)?)[ :='\"]+(400|401|403|404|408|409|422|429|500|502|503|504)\\b",re.I)
+HTTP_CODE=re.compile(r"\b(?:HTTP|status(?:_code)?)[ :=\x27\"]+(400|401|403|404|408|409|422|429|500|502|503|504)\b",re.I)
 
 def safe_reason(original, proposal_reason=None):
     """Never propagate arbitrary exceptions, provider messages or model outputs.
@@ -35,7 +35,7 @@ def safe_reason(original, proposal_reason=None):
     code=HTTP_CODE.search(b)
     return category+(": HTTP "+code.group(1) if code else " (detalle privado redactado)")
 
-def public_receipt(receipt, kind):
+def public_receipt(receipt, kind, model_category=None):
     if not isinstance(receipt,dict) or kind not in ("visible","verified"):
         raise ValueError("RECEIPT_DIAGNOSTIC_BAD_INPUT")
     projected={k:receipt[k] for k in PUBLIC_FIELDS if k in receipt}
@@ -55,7 +55,7 @@ def public_receipt(receipt, kind):
     first=next((a.get("proposal_reason") for a in attempts
                 if isinstance(a,dict) and a.get("proposal_reason") in
                 ("MODEL_ERROR","MODEL_REFUSAL")),None)
-    projected["reason"]=safe_reason(receipt.get("reason"),first)
+    projected["reason"]=safe_reason(receipt.get("reason"),model_category or first)
     projected["source_receipt_sha256"]=receipt.get("receipt_sha256")
     projected["diagnostic_kind"]=kind
     projected["sanitized"]=True
@@ -63,12 +63,12 @@ def public_receipt(receipt, kind):
     projected["response_text_exported"]=False
     return projected
 
-def write_public_receipt(directory:Path,receipt:dict,kind:str):
+def write_public_receipt(directory:Path,receipt:dict,kind:str,model_category=None):
     directory.mkdir(mode=0o700,parents=True,exist_ok=True)
     path=directory/("visible-worker-receipt.json" if kind=="visible" else "verified-worker-receipt.json")
     if path.exists():
         raise ValueError("PUBLIC_RECEIPT_ALREADY_PRESENT")
-    raw=json.dumps(public_receipt(receipt,kind),ensure_ascii=False,
+    raw=json.dumps(public_receipt(receipt,kind,model_category),ensure_ascii=False,
                    sort_keys=True,indent=2,allow_nan=False).encode()+b"\n"
     path.write_bytes(raw)
     path.chmod(0o600)
