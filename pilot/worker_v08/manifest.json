@@ -26,7 +26,7 @@
     "max_output_bytes": 16000
   },
   "limits": {
-    "max_attempts": 1,
+    "max_attempts": 3,
     "max_context_bytes": 60000,
     "max_patch_bytes": 20000,
     "max_changed_files": 3,
@@ -39,5 +39,24 @@
   "role_skill_policy": "no fabricated stage7 assignment; receipt candidate remains non-admitted until PG07 evidence supplied",
   "cost_adapter_source_repo": "cristhianlujan/claude-persona-lf-patch",
   "cost_adapter_source_commit": "5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e",
-  "cost_adapter_function": "worker_pilot_adapter_exp/worker_cost_report_v1.py::price_receipt"
+  "cost_adapter_function": "worker_pilot_adapter_exp/worker_cost_report_v1.py::price_receipt",
+  "allowed_models": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "attempts_options": [
+    1,
+    2,
+    3
+  ],
+  "pre_execution_budget_policy": {
+    "schema_version": "LF_PILOT_PREMODEL_BUDGET_V1",
+    "pricing_path": "pilot/worker_v08/cost_adapter/pricing_v1.json",
+    "max_context_input_token_units": 60000,
+    "max_output_tokens": 8000,
+    "haiku_ceiling_usd": "0.01",
+    "sonnet_ceiling_usd": "0.05",
+    "formula": "attempts * ((60000 * input_usd_per_million + 8000 * output_usd_per_million) / 1000000)",
+    "fail_closed": true
+  }
 }
