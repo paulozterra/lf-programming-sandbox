@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Manual-only, pinned Worker v0.8 pilot. Not a scheduler or an authority grant.
+"""Manual Worker v0.8 pilot, source copied BYTE-IDENTICAL from pinned commit.
 
-prepare: offline preflight and original manifest validation (NO API KEY).
-execute: call ORIGINAL Worker CLI in-process, capturing its ORIGINAL visible
-         Worker receipt for real usage, without modifying Worker files.
-cost:    use pinned LF #3676 price_receipt; fail closed above USD 0.10.
+QUALITY_CLI_NOT_USED=true: calls ORIGINAL run_verified_worker, not hardened
+quality-v7 CLI. No baseline is synthesized. Never creates a PR or modifies
+the original Worker source. Every paid attempt is independently costed.
 """
 from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -18,248 +18,289 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from unittest.mock import patch
 
-PIN_WORKER="298307e2f9cac72abfde2b181f3554b0e28bad24"
-PIN_ADAPTER="5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e"
-PIN_HOLDOUT="979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
-CEILING=Decimal("0.10")
-LIMITS={"max_attempts":1,"max_context_bytes":60000,
-        "max_patch_bytes":20000,"max_changed_files":3}
-SCRIPT=Path(__file__).resolve()
-MANIFEST=SCRIPT.with_name("manifest.json")
+PIN_WORKER = "298307e2f9cac72abfde2b181f3554b0e28bad24"
+PIN_ADAPTER = "5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e"
+PIN_HOLDOUT = "979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
+MAX_COST = Decimal("0.10")
+LIMITS = {
+    "max_attempts": 1,
+    "max_context_bytes": 60000,
+    "max_patch_bytes": 20000,
+    "max_changed_files": 3,
+}
+SCRIPT = Path(__file__).resolve()
+REPO = SCRIPT.parents[2]
+MANIFEST = SCRIPT.with_name("manifest.json")
+VENDOR = REPO / "vendor/programming-agent"
+ADAPTER = SCRIPT.parent / "cost_adapter"
+QUALITY_CLI_NOT_USED = True
 
-def fail(code):
-    raise RuntimeError(code)
 
-def sh256(b):
-    return hashlib.sha256(b).hexdigest()
+class PilotBlocked(RuntimeError):
+    pass
 
-def put(path,value):
+
+def block(reason: str) -> None:
+    raise PilotBlocked(reason)
+
+
+def digest(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()
+
+
+def read(path: Path) -> dict:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        block("PILOT_JSON_OBJECT_REQUIRED")
+    return value
+
+
+def put(path: Path, value: dict) -> None:
     if path.exists():
-        fail("PILOT_OUTPUT_ALREADY_EXISTS:"+path.name)
-    path.write_bytes(json.dumps(value,sort_keys=True,indent=2,
-                               ensure_ascii=False,allow_nan=False).encode("utf-8")+b"\n")
+        block("PILOT_OUTPUT_ALREADY_EXISTS:" + path.name)
+    raw = json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2,
+                     allow_nan=False).encode("utf-8") + b"\n"
+    with path.open("xb") as handle:
+        handle.write(raw)
     path.chmod(0o600)
 
-def read(path):
-    return json.loads(path.read_text(encoding="utf-8"))
 
-def head(repo):
-    return subprocess.run(["git","-C",str(repo),"rev-parse","HEAD"],
-                          check=True,capture_output=True,text=True).stdout.strip()
+def git_head(repo: Path) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True, capture_output=True, text=True,
+    ).stdout.strip()
 
-def check_source(args):
-    source=args.repo.resolve(strict=True)
-    worker=args.worker.resolve(strict=True)
-    adapter=args.adapter.resolve(strict=True)
-    if head(worker)!=PIN_WORKER or head(adapter)!=PIN_ADAPTER:
-        fail("PINNED_DEPENDENCY_HEAD_DRIFT")
-    if source!=SCRIPT.parents[2]:
-        fail("PILOT_REPOSITORY_PATH_MISMATCH")
-    if subprocess.run(["git","-C",str(source),"status","--porcelain"],
-                      check=True,capture_output=True,text=True).stdout.strip():
-        fail("PILOT_SOURCE_REPOSITORY_DIRTY")
-    private=args.private.resolve()
-    if private==source or private.is_relative_to(source):
-        fail("PILOT_PRIVATE_DIR_INSIDE_SOURCE")
-    if private==worker or private.is_relative_to(worker):
-        fail("PILOT_PRIVATE_DIR_INSIDE_WORKER")
-    if private==adapter or private.is_relative_to(adapter):
-        fail("PILOT_PRIVATE_DIR_INSIDE_ADAPTER")
-    if not private.is_dir():
-        fail("PILOT_PRIVATE_DIR_MISSING")
-    if head(source)!=os.environ.get("GITHUB_SHA",head(source)):
-        fail("PILOT_SOURCE_CHECKOUT_SHA_MISMATCH")
-    return source,worker,adapter,private
 
-def imports(worker,adapter):
-    sys.path.insert(0,str(worker/"src"))
-    sys.path.insert(0,str(adapter/"sandbox/lf_contract_gate_test/programming_agent_four_stage/worker_pilot_adapter_exp"))
-    from pg07_to_worker_v1_adapter import check_limits,build_worker_command,sha
+def verify_adapter_snapshot() -> None:
+    proof = read(ADAPTER / "PROVENANCE.json")
+    if (proof.get("schema_version") != "LF_PILOT_COST_ADAPTER_PIN_V1"
+        or proof.get("source_commit") != PIN_ADAPTER
+        or proof.get("source_repository") != "cristhianlujan/claude-persona-lf-patch"):
+        block("COST_ADAPTER_PROVENANCE_INVALID")
+    expected = proof.get("files")
+    if not isinstance(expected, dict) or len(expected) != 3:
+        block("COST_ADAPTER_FILE_LIST_INVALID")
+    actual = {p.name for p in ADAPTER.iterdir() if p.is_file()}
+    if actual != set(expected) | {"PROVENANCE.json"}:
+        block("COST_ADAPTER_FILES_DRIFT")
+    for name, row in expected.items():
+        if name not in {"pg07_to_worker_v1_adapter.py", "worker_cost_report_v1.py", "pricing_v1.json"}:
+            block("COST_ADAPTER_NAME_INVALID")
+        source = ADAPTER / name
+        if source.is_symlink() or set(row) != {"source_git_blob_sha1"}:
+            block("COST_ADAPTER_SOURCE_INVALID")
+        raw = source.read_bytes()
+        blob = hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
+        if blob != row["source_git_blob_sha1"]:
+            block("COST_ADAPTER_BYTES_DRIFT:" + name)
+
+
+def validate_common(private: Path) -> None:
+    if REPO != REPO.resolve():
+        block("PILOT_REPO_IS_SYMLINK")
+    if not private.is_dir() or private.is_symlink():
+        block("PILOT_PRIVATE_DIR_INVALID")
+    if private.resolve() == REPO or private.resolve().is_relative_to(REPO):
+        block("PILOT_PRIVATE_DIR_INSIDE_REPO")
+    if subprocess.run(["git", "-C", str(REPO), "status", "--porcelain"],
+                      capture_output=True, text=True, check=True).stdout.strip():
+        block("PILOT_REPOSITORY_DIRTY")
+    expected_head = os.environ.get("GITHUB_SHA")
+    if expected_head and git_head(REPO) != expected_head:
+        block("PILOT_CHECKOUT_HEAD_MISMATCH")
+    from verify_vendor import verify
+    verify(VENDOR)
+    verify_adapter_snapshot()
+    config = read(MANIFEST)
+    if (config.get("worker_commit") != PIN_WORKER
+        or config.get("cost_adapter_source_commit") != PIN_ADAPTER
+        or config.get("external_holdout_sha256") != PIN_HOLDOUT
+        or config.get("source_repo") != "paulozterra/lf-programming-sandbox"):
+        block("PILOT_MANIFEST_SOURCE_DRIFT")
+    if (config.get("target_file") != "standards/tools/checks.py"
+        or config.get("limits") != {
+            **LIMITS, "max_output_tokens": 8000, "allow_deletions": False,
+        }):
+        block("PILOT_MANIFEST_LIMIT_DRIFT")
+    if (os.environ.get("PILOT_PROVIDER") != "anthropic"
+        or os.environ.get("PILOT_MODEL") != "claude-haiku-5-5"
+        or os.environ.get("PILOT_MAX_ATTEMPTS") != "1"):
+        block("PILOT_INPUT_OVERRIDE_FORBIDDEN")
+    holdout = private / "holdout.oracle.json"
+    if not holdout.is_file() or holdout.is_symlink() or digest(holdout.read_bytes()) != PIN_HOLDOUT:
+        block("HIDDEN_HOLDOUT_SHA_MISMATCH")
+
+
+def importer():
+    sys.path.insert(0, str(ADAPTER))
     from worker_cost_report_v1 import price_receipt
-    return check_limits,build_worker_command,sha,price_receipt
-
-def prepare(args):
-    source,worker,adapter,private=check_source(args)
-    declaration=read(MANIFEST)
-    if (declaration.get("worker_commit")!=PIN_WORKER or
-        declaration.get("cost_adapter_source_commit")!=PIN_ADAPTER or
-        declaration.get("external_holdout_sha256")!=PIN_HOLDOUT or
-        declaration.get("source_repo")!="paulozterra/lf-programming-sandbox"):
-        fail("PILOT_DECLARATION_DRIFT")
-    if (declaration.get("target_file")!="standards/tools/checks.py" or
-        declaration.get("limits")!={**LIMITS,"max_output_tokens":8000,"allow_deletions":False}):
-        fail("PILOT_TARGET_OR_LIMITS_DRIFT")
-    if os.environ.get("PILOT_PROVIDER")!="anthropic" or os.environ.get("PILOT_MODEL")!="claude-haiku-5-5":
-        fail("PILOT_PROVIDER_MODEL_FORBIDDEN")
-    if os.environ.get("PILOT_MAX_ATTEMPTS")!="1":
-        fail("PILOT_ATTEMPTS_FORBIDDEN")
-    oracle_path=private/"holdout.oracle.json"
-    if not oracle_path.is_file() or sh256(oracle_path.read_bytes())!=PIN_HOLDOUT:
-        fail("HIDDEN_HOLDOUT_SHA_MISMATCH")
-    if oracle_path.resolve().is_relative_to(source):
-        fail("HIDDEN_HOLDOUT_INSIDE_SOURCE")
-    # Hardened CLI @298307e requires a real owner baseline at this path.
-    # DO NOT fabricate baseline or spend tokens if it is absent.
-    baseline=source/"quality/programming_quality/baseline_v1.json"
-    if not baseline.is_file():
-        fail("HARDENED_WORKER_QUALITY_BASELINE_MISSING_NO_MODEL_CALL")
-    if declaration["old_line"] not in (source/declaration["target_file"]).read_text(encoding="utf-8"):
-        fail("PILOT_SOURCE_TARGET_DRIFT")
-    check_limits,build_command,sha,_=imports(worker,adapter)
+    from pg07_to_worker_v1_adapter import check_limits
     from programming_agent_runner.worker_spec import parse_worker_task
     from programming_agent_runner.hashutil import source_snapshot_sha256
-    from programming_agent_runner.programming_quality_hardening_v7_runtime import (
-        load_quality_plan,load_readback_manifest)
-    from programming_agent_runner.worker_oracle import load_hidden_oracle,assert_hidden_oracle_external
-    # Reuse offline free pilot's declared quality/readback policy.
-    from run_fake_e2e import quality_plan,readback_manifest
-    task={"schema_version":1,"task_id":"LF-WORKER-PILOT-REAL-001",
-          "objective":declaration["objective"],
-          "base_head_sha":head(source),
-          "source_snapshot_sha256":source_snapshot_sha256(source),
-          "context_path_patterns":[declaration["target_file"]],
-          "write_path_patterns":[declaration["target_file"]],
-          "protected_path_patterns":["standards/tests/**"],
-          "acceptance_commands":[declaration["visible_acceptance_command"]],
-          "max_attempts":1,"max_context_bytes":60000,"max_patch_bytes":20000,
-          "max_changed_files":3,"allow_deletions":False}
-    check_limits(task)
-    spec=parse_worker_task(task)
-    quality=quality_plan(task)
-    readback=readback_manifest(task)
-    put(private/"task.v1.json",task)
-    put(private/"quality-plan.json",quality)
-    put(private/"readback-manifest.json",readback)
-    outer={"schema_version":"LF_WORKER_PILOT_UNADMITTED_ENVELOPE_V1",
-           "task_id":task["task_id"],"task_sha256":sha(task),
-           "source_manifest_sha256":sh256(MANIFEST.read_bytes()),
-           "pg07_admitted":False,"production_authority":False}
-    put(private/"extra.envelope.json",outer)
-    qpath=private/"quality-plan.json"
-    rpath=private/"readback-manifest.json"
-    hpath=private/"holdout.oracle.json"
-    qual=load_quality_plan(qpath,sh256(qpath.read_bytes()))
-    rb=load_readback_manifest(rpath,sh256(rpath.read_bytes()))
-    oracle=load_hidden_oracle(hpath,PIN_HOLDOUT)
-    assert_hidden_oracle_external(source,oracle)
-    if qual.task_id!=spec.task_id or qual.base_head_sha!=spec.base_head_sha:
-        fail("QUALITY_TASK_DRIFT")
-    if rb.task_id!=spec.task_id:
-        fail("READBACK_TASK_DRIFT")
-    # Original adapter is used for a second hard-limit check and exact CLI argv.
-    argv=build_command(repo_path=source,output_dir=private,worker_checkout=worker,
-                       model="claude-haiku-5-5",provider="anthropic")
-    if argv[argv.index("--max-output-tokens")+1]!="8000":
-        fail("OUTPUT_TOKEN_CAP_MISSING")
-    put(private/"cli-argv.json",argv)
-    print("PILOT_PREPARED_PINNED_LIMITED_NO_MODEL")
-
-def execute(args):
-    source,worker,adapter,private=check_source(args)
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        fail("ANTHROPIC_API_KEY_MISSING")
-    check_limits,build_command,sha,_=imports(worker,adapter)
-    from programming_agent_runner import worker_cli
-    from programming_agent_runner import verified_worker
+    from programming_agent_runner.worker_oracle import load_hidden_oracle, assert_hidden_oracle_external
     from programming_agent_runner.worker_receipt import validate_worker_receipt
-    from programming_agent_runner.worker_spec import parse_worker_task
-    task=read(private/"task.v1.json")
+    from programming_agent_runner.verified_worker import (
+        run_verified_worker, validate_verified_worker_receipt,
+    )
+    return (price_receipt, check_limits, parse_worker_task, source_snapshot_sha256,
+            load_hidden_oracle, assert_hidden_oracle_external,
+            validate_worker_receipt, run_verified_worker, validate_verified_worker_receipt)
+
+
+def prepare(private: Path) -> None:
+    validate_common(private)
+    config = read(MANIFEST)
+    target = config["target_file"]
+    source = (REPO / target).read_text(encoding="utf-8")
+    if source.count(config["old_line"]) != 1:
+        block("PILOT_TARGET_SOURCE_DRIFT")
+    (_, check_limits, parse, snapshot, load_oracle, assert_external, *_) = importer()
+    task = {
+        "schema_version": 1,
+        "task_id": "LF-WORKER-PILOT-REAL-001",
+        "objective": config["objective"],
+        "base_head_sha": git_head(REPO),
+        "source_snapshot_sha256": snapshot(REPO),
+        "context_path_patterns": [target],
+        "write_path_patterns": [target],
+        "protected_path_patterns": ["standards/tests/**"],
+        "acceptance_commands": [config["visible_acceptance_command"]],
+        "max_attempts": 1,
+        "max_context_bytes": 60000,
+        "max_patch_bytes": 20000,
+        "max_changed_files": 3,
+        "allow_deletions": False,
+    }
     check_limits(task)
-    parse_worker_task(task)
-    command=build_command(repo_path=source,output_dir=private,worker_checkout=worker,
-                          model="claude-haiku-5-5",provider="anthropic")
-    if read(private/"cli-argv.json")!=command:
-        fail("CLI_ARGUMENTS_CHANGED_SINCE_PREFLIGHT")
-    seen=[]
-    original=verified_worker.run_worker
-    def capture_visible(*a,**kw):
-        result=original(*a,**kw)  # Actual original Worker; no code replacement.
-        if validate_worker_receipt(result.receipt,result.patch):
-            fail("ORIGINAL_VISIBLE_RECEIPT_INVALID")
-        seen.append(result.receipt)
-        return result
-    saved=sys.argv
-    try:
-        # Run REAL worker_cli.main, not a fake CLI. Intercept only its
-        # underlying original run_worker result so usage is verifiable.
-        sys.argv=["programming-agent-worker"]+command[1:]
-        with patch.object(verified_worker,"run_worker",side_effect=capture_visible):
-            exit_code=worker_cli.main()
-    finally:
-        sys.argv=saved
+    spec = parse(task)
+    oracle = load_oracle(private / "holdout.oracle.json", PIN_HOLDOUT)
+    assert_external(REPO, oracle)
+    put(private / "task.v1.json", task)
+    put(private / "extra.envelope.json", {
+        "schema_version": "LF_PILOT_UNADMITTED_ENVELOPE_V1",
+        "task_id": spec.task_id,
+        "task_sha256": spec.sha256,
+        "pg07_admitted": False,
+        "production_authority": False,
+        "QUALITY_CLI_NOT_USED": True,
+        "verified_worker_path": "run_verified_worker",
+        "worker_commit": PIN_WORKER,
+    })
+    print("PILOT_PREPARED_QUALITY_CLI_NOT_USED=true_NO_MODEL")
+
+
+def execute(private: Path) -> None:
+    validate_common(private)
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        block("ANTHROPIC_API_KEY_MISSING")
+    (price_receipt, check_limits, parse, snapshot, load_oracle, assert_external,
+     validate_visible, run_verified, validate_verified) = importer()
+    task = read(private / "task.v1.json")
+    check_limits(task)
+    spec = parse(task)
+    if spec.base_head_sha != git_head(REPO) or spec.source_snapshot_sha256 != snapshot(REPO):
+        block("PILOT_SOURCE_CHANGED_AFTER_PREFLIGHT")
+    oracle = load_oracle(private / "holdout.oracle.json", PIN_HOLDOUT)
+    assert_external(REPO, oracle)
+    from programming_agent_runner.anthropic_messages import AnthropicMessagesClient
+    import programming_agent_runner.verified_worker as verified_module
+    client = AnthropicMessagesClient(
+        api_key=api_key, model="claude-haiku-5-5", timeout_seconds=90,
+        max_output_tokens=8000,
+    )
+    # Keep key out of persistent locals longer than necessary.
+    del api_key
+    seen = []
+    original = verified_module.run_worker
+
+    def collect(*args, **kwargs):
+        response = original(*args, **kwargs)
+        if validate_visible(response.receipt, response.patch):
+            block("WORKER_VISIBLE_RECEIPT_INVALID")
+        seen.append(response.receipt)
+        return response
+
+    # This instrumentation does not modify vendor code. It captures the
+    # original sealed visible receipt because VerifiedWorker omits usage.
+    with patch.object(verified_module, "run_worker", side_effect=collect):
+        outcome = run_verified(REPO, spec, client, oracle, work_parent=private)
+    if validate_verified(outcome.receipt, outcome.patch):
+        block("VERIFIED_WORKER_RECEIPT_INVALID")
+    put(private / "verified-worker-receipt.json", outcome.receipt)
     if seen:
-        put(private/"visible-worker-receipt.json",seen[0])
-    receipt_path=private/"verified-worker-receipt.json"
-    if not receipt_path.is_file():
-        fail("HARDENED_WORKER_RECEIPT_MISSING")
-    receipt=read(receipt_path)
-    if receipt.get("status")!="PASS" or exit_code!=0:
-        fail("HARDENED_WORKER_NOT_PASS")
-    if len(seen)!=1 or seen[0].get("status")!="PASS":
-        fail("VISIBLE_WORKER_USAGE_RECEIPT_NOT_AVAILABLE")
-    patch_path=private/"worker.patch"
-    patch_data=patch_path.read_bytes()
-    if not patch_data or len(patch_data)>LIMITS["max_patch_bytes"]:
-        fail("PATCH_MISSING_OR_OVERSIZED")
-    if (receipt.get("patch_delivered") is not True or
-        receipt.get("patch_sha256")!=sh256(patch_data)):
-        fail("HARDENED_WORKER_PATCH_DIGEST_DRIFT")
-    print("PILOT_REAL_WORKER_PASS_COST_GATE_PENDING")
+        put(private / "visible-worker-receipt.json", seen[0])
+    if outcome.receipt["status"] == "PASS":
+        raw = outcome.patch.encode("utf-8")
+        if not raw or len(raw) > LIMITS["max_patch_bytes"]:
+            block("PILOT_PATCH_INVALID")
+        with (private / "worker.patch").open("xb") as file:
+            file.write(raw)
+        (private / "worker.patch").chmod(0o600)
+    if outcome.receipt["status"] != "PASS":
+        block("WORKER_NONPASS_" + outcome.receipt["status"])
+    print("PILOT_VERIFIED_WORKER_PASS_QUALITY_CLI_NOT_USED=true")
 
-def cost(args):
-    source,worker,adapter,private=check_source(args)
-    _,_,_,price_receipt=imports(worker,adapter)
-    visible_path=private/"visible-worker-receipt.json"
-    overall_path=private/"verified-worker-receipt.json"
-    if not visible_path.is_file() or not overall_path.is_file():
-        fail("REAL_VISIBLE_USAGE_NOT_AVAILABLE")
-    visible=read(visible_path)
-    hardened=read(overall_path)
-    if (visible.get("model_provider")!="anthropic" or
-        hardened.get("model_provider")!="anthropic" or
-        visible.get("task_id")!=hardened.get("task_id")):
-        fail("WORKER_RECEIPTS_NOT_BOUND")
-    # Failed patches can still spend tokens: always account for actual usage.
-    result=price_receipt(visible)
-    if result.get("model_provider")!="anthropic" or result.get("real_api_usage") is not True:
-        fail("PRICE_PROVIDER_OR_USAGE_INVALID")
-    if len(result.get("attempts",[]))!=1:
-        fail("ATTEMPT_COUNT_NOT_ONE")
-    try: amount=Decimal(result["total_estimated_usd"])
-    except (InvalidOperation,KeyError,ValueError):fail("COST_NUMBER_INVALID")
-    if not amount.is_finite() or amount<0 or amount>CEILING:
-        fail("PILOT_COST_OVER_USD_0_10")
-    artifact=private/"public"
-    if artifact.exists():fail("PUBLIC_ARTIFACT_ALREADY_EXISTS")
-    artifact.mkdir(mode=0o700)
-    for filename in ("verified-worker-receipt.json","visible-worker-receipt.json"):
-        shutil.copyfile(private/filename,artifact/filename)
-    put(artifact/"cost.json",result)
-    patch=private/"worker.patch"
-    if hardened.get("status")=="PASS":
-        if not patch.is_file() or not patch.stat().st_size:
-            fail("PASS_WITHOUT_PATCH")
-        shutil.copyfile(patch,artifact/"worker.patch")
-        (artifact/"worker.patch").chmod(0o600)
-    (artifact/"pilot-summary.log").write_text(
-        "PILOT_WORKER_STATUS="+str(hardened.get("status"))+
-        "; Anthropic model pinned; attempts=1; cost_usd="
-        +str(amount)+"; oracle content excluded; stage7_admitted=false\n",
-        encoding="utf-8")
-    print("PILOT_COST_GATE_PASS_USD_"+str(amount)+
-          "_WORKER_STATUS_"+str(hardened.get("status")))
 
-def main():
-    p=argparse.ArgumentParser()
-    p.add_argument("phase",choices=["prepare","execute","cost"])
-    p.add_argument("--repo",type=Path,required=True)
-    p.add_argument("--worker",type=Path,required=True)
-    p.add_argument("--adapter",type=Path,required=True)
-    p.add_argument("--private",type=Path,required=True)
-    a=p.parse_args()
-    {"prepare":prepare,"execute":execute,"cost":cost}[a.phase](a)
-if __name__=="__main__":
-    try:main()
+def cost(private: Path) -> None:
+    validate_common(private)
+    path = private / "visible-worker-receipt.json"
+    verified_path = private / "verified-worker-receipt.json"
+    if not path.is_file() or not verified_path.is_file():
+        block("WORKER_RECEIPT_OR_USAGE_MISSING")
+    (price_receipt, *_) = importer()
+    visible = read(path)
+    verified = read(verified_path)
+    if (visible.get("task_id") != verified.get("task_id")
+        or visible.get("receipt_sha256") != verified.get("visible_receipt_sha256")
+        or visible.get("model_provider") != "anthropic"):
+        block("WORKER_VISIBLE_VERIFIED_RECEIPT_BINDING_INVALID")
+    result = price_receipt(visible)
+    if (result.get("model_provider") != "anthropic"
+        or result.get("real_api_usage") is not True
+        or len(result.get("attempts", [])) != 1):
+        block("PILOT_UNPRICED_OR_MULTIATTEMPT")
+    try:
+        usd = Decimal(result["total_estimated_usd"])
+    except (InvalidOperation, KeyError, ValueError):
+        block("PILOT_COST_INVALID")
+    if not usd.is_finite() or usd < 0 or usd > MAX_COST:
+        block("PILOT_COST_OVER_USD_0_10")
+    public = private / "public"
+    if public.exists():
+        block("PILOT_PUBLIC_ARTIFACT_CONFLICT")
+    public.mkdir(mode=0o700)
+    # Only ORIGINAL sealed receipt and separate cost report; never oracle.
+    shutil.copyfile(path, public / path.name)
+    shutil.copyfile(verified_path, public / verified_path.name)
+    put(public / "cost.json", result)
+    if verified.get("status") == "PASS":
+        if not (private / "worker.patch").is_file():
+            block("PASS_PATCH_MISSING")
+        shutil.copyfile(private / "worker.patch", public / "worker.patch")
+    (public / "pilot-summary.log").write_text(
+        "QUALITY_CLI_NOT_USED=true\n"
+        "WORKER=run_verified_worker\n"
+        "PG07_ADMITTED=false\n"
+        "COST_ESTIMATE_USD=" + str(usd) + "\n",
+        encoding="utf-8",
+    )
+    print("PILOT_COST_GATE_PASS_USD_" + str(usd) + "_QUALITY_CLI_NOT_USED=true")
+
+
+def main() -> None:
+    p = argparse.ArgumentParser()
+    p.add_argument("phase", choices=("prepare", "execute", "cost"))
+    p.add_argument("--private", required=True, type=Path)
+    args = p.parse_args()
+    private = args.private.resolve(strict=True)
+    {"prepare": prepare, "execute": execute, "cost": cost}[args.phase](private)
+
+
+if __name__ == "__main__":
+    try:
+        main()
     except Exception as exc:
-        print("PILOT_BLOCKED:"+str(exc),file=sys.stderr)
+        print("PILOT_BLOCKED:" + str(exc), file=sys.stderr)
         raise SystemExit(1)
