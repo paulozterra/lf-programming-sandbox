@@ -301,9 +301,11 @@ def execute(private: Path) -> None:
     # Produce PUBLIC diagnostic projections before any non-PASS exception.
     # The ORIGINAL sealed receipts remain private; free-form reason text or
     # model response are never uploaded.
-    from receipt_diagnostics import write_public_receipt
+    from receipt_diagnostics import write_public_receipt,write_no_visible_receipt
     if seen:
         write_public_receipt(private / "public", seen[0], "visible")
+    else:
+        write_no_visible_receipt(private / "public",outcome.receipt)
     model_category=next((
         a.get("proposal_reason") for a in (seen[0].get("attempts",[]) if seen else [])
         if isinstance(a,dict) and a.get("proposal_reason") in ("MODEL_ERROR","MODEL_REFUSAL")
