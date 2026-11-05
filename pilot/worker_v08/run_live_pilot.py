@@ -265,8 +265,8 @@ def cost(private: Path) -> None:
         usd = Decimal(result["total_estimated_usd"])
     except (InvalidOperation, KeyError, ValueError):
         block("PILOT_COST_INVALID")
-    if not usd.is_finite() or usd < 0 or usd > MAX_COST:
-        block("PILOT_COST_OVER_USD_0_10")
+    if not usd.is_finite() or usd < 0:
+        block("PILOT_COST_INVALID")
     public = private / "public"
     if public.exists():
         block("PILOT_PUBLIC_ARTIFACT_CONFLICT")
@@ -275,6 +275,10 @@ def cost(private: Path) -> None:
     shutil.copyfile(path, public / path.name)
     shutil.copyfile(verified_path, public / verified_path.name)
     put(public / "cost.json", result)
+    # Preserve read-only receipts and cost even when over budget; NEVER expose
+    # patch if this gate rejects the paid attempt.
+    if usd > MAX_COST:
+        block("PILOT_COST_OVER_USD_0_10")
     if verified.get("status") == "PASS":
         if not (private / "worker.patch").is_file():
             block("PASS_PATCH_MISSING")
