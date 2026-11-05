@@ -56,6 +56,7 @@ def public_receipt(receipt, kind, model_category=None):
                 if isinstance(a,dict) and a.get("proposal_reason") in
                 ("MODEL_ERROR","MODEL_REFUSAL")),None)
     projected["reason"]=safe_reason(receipt.get("reason"),model_category or first)
+    projected["proposal_reason"]=safe_reason(model_category or first,model_category or first) if (model_category or first) else None
     projected["source_receipt_sha256"]=receipt.get("receipt_sha256")
     projected["diagnostic_kind"]=kind
     projected["sanitized"]=True
