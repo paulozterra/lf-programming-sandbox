@@ -100,3 +100,36 @@ python3 pilot/worker_v08/verify_vendor.py
 ```
 
 Las opciones del selector son Haiku/Sonnet y 1/2/3, pero la autorización se determina por modelo y costo **antes de llamar a la API**. El error de formato del diff no justifica alterar el prompt del Worker: si persiste, se registra.
+
+## Ejercicio 2 — migraciones (PR nuevo, sin solución anticipada)
+
+Archivo normativo: `standards/tools/MIGRATIONS_SPEC.md`, SHA-256:
+
+```
+b699c77f46df4c1be31865d3568ee5c1f2673f6b0cfbe1745bba60d7b068251c
+```
+
+Define `check_migrations(paths: list[str]) -> list[str]` con siete reglas `MIG-01`…`MIG-07`: nombre `V<n>__<desc>.sql`, descripción `[a-z0-9_]` de 1–60 caracteres, unicidad de versión, secuencia desde 1, ceros iniciales prohibidos, ignorar no-`.sql` y ordenar diagnósticos por versión/nombre. Contiene un ejemplo por regla y reglas precisas para nombres sin versión y diagnósticos múltiples.
+
+Las 14 pruebas **visibles** (`standards/tests/test_migrations.py`) incluyen una positiva y otra negativa por ID. Se dejan **deliberadamente RED** hasta que el Worker implemente el archivo nuevo `standards/tools/migrations.py` e integre el subcomando `migrations` en `standards/tools/checks.py`. El PR no contiene esa implementación. No se han visto ni creado casos del examen oculto; Claude lo diseña fuera de GitHub.
+
+`pilot/worker_v08/tasks.json` contiene exclusivamente dos opciones fijadas para el selector manual, con:
+- `exercise-1`: objetivo/ámbito/holdout existentes; SHA `979a661f…ab821`.
+- `exercise-2`: contexto `MIGRATIONS_SPEC.md`, `checks.py` y prueba visible; escritura exclusiva `migrations.py` y `checks.py`; `standards/tests/**` protegido; objetivo incluye SHA normativo; **`holdout_sha256=null`** hasta que Claude proporcione los bytes/sha.
+
+`task_selector.py` verifica la especificación por bytes, los dos scopes permitidos, tareas canónicas y la existencia del SHA por ejercicio **antes** de la instalación y de exponer secretos. Si el ejercicio 2 no tiene SHA registrado, responde `PILOT_HOLDOUT_SHA_UNREGISTERED:exercise-2` y el workflow se detiene sin API. El holdout del ejercicio 1 conserva el secreto `PILOT_HOLDOUT_B64`; el del ejercicio 2 usará el secreto separado `PILOT_HOLDOUT_EX2_B64` cuando Claude lo entregue. Ambos se decodifican en `RUNNER_TEMP`; solo el SHA del ejercicio seleccionado se acepta.
+
+Conserva los topes, el motor `run_verified_worker` original, el Worker vendorizado sin cambios, el flujo manual, el control preventivo/posterior de USD y el upload condicional del parche.
+
+### Verificación offline
+
+```bash
+python3 pilot/worker_v08/test_workflow_policy.py
+python3 pilot/worker_v08/test_budget_gate.py
+python3 pilot/worker_v08/verify_vendor.py
+python3 pilot/worker_v08/test_task_selector.py
+```
+
+Las tres primeras pruebas son la puerta solicitada. La cuarta demuestra que el ejercicio 2 permanece bloqueado sin el SHA del examen oculto.
+
+**Bloqueo esperado:** `PILOT_HOLDOUT_SHA_UNREGISTERED:exercise-2`. No cargar ni invocar la tarea 2 hasta que Claude registre un SHA auténtico, prepare el holdout privado y califique la configuración. No se ejecuta el modelo en este PR.
