@@ -170,3 +170,5 @@ jobs:
         run: python3 pilot/worker_v08/test_workflow_policy.py
       - name: Verify vendored Worker SHA-256 (NO MODEL)
         run: python3 pilot/worker_v08/verify_vendor.py
+      - name: Verify per-task specification and holdout registration (NO MODEL)
+        run: python3 pilot/worker_v08/test_task_selector.py
