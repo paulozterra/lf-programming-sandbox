@@ -38,6 +38,6 @@
   "worker_commit": "298307e2f9cac72abfde2b181f3554b0e28bad24",
   "role_skill_policy": "no fabricated stage7 assignment; receipt candidate remains non-admitted until PG07 evidence supplied",
   "cost_adapter_source_repo": "cristhianlujan/claude-persona-lf-patch",
-  "cost_adapter_source_commit": "a0ec3385e322b51793e6f06c7d8d580d83cd15d6",
+  "cost_adapter_source_commit": "5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e",
   "cost_adapter_function": "worker_pilot_adapter_exp/worker_cost_report_v1.py::price_receipt"
 }
