@@ -114,6 +114,8 @@ class OriginalWorkerErrorArtifactTests(unittest.TestCase):
             cost=json.loads((public/"cost.json").read_text())
             self.assertIn("MODEL_ERROR",visible_safe["reason"])
             self.assertIn("MODEL_ERROR",verified_safe["reason"])
+            self.assertIn("MODEL_ERROR",verified_safe["proposal_reason"])
+            self.assertIn("MODEL_ERROR",visible_safe["proposal_reason"])
             self.assertEqual(visible_safe["attempts"][0]["proposal_reason"].split()[0],"MODEL_ERROR")
             self.assertEqual(cost["usage_status"],"UNAVAILABLE")
             self.assertEqual(cost["message"],MISSING_USAGE_MESSAGE)
