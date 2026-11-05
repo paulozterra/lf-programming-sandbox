@@ -21,8 +21,8 @@ from unittest.mock import patch
 PIN_WORKER = "298307e2f9cac72abfde2b181f3554b0e28bad24"
 PIN_ADAPTER = "5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e"
 PIN_HOLDOUT = "979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
-MAX_COST_BY_MODEL = {"claude-haiku-5-5": Decimal("0.01"),
-                     "claude-sonnet-5-5": Decimal("0.05")}
+MAX_COST_BY_MODEL = {"claude-haiku-5-5": Decimal("0.03"),
+                     "claude-sonnet-5-5": Decimal("0.20")}
 MAX_ATTEMPTS = 3
 LIMITS = {
     "max_attempts": 3,
