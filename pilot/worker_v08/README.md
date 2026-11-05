@@ -45,7 +45,7 @@ El auditor necesita cuatro elementos: esta rama limpia, un checkout del Worker p
 
 ```bash
 export WORKER_CHECKOUT=/ruta/programming-agent
-export COST_ADAPTER_CHECKOUT=/ruta/claude-persona-lf-patch-en-a0ec3385
+export COST_ADAPTER_CHECKOUT=/ruta/claude-persona-lf-patch-en-5c981dfc
 export HOLDOUT=/ruta/externa/lf_worker_pilot_branch_holdout_private_20261105.json
 test "$(git -C "$WORKER_CHECKOUT" rev-parse HEAD)" = "298307e2f9cac72abfde2b181f3554b0e28bad24"
 test "$(git -C "$COST_ADAPTER_CHECKOUT" rev-parse HEAD)" = "5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e"
