@@ -222,6 +222,12 @@ def main() -> int:
         if output.is_symlink():
             raise ContextBlocked("CONTEXT_OUTPUT_SYMLINK")
         output.write_bytes(canonical(result))
+        # The internal hash pins the canonical record without its own SHA field;
+        # this independent sidecar hashes the *entire* emitted JSON file.
+        sidecar = output.with_suffix(".sha256")
+        if sidecar.is_symlink() or sidecar.exists():
+            raise ContextBlocked("CONTEXT_OUTPUT_ALREADY_EXISTS")
+        sidecar.write_text(hashlib.sha256(output.read_bytes()).hexdigest() + "  " + output.name + "\n", encoding="utf-8")
         print("DERIVED_CONTEXT_PASS sha256=" + result["sha256"] +
               " files=" + str(len(result["files"])) + " bytes=" + str(result["bytes"]))
         return 0
