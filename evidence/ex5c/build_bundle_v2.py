@@ -148,9 +148,15 @@ def commit_observation(checkout: Path, jar: Path, commit: str, output: Path) -> 
     fmt, fmt_findings = format_findings(checkout, jar, files)
     javac, lint_findings, deps = javac_findings(checkout, files, output)
     return {
-        "commit": commit, "files": [{"path": name,
-                                    "blob_sha256": sha((checkout / name).read_bytes())}
-                                   for name in files],
+        "commit": commit, "files": [{
+            "path": name,
+            "bytes": len((checkout / name).read_bytes()),
+            "blob_sha256": sha((checkout / name).read_bytes()),
+            "git_blob_oid": __import__("hashlib").sha1(
+                b"blob " + str(len((checkout / name).read_bytes())).encode() +
+                b"\\0" + (checkout / name).read_bytes()).hexdigest(),
+            "content_base64": base64.b64encode((checkout / name).read_bytes()).decode()
+        } for name in files],
         "formatter": {"version": VERSION, "jar_sha256": GJF_SHA256,
                       "execution": fmt, "findings": fmt_findings},
         "javac": {"version_output": run(["javac", "-version"], checkout),
