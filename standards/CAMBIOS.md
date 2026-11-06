@@ -16,3 +16,4 @@
 | CHG-0010 | ADDITIVE | Worker piloto: ModelClient JSON estructurado para Sonnet 5.5 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/26 |
 | CHG-0011 | ADDITIVE | Piloto Worker: dos lotes de recordatorios con preflight y traspaso gobernado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/33 |
 | CHG-0012 | ADDITIVE | Piloto Worker: derivación determinista de contexto para lote C |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/37 |
+| CHG-0013 | ADDITIVE | Paquete de evidencia real Ex5C para PG-08 a PG-14 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/39 |
