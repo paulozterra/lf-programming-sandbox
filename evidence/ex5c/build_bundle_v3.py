@@ -178,9 +178,21 @@ def main() -> None:
                       "-Dmdep.outputFile=" + str(cp_path)], cwd=ROOT)
         require(dep["exit_code"] == 0 and cp_path.is_file(), "N1_DEPENDENCY_RESOLUTION_BLOCK")
         cp = cp_path.read_text(encoding="utf-8").strip()
-        before = classes(original, tmp / "before-classes", cp)
-        after = classes(candidate, tmp / "after-classes", cp)
+        before_dir = tmp / "before-classes"
+        after_dir = tmp / "after-classes"
+        before = classes(original, before_dir, cp)
+        after = classes(candidate, after_dir, cp)
         require(before == after, "N1_CLASS_BYTES_CHANGED")
+        def class_objects(root: pathlib.Path) -> list[dict]:
+            rows = []
+            for compiled in sorted(root.rglob("*.class")):
+                raw = compiled.read_bytes()
+                rows.append({"path": compiled.relative_to(root).as_posix(),
+                             "bytes": len(raw), "sha256": sha(raw),
+                             "content_base64": base64.b64encode(raw).decode()})
+            return rows
+        baseline_class_objects = class_objects(before_dir)
+        candidate_class_objects = class_objects(after_dir)
         git_proof = raw_git(head)
         changed = git("diff", "--name-only", ORIGINAL, head, "--",
                       SRC_ROOT.as_posix()).decode().splitlines()
@@ -209,6 +221,8 @@ def main() -> None:
                      "content_base64": base64.b64encode(patch).decode()},
             "class_equivalence": {"javac_flags": ["--release", "21", "-g:none"],
                                   "baseline": before, "candidate": after,
+                                  "baseline_class_objects": baseline_class_objects,
+                                  "candidate_class_objects": candidate_class_objects,
                                   "class_count": len(after), "identical": True,
                                   "dependency_resolution": dep},
             "execution": {"baseline_format_check": base_format,
