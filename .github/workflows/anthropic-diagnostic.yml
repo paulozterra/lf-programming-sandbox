@@ -1,4 +1,4 @@
-name: Anthropic diagnostic — manual two-model request-shape probe
+name: Anthropic diagnostic — manual three-request compatibility probe
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
           python-version: "3.12"
       - name: Verify vendored Worker bytes without modification
         run: python3 pilot/worker_v08/verify_vendor.py --root "$GITHUB_WORKSPACE/vendor/programming-agent"
-      - name: One exact-structure minimal call per model
+      - name: Probe forced-tool Haiku/Sonnet, then structured Sonnet (3 calls)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PYTHONDONTWRITEBYTECODE: "1"

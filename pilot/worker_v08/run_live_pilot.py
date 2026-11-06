@@ -273,7 +273,12 @@ def execute(private: Path) -> None:
     assert_external(REPO, oracle)
     from programming_agent_runner.anthropic_messages import AnthropicMessagesClient
     import programming_agent_runner.verified_worker as verified_module
-    client = AnthropicMessagesClient(
+    # Haiku retains the byte-identical vendored forced-tool client.
+    # Sonnet uses JSON structured outputs via a separate, non-vendored client.
+    from anthropic_structured_client import AnthropicStructuredClient
+    client_type = (AnthropicStructuredClient if model == "claude-sonnet-5-5"
+                   else AnthropicMessagesClient)
+    client = client_type(
         api_key=api_key, model=model, timeout_seconds=90,
         max_output_tokens=8000,
     )
