@@ -29,6 +29,15 @@ class EvidenceBundleOfflineTests(unittest.TestCase):
         self.assertEqual(data["base_commit"], BASE)
         self.assertEqual(data["candidate_commit"], COMMIT)
         self.assertEqual(len(data["mapping"]), 6)
+        # Exact unchanged headers independently read from PR #38's real diff.
+        self.assertEqual([r["header"] for r in data["mapping"]], [
+            "@@ -4,6 +4,7 @@",
+            "@@ -50,4 +51,24 @@ public synchronized Optional<Reminder> findById(long id) {",
+            "@@ -8,10 +8,12 @@",
+            "@@ -47,8 +49,9 @@ public ResponseEntity<Object> create(@RequestBody(required = false) Map<String,",
+            "@@ -64,6 +67,20 @@ public ResponseEntity<Object> get(@PathVariable String id) {",
+            "@@ -8,4 +8,6 @@ public interface ReminderRepository {",
+        ])
         keys = {(r["path"], r["header"]) for r in data["mapping"]}
         self.assertEqual(len(keys), 6)
         seen = set()
