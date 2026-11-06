@@ -14,3 +14,4 @@
 | CHG-0008 | ADDITIVE | Piloto Worker: diagnósticos sanitizados de errores y costo desconocido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/24 |
 | CHG-0009 | ADDITIVE | Piloto Worker: código HTTP visible y diagnóstico Anthropic manual |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/25 |
 | CHG-0010 | ADDITIVE | Worker piloto: ModelClient JSON estructurado para Sonnet 5.5 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/26 |
+| CHG-0011 | ADDITIVE | Diagnóstico Sonnet estructurado: 1500 tokens y metadatos seguros |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/27 |
