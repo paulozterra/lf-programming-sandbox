@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0009",
+  "title": "Piloto Worker: código HTTP visible y diagnóstico Anthropic manual",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Solicitud tras corrida #42234762017 de 2026-11-06"
+  },
+  "reason": "Exponer código HTTP y errores estructurados de Anthropic con límites y detector de secretos, sin cambiar vendor, ni publicar respuesta del modelo, clave ni holdout.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/receipt_diagnostics.py",
+      "pilot/worker_v08/anthropic_diagnostic.py",
+      "pilot/worker_v08/test_anthropic_diagnostic.py",
+      ".github/workflows/anthropic-diagnostic.yml",
+      ".github/workflows/ci.yml"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/25"
+  },
+  "decision_ref": "Owner: HTTP status y error.type/message limitados a 500 caracteres; job manual dos modelos; no modificar vendor hasta respuesta real"
+}

@@ -1,0 +1,42 @@
+name: Anthropic diagnostic — manual two-model request-shape probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lf-anthropic-diagnostic-single
+  cancel-in-progress: false
+
+jobs:
+  anthropic-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source without persistent credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Verify vendored Worker bytes without modification
+        run: python3 pilot/worker_v08/verify_vendor.py --root "$GITHUB_WORKSPACE/vendor/programming-agent"
+      - name: One exact-structure minimal call per model
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 pilot/worker_v08/anthropic_diagnostic.py
+      - name: Upload only safe HTTP status and Anthropic error metadata
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: anthropic-diagnostic-status
+          if-no-files-found: warn
+          retention-days: 3
+          path: ${{ runner.temp }}/anthropic-diagnostic/status.json
