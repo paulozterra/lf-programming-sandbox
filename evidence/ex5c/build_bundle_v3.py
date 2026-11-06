@@ -181,7 +181,7 @@ def main() -> None:
         def compile_with_receipt(root: pathlib.Path, directory: pathlib.Path):
             directory.mkdir()
             java_files = checked_source_inventory(root)
-            argv = ["javac", "--release", "21", "-g:none",
+            argv = ["javac", "--release", "21", "-g:none", "-Xlint:all",
                     "-encoding", "UTF-8", "-cp", cp, "-d", str(directory)] + [
                         str(p) for p in java_files]
             observation = record(argv, cwd=root)
@@ -191,11 +191,28 @@ def main() -> None:
                 for p in sorted(directory.rglob("*.class"))
             }
             require(bool(hashes), "N1_EMPTY_CLASS_BUILD")
-            return hashes, observation
+            import re
+            findings = []
+            diagnostics = base64.b64decode(observation["stderr"]["base64"]).decode(
+                "utf-8", errors="replace")
+            for match in re.finditer(
+                r"(?m)^(.+?\\.java):(\\d+):\\s*(warning|error):\\s*(.*)$",
+                diagnostics,
+            ):
+                rawpath = pathlib.Path(match.group(1))
+                if rawpath.is_absolute():
+                    path = rawpath.relative_to(root).as_posix()
+                else:
+                    path = match.group(1)
+                require(path in [p.relative_to(root).as_posix() for p in java_files],
+                        "N1_LINT_FINDING_OUTSIDE_SCOPE")
+                findings.append({"path": path, "line": int(match.group(2)),
+                                 "kind": match.group(3), "message": match.group(4)})
+            return hashes, observation, findings
         before_dir = tmp / "before-classes"
         after_dir = tmp / "after-classes"
-        before, before_compile = compile_with_receipt(original, before_dir)
-        after, after_compile = compile_with_receipt(candidate, after_dir)
+        before, before_compile, before_lints = compile_with_receipt(original, before_dir)
+        after, after_compile, after_lints = compile_with_receipt(candidate, after_dir)
         require(before == after, "N1_CLASS_BYTES_CHANGED")
         def class_objects(root: pathlib.Path) -> list[dict]:
             rows = []
@@ -239,6 +256,8 @@ def main() -> None:
                                   "candidate_class_objects": candidate_class_objects,
                                   "baseline_compile_receipt": before_compile,
                                   "candidate_compile_receipt": after_compile,
+                                  "baseline_lint_findings": before_lints,
+                                  "candidate_lint_findings": after_lints,
                                   "class_count": len(after), "identical": True,
                                   "dependency_resolution": dep},
             "execution": {"baseline_format_check": base_format,
