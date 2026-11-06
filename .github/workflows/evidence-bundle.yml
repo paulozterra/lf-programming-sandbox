@@ -1,0 +1,85 @@
+name: ex5c evidence bundle — manual, pinned, no LF production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: ex5c-evidence-bundle-single
+  cancel-in-progress: false
+
+jobs:
+  evidence-ex5c:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout evidence tools on current sandbox main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # pinned
+        with:
+          ref: main
+          path: evidence_tools
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout exact real sandbox merge commit with full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # pinned
+        with:
+          ref: e76b213cb2f367f787e0eba3bf8ff74136edd883
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up JDK 21 and Maven
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # pinned
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Build exact offline-real bundle; validate SHA, hunks, Maven, HTTP smoke
+        id: bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LF_EVIDENCE_SOURCE_ROOT: ${{ github.workspace }}/source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 evidence_tools/evidence/ex5c/build_bundle.py
+          cd evidence_tools/evidence/ex5c
+          sha256sum --check lf-evidence-bundle-v1.sha256
+          echo "EVIDENCE_BUNDLE_VALIDATED=true"
+
+      - name: Upload fixed source evidence JSON and checksum
+        if: ${{ steps.bundle.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # pinned
+        with:
+          name: ex5c-real-sandbox-evidence-bundle-v1
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            evidence_tools/evidence/ex5c/lf-evidence-bundle-v1.json
+            evidence_tools/evidence/ex5c/lf-evidence-bundle-v1.sha256
+
+      - name: Open governed PR for the generated evidence; NEVER push main
+        if: ${{ steps.bundle.outcome == 'success' }}
+        working-directory: evidence_tools
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LF_EVIDENCE_RUN: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "main"
+          test -f evidence/ex5c/lf-evidence-bundle-v1.json
+          git checkout -b "lf/ex5c-evidence-generated-${LF_EVIDENCE_RUN}"
+          git add evidence/ex5c/lf-evidence-bundle-v1.json evidence/ex5c/lf-evidence-bundle-v1.sha256
+          git -c user.name="LF Sandbox Evidence" -c user.email="lf-evidence@users.noreply.github.com" \
+            commit -m "evidence(ex5c): record exact real sandbox Run C lineage and smoke"
+          gh auth setup-git
+          git push origin "lf/ex5c-evidence-generated-${LF_EVIDENCE_RUN}"
+          gh pr create --base main --head "lf/ex5c-evidence-generated-${LF_EVIDENCE_RUN}" \
+            --title "Evidence ex5c: real Worker Run C fixed bundle, SHA and smoke" \
+            --body "Generated from pinned merge e76b213, public sanitized Run C #42284754122, and local Java 21 Maven/HTTP checks. Human merge only. This bundle is REAL_SANDBOX_UNAUTHENTICATED; all authority fields remain false. No hidden oracles or LF productive systems accessed."
