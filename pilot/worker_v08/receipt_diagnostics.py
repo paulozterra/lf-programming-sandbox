@@ -17,7 +17,7 @@ PUBLIC_FIELDS=("schema_version","task_id","task_sha256","base_head_sha",
                "visible_receipt_sha256","receipt_sha256")
 TOKEN_REASON=re.compile(r"^(MODEL_ERROR|MODEL_REFUSAL|MODEL_NOT_CALLED|PROPOSAL_INVALID|"
                         r"ACCEPTANCE_FAILED|VISIBLE_[A-Z_]+|BLOCKED|FAIL|PASS)")
-HTTP_CODE=re.compile(r"\b(?:HTTP|status(?:_code)?)[ :=\x27\"]+(400|401|403|404|408|409|422|429|500|502|503|504)\b",re.I)
+HTTP_CODE=re.compile(r"\b(?:HTTP(?:\s+error)?|status(?:_code)?)[ :=\x27\"]+([1-5][0-9]{2})\b",re.I)
 
 def safe_reason(original, proposal_reason=None):
     """Never propagate arbitrary exceptions, provider messages or model outputs.
