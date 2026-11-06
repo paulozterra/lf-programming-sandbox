@@ -2,14 +2,36 @@
 import json
 import re
 import unittest
+import urllib.request
 from pathlib import Path
 from build_bundle import (BASE, COMMIT, EXPECTED_PATCH, EXPECTED_SUBTREE,
-                          REQS, git_oid, sha)
+                          REQS, git_oid, sha, StripAuthOnSignedArtifactRedirect)
 
 HERE = Path(__file__).resolve().parent
 
 
 class EvidenceBundleOfflineTests(unittest.TestCase):
+    def test_signed_artifact_redirect_strips_bearer_credentials(self):
+        source = urllib.request.Request(
+            "https://api.github.com/repos/paulozterra/lf-programming-sandbox/actions/artifacts/1/zip",
+            headers={"Authorization": "Bearer TEST_TOKEN", "Accept": "application/vnd.github+json"})
+        redirected = StripAuthOnSignedArtifactRedirect().redirect_request(
+            source, None, 302, "Found", {},
+            "https://productionresultssa0.blob.core.windows.net/actions-results/sample?sig=redacted")
+        self.assertIsNotNone(redirected)
+        self.assertFalse(any(k.lower() == "authorization" for k in
+                             list(redirected.headers) + list(redirected.unredirected_hdrs)))
+        self.assertIn("sig=redacted", redirected.full_url)
+
+    def test_redirect_refuses_untrusted_or_http_destinations(self):
+        handler = StripAuthOnSignedArtifactRedirect()
+        source = urllib.request.Request("https://api.github.com/runs/1",
+                                        headers={"Authorization": "Bearer TEST_TOKEN"})
+        for url in ("http://productionresultssa0.blob.core.windows.net/r",
+                    "https://malicious.example.org/r"):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                handler.redirect_request(source, None, 302, "Found", {}, url)
+
     def test_git_object_hashing_known_vectors(self):
         self.assertEqual(git_oid("blob", b"hello\n"),
                          "ce013625030ba8dba906f756967f9e9ca394464a")
