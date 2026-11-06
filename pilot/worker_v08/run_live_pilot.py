@@ -32,7 +32,7 @@ LOT_LIMITS = {"max_attempts":1,"max_context_bytes":240000,
 
 def selected_limits():
     task=os.environ.get("PILOT_TASK")
-    if task in ("ex4a","ex4b"):
+    if task in ("ex4a","ex4b","ex5c"):
         return LOT_LIMITS
     return EX3_LIMITS if task=="exercise-3" else LIMITS
 
@@ -125,7 +125,7 @@ def selected_policy():
         block("PILOT_PROVIDER_MODEL_FORBIDDEN")
     if attempts not in ("1","2","3"):
         block("PILOT_ATTEMPTS_FORBIDDEN")
-    if task_name in ("exercise-3","ex4a","ex4b") and (model!="claude-sonnet-5-5" or attempts!="1"):
+    if task_name in ("exercise-3","ex4a","ex4b","ex5c") and (model!="claude-sonnet-5-5" or attempts!="1"):
         block("PILOT_EXERCISE3_MODEL_ATTEMPTS_FORBIDDEN")
     from budget_gate import require, BudgetBlocked
     try:
@@ -145,6 +145,23 @@ def enforce_task_limits(task,attempts):
             block("PILOT_TASK_LIMIT_EXCEEDED:"+field)
     if task.get("allow_deletions") is not False:
         block("PILOT_DELETIONS_FORBIDDEN")
+
+
+def context_paths_for(task_decl: dict, private: Path) -> list[str]:
+    """Ex5 context must exactly match the saved deterministic pre-model report."""
+    if os.environ.get("PILOT_TASK") != "ex5c":
+        return task_decl["context_path_patterns"]
+    from derive_context import derive, expected_ex5c, canonical, ContextBlocked
+    try:
+        result = derive(REPO, task_decl["write_path_patterns"], task_decl["spec_paths"])
+        expected_ex5c(result, REPO)
+    except ContextBlocked as exc:
+        block(str(exc))
+    result["sha256"] = digest(canonical(result))
+    artifact = private / "public/derived-context.json"
+    if not artifact.is_file() or artifact.is_symlink() or read(artifact) != result:
+        block("CONTEXT_DERIVATION_MISMATCH")
+    return result["context_paths"]
 
 
 def validate_common(private: Path) -> None:
@@ -203,7 +220,9 @@ def validate_common(private: Path) -> None:
         # Check fail-closed before loading any hidden oracle.
         from task_selector import select as select_task
         decl=select_task(os.environ["PILOT_TASK"])
-        check_size(REPO,decl,prompt=WORKER_SYSTEM_INSTRUCTION+"\n"+
+        contexts=context_paths_for(decl,private)
+        check_size(REPO,dict(decl,context_path_patterns=contexts),
+                   prompt=WORKER_SYSTEM_INSTRUCTION+"\n"+
                    json.dumps(decl,ensure_ascii=False))
     holdout = private / "holdout.oracle.json"
     if (not holdout.is_file() or holdout.is_symlink()
@@ -239,18 +258,22 @@ def prepare(private: Path) -> None:
     elif pre["kind"] == "NEW_FILE_ABSENT":
         if path.exists():
             block("PILOT_NEW_TARGET_ALREADY_EXISTS")
+    elif pre["kind"] == "EXISTING_FILE_PRESENT" and os.environ.get("PILOT_TASK") == "ex5c":
+        if any(not (REPO / name).is_file() or (REPO / name).is_symlink()
+               for name in task_decl["write_path_patterns"]):
+            block("PILOT_EX5_WRITE_TARGET_MISSING")
     else:
         block("PILOT_SOURCE_PRECONDITION_INVALID")
     (_, _legacy_check_limits, parse, snapshot, load_oracle, assert_external, *_) = importer()
     model,attempts,budget=selected_policy()
-    limits=EX3_LIMITS if os.environ.get("PILOT_TASK")=="exercise-3" else LIMITS
+    limits=selected_limits()
     task = {
         "schema_version": 1,
         "task_id": task_decl["task_id"],
         "objective": task_decl["objective"],
         "base_head_sha": git_head(REPO),
         "source_snapshot_sha256": snapshot(REPO),
-        "context_path_patterns": task_decl["context_path_patterns"],
+        "context_path_patterns": context_paths_for(task_decl,private),
         "write_path_patterns": task_decl["write_path_patterns"],
         "protected_path_patterns": task_decl["protected_path_patterns"],
         "acceptance_commands": task_decl["acceptance_commands"],
@@ -295,7 +318,7 @@ def execute(private: Path) -> None:
     task = read(private / "task.v1.json")
     if (task.get("task_id")!=task_decl["task_id"]
         or task.get("objective")!=task_decl["objective"]
-        or task.get("context_path_patterns")!=task_decl["context_path_patterns"]
+        or task.get("context_path_patterns")!=context_paths_for(task_decl,private)
         or task.get("write_path_patterns")!=task_decl["write_path_patterns"]
         or task.get("protected_path_patterns")!=task_decl["protected_path_patterns"]
         or task.get("acceptance_commands")!=task_decl["acceptance_commands"]):
@@ -315,7 +338,7 @@ def execute(private: Path) -> None:
                    else AnthropicMessagesClient)
     client = client_type(
         api_key=api_key, model=model, timeout_seconds=90,
-        max_output_tokens=16000 if os.environ.get("PILOT_TASK") in ("exercise-3","ex4a","ex4b") else 8000,
+        max_output_tokens=16000 if os.environ.get("PILOT_TASK") in ("exercise-3","ex4a","ex4b","ex5c") else 8000,
     )
     # Keep key out of persistent locals longer than necessary.
     del api_key
