@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[2]
 CATALOG=Path(__file__).with_name("tasks.json")
 SPEC="standards/tools/MIGRATIONS_SPEC.md"
 SHA=re.compile(r"^[0-9a-f]{64}$")
-TASKS=("exercise-1","exercise-2","exercise-3","ex4a","ex4b")
+TASKS=("exercise-1","exercise-2","exercise-3","ex4a","ex4b","ex5c")
 EX1_SHA="979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
 EX2_SHA="44f75fa89fa6974cdcecc43bb2c2669d73eb4bf45fbebb3ec0f2308fce3551ee"
 SPEC_SHA="b699c77f46df4c1be31865d3568ee5c1f2673f6b0cfbe1745bba60d7b068251c"
@@ -24,6 +24,8 @@ EX4_SPEC="apps/time-service/REMINDERS_SPEC.md"
 EX4_SPEC_SHA="dbcb41edebc7f1a195b01c9242d08f0c33e5d280aab4dff39e50d88220a4184b"
 EX4_SHA={"ex4a":"cd0e9d7fc73aa92280b162e8c0f3f79d98cd7046b5626737666df97080f2af54",
          "ex4b":"8df8ec9858e8dd0078e955b285bac110becc781b55280b17edd9b811d44a900c"}
+EX5_SHA="2bf9c94f0c6db7bd660af7096b61cdb63715f0933ac24985c8d7e5b973d930a8"
+EX5_SPEC_SHA="45f06d002dd7152f88bc9a3332eb3f3b6c10a2c8773e2cb7b0beeadf61810d00"
 REMINDER="apps/time-service/src/main/java/lf/sandbox/time/reminder/"
 
 class TaskBlocked(ValueError):
@@ -41,12 +43,16 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
         or set(data.get("tasks",{}))!=set(TASKS)):
         block("PILOT_TASK_CATALOG_INVALID")
     task=data["tasks"][task_name]
-    expected_keys={"task_id","objective","context_path_patterns","write_path_patterns",
+    expected_keys={"task_id","objective","write_path_patterns",
                    "protected_path_patterns","acceptance_commands","holdout_sha256",
                    "spec_path","spec_sha256","source_precondition"}
+    if task_name!="ex5c":
+        expected_keys.add("context_path_patterns")
+    else:
+        expected_keys.add("spec_paths")
     if not isinstance(task,dict) or set(task)!=expected_keys:
         block("PILOT_TASK_FIELDS_INVALID")
-    if task["task_id"]!="LF-WORKER-PILOT-REAL-"+{"exercise-1":"001","exercise-2":"002","exercise-3":"003","ex4a":"004A","ex4b":"004B"}[task_name]:
+    if task["task_id"]!="LF-WORKER-PILOT-REAL-"+{"exercise-1":"001","exercise-2":"002","exercise-3":"003","ex4a":"004A","ex4b":"004B","ex5c":"005C"}[task_name]:
         block("PILOT_TASK_ID_INVALID")
     if not isinstance(task["objective"],str) or not task["objective"].strip():
         block("PILOT_OBJECTIVE_MISSING")
@@ -56,6 +62,10 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
         if task_name=="ex4b":
             protected += [REMINDER+file for file in ("Reminder.java","ReminderRepository.java",
                                                     "InMemoryReminderRepository.java")]
+    elif task_name=="ex5c":
+        protected=["apps/time-service/src/test/**","apps/time-service/pom.xml",
+                   REMINDER+"Reminder.java",
+                   "apps/time-service/src/main/java/lf/sandbox/time/*.java"]
     else:
         protected=["apps/time-service/src/test/**"] if task_name=="exercise-3" else ["standards/tests/**"]
     if task["protected_path_patterns"]!=protected:
@@ -95,7 +105,7 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
         # No fabricated digest: fail closed during real workflow admission.
         if task["holdout_sha256"] in (EX1_SHA,EX2_SHA):
             block("PILOT_EXERCISE3_HOLDOUT_REUSED")
-    else:  # ex4a/ex4b, explicit allowlist; no alternate oracle or scope.
+    elif task_name in EX4_SHA:  # previous tasks retain their original spec A/B pin
         a=task_name=="ex4a"
         writes=([REMINDER+name for name in ("Reminder.java","ReminderRepository.java",
                                              "InMemoryReminderRepository.java")] if a
@@ -114,8 +124,20 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
             or task["source_precondition"]!={"kind":"NEW_FILE_ABSENT","path":writes[0]}):
             block("PILOT_EX4_SCOPE_OR_SHA_DRIFT")
         spec=ROOT/EX4_SPEC
-        if not spec.is_file() or hashlib.sha256(spec.read_bytes()).hexdigest()!=EX4_SPEC_SHA:
+        if not spec.is_file() or hashlib.sha256(spec.read_bytes().split(b"## Lote C ",1)[0]).hexdigest()!=EX4_SPEC_SHA:
             block("PILOT_EX4_SPEC_SHA_DRIFT")
+    else:  # ex5c: no hand-written context_path_patterns
+        writes=[REMINDER+n for n in ("ReminderRepository.java","InMemoryReminderRepository.java","ReminderController.java")]
+        if (task["write_path_patterns"]!=writes or task["spec_paths"]!=[EX4_SPEC]
+            or task["spec_path"]!=EX4_SPEC or task["spec_sha256"]!=EX5_SPEC_SHA
+            or task["holdout_sha256"]!=EX5_SHA
+            or task["source_precondition"]!={"kind":"EXISTING_FILE_PRESENT","path":writes[0]}):
+            block("PILOT_EX5_SCOPE_OR_SHA_DRIFT")
+        spec=ROOT/EX4_SPEC
+        if not spec.is_file() or hashlib.sha256(spec.read_bytes()).hexdigest()!=EX5_SPEC_SHA:
+            block("PILOT_EX5_SPEC_SHA_DRIFT")
+        if any(not (ROOT / name).is_file() or (ROOT / name).is_symlink() for name in writes):
+            block("PILOT_EX5_WRITE_TARGET_MISSING")
     checks=task["acceptance_commands"]
     if not isinstance(checks,list) or len(checks)!=1 or not isinstance(checks[0],dict):
         block("PILOT_ACCEPTANCE_INVALID")
@@ -126,6 +148,11 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
                      "-Dtest=ReminderRepositoryVisibleTest","test"] if task_name=="ex4a" else
                     ["mvn","-B","-q","-f","apps/time-service/pom.xml","test"]),
             "timeout_seconds":600,"max_output_bytes":32000}:
+            block("PILOT_ACCEPTANCE_INVALID")
+    elif task_name=="ex5c":
+        if checks[0]!={"name":"reminder-delete-search-full-visible",
+                       "argv":["mvn","-B","-q","-f","apps/time-service/pom.xml","test"],
+                       "timeout_seconds":600,"max_output_bytes":32000}:
             block("PILOT_ACCEPTANCE_INVALID")
     elif task_name=="exercise-3":
         if checks[0]!={"name":"time-service-maven-verify",
@@ -138,6 +165,8 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
         block("PILOT_ACCEPTANCE_INVALID")
     pre=task["source_precondition"]
     if not isinstance(pre,dict) or pre.get("path") not in task["write_path_patterns"]:
+        block("PILOT_SOURCE_PRECONDITION_INVALID")
+    if task_name=="ex5c" and pre!={"kind":"EXISTING_FILE_PRESENT","path":REMINDER+"ReminderRepository.java"}:
         block("PILOT_SOURCE_PRECONDITION_INVALID")
     if task_name=="exercise-2" and pre!={"kind":"NEW_FILE_ABSENT","path":"standards/tools/migrations.py"}:
         block("PILOT_SOURCE_PRECONDITION_INVALID")
