@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0014",
+  "title": "EX5C v2: baseline format/lint real y reproducible",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Mandato de Paulo 2026-11-06: evidence v2 para PG06-C4 y PG08-C2 sin modelo"
+  },
+  "reason": "Extender manual evidence-bundle workflow con observaciones deterministas google-java-format 1.30.0 SHA-pinned y javac -Xlint:all sobre dos commits; mantener v1 inmutable y all authority false.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/evidence-bundle.yml",
+      "evidence/ex5c/build_bundle_v2.py",
+      "evidence/ex5c/test_bundle_v2_offline.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/44"
+  },
+  "decision_ref": "Owner: preserve evidence v1 SHA and strict no model/no hidden tests/no producer changes"
+}
