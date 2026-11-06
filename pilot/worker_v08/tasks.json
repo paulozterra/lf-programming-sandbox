@@ -110,7 +110,7 @@
           "max_output_bytes": 32000
         }
       ],
-      "holdout_sha256": null,
+      "holdout_sha256": "e721cd1f8ec1ca32cfee81bc84df1f38f0385587e9081ab2a3ced47beefc3dbc",
       "spec_path": "apps/time-service/TIME_SERVICE_SPEC.md",
       "spec_sha256": "70cb7e3f2678ff70e2de54cfbea2d7d305e54d6308c2155c3728907183e8ee26",
       "source_precondition": {
