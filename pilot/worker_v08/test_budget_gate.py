@@ -25,6 +25,20 @@ class BudgetTests(unittest.TestCase):
                 with self.assertRaisesRegex(BudgetBlocked,"PILOT_MODEL_ATTEMPTS_EXCEEDED"):
                     require("claude-sonnet-5-5",attempts)
 
+    def test_exercise3_only_sonnet_one_attempt_and_035_ceiling(self):
+        result=require("claude-sonnet-5-5",1,task="exercise-3")
+        self.assertTrue(result["allowed"])
+        self.assertEqual(result["max_output_tokens"],16000)
+        self.assertEqual(result["ceiling_usd"],"0.35")
+        self.assertEqual(Decimal(result["worst_case_usd"]),Decimal("0.280"))
+        for model,attempts in (("claude-haiku-5-5",1),("claude-sonnet-5-5",2),
+                               ("claude-sonnet-5-5",3)):
+            with self.subTest(model=model,attempts=attempts):
+                with self.assertRaises(BudgetBlocked):
+                    require(model,attempts,task="exercise-3")
+        self.assertEqual(require("claude-sonnet-5-5",1,task="exercise-2")["ceiling_usd"],"0.20")
+        self.assertEqual(require("claude-haiku-5-5",1,task="exercise-1")["max_output_tokens"],8000)
+
     def test_haiku_four_impossible(self):
         self.assertEqual(MODEL_ATTEMPT_LIMITS["claude-haiku-5-5"],3)
         with self.assertRaisesRegex(BudgetBlocked,"PILOT_ATTEMPTS_FORBIDDEN"):
