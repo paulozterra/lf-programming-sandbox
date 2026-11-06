@@ -86,17 +86,31 @@ def load_run_artifacts() -> dict[str, bytes]:
     found = {a["name"]: a for a in manifest.get("artifacts", []) if a.get("name") in ARTIFACTS}
     require(set(found) == ARTIFACTS and all(not a.get("expired") for a in found.values()),
             "REAL_RUN_ARTIFACTS_MISSING")
+    # Binary artifacts are downloaded by official gh CLI in the workflow.
+    # urllib auto-forwards GitHub's bearer Authorization to a signed redirect
+    # host; that host responds 401. Never send GitHub credentials to it.
+    artifact_dir = Path(os.environ.get("LF_EVIDENCE_ARTIFACT_DIR", ""))
+    require(bool(os.environ.get("LF_EVIDENCE_ARTIFACT_DIR"))
+            and artifact_dir.is_dir() and not artifact_dir.is_symlink(),
+            "LOCAL_ARTIFACT_DIR_REQUIRED")
+    require({found[n]["id"] for n in ARTIFACTS} == {13537565729, 13537475831},
+            "REAL_RUN_ARTIFACT_IDS_DRIFT")
     result: dict[str, bytes] = {}
-    for name in sorted(found):
-        # GitHub redirects binary downloads to its signed object storage URL.
-        url = base_url + "/actions/artifacts/" + str(found[name]["id"]) + "/zip"
-        with zipfile.ZipFile(io.BytesIO(api_bytes(url, token))) as archive:
-            for item in archive.namelist():
-                if item in RECEIPTS or item == "worker.patch" or item == "derived-context.sha256":
-                    require(item not in result, "DUPLICATE_RECEIPT_NAME")
-                    require(not item.startswith("/") and ".." not in Path(item).parts,
-                            "INVALID_ARTIFACT_PATH")
-                    result[item] = archive.read(item)
+    for name in sorted(ARTIFACTS):
+        directory = artifact_dir / name
+        require(directory.is_dir() and not directory.is_symlink(), "LOCAL_ARTIFACT_MISSING")
+        expected = (set(RECEIPTS) | {"derived-context.sha256"}
+                    if name == "worker-pilot-receipts-cost-logs" else {"worker.patch"})
+        actual = {p.name for p in directory.iterdir()}
+        # Public run also provides sanitized logs, but those are never ingested.
+        require(expected <= actual and actual <= expected | {"pilot-summary.log", "pilot-status.log"},
+                "LOCAL_ARTIFACT_CONTENT_UNEXPECTED")
+        for item in expected:
+            path = directory / item
+            require(path.is_file() and not path.is_symlink() and path.stat().st_size < 300000,
+                    "LOCAL_ARTIFACT_FILE_UNSAFE")
+            require(item not in result, "DUPLICATE_RECEIPT_NAME")
+            result[item] = path.read_bytes()
     require(set(RECEIPTS) | {"worker.patch", "derived-context.sha256"} == set(result),
             "REQUIRED_PUBLIC_RECEIPTS_MISSING")
     require(sha(result["worker.patch"]) == EXPECTED_PATCH, "WORKER_PATCH_SHA_MISMATCH")
