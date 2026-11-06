@@ -188,6 +188,11 @@ jobs:
           python3 pilot/worker_v08/derive_context.py --task ex5c --root . --output "$RUNNER_TEMP/derived-context.json"
           cd "$RUNNER_TEMP" && sha256sum --check derived-context.sha256
 
+      - name: Compile real-ex5c bundle generator and test SHA/mapping offline (NO API)
+        run: |
+          python3 -m py_compile evidence/ex5c/build_bundle.py evidence/ex5c/test_bundle_offline.py
+          python3 -m unittest discover -s evidence/ex5c -p 'test_bundle_offline.py' -v
+
       - name: Verify offline task preflight routing (NO REAL ORACLE, NO MODEL)
         run: python3 pilot/worker_v08/test_preflight_routing.py
       - name: Original Worker fake MODEL_ERROR produces sanitized receipts (NO API)
