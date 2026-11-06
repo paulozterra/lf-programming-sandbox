@@ -11,3 +11,4 @@
 | CHG-0005 | EDITORIAL | Ejemplos positivos y negativos P0 del catálogo V1 | catalog 0.6.0 → 0.6.1 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/11 |
 | CHG-0006 | ADDITIVE | Skills L2 por stack y ensamblador determinista | skill None → 0.2.0, skill None → 0.2.0, skill None → 0.2.0, skill_checks None → 0.2.0 | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/12 |
 | CHG-0007 | ADDITIVE | Piloto Worker: contrato MIG-01 a MIG-07 y admisión segura del examen por tarea |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/23 |
+| CHG-0008 | ADDITIVE | Piloto Worker: diagnósticos sanitizados de errores y costo desconocido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/24 |
