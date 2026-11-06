@@ -26,6 +26,17 @@ MAX_COST_BY_MODEL = {"claude-haiku-5-5": Decimal("0.03"),
 EX3_MAX_COST = Decimal("0.35")
 EX3_LIMITS = {"max_attempts":1,"max_context_bytes":60000,
               "max_patch_bytes":40000,"max_changed_files":6}
+LOT_LIMITS = {"max_attempts":1,"max_context_bytes":240000,
+              "max_patch_bytes":40000,"max_changed_files":6}
+
+
+def selected_limits():
+    task=os.environ.get("PILOT_TASK")
+    if task in ("ex4a","ex4b"):
+        return LOT_LIMITS
+    return EX3_LIMITS if task=="exercise-3" else LIMITS
+
+
 MAX_ATTEMPTS = 3
 LIMITS = {
     "max_attempts": 3,
@@ -114,7 +125,7 @@ def selected_policy():
         block("PILOT_PROVIDER_MODEL_FORBIDDEN")
     if attempts not in ("1","2","3"):
         block("PILOT_ATTEMPTS_FORBIDDEN")
-    if task_name=="exercise-3" and (model!="claude-sonnet-5-5" or attempts!="1"):
+    if task_name in ("exercise-3","ex4a","ex4b") and (model!="claude-sonnet-5-5" or attempts!="1"):
         block("PILOT_EXERCISE3_MODEL_ATTEMPTS_FORBIDDEN")
     from budget_gate import require, BudgetBlocked
     try:
@@ -127,7 +138,7 @@ def selected_policy():
 def enforce_task_limits(task,attempts):
     if not isinstance(task,dict) or task.get("max_attempts")!=attempts:
         block("PILOT_TASK_ATTEMPTS_INVALID")
-    limits=EX3_LIMITS if os.environ.get("PILOT_TASK")=="exercise-3" else LIMITS
+    limits=selected_limits()
     for field in ("max_attempts","max_context_bytes","max_patch_bytes","max_changed_files"):
         value=task.get(field)
         if type(value) is not int or value<1 or value>limits[field]:
@@ -178,12 +189,22 @@ def validate_common(private: Path) -> None:
                 "standards/tools/migrations.py", "standards/tools/checks.py"]
             or task["spec_sha256"] is None):
             block("PILOT_EXERCISE2_SCOPE_INVALID")
-    else:
+    elif os.environ["PILOT_TASK"] == "exercise-3":
         if (task["write_path_patterns"] != [
                 "apps/time-service/pom.xml","apps/time-service/src/main/**"]
             or task["spec_path"] != "apps/time-service/TIME_SERVICE_SPEC.md"
             or task["holdout_sha256"] is None):
             block("PILOT_EXERCISE3_SCOPE_INVALID")
+    else:
+        from lot_preflight import check_handoff,check_size
+        from programming_agent_runner.worker import WORKER_SYSTEM_INSTRUCTION
+        if os.environ["PILOT_TASK"]=="ex4b":
+            check_handoff(REPO)
+        # Check fail-closed before loading any hidden oracle.
+        from task_selector import select as select_task
+        decl=select_task(os.environ["PILOT_TASK"])
+        check_size(REPO,decl,prompt=WORKER_SYSTEM_INSTRUCTION+"\n"+
+                   json.dumps(decl,ensure_ascii=False))
     holdout = private / "holdout.oracle.json"
     if (not holdout.is_file() or holdout.is_symlink()
         or digest(holdout.read_bytes()) != task["holdout_sha256"]):
@@ -294,7 +315,7 @@ def execute(private: Path) -> None:
                    else AnthropicMessagesClient)
     client = client_type(
         api_key=api_key, model=model, timeout_seconds=90,
-        max_output_tokens=16000 if os.environ.get("PILOT_TASK")=="exercise-3" else 8000,
+        max_output_tokens=16000 if os.environ.get("PILOT_TASK") in ("exercise-3","ex4a","ex4b") else 8000,
     )
     # Keep key out of persistent locals longer than necessary.
     del api_key
@@ -332,7 +353,7 @@ def execute(private: Path) -> None:
     write_public_receipt(private / "public", outcome.receipt, "verified",model_category)
     if outcome.receipt["status"] == "PASS":
         raw = outcome.patch.encode("utf-8")
-        allowed_patch=(EX3_LIMITS if os.environ.get("PILOT_TASK")=="exercise-3" else LIMITS)["max_patch_bytes"]
+        allowed_patch=selected_limits()["max_patch_bytes"]
         if not raw or len(raw) > allowed_patch:
             block("PILOT_PATCH_INVALID")
         with (private / "worker.patch").open("xb") as file:
@@ -401,7 +422,7 @@ def cost(private: Path) -> None:
     put(public / "cost.json", result)
     # Preserve read-only receipts and cost even when over budget; NEVER expose
     # patch if this gate rejects the paid attempt.
-    ceiling=EX3_MAX_COST if os.environ.get("PILOT_TASK")=="exercise-3" else MAX_COST_BY_MODEL[model]
+    ceiling=EX3_MAX_COST if os.environ.get("PILOT_TASK") in ("exercise-3","ex4a","ex4b") else MAX_COST_BY_MODEL[model]
     if usd > ceiling:
         block("PILOT_COST_OVER_USD_0_10")
     if verified.get("status") == "PASS":
