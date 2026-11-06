@@ -93,9 +93,9 @@ need(r"^      - name: Decode exercise-3 holdout from its OWN base64 secret", "EX
 need(r"^          PILOT_HOLDOUT_B64: .*secrets.PILOT_HOLDOUT_EX3_B64", "EX3_HOLDOUT_SECRET_MISSING")
 need(r"^      - name: Link JDK 21 and Maven into the vendored Worker's fixed PATH", "EX3_JDK_MAVEN_LINK_STEP_MISSING")
 need(r"^      - name: Verify isolated Worker command environment uses Java 21 and Maven", "EX3_ISOLATED_JAVA_VERIFY_STEP_MISSING")
-for tool in ("java", "javac", "jar"):
-    need(r'ln -sfn "\\$JAVA_HOME/bin/'+tool+r'" "/usr/local/bin/'+tool+r'"',
-         "EX3_JDK_BINARY_NOT_LINKED:"+tool)
+need(r"for tool in java javac jar; do", "EX3_JDK_TOOLS_INCOMPLETE")
+need(r'ln -sfn "\\$JAVA_HOME/bin/\\$tool" "/usr/local/bin/\\$tool"',
+     "EX3_JDK_BINARY_NOT_LINKED")
 need(r"ln -sfn .* /usr/local/bin/mvn", "EX3_MAVEN_NOT_LINKED")
 need(r"maven_source=.*readlink -f", "EX3_MAVEN_LINK_MUST_RESOLVE")
 need(r'isolated_path="/usr/local/bin:/usr/bin:/bin"', "EX3_WORKER_PATH_NOT_EXACT")
