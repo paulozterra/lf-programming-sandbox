@@ -30,7 +30,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/39"
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/40"
   },
   "decision_ref": "Sandbox evidence only; owner merges PRs; all authority False; no access to private holdout or production"
 }
