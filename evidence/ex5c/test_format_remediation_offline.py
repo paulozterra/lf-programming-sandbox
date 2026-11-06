@@ -25,6 +25,7 @@ class FormatRemediationOfflineTests(unittest.TestCase):
         self.assertIn('output[key] = hashlib.sha256(p.read_bytes()).hexdigest()', src)
         self.assertIn("before == after", src)
         self.assertIn("old_hashes == new_hashes", check)
+        self.assertIn("PR_CONTAINS_NON_FORMAT_PATH", check)
 
     def test_src_only_and_original_git_pin(self):
         src = (HERE / "format_remediation.py").read_text()
