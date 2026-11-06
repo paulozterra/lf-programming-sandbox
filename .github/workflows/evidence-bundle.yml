@@ -68,6 +68,9 @@ jobs:
         run: |
           set -euo pipefail
           branch="lf/ex5c-evidence-bundle-run-${GITHUB_RUN_ID}"
+          # The mapping was read-only loaded from origin/main into the pinned old checkout.
+          # Remove that untracked copy before switching to current main (where it is tracked).
+          rm -- evidence/ex5c/hunk_requirements.json
           git switch -c "$branch" origin/main
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
