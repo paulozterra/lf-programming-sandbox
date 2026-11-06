@@ -91,6 +91,28 @@ need(r"^      - name: Set up Java 21 ONLY for exercise-3", "EX3_JAVA_STEP_MISSIN
 need(r"uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165", "EX3_JAVA_NOT_PINNED")
 need(r"^      - name: Decode exercise-3 holdout from its OWN base64 secret", "EX3_HOLDOUT_STEP_MISSING")
 need(r"^          PILOT_HOLDOUT_B64: .*secrets.PILOT_HOLDOUT_EX3_B64", "EX3_HOLDOUT_SECRET_MISSING")
+need(r"^      - name: Link JDK 21 and Maven into the vendored Worker's fixed PATH", "EX3_JDK_MAVEN_LINK_STEP_MISSING")
+need(r"^      - name: Verify isolated Worker command environment uses Java 21 and Maven", "EX3_ISOLATED_JAVA_VERIFY_STEP_MISSING")
+for tool in ("java", "javac", "jar"):
+    need(r'ln -sfn "\\$JAVA_HOME/bin/'+tool+r'" "/usr/local/bin/'+tool+r'"',
+         "EX3_JDK_BINARY_NOT_LINKED:"+tool)
+need(r"ln -sfn .* /usr/local/bin/mvn", "EX3_MAVEN_NOT_LINKED")
+need(r"maven_source=.*readlink -f", "EX3_MAVEN_LINK_MUST_RESOLVE")
+need(r'isolated_path="/usr/local/bin:/usr/bin:/bin"', "EX3_WORKER_PATH_NOT_EXACT")
+need(r'env -i PATH="\\$isolated_path" HOME="\\$isolated_home" java -version',
+     "EX3_JAVA_NOT_TESTED_WITH_EMPTY_ENV")
+need(r'env -i PATH="\\$isolated_path" HOME="\\$isolated_home" mvn -v',
+     "EX3_MAVEN_NOT_TESTED_WITH_EMPTY_ENV")
+need(r"grep -Eq 'version .*21", "EX3_JAVA21_NOT_ENFORCED")
+need(r"grep -Eq 'Java version: 21", "EX3_MAVEN_JAVA21_NOT_ENFORCED")
+need(r'test -z ".*JAVA_HOME', "EX3_JAVA_HOME_MUST_BE_UNSET")
+if yaml.count("if: ${{ inputs.task == 'exercise-3' }}") < 4:
+    raise AssertionError("EX3_STEPS_MUST_BE_ISOLATED")
+if not (yaml.index("Set up Java 21 ONLY") <
+        yaml.index("Link JDK 21 and Maven") <
+        yaml.index("Verify isolated Worker command environment") <
+        yaml.index("Execute REAL vendored run_verified_worker")):
+    raise AssertionError("EX3_JDK_VERIFICATION_TOO_LATE")
 need(r"^      - name: Build isolated executable time-service JAR only on verified PASS", "EX3_JAR_GATE_MISSING")
 need(r"^      - name: Upload exercise-3 executable JAR ONLY on verified PASS", "EX3_JAR_UPLOAD_MISSING")
 need(r"name: time-service.jar", "EX3_JAR_ARTIFACT_MISSING")
