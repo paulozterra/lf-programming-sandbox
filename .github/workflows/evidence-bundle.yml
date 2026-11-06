@@ -2,6 +2,15 @@ name: ex5c evidence bundle — manual, pinned, no LF production
 
 on:
   workflow_dispatch:
+    inputs:
+      evidence_version:
+        description: 'v1 historical or v2 additive lint/format evidence'
+        required: true
+        type: choice
+        default: v2
+        options:
+          - v1
+          - v2
 
 permissions:
   contents: write
@@ -40,6 +49,7 @@ jobs:
           java-version: "21"
 
       - name: Build exact offline-real bundle; validate SHA, hunks, Maven, HTTP smoke
+        if: ${{ inputs.evidence_version == 'v1' }}
         id: bundle
         env:
           GH_TOKEN: ${{ github.token }}
@@ -53,7 +63,7 @@ jobs:
           echo "EVIDENCE_BUNDLE_VALIDATED=true"
 
       - name: Upload fixed source evidence JSON and checksum
-        if: ${{ steps.bundle.outcome == 'success' }}
+        if: ${{ inputs.evidence_version == 'v1' && steps.bundle.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # pinned
         with:
           name: ex5c-real-sandbox-evidence-bundle-v1
@@ -62,6 +72,48 @@ jobs:
           path: |
             evidence_tools/evidence/ex5c/lf-evidence-bundle-v1.json
             evidence_tools/evidence/ex5c/lf-evidence-bundle-v1.sha256
+
+      - name: Run EX5C v2 pinned google-java-format and javac -Xlint:all on base+final
+        if: ${{ inputs.evidence_version == 'v2' }}
+        id: v2
+        env:
+          LF_EVIDENCE_SOURCE_ROOT: ${{ github.workspace }}/source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 evidence_tools/evidence/ex5c/build_bundle_v2.py
+          cd evidence_tools/evidence/ex5c/v2
+          sha256sum --check lf-evidence-bundle-v2.sha256
+
+      - name: Upload isolated EX5C v2 JSON and checksum
+        if: ${{ inputs.evidence_version == 'v2' && steps.v2.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # pinned
+        with:
+          name: ex5c-real-sandbox-lint-evidence-v2
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            evidence_tools/evidence/ex5c/v2/lf-evidence-bundle-v2.json
+            evidence_tools/evidence/ex5c/v2/lf-evidence-bundle-v2.sha256
+
+      - name: Commit generated v2 evidence to isolated branch for owner PR
+        if: ${{ inputs.evidence_version == 'v2' && steps.v2.outcome == 'success' }}
+        working-directory: evidence_tools
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LF_EVIDENCE_RUN: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "main"
+          git checkout -b "lf/ex5c-evidence-v2-${LF_EVIDENCE_RUN}"
+          git add evidence/ex5c/v2/lf-evidence-bundle-v2.json evidence/ex5c/v2/lf-evidence-bundle-v2.sha256
+          git -c user.name="LF Sandbox Evidence" -c user.email="lf-evidence@users.noreply.github.com" \
+            commit -m "evidence(ex5c): pin real base/candidate lint v2"
+          gh auth setup-git
+          git push origin "lf/ex5c-evidence-v2-${LF_EVIDENCE_RUN}"
+          echo "V2_BRANCH_READY=lf/ex5c-evidence-v2-${LF_EVIDENCE_RUN}"
+          echo "V2_OWNER_PR_REQUIRED=true"
 
       - name: Open governed PR for the generated evidence; NEVER push main
         if: ${{ steps.bundle.outcome == 'success' }}
