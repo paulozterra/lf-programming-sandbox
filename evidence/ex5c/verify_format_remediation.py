@@ -24,6 +24,12 @@ def main() -> None:
     require(not git("status", "--porcelain"), "CHECK_DIRTY")
     require(git("rev-parse", ORIGINAL + "^{commit}").decode().strip() == ORIGINAL,
             "ORIGINAL_N_MISSING")
+    # Independent PR diff scope, not merely Java generated-file equality.
+    common = git("merge-base", "origin/main", "HEAD").decode().strip()
+    pr_paths = git("diff", "--name-only", common, "HEAD").decode().splitlines()
+    require(bool(pr_paths) and all(
+        p.startswith(SRC_ROOT.as_posix() + "/") and p.endswith(".java")
+        for p in pr_paths), "PR_CONTAINS_NON_FORMAT_PATH")
     check_pom = subprocess.run(["git", "diff", "--quiet", ORIGINAL, "HEAD",
                                 "--", POM], cwd=ROOT)
     require(check_pom.returncode == 0, "POM_CHANGED_FROM_ORIGINAL_N")
