@@ -69,29 +69,90 @@ def one_call(model, api_key, opener=urllib.request.urlopen):
         return {"model": model, "http_status": None,
                 "error": {"type": "TRANSPORT_ERROR", "message": None}}
 
-def structured_sonnet_call(api_key, transport=_default_transport):
-    """Third API call: no raw response leaves the client; only schema validity."""
-    client=AnthropicStructuredClient(
-        api_key=api_key, model="claude-sonnet-5-5",
-        max_output_tokens=50, timeout_seconds=30, transport=transport)
+# Exact, static errors raised by the pinned structured client. Never copy arbitrary
+# exception messages or model output into published artifacts.
+SAFE_MODEL_ERRORS = frozenset({
+    "Anthropic structured response is not strict JSON",
+    "Anthropic structured response root invalid",
+    "Anthropic structured response contains error",
+    "Anthropic structured response shape or stop_reason invalid",
+    "Anthropic structured response block invalid",
+    "Anthropic structured response must contain exactly one text block",
+    "Anthropic structured proposal is not strict JSON",
+    "Anthropic structured proposal violates imported Worker schema",
+    "Anthropic structured response identity missing",
+    "Anthropic structured response usage missing or invalid",
+    "model transport did not return bytes",
+})
+SAFE_REFUSALS = frozenset({
+    "Anthropic model refused structured proposal",
+    "Anthropic structured content refused",
+})
+
+def _metadata_only(raw):
+    """Whitelisted structural metadata, not the content or its values."""
     try:
-        client.generate("Return a minimal valid patch proposal.", {"diagnostic": "ping"})
+        obj = json.loads(raw.decode("utf-8"))
+    except (UnicodeError, ValueError):
+        return {"stop_reason": None, "content_block_keys": []}
+    if not isinstance(obj, dict):
+        return {"stop_reason": None, "content_block_keys": []}
+    stop = obj.get("stop_reason")
+    # Stop reasons are selected from a fixed API vocabulary; never publish
+    # arbitrary provider-supplied strings.
+    if stop not in ("end_turn", "max_tokens", "tool_use", "stop_sequence",
+                    "pause_turn", "refusal", "model_context_window_exceeded"):
+        stop = None
+    blocks = obj.get("content")
+    keys = []
+    if isinstance(blocks, list):
+        for block in blocks[:8]:
+            if isinstance(block, dict):
+                names = [key for key in block if isinstance(key, str)
+                         and len(key) <= 80 and key.isidentifier()
+                         and not secret_text_reason(key)]
+                keys.append(sorted(names)[:32])
+            else:
+                keys.append([])
+    return {"stop_reason": stop, "content_block_keys": keys}
+
+def structured_sonnet_call(api_key, transport=_default_transport):
+    """Third API call; expose only fixed validation errors and metadata."""
+    metadata = {"stop_reason": None, "content_block_keys": []}
+    def capture(body, key, timeout):
+        raw = transport(body, key, timeout)
+        # Keep response data only in memory for the original strict parser.
+        if isinstance(raw, bytes):
+            metadata.update(_metadata_only(raw))
+        return raw
+
+    client = AnthropicStructuredClient(
+        api_key=api_key, model="claude-sonnet-5-5",
+        max_output_tokens=1500, timeout_seconds=30, transport=capture)
+    # Tiny fictional edit: enough context to produce the required Worker schema.
+    instruction = ("Return one JSON patch proposal for a fictional file demo.txt. "
+                   "Add exactly one line 'hello' using a unified git diff. "
+                   "Use schema_version=1, summary, patch, and changed_paths=['demo.txt']. "
+                   "No explanation outside the JSON.")
+    try:
+        client.generate(instruction, {"diagnostic": "add one line to fictional demo.txt"})
         return {"model": "claude-sonnet-5-5", "mode": "structured_json",
-                "http_status": 200, "SCHEMA_VALID": True,
+                "http_status": 200, "max_tokens": 1500, "SCHEMA_VALID": True,
+                **metadata, "model_error_message": None,
                 "error": {"type": None, "message": None}}
-    except ModelRefusal:
-        return {"model": "claude-sonnet-5-5", "mode": "structured_json",
-                "http_status": 200, "SCHEMA_VALID": False,
-                "error": {"type": "MODEL_REFUSAL", "message": None}}
-    except ModelError as exc:
-        # The original transport deliberately strips error bodies; HTTP code is
-        # all that can be safely inferred. Never export raw exception text.
+    except (ModelRefusal, ModelError) as exc:
         import re
-        match=re.fullmatch(r"Anthropic HTTP error ([1-5][0-9]{2})",str(exc))
-        code=int(match.group(1)) if match else 200
+        reason = str(exc)
+        code_match = re.fullmatch(r"Anthropic HTTP error ([1-5][0-9]{2})", reason)
+        code = int(code_match.group(1)) if code_match else 200
+        safe = reason in (SAFE_REFUSALS if isinstance(exc, ModelRefusal) else SAFE_MODEL_ERRORS)
         return {"model": "claude-sonnet-5-5", "mode": "structured_json",
-                "http_status": code, "SCHEMA_VALID": False,
-                "error": {"type": "MODEL_ERROR", "message": None}}
+                "http_status": code, "max_tokens": 1500, "SCHEMA_VALID": False,
+                **metadata,
+                "model_error_message": reason if safe else (
+                    "Anthropic HTTP error " + str(code) if code_match else "MODEL_ERROR_REDACTED"),
+                "error": {"type": "MODEL_REFUSAL" if isinstance(exc, ModelRefusal)
+                          else "MODEL_ERROR", "message": None}}
 
 def main():
     api_key = os.environ.get("ANTHROPIC_API_KEY")
@@ -104,7 +165,7 @@ def main():
     path = dest / "status.json"
     with path.open("x", encoding="utf-8") as handle:
         json.dump({"schema_version": "LF_ANTHROPIC_DIAGNOSTIC_V1",
-                   "worker_request_structure": "VENDORED_EXACT_MAX_TOKENS_50",
+                   "worker_request_structure": "VENDORED_TOOL_MAX_50_STRUCTURED_SONNET_MAX_1500",
                    "anthropic_version": ANTHROPIC_VERSION,
                    "results": results}, handle, ensure_ascii=False, indent=2)
         handle.write("\n")
