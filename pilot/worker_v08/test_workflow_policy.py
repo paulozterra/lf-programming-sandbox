@@ -94,7 +94,7 @@ need(r"^          PILOT_HOLDOUT_B64: .*secrets.PILOT_HOLDOUT_EX3_B64", "EX3_HOLD
 need(r"^      - name: Build isolated executable time-service JAR only on verified PASS", "EX3_JAR_GATE_MISSING")
 need(r"^      - name: Upload exercise-3 executable JAR ONLY on verified PASS", "EX3_JAR_UPLOAD_MISSING")
 need(r"name: time-service.jar", "EX3_JAR_ARTIFACT_MISSING")
-need(r'--task "\\$PILOT_TASK"', "EX3_BUDGET_TASK_NOT_PASSED")
+need(r'--task "[^"]*PILOT_TASK"', "EX3_BUDGET_TASK_NOT_PASSED")
 if yaml.index("Block missing task-specific holdout SHA") > yaml.index("Set up Java 21 ONLY"):
     raise AssertionError("EX3_HOLDOUT_SHA_GATE_TOO_LATE")
 
