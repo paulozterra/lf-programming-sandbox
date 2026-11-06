@@ -15,3 +15,4 @@
 | CHG-0009 | ADDITIVE | Piloto Worker: código HTTP visible y diagnóstico Anthropic manual |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/25 |
 | CHG-0010 | ADDITIVE | Worker piloto: ModelClient JSON estructurado para Sonnet 5.5 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/26 |
 | CHG-0011 | ADDITIVE | Piloto Worker: dos lotes de recordatorios con preflight y traspaso gobernado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/33 |
+| CHG-0012 | ADDITIVE | Preflight ex4b: historial completo para verificar merge del lote A |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/35 |
