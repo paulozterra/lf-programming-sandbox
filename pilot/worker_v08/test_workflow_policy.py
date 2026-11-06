@@ -152,6 +152,7 @@ need(r"--output .*derived-context.json", "EX5_DERIVE_REPORT_MISSING")
 need(r"^      - name: Decode ex5c holdout from its OWN base64 secret", "EX5_PRIVATE_HOLDOUT_MISSING")
 need(r"secrets.PILOT_HOLDOUT_EX5C_B64", "EX5_SECRET_NOT_ISOLATED")
 need(r"^            .*public/derived-context.json", "EX5_REPORT_NOT_UPLOADED")
+need(r"^            .*public/derived-context.sha256", "EX5_SHA_SIDECAR_NOT_UPLOADED")
 if not (yaml.index("Derive ex5c context") <
         yaml.index("Decode ex5c holdout") <
         yaml.index("Execute REAL vendored run_verified_worker")):
