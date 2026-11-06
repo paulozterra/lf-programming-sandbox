@@ -56,7 +56,7 @@ def check_handoff(root: Path) -> str:
     for sha in history.splitlines():
         message = git(root, "show", "-s", "--format=%B", sha)
         if not (re.search(r"(?i)(?:ex4a|lot[eo][ -]?a|lote[ -]?a)", message)
-                and re.search(r"(?:Merge pull request #\\d+|\\(#\\d+\\))", message)):
+                and re.search(r"(?:Merge pull request #\d+|\(#\d+\))", message)):
             continue
         # GitHub squash merges have one parent, regular merges two; compare
         # the base parent against the actual committed lot A content.
