@@ -15,7 +15,9 @@
     "paths": [
       ".github/workflows/evidence-bundle.yml",
       "evidence/ex5c/build_bundle.py",
-      "evidence/ex5c/hunk_requirements.json"
+      "evidence/ex5c/hunk_requirements.json",
+      ".github/workflows/ci.yml",
+      "evidence/ex5c/test_bundle_offline.py"
     ]
   },
   "existing_code_impact": {
