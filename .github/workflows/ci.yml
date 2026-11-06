@@ -27,6 +27,9 @@ jobs:
           java-version: "21"
           cache: maven
       - run: python3 ../standards/tools/stack_checks.py run --set spring-boot --check-id spring-verify
+      - name: Compile and run staged reminders visible tests (no model)
+        working-directory: .
+        run: mvn -B -q -f apps/time-service/pom.xml test
 
   frontend:
     name: frontend (lint, tipos, build)
