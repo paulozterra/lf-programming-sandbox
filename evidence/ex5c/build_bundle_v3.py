@@ -178,10 +178,24 @@ def main() -> None:
                       "-Dmdep.outputFile=" + str(cp_path)], cwd=ROOT)
         require(dep["exit_code"] == 0 and cp_path.is_file(), "N1_DEPENDENCY_RESOLUTION_BLOCK")
         cp = cp_path.read_text(encoding="utf-8").strip()
+        def compile_with_receipt(root: pathlib.Path, directory: pathlib.Path):
+            directory.mkdir()
+            java_files = checked_source_inventory(root)
+            argv = ["javac", "--release", "21", "-g:none",
+                    "-encoding", "UTF-8", "-cp", cp, "-d", str(directory)] + [
+                        str(p) for p in java_files]
+            observation = record(argv, cwd=root)
+            require(observation["exit_code"] == 0, "N1_CLASS_COMPILE_FAILED")
+            hashes = {
+                p.relative_to(directory).as_posix(): sha(p.read_bytes())
+                for p in sorted(directory.rglob("*.class"))
+            }
+            require(bool(hashes), "N1_EMPTY_CLASS_BUILD")
+            return hashes, observation
         before_dir = tmp / "before-classes"
         after_dir = tmp / "after-classes"
-        before = classes(original, before_dir, cp)
-        after = classes(candidate, after_dir, cp)
+        before, before_compile = compile_with_receipt(original, before_dir)
+        after, after_compile = compile_with_receipt(candidate, after_dir)
         require(before == after, "N1_CLASS_BYTES_CHANGED")
         def class_objects(root: pathlib.Path) -> list[dict]:
             rows = []
@@ -223,6 +237,8 @@ def main() -> None:
                                   "baseline": before, "candidate": after,
                                   "baseline_class_objects": baseline_class_objects,
                                   "candidate_class_objects": candidate_class_objects,
+                                  "baseline_compile_receipt": before_compile,
+                                  "candidate_compile_receipt": after_compile,
                                   "class_count": len(after), "identical": True,
                                   "dependency_resolution": dep},
             "execution": {"baseline_format_check": base_format,
