@@ -126,8 +126,9 @@ def javac_findings(checkout: Path, files: list[str], output: Path) -> tuple[dict
     command = ["javac", "--release", "21", "-Xlint:all", "-encoding", "UTF-8",
                "-cp", classpath, "-d", str(classes), *files]
     observed = run(command, checkout, timeout=240)
-    if observed["exit_code"] != 0:
-        block("V2_JAVAC_COMPILE_BLOCK")
+    # Compilation failure is a genuine negative observation: retain argv,
+    # raw stdout/stderr and exit code instead of hiding it behind a missing bundle.
+    # The downstream PG08 gate must not label nonzero status PASS.
     combined = base64.b64decode(observed["stderr"]["base64"]).decode("utf-8", "replace")
     findings = []
     pattern = re.compile(r"(?m)^(.+?\.java):(\d+):\s*(warning|error):\s*(.*)$")
@@ -153,7 +154,8 @@ def commit_observation(checkout: Path, jar: Path, commit: str, output: Path) -> 
         "formatter": {"version": VERSION, "jar_sha256": GJF_SHA256,
                       "execution": fmt, "findings": fmt_findings},
         "javac": {"version_output": run(["javac", "-version"], checkout),
-                  "execution": javac, "findings": lint_findings,
+                  "execution": javac, "reported_outcome": "PASS" if javac["exit_code"] == 0 else "FAIL",
+                  "findings": lint_findings,
                   "classpath_resolver": deps},
         "candidate_source": "EXACT_GIT_CHECKOUT", "authority_authenticated": False
     }
