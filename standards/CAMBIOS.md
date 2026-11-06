@@ -18,3 +18,4 @@
 | CHG-0012 | ADDITIVE | Piloto Worker: derivación determinista de contexto para lote C |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/37 |
 | CHG-0013 | ADDITIVE | Paquete reproducible de evidencia real del Worker ex5c |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/40 |
 | CHG-0014 | ADDITIVE | EX5C v2: baseline format/lint real y reproducible |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/44 |
+| CHG-0015 | ADDITIVE | Norma AOSP y compuerta FORMAT_REMEDIATION N+1 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/46 |
