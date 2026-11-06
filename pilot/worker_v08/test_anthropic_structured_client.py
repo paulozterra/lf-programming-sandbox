@@ -83,6 +83,54 @@ class StructuredClientTests(unittest.TestCase):
         with self.assertRaises(ModelError):
             self.client(fake_response(stop="max_tokens")).generate("s",{})
 
+    def test_diagnostic_max_1500_and_stop_reason_not_hidden(self):
+        from anthropic_diagnostic import structured_sonnet_call
+        captured=[]
+        def transport(body, key, timeout):
+            captured.append(json.loads(body))
+            return fake_response(stop="max_tokens", blocks=[
+                {"type": "text", "text": "{", "citations": None}])
+        result=structured_sonnet_call("fake",transport=transport)
+        self.assertEqual(captured[0]["max_tokens"],1500)
+        self.assertEqual(result["http_status"],200)
+        self.assertFalse(result["SCHEMA_VALID"])
+        self.assertEqual(result["stop_reason"],"max_tokens")
+        self.assertEqual(result["content_block_keys"],[["citations","text","type"]])
+        self.assertEqual(result["model_error_message"],
+                         "Anthropic structured response shape or stop_reason invalid")
+        self.assertNotIn("demo.txt",str(result))
+        self.assertNotIn("text",json.dumps(result.get("error",{})))
+
+    def test_diagnostic_reports_extra_content_key_without_relaxing_client(self):
+        from anthropic_diagnostic import structured_sonnet_call
+        def transport(body,key,timeout):
+            return fake_response(blocks=[
+                {"type":"text", "text":json.dumps(PROPOSAL), "citations":None}])
+        result=structured_sonnet_call("fake",transport=transport)
+        self.assertFalse(result["SCHEMA_VALID"])
+        self.assertEqual(result["stop_reason"],"end_turn")
+        self.assertEqual(result["content_block_keys"],[["citations","text","type"]])
+        self.assertEqual(result["model_error_message"],
+                         "Anthropic structured response must contain exactly one text block")
+
+    def test_diagnostic_valid_schema_true_and_no_content(self):
+        from anthropic_diagnostic import structured_sonnet_call
+        result=structured_sonnet_call("fake",transport=lambda body,key,timeout:fake_response())
+        self.assertTrue(result["SCHEMA_VALID"])
+        self.assertEqual(result["stop_reason"],"end_turn")
+        self.assertEqual(result["content_block_keys"],[["text","type"]])
+        self.assertIsNone(result["model_error_message"])
+        self.assertNotIn("summary",str(result))
+
+    def test_diagnostic_errors_never_echo_untrusted_exception_text(self):
+        from anthropic_diagnostic import structured_sonnet_call
+        from programming_agent_runner.model_client import ModelError
+        def transport(body,key,timeout):
+            raise ModelError("SECRET_MODEL_OUTPUT_OR_KEY")
+        result=structured_sonnet_call("fake",transport=transport)
+        self.assertEqual(result["model_error_message"],"MODEL_ERROR_REDACTED")
+        self.assertNotIn("SECRET_MODEL_OUTPUT_OR_KEY",str(result))
+
     def test_diagnostic_records_only_schema_boolean(self):
         from anthropic_diagnostic import structured_sonnet_call
         result=structured_sonnet_call("fake",transport=lambda body,key,timeout:fake_response())
