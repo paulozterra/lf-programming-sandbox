@@ -27,10 +27,10 @@ for event in ("push","pull_request","pull_request_target","schedule",
               "repository_dispatch","workflow_call","workflow_run"):
     deny(r"^\s*"+re.escape(event)+r":","AUTO_TRIGGER_FORBIDDEN:"+event)
 need(r"^permissions:\s*\n  contents: read\s*$","GLOBAL_WRITE_PERMISSION_FORBIDDEN")
-need(r"^    timeout-minutes: .*inputs.task == .*exercise-3.*30.*10","JOB_TIMEOUT_INVALID")
+need(r"^    timeout-minutes: .*exercise-3.*ex4a.*ex4b.*30.*10","JOB_TIMEOUT_INVALID")
 need(r"^  group: lf-worker-v08-pilot-single-running-job$","CONCURRENCY_INVALID")
 need(r"^  cancel-in-progress: false$","IN_FLIGHT_CANCELLATION_FORBIDDEN")
-for exercise in ("exercise-1","exercise-2","exercise-3"):
+for exercise in ("exercise-1","exercise-2","exercise-3","ex4a","ex4b"):
     need(r"^          - "+re.escape(exercise)+r"$","TASK_INPUT_MISSING:"+exercise)
 need(r"^      PILOT_TASK: .*inputs.task","TASK_ENV_MISSING")
 for required in ("anthropic","claude-haiku-5-5","claude-sonnet-5-5"):
@@ -105,13 +105,24 @@ for command in ('java -version', 'mvn -v'):
 need(r"grep -Eq 'version .*21", "EX3_JAVA21_NOT_ENFORCED")
 need(r"grep -Eq 'Java version: 21", "EX3_MAVEN_JAVA21_NOT_ENFORCED")
 need(r'test -z ".*JAVA_HOME', "EX3_JAVA_HOME_MUST_BE_UNSET")
-if yaml.count("if: ${{ inputs.task == 'exercise-3' }}") < 4:
+if yaml.count("if: ${{ inputs.task == 'exercise-3' || inputs.task == 'ex4a' || inputs.task == 'ex4b' }}") < 4:
     raise AssertionError("EX3_STEPS_MUST_BE_ISOLATED")
 if not (yaml.index("Set up Java 21 ONLY") <
         yaml.index("Link JDK 21 and Maven") <
         yaml.index("Verify isolated Worker command environment") <
         yaml.index("Execute REAL vendored run_verified_worker")):
     raise AssertionError("EX3_JDK_VERIFICATION_TOO_LATE")
+need(r"^      - name: ex4 pre-model lot size and prior-PR handoff check", "EX4_PREMODEL_HANDOFF_STEP_MISSING")
+need(r"^          python3 source/pilot/worker_v08/ex4_preflight.py$", "EX4_SIZE_GUARD_NOT_EXECUTED")
+for name in ("ex4a", "ex4b"):
+    need(r"^      - name: Decode "+name+r" holdout using task-specific secret only", "EX4_HOLDOUT_STEP_MISSING:"+name)
+    need(r"^          PILOT_HOLDOUT_B64: .*secrets.PILOT_HOLDOUT_"+name.upper()+r"_B64", "EX4_HOLDOUT_SECRET_WRONG:"+name)
+    need(r"if: .*inputs.task == '"+name+"'", "EX4_TASK_CONDITION_MISSING:"+name)
+if not (yaml.index("Block missing task-specific holdout SHA") <
+        yaml.index("ex4 pre-model lot size and prior-PR handoff check") <
+        yaml.index("Decode ex4a holdout") <
+        yaml.index("ANTHROPIC_API_KEY:")):
+    raise AssertionError("EX4_GUARDS_MUST_PRECEDE_MODEL_AND_HOLDOUT")
 need(r"^      - name: Build isolated executable time-service JAR only on verified PASS", "EX3_JAR_GATE_MISSING")
 need(r"^      - name: Upload exercise-3 executable JAR ONLY on verified PASS", "EX3_JAR_UPLOAD_MISSING")
 need(r"name: time-service.jar", "EX3_JAR_ARTIFACT_MISSING")

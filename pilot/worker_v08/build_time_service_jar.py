@@ -21,8 +21,11 @@ def gate(reason):
     raise SystemExit("EX3_JAR_BLOCKED:"+reason)
 
 def main():
-    if os.environ.get("PILOT_TASK")!="exercise-3":
-        gate("TASK_NOT_EX3")
+    task=os.environ.get("PILOT_TASK")
+    if task not in ("exercise-3","ex4b"):
+        gate("TASK_NOT_JAR_ELIGIBLE")
+    expected_id=("LF-WORKER-PILOT-REAL-003" if task=="exercise-3"
+                 else "LF-WORKER-PILOT-REAL-004B")
     verified=PRIVATE/"verified-worker-receipt.json"
     visible=PRIVATE/"visible-worker-receipt.json"
     cost=PRIVATE/"public/cost.json"
@@ -33,7 +36,7 @@ def main():
     w=json.loads(visible.read_text(encoding="utf-8"))
     price=json.loads(cost.read_text(encoding="utf-8"))
     if (v.get("status")!="PASS" or w.get("status")!="PASS"
-        or v.get("task_id")!="LF-WORKER-PILOT-REAL-003"
+        or v.get("task_id")!=expected_id
         or w.get("task_id")!=v["task_id"] or not v.get("patch_delivered")
         or v.get("visible_receipt_sha256")!=w.get("receipt_sha256")
         or w.get("requested_model")!="claude-sonnet-5-5"):
@@ -63,9 +66,11 @@ def main():
         paths=subprocess.run(["git","-C",str(dest),"status","--porcelain","-z"],
                              capture_output=True,check=True).stdout.decode().split("\0")
         changed=[row[3:] for row in paths if row]
-        if not changed or len(changed)>6 or any(
-                p!="apps/time-service/pom.xml" and not p.startswith("apps/time-service/src/main/")
-                for p in changed):
+        allowed=lambda p: (p=="apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+                           if task=="ex4b" else
+                           p=="apps/time-service/pom.xml" or p.startswith("apps/time-service/src/main/"))
+        if not changed or len(changed)>(1 if task=="ex4b" else 6) or any(
+                not allowed(p) for p in changed):
             gate("PATCH_SCOPE_INVALID")
         result=subprocess.run(["mvn","-B","-q","-f","apps/time-service/pom.xml","verify"],
                               cwd=dest,capture_output=True,timeout=600)
