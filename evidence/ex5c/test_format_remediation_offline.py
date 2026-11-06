@@ -33,6 +33,19 @@ class FormatRemediationOfflineTests(unittest.TestCase):
         self.assertIn("CHANGED_PATHS_OUTSIDE_FORMAT", src)
         self.assertIn("NON_JAVA_FILE_MODIFIED", src)
 
+    def test_original_ex5c_spec_sha_is_preserved_after_additive_aosp_section(self):
+        import hashlib
+        import sys
+        sys.path.insert(0, str(ROOT / "pilot/worker_v08"))
+        import task_selector
+        raw = (ROOT / "apps/time-service/REMINDERS_SPEC.md").read_bytes()
+        separator = b"\n## Norma de formato"
+        self.assertEqual(raw.count(separator), 1)
+        self.assertEqual(hashlib.sha256(raw.split(separator, 1)[0]).hexdigest(),
+                         "45f06d002dd7152f88bc9a3332eb3f3b6c10a2c8773e2cb7b0beeadf61810d00")
+        self.assertEqual(task_selector.select("ex5c")["task_id"],
+                         "LF-WORKER-PILOT-REAL-005C")
+
     def test_workflows_do_not_call_model_or_auto_merge(self):
         manual = (ROOT / ".github/workflows/ex5c-format-remediation.yml").read_text()
         gate = (ROOT / ".github/workflows/ex5c-aosp-class-equivalence.yml").read_text()
