@@ -176,3 +176,5 @@ jobs:
         run: python3 pilot/worker_v08/test_preflight_routing.py
       - name: Original Worker fake MODEL_ERROR produces sanitized receipts (NO API)
         run: python3 pilot/worker_v08/test_model_error_artifacts.py
+      - name: Anthropic diagnostic request and disclosure offline (NO API)
+        run: python3 pilot/worker_v08/test_anthropic_diagnostic.py
