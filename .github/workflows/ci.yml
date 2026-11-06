@@ -172,6 +172,10 @@ jobs:
         run: python3 pilot/worker_v08/verify_vendor.py
       - name: Verify per-task specification and holdout registration (NO MODEL)
         run: python3 pilot/worker_v08/test_task_selector.py
+      - name: Offline ex4 pytest checks — SHA, 240k lot size, first-parent PR handoff
+        run: |
+          python3 -m pip install --disable-pip-version-check pytest==8.4.2
+          python3 -m pytest -q pilot/worker_v08/test_ex4_preflight.py
       - name: Verify offline task preflight routing (NO REAL ORACLE, NO MODEL)
         run: python3 pilot/worker_v08/test_preflight_routing.py
       - name: Original Worker fake MODEL_ERROR produces sanitized receipts (NO API)
