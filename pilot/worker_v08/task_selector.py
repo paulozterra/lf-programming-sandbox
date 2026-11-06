@@ -141,7 +141,7 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
         # already-executed task. Preserve its historic contract SHA while
         # validating the additive formatter policy separately.
         raw_spec=spec.read_bytes()
-        format_heading=b"\\n## Norma de formato"
+        format_heading=b"\n## Norma de formato"
         original_spec=raw_spec.split(format_heading,1)[0]
         if hashlib.sha256(original_spec).hexdigest()!=EX5_SPEC_SHA:
             block("PILOT_EX5_SPEC_SHA_DRIFT")
