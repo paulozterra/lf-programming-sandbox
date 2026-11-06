@@ -4,6 +4,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
@@ -49,5 +50,25 @@ public class InMemoryReminderRepository implements ReminderRepository {
             }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public synchronized boolean deleteById(long id) {
+        return reminders.removeIf(r -> r.id() == id);
+    }
+
+    @Override
+    public synchronized List<Reminder> findByTextContaining(String query) {
+        if (query == null) {
+            throw new IllegalArgumentException("query must not be null");
+        }
+        String needle = query.strip().toLowerCase(Locale.ROOT);
+        List<Reminder> result = new ArrayList<>();
+        for (Reminder reminder : reminders) {
+            if (reminder.text().toLowerCase(Locale.ROOT).contains(needle)) {
+                result.add(reminder);
+            }
+        }
+        return List.copyOf(result);
     }
 }
