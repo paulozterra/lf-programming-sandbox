@@ -1,0 +1,58 @@
+{
+  "schema_version": "LF_EX5C_HUNK_REQUIREMENTS_V1",
+  "base_commit": "28de535acd4a76be038013cc6241c59a08102155",
+  "candidate_commit": "e76b213cb2f367f787e0eba3bf8ff74136edd883",
+  "mapping": [
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "header": "@@ -4,6 +4,7 @@ import java.time.LocalTime;",
+      "requirements": [
+        "REM-C3",
+        "REM-C7"
+      ]
+    },
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "header": "@@ -50,4 +51,24 @@ public class InMemoryReminderRepository implements ReminderRepository {",
+      "requirements": [
+        "REM-C2",
+        "REM-C3",
+        "REM-C4",
+        "REM-C7"
+      ]
+    },
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "header": "@@ -8,10 +8,12 @@ import java.time.format.ResolverStyle;",
+      "requirements": [
+        "REM-C5",
+        "REM-C6",
+        "REM-C7"
+      ]
+    },
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "header": "@@ -47,8 +49,9 @@ public class ReminderController {",
+      "requirements": [
+        "REM-C5",
+        "REM-C7"
+      ]
+    },
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "header": "@@ -64,6 +67,20 @@ public class ReminderController {",
+      "requirements": [
+        "REM-C6",
+        "REM-C7"
+      ]
+    },
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+      "header": "@@ -8,4 +8,6 @@ public interface ReminderRepository {",
+      "requirements": [
+        "REM-C1",
+        "REM-C7"
+      ]
+    }
+  ]
+}
