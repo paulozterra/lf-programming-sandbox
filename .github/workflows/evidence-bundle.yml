@@ -11,6 +11,7 @@ on:
         options:
           - v1
           - v2
+          - v3
 
 permissions:
   contents: write
@@ -39,6 +40,15 @@ jobs:
         with:
           ref: e76b213cb2f367f787e0eba3bf8ff74136edd883
           path: source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout owner-merged N+1 sandbox main with full history for v3
+        if: ${{ inputs.evidence_version == 'v3' }}
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+          path: repaired
           fetch-depth: 0
           persist-credentials: false
 
@@ -114,6 +124,49 @@ jobs:
           git push origin "lf/ex5c-evidence-v2-${LF_EVIDENCE_RUN}"
           echo "V2_BRANCH_READY=lf/ex5c-evidence-v2-${LF_EVIDENCE_RUN}"
           echo "V2_OWNER_PR_REQUIRED=true"
+
+      - name: Build v3 from freshly merged N+1 and enforce exact AOSP/class-byte equivalence
+        if: ${{ inputs.evidence_version == 'v3' }}
+        id: v3
+        env:
+          LF_EVIDENCE_SOURCE_ROOT: ${{ github.workspace }}/repaired
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 evidence_tools/evidence/ex5c/build_bundle_v3.py
+          cd evidence_tools/evidence/ex5c/v3
+          sha256sum --check lf-evidence-bundle-v3.sha256
+
+      - name: Upload separate v3 manifest and checksum
+        if: ${{ inputs.evidence_version == 'v3' && steps.v3.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ex5c-real-sandbox-format-remediation-v3
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            evidence_tools/evidence/ex5c/v3/lf-evidence-bundle-v3.json
+            evidence_tools/evidence/ex5c/v3/lf-evidence-bundle-v3.sha256
+
+      - name: Publish v3 evidence on branch only, never main
+        if: ${{ inputs.evidence_version == 'v3' && steps.v3.outcome == 'success' }}
+        working-directory: evidence_tools
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LF_EVIDENCE_RUN: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="lf/ex5c-evidence-v3-${LF_EVIDENCE_RUN}"
+          test "$(git branch --show-current)" = "main"
+          git checkout -b "$branch"
+          git add evidence/ex5c/v3/lf-evidence-bundle-v3.json evidence/ex5c/v3/lf-evidence-bundle-v3.sha256
+          git -c user.name="LF Sandbox Evidence" -c user.email="lf-evidence@users.noreply.github.com" \
+            commit -m "evidence(ex5c): immutable N+1 AOSP-only v3 with local classes and smoke"
+          gh auth setup-git
+          git push origin "$branch"
+          echo "EX5C_V3_OWNER_PR_BRANCH=$branch"
+          echo "EX5C_V3_OWNER_PR_REQUIRED=true"
 
       - name: Open governed PR for the generated evidence; NEVER push main
         if: ${{ steps.bundle.outcome == 'success' }}
