@@ -140,6 +140,34 @@ def main() -> None:
         for path in paths:
             require((projected / path).read_bytes() == (candidate / path).read_bytes(),
                     "N1_NOT_EXACT_AOSP_TRANSFORM:" + path)
+        # N is observed under the same AOSP rule as N+1. Do not mix
+        # v2's default two-space formatter with this governed four-space gate.
+        base_format = record(["java", "-jar", str(jar), "--aosp", "--dry-run",
+                              "--set-exit-if-changed"] +
+                             [str(original / path) for path in paths], cwd=original)
+        require(base_format["exit_code"] in (0, 1),
+                "N_AOSP_FORMATTER_EXECUTION_ERROR")
+        import difflib
+
+        baseline_findings = []
+        for path in paths:
+            original_lines = (original / path).read_text(encoding="utf-8").splitlines(keepends=True)
+            expected_lines = (projected / path).read_text(encoding="utf-8").splitlines(keepends=True)
+            for change, i, j, k, l in difflib.SequenceMatcher(
+                None, original_lines, expected_lines, autojunk=False
+            ).get_opcodes():
+                if change != "equal":
+                    baseline_findings.append({
+                        "path": path, "line_start": i + 1,
+                        "line_end": max(i + 1, j),
+                        "change": change,
+                        "old_sha256": sha("".join(original_lines[i:j]).encode()),
+                        "formatted_sha256": sha("".join(expected_lines[k:l]).encode()),
+                        "rule_id": "GOOGLE_JAVA_FORMAT_AOSP_1_30_0"
+                    })
+        require((base_format["exit_code"] == 0) == (len(baseline_findings) == 0),
+                "N_AOSP_BASELINE_STATUS_FINDINGS_DRIFT")
+
         verify = record(["java", "-jar", str(jar), "--aosp", "--dry-run",
                          "--set-exit-if-changed"] +
                         [str(candidate / path) for path in paths], cwd=candidate)
@@ -183,7 +211,11 @@ def main() -> None:
                                   "baseline": before, "candidate": after,
                                   "class_count": len(after), "identical": True,
                                   "dependency_resolution": dep},
-            "execution": {"format_check": verify, "maven_verify": mvn, "smoke": http},
+            "execution": {"baseline_format_check": base_format,
+                          "baseline_format_findings": baseline_findings,
+                          "candidate_format_check": verify,
+                          "candidate_format_findings": [],
+                          "maven_verify": mvn, "smoke": http},
             "decision_ref": "LF-OWNER-EX5C-FORMAT-REMEDIATION-20261106"
         }
         outdir = HERE / "v3"
