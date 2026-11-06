@@ -1,0 +1,80 @@
+name: Ex5C immutable sandbox evidence bundle (manual)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact Ex5C merge with complete history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: source
+          ref: e76b213cb2f367f787e0eba3bf8ff74136edd883
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up JDK 21 for actual Maven and smoke
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Load reviewed generator and manual hunk mapping from main
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git show origin/main:evidence/ex5c/generate_bundle.py > "$RUNNER_TEMP/ex5c-generate-bundle.py"
+          mkdir -p evidence/ex5c
+          git show origin/main:evidence/ex5c/hunk_requirements.json > evidence/ex5c/hunk_requirements.json
+          git rev-parse --verify e76b213cb2f367f787e0eba3bf8ff74136edd883^{commit}
+          test "$(git rev-parse HEAD)" = e76b213cb2f367f787e0eba3bf8ff74136edd883
+          test "$(git rev-parse HEAD:apps/time-service)" = 4ba97b68310e913795d7ae1ac35d5912e2fe6551
+
+      - name: Generate real immutable evidence and validate every required digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          python3 "$RUNNER_TEMP/ex5c-generate-bundle.py" \
+            --output evidence/ex5c/lf-evidence-bundle-v1.json
+          cd evidence/ex5c
+          sha256sum --check lf-evidence-bundle-v1.json.sha256
+
+      - name: Upload immutable evidence as Actions artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ex5c-real-evidence-bundle
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            source/evidence/ex5c/lf-evidence-bundle-v1.json
+            source/evidence/ex5c/lf-evidence-bundle-v1.json.sha256
+
+      - name: Publish evidence by review-only PR (never merge)
+        working-directory: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="lf/ex5c-evidence-bundle-run-${GITHUB_RUN_ID}"
+          git switch -c "$branch" origin/main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- evidence/ex5c/lf-evidence-bundle-v1.json evidence/ex5c/lf-evidence-bundle-v1.json.sha256
+          git diff --cached --quiet && { echo "EVIDENCE_BUNDLE_ALREADY_TRACKED"; exit 1; }
+          git commit -m "evidence(ex5c): store recalculable run 42284754122 bundle"
+          git push origin "HEAD:refs/heads/$branch"
+          gh pr create --base main --head "$branch" \
+            --title "Evidence Ex5C: real sandbox bundle for PG-08 to PG-14" \
+            --body "Immutable Ex5C evidence from sandbox merge e76b213 and Worker run 42284754122. Recalculated all Git blob/tree/commit identifiers, patch identity, stdout/stderr, smoke, receipts and REM-C hunk map. Evidence kind REAL_SANDBOX_UNAUTHENTICATED; all authority flags false. Review-only, Paulo merges. Workflow run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
