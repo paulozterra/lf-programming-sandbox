@@ -94,15 +94,14 @@ need(r"^          PILOT_HOLDOUT_B64: .*secrets.PILOT_HOLDOUT_EX3_B64", "EX3_HOLD
 need(r"^      - name: Link JDK 21 and Maven into the vendored Worker's fixed PATH", "EX3_JDK_MAVEN_LINK_STEP_MISSING")
 need(r"^      - name: Verify isolated Worker command environment uses Java 21 and Maven", "EX3_ISOLATED_JAVA_VERIFY_STEP_MISSING")
 need(r"for tool in java javac jar; do", "EX3_JDK_TOOLS_INCOMPLETE")
-need(r'ln -sfn "\\$JAVA_HOME/bin/\\$tool" "/usr/local/bin/\\$tool"',
-     "EX3_JDK_BINARY_NOT_LINKED")
+if 'ln -sfn "$JAVA_HOME/bin/$tool" "/usr/local/bin/$tool"' not in yaml:
+    raise AssertionError("EX3_JDK_BINARY_NOT_LINKED")
 need(r"ln -sfn .* /usr/local/bin/mvn", "EX3_MAVEN_NOT_LINKED")
 need(r"maven_source=.*readlink -f", "EX3_MAVEN_LINK_MUST_RESOLVE")
 need(r'isolated_path="/usr/local/bin:/usr/bin:/bin"', "EX3_WORKER_PATH_NOT_EXACT")
-need(r'env -i PATH="\\$isolated_path" HOME="\\$isolated_home" java -version',
-     "EX3_JAVA_NOT_TESTED_WITH_EMPTY_ENV")
-need(r'env -i PATH="\\$isolated_path" HOME="\\$isolated_home" mvn -v',
-     "EX3_MAVEN_NOT_TESTED_WITH_EMPTY_ENV")
+for command in ('java -version', 'mvn -v'):
+    if ('env -i PATH="$isolated_path" HOME="$isolated_home" '+command) not in yaml:
+        raise AssertionError("EX3_ISOLATED_COMMAND_NOT_TESTED:"+command)
 need(r"grep -Eq 'version .*21", "EX3_JAVA21_NOT_ENFORCED")
 need(r"grep -Eq 'Java version: 21", "EX3_MAVEN_JAVA21_NOT_ENFORCED")
 need(r'test -z ".*JAVA_HOME', "EX3_JAVA_HOME_MUST_BE_UNSET")
