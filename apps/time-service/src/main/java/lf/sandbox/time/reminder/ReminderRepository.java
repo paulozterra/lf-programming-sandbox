@@ -1,0 +1,11 @@
+package lf.sandbox.time.reminder;
+
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Optional;
+
+public interface ReminderRepository {
+    Reminder save(String text, LocalTime at);
+    List<Reminder> findAll();
+    Optional<Reminder> findById(long id);
+}
