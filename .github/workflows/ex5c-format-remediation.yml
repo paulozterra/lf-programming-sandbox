@@ -1,0 +1,47 @@
+name: EX5C format N+1 — AOSP only; compare javac class bytes
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ex5c-format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout sandbox main with complete history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Set up JDK 21
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Run SHA-pinned AOSP formatter and byte-for-byte no-debug class comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 evidence/ex5c/format_remediation.py
+      - name: Create isolated branch with ONE format-only commit (not main)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="lf/ex5c-aosp-format-n1-${SOURCE_RUN}"
+          git checkout -b "$branch"
+          git add -- apps/time-service/src/main/java
+          test -z "$(git diff --cached --name-only | grep -vE '^apps/time-service/src/main/java/.*\.java$' || true)"
+          test "$(git diff --cached --name-only | wc -l)" -gt 0
+          test -z "$(git diff --name-only)"
+          git -c user.name="LF Sandbox Format" -c user.email="lf-format@users.noreply.github.com" \
+            commit -m "style(ex5c): AOSP-only formatting, proven byte-identical classes"
+          gh auth setup-git
+          git push origin "$branch"
+          echo "EX5C_FORMAT_CANDIDATE_BRANCH=$branch"
+          echo "EX5C_FORMAT_OWNER_PR_REQUIRED=true"
