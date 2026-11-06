@@ -89,6 +89,33 @@ class TaskSelectionTests(unittest.TestCase):
                 with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_EXERCISE3_SCOPE_DRIFT"):
                     selector.select("exercise-3",require_holdout=False)
 
+    def test_lots_pin_separate_oracles_and_scopes(self):
+        a=selector.select("ex4a")
+        b=selector.select("ex4b")
+        self.assertEqual(a["holdout_sha256"],selector.EX4_SHA["ex4a"])
+        self.assertEqual(b["holdout_sha256"],selector.EX4_SHA["ex4b"])
+        self.assertNotEqual(a["holdout_sha256"],b["holdout_sha256"])
+        self.assertEqual(len(a["write_path_patterns"]),3)
+        self.assertEqual(b["write_path_patterns"],[
+            selector.REMINDER+"ReminderController.java"])
+        self.assertEqual(b["context_path_patterns"][2:5],a["write_path_patterns"])
+        self.assertEqual(b["protected_path_patterns"][-3:],a["write_path_patterns"])
+        self.assertEqual(a["acceptance_commands"][0]["timeout_seconds"],600)
+        self.assertEqual(b["acceptance_commands"][0]["timeout_seconds"],600)
+
+    def test_ex4b_cross_lot_oracle_or_write_drift_blocks(self):
+        original=json.loads(selector.CATALOG.read_text(encoding="utf-8"))
+        for field,value in (("holdout_sha256",selector.EX4_SHA["ex4a"]),
+                            ("write_path_patterns",["apps/time-service/src/main/**"])):
+            tampered=copy.deepcopy(original)
+            tampered["tasks"]["ex4b"][field]=value
+            with tempfile.TemporaryDirectory() as temp:
+                target=Path(temp)/"tasks.json"
+                target.write_text(json.dumps(tampered),encoding="utf-8")
+                with patch.object(selector,"CATALOG",target):
+                    with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_EX4_SCOPE_OR_SHA_DRIFT"):
+                        selector.select("ex4b")
+
     def test_unknown_exercise_blocked(self):
         with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_TASK_NOT_ALLOWED"):
             selector.select("exercise-4")

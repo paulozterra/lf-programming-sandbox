@@ -30,7 +30,7 @@ need(r"^permissions:\s*\n  contents: read\s*$","GLOBAL_WRITE_PERMISSION_FORBIDDE
 need(r"^    timeout-minutes: .*inputs.task == .*exercise-3.*30.*10","JOB_TIMEOUT_INVALID")
 need(r"^  group: lf-worker-v08-pilot-single-running-job$","CONCURRENCY_INVALID")
 need(r"^  cancel-in-progress: false$","IN_FLIGHT_CANCELLATION_FORBIDDEN")
-for exercise in ("exercise-1","exercise-2","exercise-3"):
+for exercise in ("exercise-1","exercise-2","exercise-3","ex4a","ex4b"):
     need(r"^          - "+re.escape(exercise)+r"$","TASK_INPUT_MISSING:"+exercise)
 need(r"^      PILOT_TASK: .*inputs.task","TASK_ENV_MISSING")
 for required in ("anthropic","claude-haiku-5-5","claude-sonnet-5-5"):
@@ -118,5 +118,24 @@ need(r"name: time-service.jar", "EX3_JAR_ARTIFACT_MISSING")
 need(r'--task "[^"]*PILOT_TASK"', "EX3_BUDGET_TASK_NOT_PASSED")
 if yaml.index("Block missing task-specific holdout SHA") > yaml.index("Set up Java 21 ONLY"):
     raise AssertionError("EX3_HOLDOUT_SHA_GATE_TOO_LATE")
+
+for task in ("ex4a","ex4b"):
+    need(r"^          - "+task+r"$", "EX4_TASK_NOT_SELECTABLE:"+task)
+    need(r"^      - name: Decode "+task+r" holdout from its OWN base64 secret", "EX4_PRIVATE_HOLDOUT_MISSING:"+task)
+    need(r"^          PILOT_HOLDOUT_B64: .*secrets.PILOT_HOLDOUT_"+task.upper()+r"_B64", "EX4_SECRET_MISSING:"+task)
+    need(r"if: .*inputs.task == '"+task+r"'", "EX4_SECRET_SCOPE_MISSING:"+task)
+need(r"^      - name: Lot A/B SHA, context-size and first-parent handoff gate BEFORE secrets/model",
+     "EX4_PREMODEL_LOT_GATE_MISSING")
+need(r"lot_preflight.py --task", "EX4_PREMODEL_LOT_GATE_NOT_INVOKED")
+need(r"EX4_ISOLATED_JAVA21_AND_MAVEN_PASS", "EX4_ISOLATED_JAVA_TEST_MISSING")
+need(r"^      - name: Set up Java 21 ONLY for ex4a/ex4b", "EX4_SETUP_JAVA_MISSING")
+need(r"^      - name: Link JDK 21 and Maven into the vendored Worker's fixed PATH \(ex4a/ex4b only\)",
+     "EX4_FIXED_PATH_MISSING")
+if not (yaml.index("Lot A/B SHA, context-size") < yaml.index("Decode ex4a holdout") and
+        yaml.index("Lot A/B SHA, context-size") < yaml.index("Decode ex4b holdout") and
+        yaml.index("Lot A/B SHA, context-size") < yaml.index("ANTHROPIC_API_KEY:")):
+    raise AssertionError("EX4_LOT_PREFLIGHT_MUST_PRECEDE_SECRETS")
+if "|| secrets." in yaml or "&& secrets." in yaml:
+    raise AssertionError("EX4_HOLDOUT_FALLBACK_FORBIDDEN")
 
 print("PASS WORKFLOW_MANUAL_VENDOR_EXACT_BASE64_SHA_ACTIONS_VERIFIED_WORKER_MODEL_BUDGET")

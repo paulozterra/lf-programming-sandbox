@@ -3,7 +3,9 @@
   "allowed_tasks": [
     "exercise-1",
     "exercise-2",
-    "exercise-3"
+    "exercise-3",
+    "ex4a",
+    "ex4b"
   ],
   "tasks": {
     "exercise-1": {
@@ -117,7 +119,95 @@
         "kind": "NEW_FILE_ABSENT",
         "path": "apps/time-service/pom.xml"
       }
+    },
+    "ex4a": {
+      "task_id": "LF-WORKER-PILOT-REAL-004A",
+      "objective": "Implement REM-A1 through REM-A7, the new reminder model and thread-safe in-memory repository only. Follow apps/time-service/REMINDERS_SPEC.md byte-for-byte; write exactly the three authorized Java files. Do not create any controller. Existing Spring Boot 4.1.1 time service must continue to work.",
+      "context_path_patterns": [
+        "apps/time-service/REMINDERS_SPEC.md",
+        "apps/time-service/pom.xml",
+        "apps/time-service/src/main/java/lf/sandbox/time/TimeServiceApplication.java",
+        "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderRepositoryVisibleTest.java"
+      ],
+      "write_path_patterns": [
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java"
+      ],
+      "protected_path_patterns": [
+        "apps/time-service/src/test/**",
+        "apps/time-service/pom.xml",
+        "apps/time-service/src/main/java/lf/sandbox/time/*.java"
+      ],
+      "acceptance_commands": [
+        {
+          "name": "reminder-repository-visible",
+          "argv": [
+            "mvn",
+            "-B",
+            "-q",
+            "-f",
+            "apps/time-service/pom.xml",
+            "-Dtest=ReminderRepositoryVisibleTest",
+            "test"
+          ],
+          "timeout_seconds": 600,
+          "max_output_bytes": 32000
+        }
+      ],
+      "holdout_sha256": "cd0e9d7fc73aa92280b162e8c0f3f79d98cd7046b5626737666df97080f2af54",
+      "spec_path": "apps/time-service/REMINDERS_SPEC.md",
+      "spec_sha256": "dbcb41edebc7f1a195b01c9242d08f0c33e5d280aab4dff39e50d88220a4184b",
+      "source_precondition": {
+        "kind": "NEW_FILE_ABSENT",
+        "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java"
+      }
+    },
+    "ex4b": {
+      "task_id": "LF-WORKER-PILOT-REAL-004B",
+      "objective": "Implement REM-B1 through REM-B5 only: REST ReminderController using the repository implemented and merged by lot A, never edit lot A. Follow apps/time-service/REMINDERS_SPEC.md. Do not change GET /api/time. Use existing source as the sole integration base, no fabricated stubs.",
+      "context_path_patterns": [
+        "apps/time-service/REMINDERS_SPEC.md",
+        "apps/time-service/pom.xml",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/TimeController.java",
+        "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java"
+      ],
+      "write_path_patterns": [
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+      ],
+      "protected_path_patterns": [
+        "apps/time-service/src/test/**",
+        "apps/time-service/pom.xml",
+        "apps/time-service/src/main/java/lf/sandbox/time/*.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java"
+      ],
+      "acceptance_commands": [
+        {
+          "name": "reminder-full-visible",
+          "argv": [
+            "mvn",
+            "-B",
+            "-q",
+            "-f",
+            "apps/time-service/pom.xml",
+            "test"
+          ],
+          "timeout_seconds": 600,
+          "max_output_bytes": 32000
+        }
+      ],
+      "holdout_sha256": "8df8ec9858e8dd0078e955b285bac110becc781b55280b17edd9b811d44a900c",
+      "spec_path": "apps/time-service/REMINDERS_SPEC.md",
+      "spec_sha256": "dbcb41edebc7f1a195b01c9242d08f0c33e5d280aab4dff39e50d88220a4184b",
+      "source_precondition": {
+        "kind": "NEW_FILE_ABSENT",
+        "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+      }
     }
-
   }
 }
