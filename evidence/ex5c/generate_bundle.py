@@ -178,14 +178,23 @@ def smoke(jar: Path) -> dict:
                     logs.append({"name": name, "method": method, "url": url,
                                  "status": code, "body_sha256": sha(body),
                                  "body_bytes": len(body), "body_base64": b64(body)})
-                    return headers
+                    return headers, body
                 check("time", "GET", "/api/time", 200)
-                headers = check("post", "POST", "/api/reminders", 201,
-                                b'{"text":"Ex5C Evidence Needle","at":"13:14:15"}')
+                headers, created = check("post", "POST", "/api/reminders", 201,
+                                         b'{"text":"Ex5C Evidence Needle","at":"13:14:15"}')
                 location = headers.get("Location")
-                enforce(bool(location and re.fullmatch(r"/api/reminders/\d+", location)),
+                enforce(bool(location and re.fullmatch(r"/api/reminders/\\d+", location)),
                         "SMOKE_LOCATION")
-                check("search", "GET", "/api/reminders?q=NEEDLE", 200)
+                posted = json.loads(created)
+                enforce(posted.get("text") == "Ex5C Evidence Needle" and
+                        str(posted.get("id")) == location.rsplit("/", 1)[1],
+                        "SMOKE_POST_BODY")
+                _, found = check("search", "GET", "/api/reminders?q=NEEDLE", 200)
+                results = json.loads(found)
+                enforce(isinstance(results, list) and
+                        any(row.get("id") == posted["id"] and row.get("text") ==
+                            "Ex5C Evidence Needle" for row in results),
+                        "SMOKE_SEARCH_RESULTS")
                 check("delete", "DELETE", location, 204)
                 check("not_found", "GET", location, 404)
             finally:
