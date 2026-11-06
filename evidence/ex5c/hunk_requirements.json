@@ -5,7 +5,7 @@
   "mapping": [
     {
       "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
-      "header": "@@ -4,6 +4,7 @@ import java.time.LocalTime;",
+      "header": "@@ -4,6 +4,7 @@",
       "requirements": [
         "REM-C3",
         "REM-C7"
@@ -13,7 +13,7 @@
     },
     {
       "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
-      "header": "@@ -50,4 +51,24 @@ public class InMemoryReminderRepository implements ReminderRepository {",
+      "header": "@@ -50,4 +51,24 @@ public synchronized Optional<Reminder> findById(long id) {",
       "requirements": [
         "REM-C2",
         "REM-C3",
@@ -23,7 +23,7 @@
     },
     {
       "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
-      "header": "@@ -8,10 +8,12 @@ import java.time.format.ResolverStyle;",
+      "header": "@@ -8,10 +8,12 @@",
       "requirements": [
         "REM-C5",
         "REM-C6",
@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
-      "header": "@@ -47,8 +49,9 @@ public class ReminderController {",
+      "header": "@@ -47,8 +49,9 @@ public ResponseEntity<Object> create(@RequestBody(required = false) Map<String,",
       "requirements": [
         "REM-C5",
         "REM-C7"
@@ -40,7 +40,7 @@
     },
     {
       "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
-      "header": "@@ -64,6 +67,20 @@ public class ReminderController {",
+      "header": "@@ -64,6 +67,20 @@ public ResponseEntity<Object> get(@PathVariable String id) {",
       "requirements": [
         "REM-C6",
         "REM-C7"
