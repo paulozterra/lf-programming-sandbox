@@ -36,7 +36,8 @@ class V2OfflineTests(unittest.TestCase):
             self.assertIn(arg,source)
         self.assertIn("V2_GOOGLE_JAVA_FORMAT_SHA_BLOCK",source)
         self.assertIn("V2_V1_PIN_INVALID",source)
-        self.assertIn("V2_JAVAC_COMPILE_BLOCK",source)
+        self.assertIn("V2_JAVAC_DEPENDENCIES_BLOCK",source)
+        self.assertIn('"reported_outcome": "PASS" if javac["exit_code"] == 0 else "FAIL"', source)
     def test_no_override_auth_or_expired_model_inputs(self):
         source=Path(v2.__file__).read_text(encoding="utf-8")
         for field in ("production_authority","tool_execution_verified","receipt_authenticated","worker_invoked"):
