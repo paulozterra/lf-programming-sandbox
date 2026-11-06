@@ -112,6 +112,7 @@ def format_findings(checkout: Path, jar: Path, files: list[str]) -> tuple[dict, 
 
 def javac_findings(checkout: Path, files: list[str], output: Path) -> tuple[dict, list[dict], dict]:
     pom = "apps/time-service/pom.xml"
+    output.mkdir(parents=True, exist_ok=True)
     cp_file = output / "dependencies-classpath.txt"
     dependency = run(["mvn", "-B", "-q", "-f", pom,
                       "dependency:build-classpath",
