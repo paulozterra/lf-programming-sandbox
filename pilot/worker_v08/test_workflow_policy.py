@@ -138,4 +138,10 @@ if not (yaml.index("Lot A/B SHA, context-size") < yaml.index("Decode ex4a holdou
 if "|| secrets." in yaml or "&& secrets." in yaml:
     raise AssertionError("EX4_HOLDOUT_FALLBACK_FORBIDDEN")
 
+# PR #34 lineage needs full first-parent history, not checkout default depth=1.
+if "fetch-depth: " + "$" + "{{ inputs.task == 'ex4b' && '0' || '1' }}" not in yaml:
+    raise AssertionError("EX4B_COMPLETE_MERGE_HISTORY_NOT_FETCHED")
+if yaml.index("fetch-depth:") > yaml.index("Lot A/B SHA, context-size"):
+    raise AssertionError("EX4B_HISTORY_FETCH_TOO_LATE")
+
 print("PASS WORKFLOW_MANUAL_VENDOR_EXACT_BASE64_SHA_ACTIONS_VERIFIED_WORKER_MODEL_BUDGET")

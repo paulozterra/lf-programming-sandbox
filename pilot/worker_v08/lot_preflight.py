@@ -60,9 +60,12 @@ def check_handoff(root: Path) -> str:
             continue
         # GitHub squash merges have one parent, regular merges two; compare
         # the base parent against the actual committed lot A content.
-        parent = git(root, "rev-parse", sha + "^1").strip()
-        added = set(git(root, "diff", "--name-only", "--diff-filter=A",
-                        parent, sha, "--", *LOT_A).splitlines())
+        try:
+            parent = git(root, "rev-parse", sha + "^1").strip()
+            added = set(git(root, "diff", "--name-only", "--diff-filter=A",
+                            parent, sha, "--", *LOT_A).splitlines())
+        except subprocess.CalledProcessError:
+            blocked("HANDOFF_LOT_A_MISSING")
         if added == set(LOT_A):
             return sha
     blocked("HANDOFF_LOT_A_MISSING")
