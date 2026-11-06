@@ -1,0 +1,71 @@
+{
+  "schema_version": "LF_EX5C_HUNK_REQUIREMENTS_V1",
+  "base_commit": "28de535acd4a76be038013cc6241c59a08102155",
+  "target_commit": "e76b213cb2f367f787e0eba3bf8ff74136edd883",
+  "mappings": [
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "old_start": 4,
+      "old_count": 6,
+      "new_start": 4,
+      "new_count": 7,
+      "requirements": [
+        "REM-C3"
+      ]
+    },
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "old_start": 50,
+      "old_count": 4,
+      "new_start": 51,
+      "new_count": 24,
+      "requirements": [
+        "REM-C2",
+        "REM-C3",
+        "REM-C4"
+      ]
+    },
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "old_start": 8,
+      "old_count": 10,
+      "new_start": 8,
+      "new_count": 12,
+      "requirements": [
+        "REM-C5",
+        "REM-C6"
+      ]
+    },
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "old_start": 47,
+      "old_count": 8,
+      "new_start": 49,
+      "new_count": 9,
+      "requirements": [
+        "REM-C5"
+      ]
+    },
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "old_start": 64,
+      "old_count": 6,
+      "new_start": 67,
+      "new_count": 20,
+      "requirements": [
+        "REM-C6"
+      ]
+    },
+    {
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+      "old_start": 8,
+      "old_count": 4,
+      "new_start": 8,
+      "new_count": 6,
+      "requirements": [
+        "REM-C1",
+        "REM-C7"
+      ]
+    }
+  ]
+}
