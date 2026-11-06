@@ -39,6 +39,18 @@ class BudgetTests(unittest.TestCase):
         self.assertEqual(require("claude-sonnet-5-5",1,task="exercise-2")["ceiling_usd"],"0.20")
         self.assertEqual(require("claude-haiku-5-5",1,task="exercise-1")["max_output_tokens"],8000)
 
+    def test_ex4a_ex4b_are_sonnet_single_attempt_under_035_each(self):
+        for name in ("ex4a","ex4b"):
+            with self.subTest(task=name):
+                q=require("claude-sonnet-5-5",1,task=name)
+                self.assertEqual(q["max_output_tokens"],16000)
+                self.assertEqual(q["ceiling_usd"],"0.35")
+                self.assertEqual(Decimal(q["worst_case_usd"]),Decimal("0.280"))
+                with self.assertRaises(BudgetBlocked):
+                    require("claude-haiku-5-5",1,task=name)
+                with self.assertRaises(BudgetBlocked):
+                    require("claude-sonnet-5-5",2,task=name)
+
     def test_haiku_four_impossible(self):
         self.assertEqual(MODEL_ATTEMPT_LIMITS["claude-haiku-5-5"],3)
         with self.assertRaisesRegex(BudgetBlocked,"PILOT_ATTEMPTS_FORBIDDEN"):
