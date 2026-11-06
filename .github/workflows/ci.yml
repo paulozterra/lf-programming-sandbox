@@ -198,6 +198,11 @@ jobs:
           python3 -m py_compile evidence/ex5c/build_bundle_v2.py evidence/ex5c/test_bundle_v2_offline.py
           python3 -m unittest discover -s evidence/ex5c -p 'test_bundle_v2_offline.py' -v
 
+      - name: Offline AOSP N+1 source and class-byte CI invariants
+        run: |
+          python3 -m py_compile evidence/ex5c/format_remediation.py evidence/ex5c/verify_format_remediation.py evidence/ex5c/test_format_remediation_offline.py
+          python3 -m unittest discover -s evidence/ex5c -p 'test_format_remediation_offline.py' -v
+
       - name: Verify offline task preflight routing (NO REAL ORACLE, NO MODEL)
         run: python3 pilot/worker_v08/test_preflight_routing.py
       - name: Original Worker fake MODEL_ERROR produces sanitized receipts (NO API)
