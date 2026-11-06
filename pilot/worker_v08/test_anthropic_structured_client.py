@@ -50,6 +50,54 @@ class StructuredClientTests(unittest.TestCase):
         self.assertEqual({k:v for k,v in payload.items() if k!="output_config"},
                          {k:v for k,v in reference.items() if k not in ("tools","tool_choice")})
 
+    def test_thinking_then_text_valid_and_bills_full_usage(self):
+        blocks=[{"type":"thinking","thinking":"PRIVATE_THOUGHT_NEVER_EXPORTED",
+                 "signature":"PRIVATE_SIGNATURE_NEVER_EXPORTED"},
+                {"type":"text","text":json.dumps(PROPOSAL)}]
+        response=self.client(fake_response(blocks=blocks,usage={
+            "input_tokens":11,"output_tokens":1234})).generate("s",{})
+        self.assertEqual(json.loads(response.output_text),PROPOSAL)
+        self.assertEqual(response.usage["output_tokens"],1234)
+        self.assertEqual(response.usage["total_tokens"],1245)
+        self.assertNotIn("PRIVATE_THOUGHT",response.output_text)
+        self.assertNotIn("PRIVATE_SIGNATURE",response.output_text)
+
+    def test_redacted_thinking_then_text_valid(self):
+        blocks=[{"type":"redacted_thinking","data":"PRIVATE_REDACTED_PAYLOAD"},
+                {"type":"text","text":json.dumps(PROPOSAL)}]
+        response=self.client(fake_response(blocks=blocks)).generate("s",{})
+        self.assertEqual(json.loads(response.output_text),PROPOSAL)
+        self.assertNotIn("PRIVATE_REDACTED_PAYLOAD",response.output_text)
+
+    def test_multiple_thinking_prefixes_then_text_valid(self):
+        blocks=[{"type":"thinking","thinking":"secret 1","signature":"signature 1"},
+                {"type":"redacted_thinking","data":"secret 2"},
+                {"type":"text","text":json.dumps(PROPOSAL)}]
+        self.assertEqual(json.loads(self.client(fake_response(blocks=blocks)).generate("s",{}).output_text),PROPOSAL)
+
+    def test_text_then_thinking_is_model_error(self):
+        blocks=[{"type":"text","text":json.dumps(PROPOSAL)},
+                {"type":"thinking","thinking":"secret","signature":"signature"}]
+        with self.assertRaises(ModelError):
+            self.client(fake_response(blocks=blocks)).generate("s",{})
+
+    def test_two_text_blocks_is_model_error(self):
+        blocks=[{"type":"text","text":json.dumps(PROPOSAL)},
+                {"type":"text","text":json.dumps(PROPOSAL)}]
+        with self.assertRaises(ModelError):
+            self.client(fake_response(blocks=blocks)).generate("s",{})
+
+    def test_unknown_block_type_is_model_error(self):
+        blocks=[{"type":"server_tool_use","name":"unsafe"},
+                {"type":"text","text":json.dumps(PROPOSAL)}]
+        with self.assertRaises(ModelError):
+            self.client(fake_response(blocks=blocks)).generate("s",{})
+
+    def test_thinking_without_text_is_model_error(self):
+        blocks=[{"type":"thinking","thinking":"private","signature":"private"}]
+        with self.assertRaises(ModelError):
+            self.client(fake_response(blocks=blocks)).generate("s",{})
+
     def test_extra_text_is_model_error(self):
         with self.assertRaises(ModelError):
             self.client(fake_response(text=json.dumps(PROPOSAL)+" extra")).generate("s",{})
