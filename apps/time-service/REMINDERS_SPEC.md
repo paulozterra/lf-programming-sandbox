@@ -28,3 +28,9 @@ REM-C5 `GET /api/reminders?q=texto` filtra con findByTextContaining. Si `q` falt
 REM-C6 `DELETE /api/reminders/{id}` responde 204 sin cuerpo si lo borró, 404 si no existía y 400 si el id no es numérico.
 REM-C7 Solo se modifican `ReminderRepository.java`, `InMemoryReminderRepository.java` y `ReminderController.java`. No se crean archivos nuevos en `src/main`. Todo lo de los lotes A y B se mantiene.
 
+
+## Norma de formato — reparación gobernada posterior al lote C
+
+Para todo Java bajo `apps/time-service/src/main/java`, el formato canónico es **google-java-format 1.30.0 `--aosp`** (estilo AOSP, sangría de cuatro espacios). Se utilizará exclusivamente el JAR `google-java-format-1.30.0-all-deps.jar`, cuyo SHA-256 fijado es `f2239a8a234a240a54fdff7809d4b3e66702c21f590c77a0b6cf7b20c829e95a`.
+
+Esta regla entra en vigor **después** del lote C ya fusionado en el commit `e76b213cb2f367f787e0eba3bf8ff74136edd883`. No modifica retroactivamente las pruebas, los recibos ni las huellas de los paquetes v1/v2. El ciclo N+1 `FORMAT_REMEDIATION` solo cambia estilo; se prohíben cambios funcionales. Antes de proponerlo se exige compilación de N y N+1 con `javac --release 21 -g:none` y comparación **byte a byte de todos los `.class`**; cualquier diferencia, archivo extra o faltante implica **BLOCK**. El paquete v3 reflejará el nuevo commit realmente fusionado y su linaje con N.
