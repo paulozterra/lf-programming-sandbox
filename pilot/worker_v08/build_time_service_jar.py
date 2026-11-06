@@ -22,10 +22,11 @@ def gate(reason):
 
 def main():
     lot=os.environ.get("PILOT_TASK")
-    if lot not in ("exercise-3","ex4b"):
+    if lot not in ("exercise-3","ex4b","ex5c"):
         gate("TASK_NOT_JAR_ENABLED")
     expected_id={"exercise-3":"LF-WORKER-PILOT-REAL-003",
-                 "ex4b":"LF-WORKER-PILOT-REAL-004B"}[lot]
+                 "ex4b":"LF-WORKER-PILOT-REAL-004B",
+                 "ex5c":"LF-WORKER-PILOT-REAL-005C"}[lot]
     verified=PRIVATE/"verified-worker-receipt.json"
     visible=PRIVATE/"visible-worker-receipt.json"
     cost=PRIVATE/"public/cost.json"
@@ -68,6 +69,9 @@ def main():
         changed=[row[3:] for row in paths if row]
         if (not changed or len(changed)>6 or
         (lot=="ex4b" and changed!=["apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"]) or
+        (lot=="ex5c" and set(changed)!={
+            "apps/time-service/src/main/java/lf/sandbox/time/reminder/"+n
+            for n in ("ReminderRepository.java","InMemoryReminderRepository.java","ReminderController.java")}) or
         (lot=="exercise-3" and any(
             p!="apps/time-service/pom.xml" and not p.startswith("apps/time-service/src/main/")
             for p in changed))):
