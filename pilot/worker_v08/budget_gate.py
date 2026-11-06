@@ -25,9 +25,9 @@ class BudgetBlocked(ValueError):
     pass
 
 def quote(model: str,attempts: int,pricing_path:Path=PRICING,*,task:str="exercise-1") -> dict:
-    if task not in ("exercise-1","exercise-2","exercise-3","ex4a","ex4b"):
+    if task not in ("exercise-1","exercise-2","exercise-3","ex4a","ex4b,"ex5c"):
         raise BudgetBlocked("PILOT_TASK_FORBIDDEN")
-    if task in ("exercise-3","ex4a","ex4b") and (model!="claude-sonnet-5-5" or attempts!=1):
+    if task in ("exercise-3","ex4a","ex4b,"ex5c") and (model!="claude-sonnet-5-5" or attempts!=1):
         raise BudgetBlocked("PILOT_EXERCISE3_MODEL_ATTEMPTS_FORBIDDEN")
     if model not in ALLOWED:raise BudgetBlocked("PILOT_MODEL_FORBIDDEN")
     if type(attempts) is not int or not 1<=attempts<=MAX_ATTEMPTS:
@@ -51,8 +51,8 @@ def quote(model: str,attempts: int,pricing_path:Path=PRICING,*,task:str="exercis
     if not all(x.is_finite() and x>0 for x in (ip,op)):
         raise BudgetBlocked("PILOT_PRICE_INVALID")
     # Explicit conservative upper-bound; using both rates separately, not an average.
-    output_limit=EX3_OUTPUT_TOKENS if task in ("exercise-3","ex4a","ex4b") else MAX_OUTPUT_TOKENS
-    ceiling=EX3_CEILING if task in ("exercise-3","ex4a","ex4b") else ALLOWED[model]
+    output_limit=EX3_OUTPUT_TOKENS if task in ("exercise-3","ex4a","ex4b,"ex5c") else MAX_OUTPUT_TOKENS
+    ceiling=EX3_CEILING if task in ("exercise-3","ex4a","ex4b,"ex5c") else ALLOWED[model]
     per=(Decimal(MAX_CONTEXT_UNITS)*ip+Decimal(output_limit)*op)/Decimal(1000000)
     worst=per*attempts
     return {"model":model,"max_attempts":attempts,
@@ -73,7 +73,7 @@ def main()->int:
     p=argparse.ArgumentParser()
     p.add_argument("--model",required=True,choices=sorted(ALLOWED))
     p.add_argument("--attempts",required=True,type=int)
-    p.add_argument("--task",choices=("exercise-1","exercise-2","exercise-3","ex4a","ex4b"),default="exercise-1")
+    p.add_argument("--task",choices=("exercise-1","exercise-2","exercise-3","ex4a","ex4b,"ex5c"),default="exercise-1")
     args=p.parse_args()
     outcome=quote(args.model,args.attempts,task=args.task)
     print("PILOT_PREMODEL_BUDGET_"+("PASS" if outcome["allowed"] else "BLOCK")+
