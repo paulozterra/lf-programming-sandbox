@@ -196,7 +196,7 @@ def main() -> None:
             diagnostics = base64.b64decode(observation["stderr"]["base64"]).decode(
                 "utf-8", errors="replace")
             for match in re.finditer(
-                r"(?m)^(.+?\\.java):(\\d+):\\s*(warning|error):\\s*(.*)$",
+                r"(?m)^(.+?\.java):(\d+):\s*(warning|error):\s*(.*)$",
                 diagnostics,
             ):
                 rawpath = pathlib.Path(match.group(1))
