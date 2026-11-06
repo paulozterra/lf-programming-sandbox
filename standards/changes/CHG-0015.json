@@ -24,7 +24,8 @@
       "standards/changes/CHG-0015.json",
       "evidence/ex5c/build_bundle_v3.py",
       "evidence/ex5c/test_bundle_v3_offline.py",
-      ".github/workflows/evidence-bundle.yml"
+      ".github/workflows/evidence-bundle.yml",
+      "pilot/worker_v08/task_selector.py"
     ]
   },
   "existing_code_impact": {
