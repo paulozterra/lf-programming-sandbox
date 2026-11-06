@@ -70,9 +70,17 @@ def parse_structured_result(data: bytes, requested_model: str) -> ModelResponse:
     blocks = value.get("content")
     if (value.get("type") != "message" or value.get("role") != "assistant"
         or value.get("stop_reason") != "end_turn"
-        or not isinstance(blocks, list) or len(blocks) != 1):
+        or not isinstance(blocks, list) or not blocks):
         raise ModelError("Anthropic structured response shape or stop_reason invalid")
-    block = blocks[0]
+    # Thinking is an opaque prefix. Inspect block types only: never read,
+    # serialize, retain or expose thinking/signature/redacted_thinking content.
+    # Exactly one text block must terminate the response.
+    for prior in blocks[:-1]:
+        if not isinstance(prior, dict):
+            raise ModelError("Anthropic structured response block invalid")
+        if prior.get("type") not in ("thinking", "redacted_thinking"):
+            raise ModelError("Anthropic structured response must contain exactly one final text block")
+    block = blocks[-1]
     if not isinstance(block, dict):
         raise ModelError("Anthropic structured response block invalid")
     if block.get("type") == "refusal":
