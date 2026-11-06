@@ -161,6 +161,11 @@ def context_paths_for(task_decl: dict, private: Path) -> list[str]:
     artifact = private / "public/derived-context.json"
     if not artifact.is_file() or artifact.is_symlink() or read(artifact) != result:
         block("CONTEXT_DERIVATION_MISMATCH")
+    sidecar = artifact.with_suffix(".sha256")
+    expected_file_sha = digest(artifact.read_bytes()) + "  " + artifact.name + "\n"
+    if (not sidecar.is_file() or sidecar.is_symlink()
+        or sidecar.read_text(encoding="utf-8") != expected_file_sha):
+        block("CONTEXT_DERIVATION_MISMATCH")
     return result["context_paths"]
 
 
