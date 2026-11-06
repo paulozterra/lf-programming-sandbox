@@ -23,6 +23,9 @@ PIN_ADAPTER = "5c981dfc77f8ffee1aa3cd66ab08a3b4d0051e2e"
 PIN_HOLDOUT = "979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
 MAX_COST_BY_MODEL = {"claude-haiku-5-5": Decimal("0.03"),
                      "claude-sonnet-5-5": Decimal("0.20")}
+EX3_MAX_COST = Decimal("0.35")
+EX3_LIMITS = {"max_attempts":1,"max_context_bytes":60000,
+              "max_patch_bytes":40000,"max_changed_files":6}
 MAX_ATTEMPTS = 3
 LIMITS = {
     "max_attempts": 3,
@@ -106,13 +109,16 @@ def verify_adapter_snapshot() -> None:
 def selected_policy():
     model=os.environ.get("PILOT_MODEL")
     attempts=os.environ.get("PILOT_MAX_ATTEMPTS")
+    task_name=os.environ.get("PILOT_TASK")
     if os.environ.get("PILOT_PROVIDER")!="anthropic" or model not in MAX_COST_BY_MODEL:
         block("PILOT_PROVIDER_MODEL_FORBIDDEN")
     if attempts not in ("1","2","3"):
         block("PILOT_ATTEMPTS_FORBIDDEN")
+    if task_name=="exercise-3" and (model!="claude-sonnet-5-5" or attempts!="1"):
+        block("PILOT_EXERCISE3_MODEL_ATTEMPTS_FORBIDDEN")
     from budget_gate import require, BudgetBlocked
     try:
-        verified=require(model,int(attempts))
+        verified=require(model,int(attempts),task=task_name)
     except BudgetBlocked as exc:
         block(str(exc))
     return model,int(attempts),verified
@@ -121,9 +127,10 @@ def selected_policy():
 def enforce_task_limits(task,attempts):
     if not isinstance(task,dict) or task.get("max_attempts")!=attempts:
         block("PILOT_TASK_ATTEMPTS_INVALID")
+    limits=EX3_LIMITS if os.environ.get("PILOT_TASK")=="exercise-3" else LIMITS
     for field in ("max_attempts","max_context_bytes","max_patch_bytes","max_changed_files"):
         value=task.get(field)
-        if type(value) is not int or value<1 or value>LIMITS[field]:
+        if type(value) is not int or value<1 or value>limits[field]:
             block("PILOT_TASK_LIMIT_EXCEEDED:"+field)
     if task.get("allow_deletions") is not False:
         block("PILOT_DELETIONS_FORBIDDEN")
@@ -166,11 +173,17 @@ def validate_common(private: Path) -> None:
             or config.get("objective") != task["objective"]
             or config.get("visible_acceptance_command") != task["acceptance_commands"][0]):
             block("PILOT_EXERCISE1_LEGACY_CONTRACT_DRIFT")
-    else:
+    elif os.environ["PILOT_TASK"] == "exercise-2":
         if (task["write_path_patterns"] != [
                 "standards/tools/migrations.py", "standards/tools/checks.py"]
             or task["spec_sha256"] is None):
             block("PILOT_EXERCISE2_SCOPE_INVALID")
+    else:
+        if (task["write_path_patterns"] != [
+                "apps/time-service/pom.xml","apps/time-service/src/main/**"]
+            or task["spec_path"] != "apps/time-service/TIME_SERVICE_SPEC.md"
+            or task["holdout_sha256"] is None):
+            block("PILOT_EXERCISE3_SCOPE_INVALID")
     holdout = private / "holdout.oracle.json"
     if (not holdout.is_file() or holdout.is_symlink()
         or digest(holdout.read_bytes()) != task["holdout_sha256"]):
@@ -209,6 +222,7 @@ def prepare(private: Path) -> None:
         block("PILOT_SOURCE_PRECONDITION_INVALID")
     (_, _legacy_check_limits, parse, snapshot, load_oracle, assert_external, *_) = importer()
     model,attempts,budget=selected_policy()
+    limits=EX3_LIMITS if os.environ.get("PILOT_TASK")=="exercise-3" else LIMITS
     task = {
         "schema_version": 1,
         "task_id": task_decl["task_id"],
@@ -220,9 +234,9 @@ def prepare(private: Path) -> None:
         "protected_path_patterns": task_decl["protected_path_patterns"],
         "acceptance_commands": task_decl["acceptance_commands"],
         "max_attempts": attempts,
-        "max_context_bytes": 60000,
-        "max_patch_bytes": 20000,
-        "max_changed_files": 3,
+        "max_context_bytes": limits["max_context_bytes"],
+        "max_patch_bytes": limits["max_patch_bytes"],
+        "max_changed_files": limits["max_changed_files"],
         "allow_deletions": False,
     }
     enforce_task_limits(task,attempts)
@@ -280,7 +294,7 @@ def execute(private: Path) -> None:
                    else AnthropicMessagesClient)
     client = client_type(
         api_key=api_key, model=model, timeout_seconds=90,
-        max_output_tokens=8000,
+        max_output_tokens=16000 if os.environ.get("PILOT_TASK")=="exercise-3" else 8000,
     )
     # Keep key out of persistent locals longer than necessary.
     del api_key
@@ -318,7 +332,8 @@ def execute(private: Path) -> None:
     write_public_receipt(private / "public", outcome.receipt, "verified",model_category)
     if outcome.receipt["status"] == "PASS":
         raw = outcome.patch.encode("utf-8")
-        if not raw or len(raw) > LIMITS["max_patch_bytes"]:
+        allowed_patch=(EX3_LIMITS if os.environ.get("PILOT_TASK")=="exercise-3" else LIMITS)["max_patch_bytes"]
+        if not raw or len(raw) > allowed_patch:
             block("PILOT_PATCH_INVALID")
         with (private / "worker.patch").open("xb") as file:
             file.write(raw)
@@ -386,7 +401,8 @@ def cost(private: Path) -> None:
     put(public / "cost.json", result)
     # Preserve read-only receipts and cost even when over budget; NEVER expose
     # patch if this gate rejects the paid attempt.
-    if usd > MAX_COST_BY_MODEL[model]:
+    ceiling=EX3_MAX_COST if os.environ.get("PILOT_TASK")=="exercise-3" else MAX_COST_BY_MODEL[model]
+    if usd > ceiling:
         block("PILOT_COST_OVER_USD_0_10")
     if verified.get("status") == "PASS":
         if not (private / "worker.patch").is_file():
@@ -397,7 +413,7 @@ def cost(private: Path) -> None:
         "WORKER=run_verified_worker\n"
         "PG07_ADMITTED=false\n"
         "COST_ESTIMATE_USD=" + str(usd) + "\n"
-        "COST_CEILING_USD=" + str(MAX_COST_BY_MODEL[model]) + "\n",
+        "COST_CEILING_USD=" + str(ceiling) + "\n",
         encoding="utf-8",
     )
     print("PILOT_COST_GATE_PASS_USD_" + str(usd) + "_QUALITY_CLI_NOT_USED=true")

@@ -14,10 +14,12 @@ ROOT=Path(__file__).resolve().parents[2]
 CATALOG=Path(__file__).with_name("tasks.json")
 SPEC="standards/tools/MIGRATIONS_SPEC.md"
 SHA=re.compile(r"^[0-9a-f]{64}$")
-TASKS=("exercise-1","exercise-2")
+TASKS=("exercise-1","exercise-2","exercise-3")
 EX1_SHA="979a661f32627a6d5fb8585ca413835bed0242369887970798184b3a8d3ab821"
 EX2_SHA="44f75fa89fa6974cdcecc43bb2c2669d73eb4bf45fbebb3ec0f2308fce3551ee"
 SPEC_SHA="b699c77f46df4c1be31865d3568ee5c1f2673f6b0cfbe1745bba60d7b068251c"
+EX3_SPEC="apps/time-service/TIME_SERVICE_SPEC.md"
+EX3_SPEC_SHA="70cb7e3f2678ff70e2de54cfbea2d7d305e54d6308c2155c3728907183e8ee26"
 
 class TaskBlocked(ValueError):
     pass
@@ -39,11 +41,11 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
                    "spec_path","spec_sha256","source_precondition"}
     if not isinstance(task,dict) or set(task)!=expected_keys:
         block("PILOT_TASK_FIELDS_INVALID")
-    if task["task_id"]!="LF-WORKER-PILOT-REAL-"+("001" if task_name=="exercise-1" else "002"):
+    if task["task_id"]!="LF-WORKER-PILOT-REAL-"+{"exercise-1":"001","exercise-2":"002","exercise-3":"003"}[task_name]:
         block("PILOT_TASK_ID_INVALID")
     if not isinstance(task["objective"],str) or not task["objective"].strip():
         block("PILOT_OBJECTIVE_MISSING")
-    if task["protected_path_patterns"]!=["standards/tests/**"]:
+    if task["protected_path_patterns"]!= (["apps/time-service/src/test/**"] if task_name=="exercise-3" else ["standards/tests/**"]):
         block("PILOT_PROTECTED_SCOPE_DRIFT")
     if task_name=="exercise-1":
         if (task["write_path_patterns"]!=["standards/tools/checks.py"]
@@ -51,7 +53,7 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
             or task["spec_path"] is not None or task["spec_sha256"] is not None
             or task["holdout_sha256"]!=EX1_SHA):
             block("PILOT_EXERCISE1_SCOPE_DRIFT")
-    else:
+    elif task_name=="exercise-2":
         if (task["write_path_patterns"]!=["standards/tools/migrations.py","standards/tools/checks.py"]
             or task["context_path_patterns"]!=[
                 SPEC,"standards/tools/checks.py","standards/tests/test_migrations.py"]
@@ -63,12 +65,34 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
         p=ROOT/SPEC
         if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=SPEC_SHA:
             block("PILOT_MIGRATIONS_SPEC_SHA_DRIFT")
+    else:  # exercise-3: disjoint scope, specification pinned before API use.
+        if (task["write_path_patterns"]!=[
+                "apps/time-service/pom.xml","apps/time-service/src/main/**"]
+            or task["context_path_patterns"]!=[
+                EX3_SPEC,"apps/time-service/src/test/**","backend/pom.xml"]
+            or task["spec_path"]!=EX3_SPEC or task["spec_sha256"]!=EX3_SPEC_SHA
+            or ("NORMATIVE SPEC SHA256="+EX3_SPEC_SHA) not in task["objective"]):
+            block("PILOT_EXERCISE3_SCOPE_DRIFT")
+        if (task["source_precondition"]!={
+                "kind":"NEW_FILE_ABSENT","path":"apps/time-service/pom.xml"}):
+            block("PILOT_EXERCISE3_PRECONDITION_INVALID")
+        source=ROOT/EX3_SPEC
+        if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest()!=EX3_SPEC_SHA:
+            block("PILOT_TIME_SERVICE_SPEC_SHA_DRIFT")
+        # No fabricated digest: fail closed during real workflow admission.
+        if task["holdout_sha256"] in (EX1_SHA,EX2_SHA):
+            block("PILOT_EXERCISE3_HOLDOUT_REUSED")
     checks=task["acceptance_commands"]
     if not isinstance(checks,list) or len(checks)!=1 or not isinstance(checks[0],dict):
         block("PILOT_ACCEPTANCE_INVALID")
-    if (checks[0].get("argv",[])[:3]!=["python3","-m","unittest"]
-        or not isinstance(checks[0].get("timeout_seconds"),int)
-        or not isinstance(checks[0].get("max_output_bytes"),int)):
+    if task_name=="exercise-3":
+        if checks[0]!={"name":"time-service-maven-verify",
+                       "argv":["mvn","-B","-q","-f","apps/time-service/pom.xml","verify"],
+                       "timeout_seconds":600,"max_output_bytes":32000}:
+            block("PILOT_ACCEPTANCE_INVALID")
+    elif (checks[0].get("argv",[])[:3]!=["python3","-m","unittest"]
+          or not isinstance(checks[0].get("timeout_seconds"),int)
+          or not isinstance(checks[0].get("max_output_bytes"),int)):
         block("PILOT_ACCEPTANCE_INVALID")
     pre=task["source_precondition"]
     if not isinstance(pre,dict) or pre.get("path") not in task["write_path_patterns"]:

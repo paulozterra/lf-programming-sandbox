@@ -2,7 +2,8 @@
   "schema_version": "LF_WORKER_PILOT_TASK_CATALOG_V1",
   "allowed_tasks": [
     "exercise-1",
-    "exercise-2"
+    "exercise-2",
+    "exercise-3"
   ],
   "tasks": {
     "exercise-1": {
@@ -85,6 +86,38 @@
         "kind": "NEW_FILE_ABSENT",
         "path": "standards/tools/migrations.py"
       }
+    }    ,
+    "exercise-3": {
+      "task_id": "LF-WORKER-PILOT-REAL-003",
+      "objective": "Implement a NEW independent Spring Boot 4.1.1 Java 21 Maven time-service in apps/time-service/ from TIME_SERVICE_SPEC.md, obeying TIME-01 through TIME-07. NORMATIVE SPEC SHA256=70cb7e3f2678ff70e2de54cfbea2d7d305e54d6308c2155c3728907183e8ee26. Honor protected visible tests and read-only backend/pom.xml version reference. Supply an injectable Clock and fail-fast invalid app.time.zone. Do not touch tests, specifications, vendor/, backend/ or previous exercises; hidden tests are external.",
+      "context_path_patterns": [
+        "apps/time-service/TIME_SERVICE_SPEC.md",
+        "apps/time-service/src/test/**",
+        "backend/pom.xml"
+      ],
+      "write_path_patterns": [
+        "apps/time-service/pom.xml",
+        "apps/time-service/src/main/**"
+      ],
+      "protected_path_patterns": [
+        "apps/time-service/src/test/**"
+      ],
+      "acceptance_commands": [
+        {
+          "name": "time-service-maven-verify",
+          "argv": ["mvn", "-B", "-q", "-f", "apps/time-service/pom.xml", "verify"],
+          "timeout_seconds": 600,
+          "max_output_bytes": 32000
+        }
+      ],
+      "holdout_sha256": "e721cd1f8ec1ca32cfee81bc84df1f38f0385587e9081ab2a3ced47beefc3dbc",
+      "spec_path": "apps/time-service/TIME_SERVICE_SPEC.md",
+      "spec_sha256": "70cb7e3f2678ff70e2de54cfbea2d7d305e54d6308c2155c3728907183e8ee26",
+      "source_precondition": {
+        "kind": "NEW_FILE_ABSENT",
+        "path": "apps/time-service/pom.xml"
+      }
     }
+
   }
 }
