@@ -242,6 +242,10 @@ def build(root: Path) -> dict:
     verified = json.loads(art["verified-worker-receipt.json"])
     visible = json.loads(art["visible-worker-receipt.json"])
     cost = json.loads(art["cost.json"])
+    pricing_raw = (root / "pilot/worker_v08/cost_adapter/pricing_v1.json").read_bytes()
+    enforce(sha(pricing_raw) == cost.get("price_table_sha256"), "PRICING_SHA")
+    pricing = json.loads(pricing_raw)
+    enforce(pricing.get("version") == cost.get("price_table_version"), "PRICING_VERSION")
     enforce(verified.get("status") == "PASS"
             and verified.get("visible_status") == "PASS"
             and verified.get("task_id") == "LF-WORKER-PILOT-REAL-005C",
@@ -269,7 +273,9 @@ def build(root: Path) -> dict:
                   "worker_patch_sha256": sha(worker_patch),
                   "hunks": hunk_list},
         "worker": {"run_id": RUN_ID, "model_resolved": model,
-                   "receipts": reports},
+                   "receipts": reports,
+                   "pricing": {"sha256": sha(pricing_raw), "bytes": len(pricing_raw),
+                               "content_base64": b64(pricing_raw)}},
         "execution": {"maven_verify": compile_result,
                       "smoke": smoke(candidates[0])},
     }
