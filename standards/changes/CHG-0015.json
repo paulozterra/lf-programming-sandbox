@@ -21,7 +21,10 @@
       ".github/workflows/ex5c-aosp-class-equivalence.yml",
       ".github/workflows/ci.yml",
       "standards/CAMBIOS.md",
-      "standards/changes/CHG-0015.json"
+      "standards/changes/CHG-0015.json",
+      "evidence/ex5c/build_bundle_v3.py",
+      "evidence/ex5c/test_bundle_v3_offline.py",
+      ".github/workflows/evidence-bundle.yml"
     ]
   },
   "existing_code_impact": {
