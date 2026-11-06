@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0015",
+  "title": "Norma AOSP y compuerta reproducible FORMAT_REMEDIATION N+1",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Decisión Paulo 2026-11-06: google-java-format 1.30.0 --aosp, equivalencia de .class con javac -g:none"
+  },
+  "reason": "Establecer norma 4 espacios para src/main/java sin reescribir el parche original, permitir una sola reparación cosmética gobernada y bloquear cualquier diferencia de clase compilada.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/REMINDERS_SPEC.md",
+      "evidence/ex5c/format_remediation.py",
+      "evidence/ex5c/verify_format_remediation.py",
+      "evidence/ex5c/test_format_remediation_offline.py",
+      ".github/workflows/ex5c-format-remediation.yml",
+      ".github/workflows/ex5c-aosp-class-equivalence.yml",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0015.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/46"
+  },
+  "decision_ref": "No model. Keep v1/v2 immutable. PR formatter only modifies Java and requires original N .class byte identity."
+}
