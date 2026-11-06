@@ -37,10 +37,11 @@ class TaskSelectionTests(unittest.TestCase):
                 with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_EXERCISE2_HOLDOUT_SHA_DRIFT"):
                     selector.select("exercise-2")
 
-    def test_exercise3_spec_is_pinned_but_real_holdout_is_blocked(self):
+    def test_exercise3_spec_and_claude_holdout_sha_are_pinned(self):
         task=selector.select("exercise-3",require_holdout=False)
         self.assertEqual(task["spec_sha256"],selector.EX3_SPEC_SHA)
-        self.assertEqual(task["holdout_sha256"],None)
+        self.assertEqual(task["holdout_sha256"],
+                         "e721cd1f8ec1ca32cfee81bc84df1f38f0385587e9081ab2a3ced47beefc3dbc")
         self.assertEqual(task["write_path_patterns"],[
             "apps/time-service/pom.xml","apps/time-service/src/main/**"])
         self.assertEqual(task["context_path_patterns"],[
@@ -50,8 +51,20 @@ class TaskSelectionTests(unittest.TestCase):
         self.assertEqual(task["acceptance_commands"][0]["argv"],[
             "mvn","-B","-q","-f","apps/time-service/pom.xml","verify"])
         self.assertEqual(task["acceptance_commands"][0]["timeout_seconds"],600)
-        with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_HOLDOUT_SHA_UNREGISTERED:exercise-3"):
-            selector.select("exercise-3")
+        self.assertEqual(selector.select("exercise-3")["holdout_sha256"],task["holdout_sha256"])
+
+    def test_exercise3_missing_or_malformed_digest_stays_fail_closed(self):
+        saved=json.loads(selector.CATALOG.read_text(encoding="utf-8"))
+        for invalid in (None, "", "0" * 63, "NOT_A_DIGEST"):
+            with self.subTest(invalid=invalid):
+                tampered=copy.deepcopy(saved)
+                tampered["tasks"]["exercise-3"]["holdout_sha256"]=invalid
+                with tempfile.TemporaryDirectory() as temp:
+                    path=Path(temp)/"tasks.json"
+                    path.write_text(json.dumps(tampered),encoding="utf-8")
+                    with patch.object(selector,"CATALOG",path):
+                        with self.assertRaises(selector.TaskBlocked):
+                            selector.select("exercise-3")
 
     def test_exercise3_cannot_reuse_any_previous_holdout(self):
         saved=json.loads(selector.CATALOG.read_text(encoding="utf-8"))
