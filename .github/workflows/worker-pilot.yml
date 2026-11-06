@@ -473,6 +473,7 @@ jobs:
             ${{ runner.temp }}/lf-worker-pilot/public/verified-worker-receipt.json
             ${{ runner.temp }}/lf-worker-pilot/public/visible-worker-receipt.json
             ${{ runner.temp }}/lf-worker-pilot/public/derived-context.json
+            ${{ runner.temp }}/lf-worker-pilot/public/derived-context.sha256
             ${{ runner.temp }}/lf-worker-pilot/public/cost.json
             ${{ runner.temp }}/lf-worker-pilot/public/pilot-summary.log
             ${{ runner.temp }}/lf-worker-pilot/public/pilot-status.log
