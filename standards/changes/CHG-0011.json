@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0011",
+  "title": "Piloto Worker: dos lotes de recordatorios con preflight y traspaso gobernado",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Mandato de ejercicio 4: lotes ex4a y ex4b sobre PR #32 fusionado"
+  },
+  "reason": "Incorporar dos tareas independientes y exámenes sellados, preflight de tamaño y procedencia de PR para el lote B, y verificaciones offline/CI sin tocar vendor ni la lógica de producción.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/worker-pilot.yml",
+      "pilot/worker_v08/lot_preflight.py",
+      "pilot/worker_v08/test_lot_preflight.py",
+      "pilot/worker_v08/run_live_pilot.py",
+      "pilot/worker_v08/task_selector.py",
+      "pilot/worker_v08/tasks.json",
+      "apps/time-service/REMINDERS_SPEC.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/33"
+  },
+  "decision_ref": "Owner mandate exercise-4: lot A/B isolated scopes, distinct holdout SHA, premodel zero-cost size and handoff gates, no paid runs before owner-controlled PR merges"
+}
