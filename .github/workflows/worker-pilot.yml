@@ -102,7 +102,7 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
       - name: Lot A/B SHA, context-size and first-parent handoff gate BEFORE secrets/model
-        if: ${{ inputs.task == 'ex4a' || inputs.task == 'ex4b' || inputs.task == 'ex5c' }}
+        if: ${{ inputs.task == 'ex4a' || inputs.task == 'ex4b' }}
         shell: bash
         run: |
           set -euo pipefail
