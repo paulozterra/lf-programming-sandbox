@@ -62,6 +62,34 @@ def require(ok: bool, code: str) -> None:
         raise ValueError(code)
 
 
+class StripAuthOnSignedArtifactRedirect(urllib.request.HTTPRedirectHandler):
+    """GitHub artifact ZIP redirects to a signed URL outside api.github.com.
+
+    urllib's default redirect copies Authorization to the signed storage
+    endpoint; this yields HTTP 401 and leaks a credential across origins.
+    Only follow known HTTPS GitHub artifact-storage redirects, without auth.
+    """
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        destination = urllib.parse.urlsplit(newurl)
+        origin = urllib.parse.urlsplit(req.full_url)
+        if destination.scheme != "https":
+            raise ValueError("ARTIFACT_REDIRECT_HTTPS_REQUIRED")
+        if destination.hostname != origin.hostname:
+            host = (destination.hostname or "").lower()
+            allowed = (host.endswith(".blob.core.windows.net") or
+                       host.endswith(".actions.githubusercontent.com") or
+                       host in {"objects.githubusercontent.com", "github.com"})
+            if not allowed:
+                raise ValueError("ARTIFACT_REDIRECT_HOST_FORBIDDEN")
+        forwarded = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if forwarded is None:
+            return None
+        if destination.hostname != origin.hostname:
+            forwarded.headers.pop("Authorization", None)
+            forwarded.unredirected_hdrs.pop("Authorization", None)
+        return forwarded
+
+
 def api_bytes(url: str, token: str) -> bytes:
     require(url.startswith("https://api.github.com/"), "EXTERNAL_URL_FORBIDDEN")
     request = urllib.request.Request(url, headers={
@@ -70,7 +98,8 @@ def api_bytes(url: str, token: str) -> bytes:
         "X-GitHub-Api-Version": "2022-11-28",
         "User-Agent": "lf-evidence-bundle-ex5c"
     })
-    with urllib.request.urlopen(request, timeout=60) as response:
+    opener = urllib.request.build_opener(StripAuthOnSignedArtifactRedirect())
+    with opener.open(request, timeout=60) as response:
         return response.read()
 
 
