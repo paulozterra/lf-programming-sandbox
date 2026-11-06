@@ -154,7 +154,7 @@ def commit_observation(checkout: Path, jar: Path, commit: str, output: Path) -> 
             "blob_sha256": sha((checkout / name).read_bytes()),
             "git_blob_oid": __import__("hashlib").sha1(
                 b"blob " + str(len((checkout / name).read_bytes())).encode() +
-                b"\\0" + (checkout / name).read_bytes()).hexdigest(),
+                b"\0" + (checkout / name).read_bytes()).hexdigest(),
             "content_base64": base64.b64encode((checkout / name).read_bytes()).decode()
         } for name in files],
         "formatter": {"version": VERSION, "jar_sha256": GJF_SHA256,
