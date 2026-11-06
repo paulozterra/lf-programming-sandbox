@@ -177,6 +177,9 @@ jobs:
           python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
           python3 -m pytest -q pilot/worker_v08/test_lot_preflight.py
 
+      - name: Offline ex5c deterministic derivation adversarial tests (pytest; NO MODEL)
+        run: python3 -m pytest -q pilot/worker_v08/test_derive_context.py
+
       - name: Verify offline task preflight routing (NO REAL ORACLE, NO MODEL)
         run: python3 pilot/worker_v08/test_preflight_routing.py
       - name: Original Worker fake MODEL_ERROR produces sanitized receipts (NO API)
