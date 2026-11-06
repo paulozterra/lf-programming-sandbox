@@ -2,9 +2,12 @@
 import json
 import re
 import unittest
+from unittest.mock import patch
+import tempfile
+import os
 from pathlib import Path
 from build_bundle import (BASE, COMMIT, EXPECTED_PATCH, EXPECTED_SUBTREE,
-                          REQS, git_oid, sha)
+                          REQS, git_oid, sha, load_run_artifacts, RUN_ID)
 
 HERE = Path(__file__).resolve().parent
 
@@ -37,6 +40,28 @@ class EvidenceBundleOfflineTests(unittest.TestCase):
             self.assertLessEqual(set(row["requirements"]), REQS)
             seen.update(row["requirements"])
         self.assertEqual(seen, REQS)
+
+    def test_binary_artifacts_require_local_explicit_gh_download(self):
+        # Regression for Run #42294437650: fail closed without local downloads.
+        with tempfile.TemporaryDirectory() as root:
+            api_root = "https://api.github.com/repos/paulozterra/lf-programming-sandbox"
+            def fake_api(url, token):
+                if url == api_root + "/actions/runs/" + str(RUN_ID):
+                    return json.dumps({
+                        "head_sha": "5b5f860f2c142c9741a4dfad93f25bf4914c710d",
+                        "conclusion": "success", "run_attempt": 1
+                    }).encode()
+                if url.endswith("/artifacts?per_page=100"):
+                    return json.dumps({"artifacts": [
+                        {"name": "worker-pilot-receipts-cost-logs", "id": 13537565729, "expired": False},
+                        {"name": "worker-pilot-verified-patch", "id": 13537475831, "expired": False}
+                    ]}).encode()
+                raise AssertionError("Binary redirect/network request forbidden: " + url)
+            with patch.dict(os.environ, {"GH_TOKEN": "offline-test-token",
+                                         "LF_EVIDENCE_ARTIFACT_DIR": root}):
+                with patch("build_bundle.api_bytes", side_effect=fake_api):
+                    with self.assertRaisesRegex(ValueError, "LOCAL_ARTIFACT_MISSING"):
+                        load_run_artifacts()
 
     def test_no_mutable_authority_implicitly_granted(self):
         code = (HERE / "build_bundle.py").read_text(encoding="utf-8")
