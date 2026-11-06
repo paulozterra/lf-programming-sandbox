@@ -27,10 +27,10 @@ for event in ("push","pull_request","pull_request_target","schedule",
               "repository_dispatch","workflow_call","workflow_run"):
     deny(r"^\s*"+re.escape(event)+r":","AUTO_TRIGGER_FORBIDDEN:"+event)
 need(r"^permissions:\s*\n  contents: read\s*$","GLOBAL_WRITE_PERMISSION_FORBIDDEN")
-need(r"^    timeout-minutes: 10$","JOB_TIMEOUT_INVALID")
+need(r"^    timeout-minutes: .*inputs.task == .*exercise-3.*30.*10","JOB_TIMEOUT_INVALID")
 need(r"^  group: lf-worker-v08-pilot-single-running-job$","CONCURRENCY_INVALID")
 need(r"^  cancel-in-progress: false$","IN_FLIGHT_CANCELLATION_FORBIDDEN")
-for exercise in ("exercise-1","exercise-2"):
+for exercise in ("exercise-1","exercise-2","exercise-3"):
     need(r"^          - "+re.escape(exercise)+r"$","TASK_INPUT_MISSING:"+exercise)
 need(r"^      PILOT_TASK: .*inputs.task","TASK_ENV_MISSING")
 for required in ("anthropic","claude-haiku-5-5","claude-sonnet-5-5"):
@@ -87,4 +87,15 @@ if ("run_verified_worker" not in runner or
     'MAX_COST_BY_MODEL' not in runner or
     '"max_output_tokens": 8000' not in runner):
     raise AssertionError("VERIFIED_WORKER_OR_LIMIT_INVARIANT_MISSING")
+need(r"^      - name: Set up Java 21 ONLY for exercise-3", "EX3_JAVA_STEP_MISSING")
+need(r"uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165", "EX3_JAVA_NOT_PINNED")
+need(r"^      - name: Decode exercise-3 holdout from its OWN base64 secret", "EX3_HOLDOUT_STEP_MISSING")
+need(r"^          PILOT_HOLDOUT_B64: .*secrets.PILOT_HOLDOUT_EX3_B64", "EX3_HOLDOUT_SECRET_MISSING")
+need(r"^      - name: Build isolated executable time-service JAR only on verified PASS", "EX3_JAR_GATE_MISSING")
+need(r"^      - name: Upload exercise-3 executable JAR ONLY on verified PASS", "EX3_JAR_UPLOAD_MISSING")
+need(r"name: time-service.jar", "EX3_JAR_ARTIFACT_MISSING")
+need(r'--task "\\$PILOT_TASK"', "EX3_BUDGET_TASK_NOT_PASSED")
+if yaml.index("Block missing task-specific holdout SHA") > yaml.index("Set up Java 21 ONLY"):
+    raise AssertionError("EX3_HOLDOUT_SHA_GATE_TOO_LATE")
+
 print("PASS WORKFLOW_MANUAL_VENDOR_EXACT_BASE64_SHA_ACTIONS_VERIFIED_WORKER_MODEL_BUDGET")
