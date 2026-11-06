@@ -178,3 +178,5 @@ jobs:
         run: python3 pilot/worker_v08/test_model_error_artifacts.py
       - name: Anthropic diagnostic request and disclosure offline (NO API)
         run: python3 pilot/worker_v08/test_anthropic_diagnostic.py
+      - name: Sonnet structured ModelClient strict fake transport (NO API)
+        run: python3 pilot/worker_v08/test_anthropic_structured_client.py
