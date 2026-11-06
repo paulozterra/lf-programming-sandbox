@@ -39,11 +39,22 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - name: Download ONLY sanitized Run C public artifacts via official GitHub CLI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lf-ex5c-public/worker-pilot-receipts-cost-logs" "$RUNNER_TEMP/lf-ex5c-public/worker-pilot-verified-patch"
+          gh run download 42284754122 --repo paulozterra/lf-programming-sandbox --name worker-pilot-receipts-cost-logs --dir "$RUNNER_TEMP/lf-ex5c-public/worker-pilot-receipts-cost-logs"
+          gh run download 42284754122 --repo paulozterra/lf-programming-sandbox --name worker-pilot-verified-patch --dir "$RUNNER_TEMP/lf-ex5c-public/worker-pilot-verified-patch"
+
       - name: Build exact offline-real bundle; validate SHA, hunks, Maven, HTTP smoke
         id: bundle
         env:
           GH_TOKEN: ${{ github.token }}
           LF_EVIDENCE_SOURCE_ROOT: ${{ github.workspace }}/source
+          LF_EVIDENCE_ARTIFACT_DIR: ${{ runner.temp }}/lf-ex5c-public
         shell: bash
         run: |
           set -euo pipefail
