@@ -37,9 +37,48 @@ class TaskSelectionTests(unittest.TestCase):
                 with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_EXERCISE2_HOLDOUT_SHA_DRIFT"):
                     selector.select("exercise-2")
 
+    def test_exercise3_spec_is_pinned_but_real_holdout_is_blocked(self):
+        task=selector.select("exercise-3",require_holdout=False)
+        self.assertEqual(task["spec_sha256"],selector.EX3_SPEC_SHA)
+        self.assertEqual(task["holdout_sha256"],None)
+        self.assertEqual(task["write_path_patterns"],[
+            "apps/time-service/pom.xml","apps/time-service/src/main/**"])
+        self.assertEqual(task["context_path_patterns"],[
+            "apps/time-service/TIME_SERVICE_SPEC.md",
+            "apps/time-service/src/test/**","backend/pom.xml"])
+        self.assertEqual(task["protected_path_patterns"],["apps/time-service/src/test/**"])
+        self.assertEqual(task["acceptance_commands"][0]["argv"],[
+            "mvn","-B","-q","-f","apps/time-service/pom.xml","verify"])
+        self.assertEqual(task["acceptance_commands"][0]["timeout_seconds"],600)
+        with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_HOLDOUT_SHA_UNREGISTERED:exercise-3"):
+            selector.select("exercise-3")
+
+    def test_exercise3_cannot_reuse_any_previous_holdout(self):
+        saved=json.loads(selector.CATALOG.read_text(encoding="utf-8"))
+        for old_sha in (selector.EX1_SHA,selector.EX2_SHA):
+            tampered=copy.deepcopy(saved)
+            tampered["tasks"]["exercise-3"]["holdout_sha256"]=old_sha
+            with tempfile.TemporaryDirectory() as temp:
+                root=Path(temp)/"tasks.json"
+                root.write_text(json.dumps(tampered),encoding="utf-8")
+                with patch.object(selector,"CATALOG",root):
+                    with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_EXERCISE3_HOLDOUT_REUSED"):
+                        selector.select("exercise-3",require_holdout=False)
+
+    def test_exercise3_rejects_scope_drift_and_spec_tamper(self):
+        saved=json.loads(selector.CATALOG.read_text(encoding="utf-8"))
+        changed=copy.deepcopy(saved)
+        changed["tasks"]["exercise-3"]["write_path_patterns"].append("backend/**")
+        with tempfile.TemporaryDirectory() as temp:
+            target=Path(temp)/"tasks.json"
+            target.write_text(json.dumps(changed),encoding="utf-8")
+            with patch.object(selector,"CATALOG",target):
+                with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_EXERCISE3_SCOPE_DRIFT"):
+                    selector.select("exercise-3",require_holdout=False)
+
     def test_unknown_exercise_blocked(self):
         with self.assertRaisesRegex(selector.TaskBlocked,"PILOT_TASK_NOT_ALLOWED"):
-            selector.select("exercise-3")
+            selector.select("exercise-4")
 
     def test_scope_or_spec_sha_tamper_blocked(self):
         saved=json.loads(selector.CATALOG.read_text(encoding="utf-8"))
