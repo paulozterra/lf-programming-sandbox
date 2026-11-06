@@ -21,7 +21,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(os.environ.get("LF_EVIDENCE_SOURCE_ROOT", Path(__file__).resolve().parents[2])).resolve()
 HERE = Path(__file__).resolve().parent
 COMMIT = "e76b213cb2f367f787e0eba3bf8ff74136edd883"
 BASE = "28de535acd4a76be038013cc6241c59a08102155"
