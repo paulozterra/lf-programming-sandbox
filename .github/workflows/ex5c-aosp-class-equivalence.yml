@@ -1,0 +1,30 @@
+name: EX5C AOSP-only class equivalence gate
+
+on:
+  pull_request:
+    paths:
+      - "apps/time-service/src/main/java/**"
+
+permissions:
+  contents: read
+
+jobs:
+  ex5c-aosp-format-only-class-equivalence:
+    if: ${{ startsWith(github.head_ref, 'lf/ex5c-aosp-format-n1-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout proposed format-only PR with full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - name: Set up Java 21
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Validate exact AOSP formatting and byte-identical javac -g:none classes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 evidence/ex5c/verify_format_remediation.py

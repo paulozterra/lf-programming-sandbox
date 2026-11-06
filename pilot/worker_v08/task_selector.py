@@ -134,8 +134,23 @@ def select(task_name:str,*,require_holdout:bool=True)->dict:
             or task["source_precondition"]!={"kind":"EXISTING_FILE_PRESENT","path":writes[0]}):
             block("PILOT_EX5_SCOPE_OR_SHA_DRIFT")
         spec=ROOT/EX4_SPEC
-        if not spec.is_file() or hashlib.sha256(spec.read_bytes()).hexdigest()!=EX5_SPEC_SHA:
+        if not spec.is_file():
             block("PILOT_EX5_SPEC_SHA_DRIFT")
+        # EX5C was executed against the exact historic REM-C1..C7 spec.
+        # The governed AOSP N+1 formatting addendum is not part of that
+        # already-executed task. Preserve its historic contract SHA while
+        # validating the additive formatter policy separately.
+        raw_spec=spec.read_bytes()
+        format_heading=b"\n## Norma de formato"
+        original_spec=raw_spec.split(format_heading,1)[0]
+        if hashlib.sha256(original_spec).hexdigest()!=EX5_SPEC_SHA:
+            block("PILOT_EX5_SPEC_SHA_DRIFT")
+        if format_heading in raw_spec:
+            if (raw_spec.count(format_heading)!=1 or
+                b"google-java-format 1.30.0" not in raw_spec.split(format_heading,1)[1] or
+                b"--aosp" not in raw_spec.split(format_heading,1)[1] or
+                b"f2239a8a234a240a54fdff7809d4b3e66702c21f590c77a0b6cf7b20c829e95a" not in raw_spec.split(format_heading,1)[1]):
+                block("PILOT_EX5_FORMAT_POLICY_DRIFT")
         if any(not (ROOT / name).is_file() or (ROOT / name).is_symlink() for name in writes):
             block("PILOT_EX5_WRITE_TARGET_MISSING")
     checks=task["acceptance_commands"]
