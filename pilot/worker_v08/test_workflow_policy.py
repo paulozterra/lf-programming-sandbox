@@ -144,4 +144,20 @@ if "fetch-depth: " + "$" + "{{ inputs.task == 'ex4b' && '0' || '1' }}" not in ya
 if yaml.index("fetch-depth:") > yaml.index("Lot A/B SHA, context-size"):
     raise AssertionError("EX4B_HISTORY_FETCH_TOO_LATE")
 
+# Exercise 5: context is derived before any secret or model call; no oracle fallback.
+need(r"^          - ex5c$", "EX5C_TASK_NOT_SELECTABLE")
+need(r"^      - name: Derive ex5c context before secrets/model", "EX5_DERIVE_STEP_MISSING")
+need(r"derive_context.py", "EX5_DERIVER_NOT_INVOKED")
+need(r"--output .*derived-context.json", "EX5_DERIVE_REPORT_MISSING")
+need(r"^      - name: Decode ex5c holdout from its OWN base64 secret", "EX5_PRIVATE_HOLDOUT_MISSING")
+need(r"secrets.PILOT_HOLDOUT_EX5C_B64", "EX5_SECRET_NOT_ISOLATED")
+need(r"^            .*public/derived-context.json", "EX5_REPORT_NOT_UPLOADED")
+need(r"^            .*public/derived-context.sha256", "EX5_SHA_SIDECAR_NOT_UPLOADED")
+if not (yaml.index("Derive ex5c context") <
+        yaml.index("Decode ex5c holdout") <
+        yaml.index("Execute REAL vendored run_verified_worker")):
+    raise AssertionError("EX5_DERIVE_NOT_PREMODEL")
+if "|| secrets." in yaml or "&& secrets." in yaml:
+    raise AssertionError("EX5_SECRET_FALLBACK_FORBIDDEN")
+
 print("PASS WORKFLOW_MANUAL_VENDOR_EXACT_BASE64_SHA_ACTIONS_VERIFIED_WORKER_MODEL_BUDGET")

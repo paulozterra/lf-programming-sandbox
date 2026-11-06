@@ -27,6 +27,9 @@ jobs:
           java-version: "21"
           cache: maven
       - run: python3 ../standards/tools/stack_checks.py run --set spring-boot --check-id spring-verify
+      - name: Compile and run staged reminders visible tests (no model)
+        working-directory: .
+        run: mvn -B -q -f apps/time-service/pom.xml test
 
   frontend:
     name: frontend (lint, tipos, build)
@@ -176,6 +179,14 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
           python3 -m pytest -q pilot/worker_v08/test_lot_preflight.py
+
+      - name: Offline ex5c deterministic derivation adversarial tests (pytest; NO MODEL)
+        run: python3 -m pytest -q pilot/worker_v08/test_derive_context.py
+
+      - name: Exercise ex5c derive-context CLI and full-file checksum offline
+        run: |
+          python3 pilot/worker_v08/derive_context.py --task ex5c --root . --output "$RUNNER_TEMP/derived-context.json"
+          cd "$RUNNER_TEMP" && sha256sum --check derived-context.sha256
 
       - name: Verify offline task preflight routing (NO REAL ORACLE, NO MODEL)
         run: python3 pilot/worker_v08/test_preflight_routing.py

@@ -13,6 +13,7 @@ on:
           - exercise-3
           - ex4a
           - ex4b
+          - ex5c
         default: exercise-1
       provider:
         description: "Pilot provider (only anthropic)"
@@ -50,7 +51,7 @@ jobs:
   worker-pilot:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ (inputs.task == 'exercise-3' || inputs.task == 'ex4a' || inputs.task == 'ex4b') && 30 || 10 }}
+    timeout-minutes: ${{ (inputs.task == 'exercise-3' || inputs.task == 'ex4a' || inputs.task == 'ex4b' || inputs.task == 'ex5c') && 30 || 10 }}
     permissions:
       contents: read
     env:
@@ -79,8 +80,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          case "$PILOT_TASK" in exercise-1|exercise-2|exercise-3|ex4a|ex4b) ;; *) exit 1 ;; esac
-          if [ "$PILOT_TASK" = exercise-3 ] || [ "$PILOT_TASK" = ex4a ] || [ "$PILOT_TASK" = ex4b ]; then
+          case "$PILOT_TASK" in exercise-1|exercise-2|exercise-3|ex4a|ex4b|ex5c) ;; *) exit 1 ;; esac
+          if [ "$PILOT_TASK" = exercise-3 ] || [ "$PILOT_TASK" = ex4a ] || [ "$PILOT_TASK" = ex4b ] || [ "$PILOT_TASK" = ex5c ]; then
             test "$PILOT_MODEL" = claude-sonnet-5-5
             test "$PILOT_MAX_ATTEMPTS" = 1
           fi
@@ -155,14 +156,14 @@ jobs:
           echo "EX3_ISOLATED_JAVA21_AND_MAVEN_PASS"
 
       - name: Set up Java 21 ONLY for ex4a/ex4b (SHA pinned)
-        if: ${{ inputs.task == 'ex4a' || inputs.task == 'ex4b' }}
+        if: ${{ inputs.task == 'ex4a' || inputs.task == 'ex4b' || inputs.task == 'ex5c' }}
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # pinned commit, Temurin
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Link JDK 21 and Maven into the vendored Worker's fixed PATH (ex4a/ex4b only)
-        if: ${{ inputs.task == 'ex4a' || inputs.task == 'ex4b' }}
+        if: ${{ inputs.task == 'ex4a' || inputs.task == 'ex4b' || inputs.task == 'ex5c' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -178,7 +179,7 @@ jobs:
           sudo ln -sfn "$maven_source" /usr/local/bin/mvn
 
       - name: Verify isolated Worker command environment uses Java 21 and Maven (ex4a/ex4b only)
-        if: ${{ inputs.task == 'ex4a' || inputs.task == 'ex4b' }}
+        if: ${{ inputs.task == 'ex4a' || inputs.task == 'ex4b' || inputs.task == 'ex5c' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -362,6 +363,43 @@ jobs:
           path.chmod(0o600)
           PY
 
+      - name: Derive ex5c context before secrets/model, fail closed if unexpected
+        if: ${{ inputs.task == 'ex5c' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 source/pilot/worker_v08/derive_context.py \
+            --task ex5c --root "$GITHUB_WORKSPACE/source" \
+            --output "$RUNNER_TEMP/lf-worker-pilot/public/derived-context.json"
+
+      - name: Decode ex5c holdout from its OWN base64 secret (no fallback)
+        if: ${{ inputs.task == 'ex5c' }}
+        shell: bash
+        env:
+          PILOT_HOLDOUT_B64: ${{ secrets.PILOT_HOLDOUT_EX5C_B64 }}
+          PILOT_HOLDOUT_EXPECTED_SHA: ${{ steps.task_sha.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import base64,hashlib,os
+          from pathlib import Path
+          encoded=os.environ.get("PILOT_HOLDOUT_B64")
+          expected=os.environ.get("PILOT_HOLDOUT_EXPECTED_SHA","")
+          if not encoded or len(expected)!=64 or any(c not in "0123456789abcdef" for c in expected):
+              raise SystemExit("PILOT_EX5C_HOLDOUT_SHA_OR_SECRET_MISSING")
+          try:
+              raw=base64.b64decode(encoded,validate=True)
+          except (ValueError,base64.binascii.Error):
+              raise SystemExit("PILOT_EX5C_HOLDOUT_BASE64_INVALID")
+          if hashlib.sha256(raw).hexdigest()!=expected:
+              raise SystemExit("PILOT_EX5C_HOLDOUT_SHA_MISMATCH")
+          path=Path(os.environ["RUNNER_TEMP"])/"lf-worker-pilot"/"holdout.oracle.json"
+          with path.open("xb") as handle:
+              handle.write(raw)
+          path.chmod(0o600)
+          PY
+
       - name: Offline WorkerTaskSpec preflight, source/holdout/cost-adapter verification
         id: preflight
         shell: bash
@@ -434,6 +472,8 @@ jobs:
           path: |
             ${{ runner.temp }}/lf-worker-pilot/public/verified-worker-receipt.json
             ${{ runner.temp }}/lf-worker-pilot/public/visible-worker-receipt.json
+            ${{ runner.temp }}/lf-worker-pilot/public/derived-context.json
+            ${{ runner.temp }}/lf-worker-pilot/public/derived-context.sha256
             ${{ runner.temp }}/lf-worker-pilot/public/cost.json
             ${{ runner.temp }}/lf-worker-pilot/public/pilot-summary.log
             ${{ runner.temp }}/lf-worker-pilot/public/pilot-status.log
@@ -448,7 +488,7 @@ jobs:
           path: ${{ runner.temp }}/lf-worker-pilot/public/worker.patch
 
       - name: Build isolated executable time-service JAR only on verified PASS and cost PASS
-        if: ${{ (inputs.task == 'exercise-3' || inputs.task == 'ex4b') && steps.worker.outcome == 'success' && steps.cost.outcome == 'success' }}
+        if: ${{ (inputs.task == 'exercise-3' || inputs.task == 'ex4b' || inputs.task == 'ex5c') && steps.worker.outcome == 'success' && steps.cost.outcome == 'success' }}
         id: ex3_jar
         shell: bash
         run: |
@@ -456,7 +496,7 @@ jobs:
           python3 source/pilot/worker_v08/build_time_service_jar.py
 
       - name: Upload exercise-3 executable JAR ONLY on verified PASS, cost PASS and build PASS
-        if: ${{ (inputs.task == 'exercise-3' || inputs.task == 'ex4b') && steps.worker.outcome == 'success' && steps.cost.outcome == 'success' && steps.ex3_jar.outcome == 'success' }}
+        if: ${{ (inputs.task == 'exercise-3' || inputs.task == 'ex4b' || inputs.task == 'ex5c') && steps.worker.outcome == 'success' && steps.cost.outcome == 'success' && steps.ex3_jar.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4 SHA pinned
         with:
           name: time-service.jar

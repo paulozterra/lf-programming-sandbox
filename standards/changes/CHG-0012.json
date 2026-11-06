@@ -1,0 +1,43 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0012",
+  "title": "Piloto Worker: derivación determinista de contexto para lote C",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Mandato del Ejercicio 5: contexto automático ex5c sobre main 28de535"
+  },
+  "reason": "Añadir derivación de contexto sin IA con lista negra, trazabilidad, límites fail-closed y un nuevo lote real que modifica tres archivos ya existentes; conservar adaptador y Worker originales.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/worker-pilot.yml",
+      "pilot/worker_v08/derive_context.py",
+      "pilot/worker_v08/test_derive_context.py",
+      "pilot/worker_v08/task_selector.py",
+      "pilot/worker_v08/tasks.json",
+      "pilot/worker_v08/run_live_pilot.py",
+      "pilot/worker_v08/budget_gate.py",
+      "pilot/worker_v08/build_time_service_jar.py",
+      "apps/time-service/REMINDERS_SPEC.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/37"
+  },
+  "decision_ref": "Owner exercise-5 mandate: PR1 + owner merge then one paid C attempt; never search or reconstruct private oracle"
+}

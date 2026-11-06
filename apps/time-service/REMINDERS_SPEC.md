@@ -19,3 +19,12 @@ REM-B3 `GET /api/reminders` responde 200 con un arreglo ordenado por id. `GET /a
 REM-B4 Cualquier otro método sobre `/api/reminders` responde 405. `GET /api/time` sigue igual que en el ejercicio 3.
 REM-B5 No modificar los archivos del lote A.
 
+## Lote C — borrado y búsqueda (modifica archivos existentes)
+REM-C1 Agregar a `ReminderRepository`: `boolean deleteById(long id)` y `List<Reminder> findByTextContaining(String query)`.
+REM-C2 `deleteById`: devuelve true si existía y lo borró, y false si no existía. **Los id nunca se reutilizan**: después de borrar, el siguiente save sigue la numeración.
+REM-C3 `findByTextContaining`: búsqueda sin distinguir mayúsculas de minúsculas (`Locale.ROOT`), con `strip()` aplicado a la consulta. Devuelve los resultados ordenados por id, en una lista no modificable. Si la consulta es null, lanza `IllegalArgumentException`.
+REM-C4 Tanto el borrado como la búsqueda deben ser seguros con varios hilos, igual que save.
+REM-C5 `GET /api/reminders?q=texto` filtra con findByTextContaining. Si `q` falta o está en blanco, devuelve todos.
+REM-C6 `DELETE /api/reminders/{id}` responde 204 sin cuerpo si lo borró, 404 si no existía y 400 si el id no es numérico.
+REM-C7 Solo se modifican `ReminderRepository.java`, `InMemoryReminderRepository.java` y `ReminderController.java`. No se crean archivos nuevos en `src/main`. Todo lo de los lotes A y B se mantiene.
+
