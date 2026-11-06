@@ -26,7 +26,7 @@ MAX_COST_BY_MODEL = {"claude-haiku-5-5": Decimal("0.03"),
 EX3_MAX_COST = Decimal("0.35")
 EX3_LIMITS = {"max_attempts":1,"max_context_bytes":60000,
               "max_patch_bytes":40000,"max_changed_files":6}
-EX4_LIMITS = {"max_attempts":1,"max_context_bytes":60000,
+EX4_LIMITS = {"max_attempts":1,"max_context_bytes":240000,
               "max_patch_bytes":40000,"max_changed_files":3}
 MAX_ATTEMPTS = 3
 LIMITS = {
