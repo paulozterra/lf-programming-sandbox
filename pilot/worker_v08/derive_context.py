@@ -145,7 +145,7 @@ def derive(root: Path, write_scope: list[str], spec_paths: list[str]) -> dict:
             if re.search(r"\b" + re.escape(class_name) + r"\b", source):
                 add(sibling, "SAME_PACKAGE_REF")
         # Collect sensitive local candidates by filename only; do not open.
-        for candidate in _files(root, root / src_root.split("/src/main/java/")[0]):
+        for candidate in _files(root, root / src_root.split("/src/main/java")[0]):
             if denial(candidate) and (".env" in candidate or
                                       any(t in candidate.lower() for t in
                                           ("holdout", "secret", "oracle"))):
