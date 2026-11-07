@@ -1,12 +1,13 @@
 package lf.sandbox.time.reminder;
 
+import org.springframework.stereotype.Repository;
+
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 @Repository
 public class InMemoryReminderRepository implements ReminderRepository {
@@ -16,8 +17,7 @@ public class InMemoryReminderRepository implements ReminderRepository {
     private final List<Reminder> reminders = new ArrayList<>();
     private long nextId = 1;
 
-    public InMemoryReminderRepository() {
-    }
+    public InMemoryReminderRepository() {}
 
     @Override
     public synchronized Reminder save(String text, LocalTime at) {
