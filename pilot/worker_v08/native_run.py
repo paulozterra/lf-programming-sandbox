@@ -22,6 +22,7 @@ from programming_agent_runner.hashutil import canonical_json_bytes, source_snaps
 from programming_agent_runner.worker_spec import parse_worker_task
 from programming_agent_runner.worker_oracle import load_hidden_oracle, assert_hidden_oracle_external
 from programming_agent_runner.worker_receipt import validate_worker_receipt
+from programming_agent_runner.worker_patch import parse_patch_proposal, inspect_patch
 from programming_agent_runner.verified_worker import run_verified_worker, validate_verified_worker_receipt
 import programming_agent_runner.verified_worker as verified_module
 from native_proposal_client import NativeProposalClient, read_proposal_envelope
@@ -97,7 +98,6 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     proposal_path = proposal_checkout / _PROPOSAL_PATH
     # Read only this fixed proposal path from the untrusted checkout.
     submitted = read_proposal_envelope(proposal_path)
-    _write(public / "attempt-proof.json", _proof(submitted, task, attempt, run_id))
     _write(public / "cost.json", {
         "schema_version": "LF_NATIVE_INCREMENTAL_API_COST_V1",
         "cost_scope": "incremental_api",
@@ -116,6 +116,12 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
         raise ValueError("NATIVE_HOLDOUT_NOT_LOADED")
     oracle = load_hidden_oracle(oracle_path, expected_sha)
     assert_hidden_oracle_external(source, oracle)
+    # Check the proposal using the vendored schema/scope before consuming an attempt.
+    proposal = parse_patch_proposal(submitted["proposal"], spec)
+    inspect_patch(proposal, spec)
+    # No preflight, missing oracle, invalid proposal, or scope failure is charged.
+    # A later Worker failure does consume this attempt.
+    _write(public / "attempt-proof.json", _proof(submitted, task, attempt, run_id))
     client = NativeProposalClient(proposal_path)
     seen = []
     original = verified_module.run_worker
