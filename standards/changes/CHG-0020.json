@@ -32,7 +32,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/53"
   },
   "decision_ref": "EX6 Worker native run 42674262914 PASS; delivery artifact native-verified-patch; exact Java Git blob equality to proposal commit 13ef9c319fb62f7e08f6f030d447c60ee7bfa7f5; exclude pilot/native_proposals/ex6.json; no alterations to existing source or hidden oracle."
 }
