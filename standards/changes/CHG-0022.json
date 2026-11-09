@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0022",
   "title": "EX6 N+1: remediación AOSP únicamente de ReminderStats* con equivalencia byte a byte de .class",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo H4 2026-11-09: remediación N+1 análoga a CHG-0015"
