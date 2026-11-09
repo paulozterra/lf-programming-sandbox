@@ -41,7 +41,7 @@ def make_repo(tmp_path: Path) -> tuple[Path, Path]:
         "source_snapshot_sha256": source_snapshot_sha256(repo),
         "context_path_patterns": ["README.md"],
         "write_path_patterns": ["README.md"],
-        "protected_path_patterns": [],
+        "protected_path_patterns": [".github/**"],
         "acceptance_commands": [{
             "name": "visible", "argv": ["python3", "-c", "print('ok')"],
             "timeout_seconds": 15, "max_output_bytes": 1024
