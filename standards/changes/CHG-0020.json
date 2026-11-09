@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0020",
+  "title": "EX6: incorporar los tres archivos del parche verificado en run 42674262914",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Mandato de Paulo 2026-11-09: abrir PR a main con el parche verificado EX6 de 13ef9c3"
+  },
+  "reason": "Incorporar sin modificar contenido los tres archivos Java de REM-D1..D4 del commit 13ef9c3 verificados en la corrida nativa 42674262914. La clasificación EDITORIAL se ajusta a la detección C9 para código de aplicación sin cambios de catálogo; el cambio funcional es aditivo.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStats.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsService.java",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0020.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
+  },
+  "decision_ref": "EX6 Worker native run 42674262914 PASS; delivery artifact native-verified-patch; exact Java Git blob equality to proposal commit 13ef9c319fb62f7e08f6f030d447c60ee7bfa7f5; exclude pilot/native_proposals/ex6.json; no alterations to existing source or hidden oracle."
+}
