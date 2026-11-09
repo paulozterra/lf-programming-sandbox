@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0016",
+  "title": "Modo híbrido S1: captura del Worker y propuesta GPT nativa ligada al paquete",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Mandato de Paulo 2026-11-09: modo híbrido S1"
+  },
+  "reason": "Incorporar captura exacta de entrada generada por Worker, cliente de propuesta nativa con validación de huella y pruebas offline obligatorias en CI, sin modificar vendor ni hacer llamadas API.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/worker_v08/export_task_pack.py",
+      "pilot/worker_v08/native_attempt_guard.py",
+      "pilot/worker_v08/native_capture_client.py",
+      "pilot/worker_v08/native_proposal_client.py",
+      "pilot/worker_v08/test_native_clients.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/49"
+  },
+  "decision_ref": "Owner 2026-11-09: hybrid S1, preserve original Worker, no API, no hidden oracle, no production authority"
+}

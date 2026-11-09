@@ -19,3 +19,4 @@
 | CHG-0013 | ADDITIVE | Paquete reproducible de evidencia real del Worker ex5c |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/40 |
 | CHG-0014 | ADDITIVE | EX5C v2: baseline format/lint real y reproducible |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/44 |
 | CHG-0015 | ADDITIVE | Norma AOSP y compuerta reproducible FORMAT_REMEDIATION N+1 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/46 |
+| CHG-0016 | ADDITIVE | Modo híbrido S1: captura del Worker y propuesta GPT nativa ligada al paquete |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/49 |
