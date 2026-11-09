@@ -200,6 +200,11 @@ jobs:
           python3 -m py_compile evidence/ex5c/build_bundle_v2.py evidence/ex5c/test_bundle_v2_offline.py
           python3 -m unittest discover -s evidence/ex5c -p 'test_bundle_v2_offline.py' -v
 
+      - name: EX6 secretless two-snapshot build and AOSP evidence contract offline
+        run: |
+          python3 -m py_compile evidence/ex6/build_bundle_v1.py evidence/ex6/verify_bundle_v1.py evidence/ex6/test_bundle_v1_offline.py
+          python3 -m unittest discover -s evidence/ex6 -p 'test_bundle_v1_offline.py' -v
+
       - name: Offline AOSP N+1 source and class-byte CI invariants
         run: |
           python3 -m py_compile evidence/ex5c/format_remediation.py evidence/ex5c/verify_format_remediation.py evidence/ex5c/test_format_remediation_offline.py evidence/ex5c/build_bundle_v3.py evidence/ex5c/test_bundle_v3_offline.py
