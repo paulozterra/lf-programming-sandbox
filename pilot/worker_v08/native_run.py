@@ -133,8 +133,11 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
         raise ValueError("NATIVE_VERIFIED_RECEIPT_INVALID")
     visible = seen[0] if seen else None
     (public / "feedback.json").unlink()
-    _write(public / "feedback.json", _visible_feedback(visible, attempt))
+    feedback = _visible_feedback(visible, attempt)
+    _write(public / "feedback.json", feedback)
+    feedback_sha256 = hashlib.sha256(canonical_json_bytes(feedback)).hexdigest()
     _write(public / "status.json", {
+        "feedback_sha256": feedback_sha256,
         "schema_version": "LF_NATIVE_RESULT_SUMMARY_V1",
         "task_id": task, "attempt": attempt,
         "proposal_sha256": submitted["proposal_sha256"],
