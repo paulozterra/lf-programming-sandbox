@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0019",
   "title": "EX6: Java 21 y Maven en PATH fijo del Worker nativo",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Mandato de Paulo 2026-11-09: completar paso 3 de S3 conforme revisión de Claude"
