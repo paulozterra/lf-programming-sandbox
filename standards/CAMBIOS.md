@@ -26,3 +26,4 @@
 | CHG-0020 | EDITORIAL | EX6: incorporar los tres archivos del parche verificado en run 42674262914 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/53 |
 | CHG-0021 | ADDITIVE | EX6: paquete manual de evidencia BUILD y LINT AOSP base/candidato |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/54 |
 | CHG-0022 | EDITORIAL | EX6 N+1: remediación AOSP únicamente de ReminderStats* con equivalencia byte a byte de .class |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/55 |
+| CHG-0023 | EDITORIAL | EX6 N+1: actualizar pin de evidencia al merge del owner |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/56 |

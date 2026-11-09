@@ -32,7 +32,7 @@ jobs:
       - name: Checkout exact owner-merged EX6 candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 912c4ad9ea71f48edbd1ac58089441f9ed2c3449
+          ref: 8e57b84c8a79de1abee1de057a8fcb9075de406c
           path: snapshot-candidate
           persist-credentials: false
 

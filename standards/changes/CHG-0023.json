@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0023",
+  "title": "EX6 N+1: actualizar pin de evidencia al merge del owner",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Traspaso H4 Paulo 2026-11-09: pin N+1 después de fusionar PR #55"
+  },
+  "reason": "Reapuntar el workflow manual EX6 y su verificador/productor de procedencia al commit exacto N+1 8e57b84c8a79de1abee1de057a8fcb9075de406c, confirmado por merge PR #55. Conservar base 53ab6b1a85da95f3e2a38d7f3298af731c6698ab y bundle N previo sin reemplazo. Solo cambio de pin, no nuevas afirmaciones de PASS.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ex6-build-lint-evidence.yml",
+      "evidence/ex6/build_bundle_v1.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0023.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/56"
+  },
+  "decision_ref": "H4 N→N+1: N 912c4ad retained immutable in LF #3740; N+1 8e57b84 merged by Paulo, manually dispatch evidence only after CHG-0023 owner merge. No holdout access, no API call, no authority."
+}
