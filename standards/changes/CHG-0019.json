@@ -31,7 +31,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/52"
   },
   "decision_ref": "Paso 3 S3. No ejecutar worker-native.yml; conservar workflow_dispatch, el cliente nativo, el SHA del examen y las garantías de no API."
 }
