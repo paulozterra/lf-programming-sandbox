@@ -1,9 +1,10 @@
 package lf.sandbox.time.reminder;
 
+import org.springframework.stereotype.Service;
+
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import org.springframework.stereotype.Service;
 
 @Service
 public class ReminderStatsService {
@@ -35,8 +36,7 @@ public class ReminderStatsService {
             if (first == null || earlier(reminder, first)) {
                 first = reminder;
             }
-            if (!at.isBefore(reference)
-                    && (upcoming == null || earlier(reminder, upcoming))) {
+            if (!at.isBefore(reference) && (upcoming == null || earlier(reminder, upcoming))) {
                 upcoming = reminder;
             }
         }

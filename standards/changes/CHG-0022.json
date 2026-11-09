@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0022",
+  "title": "EX6 N+1: remediación AOSP únicamente de ReminderStats* con equivalencia byte a byte de .class",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo H4 2026-11-09: remediación N+1 análoga a CHG-0015"
+  },
+  "reason": "Tres Java nuevos de EX6 fallaron formato AOSP en evidencia N (#42707967927). Formatearlos exactamente con google-java-format 1.30.0 --aosp sin cambios funcionales. Bloquear si cambia cualquier .class compilado con javac -g:none; conservar evidencia N intacta.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStats.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsService.java",
+      "evidence/ex6/format_remediation_n1.py",
+      "evidence/ex6/verify_format_n1.py",
+      ".github/workflows/ex6-aosp-n1-class-equivalence.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0022.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/55"
+  },
+  "decision_ref": "N 912c4ad retained; N+1 3 files format only; javac -g:none class hashes equal; no model, no actual authority."
+}
