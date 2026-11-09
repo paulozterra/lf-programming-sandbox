@@ -1,7 +1,7 @@
 """GitHub-run-backed attempt admission; history is never read from a proposal branch.
 
-A prior run MUST have an Actions-produced proof artifact. Missing evidence blocks
-rather than resetting the counter. Each attempt consumes a unique run.
+Only runs with a unique, valid Actions-produced proof consume attempts.
+Runs stopped before a proof exists are ignored; tampered or duplicated proofs block.
 """
 from __future__ import annotations
 
@@ -32,13 +32,17 @@ def _api(base: str, token: str, route: str) -> dict:
         return json.loads(response.read(5_000_001))
 
 
-def _artifact_json(base: str, token: str, run_id: int) -> dict:
+def _artifact_json(base: str, token: str, run_id: int) -> dict | None:
     obj = _api(base, token, f"actions/runs/{run_id}/artifacts?per_page=100")
-    items = obj.get("artifacts", [])
-    matches = [a for a in items if a.get("name") == _ARTIFACT and
-               not a.get("expired") and a.get("workflow_run", {}).get("id", run_id) == run_id]
-    if len(matches) != 1:
-        raise ValueError("NATIVE_PRIOR_PROOF_MISSING_OR_DUPLICATE")
+    items = obj.get("artifacts")
+    if not isinstance(items, list) or obj.get("total_count", len(items)) > 100:
+        raise ValueError("NATIVE_PRIOR_ARTIFACT_LIST_INCOMPLETE")
+    matches = [a for a in items if a.get("name") == _ARTIFACT]
+    if not matches:
+        return None  # Preflight/checkout failure is not an attempt.
+    if (len(matches) != 1 or matches[0].get("expired") or
+        matches[0].get("workflow_run", {}).get("id", run_id) != run_id):
+        raise ValueError("NATIVE_PRIOR_PROOF_DUPLICATE_OR_EXPIRED")
     request = urllib.request.Request(matches[0]["archive_download_url"], headers={
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
@@ -76,30 +80,35 @@ def admit_attempt(
             break
     else:
         raise ValueError("NATIVE_HISTORY_INCOMPLETE")
-    selected = []
+    current = [run for run in results if run.get("id") == run_id]
+    if (len(current) != 1 or current[0].get("head_branch") != "main" or
+        current[0].get("event") != "workflow_dispatch" or
+        current[0].get("display_title") != f"lf-native-{task}-a{attempt}" or
+        current[0].get("run_attempt") != 1):
+        raise ValueError("NATIVE_CURRENT_RUN_NOT_ATTESTED")
+    prior = []
     for run in results:
         if (run.get("head_branch") != "main" or
-            run.get("event") != "workflow_dispatch"):
+            run.get("event") != "workflow_dispatch" or run.get("id") == run_id):
+            continue
+        # Fail-closed on any proof from this workflow, including a forged title.
+        proof = _artifact_json(repository, token, run["id"])
+        if proof is None:
             continue
         match = _NAME.fullmatch(run.get("display_title") or "")
-        if match:
-            selected.append((int(match.group(1)), run))
-    current = [x for number, x in selected if x.get("id") == run_id and number == attempt]
-    if len(current) != 1 or current[0].get("run_attempt") != 1:
-        raise ValueError("NATIVE_CURRENT_RUN_NOT_ATTESTED")
-    if len(selected) != attempt or sorted(n for n, _ in selected) != list(range(1, attempt + 1)):
-        raise ValueError("NATIVE_ATTEMPT_HISTORY_GAP_OR_DUPLICATE")
-    prior = []
-    for number, run in sorted(selected, key=lambda item: item[0]):
-        if number == attempt:
-            continue
-        if run["id"] >= run_id or run.get("status") != "completed" or run.get("run_attempt") != 1:
-            raise ValueError("NATIVE_PRIOR_RUN_NOT_FINAL")
-        proof = _artifact_json(repository, token, run["id"])
-        if (set(proof) != {"task_id", "attempt", "task_pack_sha256", "run_id"} or
-            proof["run_id"] != run["id"] or proof["attempt"] != number):
+        if (match is None or run["id"] >= run_id or
+            run.get("status") != "completed" or run.get("run_attempt") != 1 or
+            not isinstance(proof, dict) or
+            set(proof) != {"task_id", "attempt", "task_pack_sha256", "run_id"} or
+            proof["task_id"] != task or proof["run_id"] != run["id"] or
+            type(proof["attempt"]) is not int or
+            proof["attempt"] != int(match.group(1))):
             raise ValueError("NATIVE_PRIOR_PROOF_MISMATCH")
         prior.append(proof)
+    # The requested ordinal is exactly 1 + the number of verified receipts.
+    if len(prior) + 1 != attempt:
+        raise ValueError("NATIVE_ATTEMPT_COUNT_MISMATCH")
+    prior.sort(key=lambda entry: entry["attempt"])
     validate_attempt_history(task, attempt, prior)
     # The current run's proof is written separately after reading proposal sha.
     output.write_text(json.dumps({"prior_run_ids": [x["run_id"] for x in prior],
