@@ -80,11 +80,11 @@ def test_three_proofs_block_fourth_attempt(tmp_path):
 
 
 def test_duplicate_proof_blocks(tmp_path):
-    runs = [_run(1), _run(1, run_id=705), _run(2)]
+    runs = [_run(1), _run(1, run_id=705), _run(2, run_id=706)]
     runs[1]["status"] = "completed"
     with pytest.raises(ValueError, match="NATIVE_ATTEMPT_COUNT_MISMATCH|NATIVE_ATTEMPT_LIMIT_OR_HISTORY_INVALID"):
         admission(tmp_path, 2, runs,
-                  {701: _proof(1), 705: _proof(1, run_id=705)})
+                  {701: _proof(1), 705: _proof(1, run_id=705)}, current_id=706)
 
 
 @pytest.mark.parametrize("tamper", ["wrong_id", "wrong_sha", "wrong_ordinal", "wrong_title"])
