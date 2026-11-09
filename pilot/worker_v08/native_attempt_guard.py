@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 
-_SHA = re.compile(r"[0-9a-f]{64}\\Z")
+_SHA = re.compile(r"[0-9a-f]{64}\Z")
 
 
 def validate_attempt_history(task_id: str, requested_attempt: int, prior: list[dict]) -> None:
