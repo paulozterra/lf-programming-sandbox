@@ -1,0 +1,76 @@
+name: EX6 build and AOSP lint evidence (manual only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ex6-build-lint-evidence-single
+  cancel-in-progress: false
+
+jobs:
+  ex6-two-snapshot-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout merged evidence tools from sandbox main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+          path: tools
+          persist-credentials: false
+
+      - name: Checkout exact EX6 base
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 53ab6b1a85da95f3e2a38d7f3298af731c6698ab
+          path: snapshot-base
+          persist-credentials: false
+
+      - name: Checkout exact owner-merged EX6 candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 912c4ad9ea71f48edbd1ac58089441f9ed2c3449
+          path: snapshot-candidate
+          persist-credentials: false
+
+      - name: Set up Java 21 (Temurin, pinned action)
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Verify compiler and Maven locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version
+          javac -version
+          mvn -version
+          python3 --version
+
+      - name: Compile two snapshots and record pinned AOSP and javac lint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I tools/evidence/ex6/build_bundle_v1.py \
+            --base "$GITHUB_WORKSPACE/snapshot-base" \
+            --candidate "$GITHUB_WORKSPACE/snapshot-candidate" \
+            --out "$RUNNER_TEMP/lf-ex6-evidence/ex6-build-lint-bundle-v1.json"
+          cd "$RUNNER_TEMP/lf-ex6-evidence"
+          sha256sum --check ex6-build-lint-bundle-v1.sha256
+          python3 "$GITHUB_WORKSPACE/tools/evidence/ex6/verify_bundle_v1.py" \
+            ex6-build-lint-bundle-v1.json ex6-build-lint-bundle-v1.sha256
+
+      - name: Upload original EX6 command observations and checksum
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ex6-build-lint-aosp-two-snapshots-v1
+          path: |
+            ${{ runner.temp }}/lf-ex6-evidence/ex6-build-lint-bundle-v1.json
+            ${{ runner.temp }}/lf-ex6-evidence/ex6-build-lint-bundle-v1.sha256
+          if-no-files-found: error
+          retention-days: 30
