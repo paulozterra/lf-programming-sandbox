@@ -192,4 +192,25 @@ if "hidden_oracle" in native_runner.lower().split("def _visible_feedback(")[1].s
 if "real_api_usage" not in native_runner or '"api_calls": 0' not in native_runner or '"total_usd": 0' not in native_runner:
     raise AssertionError("NATIVE_API_COST_FIELDS_MISSING")
 
+# EX6: preserve SHA-pinned Java 21 and Maven in the isolated Worker command PATH.
+for required in (
+    "actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165",
+    'java-version: "21"',
+    "Link JDK 21 and Maven into the vendored Worker's fixed PATH (EX6)",
+    "Verify isolated Worker command environment uses Java 21 and Maven (EX6)",
+    "sudo ln -sfn \"$maven_source\" /usr/local/bin/mvn",
+    'isolated_path="/usr/local/bin:/usr/bin:/bin"',
+    'test -z "${JAVA_HOME:-}"',
+    'EX6_ISOLATED_JAVA21_AND_MAVEN_PASS',
+):
+    if required not in native:
+        raise AssertionError("NATIVE_EX6_JAVA21_MAVEN_MISSING:" + required)
+if not (
+    native.index("Set up Java 21 for EX6") <
+    native.index("Link JDK 21 and Maven into") <
+    native.index("Verify isolated Worker command environment") <
+    native.index("Execute original run_verified_worker")
+):
+    raise AssertionError("NATIVE_EX6_JAVA21_PREWORKER_ORDER_INVALID")
+
 print("PASS WORKFLOW_MANUAL_VENDOR_EXACT_BASE64_SHA_ACTIONS_VERIFIED_WORKER_MODEL_BUDGET_AND_NATIVE_S2")

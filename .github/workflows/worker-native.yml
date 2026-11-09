@@ -62,6 +62,49 @@ jobs:
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.12"
+      - name: Set up Java 21 for EX6 (SHA pinned)
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # pinned commit, Temurin
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Link JDK 21 and Maven into the vendored Worker's fixed PATH (EX6)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${JAVA_HOME:-}" && test -x "$JAVA_HOME/bin/java"
+          for tool in java javac jar; do
+            test -x "$JAVA_HOME/bin/$tool"
+            sudo ln -sfn "$JAVA_HOME/bin/$tool" "/usr/local/bin/$tool"
+          done
+          maven_source="$(command -v mvn)"
+          test -n "$maven_source"
+          maven_source="$(readlink -f "$maven_source")"
+          test -x "$maven_source"
+          sudo ln -sfn "$maven_source" /usr/local/bin/mvn
+
+      - name: Verify isolated Worker command environment uses Java 21 and Maven (EX6)
+        shell: bash
+        run: |
+          set -euo pipefail
+          isolated_home="$(mktemp -d)"
+          trap 'rm -rf "$isolated_home"' EXIT
+          isolated_path="/usr/local/bin:/usr/bin:/bin"
+          # Match worker_commands._command_environment: absolutely no JAVA_HOME.
+          env -i PATH="$isolated_path" HOME="$isolated_home" /bin/bash -c '
+            set -euo pipefail
+            test -z "${JAVA_HOME:-}"
+            test "$(command -v java)" = "/usr/local/bin/java"
+            test "$(command -v javac)" = "/usr/local/bin/javac"
+            test "$(command -v jar)" = "/usr/local/bin/jar"
+            test "$(command -v mvn)" = "/usr/local/bin/mvn"
+          '
+          java_version="$(env -i PATH="$isolated_path" HOME="$isolated_home" java -version 2>&1)"
+          printf '%s\n' "$java_version" | grep -Eq 'version "21([.+_-]|")'
+          maven_version="$(env -i PATH="$isolated_path" HOME="$isolated_home" mvn -v 2>&1)"
+          printf '%s\n' "$maven_version" | grep -Eq 'Apache Maven '
+          printf '%s\n' "$maven_version" | grep -Eq 'Java version: 21([.+_-]|[, ]|$)'
+          echo "EX6_ISOLATED_JAVA21_AND_MAVEN_PASS"
       - name: Check vendored source integrity before execution
         run: python3 control/pilot/worker_v08/verify_vendor.py
       - name: Admit task and registered base (fail closed until Claude registers ex6)
