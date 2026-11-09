@@ -61,7 +61,7 @@ jobs:
             --out "$RUNNER_TEMP/lf-ex6-evidence/ex6-build-lint-bundle-v1.json"
           cd "$RUNNER_TEMP/lf-ex6-evidence"
           sha256sum --check ex6-build-lint-bundle-v1.sha256
-          python3 -I "$GITHUB_WORKSPACE/tools/evidence/ex6/verify_bundle_v1.py" \
+          python3 "$GITHUB_WORKSPACE/tools/evidence/ex6/verify_bundle_v1.py" \
             ex6-build-lint-bundle-v1.json ex6-build-lint-bundle-v1.sha256
 
       - name: Upload original EX6 command observations and checksum
