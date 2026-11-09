@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0018",
+  "title": "Registro EX6 nativo: tarea pública Lote D, prueba visible y SHA del examen externo",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Mandato de Paulo 2026-11-09: preparar y registrar EX6"
+  },
+  "reason": "Registrar la tarea pública ex6 (alcance, contexto, prueba visible, commit base inmutable y snapshot) con el SHA-256 del examen oculto, que vive fuera del repo como secreto.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/REMINDERS_SPEC.md",
+      "apps/time-service/visible-tests/ex6/ReminderStatsVisibleCheck.java",
+      "apps/time-service/visible-tests/ex6/run_visible.py",
+      "pilot/worker_v08/native_tasks/ex6.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0018.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:claude",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  },
+  "decision_ref": "Owner: examen independiente de Claude; contenido no accesible a GPT; solo SHA en repo"
+}

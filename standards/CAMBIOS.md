@@ -21,3 +21,4 @@
 | CHG-0015 | ADDITIVE | Norma AOSP y compuerta reproducible FORMAT_REMEDIATION N+1 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/46 |
 | CHG-0016 | ADDITIVE | Modo híbrido S1: captura del Worker y propuesta GPT nativa ligada al paquete |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/49 |
 | CHG-0017 | ADDITIVE | Modo híbrido S2: workflow manual, verificación nativa y control de intentos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/50 |
+| CHG-0018 | ADDITIVE | Registro EX6 nativo: tarea pública Lote D, prueba visible y SHA del examen externo |  | paulozterra | PENDING |
