@@ -1,0 +1,28 @@
+name: EX6 N+1 AOSP and class-byte identity
+on:
+  pull_request:
+    paths:
+      - "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStats*.java"
+      - "evidence/ex6/verify_format_n1.py"
+      - "evidence/ex6/format_remediation_n1.py"
+permissions:
+  contents: read
+jobs:
+  ex6-n1-exact-aosp-class-equivalence:
+    if: ${{ startsWith(github.head_ref, 'lf/ex6-aosp-format-n1-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Verify original N to N+1 exact formatter output and class bytes
+        run: |
+          set -euo pipefail
+          python3 evidence/ex6/verify_format_n1.py
+          mvn -B -q -f apps/time-service/pom.xml test
