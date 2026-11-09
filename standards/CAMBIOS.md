@@ -23,3 +23,4 @@
 | CHG-0017 | ADDITIVE | Modo híbrido S2: workflow manual, verificación nativa y control de intentos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/50 |
 | CHG-0018 | ADDITIVE | Registro EX6 nativo: tarea pública Lote D, prueba visible y SHA del examen externo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/51 |
 | CHG-0019 | EDITORIAL | EX6: Java 21 y Maven en PATH fijo del Worker nativo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/52 |
+| CHG-0020 | EDITORIAL | EX6: incorporar los tres archivos del parche verificado en run 42674262914 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pulls |
