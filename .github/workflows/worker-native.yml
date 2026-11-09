@@ -69,7 +69,10 @@ jobs:
         run: |
           python3 control/pilot/worker_v08/native_run.py preflight \
             --control control --task "${{ inputs.task }}" --github-output "$GITHUB_OUTPUT"
-          git -C control merge-base --is-ancestor "${{ steps.task.outputs.base_sha }}" HEAD
+      - name: Ensure task base is an ancestor of trusted main
+        env:
+          TASK_BASE_SHA: ${{ steps.task.outputs.base_sha }}
+        run: git -C control merge-base --is-ancestor "$TASK_BASE_SHA" HEAD
       - name: Validate trusted Actions run history and prevent fourth attempt
         env:
           GITHUB_TOKEN: ${{ github.token }}
