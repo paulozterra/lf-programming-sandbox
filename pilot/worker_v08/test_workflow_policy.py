@@ -160,4 +160,36 @@ if not (yaml.index("Derive ex5c context") <
 if "|| secrets." in yaml or "&& secrets." in yaml:
     raise AssertionError("EX5_SECRET_FALLBACK_FORBIDDEN")
 
-print("PASS WORKFLOW_MANUAL_VENDOR_EXACT_BASE64_SHA_ACTIONS_VERIFIED_WORKER_MODEL_BUDGET")
+
+# Hybrid S2 is separate from paid worker-pilot. Manual only, one run per attempt.
+native = (REPO/".github/workflows/worker-native.yml").read_text(encoding="utf-8")
+native_runner = (REPO/"pilot/worker_v08/native_run.py").read_text(encoding="utf-8")
+native_history = (REPO/"pilot/worker_v08/native_run_history.py").read_text(encoding="utf-8")
+if not re.search(r"^on:\s*\n  workflow_dispatch:", native, re.M):
+    raise AssertionError("NATIVE_WORKFLOW_NOT_MANUAL")
+for forbidden in ("pull_request_target:", "pull_request:", "push:", "schedule:",
+                  "ANTHROPIC_API_KEY", "secrets.GITHUB_TOKEN", "gh pr create"):
+    if forbidden in native:
+        raise AssertionError("NATIVE_WORKFLOW_FORBIDDEN:" + forbidden)
+for required in ("proposal_commit_sha:", "attempt:", "task:",
+                 "PILOT_HOLDOUT_EX6_B64", "base64.b64decode(encoded,validate=True)",
+                 "EX6_HOLDOUT_SHA_DRIFT", "persist-credentials: false",
+                 "sparse-checkout: pilot/native_proposals/ex6.json",
+                 "native_run_history.py", "native_run.py execute",
+                 "steps.worker.outcome == 'success'",
+                 "native-attempt-proof", "native-visible-feedback-and-cost",
+                 "native-verified-patch"):
+    if required not in native:
+        raise AssertionError("NATIVE_WORKFLOW_MISSING:" + required)
+if native.count("workflow_dispatch:") != 1:
+    raise AssertionError("NATIVE_WORKFLOW_EVENT_NOT_UNIQUE")
+if "run_verified_worker(" not in native_runner or "NativeProposalClient(" not in native_runner:
+    raise AssertionError("NATIVE_VERIFIED_WORKER_NOT_CONNECTED")
+if "validate_attempt_history(" not in native_history or "actions/workflows/" not in native_history:
+    raise AssertionError("NATIVE_ATTEMPT_LEDGER_NOT_CONNECTED")
+if "hidden_oracle" in native_runner.lower().split("def _visible_feedback(")[1].split("def _proof(")[0]:
+    raise AssertionError("NATIVE_FEEDBACK_HIDDEN_ORACLE_REFERENCE")
+if "real_api_usage" not in native_runner or '"api_calls": 0' not in native_runner or '"total_usd": 0' not in native_runner:
+    raise AssertionError("NATIVE_API_COST_FIELDS_MISSING")
+
+print("PASS WORKFLOW_MANUAL_VENDOR_EXACT_BASE64_SHA_ACTIONS_VERIFIED_WORKER_MODEL_BUDGET_AND_NATIVE_S2")

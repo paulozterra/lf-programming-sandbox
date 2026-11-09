@@ -1,0 +1,166 @@
+name: LF Worker native (manual, no API)
+run-name: lf-native-${{ inputs.task }}-a${{ inputs.attempt }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Registered native task (ex6 is registered separately by Claude)"
+        required: true
+        type: choice
+        options:
+          - ex6
+      proposal_commit_sha:
+        description: "Immutable 40-hex Git commit; read proposal JSON only"
+        required: true
+        type: string
+      attempt:
+        description: "One CI run per attempt; 1 to 3"
+        required: true
+        type: choice
+        options:
+          - "1"
+          - "2"
+          - "3"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: lf-worker-native-${{ inputs.task }}
+  cancel-in-progress: false
+
+jobs:
+  native:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Validate immutable proposal commit and attempt before checkout
+        env:
+          PROPOSAL_SHA: ${{ inputs.proposal_commit_sha }}
+          NATIVE_ATTEMPT: ${{ inputs.attempt }}
+          NATIVE_TASK: ${{ inputs.task }}
+        run: |
+          python3 - <<'PY'
+          import os,re
+          assert re.fullmatch(r"[0-9a-f]{40}",os.environ["PROPOSAL_SHA"]), "INVALID_PROPOSAL_COMMIT"
+          assert os.environ["NATIVE_ATTEMPT"] in ("1","2","3"), "INVALID_NATIVE_ATTEMPT"
+          assert os.environ["NATIVE_TASK"] == "ex6", "INVALID_NATIVE_TASK"
+          PY
+      - name: Checkout trusted main control code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Check vendored source integrity before execution
+        run: python3 control/pilot/worker_v08/verify_vendor.py
+      - name: Admit task and registered base (fail closed until Claude registers ex6)
+        id: task
+        run: |
+          python3 control/pilot/worker_v08/native_run.py preflight \
+            --control control --task "${{ inputs.task }}" --github-output "$GITHUB_OUTPUT"
+      - name: Ensure task base is an ancestor of trusted main
+        env:
+          TASK_BASE_SHA: ${{ steps.task.outputs.base_sha }}
+        run: git -C control merge-base --is-ancestor "$TASK_BASE_SHA" HEAD
+      - name: Validate trusted Actions run history and prevent fourth attempt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python3 control/pilot/worker_v08/native_run_history.py \
+            --task "${{ inputs.task }}" \
+            --attempt "${{ inputs.attempt }}" \
+            --sha "${{ inputs.proposal_commit_sha }}" \
+            --out "$RUNNER_TEMP/native-run-history.json"
+      - name: Checkout task baseline commit from main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.task.outputs.base_sha }}
+          path: source
+          persist-credentials: false
+      - name: Checkout untrusted proposal commit (data only, no execution)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.proposal_commit_sha }}
+          path: proposal
+          sparse-checkout: pilot/native_proposals/ex6.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Verify exact proposal checkout HEAD
+        env:
+          PROPOSAL_SHA: ${{ inputs.proposal_commit_sha }}
+        run: |
+          test "$(git -C proposal rev-parse HEAD)" = "$PROPOSAL_SHA"
+          test -f proposal/pilot/native_proposals/ex6.json
+          test ! -L proposal/pilot/native_proposals/ex6.json
+      - name: Decode the external ex6 oracle to private runner path with SHA gate
+        env:
+          PILOT_HOLDOUT_EX6_B64: ${{ secrets.PILOT_HOLDOUT_EX6_B64 }}
+          EXPECTED_SHA: ${{ steps.task.outputs.holdout_sha256 }}
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,os,pathlib,re
+          encoded=os.environ.get("PILOT_HOLDOUT_EX6_B64","")
+          expected=os.environ.get("EXPECTED_SHA","")
+          if not encoded or not re.fullmatch(r"[0-9a-f]{64}",expected):
+              raise SystemExit("EX6_HOLDOUT_NOT_REGISTERED")
+          raw=base64.b64decode(encoded,validate=True)
+          if hashlib.sha256(raw).hexdigest()!=expected:
+              raise SystemExit("EX6_HOLDOUT_SHA_DRIFT")
+          path=pathlib.Path(os.environ["RUNNER_TEMP"])/"native-private"/"holdout.oracle.json"
+          path.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+          with path.open("xb") as out:
+              out.write(raw)
+          path.chmod(0o600)
+          PY
+      - name: Execute original run_verified_worker using native proposal (single attempt)
+        id: worker
+        env:
+          NATIVE_TASK: ${{ inputs.task }}
+          NATIVE_ATTEMPT: ${{ inputs.attempt }}
+          NATIVE_RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 control/pilot/worker_v08/native_run.py execute \
+            --control control --source source --proposal proposal \
+            --private "$RUNNER_TEMP/native-private" \
+            --task "$NATIVE_TASK" --attempt "$NATIVE_ATTEMPT" --run-id "$NATIVE_RUN_ID"
+      - name: Upload CI-generated attempt proof for future run admission
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-attempt-proof
+          path: ${{ runner.temp }}/native-private/public/attempt-proof.json
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Upload cost and visible-only feedback
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-visible-feedback-and-cost
+          path: |
+            ${{ runner.temp }}/native-private/public/feedback.json
+            ${{ runner.temp }}/native-private/public/cost.json
+            ${{ runner.temp }}/native-private/public/status.json
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Deliver patch only after verified PASS
+        if: ${{ steps.worker.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-verified-patch
+          path: ${{ runner.temp }}/native-private/public/worker.patch
+          if-no-files-found: error
+          retention-days: 90
