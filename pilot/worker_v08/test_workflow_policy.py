@@ -165,7 +165,7 @@ if "|| secrets." in yaml or "&& secrets." in yaml:
 native = (REPO/".github/workflows/worker-native.yml").read_text(encoding="utf-8")
 native_runner = (REPO/"pilot/worker_v08/native_run.py").read_text(encoding="utf-8")
 native_history = (REPO/"pilot/worker_v08/native_run_history.py").read_text(encoding="utf-8")
-if not re.search(r"^on:\\s*\\n  workflow_dispatch:", native, re.M):
+if not re.search(r"^on:\s*\n  workflow_dispatch:", native, re.M):
     raise AssertionError("NATIVE_WORKFLOW_NOT_MANUAL")
 for forbidden in ("pull_request_target:", "pull_request:", "push:", "schedule:",
                   "ANTHROPIC_API_KEY", "secrets.GITHUB_TOKEN", "gh pr create"):
