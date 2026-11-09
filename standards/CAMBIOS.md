@@ -22,3 +22,4 @@
 | CHG-0016 | ADDITIVE | Modo híbrido S1: captura del Worker y propuesta GPT nativa ligada al paquete |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/49 |
 | CHG-0017 | ADDITIVE | Modo híbrido S2: workflow manual, verificación nativa y control de intentos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/50 |
 | CHG-0018 | ADDITIVE | Registro EX6 nativo: tarea pública Lote D, prueba visible y SHA del examen externo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/51 |
+| CHG-0019 | ADDITIVE | EX6: Java 21 y Maven en PATH fijo del Worker nativo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pulls |
