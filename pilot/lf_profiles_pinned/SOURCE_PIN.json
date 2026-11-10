@@ -1,0 +1,9 @@
+{
+  "schema_version": "LF_PROFILE_SOURCE_PIN_V1",
+  "source_repository": "cristhianlujan/claude-persona-lf-patch",
+  "source_commit_sha": "6c3092a88da95a6be5649448c52dd9a920325317",
+  "source_prefix": "sandbox/lf_contract_gate_test/programming_agent_four_stage/programmer_profiles_exp/",
+  "status": "CANDIDATE_SANDBOX_ONLY",
+  "production_authority": false,
+  "files": {}
+}
