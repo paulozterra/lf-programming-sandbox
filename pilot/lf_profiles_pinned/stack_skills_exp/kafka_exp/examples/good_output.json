@@ -1,0 +1,11 @@
+{
+  "skill_code": "KAFKA_EXP",
+  "skill_version": "3",
+  "area": "BACKEND",
+  "rule_ids": [
+    "KF3-01",
+    "KF3-02",
+    "KF3-03"
+  ],
+  "production_authority": false
+}

@@ -1,0 +1,12 @@
+{
+  "skill_code": "FASTAPI_EXP",
+  "skill_version": "1",
+  "area": "BACKEND",
+  "rule_ids": [
+    "FA-01"
+  ],
+  "oracle_envelope": {
+    "secret": "FORBIDDEN"
+  },
+  "expected": "BLOCK"
+}

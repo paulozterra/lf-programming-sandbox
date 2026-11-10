@@ -193,6 +193,8 @@ jobs:
         run: python3 pilot/worker_v08/verify_vendor.py
       - name: Verify per-task specification and holdout registration (NO MODEL)
         run: python3 pilot/worker_v08/test_task_selector.py
+      - name: Verify LF fixed-source SHA-256 and API/native context registration (offline, no model)
+        run: python3 pilot/worker_v08/test_register_task_context.py
       - name: Offline ex4 lot size, PR handoff and oracle SHA checks (pytest; NO MODEL)
         run: |
           python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
