@@ -1,0 +1,59 @@
+name: EX7 N+1 one-shot integrate main after CHG-0033
+on:
+  pull_request:
+    branches:
+      - lf/ex7-palantir-n1-chg0032
+permissions:
+  contents: write
+jobs:
+  integrate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: lf/ex7-palantir-n1-chg0032
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Merge exact main and regenerate C9 registry without touching EX7 Java
+        run: |
+          set -euo pipefail
+          TARGET=lf/ex7-palantir-n1-chg0032
+          PREVIOUS=00337e2c2345e7edb7c52c8c972feef3359940ce
+          MAIN=7425c1398c1c5534c6b25633b248b012a52a441a
+          git fetch origin main "$TARGET"
+          test "$(git rev-parse HEAD)" = "$PREVIOUS"
+          test "$(git rev-parse origin/main)" = "$MAIN"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          set +e
+          git merge --no-commit --no-ff "$MAIN"
+          MERGE_STATUS=$?
+          set -e
+          if [ "$MERGE_STATUS" -ne 0 ]; then
+            mapfile -t UNMERGED < <(git diff --name-only --diff-filter=U)
+            printf 'UNMERGED=%s\n' "${UNMERGED[*]}"
+            test "${#UNMERGED[@]}" -eq 1
+            test "${UNMERGED[0]}" = "standards/CAMBIOS.md"
+            git checkout --ours -- standards/CAMBIOS.md
+            git add standards/CAMBIOS.md
+          fi
+          test -f .git/MERGE_HEAD
+          python3 standards/tools/changes.py render
+          python3 standards/tools/changes.py render --check
+          git add standards/CAMBIOS.md
+          test -z "$(git diff --name-only --diff-filter=U)"
+          test -z "$(git diff --cached --check)"
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("standards/CAMBIOS.md").read_text()
+          assert all("| CHG-"+str(i)+" |" in s for i in (31,32,33)), "CHG_HISTORY_MISSING"
+          y=Path(".github/workflows/ci.yml").read_text()
+          assert "palantir-class-equivalence:" not in y, "OLD_GATE_REINTRODUCED"
+          assert "mvn -B -q -f apps/time-service/pom.xml spotless:check" in y, "REQUIRED_SPOTLESS_MISSING"
+          print("EX7_MAIN_SYNC_C9_HISTORY_AND_SPOTLESS_PASS")
+          PY
+          git commit -m "Merge main CHG-0033 into EX7 N+1; render C9 history"
+          test "$(git rev-parse HEAD^1)" = "$PREVIOUS"
+          test "$(git rev-parse HEAD^2)" = "$MAIN"
+          git push origin HEAD:"$TARGET"
