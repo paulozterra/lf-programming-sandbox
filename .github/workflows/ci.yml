@@ -1,6 +1,7 @@
 name: ci
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
@@ -71,6 +72,10 @@ jobs:
           python3 standards/tools/skills.py assemble --pin /tmp/skill-pin.json --skills spring-boot --domains STD-BE,STD-API,STD-SEC,STD-GEN,STD-LOG,STD-MSG,STD-AUD,STD-GIT,STD-NAV,STD-CONS --out /tmp/c6-spring-all.txt
       - run: python3 standards/tools/consumption.py validate
       - run: python3 standards/tools/consumption.py render --check
+      - name: Reject runner context in job env across all workflows
+        run: python3 pilot/check_workflow_job_env.py
+      - name: Sandbox Train P0 policy tests (offline, no token)
+        run: python3 -m unittest discover -s pilot -p 'test_sandbox_train_policy.py' -v
       - run: python3 standards/tools/changes.py validate
       - run: python3 standards/tools/changes.py render --check
       - name: "Circuito C9: clasificación y versiones (solo PR)"
