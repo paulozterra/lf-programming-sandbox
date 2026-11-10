@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0025",
   "title": "Registro EX7 nativo: tarea pública Lote E (edición y duplicados), prueba visible y SHA del examen externo",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Mandato de Paulo 2026-11-10: EX7 para ver programar a GPT, modificando archivos existentes"
