@@ -43,7 +43,7 @@ def check_tooling_unchanged(root, base_ref, expected_head):
         root, "diff", "--name-only", "-z", base_ref + "..." + expected_head,
         "--", "standards/tools/", ":(glob)pilot/sandbox_train*.py"
     ).stdout
-    paths = sorted(filter(None, changed.split("\\0")))
+    paths = sorted(filter(None, changed.split("\0")))
     if paths:
         raise BranchConflict("BRANCH_CONFLICT_TOOLING_CHANGED " + ",".join(paths))
 
