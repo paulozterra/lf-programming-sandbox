@@ -45,7 +45,9 @@
         <version>3.10.4</version>
         <configuration>
           <java>
-            <target>src/main/java/**/*.java</target>
+            <includes>
+              <include>src/main/java/**/*.java</include>
+            </includes>
             <palantirJavaFormat>
               <version>2.102.0</version>
               <style>PALANTIR</style>
