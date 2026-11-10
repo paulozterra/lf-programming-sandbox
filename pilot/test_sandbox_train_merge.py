@@ -157,10 +157,21 @@ else:
         self.commit("shared token sentinel")
         head, main = self.diverge(conflict_cambios=True)
         from unittest.mock import patch
+        real_run = subprocess.run
+        observed = []
+        def scrubbed_run(*args, **kwargs):
+            child_env = kwargs.get("env")
+            self.assertIsNotNone(child_env, "All subprocesses must set explicit env")
+            for name in ("GH_TOKEN", "GITHUB_TOKEN", "ACTIONS_RUNTIME_TOKEN"):
+                self.assertNotIn(name, child_env)
+            observed.append(args[0])
+            return real_run(*args, **kwargs)
         with patch.dict(os.environ, {"GH_TOKEN": "secret",
                                       "GITHUB_TOKEN": "other",
-                                      "ACTIONS_RUNTIME_TOKEN": "third"}):
+                                      "ACTIONS_RUNTIME_TOKEN": "third"}), \
+             patch.object(merge.subprocess, "run", side_effect=scrubbed_run):
             merged = merge.prepare_merge(self.root, main, head)
+        self.assertGreaterEqual(len(observed), 10)
         self.assertNotEqual(merged, head)
         self.assertEqual((self.root / "standards/CAMBIOS.md").read_text(),
                          "CHG-0001\nCHG-0002\nCHG-0003\n")
