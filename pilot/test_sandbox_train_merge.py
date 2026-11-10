@@ -107,6 +107,15 @@ else:
         self.assertEqual((self.root / "standards/CAMBIOS.md").read_text(), "CHG-0001\n")
         self.assertTrue((self.root / "smoke.md").exists())
 
+    def test_pr_scripts_do_not_receive_write_token(self):
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"GH_TOKEN": "secret", "GITHUB_TOKEN": "secret2",
+                                     "ACTIONS_RUNTIME_TOKEN": "secret3"}):
+            child_env = merge.no_token_env()
+            self.assertNotIn("GH_TOKEN", child_env)
+            self.assertNotIn("GITHUB_TOKEN", child_env)
+            self.assertNotIn("ACTIONS_RUNTIME_TOKEN", child_env)
+
     def test_conflict_classifier_rejects_other_path(self):
         head, main = self.diverge(conflict_other=True)
         with self.assertRaisesRegex(merge.BranchConflict, "BRANCH_CONFLICT unrelated.txt"):
