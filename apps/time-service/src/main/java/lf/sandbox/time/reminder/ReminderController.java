@@ -1,17 +1,5 @@
 package lf.sandbox.time.reminder;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import java.net.URI;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -19,6 +7,17 @@ import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class ReminderController {
@@ -33,9 +32,7 @@ public class ReminderController {
     }
 
     private static LocalTime validBodyTime(Map<String, Object> body) {
-        if (body == null
-                || !(body.get("text") instanceof String)
-                || !(body.get("at") instanceof String at)) {
+        if (body == null || !(body.get("text") instanceof String) || !(body.get("at") instanceof String at)) {
             throw new IllegalArgumentException("invalid reminder body");
         }
         try {
@@ -71,7 +68,8 @@ public class ReminderController {
         }
         try {
             LocalTime time = validBodyTime(body);
-            return repository.update(value, (String) body.get("text"), time)
+            return repository
+                    .update(value, (String) body.get("text"), time)
                     .<ResponseEntity<Object>>map(r -> ResponseEntity.ok(toResponse(r)))
                     .orElseGet(() -> ResponseEntity.notFound().build());
         } catch (IllegalArgumentException e) {
@@ -92,10 +90,7 @@ public class ReminderController {
 
     @GetMapping("/api/reminders")
     public List<ReminderResponse> list(@RequestParam(name = "q", required = false) String q) {
-        List<Reminder> found =
-                (q == null || q.isBlank())
-                        ? repository.findAll()
-                        : repository.findByTextContaining(q);
+        List<Reminder> found = (q == null || q.isBlank()) ? repository.findAll() : repository.findByTextContaining(q);
         return found.stream().map(ReminderController::toResponse).toList();
     }
 

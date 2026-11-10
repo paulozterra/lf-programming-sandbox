@@ -1,13 +1,12 @@
 package lf.sandbox.time.reminder;
 
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class InMemoryReminderRepository implements ReminderRepository {
