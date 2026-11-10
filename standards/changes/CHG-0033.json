@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0033",
+  "title": "Retirar del CI la equivalencia histórica de CHG-0029 conservando Spotless obligatorio",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-10: diagnóstico confirmado por Claude, retirar solo el job histórico CHG-0029 del CI"
+  },
+  "reason": "El job palantir-class-equivalence usa una base fija f18b2d9, válida solo para la remediación #64, y bloquearía cualquier nueva funcionalidad legítima. Se retira únicamente su ejecución continua en ci.yml; el script evidence/phase2/palantir_spotless_equivalence.py y evidencia original permanecen ejecutables como historia. El control permanente mvn -B -q -f apps/time-service/pom.xml spotless:check permanece bloqueante.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [
+      "STD-BE-05"
+    ],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0033.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  },
+  "decision_ref": "No changes to evidence/phase2/palantir_spotless_equivalence.py, no change to required Spotless gate or format versions. No vendor/, profiles/ or Supabase modifications. Candidate-only; Claude independent review, Paulo merge."
+}
