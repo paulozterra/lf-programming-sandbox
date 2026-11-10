@@ -34,3 +34,4 @@
 | CHG-0028 | EDITORIAL | EX7: nueva huella del examen externo (comandos divididos al límite de 4096 bytes del Worker) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/62 |
 | CHG-0029 | ADDITIVE | Fase 2A: Spotless + palantir-java-format según STD-BE-05, remediación Java byte-equivalente |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/64 |
 | CHG-0030 | ADDITIVE | Fase 2B: copia LF fijada y contexto Worker de perfiles/Skills para tareas API y nativas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/65 |
+| CHG-0033 | ADDITIVE | Retirar del CI la equivalencia histórica de CHG-0029 conservando Spotless obligatorio |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/69 |
