@@ -32,7 +32,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/TO_BE_ASSIGNED"
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/77"
   },
   "decision_ref": "P0 review in draft by Claude; no merge before owner authorization; separate post-merge smoke test and optional branch rule."
 }
