@@ -34,5 +34,5 @@
   "evidence": {
     "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/69"
   },
-  "decision_ref": "No changes to evidence/phase2/palantir_spotless_equivalence.py, no change to required Spotless gate or format versions. No vendor/, profiles/ or Supabase modifications. Candidate-only; Claude independent review, Paulo merge."
+  "decision_ref": "No changes to evidence/phase2/palantir_spotless_equivalence.py, no change to required Spotless gate or format versions. No vendor/, profiles/ or Supabase modifications. Candidate-only; Claude independent review, Paulo merge. Evidence: official changes.py render/check PASS, GitHub Actions run 42891646037; diff from main restricted to ci.yml (15 removed lines), CHG-0033.json and derived CAMBIOS.md. Maintained backend spotless:check."
 }
