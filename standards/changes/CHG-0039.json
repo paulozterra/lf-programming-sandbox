@@ -30,7 +30,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/80"
   },
   "decision_ref": "CP0.2 únicamente. Dos PRs abiertos al mismo tiempo sobre main 2290a222; Paulo añade ready-to-merge primero en A y después en B, fallback workflow_dispatch en main si evento labeled no corre; verificar HEAD, 6 checks, merge SHA y recibo."
 }
