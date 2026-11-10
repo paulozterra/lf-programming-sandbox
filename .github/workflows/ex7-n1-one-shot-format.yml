@@ -28,7 +28,7 @@ jobs:
       - name: Compile baseline, apply exact formatter, prove class identity and push N+1
         shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           TARGET=lf/ex7-palantir-n1-chg0032
           git fetch origin "$TARGET"
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$TARGET)"
@@ -56,7 +56,7 @@ jobs:
           assert before and before==after, "CLASS_BYTES_DIFFER"
           print("EX7_N1_JAVAC_G_NONE_CLASS_BYTES_IDENTICAL_PASS")
           print("EX7_N1_CLASS_COUNT="+str(len(before)))
-          print("EX7_N1_RECEIPT="+json.dumps({"schema":"EX7_PALANTIR_N1_V1","formatter":"palantir-java-format@2.102.0","plugin":"spotless-maven-plugin@3.10.4","javac":["--release","21","-g:none"],"class_count":len(before),"before":before,"after":after,"class_bytes_identical":True,"changed_count":3,"model_calls":0,"production_authority":False},sort_keys=True))
+          print("EX7_N1_RECEIPT="+json.dumps({"schema":"EX7_PALANTIR_N1_V1","formatter":"palantir-java-format@2.102.0","plugin":"spotless-maven-plugin@3.10.4","javac":["--release","21","-g:none"],"class_count":len(before),"before":before,"after":after,"class_bytes_identical":True,"changed_count":2,"model_calls":0,"production_authority":False},sort_keys=True))
           PY
           python3 standards/tools/changes.py render
           python3 standards/tools/changes.py render --check
