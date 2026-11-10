@@ -29,7 +29,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: lf-worker-native-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || inputs.task }}
+  group: lf-worker-native-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || format('lf/native-proposal/{0}', inputs.task) }}
   cancel-in-progress: false
 
 jobs:
@@ -160,6 +160,7 @@ jobs:
           NATIVE_TASK: ${{ steps.source.outputs.task }}
           PROPOSAL_SHA: ${{ steps.source.outputs.proposal_sha }}
           MANUAL_ATTEMPT: ${{ inputs.attempt }}
+          NATIVE_PROPOSAL_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
           args=(--task "$NATIVE_TASK" --sha "$PROPOSAL_SHA"
