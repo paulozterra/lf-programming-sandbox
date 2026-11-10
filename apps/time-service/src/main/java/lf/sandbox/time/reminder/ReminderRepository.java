@@ -14,4 +14,6 @@ public interface ReminderRepository {
     boolean deleteById(long id);
 
     List<Reminder> findByTextContaining(String query);
+
+    Optional<Reminder> update(long id, String text, LocalTime at);
 }
