@@ -1,0 +1,82 @@
+{
+  "task_spec": {
+    "acceptance_commands": [
+      {
+        "argv": [
+          "mvn",
+          "-B",
+          "-q",
+          "-f",
+          "apps/time-service/pom.xml",
+          "package"
+        ],
+        "max_output_bytes": 32000,
+        "name": "time-service-package",
+        "timeout_seconds": 600
+      },
+      {
+        "argv": [
+          "python3",
+          "apps/time-service/visible-tests/ex8/run_visible.py"
+        ],
+        "max_output_bytes": 16000,
+        "name": "ex8-visible-check",
+        "timeout_seconds": 120
+      },
+      {
+        "argv": [
+          "mvn",
+          "-B",
+          "-q",
+          "-f",
+          "apps/time-service/pom.xml",
+          "spotless:check"
+        ],
+        "max_output_bytes": 16000,
+        "name": "std-be-05-spotless-check",
+        "timeout_seconds": 600
+      }
+    ],
+    "allow_deletions": false,
+    "base_head_sha": "7a6c3eaea4442c6c3c518a2f33dfdf081b97b62b",
+    "context_path_patterns": [
+      "apps/time-service/REMINDERS_SPEC.md",
+      "apps/time-service/pom.xml",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/*.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/*.java",
+      "apps/time-service/src/test/java/lf/sandbox/time/reminder/*.java",
+      "apps/time-service/visible-tests/ex8/*",
+      ".lf/worker-context/ex8/profile.md",
+      ".lf/worker-context/ex8/skills.md",
+      ".lf/worker-context/ex8/receipt.json"
+    ],
+    "max_attempts": 1,
+    "max_changed_files": 3,
+    "max_context_bytes": 160000,
+    "max_patch_bytes": 60000,
+    "objective": "Implement REM-F1 through REM-F4 (Lote F: snooze reminders) from apps/time-service/REMINDERS_SPEC.md by MODIFYING exactly these existing files: ReminderRepository.java, InMemoryReminderRepository.java and ReminderController.java. Do not create, delete or modify any other file. All previous rules (REM-A to REM-E) must keep working. Follow the LF programmer profile and stack skills in .lf/worker-context/ex8/ (including STD-BE-05: palantir-java-format, checked by mvn spotless:check). Visible check: apps/time-service/visible-tests/ex8/.",
+    "protected_path_patterns": [
+      "apps/time-service/src/test/**",
+      "apps/time-service/visible-tests/**",
+      "apps/time-service/pom.xml",
+      "apps/time-service/REMINDERS_SPEC.md",
+      "apps/time-service/src/main/java/lf/sandbox/time/*.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStats.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsService.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsController.java",
+      ".lf/worker-context/ex8/profile.md",
+      ".lf/worker-context/ex8/skills.md",
+      ".lf/worker-context/ex8/receipt.json"
+    ],
+    "schema_version": 1,
+    "source_snapshot_sha256": "3dbcb9b856e7bb3d9f592336d2f5550508425589e47fe9c5dd9f9f64b0a097e4",
+    "task_id": "LF-WORKER-NATIVE-EX8",
+    "write_path_patterns": [
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+    ]
+  },
+  "holdout_sha256": "7db476a33716da750d44f4b44d020a7b0ae6485d2473d35af0bba8ce9c4e85af"
+}
