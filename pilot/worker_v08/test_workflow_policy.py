@@ -182,12 +182,18 @@ for required in ("proposal_commit_sha:", "attempt:", "task:",
     if required not in native:
         raise AssertionError("NATIVE_WORKFLOW_MISSING:" + required)
 for required in ("lf/native-proposal/**", "pilot/native_proposals/*.json",
-                 "Enforce proposal-only push", "merge-base --is-ancestor",
-                 "diff --name-status", "Determine and gate attempt",
+                 "Enforce proposal-only push", "native_proposal_push_guard.py",
+                 "Determine and gate attempt",
                  "steps.history.outputs.attempt", "steps.source.outputs.proposal_sha",
                  "refs/heads/main", "cancel-in-progress: false"):
     if required not in native:
         raise AssertionError("NATIVE_PUSH_POLICY_MISSING:"+required)
+push_guard = (REPO/"pilot/worker_v08/native_proposal_push_guard.py").read_text(encoding="utf-8")
+for guard_required in ("merge-base", "--is-ancestor", "diff", "--name-status",
+                       "pilot/native_proposals/ex6.json", "100644",
+                       "NATIVE_PUSH_SCOPE_INVALID"):
+    if guard_required not in push_guard:
+        raise AssertionError("NATIVE_PUSH_GUARD_MISSING:"+guard_required)
 if native.count("workflow_dispatch:") != 1:
     raise AssertionError("NATIVE_WORKFLOW_EVENT_NOT_UNIQUE")
 if "run_verified_worker(" not in native_runner or "NativeProposalClient(" not in native_runner:
