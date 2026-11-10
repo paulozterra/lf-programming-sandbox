@@ -237,5 +237,5 @@ jobs:
         run: python3 pilot/worker_v08/verify_vendor.py
       - name: Run guarded push and attempt history negatives
         run: |
-          python3 -m pytest -q pilot/worker_v08/test_native_run.py pilot/worker_v08/test_native_push_policy.py pilot/worker_v08/test_native_push_guard.py pilot/worker_v08/test_push_workflow_no_secrets.py
+          python3 -m pytest -q pilot/worker_v08/test_native_run.py pilot/worker_v08/test_native_push_policy.py pilot/worker_v08/test_native_push_guard.py pilot/worker_v08/test_push_workflow_no_secrets.py pilot/worker_v08/test_native_workflow_run_name.py
           python3 pilot/worker_v08/test_workflow_policy.py
