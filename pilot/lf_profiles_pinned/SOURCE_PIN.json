@@ -145,6 +145,41 @@
       "sha256": "5280a0ac4e8927e008b0052aaad91558be897267117b3419763c7818d6271801",
       "git_blob_sha1": "a316a65fdce4a0f7749d3a99450429f85cce3794",
       "bytes": 188
+    },
+    "stack_skills_exp/kafka_exp/examples/good_output.json": {
+      "sha256": "e3f8f93e73bdf03a7de69ca020b1433b3a5647fb85fab286fc3f0cb850e16324",
+      "git_blob_sha1": "23492b4a9d03f9de2a7ee929ee7b1e7a15fe8eca",
+      "bytes": 172
+    },
+    "stack_skills_exp/pg00_catalog_sources_exp.json": {
+      "sha256": "a84a9fde05394c7c63ee47673463fb12c020ad8bfdcca12cba98e3dc967f22c3",
+      "git_blob_sha1": "a9090f9382b3fcf0d778de9d6d2c121f3e44aa51",
+      "bytes": 1717
+    },
+    "stack_skills_exp/pg00_normative_catalog_snapshot.json": {
+      "sha256": "26ca9cf9936ef01b50f9af504e4a9b796ee7d7d538d5724ff388c9fb90e8ddb3",
+      "git_blob_sha1": "5d63c311f4e9cccdcaa72d769e61a80bb088c6eb",
+      "bytes": 55769
+    },
+    "stack_skills_exp/project_stack_binding_exp.sql": {
+      "sha256": "74074541f24360d3e2b3a283c588f76dc68ab11b62cfb39db03f924a82712589",
+      "git_blob_sha1": "0f4a8da4e6b6572cc458fa179b8eceb3c5370df4",
+      "bytes": 735
+    },
+    "stack_skills_exp/project_stack_binding_fixtures.json": {
+      "sha256": "519fdc6a9e4b80c9345cb7eb78155d885360512cf4d2e425f63574cead3498c8",
+      "git_blob_sha1": "124a743ee0d9582161c46b1a6ba3d495edfbd118",
+      "bytes": 1007
+    },
+    "stack_skills_exp/project_stack_resolver_exp.py": {
+      "sha256": "42537c24c547895d87237e7396319b378c4dcb76209d122db9160ed0d93473a0",
+      "git_blob_sha1": "c5b1ed249253c847d608242122756c634ab69777",
+      "bytes": 12245
+    },
+    "stack_skills_exp/skill_catalog_exp.json": {
+      "sha256": "81f7b094563e28e772f3b1eb54aa173bcdf819b6c902088d78e953859caf3ae6",
+      "git_blob_sha1": "f9238978d7c8f2fc08cbd2cd10ee24840bb9c93e",
+      "bytes": 1222
     }
   }
 }
