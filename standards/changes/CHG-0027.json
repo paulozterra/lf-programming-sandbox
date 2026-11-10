@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0027",
+  "title": "Historial Worker nativo: redirección firmada sin autorización y filtro previo por tarea",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-10: HTTP 401 archive_download_url tras 302, EX6 comprobante #42674262914; corregir y reejecutar EX7 después de merge"
+  },
+  "reason": "En Actions, el endpoint de GitHub para descargar artefactos devuelve 302 hacia almacenamiento externo; reenviar Authorization origina 401. No seguir automáticamente redirecciones, validar Location HTTPS y hacer solicitud independiente sin token, con límites ZIP. Ignorar antes de la consulta de artefactos los runs con título/rama fuera de la tarea solicitada. Conservar validación interna de task_id para runs admitidos. Añadir pruebas de política offline negativas. EX7 proposal no alterada; 0 intentos consumidos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_run_history.py",
+      "pilot/worker_v08/test_native_history_redirect.py",
+      "pilot/worker_v08/test_native_run.py",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0027.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/61"
+  },
+  "decision_ref": "First EX7 automatic on SHA 62b743f... trigger #42849826279 PASS, worker #42849864503 FAIL at prior archive redirect HTTP401, no attempt proof. Owner merges CHG-0027 before re-push of identical EX7 JSON."
+}

@@ -100,7 +100,11 @@ def test_tampered_proof_blocks(tmp_path, tamper):
         proof["attempt"] = 2
     else:
         prior["display_title"] = "untrusted-run"
-    with pytest.raises(ValueError, match="NATIVE_PRIOR_PROOF_MISMATCH|NATIVE_ATTEMPT_LIMIT_OR_HISTORY_INVALID"):
+    # A foreign title is filtered before proof fetch; the requested attempt 2
+    # must then fail on count mismatch rather than accepting foreign evidence.
+    reason = ("NATIVE_ATTEMPT_COUNT_MISMATCH" if tamper == "wrong_title"
+              else "NATIVE_PRIOR_PROOF_MISMATCH|NATIVE_ATTEMPT_LIMIT_OR_HISTORY_INVALID")
+    with pytest.raises(ValueError, match=reason):
         admission(tmp_path, 2, [prior, current], {701: proof})
 
 

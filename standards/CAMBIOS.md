@@ -30,3 +30,4 @@
 | CHG-0024 | ADDITIVE | Worker nativo: trigger sin secretos y ejecutor workflow_run por tarea registrada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/57 |
 | CHG-0025 | EDITORIAL | Registro EX7 nativo: tarea pública Lote E (edición y duplicados), prueba visible y SHA del examen externo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/58 |
 | CHG-0026 | ADDITIVE | Corregir identidad real workflow_run.name del disparador nativo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/60 |
+| CHG-0027 | ADDITIVE | Historial Worker nativo: redirección firmada sin autorización y filtro previo por tarea |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/61 |

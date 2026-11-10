@@ -10,6 +10,8 @@ import json
 import os
 import re
 import urllib.request
+import urllib.error
+import urllib.parse
 import zipfile
 from pathlib import Path
 
@@ -44,12 +46,40 @@ def _artifact_json(base: str, token: str, run_id: int) -> dict | None:
     if (len(matches) != 1 or matches[0].get("expired") or
         matches[0].get("workflow_run", {}).get("id", run_id) != run_id):
         raise ValueError("NATIVE_PRIOR_PROOF_DUPLICATE_OR_EXPIRED")
-    request = urllib.request.Request(matches[0]["archive_download_url"], headers={
+    # GitHub artifact API redirects to signed storage. Strip GitHub credentials
+    # before requesting the signed URL (Azure rejects forwarded Authorization).
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, request, fp, code, msg, headers, newurl):
+            return None
+
+    url = matches[0].get("archive_download_url")
+    parsed = urllib.parse.urlsplit(url) if isinstance(url, str) else None
+    if parsed is None or parsed.scheme != "https" or parsed.hostname != "api.github.com":
+        raise ValueError("NATIVE_PRIOR_PROOF_API_URL_INVALID")
+    request = urllib.request.Request(url, headers={
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
     })
-    with urllib.request.urlopen(request, timeout=25) as response:
+    try:
+        with urllib.request.build_opener(NoRedirect()).open(request, timeout=25):
+            raise ValueError("NATIVE_PRIOR_PROOF_REDIRECT_EXPECTED")
+    except urllib.error.HTTPError as exc:
+        if exc.code != 302:
+            raise
+        location = exc.headers.get("Location")
+        exc.close()
+    target = urllib.parse.urlsplit(location) if isinstance(location, str) else None
+    if (target is None or target.scheme != "https" or not target.hostname
+            or target.username is not None or target.password is not None):
+        raise ValueError("NATIVE_PRIOR_PROOF_REDIRECT_HTTPS_REQUIRED")
+    # A separate request to signed storage: absolutely no Authorization header.
+    # Do not follow a second redirect to an unverified destination.
+    with urllib.request.build_opener(NoRedirect()).open(
+        urllib.request.Request(location), timeout=25
+    ) as response:
         archive = response.read(1_000_001)
+    if len(archive) > 1_000_000:
+        raise ValueError("NATIVE_PRIOR_PROOF_ARCHIVE_SIZE_INVALID")
     with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
         if zipped.namelist() != ["attempt-proof.json"]:
             raise ValueError("NATIVE_PRIOR_PROOF_ARCHIVE_INVALID")
@@ -113,6 +143,9 @@ def admit_attempt(
     prior: list[dict] = []
     for run in results:
         if run.get("id") == run_id:
+            continue
+        # The run title/branch must match the requested task BEFORE download.
+        if not _recognized_run(run, task):
             continue
         proof = _artifact_json(repository, token, run["id"])
         if proof is None:
