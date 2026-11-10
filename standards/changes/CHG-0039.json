@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0039",
   "title": "CP0.2 A: corregir split de NUL en guard del Train",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo 2026-11-10: CP0.2 humo real de dos PRs simultáneos, el primero con reparación NUL del Train"
