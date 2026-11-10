@@ -28,4 +28,4 @@
 | CHG-0022 | EDITORIAL | EX6 N+1: remediación AOSP únicamente de ReminderStats* con equivalencia byte a byte de .class |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/55 |
 | CHG-0023 | EDITORIAL | EX6 N+1: actualizar pin de evidencia al merge del owner |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/56 |
 | CHG-0024 | ADDITIVE | Worker nativo: trigger sin secretos y ejecutor workflow_run por tarea registrada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/57 |
-| CHG-0025 | ADDITIVE | Registro EX7 nativo: tarea pública Lote E, prueba visible y SHA del examen externo |  | paulozterra | PENDING |
+| CHG-0025 | ADDITIVE | Registro EX7 nativo: tarea pública Lote E, prueba visible y SHA del examen externo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/58 |

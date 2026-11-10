@@ -33,7 +33,7 @@
   "requested_by": "agent:claude",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": "PENDING"
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/58"
   },
   "decision_ref": "Owner: examen independiente de Claude; contenido no accesible a GPT; solo SHA en repo"
 }
