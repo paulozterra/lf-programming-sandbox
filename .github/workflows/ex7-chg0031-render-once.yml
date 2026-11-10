@@ -1,0 +1,36 @@
+name: EX7 CHG-0031 consolidated registry render
+on:
+  pull_request:
+    branches:
+      - lf/ex7-palantir-n1-chg0032
+permissions:
+  contents: write
+jobs:
+  render:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: lf/ex7-palantir-n1-chg0032
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Render and validate one CHG and push only derived CAMBIOS
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main lf/ex7-palantir-n1-chg0032
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/lf/ex7-palantir-n1-chg0032)"
+          test -f standards/changes/CHG-0031.json
+          test ! -e standards/changes/CHG-0032.json
+          python3 standards/tools/changes.py render
+          python3 standards/tools/changes.py render --check
+          python3 standards/tools/changes.py check --base origin/main
+          git diff --name-only | grep -Fxq standards/CAMBIOS.md
+          test "$(git diff --name-only | wc -l)" -eq 1
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add standards/CAMBIOS.md
+          git diff --cached --check
+          git commit -m "CHG-0031: render single governed EX7 N/N+1 record"
+          git push origin HEAD:lf/ex7-palantir-n1-chg0032
