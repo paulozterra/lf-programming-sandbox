@@ -62,7 +62,8 @@ else:
 
     def diverge(self, conflict_cambios=False, conflict_other=False):
         run(self.root, "checkout", "-b", "smoke")
-        (self.root / "standards/changes/CHG-0003.json").write_text('{"change_id":"CHG-0003"}')
+        if conflict_cambios:
+            (self.root / "standards/changes/CHG-0003.json").write_text('{"change_id":"CHG-0003"}')
         if conflict_cambios:
             (self.root / "standards/CAMBIOS.md").write_text("CHG-0001\nCHG-0003\n")
         if conflict_other:
@@ -71,7 +72,8 @@ else:
             (self.root / "smoke.md").write_text("inert\n")
         head = self.commit("PR branch")
         run(self.root, "checkout", "main")
-        (self.root / "standards/changes/CHG-0002.json").write_text('{"change_id":"CHG-0002"}')
+        if conflict_cambios:
+            (self.root / "standards/changes/CHG-0002.json").write_text('{"change_id":"CHG-0002"}')
         if conflict_cambios:
             (self.root / "standards/CAMBIOS.md").write_text("CHG-0001\nCHG-0002\n")
         if conflict_other:
