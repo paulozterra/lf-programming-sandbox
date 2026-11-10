@@ -24,8 +24,7 @@ def _has_push_event(source: str) -> bool:
 
 def assert_push_workflow_no_secrets(path: Path) -> None:
     source=path.read_text(encoding="utf-8")
-    if _has_push_event(source) and ("secrets." in source or "secrets[" in source or
-                                    re.search(r"secrets\s*\[",source)):
+    if _has_push_event(source) and re.search(r"(?<![A-Za-z0-9_])secrets\s*(?:\.|\[)", source):
         raise AssertionError("PUSH_WORKFLOW_SECRETS_FORBIDDEN:"+path.name)
 
 def test_all_repository_workflows():
