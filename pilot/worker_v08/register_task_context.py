@@ -257,7 +257,7 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         "status": "CANDIDATE_SANDBOX_ONLY",
         "source_repository": manifest["source_repository"],
         "source_commit_sha": LF_SHA,
-        "source_pin_sha256": digest(canonical(manifest)),
+        "source_pin_sha256": digest((pinned / "SOURCE_PIN.json").read_bytes()),
         "profile": {"code": "PERFIL-PROG-BACKEND-EXP", "sha256": digest(profile),
                     "source_files": {k: v["sha256"] for k, v in manifest["files"].items()
                                      if k.startswith("prog_backend_exp/")}},
@@ -304,6 +304,14 @@ def main() -> int:
     args = p.parse_args()
     if args.task_file.resolve() == args.out_task.resolve():
         block("TASK_INPUT_IMMUTABLE")
+    # Generated task registrations must not overwrite vendor/, production profiles,
+    # historical native_tasks/, or any unrelated repository file.
+    permitted = (ROOT / "pilot/worker_v08/registered_tasks").resolve()
+    candidate = args.out_task.resolve()
+    if not candidate.is_relative_to(permitted) or candidate.suffix != ".json":
+        block("TASK_OUTPUT_SCOPE_INVALID")
+    if args.out_task.exists() or args.out_task.is_symlink():
+        block("TASK_OUTPUT_EXISTS")
     task = json.loads(args.task_file.read_text("utf-8"))
     enriched, _ = register(task, project=args.project, area=args.area,
                            lot_paths=args.lot_path, task_name=args.task_name,
