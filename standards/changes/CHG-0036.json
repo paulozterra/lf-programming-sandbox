@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo 2026-11-10: P0 sandbox-train sin DB, secretos personalizados ni pull_request_target; PR draft para revisión Claude"
   },
-  "reason": "Agregar un orquestador aislado de fusión para PRs internos ready-to-merge, que actualiza rama desfasada, espera checks exactos, rechaza draft/forks y fusiona únicamente con merge commit y SHA esperado; reintentos acotados y recibo verificable. La obligación de usar Train queda desactivada hasta decisión explícita posterior del owner.",
+  "reason": "Agregar un orquestador aislado de fusión para PRs internos ready-to-merge, que actualiza rama desfasada, espera checks exactos, rechaza draft/forks y fusiona únicamente con merge commit y SHA esperado; reintentos acotados y recibo verificable. La obligación de usar Train queda desactivada hasta decisión explícita posterior del owner. Corrección de revisión Claude: la actualización por GITHUB_TOKEN no dispara CI automáticamente; emitir workflow_dispatch dirigido a la rama únicamente tras observar HEAD nuevo, antes de esperar checks del SHA actualizado.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -35,5 +35,5 @@
   "evidence": {
     "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/77"
   },
-  "decision_ref": "P0 review in draft by Claude; no merge before owner authorization; separate post-merge smoke test and optional branch rule."
+  "decision_ref": "Claude #77 bloqueante corregido: ci.yml workflow_dispatch después de update-branch, permiso actions:write, pruebas positiva/negativa. Riesgos aceptados: (1) workflow_dispatch ejecuta YAML desde rama del PR; admisión solo colaboradores con escritura, forks rechazados. (2) race con main entre lectura y merge REST no atómico; activar 'Require branches to be up to date' cuando Paulo active CP0.3. CP0.2 smoke obligatorio con PR que esté behind main, HEAD nuevo, dispatch CI y merge commit; no activar política ni fusionar draft antes de revisión Claude."
 }
