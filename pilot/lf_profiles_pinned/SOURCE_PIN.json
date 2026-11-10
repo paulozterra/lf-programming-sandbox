@@ -180,6 +180,41 @@
       "sha256": "81f7b094563e28e772f3b1eb54aa173bcdf819b6c902088d78e953859caf3ae6",
       "git_blob_sha1": "f9238978d7c8f2fc08cbd2cd10ee24840bb9c93e",
       "bytes": 1222
+    },
+    "stack_skills_exp/springboot_exp/SKILL.md": {
+      "sha256": "69f8b0965a99c9c59c98cebb8b71d775e1cd39bf1ac769f1a4527a826a330d4b",
+      "git_blob_sha1": "95bb17ff68119d48fe222ae7224ba0141187ddf9",
+      "bytes": 3107
+    },
+    "stack_skills_exp/springboot_exp/contracts/expert_rules.json": {
+      "sha256": "5df80fd223eca28d9640513b43985230e7df37a1f2367f27d705b7693948ad5c",
+      "git_blob_sha1": "1aeeb5aa5a2ad46769583ad70a481528fef7b02a",
+      "bytes": 2347
+    },
+    "stack_skills_exp/springboot_exp/contracts/main_contract.md": {
+      "sha256": "1f4c1b9800dd0e41c88f665814ead9db69d0a393b231518390962a203fd5e809",
+      "git_blob_sha1": "458710c0e36a5af20eef64631ad355f576c8e4d9",
+      "bytes": 863
+    },
+    "stack_skills_exp/springboot_exp/evals/eval_matrix.json": {
+      "sha256": "538bb53bbd2a5bcbef19883dd8286631cd266735cf3a1b7a43c8815a4c8a76a0",
+      "git_blob_sha1": "968e7c6edeada716a9c11d26dbd221e164c47d11",
+      "bytes": 612
+    },
+    "stack_skills_exp/springboot_exp/examples/bad_output.json": {
+      "sha256": "c9e0a68294cdd37c7252e6a1806330a831d795d94d33466d15db36e252e86e53",
+      "git_blob_sha1": "b8d4acefbd65f0ebb2388fe393a5b5000652ca58",
+      "bytes": 225
+    },
+    "stack_skills_exp/springboot_exp/examples/good_output.json": {
+      "sha256": "1f55d2d5b496a6dc3a524de06d01fdfc8310567d3372964756969ba8f28335af",
+      "git_blob_sha1": "56274a0da36d1da82cb1084b5bf74bf6b6237b89",
+      "bytes": 677
+    },
+    "stack_skills_exp/test_pg00_pinned_catalog.py": {
+      "sha256": "92c6a7380ba20ba4595a87b50dade4ab2062d12973f93e1646b759e8dee6d4e6",
+      "git_blob_sha1": "8795a7c6e8fe3cecb1266a177244f4c6acc2d8a7",
+      "bytes": 3251
     }
   }
 }
