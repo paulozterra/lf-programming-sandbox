@@ -71,7 +71,7 @@ def test_three_proofs_block_fourth_attempt(tmp_path):
         run["status"] = "completed"
     future = _run(3, run_id=704, title="lf-native-ex6-a3")
     future["status"] = "in_progress"
-    with pytest.raises(ValueError, match="NATIVE_ATTEMPT_COUNT_MISMATCH"):
+    with pytest.raises(ValueError, match="NATIVE_ATTEMPT_LIMIT_EXCEEDED"):
         admission(tmp_path, 3, runs + [future],
                   {701: _proof(1), 702: _proof(2), 703: _proof(3)},
                   current_id=704)
