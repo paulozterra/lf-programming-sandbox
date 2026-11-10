@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - lf/ex7-n1-formatter-run-helper
+  pull_request:
+    branches:
+      - lf/ex7-palantir-n1-chg0032
 
 permissions:
   contents: write
