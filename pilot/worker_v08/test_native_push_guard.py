@@ -20,6 +20,9 @@ def create_repository(tmp_path):
     git(repo, "config", "user.name", "Test")
     git(repo, "config", "user.email", "test@example.invalid")
     (repo/"README").write_text("trusted\n")
+    registry=repo/"pilot/worker_v08/native_tasks/ex6.json"
+    registry.parent.mkdir(parents=True)
+    registry.write_text('{"task_spec":{},"holdout_sha256":"pin"}')
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "main")
     base=git(repo,"rev-parse","HEAD")
@@ -34,7 +37,7 @@ def create_repository(tmp_path):
 
 def test_single_json_commit_allowed(tmp_path):
     repo,base,head=create_repository(tmp_path)
-    result=validate_proposal_only(repo,head,main_sha=base)
+    result=validate_proposal_only(repo,head,main_sha=base,branch="lf/native-proposal/ex6")
     assert result["scope_valid"] is True
     assert result["proposal_commit_sha"]==head
 
@@ -91,3 +94,41 @@ def test_non_descendant_main_blocks(tmp_path):
     advanced=git(repo,"rev-parse","HEAD")
     with pytest.raises(ProposalPushBlocked,match="NATIVE_PUSH_NOT_DESCENDANT"):
         validate_proposal_only(repo,head,main_sha=advanced)
+
+def test_branch_task_mismatch_blocks(tmp_path):
+    repo,base,head=create_repository(tmp_path)
+    with pytest.raises(ProposalPushBlocked,match="NATIVE_PUSH_BRANCH_TASK_MISMATCH"):
+        validate_proposal_only(repo,head,main_sha=base,branch="lf/native-proposal/other")
+
+def test_unregistered_task_blocks(tmp_path):
+    repo,base,head=create_repository(tmp_path)
+    # Task registration must exist on trusted main, not the proposal branch.
+    git(repo,"checkout","-q",base)
+    git(repo,"rm","-q","pilot/worker_v08/native_tasks/ex6.json")
+    git(repo,"commit","-qm","remove registration")
+    newbase=git(repo,"rev-parse","HEAD")
+    # Make an independent proposal child of the unregistered main.
+    git(repo,"checkout","-qb","lf/native-proposal/unregistered")
+    path=repo/"pilot/native_proposals/ex6.json"
+    path.write_text("{}")
+    git(repo,"add","-A")
+    git(repo,"commit","-qm","proposal only")
+    with pytest.raises(ProposalPushBlocked,match="NATIVE_TASK_UNREGISTERED"):
+        validate_proposal_only(repo,git(repo,"rev-parse","HEAD"),main_sha=newbase)
+
+def test_second_registered_task_is_supported(tmp_path):
+    repo,base,_=create_repository(tmp_path)
+    git(repo,"checkout","-q",base)
+    other=repo/"pilot/worker_v08/native_tasks/sample.json"
+    other.write_text("{}")
+    git(repo,"add","-A")
+    git(repo,"commit","-qm","register sample")
+    newbase=git(repo,"rev-parse","HEAD")
+    git(repo,"checkout","-qb","lf/native-proposal/sample")
+    prop=repo/"pilot/native_proposals/sample.json"
+    prop.write_text("{}")
+    git(repo,"add","-A")
+    git(repo,"commit","-qm","sample proposal")
+    output=validate_proposal_only(repo,git(repo,"rev-parse","HEAD"),main_sha=newbase,
+                                  branch="lf/native-proposal/sample")
+    assert output["task"]=="sample"
