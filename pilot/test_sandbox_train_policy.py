@@ -26,7 +26,7 @@ class PolicyTests(unittest.TestCase):
         data = WORKFLOW.read_text()
         self.assertNotIn("pull_request_target", data)
         self.assertNotIn("secrets.", data)
-        self.assertNotIn("actions: write", data)
+        self.assertIn("actions: write", data)
         self.assertIn("contents: write", data)
         self.assertIn("pull-requests: write", data)
         self.assertIn("checks: read", data)
@@ -67,6 +67,67 @@ class PolicyTests(unittest.TestCase):
         self.assertTrue(train.REQUIRED)
         self.assertLessEqual(train.MAX_RESTARTS, 3)
 
+
+    def test_dispatch_after_update_only(self):
+        """Simulate a stale PR: updated HEAD must trigger CI exactly once."""
+        pr = sample_pr()
+        updated = sample_pr()
+        updated["head"]["sha"] = "b" * 40
+        responses = {"pr": [pr, updated, updated, updated, updated]}
+        calls = []
+        def fake_pr(_):
+            return responses["pr"].pop(0) if responses["pr"] else updated
+        def fake_api(method, path, payload=None, expected=(200,)):
+            calls.append((method, path, payload))
+            if path.startswith("/compare/"):
+                return {"behind_by": 1, "status": "diverged"} if len([c for c in calls if c[1].startswith("/compare/")]) == 1 else {"behind_by": 0, "status": "ahead"}
+            if path.endswith("/update-branch"):
+                return {}
+            if path.endswith("/dispatches"):
+                return {}
+            if path.endswith("/merge"):
+                return {"merged": True, "sha": "c" * 40}
+            if path == "/commits/" + "c" * 40:
+                return {"parents": [{"sha": "a" * 40}, {"sha": "b" * 40}]}
+            raise AssertionError(path)
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox", "TRAIN_RECEIPT": os.devnull}), \\
+             patch.object(train, "api", side_effect=fake_api), \\
+             patch.object(train, "pr_data", side_effect=fake_pr), \\
+             patch.object(train, "main_sha", return_value="m" * 40), \\
+             patch.object(train, "await_checks", return_value={"backend (Maven verify)": {"conclusion": "success"}}), \\
+             patch.object(train.time, "sleep", return_value=None):
+            train.run(77)
+        dispatch = [c for c in calls if c[1] == "/actions/workflows/ci.yml/dispatches"]
+        self.assertEqual(len(dispatch), 1)
+        self.assertEqual(dispatch[0][2], {"ref": "feat/test"})
+        self.assertEqual(len([c for c in calls if c[1].endswith("/update-branch")]), 1)
+
+    def test_no_dispatch_if_branch_not_updated(self):
+        pr = sample_pr()
+        calls = []
+        def fake_api(method, path, payload=None, expected=(200,)):
+            calls.append((method, path, payload))
+            if path.startswith("/compare/"):
+                return {"behind_by": 0, "status": "ahead"}
+            if path.endswith("/merge"):
+                return {"merged": True, "sha": "c" * 40}
+            if path == "/commits/" + "c" * 40:
+                return {"parents": [{}, {}]}
+            raise AssertionError(path)
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox", "TRAIN_RECEIPT": os.devnull}), \\
+             patch.object(train, "api", side_effect=fake_api), \\
+             patch.object(train, "pr_data", return_value=pr), \\
+             patch.object(train, "main_sha", return_value="m" * 40), \\
+             patch.object(train, "await_checks", return_value={"backend (Maven verify)": {"conclusion": "success"}}):
+            train.run(77)
+        self.assertFalse(any(c[1] == "/actions/workflows/ci.yml/dispatches" for c in calls))
+
+    def test_ci_dispatch_is_enabled_and_restricted_to_updated_head(self):
+        ci = (ROOT / ".github/workflows/ci.yml").read_text()
+        self.assertIn("  workflow_dispatch:", ci)
+        source = CODE.read_text()
+        self.assertIn('dispatch_updated_head_ci(updated["head"]["ref"], updated["head"]["sha"])', source)
+        self.assertIn('expected=(204,)', source)
 
 if __name__ == "__main__":
     unittest.main()
