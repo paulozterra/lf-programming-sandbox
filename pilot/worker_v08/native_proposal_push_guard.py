@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 EXPECTED_PATH = "pilot/native_proposals/ex6.json"
-_SHA40 = re.compile(r"[0-9a-f]{40}\\Z")
+_SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 
 class ProposalPushBlocked(ValueError):
     pass
@@ -33,7 +33,7 @@ def validate_proposal_only(control: Path, proposal_sha: str, *, main_sha: str | 
         raise ProposalPushBlocked("NATIVE_PUSH_NOT_DESCENDANT_OF_TRUSTED_MAIN")
     raw = _git(control, "diff", "--name-status", "-z", "--no-renames",
                main_sha, proposal_sha)
-    fields = raw.split(b"\\x00")
+    fields = raw.split(b"\x00")
     if len(fields) != 3 or fields[-1] != b"" or fields[0] not in (b"A", b"M") or fields[1] != EXPECTED_PATH.encode():
         raise ProposalPushBlocked("NATIVE_PUSH_SCOPE_INVALID")
     info = _git(control, "ls-tree", proposal_sha, "--", EXPECTED_PATH).decode().strip().split()
