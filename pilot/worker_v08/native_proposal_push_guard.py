@@ -77,6 +77,7 @@ def main() -> None:
         with args.github_output.open("a", encoding="utf-8") as stream:
             for key in ("task", "proposal_commit_sha", "proposal_path"):
                 stream.write(key + "=" + str(result[key]) + "\n")
+            stream.write("secret_task=" + result["task"].upper() + "\n")
     print(json.dumps(result, sort_keys=True))
 
 if __name__ == "__main__":
