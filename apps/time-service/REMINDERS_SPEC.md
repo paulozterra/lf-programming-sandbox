@@ -84,3 +84,10 @@ REM-E4 `POST /api/reminders` de un duplicado responde **409** (antes respondía 
 REM-E5 Todo lo anterior se mantiene. En particular: `PUT /api/reminders` sigue respondiendo 405 (REM-B4), y **`PUT /api/reminders/stats` debe seguir respondiendo 405** (REM-D3), no 400. `GET /api/reminders/stats` sigue funcionando igual.
 
 REM-E6 La prueba visible está en `apps/time-service/visible-tests/ex7/` (fuera de `src/test` a propósito). Las pruebas existentes de `src/test` deben seguir pasando. Formato del código: norma AOSP de este documento.
+
+
+## Norma vigente desde CHG-0029 — Palantir / Spotless (Fase 2A)
+
+Por decisión D1 de Paulo prevalece el catálogo LF `standards/catalog.json`, regla **STD-BE-05**, versión **0.6.1**, para `apps/time-service/src/main/java/**/*.java`: **palantir-java-format 2.102.0**, estilo **PALANTIR** (4 espacios, ancho objetivo 120), mediante **spotless-maven-plugin 3.10.4**. El único comando de comprobación obligatoria para nuevos cambios es `mvn -B -f apps/time-service/pom.xml spotless:check`; para reparar se usa `mvn -B -f apps/time-service/pom.xml spotless:apply`. Se aplica exactamente una vez al migrar, con prueba de equivalencia byte a byte de **todos** los `.class` compilados con `javac --release 21 -g:none` bajo el mismo classpath, verificable en CI. Si un byte difiere, la migración se bloquea.
+
+La sección anterior AOSP y los requisitos REM-D4/REM-E6 son **históricos**: conservar sus recibos, pruebas, commits y huellas, sin reescribirlos. Para código nuevo o modificado tras CHG-0029 prevalece exclusivamente Palantir/Spotless. Ningún Worker previo, bundle EX5C/EX6, EX7 ni examen se altera retroactivamente.
