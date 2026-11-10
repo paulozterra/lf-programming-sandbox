@@ -75,6 +75,76 @@
       "sha256": "f36a7c97645a81f810666ce13a482208dd656fecbd9e8d0e8fbadd82cb5cc12b",
       "git_blob_sha1": "e5230bfd0923284cd0a6b5a7b268968971127756",
       "bytes": 1355
+    },
+    "stack_skills_exp/fastapi_exp/contracts/main_contract.md": {
+      "sha256": "f9e7608bfae13d8277122166ff9d86966d6cd7473c95c66f88eb6bc401e18ce3",
+      "git_blob_sha1": "eaa1293f48dfeec9c893a3de6d5c58df1131f5b0",
+      "bytes": 811
+    },
+    "stack_skills_exp/fastapi_exp/evals/eval_matrix.json": {
+      "sha256": "a7c404cba802dbcf18f5ba7061f481f8e3bc6d51b0ee04f97f0a18c3ac1523b6",
+      "git_blob_sha1": "559fa25eac73335f0a217d8f563cb4062a6f302b",
+      "bytes": 397
+    },
+    "stack_skills_exp/fastapi_exp/examples/bad_output.json": {
+      "sha256": "da053f9c38b4c75360a8b08f1e7b0eddc500c6f84d4e7a7d8b790e17ab530dbb",
+      "git_blob_sha1": "6a5e4e70c460aca3c7127fa9546c1271b420fd09",
+      "bytes": 189
+    },
+    "stack_skills_exp/fastapi_exp/examples/good_output.json": {
+      "sha256": "6c0f7f54229b8e03fac66444913e8820dd5a67fe783735d2ccb151dc6eaa7079",
+      "git_blob_sha1": "7e17465d89c8bf3ad3873ebb4dfe41612f33109a",
+      "bytes": 171
+    },
+    "stack_skills_exp/flyway_exp/SKILL.md": {
+      "sha256": "39dd8c5566a715cdcfcbe87645bf50d28212d577aafff58b60fe4b0cc771f084",
+      "git_blob_sha1": "e1c68d5aa29c70f8f12df8e58f7cbf402f54bb2d",
+      "bytes": 2006
+    },
+    "stack_skills_exp/flyway_exp/contracts/expert_rules.json": {
+      "sha256": "0a9383b69ae91199b6eaa0c251ff678def3f759f9c3983af0020d6d6bc24b06c",
+      "git_blob_sha1": "f01a2c3f9b15db45d6e8f1fc9034450080b79ac1",
+      "bytes": 1527
+    },
+    "stack_skills_exp/flyway_exp/contracts/main_contract.md": {
+      "sha256": "3edb4740229e61f135dc1aca17d076972222b85835f82aa514f1e9b1f46ee9c0",
+      "git_blob_sha1": "f9a46c099f7ddb98392db67d5dc1e066fe6b7f49",
+      "bytes": 861
+    },
+    "stack_skills_exp/flyway_exp/evals/eval_matrix.json": {
+      "sha256": "c66400ab2ed3e68455d52a50f6b1d1e098b53f10eb609b4084e4369b89f33c88",
+      "git_blob_sha1": "267c4c31e74a749e4c5a8b8820574300ae555fb3",
+      "bytes": 396
+    },
+    "stack_skills_exp/flyway_exp/examples/bad_output.json": {
+      "sha256": "6de58718c0c6d3f5fdfe37f7f36a1bb038c88ff04b34e132d8200bffedf05e27",
+      "git_blob_sha1": "02d86e6b183a200d3d97ecfbcae622c149d47e20",
+      "bytes": 185
+    },
+    "stack_skills_exp/flyway_exp/examples/good_output.json": {
+      "sha256": "02f41ea654c0e5945fb2815b1c24beba0726b1c58c1b217bca8f908297f0559a",
+      "git_blob_sha1": "d7dd5d4f6fd11d60665bc29d9fb0d0e09489944f",
+      "bytes": 167
+    },
+    "stack_skills_exp/kafka_exp/SKILL.md": {
+      "sha256": "3f0add4abb980e767dc5e92952160307c18dcf0217aab1eff1071ccdb9ed56ec",
+      "git_blob_sha1": "9e3e3148a3eb43c1d915fd15c99b80eb9057321b",
+      "bytes": 1802
+    },
+    "stack_skills_exp/kafka_exp/contracts/expert_rules.json": {
+      "sha256": "5c2a518e23e72fcb7bce0b8806fd3470892ab00e2b84549c9fa891a6c8f158aa",
+      "git_blob_sha1": "5a4f03f60b4ffe251e2e070e2ae2eed2dd17a0f5",
+      "bytes": 1291
+    },
+    "stack_skills_exp/kafka_exp/evals/eval_matrix.json": {
+      "sha256": "dec6e53509ecd007d999d6de33ae0b8bfe43d1d0ec8105862e6668d1f270c738",
+      "git_blob_sha1": "6e673b6182f6f3b3b62105035a65eb3d4f0c4238",
+      "bytes": 395
+    },
+    "stack_skills_exp/kafka_exp/examples/bad_output.json": {
+      "sha256": "5280a0ac4e8927e008b0052aaad91558be897267117b3419763c7818d6271801",
+      "git_blob_sha1": "a316a65fdce4a0f7749d3a99450429f85cce3794",
+      "bytes": 188
     }
   }
 }
