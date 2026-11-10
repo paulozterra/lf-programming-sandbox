@@ -36,5 +36,5 @@
   "evidence": {
     "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/68"
   },
-  "decision_ref": "EX7 N+1 over #66; preserve exact source N blobs f9e7cb4, 7d4afc6, 20c4b10. Palantir 2.102.0 via Spotless 3.10.4, class-byte equivalence under javac -g:none, candidate only; no model or production authority. Evidence: GitHub Actions helper run 42890431339 SUCCESS, spotless:check PASS, javac --release 21 -g:none 12/12 .class byte-identical, formatted Java changed paths exactly InMemoryReminderRepository.java and ReminderController.java; official changes.py render run 42890713765 SUCCESS."
+  "decision_ref": "EX7 N+1 over #66; preserve exact source N blobs f9e7cb4, 7d4afc6, 20c4b10. Palantir 2.102.0 via Spotless 3.10.4, class-byte equivalence under javac -g:none, candidate only; no model or production authority. Evidence: GitHub Actions helper run 42890431339 SUCCESS, spotless:check PASS, javac --release 21 -g:none 12/12 .class byte-identical, formatted Java changed paths exactly InMemoryReminderRepository.java and ReminderController.java; official changes.py render run 42890713765 SUCCESS. Main CHG-0033 merged at 7425c1398c1c5534c6b25633b248b012a52a441a and incorporated by true merge commit 05daab18fe840b66d69241c46e113a43313dd495; PR #68 retargeted to main; #66 remains unmodified and included by ancestry."
 }
