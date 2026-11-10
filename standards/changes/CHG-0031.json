@@ -32,7 +32,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/66"
   },
   "decision_ref": "EX7 native run 42855259114 PASS, proposal c4f5fe0a5f26f01f10bb15659eccb2acfbf8edee; exact Java blob identity; pilot/native_proposals/ex7.json excluded. CANDIDATE_SANDBOX_ONLY, no promotion."
 }
