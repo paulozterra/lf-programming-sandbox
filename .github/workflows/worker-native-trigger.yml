@@ -1,0 +1,37 @@
+name: LF Native proposal trigger
+run-name: lf-native-trigger
+
+on:
+  push:
+    branches:
+      - 'lf/native-proposal/**'
+    paths:
+      - 'pilot/native_proposals/*.json'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-native-proposal:
+    name: Validate single registered proposal (no secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted main for validation code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          path: control
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate event branch, commit and single proposal JSON
+        shell: bash
+        env:
+          PROPOSAL_SHA: ${{ github.sha }}
+          PROPOSAL_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          [[ "$PROPOSAL_BRANCH" == lf/native-proposal/* ]]
+          git -C control fetch --no-tags origin "$PROPOSAL_SHA"
+          python3 control/pilot/worker_v08/native_proposal_push_guard.py \
+            --control control --sha "$PROPOSAL_SHA" --branch "$PROPOSAL_BRANCH"
