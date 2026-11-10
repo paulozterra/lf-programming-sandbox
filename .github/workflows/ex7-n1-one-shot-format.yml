@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   format-verified:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -27,7 +28,7 @@ jobs:
       - name: Compile baseline, apply exact formatter, prove class identity and push N+1
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           TARGET=lf/ex7-palantir-n1-chg0032
           git fetch origin "$TARGET"
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$TARGET)"
