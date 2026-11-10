@@ -21,12 +21,26 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
           cache: maven
       - run: python3 ../standards/tools/stack_checks.py run --set spring-boot --check-id spring-verify
+      - name: STD-BE-05 Palantir 2.102.0 Spotless 3.10.4 mandatory
+        working-directory: .
+        run: mvn -B -f apps/time-service/pom.xml spotless:check
+      - name: Byte-for-byte class equivalence against pre-migration main
+        working-directory: .
+        run: python3 evidence/palantir_2a/verify_format_migration.py --receipt "$RUNNER_TEMP/palantir-2a-class-equivalence.json"
+      - name: Retain independent class equivalence evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: palantir-2a-class-equivalence
+          path: ${{ runner.temp }}/palantir-2a-class-equivalence.json
+          if-no-files-found: error
       - name: Compile and run staged reminders visible tests (no model)
         working-directory: .
         run: mvn -B -q -f apps/time-service/pom.xml test
