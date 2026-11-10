@@ -163,7 +163,7 @@ else:
             merged = merge.prepare_merge(self.root, main, head)
         self.assertNotEqual(merged, head)
         self.assertEqual((self.root / "standards/CAMBIOS.md").read_text(),
-                         "CHG-0001\\nCHG-0002\\nCHG-0003\\n")
+                         "CHG-0001\nCHG-0002\nCHG-0003\n")
 
     def test_conflict_classifier_rejects_other_path(self):
         head, main = self.diverge(conflict_other=True)
