@@ -13,6 +13,7 @@
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/ci.yml",
       ".github/workflows/sandbox-train.yml",
       "pilot/sandbox_train.py",
       "pilot/test_sandbox_train_policy.py",
