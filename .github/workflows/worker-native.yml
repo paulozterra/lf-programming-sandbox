@@ -1,7 +1,12 @@
-name: LF Worker native (manual, no API)
-run-name: lf-native-${{ inputs.task }}-a${{ inputs.attempt }}
+name: LF Worker native (manual or proposal push, no API)
+run-name: ${{ github.event_name == 'push' && 'lf-native-ex6-push' || format('lf-native-{0}-a{1}', inputs.task, inputs.attempt) }}
 
 on:
+  push:
+    branches:
+      - 'lf/native-proposal/**'
+    paths:
+      - 'pilot/native_proposals/*.json'
   workflow_dispatch:
     inputs:
       task:
@@ -28,36 +33,61 @@ permissions:
   actions: read
 
 concurrency:
-  group: lf-worker-native-${{ inputs.task }}
+  group: lf-worker-native-${{ github.event_name == 'push' && 'ex6' || inputs.task }}
   cancel-in-progress: false
 
 jobs:
   native:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/lf/native-proposal/')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - name: Validate immutable proposal commit and attempt before checkout
+      - name: Resolve event inputs, reject unsupported manual attempts
+        id: source
         env:
-          PROPOSAL_SHA: ${{ inputs.proposal_commit_sha }}
-          NATIVE_ATTEMPT: ${{ inputs.attempt }}
-          NATIVE_TASK: ${{ inputs.task }}
+          EVENT_NAME: ${{ github.event_name }}
+          PROPOSAL_SHA_INPUT: ${{ inputs.proposal_commit_sha }}
+          MANUAL_ATTEMPT: ${{ inputs.attempt }}
+          MANUAL_TASK: ${{ inputs.task }}
+          PUSH_SHA: ${{ github.sha }}
         run: |
           python3 - <<'PY'
           import os,re
-          assert re.fullmatch(r"[0-9a-f]{40}",os.environ["PROPOSAL_SHA"]), "INVALID_PROPOSAL_COMMIT"
-          assert os.environ["NATIVE_ATTEMPT"] in ("1","2","3"), "INVALID_NATIVE_ATTEMPT"
-          assert os.environ["NATIVE_TASK"] == "ex6", "INVALID_NATIVE_TASK"
+          push=os.environ["EVENT_NAME"]=="push"
+          task="ex6" if push else os.environ["MANUAL_TASK"]
+          sha=os.environ["PUSH_SHA"] if push else os.environ["PROPOSAL_SHA_INPUT"]
+          if task!="ex6" or re.fullmatch(r"[0-9a-f]{40}",sha) is None:
+              raise SystemExit("INVALID_NATIVE_PROPOSAL_INPUT")
+          if not push and os.environ["MANUAL_ATTEMPT"] not in ("1","2","3"):
+              raise SystemExit("INVALID_NATIVE_MANUAL_ATTEMPT")
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf-8") as f:
+              f.write("task=ex6\nproposal_sha="+sha+"\n")
           PY
       - name: Checkout trusted main control code
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.sha }}
+          ref: refs/heads/main
           path: control
           fetch-depth: 0
           persist-credentials: false
+      - name: Enforce proposal-only push and exact trusted-main ancestry before secrets
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          PROPOSAL_SHA: ${{ steps.source.outputs.proposal_sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_SHA" = "$PROPOSAL_SHA"
+          git -C control fetch --no-tags origin "$PROPOSAL_SHA"
+          git -C control merge-base --is-ancestor HEAD "$PROPOSAL_SHA"
+          mapfile -t changes < <(git -C control diff --name-status HEAD "$PROPOSAL_SHA")
+          test "${#changes[@]}" -eq 1
+          test "${changes[0]}" = $'A\tpilot/native_proposals/ex6.json' ||
+            test "${changes[0]}" = $'M\tpilot/native_proposals/ex6.json'
+          git -C control show "$PROPOSAL_SHA:pilot/native_proposals/ex6.json" > "$RUNNER_TEMP/native-ex6-checked.json"
+          python3 -m json.tool "$RUNNER_TEMP/native-ex6-checked.json" >/dev/null
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -111,23 +141,29 @@ jobs:
         id: task
         run: |
           python3 control/pilot/worker_v08/native_run.py preflight \
-            --control control --task "${{ inputs.task }}" --github-output "$GITHUB_OUTPUT"
+            --control control --task "${{ steps.source.outputs.task }}" --github-output "$GITHUB_OUTPUT"
       - name: Ensure task base is an ancestor of trusted main
         env:
           TASK_BASE_SHA: ${{ steps.task.outputs.base_sha }}
         run: git -C control merge-base --is-ancestor "$TASK_BASE_SHA" HEAD
-      - name: Validate trusted Actions run history and prevent fourth attempt
+      - name: Determine and gate attempt from trusted GitHub history
+        id: history
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          PROPOSAL_SHA: ${{ steps.source.outputs.proposal_sha }}
+          MANUAL_ATTEMPT: ${{ inputs.attempt }}
         run: |
-          python3 control/pilot/worker_v08/native_run_history.py \
-            --task "${{ inputs.task }}" \
-            --attempt "${{ inputs.attempt }}" \
-            --sha "${{ inputs.proposal_commit_sha }}" \
-            --out "$RUNNER_TEMP/native-run-history.json"
+          set -euo pipefail
+          args=(--task "$NATIVE_TASK" --sha "$PROPOSAL_SHA"
+            --out "$RUNNER_TEMP/native-run-history.json" --github-output "$GITHUB_OUTPUT")
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            args+=(--attempt "$MANUAL_ATTEMPT")
+          fi
+          python3 control/pilot/worker_v08/native_run_history.py "${args[@]}"
       - name: Checkout task baseline commit from main
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -137,14 +173,14 @@ jobs:
       - name: Checkout untrusted proposal commit (data only, no execution)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ inputs.proposal_commit_sha }}
+          ref: ${{ steps.source.outputs.proposal_sha }}
           path: proposal
           sparse-checkout: pilot/native_proposals/ex6.json
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Verify exact proposal checkout HEAD
         env:
-          PROPOSAL_SHA: ${{ inputs.proposal_commit_sha }}
+          PROPOSAL_SHA: ${{ steps.source.outputs.proposal_sha }}
         run: |
           test "$(git -C proposal rev-parse HEAD)" = "$PROPOSAL_SHA"
           test -f proposal/pilot/native_proposals/ex6.json
@@ -172,8 +208,8 @@ jobs:
       - name: Execute original run_verified_worker using native proposal (single attempt)
         id: worker
         env:
-          NATIVE_TASK: ${{ inputs.task }}
-          NATIVE_ATTEMPT: ${{ inputs.attempt }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          NATIVE_ATTEMPT: ${{ steps.history.outputs.attempt }}
           NATIVE_RUN_ID: ${{ github.run_id }}
         run: |
           python3 control/pilot/worker_v08/native_run.py execute \
