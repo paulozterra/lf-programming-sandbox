@@ -35,7 +35,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/79"
   },
   "decision_ref": "No auto-merge este PR de implementación. Luego de revisión/aprobación realizar CP0.2 de dos PRs simultáneos con CHG distintos. Fusionar primero por Train, luego segundo queda behind+dirty solo CAMBIOS; Paulo etiqueta, y si GitHub bloquea labeled usar workflow_dispatch en main con PR number. No tocar Supabase/producción, sin secretos personalizados ni pull_request_target."
 }
