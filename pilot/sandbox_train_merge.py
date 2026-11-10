@@ -10,6 +10,12 @@ import tempfile
 CAMBIOS = "standards/CAMBIOS.md"
 
 
+def no_token_env():
+    """Never expose the workflow write token to checked-out PR scripts."""
+    return {k: v for k, v in os.environ.items()
+            if k not in ("GH_TOKEN", "GITHUB_TOKEN", "ACTIONS_RUNTIME_TOKEN")}
+
+
 class BranchConflict(Exception):
     pass
 
@@ -40,7 +46,7 @@ def prepare_merge(root, base_ref, expected_head):
             raise BranchConflict("BRANCH_CONFLICT MERGE_FAILED")
         # regenerate using the combined CHG JSON set; never keep ours/theirs.
         regenerate = subprocess.run([sys.executable, "standards/tools/changes.py", "render"],
-                                    cwd=root, text=True, capture_output=True)
+                                    cwd=root, text=True, capture_output=True, env=no_token_env())
         if regenerate.returncode:
             raise BranchConflict("BRANCH_CONFLICT CAMBIOS_RENDER_FAILED " +
                                  regenerate.stderr.strip()[:200])
