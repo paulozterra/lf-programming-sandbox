@@ -30,7 +30,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/78"
   },
   "decision_ref": "CP0.2 smoke only. PR must be behind main before ready-to-merge; Paulo controls label; no CP0.3 branch policy activation."
 }
