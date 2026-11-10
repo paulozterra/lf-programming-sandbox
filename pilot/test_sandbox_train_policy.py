@@ -56,8 +56,8 @@ class PolicyTests(unittest.TestCase):
         self.assertIn('len(commit["parents"]) != 2', source)
         self.assertNotIn('"merge_method": "squash"', source)
         self.assertNotIn('"merge_method": "rebase"', source)
-        self.assertIn('"/pulls/{number}/update-branch"', source)
-        self.assertIn('"expected_head_sha": initial_head', source)
+        self.assertIn("update_branch_locally(", source)
+        self.assertIn('"sha": initial_head, "merge_method": "merge"', source)
 
     def test_checks_must_be_from_exact_head(self):
         self.assertIn('run["head_sha"] != sha', CODE.read_text())
@@ -81,8 +81,6 @@ class PolicyTests(unittest.TestCase):
             calls.append((method, path, payload))
             if path.startswith("/compare/"):
                 return {"behind_by": 1, "status": "diverged"} if len([c for c in calls if c[1].startswith("/compare/")]) == 1 else {"behind_by": 0, "status": "ahead"}
-            if path.endswith("/update-branch"):
-                return {}
             if path.endswith("/dispatches"):
                 return {}
             if path.endswith("/merge"):
@@ -90,17 +88,18 @@ class PolicyTests(unittest.TestCase):
             if path == "/commits/" + "c" * 40:
                 return {"parents": [{"sha": "a" * 40}, {"sha": "b" * 40}]}
             raise AssertionError(path)
-        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox", "TRAIN_RECEIPT": os.devnull}), \
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox", "GH_TOKEN": "test-token", "TRAIN_RECEIPT": os.devnull}), \
              patch.object(train, "api", side_effect=fake_api), \
              patch.object(train, "pr_data", side_effect=fake_pr), \
              patch.object(train, "main_sha", return_value="m" * 40), \
              patch.object(train, "await_checks", return_value={"backend (Maven verify)": {"conclusion": "success"}}), \
+             patch.object(train, "update_branch_locally", return_value="b" * 40) as local_update, \
              patch.object(train.time, "sleep", return_value=None):
             train.run(77)
         dispatch = [c for c in calls if c[1] == "/actions/workflows/ci.yml/dispatches"]
         self.assertEqual(len(dispatch), 1)
         self.assertEqual(dispatch[0][2], {"ref": "feat/test"})
-        self.assertEqual(len([c for c in calls if c[1].endswith("/update-branch")]), 1)
+        local_update.assert_called_once_with("feat/test", "a" * 40, "m" * 40, "test-token", "paulozterra/lf-programming-sandbox")
 
     def test_no_dispatch_if_branch_not_updated(self):
         pr = sample_pr()
@@ -118,7 +117,8 @@ class PolicyTests(unittest.TestCase):
              patch.object(train, "api", side_effect=fake_api), \
              patch.object(train, "pr_data", return_value=pr), \
              patch.object(train, "main_sha", return_value="m" * 40), \
-             patch.object(train, "await_checks", return_value={"backend (Maven verify)": {"conclusion": "success"}}):
+             patch.object(train, "await_checks", return_value={"backend (Maven verify)": {"conclusion": "success"}}), \
+             patch.object(train, "update_branch_locally", side_effect=AssertionError("no update expected")):
             train.run(77)
         self.assertFalse(any(c[1] == "/actions/workflows/ci.yml/dispatches" for c in calls))
 
@@ -126,7 +126,7 @@ class PolicyTests(unittest.TestCase):
         ci = (ROOT / ".github/workflows/ci.yml").read_text()
         self.assertIn("  workflow_dispatch:", ci)
         source = CODE.read_text()
-        self.assertIn('dispatch_updated_head_ci(updated["head"]["ref"], updated["head"]["sha"])', source)
+        self.assertIn('dispatch_updated_head_ci(updated["head"]["ref"], merged_head)', source)
         self.assertIn('expected=(204,)', source)
 
 
