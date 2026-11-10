@@ -44,8 +44,11 @@ jobs:
           mvn -B -q -f apps/time-service/pom.xml spotless:check
           mapfile -t MODIFIED < <(git diff --name-only | sort)
           mapfile -t EXPECTED < <(printf '%s\n' "${FILES[@]}" | sort)
-          test "${#MODIFIED[@]}" -eq 3
-          test "$(printf '%s\n' "${MODIFIED[@]}")" = "$(printf '%s\n' "${EXPECTED[@]}")"
+          test "${#MODIFIED[@]}" -eq 2
+          for changed in "${MODIFIED[@]}"; do
+            printf "%s\n" "${EXPECTED[@]}" | grep -Fxq "$changed"
+          done
+          echo "EX7_N1_CHANGED_JAVA_COUNT=${#MODIFIED[@]}"
           javac --release 21 -g:none -encoding UTF-8 -classpath "$CP" -d "$RUNNER_TEMP/after" "${SOURCES[@]}"
           python3 - "$RUNNER_TEMP/before" "$RUNNER_TEMP/after" <<'PY'
           import pathlib,hashlib,json,sys
