@@ -161,13 +161,13 @@ if "|| secrets." in yaml or "&& secrets." in yaml:
     raise AssertionError("EX5_SECRET_FALLBACK_FORBIDDEN")
 
 
-# Hybrid S2 is separate from paid worker-pilot. Manual only, one run per attempt.
+# Hybrid native runner is separate from paid worker-pilot. Manual preserved; guarded push added.
 native = (REPO/".github/workflows/worker-native.yml").read_text(encoding="utf-8")
 native_runner = (REPO/"pilot/worker_v08/native_run.py").read_text(encoding="utf-8")
 native_history = (REPO/"pilot/worker_v08/native_run_history.py").read_text(encoding="utf-8")
-if not re.search(r"^on:\s*\n  workflow_dispatch:", native, re.M):
-    raise AssertionError("NATIVE_WORKFLOW_NOT_MANUAL")
-for forbidden in ("pull_request_target:", "pull_request:", "push:", "schedule:",
+if not re.search(r"^on:\s*\n  push:", native, re.M) or "  workflow_dispatch:" not in native:
+    raise AssertionError("NATIVE_PUSH_OR_MANUAL_TRIGGER_MISSING")
+for forbidden in ("pull_request_target:", "pull_request:", "schedule:",
                   "ANTHROPIC_API_KEY", "secrets.GITHUB_TOKEN", "gh pr create"):
     if forbidden in native:
         raise AssertionError("NATIVE_WORKFLOW_FORBIDDEN:" + forbidden)
@@ -181,6 +181,13 @@ for required in ("proposal_commit_sha:", "attempt:", "task:",
                  "native-verified-patch"):
     if required not in native:
         raise AssertionError("NATIVE_WORKFLOW_MISSING:" + required)
+for required in ("lf/native-proposal/**", "pilot/native_proposals/*.json",
+                 "Enforce proposal-only push", "merge-base --is-ancestor",
+                 "diff --name-status", "Determine and gate attempt",
+                 "steps.history.outputs.attempt", "steps.source.outputs.proposal_sha",
+                 "refs/heads/main", "cancel-in-progress: false"):
+    if required not in native:
+        raise AssertionError("NATIVE_PUSH_POLICY_MISSING:"+required)
 if native.count("workflow_dispatch:") != 1:
     raise AssertionError("NATIVE_WORKFLOW_EVENT_NOT_UNIQUE")
 if "run_verified_worker(" not in native_runner or "NativeProposalClient(" not in native_runner:
@@ -213,4 +220,4 @@ if not (
 ):
     raise AssertionError("NATIVE_EX6_JAVA21_PREWORKER_ORDER_INVALID")
 
-print("PASS WORKFLOW_MANUAL_VENDOR_EXACT_BASE64_SHA_ACTIONS_VERIFIED_WORKER_MODEL_BUDGET_AND_NATIVE_S2")
+print("PASS WORKFLOW_NATIVE_PROPOSAL_PUSH_AND_MANUAL_GUARDS")
