@@ -116,6 +116,61 @@ else:
             self.assertNotIn("GITHUB_TOKEN", child_env)
             self.assertNotIn("ACTIONS_RUNTIME_TOKEN", child_env)
 
+    def test_changed_changes_py_blocks_before_any_merge(self):
+        head, main = self.diverge(conflict_cambios=True)
+        # This changes.py is now authored by the PR, not trusted main.
+        run(self.root, "checkout", "smoke")
+        tool = self.root / "standards/tools/changes.py"
+        tool.write_text(tool.read_text() + "\\n# PR policy change\\n")
+        head = self.commit("PR modifies changes.py")
+        with self.assertRaisesRegex(
+            merge.BranchConflict, "BRANCH_CONFLICT_TOOLING_CHANGED.*standards/tools/changes.py"
+        ):
+            merge.prepare_merge(self.root, main, head)
+        self.assertEqual(run(self.root, "rev-parse", "HEAD"), head)
+        self.assertFalse((self.root / ".git/MERGE_HEAD").exists())
+
+    def test_changed_train_py_blocks_even_without_merge_conflict(self):
+        head, main = self.diverge()
+        train_file = self.root / "pilot/sandbox_train_guard.py"
+        train_file.parent.mkdir(exist_ok=True)
+        train_file.write_text("print('untrusted')\\n")
+        head = self.commit("PR modifies Train policy")
+        with self.assertRaisesRegex(
+            merge.BranchConflict, "BRANCH_CONFLICT_TOOLING_CHANGED.*pilot/sandbox_train_guard.py"
+        ):
+            merge.prepare_merge(self.root, main, head)
+        self.assertEqual(run(self.root, "rev-parse", "HEAD"), head)
+
+    def test_adversarial_changes_script_never_sees_token(self):
+        head, main = self.diverge(conflict_cambios=True)
+        # Script is identical on main and PR, so it is permitted to run.
+        # Injected sentinel intentionally fails if any token reaches any invocation.
+        self.assertEqual(run(self.root, "rev-parse", "HEAD"), head)
+        script = self.root / "standards/tools/changes.py"
+        original = script.read_text()
+        sentinel = (
+            "import os\\n"
+            "if any(os.getenv(k) for k in "
+            "('GH_TOKEN','GITHUB_TOKEN','ACTIONS_RUNTIME_TOKEN')):\\n"
+            "    raise RuntimeError('TOKEN_EXPOSED')\\n"
+        )
+        script.write_text(sentinel + original)
+        # Reestablish the exact same script in both branches, so the tooling guard
+        # permits execution; Git still exercises render, render --check and check.
+        run(self.root, "checkout", "main")
+        script.write_text(sentinel + original)
+        main = self.commit("shared sentinel tooling")
+        run(self.root, "checkout", "smoke")
+        script.write_text(sentinel + original)
+        head = self.commit("sync sentinel tooling")
+        with __import__("unittest").mock.patch.dict(
+            os.environ, {"GH_TOKEN": "secret", "GITHUB_TOKEN": "other",
+                         "ACTIONS_RUNTIME_TOKEN": "third"}
+        ):
+            merged = merge.prepare_merge(self.root, main, head)
+        self.assertNotEqual(merged, head)
+
     def test_conflict_classifier_rejects_other_path(self):
         head, main = self.diverge(conflict_other=True)
         with self.assertRaisesRegex(merge.BranchConflict, "BRANCH_CONFLICT unrelated.txt"):
