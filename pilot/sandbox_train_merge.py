@@ -51,6 +51,7 @@ def prepare_merge(root, base_ref, expected_head):
         if check_conflicts(root):
             raise BranchConflict("BRANCH_CONFLICT UNEXPECTED_UNMERGED")
     git(root, "diff", "--check")
+    git(root, "diff", "--cached", "--check")
     git(root, "-c", "user.name=sandbox-train[bot]",
         "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
         "commit", "--no-verify", "-m", "Merge main into PR branch (sandbox-train)")
