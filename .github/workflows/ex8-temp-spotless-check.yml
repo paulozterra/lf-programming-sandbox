@@ -1,0 +1,27 @@
+name: EX8 exact verified patch and Spotless preflight temporary
+on:
+  pull_request:
+    branches:
+      - main
+permissions:
+  contents: write
+jobs:
+  ex8-verify-and-stage:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: lf/ex8-spotless-preflight-helper
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Verify immutable native patch + spotless before any governed candidate is created
+        run: python3 evidence/ex8_TEMP_apply_verified.py
