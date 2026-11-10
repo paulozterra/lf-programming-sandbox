@@ -15,6 +15,7 @@
     "paths": [
       "pilot/worker_v08/native_run_history.py",
       "pilot/worker_v08/test_native_history_redirect.py",
+      "pilot/worker_v08/test_native_run.py",
       ".github/workflows/ci.yml",
       "standards/changes/CHG-0027.json",
       "standards/CAMBIOS.md"
