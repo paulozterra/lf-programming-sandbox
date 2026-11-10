@@ -1,0 +1,27 @@
+name: EX8 offline native package preflight temporary
+on:
+  pull_request:
+    branches:
+      - claude/ex8-native-task
+permissions:
+  contents: read
+jobs:
+  ex8-offline:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: lf/ex8-native-preflight-helper
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Native export, exact 3 Java edits, Spotless, Maven and visible EX8 regressions
+        run: python3 pilot/worker_v08/ex8_offline_builder_TEMP.py
