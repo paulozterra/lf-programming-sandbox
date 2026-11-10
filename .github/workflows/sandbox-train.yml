@@ -1,0 +1,47 @@
+name: sandbox-train
+
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Same-repository PR number (must have ready-to-merge)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+concurrency:
+  group: sandbox-train
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: >-
+      (github.event_name == 'pull_request' &&
+       github.event.label.name == 'ready-to-merge' &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      TRAIN_PR: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_number || github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
+      TRAIN_RECEIPT: ${{ runner.temp }}/sandbox-train-receipt.json
+    steps:
+      - name: Checkout trusted train from main (never PR code)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 pinned
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Check train policy before merge
+        run: python3 -m unittest discover -s pilot -p 'test_sandbox_train_policy.py' -v
+      - name: Merge checked HEAD; fail closed
+        run: python3 pilot/sandbox_train.py
+      - name: Publish merge receipt (no custom secrets)
+        if: success()
+        run: cat "$TRAIN_RECEIPT" >> "$GITHUB_STEP_SUMMARY"
