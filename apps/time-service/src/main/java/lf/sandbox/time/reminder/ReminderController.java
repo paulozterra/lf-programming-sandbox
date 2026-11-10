@@ -1,5 +1,12 @@
 package lf.sandbox.time.reminder;
 
+import java.net.URI;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,14 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.net.URI;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
-import java.util.List;
-import java.util.Map;
 
 @RestController
 public class ReminderController {
@@ -31,9 +30,7 @@ public class ReminderController {
 
     @PostMapping("/api/reminders")
     public ResponseEntity<Object> create(@RequestBody(required = false) Map<String, Object> body) {
-        if (body == null
-                || !(body.get("text") instanceof String text)
-                || !(body.get("at") instanceof String at)) {
+        if (body == null || !(body.get("text") instanceof String text) || !(body.get("at") instanceof String at)) {
             return ResponseEntity.badRequest().build();
         }
         LocalTime time;
@@ -54,10 +51,7 @@ public class ReminderController {
 
     @GetMapping("/api/reminders")
     public List<ReminderResponse> list(@RequestParam(name = "q", required = false) String q) {
-        List<Reminder> found =
-                (q == null || q.isBlank())
-                        ? repository.findAll()
-                        : repository.findByTextContaining(q);
+        List<Reminder> found = (q == null || q.isBlank()) ? repository.findAll() : repository.findByTextContaining(q);
         return found.stream().map(ReminderController::toResponse).toList();
     }
 

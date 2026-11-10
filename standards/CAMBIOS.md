@@ -32,3 +32,4 @@
 | CHG-0026 | ADDITIVE | Corregir identidad real workflow_run.name del disparador nativo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/60 |
 | CHG-0027 | ADDITIVE | Historial Worker nativo: redirección firmada sin autorización y filtro previo por tarea |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/61 |
 | CHG-0028 | EDITORIAL | EX7: nueva huella del examen externo (comandos divididos al límite de 4096 bytes del Worker) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/62 |
+| CHG-0029 | ADDITIVE | Fase 2A: Spotless + palantir-java-format según STD-BE-05, remediación Java byte-equivalente |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/64 |

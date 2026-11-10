@@ -1,0 +1,51 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0029",
+  "title": "Fase 2A: Spotless + palantir-java-format según STD-BE-05, remediación Java byte-equivalente",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo Fase 2 decisiones D1 = Palantir/Spotless; D2 = copia fijada; 2026-11-10"
+  },
+  "reason": "Actualizar compuerta de formato futura desde AOSP histórico hacia palantir-java-format 2.102.0 y spotless-maven-plugin 3.10.4, fijados literalmente en catalog v0.6.1 STD-BE-05. El nuevo gate de CI verifica spotless:check; la remediación de todo Java debe ser resultado de spotless:apply, con prueba javac -g:none de cada clase antes/después. Mantener inmutables los recibos AOSP históricos y no mezclar Fase 2B antes del merge de 2A.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [
+      "STD-BE-05"
+    ],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/pom.xml",
+      "apps/time-service/REMINDERS_SPEC.md",
+      "apps/time-service/src/main/java/lf/sandbox/time/TimeConfig.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/TimeController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/TimeServiceApplication.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStats.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsService.java",
+      "evidence/phase2/palantir_spotless_equivalence.py",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0029.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/64"
+  },
+  "decision_ref": "D1=Palantir with Spotless; palantir 2.102.0 + spotless-maven-plugin 3.10.4 from STD-BE-05. D2 separate PR only after merge. No model."
+}
