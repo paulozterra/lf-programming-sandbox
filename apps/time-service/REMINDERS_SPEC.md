@@ -90,3 +90,25 @@ REM-E6 La prueba visible está en `apps/time-service/visible-tests/ex7/` (fuera 
 El formato canónico **desde la fusión de CHG-0029 en adelante** para todos los archivos `apps/time-service/src/main/java/**/*.java` es **palantir-java-format 2.102.0** con **spotless-maven-plugin 3.10.4**, conforme al texto literal de **STD-BE-05** de `standards/catalog.json` v0.6.1: sangría de 4 espacios, 120 columnas. Se utiliza `mvn -B -f apps/time-service/pom.xml spotless:apply` únicamente en la remediación gobernada; el gate CI aplica `mvn -B -f apps/time-service/pom.xml spotless:check` antes de compilar. Todo cambio de formato exige `javac --release 21 -g:none` sobre **todo** el árbol Java previo y posterior y comparación de nombres de .class y SHA-256 por clase; ninguna divergencia se permite.
 
 **Linaje histórico conservado:** los recibos, verificadores y bundles de EX5C, EX6 y EX7 que fijan google-java-format 1.30.0 `--aosp` corresponden a sus ejecuciones pasadas, y **no deben reinterpretarse ni modificarse**. La norma AOSP anterior de este documento queda superada solo para futuros cambios. El contenido funcional REM-A a REM-E se mantiene inalterado. Las menciones históricas a AOSP en REM-D4 y REM-E6 describen el requisito de aquellos ejercicios al momento de ejecutarse, no una obligación vigente para una nueva versión.
+
+## Lote F: posponer recordatorios (ejercicio 8, modo nativo con perfil y skills)
+
+Este lote **modifica archivos existentes**. Solo se pueden cambiar `ReminderRepository.java`, `InMemoryReminderRepository.java` y `ReminderController.java`. No se crean archivos nuevos en `src/main` y ningún otro archivo cambia. El código debe cumplir el formato del proyecto: palantir-java-format verificado con `mvn spotless:check` (regla STD-BE-05).
+
+REM-F1 Agregar a `ReminderRepository`: `Optional<Reminder> snooze(long id, int minutes)`.
+- `minutes` debe estar entre 1 y 1440, ambos incluidos. Si no, lanza `IllegalArgumentException`. Esta validación va **antes** de buscar el id: un valor inválido lanza la excepción aunque el id no exista.
+- Si el id no existe, devuelve `Optional.empty()` y no cambia nada.
+- Si existe, mueve su hora `at` hacia adelante esa cantidad de minutos. **Si pasa de la medianoche, sigue desde 00:00** (23:50 + 15 da 00:05). **Los segundos se conservan.** El texto, el id y la posición en `findAll` no cambian, y no se consumen ids.
+- Aplica la regla de duplicados de REM-E2: si el resultado sería duplicado de **otro** recordatorio, lanza `IllegalStateException` y no cambia nada. Un recordatorio nunca es duplicado de sí mismo; por ejemplo, posponer 1440 minutos lo deja a la misma hora y está permitido.
+- Es seguro con varios hilos, igual que el resto del repositorio.
+
+REM-F2 `POST /api/reminders/{id}/snooze?minutes=N` (sin cuerpo):
+- 200 con el objeto actualizado (`id`, `text`, `at`).
+- 400 si el id no es numérico, o si `minutes` falta o no es un entero válido. Un entero válido son solo dígitos decimales: sin signo, sin espacios y sin decimales. Los ceros a la izquierda se aceptan. También es 400 si `minutes` está fuera de 1..1440.
+- 404 si el id no existe, solo cuando `minutes` es válido. Con `minutes` inválido responde 400 aunque el id no exista.
+- 409 si el resultado crearía un duplicado (REM-E2).
+- Con otros métodos sobre `/api/reminders/{id}/snooze` responde 405.
+
+REM-F3 Todo lo anterior se mantiene (REM-A a REM-E), incluidas las estadísticas: `GET /api/reminders/stats` refleja las horas pospuestas.
+
+REM-F4 La prueba visible está en `apps/time-service/visible-tests/ex8/`. Las pruebas de `src/test` deben seguir pasando y `mvn spotless:check` debe pasar.
