@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo 2026-11-10: #78 dirty, Train debe resolver exclusivamente conflicto CAMBIOS.md y comprobar cambios con C9"
   },
-  "reason": "Reemplazar update-branch remoto por merge de main local en checkout efímero; ante conflicto de un solo archivo standards/CAMBIOS.md regenerar desde changes.py render, crear merge commit local, ejecutar changes.py render --check y changes.py check contra main antes del push. Bloquear BRANCH_CONFLICT para otros archivos sin escritura remota. Push no forzado autenticado solo con GITHUB_TOKEN y dispatch explícito de CI del HEAD nuevo. Mantener workflow_dispatch manual por si GitHub omite pull_request:labeled en un PR dirty.",
+  "reason": "Reemplazar update-branch remoto por merge de main local en checkout efímero; ante conflicto de un solo archivo standards/CAMBIOS.md regenerar desde changes.py render, crear merge commit local, ejecutar changes.py render --check y changes.py check contra main antes del push. Bloquear BRANCH_CONFLICT para otros archivos sin escritura remota. Push no forzado autenticado solo con GITHUB_TOKEN y dispatch explícito de CI del HEAD nuevo. Mantener workflow_dispatch manual por si GitHub omite pull_request:labeled en un PR dirty. Endurecimiento de revisión Claude: bloquear antes del merge con BRANCH_CONFLICT_TOOLING_CHANGED si el diff del PR contra main afecta standards/tools/** o pilot/sandbox_train*.py, incluso cuando el merge sea limpio; todos los subprocesses de Git y changes.py ejecutan con no_token_env(). Las únicas credenciales del subprocess de push viajan en un header HTTP de uso exclusivo del push (sin variable GH_TOKEN).",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -37,5 +37,5 @@
   "evidence": {
     "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/79"
   },
-  "decision_ref": "No auto-merge este PR de implementación. Luego de revisión/aprobación realizar CP0.2 de dos PRs simultáneos con CHG distintos. Fusionar primero por Train, luego segundo queda behind+dirty solo CAMBIOS; Paulo etiqueta, y si GitHub bloquea labeled usar workflow_dispatch en main con PR number. No tocar Supabase/producción, sin secretos personalizados ni pull_request_target."
+  "decision_ref": "No auto-merge este PR de implementación. Luego de revisión/aprobación realizar CP0.2 de dos PRs simultáneos con CHG distintos. Fusionar primero por Train, luego segundo queda behind+dirty solo CAMBIOS; Paulo etiqueta, y si GitHub bloquea labeled usar workflow_dispatch en main con PR number. No tocar Supabase/producción, sin secretos personalizados ni pull_request_target. Revisión seguridad #79: PR con tooling modificado se actualiza manualmente, nunca mediante Train. Test de cambios.py adversarial compartido desde base falla si recibe GH_TOKEN/GITHUB_TOKEN/ACTIONS_RUNTIME_TOKEN; test específico para bloqueo de changes.py y sandbox_train*.py. La corrección no cambia derechos CP0.3."
 }
