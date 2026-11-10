@@ -1,15 +1,16 @@
-name: LF Worker native (manual, no API)
-run-name: lf-native-${{ inputs.task }}-a${{ inputs.attempt }}
+name: LF Worker native (trusted workflow_run or manual, no API)
+run-name: ${{ github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || format('lf-native-{0}-a{1}', inputs.task, inputs.attempt) }}
 
 on:
+  workflow_run:
+    workflows: ["LF Native proposal trigger"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       task:
-        description: "Registered native task (ex6 is registered separately by Claude)"
+        description: "Registered task matching pilot/native_proposals/<task>.json"
         required: true
-        type: choice
-        options:
-          - ex6
+        type: string
       proposal_commit_sha:
         description: "Immutable 40-hex Git commit; read proposal JSON only"
         required: true
@@ -28,36 +29,69 @@ permissions:
   actions: read
 
 concurrency:
-  group: lf-worker-native-${{ inputs.task }}
+  group: lf-worker-native-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || format('lf/native-proposal/{0}', inputs.task) }}
   cancel-in-progress: false
 
 jobs:
   native:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - name: Validate immutable proposal commit and attempt before checkout
-        env:
-          PROPOSAL_SHA: ${{ inputs.proposal_commit_sha }}
-          NATIVE_ATTEMPT: ${{ inputs.attempt }}
-          NATIVE_TASK: ${{ inputs.task }}
-        run: |
-          python3 - <<'PY'
-          import os,re
-          assert re.fullmatch(r"[0-9a-f]{40}",os.environ["PROPOSAL_SHA"]), "INVALID_PROPOSAL_COMMIT"
-          assert os.environ["NATIVE_ATTEMPT"] in ("1","2","3"), "INVALID_NATIVE_ATTEMPT"
-          assert os.environ["NATIVE_TASK"] == "ex6", "INVALID_NATIVE_TASK"
-          PY
       - name: Checkout trusted main control code
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.sha }}
+          ref: refs/heads/main
           path: control
           fetch-depth: 0
           persist-credentials: false
+      - name: Independently attest source workflow and exact proposal-only commit
+        id: source
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TRIGGER_SHA: ${{ github.event.workflow_run.head_sha }}
+          TRIGGER_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          TRIGGER_NAME: ${{ github.event.workflow_run.name }}
+          TRIGGER_PATH: ${{ github.event.workflow_run.path }}
+          TRIGGER_EVENT: ${{ github.event.workflow_run.event }}
+          TRIGGER_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          TRIGGER_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          MANUAL_SHA: ${{ inputs.proposal_commit_sha }}
+          MANUAL_TASK: ${{ inputs.task }}
+          MANUAL_ATTEMPT: ${{ inputs.attempt }}
+          REPO_NAME: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            test "$TRIGGER_NAME" = "LF Native proposal trigger"
+            test "$TRIGGER_EVENT" = "push"
+            test "$TRIGGER_CONCLUSION" = "success"
+            test "$TRIGGER_REPO" = "$REPO_NAME"
+            [[ "$TRIGGER_PATH" == ".github/workflows/worker-native-trigger.yml" || "$TRIGGER_PATH" == ".github/workflows/worker-native-trigger.yml@"* ]]
+            [[ "$TRIGGER_BRANCH" == lf/native-proposal/* ]]
+            sha="$TRIGGER_SHA"
+            branch="$TRIGGER_BRANCH"
+          else
+            test "$EVENT_NAME" = "workflow_dispatch"
+            [[ "$MANUAL_ATTEMPT" =~ ^[123]$ ]]
+            sha="$MANUAL_SHA"
+            branch=""
+          fi
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+          git -C control fetch --no-tags origin "$sha"
+          args=(--control control --sha "$sha" --github-output "$GITHUB_OUTPUT")
+          if [ -n "$branch" ]; then
+            args+=(--branch "$branch")
+          fi
+          python3 control/pilot/worker_v08/native_proposal_push_guard.py "${args[@]}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            derived="$(sed -n 's/^task=//p' "$GITHUB_OUTPUT" | tail -1)"
+            test "$derived" = "$MANUAL_TASK"
+          fi
+          printf 'proposal_sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -111,23 +145,30 @@ jobs:
         id: task
         run: |
           python3 control/pilot/worker_v08/native_run.py preflight \
-            --control control --task "${{ inputs.task }}" --github-output "$GITHUB_OUTPUT"
+            --control control --task "${{ steps.source.outputs.task }}" --github-output "$GITHUB_OUTPUT"
       - name: Ensure task base is an ancestor of trusted main
         env:
           TASK_BASE_SHA: ${{ steps.task.outputs.base_sha }}
         run: git -C control merge-base --is-ancestor "$TASK_BASE_SHA" HEAD
-      - name: Validate trusted Actions run history and prevent fourth attempt
+      - name: Determine and gate attempt from trusted GitHub history
+        id: history
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          PROPOSAL_SHA: ${{ steps.source.outputs.proposal_sha }}
+          MANUAL_ATTEMPT: ${{ inputs.attempt }}
+          NATIVE_PROPOSAL_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
-          python3 control/pilot/worker_v08/native_run_history.py \
-            --task "${{ inputs.task }}" \
-            --attempt "${{ inputs.attempt }}" \
-            --sha "${{ inputs.proposal_commit_sha }}" \
-            --out "$RUNNER_TEMP/native-run-history.json"
+          set -euo pipefail
+          args=(--task "$NATIVE_TASK" --sha "$PROPOSAL_SHA"
+            --out "$RUNNER_TEMP/native-run-history.json" --github-output "$GITHUB_OUTPUT")
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            args+=(--attempt "$MANUAL_ATTEMPT")
+          fi
+          python3 control/pilot/worker_v08/native_run_history.py "${args[@]}"
       - name: Checkout task baseline commit from main
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -137,32 +178,32 @@ jobs:
       - name: Checkout untrusted proposal commit (data only, no execution)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ inputs.proposal_commit_sha }}
+          ref: ${{ steps.source.outputs.proposal_sha }}
           path: proposal
-          sparse-checkout: pilot/native_proposals/ex6.json
+          sparse-checkout: pilot/native_proposals/${{ steps.source.outputs.task }}.json
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Verify exact proposal checkout HEAD
         env:
-          PROPOSAL_SHA: ${{ inputs.proposal_commit_sha }}
+          PROPOSAL_SHA: ${{ steps.source.outputs.proposal_sha }}
         run: |
           test "$(git -C proposal rev-parse HEAD)" = "$PROPOSAL_SHA"
-          test -f proposal/pilot/native_proposals/ex6.json
-          test ! -L proposal/pilot/native_proposals/ex6.json
-      - name: Decode the external ex6 oracle to private runner path with SHA gate
+          test -f "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
+          test ! -L "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
+      - name: Decode task-selected external oracle to private runner path with SHA gate
         env:
-          PILOT_HOLDOUT_EX6_B64: ${{ secrets.PILOT_HOLDOUT_EX6_B64 }}
+          PILOT_HOLDOUT_B64: ${{ secrets[format('PILOT_HOLDOUT_{0}_B64', steps.source.outputs.secret_task)] }}
           EXPECTED_SHA: ${{ steps.task.outputs.holdout_sha256 }}
         run: |
           python3 - <<'PY'
           import base64,hashlib,os,pathlib,re
-          encoded=os.environ.get("PILOT_HOLDOUT_EX6_B64","")
+          encoded=os.environ.get("PILOT_HOLDOUT_B64","")
           expected=os.environ.get("EXPECTED_SHA","")
           if not encoded or not re.fullmatch(r"[0-9a-f]{64}",expected):
-              raise SystemExit("EX6_HOLDOUT_NOT_REGISTERED")
+              raise SystemExit("NATIVE_HOLDOUT_NOT_REGISTERED")
           raw=base64.b64decode(encoded,validate=True)
           if hashlib.sha256(raw).hexdigest()!=expected:
-              raise SystemExit("EX6_HOLDOUT_SHA_DRIFT")
+              raise SystemExit("NATIVE_HOLDOUT_SHA_DRIFT")
           path=pathlib.Path(os.environ["RUNNER_TEMP"])/"native-private"/"holdout.oracle.json"
           path.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
           with path.open("xb") as out:
@@ -172,8 +213,8 @@ jobs:
       - name: Execute original run_verified_worker using native proposal (single attempt)
         id: worker
         env:
-          NATIVE_TASK: ${{ inputs.task }}
-          NATIVE_ATTEMPT: ${{ inputs.attempt }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          NATIVE_ATTEMPT: ${{ steps.history.outputs.attempt }}
           NATIVE_RUN_ID: ${{ github.run_id }}
         run: |
           python3 control/pilot/worker_v08/native_run.py execute \

@@ -29,7 +29,12 @@ from native_proposal_client import NativeProposalClient, read_proposal_envelope
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
-_PROPOSAL_PATH = Path("pilot/native_proposals/ex6.json")
+_TASK_ID = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
+
+def proposal_path(task: str) -> Path:
+    if not isinstance(task,str) or _TASK_ID.fullmatch(task) is None:
+        raise ValueError("NATIVE_TASK_ID_INVALID")
+    return Path("pilot/native_proposals") / (task + ".json")
 
 
 def _write(path: Path, value: dict) -> None:
@@ -39,11 +44,10 @@ def _write(path: Path, value: dict) -> None:
 
 
 def load_registration(control: Path, task: str) -> tuple[dict, str]:
-    if task != "ex6":
-        raise ValueError("NATIVE_TASK_UNREGISTERED")
-    path = control / "pilot/worker_v08/native_tasks/ex6.json"
+    proposal_path(task)
+    path = control / "pilot/worker_v08/native_tasks" / (task + ".json")
     if not path.is_file() or path.is_symlink():
-        raise ValueError("NATIVE_EX6_REGISTRATION_PENDING_CLAUDE")
+        raise ValueError("NATIVE_TASK_UNREGISTERED")
     obj = strict_json_loads(path.read_text(encoding="utf-8"))
     if not isinstance(obj, dict) or set(obj) != {"task_spec", "holdout_sha256"}:
         raise ValueError("NATIVE_TASK_REGISTRATION_INVALID")
@@ -95,9 +99,9 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     public.mkdir(parents=True, exist_ok=True)
     raw_task, expected_sha = load_registration(control, task)
     spec = replace(parse_worker_task(raw_task), max_attempts=1)
-    proposal_path = proposal_checkout / _PROPOSAL_PATH
+    proposal_file = proposal_checkout / proposal_path(task)
     # Read only this fixed proposal path from the untrusted checkout.
-    submitted = read_proposal_envelope(proposal_path)
+    submitted = read_proposal_envelope(proposal_file)
     _write(public / "cost.json", {
         "schema_version": "LF_NATIVE_INCREMENTAL_API_COST_V1",
         "cost_scope": "incremental_api",
@@ -122,7 +126,7 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     # No preflight, missing oracle, invalid proposal, or scope failure is charged.
     # A later Worker failure does consume this attempt.
     _write(public / "attempt-proof.json", _proof(submitted, task, attempt, run_id))
-    client = NativeProposalClient(proposal_path)
+    client = NativeProposalClient(proposal_file)
     seen = []
     original = verified_module.run_worker
 
