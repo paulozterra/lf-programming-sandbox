@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0032",
+  "title": "EX7 N+1: formato Palantir Spotless de tres Java con equivalencia exacta .class",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-10: mantener PR #66 exacto; hacer PR N+1 solo formato Palantir y javac -g:none"
+  },
+  "reason": "Reformatear exclusivamente los tres archivos Java del parche EX7 aprobado (PR #66) con spotless-maven-plugin 3.10.4 y palantir-java-format 2.102.0. Comprobar igualdad byte a byte de todas las clases compiladas con javac --release 21 -g:none, sin cambio funcional, y preservar los blobs originales de #66.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [
+      "STD-BE-05"
+    ],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0032.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/67"
+  },
+  "decision_ref": "EX7 N+1 over #66; preserve exact source N blobs f9e7cb4, 7d4afc6, 20c4b10. Palantir 2.102.0 via Spotless 3.10.4, class-byte equivalence under javac -g:none, candidate only; no model or production authority."
+}
