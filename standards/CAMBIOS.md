@@ -40,4 +40,4 @@
 | CHG-0035 | EDITORIAL | EX8: incorporar los tres Java exactos del parche nativo verificado, Lote F |  | paulozterra |  |
 | CHG-0036 | ADDITIVE | P0: Merge Train liviano de sandbox por HEAD verificado y merge commit |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/77 |
 | CHG-0038 | ADDITIVE | CP0.2: recuperación del Train ante conflicto exclusivo en CAMBIOS.md |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/79 |
-| CHG-0039 | ADDITIVE | CP0.2 A: corregir split de NUL en guard del Train |  | paulozterra |  |
+| CHG-0039 | ADDITIVE | CP0.2 A: corregir split de NUL en guard del Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/80 |
