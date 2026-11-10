@@ -47,7 +47,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           s=Path("standards/CAMBIOS.md").read_text()
-          assert all("| CHG-"+str(i)+" |" in s for i in (31,32,33)), "CHG_HISTORY_MISSING"
+          assert all("| CHG-"+str(i).zfill(4)+" |" in s for i in (31,32,33)), "CHG_HISTORY_MISSING"
           y=Path(".github/workflows/ci.yml").read_text()
           assert "palantir-class-equivalence:" not in y, "OLD_GATE_REINTRODUCED"
           assert "mvn -B -q -f apps/time-service/pom.xml spotless:check" in y, "REQUIRED_SPOTLESS_MISSING"
