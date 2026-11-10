@@ -55,3 +55,32 @@ REM-D3 `@RestController ReminderStatsController` con `GET /api/reminders/stats`:
 - Las rutas existentes (`/api/reminders`, `/api/reminders/{id}`, `/api/time`) siguen igual; otros métodos sobre `/api/reminders/stats` → 405.
 
 REM-D4 La prueba visible está en `apps/time-service/visible-tests/ex6/` (fuera de `src/test` a propósito, para no romper el CI de `main` antes de que exista el código). Formato del código: norma AOSP de este documento.
+
+## Lote E — edición de recordatorios y duplicados (ejercicio 7, modo nativo)
+
+Este lote **modifica archivos existentes**. Solo se pueden cambiar `ReminderRepository.java`, `InMemoryReminderRepository.java` y `ReminderController.java`. No se crean archivos nuevos en `src/main` y ningún otro archivo cambia, incluidos los del lote D.
+
+REM-E1 Agregar a `ReminderRepository`: `Optional<Reminder> update(long id, String text, LocalTime at)`.
+- Valida `text` y `at` exactamente igual que `save` (REM-A5). La validación va **antes** de buscar el id: datos inválidos lanzan `IllegalArgumentException` aunque el id no exista.
+- Si el id no existe, devuelve `Optional.empty()` y no cambia nada.
+- Si existe, reemplaza `text` (con `strip()`) y `at` (truncado a segundos), **conserva el id y su posición** (findAll sigue ordenado por id) y devuelve el recordatorio actualizado.
+- Actualizar no consume ids: el siguiente `save` sigue la numeración normal.
+- Seguro con varios hilos, igual que el resto del repositorio.
+
+REM-E2 **No se permiten duplicados.** Dos recordatorios son duplicados si tienen el mismo `text` (después de `strip()`, sin distinguir mayúsculas de minúsculas con `Locale.ROOT`) y el mismo `at` (truncado a segundos).
+- `save` de un duplicado lanza `IllegalStateException` y no guarda nada.
+- `update` que dejaría un duplicado de **otro** recordatorio lanza `IllegalStateException` y no cambia nada. Un recordatorio nunca es duplicado de sí mismo: actualizarlo con sus mismos valores, o solo cambiando mayúsculas, está permitido.
+- Mismo texto con otra hora, u otro texto con la misma hora, no son duplicados. Al borrar un recordatorio, su combinación vuelve a quedar libre.
+- Las validaciones de REM-A5 se aplican antes que la de duplicados.
+
+REM-E3 `PUT /api/reminders/{id}` con el mismo cuerpo JSON que el POST (`{"text":"...","at":"HH:mm:ss"}`, hora estricta):
+- 200 con el objeto actualizado (`id`, `text`, `at`).
+- 400 si el id no es numérico, si el cuerpo falta o es inválido, si la hora es inválida o si el texto no pasa REM-A5.
+- 404 si el id no existe (solo cuando el cuerpo es válido: un cuerpo inválido responde 400 aunque el id no exista).
+- 409 si el cambio crearía un duplicado (REM-E2).
+
+REM-E4 `POST /api/reminders` de un duplicado responde **409** (antes respondía 201).
+
+REM-E5 Todo lo anterior se mantiene. En particular: `PUT /api/reminders` sigue respondiendo 405 (REM-B4), y **`PUT /api/reminders/stats` debe seguir respondiendo 405** (REM-D3), no 400. `GET /api/reminders/stats` sigue funcionando igual.
+
+REM-E6 La prueba visible está en `apps/time-service/visible-tests/ex7/` (fuera de `src/test` a propósito). Las pruebas existentes de `src/test` deben seguir pasando. Formato del código: norma AOSP de este documento.
