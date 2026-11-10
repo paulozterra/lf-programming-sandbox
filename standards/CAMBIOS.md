@@ -39,3 +39,4 @@
 | CHG-0034 | EDITORIAL | Registro EX8 nativo: Lote F (posponer) con perfil backend y skills fijados, prueba visible y SHA del examen externo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/73 |
 | CHG-0035 | EDITORIAL | EX8: incorporar los tres Java exactos del parche nativo verificado, Lote F |  | paulozterra |  |
 | CHG-0036 | ADDITIVE | P0: Merge Train liviano de sandbox por HEAD verificado y merge commit |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/77 |
+| CHG-0038 | ADDITIVE | CP0.2: recuperación del Train ante conflicto exclusivo en CAMBIOS.md |  | paulozterra |  |
