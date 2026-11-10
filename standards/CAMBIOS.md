@@ -35,4 +35,4 @@
 | CHG-0029 | ADDITIVE | Fase 2A: Spotless + palantir-java-format según STD-BE-05, remediación Java byte-equivalente |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/64 |
 | CHG-0030 | ADDITIVE | Fase 2B: copia LF fijada y contexto Worker de perfiles/Skills para tareas API y nativas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/65 |
 | CHG-0031 | EDITORIAL | EX7: incorporar los tres archivos exactos del parche verificado en run 42855259114 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/66 |
-| CHG-0032 | EDITORIAL | EX7 N+1: formato Palantir Spotless de tres Java con equivalencia exacta .class |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/67 |
+| CHG-0032 | EDITORIAL | EX7 N+1: formato Palantir Spotless de tres Java con equivalencia exacta .class |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/68 |
