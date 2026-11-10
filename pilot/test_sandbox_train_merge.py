@@ -148,10 +148,10 @@ else:
         script = self.root / "standards/tools/changes.py"
         original = script.read_text()
         sentinel = (
-            "import os\\n"
+            "import os\n"
             "if any(os.getenv(k) for k in "
-            "('GH_TOKEN','GITHUB_TOKEN','ACTIONS_RUNTIME_TOKEN')):\\n"
-            "    raise RuntimeError('TOKEN_EXPOSED')\\n"
+            "('GH_TOKEN','GITHUB_TOKEN','ACTIONS_RUNTIME_TOKEN')):\n"
+            "    raise RuntimeError('TOKEN_EXPOSED')\n"
         )
         script.write_text(sentinel + original)
         self.commit("shared token sentinel")
