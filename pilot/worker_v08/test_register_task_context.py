@@ -71,6 +71,7 @@ class PinnedSource(unittest.TestCase):
         self.assertTrue(expected.issubset(task["protected_path_patterns"]))
         self.assertFalse(expected.intersection(task["write_path_patterns"]))
         receipt = json.loads(artifacts[".lf/worker-context/ex8/receipt.json"])
+        self.assertEqual(receipt["source_pin_sha256"], hashlib.sha256((PINS / "SOURCE_PIN.json").read_bytes()).hexdigest())
         self.assertEqual([x["code"] for x in receipt["skills"]], ["SPRINGBOOT_EXP", "KAFKA_EXP"])
         self.assertEqual([x["priority"] for x in receipt["skills"]], [1, 2])
         self.assertIn("STD-BE-05", artifacts[".lf/worker-context/ex8/skills.md"].decode())
