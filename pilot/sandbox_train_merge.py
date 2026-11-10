@@ -22,7 +22,8 @@ class BranchConflict(Exception):
 
 def git(root, *args, check=True, env=None):
     result = subprocess.run(["git", *args], cwd=root, text=True,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            env=no_token_env() if env is None else env)
     if check and result.returncode:
         raise BranchConflict("BRANCH_CONFLICT git " + str(args[0]) +
                              ": " + result.stderr.strip()[:350])
@@ -95,7 +96,7 @@ def update_branch_locally(branch, expected_head, expected_main, token, repositor
         merged_sha = prepare_merge(root, "refs/remotes/origin/main", expected_head)
         # Non-forced push: concurrent branch updates are refused by Git.
         basic = base64.b64encode(("x-access-token:" + token).encode()).decode()
-        env = os.environ.copy()
+        env = no_token_env()
         env.update({"GIT_CONFIG_COUNT": "1",
                     "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
                     "GIT_CONFIG_VALUE_0": "AUTHORIZATION: basic " + basic,
