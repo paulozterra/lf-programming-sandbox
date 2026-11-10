@@ -1,0 +1,1567 @@
+{
+  "schema_version": "LF_STANDARDS_CATALOG_V1",
+  "catalog_version": "0.6.1",
+  "status": "BORRADOR_EN_REPO_DE_CALIFICACION",
+  "source": "Plan Fase 2 (proyecto LF): claude/programacion-fase2-desglose-checkpoints-estandares-2026-10-21.md",
+  "canonical_store_target": "transversal (vía Router -> Train, pendiente)",
+  "severity_values": [
+    "BLOCK",
+    "WARN",
+    "BLOCK_OR_WARN",
+    "POR_DEFINIR"
+  ],
+  "enforcement_states": {
+    "active": "Lo exige el CI y bloquea",
+    "shadow": "Corre en el CI y reporta, sin bloquear",
+    "review": "Lo verifica el revisor de PG-11 con rúbrica sí/no",
+    "planned": "Control definido, aún no implementado"
+  },
+  "legacy_policy": "Los checks BLOCK se aplican al código nuevo o modificado (diff), con línea base de violaciones medida en PG-06·C4.",
+  "precedence": [
+    "L1 (piso que nadie rebaja)",
+    "Lo que trae el spec de la Fase 1 (reglas tipo A)",
+    "Contratos existentes y perfil técnico del proyecto (reglas tipo B, por manifiesto)",
+    "Valor por defecto del catálogo (L2)"
+  ],
+  "domains": [
+    {
+      "id": "STD-GEN",
+      "title": "Transversal",
+      "level": "L1",
+      "applies_to": [
+        "all"
+      ]
+    },
+    {
+      "id": "STD-DB",
+      "title": "PostgreSQL",
+      "level": "L2",
+      "applies_to": [
+        "postgresql"
+      ]
+    },
+    {
+      "id": "STD-API",
+      "title": "Contrato HTTP",
+      "level": "L1/L2",
+      "applies_to": [
+        "http-api"
+      ]
+    },
+    {
+      "id": "STD-BE",
+      "title": "Java / Spring Boot",
+      "level": "L2",
+      "applies_to": [
+        "java-spring"
+      ],
+      "status": "PENDIENTE_REVISION"
+    },
+    {
+      "id": "STD-FE",
+      "title": "Next.js + TypeScript",
+      "level": "L2",
+      "applies_to": [
+        "nextjs-typescript"
+      ]
+    },
+    {
+      "id": "STD-PY",
+      "title": "Python",
+      "level": "L2",
+      "applies_to": [
+        "python"
+      ]
+    },
+    {
+      "id": "STD-GIT",
+      "title": "Repositorio",
+      "level": "L1",
+      "applies_to": [
+        "all"
+      ]
+    },
+    {
+      "id": "STD-SB",
+      "title": "Backend Supabase",
+      "level": "L2",
+      "applies_to": [
+        "supabase"
+      ]
+    },
+    {
+      "id": "STD-SEC",
+      "title": "Seguridad de aplicación",
+      "level": "L1",
+      "applies_to": [
+        "all"
+      ]
+    },
+    {
+      "id": "STD-LOG",
+      "title": "Logs y eventos",
+      "level": "L1",
+      "applies_to": [
+        "all"
+      ]
+    },
+    {
+      "id": "STD-AUD",
+      "title": "Auditoría e historial de valores",
+      "level": "L1",
+      "applies_to": [
+        "all"
+      ]
+    },
+    {
+      "id": "STD-NAV",
+      "title": "Recorrido del usuario",
+      "level": "L1",
+      "applies_to": [
+        "ui"
+      ]
+    },
+    {
+      "id": "STD-CONS",
+      "title": "Términos, condiciones y consentimientos",
+      "level": "L1",
+      "applies_to": [
+        "all"
+      ],
+      "status": "VALIDAR_CON_LEGAL"
+    },
+    {
+      "id": "STD-MSG",
+      "title": "Mensajes al usuario",
+      "level": "L1",
+      "applies_to": [
+        "ui"
+      ]
+    },
+    {
+      "id": "STD-IAC",
+      "title": "Infraestructura como código",
+      "level": "L1",
+      "applies_to": [
+        "iac"
+      ]
+    },
+    {
+      "id": "STD-CONT",
+      "title": "Contenedores",
+      "level": "L1",
+      "applies_to": [
+        "containers"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "adr": "ADR-PROG-STD-001",
+      "topic": "Formato de error: `REG_TEC_003` (envelope `{success,data,error,meta}`, VIGENTE) frente al plan M1 del producto (`ProblemDetail`, RFC 9457)",
+      "decision": "(b) para proyectos nuevos: nativo de Spring 6, estándar de la industria, admite varios errores por campo. LF no cambia"
+    },
+    {
+      "id": "D2",
+      "adr": "ADR-PROG-STD-002",
+      "topic": "Códigos de error. Los códigos los crea la Fase 1 en el catálogo del proyecto; el agente no los inventa",
+      "decision": "(1) Relación en BD por `error_id` numérico + código de texto único. (2) La API expone el código de texto y el `trace_code`, nunca el id interno. (3) Si falta un error en el spec → `REQUIRES_DECISION`. (4) El kit base trae errores técnicos mínimos (interno, servicio no disponible, timeout, datos inválidos, sin permiso, no encontrado); su texto visible es de la Fase 1 y, mientras falte, queda marcado \"pendiente de copy\", lo que bloquea producción"
+    },
+    {
+      "id": "D3",
+      "adr": "ADR-PROG-STD-003",
+      "topic": "Mayúsculas en campos JSON de la API",
+      "decision": "snake_case en request, response, path y query params: Supabase lo devuelve así de forma nativa, coincide con las reglas de LF y en Spring es una línea de configuración (Jackson `SNAKE_CASE`). En TypeScript, los tipos generados de la API conservan snake_case; las variables propias del frontend siguen en camelCase"
+    },
+    {
+      "id": "D4",
+      "adr": "ADR-PROG-STD-004",
+      "topic": "Idioma de los identificadores (tablas, columnas, variables, funciones, rutas). No aplica al copy visible (Fase 1, en español) ni a los códigos de catálogo (literales)",
+      "decision": "Inglés: predomina en columnas y en lo más nuevo (`lf_client` 100 % inglés; `created_at`/`updated_at` 100 %), coincide con frameworks y evita tildes y ñ. El glosario de PG-00 fija una sola traducción por término (deuda → `debt`) y PG-11 lo verifica"
+    },
+    {
+      "id": "D5",
+      "adr": "ADR-PROG-STD-005",
+      "topic": "PK de tablas nuevas",
+      "decision": "`id bigint generated always as identity`; UUID solo si el id se expone fuera o se relaciona con `auth.users`. FK `<entidad>_id` (`payments.debt_id`)"
+    },
+    {
+      "id": "D6",
+      "adr": "ADR-PROG-STD-006",
+      "topic": "Nombres de constraints e índices",
+      "decision": "Siempre el nombre por defecto de Postgres (`debts_pkey`, `payments_debt_id_fkey`, `payments_debt_id_idx`); sin prefijos propios"
+    },
+    {
+      "id": "D7",
+      "adr": "ADR-PROG-STD-007",
+      "topic": "Nombres de funciones",
+      "decision": "Esquemas de proyecto: `<verbo>_<objeto>_vN` sin prefijo (`saly.get_debt_summary_v1`). Plataforma LF: `lf_…_vN`"
+    },
+    {
+      "id": "D8",
+      "adr": "ADR-PROG-STD-008",
+      "topic": "Header de idempotencia",
+      "decision": "`Idempotency-Key` en proyectos nuevos; LF mantiene `X-Idempotency-Key`"
+    },
+    {
+      "id": "D9",
+      "adr": "ADR-PROG-STD-009",
+      "topic": "`request_id` y `correlation_id`",
+      "decision": "Dos conceptos: `X-Request-Id` por petición HTTP y `X-Correlation-Id` de punta a punta (FE, BE, auditoría, navegación); ambos se devuelven y se guardan en logs y auditoría"
+    },
+    {
+      "id": "D10",
+      "adr": "ADR-PROG-STD-010",
+      "topic": "Montos",
+      "decision": "API: `\"amount\": \"1650.00\", \"currency\": \"PEN\"`; BD: `numeric(18,2)`; nunca float"
+    },
+    {
+      "id": "D11",
+      "adr": "ADR-PROG-STD-011",
+      "topic": "Linters en CI",
+      "decision": "En cada repo: modo sombra y luego bloqueo solo sobre código nuevo o modificado. TS: ESLint + Prettier + `tsc`; Python: ruff + mypy; Postgres: lint de catálogo con SQL sobre la BD migrada; Spectral cuando haya OpenAPI. En `claude-persona-lf-patch`: admitir antes la ruta del workflow en PASE y pasar por el Train"
+    },
+    {
+      "id": "D12",
+      "adr": "ADR-PROG-STD-012",
+      "topic": "¿Se muestra un código al usuario? `REG_ACC_002` (VIGENTE) prohíbe \"códigos de error\" en mensajes visibles; `B2B-RULE-ERROR-003` (VIGENTE) exige mostrar `trace_code`",
+      "decision": "(b): el código técnico (`LF_OTP_EXPIRADO`) nunca se muestra; el de referencia (\"Código para soporte: LF-20261021-AB12CD34\") sí, porque es lo que permite rastrear el caso"
+    },
+    {
+      "id": "D13",
+      "adr": "ADR-PROG-STD-013",
+      "topic": "Stack con el que se califica la V1 del agente",
+      "decision": "(b). Calificación primero en el entorno local del plan (`docker compose`: PostgreSQL 17 + Floci que emula AWS) y después en QA de AWS. STD-BE se activa; STD-SB queda solo para proyectos con backend Supabase (como la plataforma LF)"
+    },
+    {
+      "id": "D14",
+      "adr": "ADR-PROG-STD-014",
+      "topic": "Infraestructura como código: qué escribe la Fase 2 y qué la Fase 4",
+      "decision": "(b). Si una pieza necesita un recurso (cola, bucket, secreto, evento), su IaC va en el mismo PR y se valida contra el emulador local. Red, cómputo, borde, identidad, entornos, secretos reales y promoción son de la Fase 4. El agente nunca aplica en la nube. Para LF ya está escrito así en `infra-terraform/FLOCI-A-AWS.md` (módulo `app-resources` igual en Floci y AWS)"
+    },
+    {
+      "id": "D15",
+      "adr": "ADR-PROG-STD-015",
+      "topic": "Perfil de arquitectura del proyecto (estilo de software, unidades desplegables, arquitectura de nube, Docker, comunicación)",
+      "decision": "(b). Es por proyecto, no del catálogo del agente. Cada proyecto declara su perfil con referencia exacta (repo + commit). Sin perfil vigente → `REQUIRES_DECISION` antes de programar. Salirse del perfil (servicio nuevo, unidad desplegable nueva, otro patrón de comunicación) → decisión humana + ADR, nunca en silencio. LF: `paulozterra/lf-architecture@bbe718c` (monolito modular Core + Payments + Workers; ECS Fargate ARM64, RDS, S3, EventBridge/SQS, Cognito, CloudFront) e `paulozterra/paulozterra-infra-terraform` (subido 21/10)"
+    },
+    {
+      "id": "D16",
+      "adr": "ADR-PROG-STD-016",
+      "topic": "Medición del consumo (tokens y costo del agente)",
+      "decision": "Siempre activa. Cada llamada al modelo registra tokens de entrada, de salida y de caché (lectura y escritura), modelo y costo calculado con una tabla de precios versionada. Se agrega por lote, por pedido y por etapa (planificar, construir, reintentos, dudas, reparación) y se separa el gasto útil del desperdiciado (intentos fallidos, rehacer por paquete vencido o por hallazgo). Hoy el Worker v0.8 ya registra entrada y salida por intento; falta caché y un registro persistente (Supabase vía Train)"
+    },
+    {
+      "id": "D17",
+      "adr": "ADR-PROG-STD-017",
+      "topic": "Modo de optimización del consumo",
+      "decision": "Se elige por pedido y nunca relaja un control (reglamento, revisiones y pruebas iguales en cualquier modo). Palancas: (1) caché del contexto estable (reglamento, perfil técnico, paquete de Fase 1); (2) contexto mínimo (`CONTEXT_BUDGET_GOVERNANCE`); (3) no redescubrir; (4) freno temprano (PG-09); (5) modelo según dificultad del lote, apagado en V1 hasta que PG-18 demuestre que no baja la calidad. Presupuesto por pedido: aviso al 80 %, al 100 % `REQUIRES_DECISION`; nunca se recorta calidad para entrar en presupuesto. Montos POR DEFINIR con datos de PG-16"
+    }
+  ],
+  "rules": [
+    {
+      "id": "STD-GEN-01",
+      "domain": "STD-GEN",
+      "rule": "Identificadores en inglés (D4); glosario obligatorio: un glosario base en `transversal` y un glosario de dominio por proyecto (L3)",
+      "severity": "BLOCK",
+      "severity_condition": "en código nuevo",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "shadow",
+        "tool": "standards/tools/glossary.py check-diff (español y formas rechazadas en líneas nuevas) + coverage (cobertura positiva por term_id)",
+        "command": "python3 standards/tools/glossary.py check-diff --base origin/<rama base>",
+        "planned_control": "Revisor PG-11 + diccionario de glosario"
+      },
+      "glossary": "standards/glossary/ (base.json + projects/lf.json) · vista standards/GLOSARIO.md",
+      "examples": {
+        "good": [
+          "String correlationId = request.getHeader(\"X-Correlation-Id\");"
+        ],
+        "bad": [
+          "String identificadorCorrelacion = request.getHeader(\"X-Correlation-Id\");"
+        ]
+      }
+    },
+    {
+      "id": "STD-GEN-02",
+      "domain": "STD-GEN",
+      "rule": "Nada de configuración, montos, timeouts ni URLs hardcodeados",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "REG_LF_BENEFITS_CONFIG_001, B2B-RULE-TIMEOUT-001"
+      ],
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Lint de patrones + revisor"
+      }
+    },
+    {
+      "id": "STD-GEN-03",
+      "domain": "STD-GEN",
+      "rule": "Secretos nunca en código ni en logs; subprocess con entorno allowlist",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "PR-SEC-010"
+      ],
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "gitleaks + revisor"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Secretos y ejecucion segura son invariantes de seguridad"
+      },
+      "examples": {
+        "good": [
+          "String apiKey = System.getenv(\"SERVICE_API_KEY\");",
+          "ProcessBuilder pb = new ProcessBuilder(command); pb.environment().keySet().retainAll(Set.of(\"PATH\", \"LANG\"));"
+        ],
+        "bad": [
+          "private static final String API_KEY = \"example-secret-value\";",
+          "logger.info(\"api_key={}\", apiKey);"
+        ]
+      }
+    },
+    {
+      "id": "STD-GEN-04",
+      "domain": "STD-GEN",
+      "rule": "PII fuera de logs, eventos y Sentry",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "REG_AUD_002, REG_OBS_002"
+      ],
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Test de logs + revisor"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "La proteccion de PII es obligatoria"
+      },
+      "examples": {
+        "good": [
+          "logger.info(\"request_id={}\", requestId);"
+        ],
+        "bad": [
+          "logger.info(\"customer_email={}\", customerEmail);"
+        ]
+      }
+    },
+    {
+      "id": "STD-GEN-05",
+      "domain": "STD-GEN",
+      "rule": "Toda supresión de lint lleva el id del waiver",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "shadow",
+        "tool": "standards/tools/waivers.py check-refs",
+        "command": "python3 standards/tools/waivers.py check-refs backend/src frontend/src --as-of <fecha>",
+        "planned_control": "Exigir waiver registrado, vigente, aplicable a ruta y objetivo"
+      },
+      "examples": {
+        "good": [
+          "// eslint-disable-next-line no-console -- WAIVER-0001 diagnóstico temporal",
+          "@SuppressWarnings(\"unchecked\") // WAIVER-0002 API externa sin genéricos"
+        ],
+        "bad": [
+          "// eslint-disable-next-line no-console",
+          "// @ts-ignore"
+        ]
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "El requisito de citar un waiver no admite excepcion recursiva"
+      }
+    },
+    {
+      "id": "STD-GEN-06",
+      "domain": "STD-GEN",
+      "rule": "Fechas en ISO-8601 con zona y almacenadas en UTC",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Lint de OpenAPI + catálogo de BD"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "ISO-8601 y UTC son invariantes de interoperabilidad"
+      },
+      "examples": {
+        "good": [
+          "2026-10-23T14:30:00Z"
+        ],
+        "bad": [
+          "2026-10-23 14:30"
+        ]
+      }
+    },
+    {
+      "id": "STD-GEN-07",
+      "domain": "STD-GEN",
+      "rule": "Los códigos de catálogo provenientes de la Fase 1 se usan literales; la configuración del linter los excluye (por ejemplo, como strings o enums generados desde el catálogo, nunca como identificadores reescritos)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Revisor PG-11 + test que compara contra el catálogo"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Los codigos literales de Fase 1 no pueden alterarse"
+      }
+    },
+    {
+      "id": "STD-DB-01",
+      "domain": "STD-DB",
+      "rule": "Tablas y columnas en snake_case minúscula y en inglés (D4); tablas en plural (`debts`, `offers`)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "active",
+        "planned_control": "Lint de catálogo sobre la BD local migrada; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
+      },
+      "examples": {
+        "good": [
+          "create table offers (...)",
+          "column discount_percent"
+        ],
+        "bad": [
+          "create table Oferta (...)",
+          "column DescuentoPct"
+        ]
+      }
+    },
+    {
+      "id": "STD-DB-02",
+      "domain": "STD-DB",
+      "rule": "PK y FK según D5",
+      "severity": "BLOCK",
+      "severity_condition": "nuevas",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "active",
+        "planned_control": "Lint de catálogo; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
+      }
+    },
+    {
+      "id": "STD-DB-03",
+      "domain": "STD-DB",
+      "rule": "Constraints e índices con el nombre por defecto de Postgres (D6)",
+      "severity": "WARN",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "active",
+        "planned_control": "Lint de catálogo; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
+      }
+    },
+    {
+      "id": "STD-DB-04",
+      "domain": "STD-DB",
+      "rule": "`created_at`/`updated_at` `timestamptz not null default now()` en tablas nuevas; `updated_at` lo mantiene un trigger común del kit base, nunca la aplicación",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "active",
+        "planned_control": "Lint de catálogo; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
+      }
+    },
+    {
+      "id": "STD-DB-05",
+      "domain": "STD-DB",
+      "rule": "Booleanos `is_`/`has_`; enums con tabla catálogo o `CHECK`, sin valores inventados",
+      "severity": "WARN",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "PRV-SQL-008"
+      ],
+      "enforcement": {
+        "state": "active",
+        "planned_control": "Lint + revisor; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
+      }
+    },
+    {
+      "id": "STD-DB-06",
+      "domain": "STD-DB",
+      "rule": "RLS activo en toda tabla nueva expuesta, con políticas explícitas",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "active",
+        "planned_control": "Advisors + lint; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "RLS es control esencial de autorizacion"
+      }
+    },
+    {
+      "id": "STD-DB-07",
+      "domain": "STD-DB",
+      "rule": "`SECURITY DEFINER` con EXECUTE revocado de PUBLIC, grants mínimos y `search_path` fijo",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "PR-SEC-011"
+      ],
+      "enforcement": {
+        "state": "active",
+        "planned_control": "Lint de funciones; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
+      }
+    },
+    {
+      "id": "STD-DB-08",
+      "domain": "STD-DB",
+      "rule": "Migración: apply, reapply, rollback y reapply conservando datos; expand/contract para cambios incompatibles",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "PRV-SQL-001",
+        "PRV-SQL-006"
+      ],
+      "enforcement": {
+        "state": "active",
+        "planned_control": "Test BEGIN/ROLLBACK + fixture; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py migrate-test (solo kit)"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Las migraciones deben preservar datos y reversibilidad"
+      }
+    },
+    {
+      "id": "STD-DB-09",
+      "domain": "STD-DB",
+      "rule": "Nombre de migración: plataforma LF; producto `V<n>__<descripcion_snake>.sql` (Flyway)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "POL-LF-MIGRATION-NAMING"
+      ],
+      "enforcement": {
+        "state": "active",
+        "planned_control": "Clasificador / Flyway validate; solo kit, resto sombra (D11)",
+        "tool": "standards/tools/db_catalog_lint.py",
+        "command": "python3 standards/tools/db_catalog_lint.py lint --schema kit_test --format json (solo kit)"
+      }
+    },
+    {
+      "id": "STD-DB-10",
+      "domain": "STD-DB",
+      "rule": "Funciones de la plataforma LF según D7",
+      "severity": "WARN",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Lint de catálogo"
+      }
+    },
+    {
+      "id": "STD-API-01",
+      "domain": "STD-API",
+      "rule": "APIs REST propias (Spring o API propia): prefijo `/api/v1/`. En Supabase la versión va en el nombre de la función (`_vN`)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "antecedente REG_API_001"
+      ],
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Spectral / lint de catálogo"
+      },
+      "examples": {
+        "good": [
+          "GET /api/v1/work-requests"
+        ],
+        "bad": [
+          "GET /work-requests"
+        ]
+      }
+    },
+    {
+      "id": "STD-API-02",
+      "domain": "STD-API",
+      "rule": "APIs REST propias — rutas: recursos como sustantivos en plural y kebab-case; acciones solo como subrecurso verbal (`/checkout/confirm`); path params en el casing de D3",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Spectral"
+      },
+      "examples": {
+        "good": [
+          "GET /api/v1/work-batches/{workBatchId}"
+        ],
+        "bad": [
+          "GET /api/v1/work_batch/{workBatchId}"
+        ]
+      }
+    },
+    {
+      "id": "STD-API-03",
+      "domain": "STD-API",
+      "rule": "Campos JSON, path params y query params en snake_case (D3), consistentes en request y response",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Spectral"
+      },
+      "examples": {
+        "good": [
+          "{\"offer_id\": 12, \"discount_percent\": \"15.00\"}"
+        ],
+        "bad": [
+          "{\"offerId\": 12, \"DiscountPercent\": 15}"
+        ]
+      }
+    },
+    {
+      "id": "STD-API-04",
+      "domain": "STD-API",
+      "rule": "Errores según D1 + D2; nunca stack trace ni SQL",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "REG_TEC_010"
+      ],
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Spectral + test de contrato"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Nunca exponer SQL ni stack traces"
+      },
+      "examples": {
+        "good": [
+          "HTTP 500 Content-Type: application/problem+json {\"type\":\"about:blank\",\"title\":\"Internal Server Error\",\"status\":500,\"code\":\"INTERNAL_ERROR\",\"trace_code\":\"7f3a9c21\"}"
+        ],
+        "bad": [
+          "HTTP 500: {\"error\":\"SELECT * FROM accounts; stack trace ...\"}",
+          "HTTP 404: {\"error_id\":17,\"message\":\"texto inventado por el agente\"}"
+        ]
+      }
+    },
+    {
+      "id": "STD-API-05",
+      "domain": "STD-API",
+      "rule": "Headers: `Idempotency-Key` (D8), `X-Request-Id` y `X-Correlation-Id` (D9), rate limit 429 + `Retry-After`",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "REG_API_005"
+      ],
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Spectral + test"
+      },
+      "examples": {
+        "good": [
+          "POST /api/v1/work-requests + Idempotency-Key: example-key; X-Request-Id: example-request; X-Correlation-Id: example-correlation"
+        ],
+        "bad": [
+          "HTTP 429 without Retry-After"
+        ]
+      }
+    },
+    {
+      "id": "STD-API-06",
+      "domain": "STD-API",
+      "rule": "Contrato primero: en Spring, OpenAPI antes del código y cliente FE generado; en Supabase, firma de la función RPC o de la Edge Function definida antes y tipos generados (`supabase gen types`)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Diff contrato vs. código"
+      },
+      "examples": {
+        "good": [
+          "Define OpenAPI operation GET /api/v1/work-requests before implementing Spring controller; generate FE client from spec"
+        ],
+        "bad": [
+          "Implement Spring controller first and manually write incompatible frontend fetch calls"
+        ]
+      }
+    },
+    {
+      "id": "STD-API-07",
+      "domain": "STD-API",
+      "rule": "Paginación, filtros y orden con parámetros estándar: REST propia `page`, `size`, `sort`; funciones Supabase `p_limit`, `p_offset`",
+      "severity": "WARN",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Spectral / lint de catálogo"
+      }
+    },
+    {
+      "id": "STD-API-08",
+      "domain": "STD-API",
+      "rule": "Montos como texto decimal + `currency` (D10); en BD `numeric(18,2)`",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Spectral + lint de catálogo"
+      },
+      "examples": {
+        "good": [
+          "{\"amount\": \"1650.00\", \"currency\": \"PEN\"}"
+        ],
+        "bad": [
+          "{\"amount\": 1650.0}",
+          "{\"monto\": 1650}"
+        ]
+      }
+    },
+    {
+      "id": "STD-API-09",
+      "domain": "STD-API",
+      "rule": "Cambio incompatible significa nueva versión, sin romper la anterior: `/api/v2/` en REST propia; `_v2` en Supabase, manteniendo `_v1` hasta que no tenga consumidores",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Detector de breaking changes en OpenAPI (p. ej., oasdiff)"
+      },
+      "examples": {
+        "good": [
+          "Keep GET /api/v1/work-requests and add GET /api/v2/work-requests for breaking response changes"
+        ],
+        "bad": [
+          "Replace /api/v1/work-requests response incompatibly without publishing /api/v2/"
+        ]
+      }
+    },
+    {
+      "id": "STD-BE-01",
+      "domain": "STD-BE",
+      "rule": "Paquetes en minúscula; clases e interfaces en PascalCase; métodos y variables en camelCase; constantes en UPPER_SNAKE",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Checkstyle"
+      }
+    },
+    {
+      "id": "STD-BE-02",
+      "domain": "STD-BE",
+      "rule": "DTOs separados de las entidades (`…Request`/`…Response`); nunca exponer entidades JPA",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "ArchUnit"
+      }
+    },
+    {
+      "id": "STD-BE-03",
+      "domain": "STD-BE",
+      "rule": "Si el perfil de arquitectura del proyecto (D15) declara módulos, sus límites se verifican con una prueba automatizada en el CI (en Spring Modulith: `ApplicationModules.verify()`). Sin módulos declarados, no aplica.",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Test en CI"
+      }
+    },
+    {
+      "id": "STD-BE-04",
+      "domain": "STD-BE",
+      "rule": "Logs técnicos en JSON con el formato estructurado nativo de Spring Boot. Campos mínimos: `timestamp`, `level`, `logger`, `message`, `request_id` y `correlation_id` (D9). Nunca PII (STD-GEN-04). El proyecto puede exigir campos adicionales (L3).",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "REG_TEC_012"
+      ],
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Test de logs"
+      }
+    },
+    {
+      "id": "STD-BE-05",
+      "domain": "STD-BE",
+      "rule": "Formato automático con palantir-java-format (4 espacios, 120 columnas) aplicado con Spotless; el CI y el agente usan el mismo comando",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "shadow",
+        "tool": "spotless-maven-plugin 3.10.4 + palantir-java-format 2.102.0",
+        "command": "mvn -f backend/pom.xml spotless:check",
+        "planned_control": "Spotless; el formateador se elige cuando STD-BE se active (D13)"
+      },
+      "examples": {
+        "good": [
+          "Código que no cambia al correr mvn spotless:apply"
+        ],
+        "bad": [
+          "Sangría de 2 espacios o líneas de más de 120 columnas que Spotless reescribe"
+        ]
+      },
+      "waiver_policy": {
+        "allowed": true
+      }
+    },
+    {
+      "id": "STD-BE-06",
+      "domain": "STD-BE",
+      "rule": "Toda llamada saliente (HTTP, BD, colas) tiene un timeout explícito tomado de la configuración, nunca un literal en el código ni el valor por defecto sin límite. Solo se reintentan operaciones idempotentes, con límite y espera configurados. La política concreta la fija el proyecto (L3).",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "B2B-RULE-TIMEOUT-001"
+      ],
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Revisor + ArchUnit"
+      }
+    },
+    {
+      "id": "STD-FE-01",
+      "domain": "STD-FE",
+      "rule": "Componentes y tipos en PascalCase; hooks `useX`; variables y funciones en camelCase; constantes en UPPER_SNAKE; sin prefijo `I` en interfaces. Excepción: las propiedades de los tipos generados de la API se mantienen en snake_case (D3)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "ESLint (`@typescript-eslint/naming-convention`)"
+      }
+    },
+    {
+      "id": "STD-FE-02",
+      "domain": "STD-FE",
+      "rule": "Todos los archivos en kebab-case (`b2b-shell.tsx`, `client-session.ts`), como ya usa `libertad-financiera`; el componente dentro del archivo sigue en PascalCase",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "shadow",
+        "tool": "standards/tools/checks.py filenames",
+        "command": "python3 standards/tools/checks.py filenames frontend/src",
+        "planned_control": "ESLint (`unicorn/filename-case`)"
+      },
+      "examples": {
+        "good": [
+          "src/components/b2b-shell/b2b-shell.tsx",
+          "src/lib/auth/client-session.ts"
+        ],
+        "bad": [
+          "src/components/B2BShell.tsx",
+          "src/lib/auth/clientSession.ts"
+        ]
+      },
+      "waiver_policy": {
+        "allowed": true
+      }
+    },
+    {
+      "id": "STD-FE-03",
+      "domain": "STD-FE",
+      "rule": "TypeScript `strict`, sin `any` implícito ni `@ts-ignore` sin waiver",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "active",
+        "tool": "tsc --noEmit (parcial: falta la regla de @ts-ignore sin waiver)",
+        "command": "npm run typecheck",
+        "planned_control": "`tsc --noEmit` + ESLint; control de supresiones en modo sombra con waivers.py"
+      },
+      "waiver_policy": {
+        "allowed": true,
+        "eligible_controls": [
+          "@ts-ignore",
+          "@ts-expect-error"
+        ]
+      }
+    },
+    {
+      "id": "STD-FE-04",
+      "domain": "STD-FE",
+      "rule": "Llamadas a la API solo con el cliente o los tipos generados (`api-client` desde OpenAPI, o `supabase gen types`); nada de `fetch` a mano",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "ESLint (`no-restricted-imports`)"
+      }
+    },
+    {
+      "id": "STD-FE-05",
+      "domain": "STD-FE",
+      "rule": "El FE no recalcula precios ni montos",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "REG_PRI_002"
+      ],
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Revisor + test"
+      }
+    },
+    {
+      "id": "STD-FE-06",
+      "domain": "STD-FE",
+      "rule": "Accesibilidad, responsive y Core Web Vitals",
+      "severity": "BLOCK_OR_WARN",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "reglas ACCESSIBILITY/RESPONSIVE, REG_OBS_004"
+      ],
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "eslint-plugin-jsx-a11y + Playwright/Lighthouse"
+      }
+    },
+    {
+      "id": "STD-FE-07",
+      "domain": "STD-FE",
+      "rule": "Formato",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "shadow",
+        "tool": "prettier 3.9.10",
+        "command": "npx prettier --check (frontend)",
+        "planned_control": "Prettier"
+      },
+      "examples": {
+        "good": [
+          "Código que no cambia al correr prettier --write"
+        ],
+        "bad": [
+          "Comillas, comas o saltos de línea distintos a los que deja Prettier"
+        ]
+      },
+      "waiver_policy": {
+        "allowed": true
+      }
+    },
+    {
+      "id": "STD-PY-01",
+      "domain": "STD-PY",
+      "rule": "PEP 8: funciones y variables en snake_case, clases en PascalCase, constantes en UPPER_SNAKE",
+      "severity": "BLOCK",
+      "severity_condition": "en código nuevo",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "ruff (`N`)"
+      }
+    },
+    {
+      "id": "STD-PY-02",
+      "domain": "STD-PY",
+      "rule": "Formato",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "`ruff format`"
+      }
+    },
+    {
+      "id": "STD-PY-03",
+      "domain": "STD-PY",
+      "rule": "Type hints en funciones públicas + typecheck (activar `PR-PROG-005`, hoy inactiva)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "mypy, alineado con `programming-agent` (ruff 0.6.9 + mypy 1.11.2 fijados)"
+      }
+    },
+    {
+      "id": "STD-GIT-01",
+      "domain": "STD-GIT",
+      "rule": "Ramas del agente: `lf/prog-<work_code>/<slug>`, dentro de `lf/**` como indica el protocolo operativo (sandbox: `lf/prog-sandbox/<slug>`)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "shadow",
+        "tool": "standards/tools/checks.py branch",
+        "command": "python3 standards/tools/checks.py branch <rama>",
+        "planned_control": "Check de PR"
+      },
+      "examples": {
+        "good": [
+          "lf/prog-sandbox/pg00-reglamento-v0-1",
+          "lf/prog-PROG-REM-003/estrategia-tecnica"
+        ],
+        "bad": [
+          "feature/descuentos",
+          "main-fix"
+        ]
+      }
+    },
+    {
+      "id": "STD-GIT-02",
+      "domain": "STD-GIT",
+      "rule": "Commits: `<tipo>(<ámbito>): <resumen>` (Conventional Commits), uno por lote",
+      "severity": "WARN",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "commitlint"
+      }
+    },
+    {
+      "id": "STD-GIT-03",
+      "domain": "STD-GIT",
+      "rule": "Una migración por PR; Router y Train para la BD; PASE obligatorio",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Train / PASE"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Train, Router y PASE son controles de autoridad"
+      }
+    },
+    {
+      "id": "STD-SB-01",
+      "domain": "STD-SB",
+      "rule": "Funciones SQL del proyecto: `<esquema>.<verbo>_<objeto>_vN`, `SECURITY INVOKER` por defecto (DEFINER solo con justificación y STD-DB-07)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Lint de catálogo"
+      }
+    },
+    {
+      "id": "STD-SB-02",
+      "domain": "STD-SB",
+      "rule": "Superficie expuesta mínima: el frontend solo llama funciones RPC o Edge Functions declaradas como API; nunca tablas directas sin RLS y política explícita",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Advisors + lint de grants"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "La superficie de datos exige RLS y politicas"
+      }
+    },
+    {
+      "id": "STD-SB-03",
+      "domain": "STD-SB",
+      "rule": "Políticas RLS nombradas `<tabla>__<rol>__<acción>` y una por acción",
+      "severity": "WARN",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Lint de catálogo"
+      }
+    },
+    {
+      "id": "STD-SB-04",
+      "domain": "STD-SB",
+      "rule": "Edge Functions en kebab-case con versión (`<dominio>-<acción>-vN`, patrón observado); responden errores con el formato D1",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Lint + test de contrato"
+      }
+    },
+    {
+      "id": "STD-SB-05",
+      "domain": "STD-SB",
+      "rule": "Tipos generados con `supabase gen types` versionados; el frontend usa solo esos tipos",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Diff tipos vs. BD migrada"
+      }
+    },
+    {
+      "id": "STD-SB-06",
+      "domain": "STD-SB",
+      "rule": "Parámetros de funciones con prefijo `p_` y variables PL/pgSQL con `v_` (patrón del 98 % de las funciones de LF; previene el error de `PRV-SQL-013`)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Lint de catálogo"
+      }
+    },
+    {
+      "id": "STD-SEC-01",
+      "domain": "STD-SEC",
+      "rule": "Toda entrada se valida del lado servidor (tipo, formato, longitud, rango), aunque el frontend ya la valide",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Test negativo por endpoint"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Validar entradas del lado servidor es obligatorio"
+      },
+      "examples": {
+        "good": [
+          "public record CreateWorkRequest(@NotBlank @Size(max = 64) String title) {}",
+          "ResponseEntity<WorkRequestResponse> create(@Valid @RequestBody CreateWorkRequest body)"
+        ],
+        "bad": [
+          "ResponseEntity<WorkRequestResponse> create(@RequestBody CreateWorkRequest body) // sin @Valid: solo valida el navegador"
+        ]
+      }
+    },
+    {
+      "id": "STD-SEC-02",
+      "domain": "STD-SEC",
+      "rule": "Autorización verificada en cada endpoint o función, no solo en la pantalla",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Test de acceso cruzado (usuario A no ve datos de B)"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "La autorizacion por endpoint es obligatoria"
+      },
+      "examples": {
+        "good": [
+          "@PreAuthorize(\"hasAuthority('work_request:read')\") @GetMapping(\"/api/v1/work-requests/{workRequestId}\")"
+        ],
+        "bad": [
+          "@GetMapping(\"/api/v1/work-requests/{workRequestId}\") // sin control de autorización: la pantalla oculta el botón"
+        ]
+      }
+    },
+    {
+      "id": "STD-SEC-03",
+      "domain": "STD-SEC",
+      "rule": "Dependencias con versión fija (lockfile) y escaneo de vulnerabilidades en CI",
+      "severity": "BLOCK",
+      "severity_condition": "para severidad alta",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "SCA (p. ej. `npm audit`/Dependabot/`pip-audit`)"
+      }
+    },
+    {
+      "id": "STD-SEC-04",
+      "domain": "STD-SEC",
+      "rule": "Límite de intentos en endpoints sensibles (login, OTP, pagos)",
+      "severity": "BLOCK",
+      "severity_condition": "cuando aplica",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Test"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Rate limits en operaciones sensibles son obligatorios"
+      },
+      "examples": {
+        "good": [
+          "POST /api/v1/auth/otp: enforce per-identity attempt limit and return HTTP 429 on excess"
+        ],
+        "bad": [
+          "POST /api/v1/auth/otp: unlimited verification attempts"
+        ]
+      }
+    },
+    {
+      "id": "STD-LOG-01",
+      "domain": "STD-LOG",
+      "rule": "Separar tres destinos: **logs técnicos** en CloudWatch/stdout JSON con retención corta (nunca en la BD); **eventos de auditoría** en BD, append-only; **navegación** en STD-NAV",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Revisor + ArchUnit/lint de destinos"
+      }
+    },
+    {
+      "id": "STD-LOG-02",
+      "domain": "STD-LOG",
+      "rule": "**Una sola copia:** columnas tipadas para lo que se consulta (cuándo, quién, acción, entidad, resultado, `correlation_id`, `trace_code`) y `jsonb` solo para el detalle variable. Prohibido guardar el JSON crudo y además su versión parseada",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Lint de catálogo + revisor"
+      }
+    },
+    {
+      "id": "STD-LOG-03",
+      "domain": "STD-LOG",
+      "rule": "La lectura humana se resuelve con **vistas** que aplanan el JSON por tipo de evento y con consultas guardadas, no duplicando datos",
+      "severity": "WARN",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Revisor"
+      }
+    },
+    {
+      "id": "STD-LOG-04",
+      "domain": "STD-LOG",
+      "rule": "Excepción: el payload crudo de un proveedor externo (webhook de pago) se guarda **una vez**, con hash, como prueba. Su versión parseada se obtiene por vista; si es grande, va a S3 con referencia",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Revisor"
+      }
+    },
+    {
+      "id": "STD-AUD-01",
+      "domain": "STD-AUD",
+      "rule": "Auditoría append-only, escrita solo del lado servidor, con `correlation_id` obligatorio, en la tabla de auditoría del propio proyecto (kit base). Antecedente en LF: *B2B-RULE-AUDIT-001*",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Grants + test"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "La auditoria append-only no es dispensable"
+      }
+    },
+    {
+      "id": "STD-AUD-02",
+      "domain": "STD-AUD",
+      "rule": "**Qué entidades necesitan historial lo define el spec (Fase 1).** PG-03 verifica que el spec lo haya respondido para cada tabla nueva con datos que cambian; si no, `REQUIRES_DECISION`. Si la respuesta es sí, se usa el patrón estándar: tabla `<entidad>_history` con `valid_from`/`valid_to`, `changed_by`, `correlation_id` y la fila completa (en Spring: Hibernate Envers). Ejemplo vigente del patrón: `lf_client.client_phone_bindings` (`valid_from`/`valid_to`). No se marcan entidades por adelantado",
+      "severity": "BLOCK",
+      "severity_condition": "si la pregunta queda sin responder",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Checklist de PG-03"
+      }
+    },
+    {
+      "id": "STD-AUD-03",
+      "domain": "STD-AUD",
+      "rule": "Sin PII completa en auditoría ni en historial; definir con legal cómo convive el historial inmutable con el derecho de supresión",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "lf_rule_refs": [
+        "REG_AUD_002"
+      ],
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Test + revisión legal"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "No se permite PII completa en auditoria"
+      }
+    },
+    {
+      "id": "STD-NAV-01",
+      "domain": "STD-NAV",
+      "rule": "Qué eventos registrar en cada pantalla lo define el spec. El agente implementa la tabla de eventos de navegación del proyecto: `session_id`, `user_ref` (hash/anónimo), `screen_code`, `event_type` (screen_view, action, submit, error, exit), `occurred_at`, `duration_ms`, `trace_code`, `correlation_id`, canal y dispositivo. Los tipos de evento salen de un catálogo de eventos del propio proyecto, no de texto libre (en LF ya existe: `lf_ops.analytics_eventos_definicion`)",
+      "severity": "BLOCK",
+      "severity_condition": "cuando el proyecto tiene UI",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Lint de catálogo + test"
+      }
+    },
+    {
+      "id": "STD-NAV-02",
+      "domain": "STD-NAV",
+      "rule": "Consultas estándar listas para soporte: \"dónde se quedó cada sesión\" (último evento), tiempo por pantalla, sesiones que terminaron en error, recorrido completo de un `trace_code`",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Las consultas existen y tienen test"
+      }
+    },
+    {
+      "id": "STD-NAV-03",
+      "domain": "STD-NAV",
+      "rule": "Nada de lo que el usuario escribe se guarda; identificadores con hash; retención definida; consentimiento de analítica según la política de cookies (validar con legal)",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Test + revisión legal"
+      }
+    },
+    {
+      "id": "STD-CONS-01",
+      "domain": "STD-CONS",
+      "rule": "Qué se consiente y sus textos los define el spec (con legal); el agente implementa la estructura. `legal_documents`: tipo, versión, hash del texto exacto y vigencia. No se acepta un documento DEMO en producción",
+      "severity": "BLOCK",
+      "status": "VALIDAR_CON_LEGAL",
+      "lf_rule_refs": [
+        "REG_CLIENT_DOC_DEMO_VERSIONING_001"
+      ],
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Test"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Consentimiento legal vigente no es dispensable"
+      }
+    },
+    {
+      "id": "STD-CONS-02",
+      "domain": "STD-CONS",
+      "rule": "`consents` append-only: cliente, versión del documento, tipo (términos, datos, marketing, cookies), otorga o revoca, fecha y hora UTC, IP, navegador, canal, pantalla y `correlation_id`. Una revocación es una fila nueva, nunca un update. Cada proyecto tiene las suyas, porque cada producto es su propio titular del banco de datos (validar con legal). En LF cubriría el registro pendiente de `LEGAL-CONSENTIMIENTO-DATOS-01` (`canonical_consent_store = PENDING_CANONICAL_REGISTRY`)",
+      "severity": "BLOCK",
+      "status": "VALIDAR_CON_LEGAL",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Grants + test"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Integridad de consentimientos y revocaciones obligatoria"
+      }
+    },
+    {
+      "id": "STD-CONS-03",
+      "domain": "STD-CONS",
+      "rule": "Checkbox desmarcado por defecto; los consentimientos obligatorios bloquean y el de marketing no",
+      "severity": "BLOCK",
+      "status": "VALIDAR_CON_LEGAL",
+      "lf_rule_refs": [
+        "REG_ONB_003, LEGAL-CONSENTIMIENTO-DATOS-01"
+      ],
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Test E2E"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "Consentimiento explicito y opt-in obligatorios"
+      }
+    },
+    {
+      "id": "STD-CONS-04",
+      "domain": "STD-CONS",
+      "rule": "Campos y retención validados por legal antes de producción",
+      "severity": "BLOCK",
+      "severity_condition": "para producción",
+      "status": "VALIDAR_CON_LEGAL",
+      "enforcement": {
+        "state": "review",
+        "planned_control": "Revisión legal"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "La revision legal no es dispensable"
+      }
+    },
+    {
+      "id": "STD-MSG-01",
+      "domain": "STD-MSG",
+      "rule": "Ningún texto de error o éxito escrito en el código: sale del catálogo de mensajes y errores **del propio proyecto** (kit base). En LF: `lf_ops.mensajes_pantallas` y `lf_ops.errores_catalogo`",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Lint (literales en componentes) + revisor"
+      }
+    },
+    {
+      "id": "STD-MSG-02",
+      "domain": "STD-MSG",
+      "rule": "El agente **no redacta ni corrige copy**: usa el texto referenciado en el spec. Si un error o éxito aplicable no trae texto, el resultado es `REQUIRES_DECISION` (vuelve a Fase 1); nunca se inventa",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-01/PG-10 + revisor"
+      },
+      "waiver_policy": {
+        "allowed": false,
+        "reason": "El agente no puede inventar copy de Fase 1"
+      }
+    },
+    {
+      "id": "STD-MSG-03",
+      "domain": "STD-MSG",
+      "rule": "Estructura técnica que todo mensaje debe poder mostrar: título, mensaje, acción sugerida con botón y código de referencia (`trace_code`). Qué se muestra en cada caso lo decide el spec",
+      "severity": "BLOCK",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "Test de componente + contrato de API"
+      }
+    },
+    {
+      "id": "STD-IAC-01",
+      "domain": "STD-IAC",
+      "rule": "La IaC de los recursos que pide una funcionalidad va en el mismo PR que el código que los usa",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-IAC-02",
+      "domain": "STD-IAC",
+      "rule": "Un mismo módulo para local (emulador) y nube; solo cambian proveedor y variables",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-IAC-03",
+      "domain": "STD-IAC",
+      "rule": "Ningún endpoint de nube, nombre de recurso ni secreto escrito en el código; todo por variables de entorno",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-IAC-04",
+      "domain": "STD-IAC",
+      "rule": "Nombres y etiquetas obligatorias según la convención del proyecto (L3)",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-IAC-05",
+      "domain": "STD-IAC",
+      "rule": "Validación en PG-08: `fmt`, `validate`, lint de IaC y `plan`/`apply` contra el emulador local",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-IAC-06",
+      "domain": "STD-IAC",
+      "rule": "El agente nunca aplica en la nube; eso es Fase 4 con `plan` revisado por una persona",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-IAC-07",
+      "domain": "STD-IAC",
+      "rule": "Solo servicios y patrones del perfil de arquitectura (D15); otro → `REQUIRES_DECISION`",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-CONT-01",
+      "domain": "STD-CONT",
+      "rule": "Una imagen por unidad desplegable del perfil de arquitectura; la misma imagen en local y en la nube",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-CONT-02",
+      "domain": "STD-CONT",
+      "rule": "Build multi-etapa, versiones de imagen base fijadas, plataforma según el perfil (LF: ARM64)",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-CONT-03",
+      "domain": "STD-CONT",
+      "rule": "La imagen no corre como root, expone healthcheck y no contiene secretos",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    },
+    {
+      "id": "STD-CONT-04",
+      "domain": "STD-CONT",
+      "rule": "`docker compose` local refleja las unidades del perfil; no se emula el orquestador de la nube",
+      "severity": "POR_DEFINIR",
+      "status": "APROBADO",
+      "enforcement": {
+        "state": "planned",
+        "planned_control": "PG-08 / revisor PG-11"
+      }
+    }
+  ],
+  "waiver_settings": {
+    "approvers": [
+      "paulozterra"
+    ],
+    "max_days": {
+      "BLOCK": 30,
+      "BLOCK_OR_WARN": 30,
+      "WARN": 90
+    },
+    "linter_rule_max_days": 30,
+    "test_fixture_max_days": 365,
+    "linter_rule_denylist": [
+      "eslint:no-eval",
+      "eslint:no-implied-eval",
+      "eslint:no-new-func",
+      "eslint:react/no-danger",
+      "eslint:@next/next/no-sync-scripts"
+    ]
+  },
+  "change_registry": "standards/changes"
+}

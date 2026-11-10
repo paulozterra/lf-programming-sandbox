@@ -1,0 +1,11 @@
+{
+  "skill_code": "FASTAPI_EXP",
+  "skill_version": "1",
+  "area": "BACKEND",
+  "rule_ids": [
+    "FA-01",
+    "FA-02",
+    "FA-03"
+  ],
+  "production_authority": false
+}

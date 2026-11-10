@@ -1,0 +1,13 @@
+{
+  "skill_code": "SPRINGBOOT_EXP",
+  "skill_version": "3",
+  "area": "BACKEND",
+  "rule_ids": [
+    "SB3-01"
+  ],
+  "oracle_envelope": {
+    "hidden": "FORBIDDEN"
+  },
+  "production_authority": true,
+  "expected": "BLOCK"
+}

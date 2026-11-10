@@ -1,0 +1,45 @@
+{
+  "schema_version": "LF_STACK_SKILL_CATALOG_EXP_V2",
+  "skills": [
+    {
+      "skill_code": "SPRINGBOOT_EXP",
+      "version": "3",
+      "area": "BACKEND",
+      "path": "springboot_exp/SKILL.md",
+      "rules_path": "springboot_exp/contracts/expert_rules.json",
+      "standard_family": "STD-BE"
+    },
+    {
+      "skill_code": "KAFKA_EXP",
+      "version": "3",
+      "area": "BACKEND",
+      "path": "kafka_exp/SKILL.md",
+      "rules_path": "kafka_exp/contracts/expert_rules.json",
+      "standard_family": "STD-BE"
+    },
+    {
+      "skill_code": "ANGULAR_EXP",
+      "version": "1",
+      "area": "FRONTEND",
+      "path": "angular_exp/SKILL.md",
+      "rules_path": "angular_exp/contracts/expert_rules.json",
+      "standard_family": "STD-FE"
+    },
+    {
+      "skill_code": "FLYWAY_EXP",
+      "version": "1",
+      "area": "DATA",
+      "path": "flyway_exp/SKILL.md",
+      "rules_path": "flyway_exp/contracts/expert_rules.json",
+      "standard_family": "STD-DB"
+    },
+    {
+      "skill_code": "FASTAPI_EXP",
+      "version": "1",
+      "area": "BACKEND",
+      "path": "fastapi_exp/SKILL.md",
+      "rules_path": "fastapi_exp/contracts/expert_rules.json",
+      "standard_family": "STD-BE"
+    }
+  ]
+}

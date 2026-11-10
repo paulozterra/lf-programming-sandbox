@@ -1,0 +1,30 @@
+{
+  "schema_version": "LF_STACK_EVAL_EXP_V2",
+  "skill_code": "SPRINGBOOT_EXP",
+  "version": "3",
+  "cases": [
+    {
+      "id": "WORKER_MIN_3_RULES",
+      "expected": "PASS",
+      "assertions": [
+        "At least three unique official expert rule IDs + exact text + sources are carried to Worker visible task"
+      ]
+    },
+    {
+      "id": "ONLY_TWO_RULES",
+      "expected": "BLOCK"
+    },
+    {
+      "id": "WRONG_VERSION",
+      "expected": "BLOCK"
+    },
+    {
+      "id": "RULE_SOURCE_TAMPERED",
+      "expected": "BLOCK"
+    },
+    {
+      "id": "ORACLE_LEAK",
+      "expected": "BLOCK"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": "LF_STACK_EXPERT_RULES_EXP_V1",
+  "skill_code": "KAFKA_EXP",
+  "version": "3",
+  "area": "BACKEND",
+  "standard_family": "STD-BE",
+  "rules": [
+    {
+      "rule_id": "KF3-01",
+      "text": "Diseñar key y particiones para satisfacer el orden dentro de cada partición; no prometer orden global.",
+      "source_url": "https://kafka.apache.org/documentation/"
+    },
+    {
+      "rule_id": "KF3-02",
+      "text": "Definir producer acks, retries e idempotencia conforme al objetivo de entrega, sin prometer exactly-once por defecto.",
+      "source_url": "https://kafka.apache.org/documentation/"
+    },
+    {
+      "rule_id": "KF3-03",
+      "text": "Documentar consumer groups, commits de offset, rebalance y reprocesamiento con pruebas de duplicados.",
+      "source_url": "https://kafka.apache.org/documentation/"
+    },
+    {
+      "rule_id": "KF3-04",
+      "text": "Especificar el contrato del mensaje y la estrategia de compatibilidad de esquema antes de publicación.",
+      "source_url": "https://kafka.apache.org/documentation/"
+    },
+    {
+      "rule_id": "KF3-05",
+      "text": "Exigir evidencia observable de lag, fallos y recuperación, sin atribuir pruebas no ejecutadas.",
+      "source_url": "https://kafka.apache.org/documentation/"
+    }
+  ]
+}

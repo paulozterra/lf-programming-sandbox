@@ -1,0 +1,25 @@
+{
+  "skill_code": "SPRINGBOOT_EXP",
+  "skill_version": "3",
+  "area": "BACKEND",
+  "rule_ids": [
+    "SB3-01",
+    "SB3-02",
+    "SB3-03"
+  ],
+  "acceptance_evidence": [
+    {
+      "rule_id": "SB3-01",
+      "source_url": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller.html"
+    },
+    {
+      "rule_id": "SB3-02",
+      "source_url": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/responsebody.html"
+    },
+    {
+      "rule_id": "SB3-03",
+      "source_url": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-validation.html"
+    }
+  ],
+  "production_authority": false
+}

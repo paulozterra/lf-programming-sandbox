@@ -1,0 +1,11 @@
+{
+  "skill_code": "FLYWAY_EXP",
+  "skill_version": "1",
+  "area": "DATA",
+  "rule_ids": [
+    "FW-01",
+    "FW-02",
+    "FW-03"
+  ],
+  "production_authority": false
+}

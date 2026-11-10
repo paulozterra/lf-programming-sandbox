@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_PG00_STANDARD_SOURCE_POINTERS_EXP_V2",
+  "source_ref": "paulozterra/lf-programming-sandbox@f18b2d96b7e1a8263749d35a7afcc9c043521cb8:standards/catalog.json",
+  "source_kind": "IMMUTABLE_REPOSITORY_NORMATIVE_TEXT_SNAPSHOT_CANDIDATE_ONLY",
+  "families": [
+    {
+      "code": "STD-BE",
+      "source_ref": "paulozterra/lf-programming-sandbox@f18b2d96b7e1a8263749d35a7afcc9c043521cb8:standards/catalog.json",
+      "normative_text_available": true,
+      "qualification_only": true,
+      "legacy_reference": "ADR-PROG-STD-013"
+    },
+    {
+      "code": "STD-FE",
+      "source_ref": "paulozterra/lf-programming-sandbox@f18b2d96b7e1a8263749d35a7afcc9c043521cb8:standards/catalog.json",
+      "normative_text_available": true,
+      "qualification_only": true,
+      "legacy_reference": "PG-02_C1_REFERENCE"
+    },
+    {
+      "code": "STD-DB",
+      "source_ref": "paulozterra/lf-programming-sandbox@f18b2d96b7e1a8263749d35a7afcc9c043521cb8:standards/catalog.json",
+      "normative_text_available": true,
+      "qualification_only": true,
+      "legacy_reference": "PG-00_C5_REFERENCE"
+    }
+  ],
+  "fail_closed_code": "PG00_STANDARD_SOURCE_SHA256_DRIFT",
+  "source_repository": "paulozterra/lf-programming-sandbox",
+  "source_commit_sha": "f18b2d96b7e1a8263749d35a7afcc9c043521cb8",
+  "source_path": "standards/catalog.json",
+  "source_sha256": "26ca9cf9936ef01b50f9af504e4a9b796ee7d7d538d5724ff388c9fb90e8ddb3",
+  "source_git_blob_sha1": "5d63c311f4e9cccdcaa72d769e61a80bb088c6eb",
+  "snapshot_path": "pg00_normative_catalog_snapshot.json",
+  "catalog_version": "0.6.1",
+  "catalog_status": "BORRADOR_EN_REPO_DE_CALIFICACION",
+  "production_authority": false,
+  "promotion_allowed": false
+}

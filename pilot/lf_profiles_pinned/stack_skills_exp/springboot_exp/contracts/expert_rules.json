@@ -1,0 +1,44 @@
+{
+  "schema_version": "LF_STACK_EXPERT_RULES_EXP_V1",
+  "skill_code": "SPRINGBOOT_EXP",
+  "version": "3",
+  "area": "BACKEND",
+  "standard_family": "STD-BE",
+  "rules": [
+    {
+      "rule_id": "SB3-01",
+      "text": "Separar controller para HTTP, service para casos de uso y repository para persistencia cuando esa arquitectura aplique al proyecto; probar el límite entre capas.",
+      "source_url": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller.html"
+    },
+    {
+      "rule_id": "SB3-02",
+      "text": "Definir contratos HTTP mediante DTO de request/response; no exponer automáticamente una entidad persistente como contrato externo sin revisar el diseño.",
+      "source_url": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/responsebody.html"
+    },
+    {
+      "rule_id": "SB3-03",
+      "text": "Aplicar Bean Validation a entradas cuando corresponda y verificar casos inválidos y respuesta de error.",
+      "source_url": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-validation.html"
+    },
+    {
+      "rule_id": "SB3-04",
+      "text": "Centralizar el mapeo de errores HTTP con @ControllerAdvice y @ExceptionHandler, y verificar códigos y formato acordados.",
+      "source_url": "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-advice.html"
+    },
+    {
+      "rule_id": "SB3-05",
+      "text": "Ubicar límites transaccionales con @Transactional en la operación de servicio que requiera atomicidad; comprobar rollback y propagación con pruebas.",
+      "source_url": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html"
+    },
+    {
+      "rule_id": "SB3-06",
+      "text": "Escoger pruebas de corte con @WebMvcTest para la capa MVC y @DataJpaTest para repositorios JPA, cuando existan esas dependencias.",
+      "source_url": "https://docs.spring.io/spring-boot/reference/testing/spring-boot-applications.html"
+    },
+    {
+      "rule_id": "SB3-07",
+      "text": "Usar @SpringBootTest para integración de contexto cuando el escenario lo requiera; no sustituir todas las pruebas aisladas ni afirmar ejecución.",
+      "source_url": "https://docs.spring.io/spring-boot/reference/testing/spring-boot-applications.html"
+    }
+  ]
+}
