@@ -2,12 +2,12 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0026",
   "title": "Corregir identidad real workflow_run.name del disparador nativo",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "EX7 primer push automático 2026-11-10, trigger run #42847732154 y ejecutor #42847771168: mismatch run-name"
   },
-  "reason": "El trigger real publica workflow_run.name=lf-native-trigger (run-name) y no LF Native proposal trigger (nombre del workflow). Mantener todas las validaciones de ruta, repositorio, event, head_sha, head_branch y estado; alinear únicamente el valor admitido de run-name. La primera ejecución quedó BLOCKED antes de un intento y sin artifact attempt-proof.",
+  "reason": "El trigger real publica workflow_run.name=lf-native-trigger (run-name) y no LF Native proposal trigger (nombre del workflow). Mantener todas las validaciones de ruta, repositorio, event, head_sha, head_branch y estado; alinear únicamente el valor admitido de run-name. La primera ejecución quedó BLOCKED antes de un intento y sin artifact attempt-proof. La incorporación de la prueba offline de regresión y su gate CI clasifica el cambio como ADDITIVE bajo C9.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
