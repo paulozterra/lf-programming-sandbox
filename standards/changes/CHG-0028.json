@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0028",
+  "title": "EX7: nueva huella del examen externo (comandos divididos al límite de 4096 bytes del Worker)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Corrida worker-native 42852826163: examen rechazado por HIDDEN_ORACLE_COMMANDS_INVALID antes del Worker"
+  },
+  "reason": "El examen v1 tenía argumentos de más de 4096 bytes, que el Worker rechaza al cargarlo. El v2 divide esos comandos en partes; el contenido y lo que prueba no cambian. Ningún intento fue consumido.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_tasks/ex7.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0028.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:claude",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  },
+  "decision_ref": "Owner: examen independiente de Claude; contenido no accesible a GPT; solo SHA en repo"
+}

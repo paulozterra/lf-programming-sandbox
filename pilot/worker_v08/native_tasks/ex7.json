@@ -59,5 +59,5 @@
     "max_context_bytes": 160000,
     "allow_deletions": false
   },
-  "holdout_sha256": "43cb0b5b334f7b90b5f98f62710fe6f8536a6e8193fa82813c79639822d8bc4c"
+  "holdout_sha256": "f5f7cebf4f568475d5def6129b76c968077fc6b074a871250dfe09e90b024583"
 }
