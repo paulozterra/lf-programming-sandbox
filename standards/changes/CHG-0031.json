@@ -1,16 +1,18 @@
 {
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0031",
-  "title": "EX7: incorporar los tres archivos exactos del parche verificado en run 42855259114",
+  "title": "EX7 N/N+1: parche verificado original y remediación Palantir con equivalencia byte a byte",
   "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
-    "reference": "Mandato de Paulo 2026-11-10: integrar EX7 aprobado, posterior a Fase 2B #65"
+    "reference": "Decisión Paulo/Claude 2026-11-10: #68 integra N exacto (#66) y N+1 formato bajo un solo CHG-0031, sin reescribir commits"
   },
-  "reason": "Incorporar sin reformatear los tres Java existentes del parche nativo EX7 PASS de run 42855259114. Los blobs resultantes deben coincidir con la propuesta c4f5fe0 (f9e7cb4, 7d4afc6, 20c4b10). Clasificación EDITORIAL conforme C9 para código de aplicación sin cambios normativos; funcionalmente incorpora REM-E1..E6. Spotless palantir puede requerir remediación N+1 separada.",
+  "reason": "EX7 en dos pasos preservados en el historial Git: (N) incorporar los tres Java del parche de propuesta nativa verificada en corrida 42855259114, commit c4f5fe0a5f26f01f10bb15659eccb2acfbf8edee, respetando los blobs originales del PR #66; (N+1) ejecutar Spotless 3.10.4/Palantir 2.102.0 y demostrar con javac --release 21 -g:none la identidad byte a byte de los 12 archivos .class compilados antes y después. El formateador cambió solo InMemoryReminderRepository.java y ReminderController.java, ReminderRepository.java ya era conforme. Un único CHG-0031 cubre N y N+1 para cumplir C9, sin alterar ni reescribir los commits históricos; CHG-0032.json se retira del árbol final (permanece en historia).",
   "artifacts": [],
   "affected": {
-    "rule_ids": [],
+    "rule_ids": [
+      "STD-BE-05"
+    ],
     "term_ids": [],
     "paths": [
       "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
@@ -32,7 +34,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/66"
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/68"
   },
-  "decision_ref": "EX7 native run 42855259114 PASS, proposal c4f5fe0a5f26f01f10bb15659eccb2acfbf8edee; exact Java blob identity; pilot/native_proposals/ex7.json excluded. CANDIDATE_SANDBOX_ONLY, no promotion."
+  "decision_ref": "N: corrida EX7 worker-native 42855259114 PASS, propuesta commit c4f5fe0a5f26f01f10bb15659eccb2acfbf8edee, propuesta SHA256 16af0fd8f5ac3d751246ef3a8cdfa142d270a9ebab77f9830036672886035a2d; 3 blobs originales de #66 (InMemoryReminderRepository f9e7cb478dda432a33160366b2959b9c9111ae02, ReminderController 7d4afc630df7c8c6865e91f620445bcb5f4ca4d8, ReminderRepository 20c4b106507c6179478e9f8052b541066d0f33df). N+1: CI run 42890431339 SUCCESS, Spotless/Palantir versions 3.10.4/2.102.0, javac --release 21 -g:none, 12/12 .class SHA256 identical before/after, 2 changed Java files and third already formatted; formatter commit 9c32d78d0e933419fa514341fc115b3163d38c4b, original N commit history unchanged. CHG-0033 integrated from main merge 05daab18fe840b66d69241c46e113a43313dd495. CHG-0031 N/N+1 consolidated as authorized; CHG-0032 existed as historical commit only. No model calls in format; no production authority; #66 original preserved, included in #68."
 }
