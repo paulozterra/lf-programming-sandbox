@@ -134,3 +134,14 @@ def test_second_registered_task_is_supported(tmp_path):
     output=validate_proposal_only(repo,git(repo,"rev-parse","HEAD"),main_sha=newbase,
                                   branch="lf/native-proposal/sample")
     assert output["task"]=="sample"
+
+def test_transient_non_proposal_commit_stays_blocked_even_if_reverted(tmp_path):
+    repo,base,_=create_repository(tmp_path)
+    (repo/"transient.py").write_text("bad")
+    git(repo,"add","-A")
+    git(repo,"commit","-qm","transient foreign file")
+    git(repo,"rm","-q","transient.py")
+    git(repo,"commit","-qm","revert foreign file")
+    head=git(repo,"rev-parse","HEAD")
+    with pytest.raises(ProposalPushBlocked,match="NATIVE_PUSH_COMMIT_SCOPE_INVALID"):
+        validate_proposal_only(repo,head,main_sha=base)
