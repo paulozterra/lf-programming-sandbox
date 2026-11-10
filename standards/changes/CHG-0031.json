@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0031",
+  "title": "EX7: incorporar los tres archivos exactos del parche verificado en run 42855259114",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Mandato de Paulo 2026-11-10: integrar EX7 aprobado, posterior a Fase 2B #65"
+  },
+  "reason": "Incorporar sin reformatear los tres Java existentes del parche nativo EX7 PASS de run 42855259114. Los blobs resultantes deben coincidir con la propuesta c4f5fe0 (f9e7cb4, 7d4afc6, 20c4b10). Clasificación EDITORIAL conforme C9 para código de aplicación sin cambios normativos; funcionalmente incorpora REM-E1..E6. Spotless palantir puede requerir remediación N+1 separada.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0031.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  },
+  "decision_ref": "EX7 native run 42855259114 PASS, proposal c4f5fe0a5f26f01f10bb15659eccb2acfbf8edee; exact Java blob identity; pilot/native_proposals/ex7.json excluded. CANDIDATE_SANDBOX_ONLY, no promotion."
+}
