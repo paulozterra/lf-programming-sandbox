@@ -1,0 +1,134 @@
+"""Offline Phase 2B tests; no hidden oracle, model, Supabase or remote access."""
+from __future__ import annotations
+import copy
+import hashlib
+import json
+from pathlib import Path
+import tempfile
+import unittest
+
+import register_task_context as mod
+
+ROOT = Path(__file__).resolve().parents[2]
+PINS = ROOT / "pilot/lf_profiles_pinned"
+WRITE = "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java"
+
+
+def task_spec():
+    return {
+        "schema_version": 1,
+        "task_id": "LF-WORKER-NATIVE-EX8",
+        "objective": "Sandbox-only exercise; no actual Worker dispatch",
+        "context_path_patterns": ["apps/time-service/REMINDERS_SPEC.md"],
+        "write_path_patterns": [WRITE],
+        "protected_path_patterns": ["apps/time-service/src/test/**"],
+        "acceptance_commands": [{
+            "name": "visible-api",
+            "argv": ["mvn", "-B", "-q", "-f", "apps/time-service/pom.xml", "test"],
+            "timeout_seconds": 600,
+            "max_output_bytes": 16000,
+        }],
+        "max_context_bytes": 160000,
+    }
+
+
+def run(task, **overrides):
+    params = dict(project="lf_java", area="BACKEND", lot_paths=[WRITE],
+                  task_name="ex8", budget=160000, root=ROOT, pinned=PINS, persist=False)
+    params.update(overrides)
+    return mod.register(task, **params)
+
+
+class PinnedSource(unittest.TestCase):
+    def test_entire_source_pin_sha_and_git_blob(self):
+        pin, files = mod.read_pins()
+        self.assertEqual(len(files), 42)
+        self.assertEqual(set(pin["files"]), set(files))
+        self.assertEqual(pin["source_commit_sha"], mod.LF_SHA)
+        self.assertEqual(pin["status"], "CANDIDATE_SANDBOX_ONLY")
+        self.assertTrue(all(hashlib.sha256(v).hexdigest() == pin["files"][k]["sha256"]
+                            for k, v in files.items()))
+
+    def test_bytes_reproducible_native_and_api(self):
+        native = {"task_spec": task_spec(), "holdout_sha256": "public-digest-only"}
+        a, sources_a = run(native)
+        b, sources_b = run(native)
+        self.assertEqual(mod.canonical(a), mod.canonical(b))
+        self.assertEqual(sources_a, sources_b)
+        self.assertEqual(a["holdout_sha256"], native["holdout_sha256"])
+        self.assertEqual(a["task_spec"]["acceptance_commands"][-1], mod.FORMAT_COMMAND)
+        api, _ = run(task_spec())
+        self.assertEqual(api["context_path_patterns"], a["task_spec"]["context_path_patterns"])
+        self.assertEqual(api["protected_path_patterns"], a["task_spec"]["protected_path_patterns"])
+
+    def test_all_generated_context_paths_protected_and_read_only(self):
+        task, artifacts = run(task_spec())
+        expected = {".lf/worker-context/ex8/profile.md",
+                    ".lf/worker-context/ex8/skills.md",
+                    ".lf/worker-context/ex8/receipt.json"}
+        self.assertEqual(set(artifacts), expected)
+        self.assertTrue(expected.issubset(task["context_path_patterns"]))
+        self.assertTrue(expected.issubset(task["protected_path_patterns"]))
+        self.assertFalse(expected.intersection(task["write_path_patterns"]))
+        receipt = json.loads(artifacts[".lf/worker-context/ex8/receipt.json"])
+        self.assertEqual([x["code"] for x in receipt["skills"]], ["SPRINGBOOT_EXP", "KAFKA_EXP"])
+        self.assertEqual([x["priority"] for x in receipt["skills"]], [1, 2])
+        self.assertIn("STD-BE-05", artifacts[".lf/worker-context/ex8/skills.md"].decode())
+        self.assertFalse(receipt["production_authority"])
+
+    def test_modified_pinned_source_rejected_before_register(self):
+        with tempfile.TemporaryDirectory() as path:
+            temporary = Path(path)
+            pin = json.loads((PINS / "SOURCE_PIN.json").read_text())
+            for rel in pin["files"]:
+                target = temporary / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes((PINS / rel).read_bytes())
+            (temporary / "SOURCE_PIN.json").write_bytes(mod.canonical(pin))
+            modified = temporary / "prog_backend_exp/SKILL.md"
+            modified.write_bytes(modified.read_bytes() + b"tamper")
+            with self.assertRaisesRegex(mod.ContextBlocked, "SOURCE_PIN_MISMATCH"):
+                run(task_spec(), pinned=temporary)
+
+    def test_multi_area_is_blocked(self):
+        with self.assertRaisesRegex(mod.ContextBlocked, "LOT_MULTI_AREA"):
+            run(task_spec(), lot_paths=[WRITE, "frontend/src/app/page.tsx"])
+        with self.assertRaisesRegex(mod.ContextBlocked, "PROFILE_NOT_AVAILABLE"):
+            run(task_spec(), area="FRONTEND", lot_paths=["frontend/src/app/page.tsx"])
+
+    def test_budget_exceeded_before_outputs(self):
+        with self.assertRaisesRegex(mod.ContextBlocked, "CONTEXT_BUDGET_EXCEEDED"):
+            run(task_spec(), budget=1000, persist=False)
+
+    def test_existing_ex6_ex7_records_not_modified(self):
+        files = [ROOT / "pilot/worker_v08/native_tasks/ex6.json",
+                 ROOT / "pilot/worker_v08/native_tasks/ex7.json"]
+        original = [p.read_bytes() for p in files]
+        for task, name in zip(original, ("ex6", "ex7")):
+            with self.assertRaisesRegex(mod.ContextBlocked, "HISTORICAL_TASK_IMMUTABLE"):
+                run(json.loads(task), task_name=name)
+        self.assertEqual(original, [p.read_bytes() for p in files])
+
+    def test_write_scope_overlap_blocked(self):
+        t = task_spec()
+        t["write_path_patterns"] = [WRITE, ".lf/worker-context/ex8/profile.md"]
+        with self.assertRaisesRegex(mod.ContextBlocked, "CONTEXT_WRITE_SCOPE_OVERLAP"):
+            run(t)
+
+    def test_store_and_replay_same_bytes_in_isolated_repo(self):
+        with tempfile.TemporaryDirectory() as path:
+            root = Path(path)
+            enriched, artifacts = run(task_spec(), root=root, persist=True)
+            for rel, raw in artifacts.items():
+                self.assertEqual((root / rel).read_bytes(), raw)
+            again, same = run(task_spec(), root=root, persist=True)
+            self.assertEqual(enriched, again)
+            self.assertEqual(artifacts, same)
+            path = root / ".lf/worker-context/ex8/profile.md"
+            path.write_bytes(b"tampered")
+            with self.assertRaisesRegex(mod.ContextBlocked, "CONTEXT_OUTPUT_CONFLICT"):
+                run(task_spec(), root=root, persist=True)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
