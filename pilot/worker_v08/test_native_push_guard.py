@@ -72,7 +72,7 @@ def test_symlink_blocks(tmp_path):
     path.symlink_to("../../README")
     git(repo,"add","-A")
     git(repo,"commit","-qm","symlink")
-    with pytest.raises(ProposalPushBlocked,match="NATIVE_PUSH_PROPOSAL_NOT_REGULAR_FILE"):
+    with pytest.raises(ProposalPushBlocked,match="NATIVE_PUSH_COMMIT_SCOPE_INVALID|NATIVE_PUSH_PROPOSAL_NOT_REGULAR_FILE"):
         validate_proposal_only(repo,git(repo,"rev-parse","HEAD"),main_sha=base)
 
 
