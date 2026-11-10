@@ -38,7 +38,8 @@ def api(method, path, payload=None, expected=(200,)):
     })
     try:
         with urllib.request.urlopen(req, timeout=35) as response:
-            obj = json.load(response)
+            raw = response.read()
+            obj = json.loads(raw) if raw else {}
             if response.status not in expected:
                 raise TrainError(f"Unexpected HTTP {response.status} for {path}")
             return obj
@@ -114,6 +115,14 @@ def await_checks(number, sha):
     raise TrainError("CHECK_WAIT_TIMEOUT")
 
 
+def dispatch_updated_head_ci(branch, sha):
+    """GITHUB_TOKEN update-branch suppresses push/PR CI; explicitly dispatch it."""
+    api("POST", "/actions/workflows/ci.yml/dispatches",
+        {"ref": branch}, expected=(204,))
+    print(json.dumps({"event": "dispatch_ci_after_update", "branch": branch,
+                      "head_sha": sha}), flush=True)
+
+
 def run(number):
     for attempt in range(MAX_RESTARTS + 1):
         pr = pr_data(number)
@@ -134,6 +143,7 @@ def run(number):
                     break
             else:
                 raise TrainError("BRANCH_UPDATE_TIMEOUT")
+            dispatch_updated_head_ci(updated["head"]["ref"], updated["head"]["sha"])
             continue
         if compare["status"] not in ("ahead", "identical"):
             raise TrainError("BRANCH_NOT_MERGEABLE " + compare["status"])
