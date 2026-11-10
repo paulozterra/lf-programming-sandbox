@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0035",
+  "title": "EX8: incorporar los tres Java exactos del parche nativo verificado, Lote F",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-10: EX8 run 42901867465 PASS intento 1, incorporar parche 131fafb sin propuesta JSON"
+  },
+  "reason": "Integrar exactamente los tres Java del parche EX8 validado por worker-native run 42901867465, intento 1, sobre del commit 131fafba675917fb6efa445c0ae353f50186207f. El patch coincide byte a byte con propuesta SHA-256 f1dc9d8c49fa58e93763563e9f34dd6fede1159ba3e5b9dc0e9ae3bfae9ceb97 y los nuevos blobs git; no se reformatea, ni se publica pilot/native_proposals/ex8.json. Preserva REM-A..E, implementa REM-F1..F4, formato Palantir STD-BE-05 verificado con Spotless.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [
+      "STD-BE-05"
+    ],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0035.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  },
+  "decision_ref": "EX8 Worker native CI run 42901867465 verified PASS attempt 1. Proposal commit 131fafba675917fb6efa445c0ae353f50186207f, proposal_sha256 f1dc9d8c49fa58e93763563e9f34dd6fede1159ba3e5b9dc0e9ae3bfae9ceb97, task_pack_sha256 c409f35069345a8b686cfaf99082fe8b953ec6ac023b006fb0af4da26f36c92f. Native verified patch artifact 13802777995. Preflight against main 7614876639dba757d25e91d5fea606a5387c36e9: exact git patch and three target blobs, mvn spotless:check PASS without apply, mvn package PASS and EX8 visible PASS. No new source files, protected tests or proposal JSON in PR. CANDIDATE_SANDBOX_ONLY."
+}

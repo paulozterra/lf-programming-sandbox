@@ -37,3 +37,4 @@
 | CHG-0031 | EDITORIAL | EX7 N/N+1: parche verificado original y remediación Palantir con equivalencia byte a byte |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/68 |
 | CHG-0033 | ADDITIVE | Retirar del CI la equivalencia histórica de CHG-0029 conservando Spotless obligatorio |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/69 |
 | CHG-0034 | EDITORIAL | Registro EX8 nativo: Lote F (posponer) con perfil backend y skills fijados, prueba visible y SHA del examen externo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/73 |
+| CHG-0035 | EDITORIAL | EX8: incorporar los tres Java exactos del parche nativo verificado, Lote F |  | paulozterra |  |

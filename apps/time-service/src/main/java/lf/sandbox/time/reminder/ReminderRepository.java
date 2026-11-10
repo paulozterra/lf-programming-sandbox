@@ -16,4 +16,6 @@ public interface ReminderRepository {
     List<Reminder> findByTextContaining(String query);
 
     Optional<Reminder> update(long id, String text, LocalTime at);
+
+    Optional<Reminder> snooze(long id, int minutes);
 }

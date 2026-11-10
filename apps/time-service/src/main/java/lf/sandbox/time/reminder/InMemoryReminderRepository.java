@@ -80,6 +80,26 @@ public class InMemoryReminderRepository implements ReminderRepository {
     }
 
     @Override
+    public synchronized Optional<Reminder> snooze(long id, int minutes) {
+        if (minutes < 1 || minutes > 1440) {
+            throw new IllegalArgumentException("minutes must be between 1 and 1440");
+        }
+        for (int i = 0; i < reminders.size(); i++) {
+            Reminder existing = reminders.get(i);
+            if (existing.id() == id) {
+                LocalTime newTime = existing.at().plusMinutes(minutes);
+                if (duplicates(id, existing.text(), newTime)) {
+                    throw new IllegalStateException("duplicate reminder");
+                }
+                Reminder updated = new Reminder(id, existing.text(), newTime);
+                reminders.set(i, updated);
+                return Optional.of(updated);
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public synchronized List<Reminder> findAll() {
         return List.copyOf(reminders);
     }

@@ -79,6 +79,32 @@ public class ReminderController {
         }
     }
 
+    @PostMapping("/api/reminders/{id}/snooze")
+    public ResponseEntity<Object> snooze(
+            @PathVariable String id, @RequestParam(name = "minutes", required = false) String minutes) {
+        final long reminderId;
+        final int amount;
+        if (minutes == null || !minutes.matches("[0-9]+")) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            reminderId = Long.parseLong(id);
+            amount = Integer.parseInt(minutes);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            return repository
+                    .snooze(reminderId, amount)
+                    .<ResponseEntity<Object>>map(r -> ResponseEntity.ok(toResponse(r)))
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).build();
+        }
+    }
+
     // A variable {id} PUT mapping would otherwise turn PUT /stats into 400.
     // Keep the existing statistics endpoint's method contract (REM-D3/E5).
     @RequestMapping(
