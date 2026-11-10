@@ -1,18 +1,12 @@
 name: EX7 N+1 one-shot Palantir formatter and byte-equivalence
 on:
-  push:
-    branches:
-      - lf/ex7-n1-formatter-run-helper
   pull_request:
     branches:
       - lf/ex7-palantir-n1-chg0032
-
 permissions:
   contents: write
-
 jobs:
-  format-verified:
-    if: github.event_name == 'pull_request'
+  render-derived-cambios:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -20,52 +14,18 @@ jobs:
           ref: lf/ex7-palantir-n1-chg0032
           fetch-depth: 0
           persist-credentials: true
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: maven
-      - name: Compile baseline, apply exact formatter, prove class identity and push N+1
-        shell: bash
+      - name: Generate C9 registry using official renderer (no manual edits)
         run: |
           set -euo pipefail
-          TARGET=lf/ex7-palantir-n1-chg0032
-          git fetch origin "$TARGET"
-          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$TARGET)"
-          ROOT=apps/time-service/src/main/java
-          J=apps/time-service/src/main/java/lf/sandbox/time/reminder
-          FILES=("$J/ReminderRepository.java" "$J/InMemoryReminderRepository.java" "$J/ReminderController.java")
-          mkdir -p "$RUNNER_TEMP/before" "$RUNNER_TEMP/after"
-          mvn -B -q -f apps/time-service/pom.xml dependency:build-classpath "-Dmdep.outputFile=$RUNNER_TEMP/deps.txt"
-          CP="$(cat "$RUNNER_TEMP/deps.txt")"
-          mapfile -d '' SOURCES < <(find "$ROOT" -name '*.java' -print0 | sort -z)
-          javac --release 21 -g:none -encoding UTF-8 -classpath "$CP" -d "$RUNNER_TEMP/before" "${SOURCES[@]}"
-          mvn -B -q -f apps/time-service/pom.xml spotless:apply
-          mvn -B -q -f apps/time-service/pom.xml spotless:check
-          mapfile -t MODIFIED < <(git diff --name-only | sort)
-          mapfile -t EXPECTED < <(printf '%s\n' "${FILES[@]}" | sort)
-          test "${#MODIFIED[@]}" -eq 2
-          for changed in "${MODIFIED[@]}"; do
-            printf "%s\n" "${EXPECTED[@]}" | grep -Fxq "$changed"
-          done
-          echo "EX7_N1_CHANGED_JAVA_COUNT=${#MODIFIED[@]}"
-          javac --release 21 -g:none -encoding UTF-8 -classpath "$CP" -d "$RUNNER_TEMP/after" "${SOURCES[@]}"
-          python3 - "$RUNNER_TEMP/before" "$RUNNER_TEMP/after" <<'PY'
-          import pathlib,hashlib,json,sys
-          def scan(dirname):
-              root=pathlib.Path(dirname)
-              return {p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(root.rglob("*.class"))}
-          before,after=map(scan,sys.argv[1:])
-          assert before and before==after, "CLASS_BYTES_DIFFER"
-          print("EX7_N1_JAVAC_G_NONE_CLASS_BYTES_IDENTICAL_PASS")
-          print("EX7_N1_CLASS_COUNT="+str(len(before)))
-          print("EX7_N1_RECEIPT="+json.dumps({"schema":"EX7_PALANTIR_N1_V1","formatter":"palantir-java-format@2.102.0","plugin":"spotless-maven-plugin@3.10.4","javac":["--release","21","-g:none"],"class_count":len(before),"before":before,"after":after,"class_bytes_identical":True,"changed_count":2,"model_calls":0,"production_authority":False},sort_keys=True))
-          PY
+          git fetch origin lf/ex7-palantir-n1-chg0032
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/lf/ex7-palantir-n1-chg0032)"
           python3 standards/tools/changes.py render
           python3 standards/tools/changes.py render --check
+          git diff --name-only | grep -Fxq standards/CAMBIOS.md
+          test "$(git diff --name-only | wc -l)" -eq 1
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- "${FILES[@]}" standards/CAMBIOS.md
+          git add standards/CAMBIOS.md
           git diff --cached --check
-          git commit -m "CHG-0032 EX7 N+1: apply Palantir only to three Java files"
-          git push origin HEAD:"$TARGET"
+          git commit -m "CHG-0032: regenerate CAMBIOS.md with official changes.py renderer"
+          git push origin HEAD:lf/ex7-palantir-n1-chg0032
