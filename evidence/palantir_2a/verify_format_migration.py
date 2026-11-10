@@ -27,7 +27,8 @@ def run(*args: str) -> bytes:
         raise RuntimeError(
             "PALANTIR_2A_COMMAND_FAILED:" + args[0]
             + ":exit=" + str(result.returncode)
-            + ":" + result.stderr.decode("utf-8", errors="replace")[-1400:]
+            + ":STDOUT=" + result.stdout.decode("utf-8", errors="replace")[-3500:]
+            + ":STDERR=" + result.stderr.decode("utf-8", errors="replace")[-3500:]
         )
     return result.stdout
 
@@ -77,7 +78,7 @@ def verify(apply: bool, receipt_path: Path) -> None:
             dest.write_bytes(run("git", "show", BASE + ":" + path))
         before = compile_classes([old_root / p for p in paths], tmp / "before", cp)
         if apply:
-            run("mvn", "-B", "-q", "-f", str(APP / "pom.xml"), "spotless:apply")
+            run("mvn", "-B", "-f", str(APP / "pom.xml"), "spotless:apply")
         run("mvn", "-B", "-q", "-f", str(APP / "pom.xml"), "spotless:check")
         after = compile_classes([ROOT / p for p in paths], tmp / "after", cp)
         if before != after:
