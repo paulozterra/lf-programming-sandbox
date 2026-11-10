@@ -90,11 +90,11 @@ class PolicyTests(unittest.TestCase):
             if path == "/commits/" + "c" * 40:
                 return {"parents": [{"sha": "a" * 40}, {"sha": "b" * 40}]}
             raise AssertionError(path)
-        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox", "TRAIN_RECEIPT": os.devnull}), \\
-             patch.object(train, "api", side_effect=fake_api), \\
-             patch.object(train, "pr_data", side_effect=fake_pr), \\
-             patch.object(train, "main_sha", return_value="m" * 40), \\
-             patch.object(train, "await_checks", return_value={"backend (Maven verify)": {"conclusion": "success"}}), \\
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox", "TRAIN_RECEIPT": os.devnull}), \
+             patch.object(train, "api", side_effect=fake_api), \
+             patch.object(train, "pr_data", side_effect=fake_pr), \
+             patch.object(train, "main_sha", return_value="m" * 40), \
+             patch.object(train, "await_checks", return_value={"backend (Maven verify)": {"conclusion": "success"}}), \
              patch.object(train.time, "sleep", return_value=None):
             train.run(77)
         dispatch = [c for c in calls if c[1] == "/actions/workflows/ci.yml/dispatches"]
@@ -114,10 +114,10 @@ class PolicyTests(unittest.TestCase):
             if path == "/commits/" + "c" * 40:
                 return {"parents": [{}, {}]}
             raise AssertionError(path)
-        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox", "TRAIN_RECEIPT": os.devnull}), \\
-             patch.object(train, "api", side_effect=fake_api), \\
-             patch.object(train, "pr_data", return_value=pr), \\
-             patch.object(train, "main_sha", return_value="m" * 40), \\
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox", "TRAIN_RECEIPT": os.devnull}), \
+             patch.object(train, "api", side_effect=fake_api), \
+             patch.object(train, "pr_data", return_value=pr), \
+             patch.object(train, "main_sha", return_value="m" * 40), \
              patch.object(train, "await_checks", return_value={"backend (Maven verify)": {"conclusion": "success"}}):
             train.run(77)
         self.assertFalse(any(c[1] == "/actions/workflows/ci.yml/dispatches" for c in calls))
