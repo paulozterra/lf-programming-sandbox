@@ -45,7 +45,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/63"
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/64"
   },
   "decision_ref": "D1=Palantir with Spotless; palantir 2.102.0 + spotless-maven-plugin 3.10.4 from STD-BE-05. D2 separate PR only after merge. No model."
 }
