@@ -239,3 +239,60 @@ jobs:
         run: |
           python3 -m pytest -q pilot/worker_v08/test_native_run.py pilot/worker_v08/test_native_push_policy.py pilot/worker_v08/test_native_push_guard.py pilot/worker_v08/test_push_workflow_no_secrets.py
           python3 pilot/worker_v08/test_workflow_policy.py
+
+  ex7-capture-and-visible-offline:
+    name: EX7 exact task pack and visible preflight (NO SECRETS)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 20
+    steps:
+      - name: Checkout trusted control at merged main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          path: control
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout exact EX7 base (not mutated)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: bdb0af58137a1bba2b5667c1156c211d518d050f
+          path: source
+          persist-credentials: false
+      - name: Python and Java 21
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Install capture dependencies only
+        run: python3 -m pip install "cryptography==49.0.0"
+      - name: Verify exact source and export trusted task pack, no model, no oracle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C source rev-parse HEAD)" = bdb0af58137a1bba2b5667c1156c211d518d050f
+          python3 control/pilot/worker_v08/verify_vendor.py
+          python3 - <<'PY'
+          import json, pathlib
+          task=json.loads(pathlib.Path("control/pilot/worker_v08/native_tasks/ex7.json").read_text())
+          pathlib.Path("ex7-spec.json").write_text(json.dumps(task["task_spec"]))
+          PY
+          python3 control/pilot/worker_v08/export_task_pack.py --repo source --task-spec ex7-spec.json --out ex7-task-pack.json
+          sha256sum ex7-task-pack.json | tee ex7-task-pack.sha256
+          python3 - <<'PY'
+          import json,hashlib,pathlib
+          p=pathlib.Path('ex7-task-pack.json')
+          o=json.loads(p.read_text())
+          assert set(o)=={"system_instruction","user_payload"}
+          assert o["user_payload"]["task"]["base_head_sha"]=="bdb0af58137a1bba2b5667c1156c211d518d050f"
+          assert "holdout" not in p.read_text().lower()
+          print("EX7_CAPTURE_NO_MODEL_NO_HOLDOUT_PASS", hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+      - name: Publish exact original Worker payload for GPT native editing
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ex7-immutable-native-task-pack
+          path: |
+            ex7-task-pack.json
+            ex7-task-pack.sha256
+          retention-days: 7
