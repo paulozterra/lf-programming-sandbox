@@ -23,7 +23,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Apply Palantir once with visible Maven diagnostics and class equivalence
+      - name: Apply Palantir with corrected Maven includes and class equivalence
         run: |
           set -euo pipefail
           python3 evidence/palantir_2a/verify_format_migration.py --apply --receipt "$RUNNER_TEMP/CHG-0029-class-byte-receipt.json"
