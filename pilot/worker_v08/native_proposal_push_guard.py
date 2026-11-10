@@ -44,6 +44,18 @@ def validate_proposal_only(control: Path, proposal_sha: str, *, main_sha: str | 
     if match is None:
         raise ProposalPushBlocked("NATIVE_PUSH_SCOPE_INVALID")
     task = match.group(1)
+    # Every intervening commit must touch only the same proposal, even if a
+    # malicious change was later reverted before the branch tip.
+    commits = _git(control, "rev-list", "--reverse", main_sha + ".." + proposal_sha).decode().splitlines()
+    if not 1 <= len(commits) <= 50:
+        raise ProposalPushBlocked("NATIVE_PUSH_HISTORY_BOUNDS")
+    for commit in commits:
+        ancestry = _git(control, "rev-list", "--parents", "-n", "1", commit).decode().split()
+        if len(ancestry) != 2:
+            raise ProposalPushBlocked("NATIVE_PUSH_MERGE_NOT_ALLOWED")
+        one = _git(control, "diff", "--name-status", "-z", "--no-renames", ancestry[1], commit).split(b"\x00")
+        if len(one) != 3 or one[-1] != b"" or one[0] not in (b"A", b"M") or one[1] != path.encode():
+            raise ProposalPushBlocked("NATIVE_PUSH_COMMIT_SCOPE_INVALID")
     if branch is not None and branch != "lf/native-proposal/" + task:
         raise ProposalPushBlocked("NATIVE_PUSH_BRANCH_TASK_MISMATCH")
     registered = "pilot/worker_v08/native_tasks/" + task + ".json"
