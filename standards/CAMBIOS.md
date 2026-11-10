@@ -36,3 +36,4 @@
 | CHG-0030 | ADDITIVE | Fase 2B: copia LF fijada y contexto Worker de perfiles/Skills para tareas API y nativas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/65 |
 | CHG-0031 | EDITORIAL | EX7 N/N+1: parche verificado original y remediación Palantir con equivalencia byte a byte |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/68 |
 | CHG-0033 | ADDITIVE | Retirar del CI la equivalencia histórica de CHG-0029 conservando Spotless obligatorio |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/69 |
+| CHG-0034 | EDITORIAL | Registro EX8 nativo: Lote F (posponer) con perfil backend y skills fijados, prueba visible y SHA del examen externo |  | paulozterra | PENDING |
