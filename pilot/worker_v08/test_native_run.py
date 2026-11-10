@@ -137,5 +137,5 @@ def test_feedback_only_visible_commands():
 
 
 def test_unregistered_ex6_is_fail_closed(tmp_path):
-    with pytest.raises(ValueError, match="NATIVE_EX6_REGISTRATION_PENDING_CLAUDE"):
+    with pytest.raises(ValueError, match="NATIVE_TASK_UNREGISTERED"):
         load_registration(tmp_path, "ex6")
