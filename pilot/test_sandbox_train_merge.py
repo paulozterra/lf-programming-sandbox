@@ -143,10 +143,8 @@ else:
         self.assertEqual(run(self.root, "rev-parse", "HEAD"), head)
 
     def test_adversarial_changes_script_never_sees_token(self):
-        head, main = self.diverge(conflict_cambios=True)
-        # Script is identical on main and PR, so it is permitted to run.
-        # Injected sentinel intentionally fails if any token reaches any invocation.
-        self.assertEqual(run(self.root, "rev-parse", "HEAD"), head)
+        # Install a malicious-looking sentinel in the SHARED base, so the PR
+        # itself does not modify tooling. It raises on any inherited token.
         script = self.root / "standards/tools/changes.py"
         original = script.read_text()
         sentinel = (
@@ -156,20 +154,16 @@ else:
             "    raise RuntimeError('TOKEN_EXPOSED')\\n"
         )
         script.write_text(sentinel + original)
-        # Reestablish the exact same script in both branches, so the tooling guard
-        # permits execution; Git still exercises render, render --check and check.
-        run(self.root, "checkout", "main")
-        script.write_text(sentinel + original)
-        main = self.commit("shared sentinel tooling")
-        run(self.root, "checkout", "smoke")
-        script.write_text(sentinel + original)
-        head = self.commit("sync sentinel tooling")
-        with __import__("unittest").mock.patch.dict(
-            os.environ, {"GH_TOKEN": "secret", "GITHUB_TOKEN": "other",
-                         "ACTIONS_RUNTIME_TOKEN": "third"}
-        ):
+        self.commit("shared token sentinel")
+        head, main = self.diverge(conflict_cambios=True)
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"GH_TOKEN": "secret",
+                                      "GITHUB_TOKEN": "other",
+                                      "ACTIONS_RUNTIME_TOKEN": "third"}):
             merged = merge.prepare_merge(self.root, main, head)
         self.assertNotEqual(merged, head)
+        self.assertEqual((self.root / "standards/CAMBIOS.md").read_text(),
+                         "CHG-0001\\nCHG-0002\\nCHG-0003\\n")
 
     def test_conflict_classifier_rejects_other_path(self):
         head, main = self.diverge(conflict_other=True)
