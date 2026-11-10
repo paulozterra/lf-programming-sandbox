@@ -32,7 +32,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/69"
   },
   "decision_ref": "No changes to evidence/phase2/palantir_spotless_equivalence.py, no change to required Spotless gate or format versions. No vendor/, profiles/ or Supabase modifications. Candidate-only; Claude independent review, Paulo merge."
 }
