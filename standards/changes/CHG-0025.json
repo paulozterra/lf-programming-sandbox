@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0025",
+  "title": "Registro EX7 nativo: tarea pública Lote E (edición y duplicados), prueba visible y SHA del examen externo",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Mandato de Paulo 2026-11-10: EX7 para ver programar a GPT, modificando archivos existentes"
+  },
+  "reason": "Registrar la tarea pública ex7 (alcance de 3 archivos existentes, contexto, prueba visible, commit base inmutable y snapshot) con el SHA-256 del examen oculto, que vive fuera del repo como secreto PILOT_HOLDOUT_EX7_B64.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/REMINDERS_SPEC.md",
+      "apps/time-service/visible-tests/ex7/ReminderUpdateVisibleCheck.java",
+      "apps/time-service/visible-tests/ex7/run_visible.py",
+      "pilot/worker_v08/native_tasks/ex7.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0025.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:claude",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  },
+  "decision_ref": "Owner: examen independiente de Claude; contenido no accesible a GPT; solo SHA en repo"
+}

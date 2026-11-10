@@ -1,0 +1,63 @@
+{
+  "task_spec": {
+    "schema_version": 1,
+    "task_id": "LF-WORKER-NATIVE-EX7",
+    "objective": "Implement REM-E1 through REM-E6 (Lote E: reminder update and duplicate rule) from apps/time-service/REMINDERS_SPEC.md by MODIFYING exactly these existing files: ReminderRepository.java, InMemoryReminderRepository.java and ReminderController.java. Do not create, delete or modify any other file. All previous rules (REM-A to REM-D) must keep working. Visible check: apps/time-service/visible-tests/ex7/.",
+    "base_head_sha": "bdb0af58137a1bba2b5667c1156c211d518d050f",
+    "source_snapshot_sha256": "e6b1777b0313c0061ce57caec91e1d8a9851764dd7964f83b834a82c2311e620",
+    "context_path_patterns": [
+      "apps/time-service/REMINDERS_SPEC.md",
+      "apps/time-service/pom.xml",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/*.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/*.java",
+      "apps/time-service/src/test/java/lf/sandbox/time/reminder/*.java",
+      "apps/time-service/visible-tests/ex7/*"
+    ],
+    "write_path_patterns": [
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+    ],
+    "protected_path_patterns": [
+      "apps/time-service/src/test/**",
+      "apps/time-service/visible-tests/**",
+      "apps/time-service/pom.xml",
+      "apps/time-service/REMINDERS_SPEC.md",
+      "apps/time-service/src/main/java/lf/sandbox/time/*.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStats.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsService.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsController.java"
+    ],
+    "acceptance_commands": [
+      {
+        "name": "time-service-package",
+        "argv": [
+          "mvn",
+          "-B",
+          "-q",
+          "-f",
+          "apps/time-service/pom.xml",
+          "package"
+        ],
+        "timeout_seconds": 600,
+        "max_output_bytes": 32000
+      },
+      {
+        "name": "ex7-visible-check",
+        "argv": [
+          "python3",
+          "apps/time-service/visible-tests/ex7/run_visible.py"
+        ],
+        "timeout_seconds": 120,
+        "max_output_bytes": 16000
+      }
+    ],
+    "max_attempts": 1,
+    "max_patch_bytes": 60000,
+    "max_changed_files": 3,
+    "max_context_bytes": 160000,
+    "allow_deletions": false
+  },
+  "holdout_sha256": "43cb0b5b334f7b90b5f98f62710fe6f8536a6e8193fa82813c79639822d8bc4c"
+}
