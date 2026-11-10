@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0038",
+  "title": "CP0.2: recuperación del Train ante conflicto exclusivo en CAMBIOS.md",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-10: #78 dirty, Train debe resolver exclusivamente conflicto CAMBIOS.md y comprobar cambios con C9"
+  },
+  "reason": "Reemplazar update-branch remoto por merge de main local en checkout efímero; ante conflicto de un solo archivo standards/CAMBIOS.md regenerar desde changes.py render, crear merge commit local, ejecutar changes.py render --check y changes.py check contra main antes del push. Bloquear BRANCH_CONFLICT para otros archivos sin escritura remota. Push no forzado autenticado solo con GITHUB_TOKEN y dispatch explícito de CI del HEAD nuevo. Mantener workflow_dispatch manual por si GitHub omite pull_request:labeled en un PR dirty.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/sandbox_train_merge.py",
+      "pilot/sandbox_train.py",
+      "pilot/test_sandbox_train_merge.py",
+      "pilot/test_sandbox_train_policy.py",
+      ".github/workflows/ci.yml",
+      ".github/workflows/sandbox-train.yml",
+      "standards/changes/CHG-0038.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  },
+  "decision_ref": "No auto-merge este PR de implementación. Luego de revisión/aprobación realizar CP0.2 de dos PRs simultáneos con CHG distintos. Fusionar primero por Train, luego segundo queda behind+dirty solo CAMBIOS; Paulo etiqueta, y si GitHub bloquea labeled usar workflow_dispatch en main con PR number. No tocar Supabase/producción, sin secretos personalizados ni pull_request_target."
+}
