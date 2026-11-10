@@ -34,7 +34,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/67"
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/68"
   },
   "decision_ref": "EX7 N+1 over #66; preserve exact source N blobs f9e7cb4, 7d4afc6, 20c4b10. Palantir 2.102.0 via Spotless 3.10.4, class-byte equivalence under javac -g:none, candidate only; no model or production authority."
 }
