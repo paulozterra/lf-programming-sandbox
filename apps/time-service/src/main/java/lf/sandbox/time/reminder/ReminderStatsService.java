@@ -1,10 +1,9 @@
 package lf.sandbox.time.reminder;
 
-import org.springframework.stereotype.Service;
-
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.springframework.stereotype.Service;
 
 @Service
 public class ReminderStatsService {
@@ -42,8 +41,7 @@ public class ReminderStatsService {
         }
 
         boolean tomorrow = upcoming == null;
-        return new ReminderStats(
-                reminders.size(), earliest, latest, tomorrow ? first : upcoming, tomorrow);
+        return new ReminderStats(reminders.size(), earliest, latest, tomorrow ? first : upcoming, tomorrow);
     }
 
     private static boolean earlier(Reminder left, Reminder right) {
