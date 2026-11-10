@@ -70,7 +70,7 @@ jobs:
             test "$TRIGGER_EVENT" = "push"
             test "$TRIGGER_CONCLUSION" = "success"
             test "$TRIGGER_REPO" = "$REPO_NAME"
-            [[ "$TRIGGER_PATH" == *.github/workflows/worker-native-trigger.yml ]]
+            [[ "$TRIGGER_PATH" == ".github/workflows/worker-native-trigger.yml" || "$TRIGGER_PATH" == ".github/workflows/worker-native-trigger.yml@"* ]]
             [[ "$TRIGGER_BRANCH" == lf/native-proposal/* ]]
             sha="$TRIGGER_SHA"
             branch="$TRIGGER_BRANCH"
