@@ -161,39 +161,50 @@ if "|| secrets." in yaml or "&& secrets." in yaml:
     raise AssertionError("EX5_SECRET_FALLBACK_FORBIDDEN")
 
 
-# Hybrid native runner is separate from paid worker-pilot. Manual preserved; guarded push added.
+# Hybrid trusted workflow_run executor is separate from the no-secret push trigger.
 native = (REPO/".github/workflows/worker-native.yml").read_text(encoding="utf-8")
+trigger = (REPO/".github/workflows/worker-native-trigger.yml").read_text(encoding="utf-8")
 native_runner = (REPO/"pilot/worker_v08/native_run.py").read_text(encoding="utf-8")
 native_history = (REPO/"pilot/worker_v08/native_run_history.py").read_text(encoding="utf-8")
-if not re.search(r"^on:\s*\n  push:", native, re.M) or "  workflow_dispatch:" not in native:
-    raise AssertionError("NATIVE_PUSH_OR_MANUAL_TRIGGER_MISSING")
+push_guard = (REPO/"pilot/worker_v08/native_proposal_push_guard.py").read_text(encoding="utf-8")
+if not re.search(r"^on:\s*\n  workflow_run:", native, re.M) or "  workflow_dispatch:" not in native:
+    raise AssertionError("NATIVE_WORKFLOW_RUN_OR_MANUAL_MISSING")
+if not re.search(r"^on:\s*\n  push:", trigger, re.M):
+    raise AssertionError("NATIVE_UNPRIVILEGED_PUSH_TRIGGER_MISSING")
 for forbidden in ("pull_request_target:", "pull_request:", "schedule:",
                   "ANTHROPIC_API_KEY", "secrets.GITHUB_TOKEN", "gh pr create"):
-    if forbidden in native:
+    if forbidden in native or forbidden in trigger:
         raise AssertionError("NATIVE_WORKFLOW_FORBIDDEN:" + forbidden)
+if "  push:" in native or "workflow_run:" in trigger or "secrets." in trigger:
+    raise AssertionError("NATIVE_TRUST_BOUNDARY_INVALID")
+if not re.search(r"^permissions:\s*\n  contents: read\s*$", trigger, re.M):
+    raise AssertionError("NATIVE_TRIGGER_PERMISSIONS_INVALID")
 for required in ("proposal_commit_sha:", "attempt:", "task:",
-                 "PILOT_HOLDOUT_EX6_B64", "base64.b64decode(encoded,validate=True)",
-                 "EX6_HOLDOUT_SHA_DRIFT", "persist-credentials: false",
-                 "sparse-checkout: pilot/native_proposals/ex6.json",
+                 "PILOT_HOLDOUT_B64", "secrets[format(",
+                 "base64.b64decode(encoded,validate=True)",
+                 "NATIVE_HOLDOUT_SHA_DRIFT", "persist-credentials: false",
+                 "sparse-checkout: pilot/native_proposals/",
                  "native_run_history.py", "native_run.py execute",
                  "steps.worker.outcome == 'success'",
                  "native-attempt-proof", "native-visible-feedback-and-cost",
-                 "native-verified-patch"):
+                 "native-verified-patch", "github.event.workflow_run.head_sha",
+                 "github.event.workflow_run.head_branch",
+                 "github.event.workflow_run.conclusion", "github.event.workflow_run.event",
+                 "native_proposal_push_guard.py", "Determine and gate attempt",
+                 "steps.history.outputs.attempt", "refs/heads/main",
+                 "cancel-in-progress: false"):
     if required not in native:
-        raise AssertionError("NATIVE_WORKFLOW_MISSING:" + required)
-for required in ("lf/native-proposal/**", "pilot/native_proposals/*.json",
-                 "Enforce proposal-only push", "native_proposal_push_guard.py",
-                 "Determine and gate attempt",
-                 "steps.history.outputs.attempt", "steps.source.outputs.proposal_sha",
-                 "refs/heads/main", "cancel-in-progress: false"):
-    if required not in native:
-        raise AssertionError("NATIVE_PUSH_POLICY_MISSING:"+required)
-push_guard = (REPO/"pilot/worker_v08/native_proposal_push_guard.py").read_text(encoding="utf-8")
+        raise AssertionError("NATIVE_EXECUTOR_MISSING:"+required)
+for required in ("lf/native-proposal/**","pilot/native_proposals/*.json",
+                 "native_proposal_push_guard.py", "refs/heads/main",
+                 "permissions:\n  contents: read"):
+    if required not in trigger:
+        raise AssertionError("NATIVE_TRIGGER_MISSING:"+required)
 for guard_required in ("merge-base", "--is-ancestor", "diff", "--name-status",
-                       "pilot/native_proposals/ex6.json", "100644",
-                       "NATIVE_PUSH_SCOPE_INVALID"):
+                       "pilot/native_proposals/", "native_tasks/", "100644",
+                       "NATIVE_PUSH_SCOPE_INVALID", "NATIVE_TASK_UNREGISTERED"):
     if guard_required not in push_guard:
-        raise AssertionError("NATIVE_PUSH_GUARD_MISSING:"+guard_required)
+        raise AssertionError("NATIVE_GUARD_MISSING:"+guard_required)
 if native.count("workflow_dispatch:") != 1:
     raise AssertionError("NATIVE_WORKFLOW_EVENT_NOT_UNIQUE")
 if "run_verified_worker(" not in native_runner or "NativeProposalClient(" not in native_runner:
@@ -226,4 +237,4 @@ if not (
 ):
     raise AssertionError("NATIVE_EX6_JAVA21_PREWORKER_ORDER_INVALID")
 
-print("PASS WORKFLOW_NATIVE_PROPOSAL_PUSH_AND_MANUAL_GUARDS")
+print("PASS NATIVE_TRIGGER_NO_SECRETS_WORKFLOW_RUN_REVALIDATION_AND_MANUAL")
