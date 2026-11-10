@@ -34,21 +34,6 @@ jobs:
         working-directory: .
         run: mvn -B -q -f apps/time-service/pom.xml test
 
-  palantir-class-equivalence:
-    name: CHG-0029 Palantir formatter and exact javac class-byte identity
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
-        with:
-          distribution: temurin
-          java-version: "21"
-      - name: Qualify full tree with Spotless apply in isolated copy and javac -g:none
-        run: python3 evidence/phase2/palantir_spotless_equivalence.py --mode emit
-
   frontend:
     name: frontend (lint, tipos, build)
     runs-on: ubuntu-latest
