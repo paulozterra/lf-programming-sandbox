@@ -110,6 +110,7 @@ def test_unregistered_task_blocks(tmp_path):
     # Make an independent proposal child of the unregistered main.
     git(repo,"checkout","-qb","lf/native-proposal/unregistered")
     path=repo/"pilot/native_proposals/ex6.json"
+    path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text("{}")
     git(repo,"add","-A")
     git(repo,"commit","-qm","proposal only")
@@ -126,6 +127,7 @@ def test_second_registered_task_is_supported(tmp_path):
     newbase=git(repo,"rev-parse","HEAD")
     git(repo,"checkout","-qb","lf/native-proposal/sample")
     prop=repo/"pilot/native_proposals/sample.json"
+    prop.parent.mkdir(parents=True,exist_ok=True)
     prop.write_text("{}")
     git(repo,"add","-A")
     git(repo,"commit","-qm","sample proposal")
