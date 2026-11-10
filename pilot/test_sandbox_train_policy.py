@@ -129,5 +129,43 @@ class PolicyTests(unittest.TestCase):
         self.assertIn('dispatch_updated_head_ci(updated["head"]["ref"], updated["head"]["sha"])', source)
         self.assertIn('expected=(204,)', source)
 
+
+    def test_all_workflows_reject_runner_context_in_job_env(self):
+        checker_path = ROOT / "pilot/check_workflow_job_env.py"
+        checker_spec = importlib.util.spec_from_file_location("workflow_env_guard", checker_path)
+        checker = importlib.util.module_from_spec(checker_spec)
+        checker_spec.loader.exec_module(checker)
+        self.assertEqual(checker.main(), 0)
+
+    def test_workflow_env_guard_rejects_invalid_job_env(self):
+        checker_path = ROOT / "pilot/check_workflow_job_env.py"
+        checker_spec = importlib.util.spec_from_file_location("workflow_env_guard", checker_path)
+        checker = importlib.util.module_from_spec(checker_spec)
+        checker_spec.loader.exec_module(checker)
+        invalid = """name: invalid
+on: push
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    env:
+      TRAIN_RECEIPT: ${{ runner.temp }}/receipt.json
+    steps:
+      - run: echo done
+"""
+        self.assertEqual(len(checker.violations(invalid, "invalid.yml")), 1)
+        valid = invalid.replace("      TRAIN_RECEIPT: ${{ runner.temp }}/receipt.json", "      TRAIN_RECEIPT: sandbox-train-receipt.json")
+        self.assertEqual(checker.violations(valid), [])
+        # runner context is legal in a step-level env; only reject job-level.
+        step_env = """jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read artifact
+        env:
+          TRAIN_RECEIPT: ${{ runner.temp }}/receipt.json
+        run: echo ok
+"""
+        self.assertEqual(checker.violations(step_env), [])
+
 if __name__ == "__main__":
     unittest.main()
