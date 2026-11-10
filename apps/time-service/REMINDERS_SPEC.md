@@ -84,3 +84,9 @@ REM-E4 `POST /api/reminders` de un duplicado responde **409** (antes respondía 
 REM-E5 Todo lo anterior se mantiene. En particular: `PUT /api/reminders` sigue respondiendo 405 (REM-B4), y **`PUT /api/reminders/stats` debe seguir respondiendo 405** (REM-D3), no 400. `GET /api/reminders/stats` sigue funcionando igual.
 
 REM-E6 La prueba visible está en `apps/time-service/visible-tests/ex7/` (fuera de `src/test` a propósito). Las pruebas existentes de `src/test` deben seguir pasando. Formato del código: norma AOSP de este documento.
+
+## Norma vigente de formato — decisión D1 / Fase 2A (CHG-0029)
+
+El formato canónico **desde la fusión de CHG-0029 en adelante** para todos los archivos `apps/time-service/src/main/java/**/*.java` es **palantir-java-format 2.102.0** con **spotless-maven-plugin 3.10.4**, conforme al texto literal de **STD-BE-05** de `standards/catalog.json` v0.6.1: sangría de 4 espacios, 120 columnas. Se utiliza `mvn -B -f apps/time-service/pom.xml spotless:apply` únicamente en la remediación gobernada; el gate CI aplica `mvn -B -f apps/time-service/pom.xml spotless:check` antes de compilar. Todo cambio de formato exige `javac --release 21 -g:none` sobre **todo** el árbol Java previo y posterior y comparación de nombres de .class y SHA-256 por clase; ninguna divergencia se permite.
+
+**Linaje histórico conservado:** los recibos, verificadores y bundles de EX5C, EX6 y EX7 que fijan google-java-format 1.30.0 `--aosp` corresponden a sus ejecuciones pasadas, y **no deben reinterpretarse ni modificarse**. La norma AOSP anterior de este documento queda superada solo para futuros cambios. El contenido funcional REM-A a REM-E se mantiene inalterado. Las menciones históricas a AOSP en REM-D4 y REM-E6 describen el requisito de aquellos ejercicios al momento de ejecutarse, no una obligación vigente para una nueva versión.
