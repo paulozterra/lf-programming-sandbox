@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0037",
+  "title": "CP0.2: prueba de humo de Merge Train con rama deliberadamente atrasada",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-10: CP0.2 PR trivial same-repo behind main, ready-to-merge aplicado por Paulo"
+  },
+  "reason": "Ejercitar de extremo a extremo el Merge Train aprobado en #77: behind_by > 0, update-branch, workflow_dispatch del CI sobre el HEAD nuevo, seis checks obligatorios y merge commit de dos padres con recibo. Solo archivo marcador inerte; sin secretos, modelos ni cambios funcionales.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "evidence/cp02/SMOKE.md",
+      "standards/changes/CHG-0037.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  },
+  "decision_ref": "CP0.2 smoke only. PR must be behind main before ready-to-merge; Paulo controls label; no CP0.3 branch policy activation."
+}
