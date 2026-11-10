@@ -5,5 +5,76 @@
   "source_prefix": "sandbox/lf_contract_gate_test/programming_agent_four_stage/programmer_profiles_exp/",
   "status": "CANDIDATE_SANDBOX_ONLY",
   "production_authority": false,
-  "files": {}
+  "files": {
+    "prog_backend_exp/SKILL.md": {
+      "sha256": "21b40f20430b9702c899667a7838848e6107c7d0ac30980f479fbeb3435743a3",
+      "git_blob_sha1": "428d915425f218fdc89c551b34f7173e3affd29f",
+      "bytes": 2720
+    },
+    "prog_backend_exp/checklists/preflight_checklist.md": {
+      "sha256": "e6b2c8003639f8e3112bd4487c0372b18b01ebf4b3f59319026a5365e4cf03d4",
+      "git_blob_sha1": "bad7d89afdb699343374c23334ae4a5ea78fc765",
+      "bytes": 433
+    },
+    "prog_backend_exp/checklists/priority_checklist.md": {
+      "sha256": "3b4c5aeac8d5e6b8fcfcdc87840904c256d39a61ce79acc7552a5e126e2f7aa0",
+      "git_blob_sha1": "b7c230ee120a91a3e95e3706d63ec9751cfc6e26",
+      "bytes": 225
+    },
+    "prog_backend_exp/contracts/main_contract.md": {
+      "sha256": "c071fc93edc4fff957bc98b6377d1f0bff73ef043401b343b823490f43c93061",
+      "git_blob_sha1": "d11aa516e58036a45a32cab93e6197c0f0643347",
+      "bytes": 1693
+    },
+    "prog_backend_exp/contracts/missing_input_policy.md": {
+      "sha256": "46c22751e4bc5c9105ffc7cda1cfe19fabf10be1e80b5c53463f5e6ef355693b",
+      "git_blob_sha1": "35ddb8f16a7c55ba4551db6ce45d081ed9bcf605",
+      "bytes": 368
+    },
+    "prog_backend_exp/contracts/runtime_binding.json": {
+      "sha256": "e46877884d6941a6ad42cae2536807363e6d9100c4eab45b079eda7282c44a3f",
+      "git_blob_sha1": "122fcfc3e33525d1736096c9a1155a438455ad8c",
+      "bytes": 1052
+    },
+    "stack_skills_exp/angular_exp/SKILL.md": {
+      "sha256": "30e0eff55d9b35e438befcc5679ab34c86f747d9df48ef718c356ed24b9f6554",
+      "git_blob_sha1": "ec3681dbcd0ea48844f4dc9aa9242b369719b35a",
+      "bytes": 1844
+    },
+    "stack_skills_exp/angular_exp/contracts/expert_rules.json": {
+      "sha256": "f61e39f6af18836ef953674b105ed800f6f84b8eb888766255aab3aeb787b193",
+      "git_blob_sha1": "39c68349522626e8654974e863fd3dbd88b310f4",
+      "bytes": 1364
+    },
+    "stack_skills_exp/angular_exp/contracts/main_contract.md": {
+      "sha256": "c55f738c7b132cf3239a0b9ddaf29bc87d7fb7925a5ffabb03c1b4a880d296c5",
+      "git_blob_sha1": "b3f567ec689790b004bd7044f14c5100ce8a7497",
+      "bytes": 790
+    },
+    "stack_skills_exp/angular_exp/evals/eval_matrix.json": {
+      "sha256": "419daf3da6ec0528866273dd42382dd79cc58a698ceb22b159418d3a0812859f",
+      "git_blob_sha1": "59bb0fa0bd63f727b0b35a948e8847d336dcc737",
+      "bytes": 397
+    },
+    "stack_skills_exp/angular_exp/examples/bad_output.json": {
+      "sha256": "2c15737af47d96cef825691b04b5e8892b6096be696976be10cd2abc3f688f04",
+      "git_blob_sha1": "f7a58714ef6ecd423710f47ceb36862ee33fa0ba",
+      "bytes": 190
+    },
+    "stack_skills_exp/angular_exp/examples/good_output.json": {
+      "sha256": "8bdcf520f9ec49762347a031a11f27a76992637c4b681394033245eb762aae0e",
+      "git_blob_sha1": "1b4e1974b97de36577420983e71eafad2918a4f7",
+      "bytes": 172
+    },
+    "stack_skills_exp/fastapi_exp/SKILL.md": {
+      "sha256": "896c8a032277ffa8e7bb07592ad774b11546d0c99be925af8f42d2caff8a2063",
+      "git_blob_sha1": "29ed822bc8c4edbe328e7db0a409bbf4c105443e",
+      "bytes": 1861
+    },
+    "stack_skills_exp/fastapi_exp/contracts/expert_rules.json": {
+      "sha256": "f36a7c97645a81f810666ce13a482208dd656fecbd9e8d0e8fbadd82cb5cc12b",
+      "git_blob_sha1": "e5230bfd0923284cd0a6b5a7b268968971127756",
+      "bytes": 1355
+    }
+  }
 }
