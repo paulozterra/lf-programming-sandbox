@@ -37,10 +37,22 @@ def check_conflicts(root):
     return bool(paths)
 
 
+def check_tooling_unchanged(root, base_ref, expected_head):
+    """Do not auto-merge PR-authored policy or Train code, even if merge is clean."""
+    changed = git(
+        root, "diff", "--name-only", "-z", base_ref + "..." + expected_head,
+        "--", "standards/tools/", ":(glob)pilot/sandbox_train*.py"
+    ).stdout
+    paths = sorted(filter(None, changed.split("\\0")))
+    if paths:
+        raise BranchConflict("BRANCH_CONFLICT_TOOLING_CHANGED " + ",".join(paths))
+
+
 def prepare_merge(root, base_ref, expected_head):
     """Build a local merge, check C9 against the NEW main parent, never push here."""
     if git(root, "rev-parse", "HEAD").stdout.strip() != expected_head:
         raise BranchConflict("BRANCH_CONFLICT HEAD_CHANGED")
+    check_tooling_unchanged(root, base_ref, expected_head)
     attempted = git(root, "merge", "--no-edit", "--no-commit", "--no-ff", base_ref, check=False)
     if attempted.returncode:
         if not check_conflicts(root):
@@ -69,7 +81,8 @@ def prepare_merge(root, base_ref, expected_head):
     # so C9 sees only the PR's CHG, not the CHGs newly added on main.
     for command in (("render", "--check"), ("check", "--base", base_ref)):
         result = subprocess.run([sys.executable, "standards/tools/changes.py", *command],
-                                cwd=root, text=True, capture_output=True)
+                                cwd=root, text=True, capture_output=True,
+                                env=no_token_env())
         if result.returncode:
             raise BranchConflict("BRANCH_CONFLICT CHANGES_" + command[0].upper() +
                                  "_FAILED " + (result.stdout + result.stderr)[-700:])
