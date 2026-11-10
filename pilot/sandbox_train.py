@@ -7,6 +7,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from sandbox_train_merge import update_branch_locally, BranchConflict
 
 REQUIRED = (
     "backend (Maven verify)",
@@ -131,19 +132,24 @@ def run(number):
         base = main_sha()
         compare = api("GET", f"/compare/{base}...{initial_head}")
         if compare["behind_by"] > 0:
-            print(json.dumps({"event": "update_branch", "pr": number, "head": initial_head, "main": base}), flush=True)
-            api("PUT", f"/pulls/{number}/update-branch", {"expected_head_sha": initial_head}, expected=(202,))
-            # Wait for GitHub to create the update commit; do not trust older checks.
-            end = time.monotonic() + 150
-            while time.monotonic() < end:
-                time.sleep(5)
-                updated = pr_data(number)
-                check_pr(updated)
-                if updated["head"]["sha"] != initial_head:
-                    break
-            else:
-                raise TrainError("BRANCH_UPDATE_TIMEOUT")
-            dispatch_updated_head_ci(updated["head"]["ref"], updated["head"]["sha"])
+            print(json.dumps({"event": "local_merge_main", "pr": number, "head": initial_head, "main": base}), flush=True)
+            try:
+                merged_head = update_branch_locally(
+                    pr["head"]["ref"], initial_head, base,
+                    os.environ["GH_TOKEN"], os.environ["GITHUB_REPOSITORY"])
+            except BranchConflict as exc:
+                if str(exc) in ("MAIN_MOVED_RETRY", "HEAD_MOVED_RETRY"):
+                    print(json.dumps({"event": "ref_moved_retry", "reason": str(exc)}), flush=True)
+                    continue
+                raise TrainError(str(exc)) from exc
+            # A GitHub-token push does not schedule pull_request/push workflows.
+            # Never dispatch before confirming the exact pushed HEAD and PR policy.
+            updated = pr_data(number)
+            check_pr(updated)
+            if updated["head"]["sha"] != merged_head:
+                print(json.dumps({"event": "post_push_head_moved_retry"}), flush=True)
+                continue
+            dispatch_updated_head_ci(updated["head"]["ref"], merged_head)
             continue
         if compare["status"] not in ("ahead", "identical"):
             raise TrainError("BRANCH_NOT_MERGEABLE " + compare["status"])

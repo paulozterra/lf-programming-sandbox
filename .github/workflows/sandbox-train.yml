@@ -39,8 +39,11 @@ jobs:
         with:
           ref: main
           persist-credentials: false
+          fetch-depth: 0
       - name: Check train policy before merge
         run: python3 -m unittest discover -s pilot -p 'test_sandbox_train_policy.py' -v
+      - name: Test CAMBIOS-only conflict policy with real Git
+        run: python3 -m unittest discover -s pilot -p 'test_sandbox_train_merge.py' -v
       - name: Merge checked HEAD; fail closed
         run: python3 pilot/sandbox_train.py
       - name: Publish merge receipt (no custom secrets)
