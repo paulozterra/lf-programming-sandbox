@@ -66,7 +66,8 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$EVENT_NAME" = "workflow_run" ]; then
-            test "$TRIGGER_NAME" = "LF Native proposal trigger"
+            # workflow_run.name is the trigger run-name, not its workflow display name.
+            test "$TRIGGER_NAME" = "lf-native-trigger"
             test "$TRIGGER_EVENT" = "push"
             test "$TRIGGER_CONCLUSION" = "success"
             test "$TRIGGER_REPO" = "$REPO_NAME"
