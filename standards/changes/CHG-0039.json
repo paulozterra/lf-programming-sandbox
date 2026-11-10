@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0039",
+  "title": "CP0.2 A: corregir split de NUL en guard del Train",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-10: CP0.2 humo real de dos PRs simultáneos, el primero con reparación NUL del Train"
+  },
+  "reason": "Corrección mínima del guard de tooling del Merge Train: git diff -z produce separadores NUL reales y split debe usar el carácter NUL, no la secuencia de dos caracteres barra invertida y cero. Primera rama CP0.2: fusionarla antes de que quede atrasada. No tocar Supabase ni secretos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/sandbox_train_merge.py",
+      "standards/changes/CHG-0039.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  },
+  "decision_ref": "CP0.2 únicamente. Dos PRs abiertos al mismo tiempo sobre main 2290a222; Paulo añade ready-to-merge primero en A y después en B, fallback workflow_dispatch en main si evento labeled no corre; verificar HEAD, 6 checks, merge SHA y recibo."
+}
