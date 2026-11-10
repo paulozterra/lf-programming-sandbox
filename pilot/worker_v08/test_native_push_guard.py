@@ -52,6 +52,7 @@ def test_unrelated_branch_blocks(tmp_path):
     repo,base,_=create_repository(tmp_path)
     git(repo,"checkout","-q",base)
     git(repo,"checkout","-qb","other")
+    (repo/"pilot/native_proposals").mkdir(parents=True,exist_ok=True)
     (repo/"pilot/native_proposals/ex6.json").write_text("{}")
     git(repo,"add","-A")
     git(repo,"commit","-qm","unrelated")
