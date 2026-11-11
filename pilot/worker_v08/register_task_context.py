@@ -302,9 +302,9 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     except (DeriveBlocked, TypeError, KeyError) as exc:
         block(str(exc))
     # Derive first; then gate the exact effective read scope before publishing.
+    if not (root / ".git").exists():
+        block("LOT_PREFLIGHT_NO_GIT")
     if task_name.lower() not in {"ex6", "ex7", "ex8"}:
-        if not (root / ".git").exists():
-            block("LOT_PREFLIGHT_NO_GIT")
         prepared = copy.deepcopy(task)
         effective = prepared.get("task_spec", prepared)
         effective["context_path_patterns"] = sorted(set(

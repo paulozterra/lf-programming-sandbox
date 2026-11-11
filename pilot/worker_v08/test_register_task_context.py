@@ -3,6 +3,8 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -35,6 +37,26 @@ def task_spec():
 
 def sha256_bytes(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def git(root, *args):
+    return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+
+
+def init_git_fixture(root):
+    git(root, "init", "-q")
+    git(root, "config", "user.name", "CP1.4 Offline")
+    git(root, "config", "user.email", "cp14@example.invalid")
+    spec = root / "apps/time-service/REMINDERS_SPEC.md"
+    spec.parent.mkdir(parents=True, exist_ok=True)
+    spec.write_text("Fixture only: CP1.4\\n", encoding="utf-8")
+    java = root / WRITE
+    java.parent.mkdir(parents=True, exist_ok=True)
+    java.write_text("package lf.sandbox.time.reminder;\\nclass ReminderRepository {}\\n",
+                    encoding="utf-8")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "offline fixture")
+    return git(root, "rev-parse", "HEAD")
+
 
 def run(task, **overrides):
     params = dict(project="lf_java", area="BACKEND", lot_paths=[WRITE],
@@ -161,6 +183,85 @@ class PinnedSource(unittest.TestCase):
                 task_name="cp12_immutable_" + area.lower())
         self.assertEqual(before, {str(x): sha256_bytes(x) for x in historic})
 
+    def test_native_end_to_end_git_registration_and_loader(self):
+        from native_run import load_registration
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            head = init_git_fixture(root)
+            source = json.loads((ROOT / "pilot/worker_v08/native_tasks/ex8.json").read_text())
+            task = copy.deepcopy(source["task_spec"])
+            task.update(task_id="LF-WORKER-NATIVE-CP14-NEW",
+                        base_head_sha=head,
+                        max_attempts=1,
+                        write_path_patterns=[WRITE],
+                        context_path_patterns=["apps/time-service/REMINDERS_SPEC.md"],
+                        protected_path_patterns=["apps/time-service/src/test/**"])
+            enriched, artifacts = run(task, task_name="cp14fresh", root=root, persist=True)
+            native_out = root / "pilot/worker_v08/native_tasks/cp14fresh.json"
+            digest = "a" * 64  # Synthetic SHA only; never a hidden exam.
+            raw = mod.write_native_registration(
+                root, "cp14fresh", native_out, enriched, digest)
+            self.assertEqual(raw, mod.canonical({"task_spec": enriched,
+                                                  "holdout_sha256": digest}))
+            self.assertEqual(native_out.read_bytes(), raw)
+            loaded, sha = load_registration(root, "cp14fresh")
+            self.assertEqual(loaded, enriched)
+            self.assertEqual(sha, digest)
+            self.assertEqual(mod.write_native_registration(
+                root, "cp14fresh", native_out, enriched, digest), raw)
+            self.assertEqual(native_out.read_bytes(), raw)
+            self.assertEqual(len(artifacts), 3)
+
+    def test_native_fail_closed_paths_sha_historic_and_existing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            safe = root / "pilot/worker_v08/native_tasks/newtask.json"
+            spec = {"max_attempts": 1, "base_head_sha": "a" * 40}
+            with self.assertRaisesRegex(mod.ContextBlocked, "NATIVE_TASK_PATH_INVALID"):
+                mod.write_native_registration(
+                    root, "newtask", root / "elsewhere/newtask.json", spec, "b" * 64)
+            for invalid in ("bad", "g" * 64, "a" * 63, "a" * 65):
+                with self.assertRaisesRegex(mod.ContextBlocked, "NATIVE_HOLDOUT_SHA_INVALID"):
+                    mod.write_native_registration(root, "newtask", safe, spec, invalid)
+            for historic in ("ex6", "ex7", "ex8"):
+                with self.assertRaisesRegex(mod.ContextBlocked, "HISTORICAL_TASK_IMMUTABLE"):
+                    mod.write_native_registration(
+                        root, historic,
+                        root / "pilot/worker_v08/native_tasks" / (historic + ".json"),
+                        spec, "b" * 64)
+            for invalid_spec in ({"max_attempts": 2, "base_head_sha": "a" * 40},
+                                 {"max_attempts": 1, "base_head_sha": "b" * 39}):
+                with self.assertRaises(mod.ContextBlocked):
+                    mod.write_native_registration(
+                        root, "newtask", safe, invalid_spec, "b" * 64)
+            original = mod.write_native_registration(
+                root, "newtask", safe, spec, "b" * 64)
+            with self.assertRaisesRegex(mod.ContextBlocked, "NATIVE_TASK_EXISTS"):
+                mod.write_native_registration(
+                    root, "newtask", safe, spec, "c" * 64)
+            self.assertEqual(safe.read_bytes(), original)
+
+    def test_missing_git_blocks_new_registration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaisesRegex(mod.ContextBlocked, "LOT_PREFLIGHT_NO_GIT"):
+                run(task_spec(), root=root, task_name="cp14nogit")
+
+    def test_historical_native_bytes_are_untouched(self):
+        originals = {name: (ROOT / "pilot/worker_v08/native_tasks" /
+                            (name + ".json")).read_bytes()
+                     for name in ("ex6", "ex7", "ex8")}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            init_git_fixture(root)
+            template = task_spec()
+            template["task_id"] = "LF-WORKER-NATIVE-CP14-HISTORY"
+            run(template, root=root, task_name="cp14check", persist=False)
+        self.assertEqual(originals,
+                         {name: (ROOT / "pilot/worker_v08/native_tasks" /
+                                 (name + ".json")).read_bytes()
+                          for name in originals})
+
     def test_budget_exceeded_before_outputs(self):
         with self.assertRaisesRegex(mod.ContextBlocked, "CONTEXT_BUDGET_EXCEEDED"):
             run(task_spec(), budget=1000, persist=False)
@@ -183,6 +284,7 @@ class PinnedSource(unittest.TestCase):
     def test_store_and_replay_same_bytes_in_isolated_repo(self):
         with tempfile.TemporaryDirectory() as path:
             root = Path(path)
+            init_git_fixture(root)
             enriched, artifacts = run(task_spec(), root=root, persist=True)
             for rel, raw in artifacts.items():
                 self.assertEqual((root / rel).read_bytes(), raw)

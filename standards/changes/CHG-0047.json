@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0047",
+  "title": "CP1.4: registro nativo directo desde contexto fijado",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: CP1.4 tras main a5a5a8f"
+  },
+  "reason": "Generar registro canónico para native_run.load_registration desde tarea nueva y SHA-256 externo del holdout, sin leer su contenido. Prohibir scope fuera de native_tasks, pines inválidos, ex6-ex8 y sobrescrituras divergentes. Exigir Git para preflight de lotes y corregir canonical newline de huella derivada. El vendor y las tareas históricas siguen intactos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/register_task_context.py",
+      "pilot/worker_v08/test_register_task_context.py",
+      "standards/changes/CHG-0047.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
