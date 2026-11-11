@@ -1,0 +1,8 @@
+{
+  "imitates": "public.fn_lf_decision_context_asof_resolve_v1",
+  "simulated": true,
+  "data": {
+    "schema_version": "LF_DECISION_CONTEXT_ASOF_RESOLUTION_V1",
+    "state": "UNKNOWN"
+  }
+}
