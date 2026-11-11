@@ -25,6 +25,8 @@ from native_lot_registration import canonical
 from native_verified_integration import next_chg
 from native_lot_binding import next_ready
 
+sys.path.insert(0, str(ROOT / "pilot/worker_v08"))
+
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "paulozterra/lf-programming-sandbox"
 TRAIN = ".github/workflows/sandbox-train.yml"
@@ -121,9 +123,9 @@ def plans() -> list[tuple[str, dict, dict, dict]]:
 
 
 def first_parent_merges() -> list[tuple[str, dict, set[str]]]:
-    # Bound history and fail closed if our active chain predates it. Chains
-    # must be short-lived and enrolled explicitly by an owner-reviewed plan.
-    revisions = run("git", "log", "--first-parent", "-n", "200",
+    # Bound history. Chains must be short-lived and owner-enrolled. A chain
+    # whose origin is outside the window needs manual review, not inferred PASS.
+    revisions = run("git", "log", "--first-parent", "-n", "75",
                     "--format=%H%x09%s").splitlines()
     results = []
     for record in revisions:
@@ -228,10 +230,12 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     # Caller has already committed the prepared native task on this branch.
     number = next_chg(root)
     entry = chg(root, number, request, reason, paths)
-    run("git", "add", "--", str(entry.relative_to(root)), "standards/CAMBIOS.md", cwd=root)
+    run("git", "add", "--", *paths, str(entry.relative_to(root)), "standards/CAMBIOS.md", cwd=root)
     run("git", "commit", "-m", f"[CP3.6][CHG-{number:04d}] {title}", cwd=root)
     from native_verified_integration import confirm_class_after_commit
     confirm_class_after_commit(root, entry)
+    if run("git", "ls-remote", "origin", "refs/heads/main", cwd=root).split()[0] != run("git", "merge-base", "origin/main", "HEAD", cwd=root):
+        deny("MAIN_MOVED_BEFORE_DRAFT")
     run("git", "push", "--set-upstream", "origin", branch, cwd=root)
     body = (f"CP3.6 · {reason}\n\n"
             f"CHG-{number:04d}; revisión independiente Claude, "
@@ -311,6 +315,17 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
             template_json.parent.rmdir()
         if prepared.get("result") != "CP35_PREPARED_NO_MODEL_NO_PUSH":
             deny("PREPARATION_NOT_VERIFIED")
+        artifact_dir = os.environ.get("CP36_PACK_OUT")
+        if artifact_dir:
+            import shutil
+            selected = root / "pilot/runs" / request / "proposal_requests"
+            destination = Path(artifact_dir)
+            destination.mkdir(parents=True, exist_ok=True)
+            for suffix in (".task-pack.json", ".proposal-request.json"):
+                file = selected / (task + suffix)
+                if not file.is_file() or file.is_symlink():
+                    deny("EXPORTED_PACK_MISSING")
+                shutil.copyfile(file, destination / file.name)
         paths = [f".lf/worker-context/{task}/{n}" for n in
                  ("profile.md", "skills.md", "receipt.json")]
         paths += [f"pilot/worker_v08/native_tasks/{task}.json"]
