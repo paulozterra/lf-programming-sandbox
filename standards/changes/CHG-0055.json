@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0055",
+  "title": "F1: readbacks SBX Login con doble referencia y host A1-A5 offline",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: F1 opción A, doble referencia simulada sin alterar A1-A5"
+  },
+  "reason": "Añade fixtures completamente ficticias SBX-AUTH-LOGIN con hash SHA256, host de lectura fail-closed, referencias supabase:// solo para la identidad formal exigida por A3 y procedencia fixture:// real separada; ejecuta A1-A5 sin red ni autoridad y pruebas offline. No modifica productores, vendor, intake ni CP3.2.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/fixtures/sbx_auth_login/",
+      "analysis/fixture_sha256_pins.json",
+      "analysis/host/fixture_readback_host.py",
+      "analysis/host/run_a1_a5_fixture.py",
+      "analysis/host/test_fixture_host.py",
+      ".github/workflows/analysis-f0.yml",
+      "standards/changes/CHG-0055.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
