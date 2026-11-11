@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0049",
+  "title": "CP2.3: registro ex8b, prueba real de examen cifrado con age",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 P2: primera prueba real del examen cifrado"
+  },
+  "reason": "Registra la tarea nativa ex8b (misma especificación y base que ex8, contexto explícito de 11 archivos) con su examen oculto cifrado con age en pilot/holdouts/ex8b.oracle.json.age. El SHA del oráculo descifrado es el mismo de ex8. Sirve para verificar en GitHub el descifrado con PILOT_HOLDOUT_AGE_KEY sin crear secretos por tarea.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/holdouts/ex8b.oracle.json.age",
+      "pilot/worker_v08/native_tasks/ex8b.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0049.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}

@@ -239,12 +239,46 @@ jobs:
           test "$(git -C proposal rev-parse HEAD)" = "$PROPOSAL_SHA"
           test -f "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
           test ! -L "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
+      - name: Install age v1.3.2 from SHA-256 pinned GitHub Releases tarball
+        if: ${{ steps.task.outputs.holdout_ref != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/age-v1.3.2-linux-amd64.tar.gz"
+          url="https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-linux-amd64.tar.gz"
+          curl --fail --location --silent --show-error --retry 2 "$url" --output "$archive"
+          printf '%s  %s\n' 'cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10' "$archive" | sha256sum --check --status || {
+            echo AGE_TARBALL_SHA_DRIFT >&2
+            exit 1
+          }
+          mkdir -p "$RUNNER_TEMP/age-extract" "$RUNNER_TEMP/age-bin"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/age-extract"
+          test -f "$RUNNER_TEMP/age-extract/age/age"
+          install -m 0755 "$RUNNER_TEMP/age-extract/age/age" "$RUNNER_TEMP/age-bin/age"
+          "$RUNNER_TEMP/age-bin/age" --version | grep -Fq 'v1.3.2'
       - name: Decode task-selected external oracle to private runner path with SHA gate
         env:
+          HOLDOUT_REF: ${{ steps.task.outputs.holdout_ref }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          PILOT_HOLDOUT_AGE_KEY: ${{ secrets.PILOT_HOLDOUT_AGE_KEY }}
           PILOT_HOLDOUT_B64: ${{ secrets[format('PILOT_HOLDOUT_{0}_B64', steps.source.outputs.secret_task)] }}
           EXPECTED_SHA: ${{ steps.task.outputs.holdout_sha256 }}
+        shell: bash
         run: |
-          python3 - <<'PY'
+          set -euo pipefail
+          if [ -n "$HOLDOUT_REF" ]; then
+            test -f control/pilot/holdouts/recipient.txt
+            test ! -L control/pilot/holdouts/recipient.txt
+            python3 control/pilot/worker_v08/holdout_age.py \
+              --validate-recipient control/pilot/holdouts/recipient.txt
+            python3 control/pilot/worker_v08/holdout_age.py \
+              --control control --task "$NATIVE_TASK" \
+              --ref "$HOLDOUT_REF" --expected-sha "$EXPECTED_SHA" \
+              --private "$RUNNER_TEMP/native-private" \
+              --age-bin "$RUNNER_TEMP/age-bin/age"
+          else
+            # Legacy ex6/ex7/ex8: preserve the current per-task B64 secret path.
+            python3 - <<'PY'
           import base64,hashlib,os,pathlib,re
           encoded=os.environ.get("PILOT_HOLDOUT_B64","")
           expected=os.environ.get("EXPECTED_SHA","")
@@ -259,6 +293,7 @@ jobs:
               out.write(raw)
           path.chmod(0o600)
           PY
+          fi
       - name: Execute original run_verified_worker using native proposal (single attempt)
         id: worker
         env:

@@ -26,6 +26,8 @@ from programming_agent_runner.worker_patch import parse_patch_proposal, inspect_
 from programming_agent_runner.verified_worker import run_verified_worker, validate_verified_worker_receipt
 import programming_agent_runner.verified_worker as verified_module
 from native_proposal_client import NativeProposalClient, read_proposal_envelope
+from lot_preflight import check_task, LotBlocked
+from holdout_age import holdout_ref
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
@@ -49,8 +51,12 @@ def load_registration(control: Path, task: str) -> tuple[dict, str]:
     if not path.is_file() or path.is_symlink():
         raise ValueError("NATIVE_TASK_UNREGISTERED")
     obj = strict_json_loads(path.read_text(encoding="utf-8"))
-    if not isinstance(obj, dict) or set(obj) != {"task_spec", "holdout_sha256"}:
+    if (not isinstance(obj, dict) or
+            set(obj) not in ({"task_spec", "holdout_sha256"},
+                             {"task_spec", "holdout_sha256", "holdout_ref"})):
         raise ValueError("NATIVE_TASK_REGISTRATION_INVALID")
+    if "holdout_ref" in obj:
+        holdout_ref(task, obj["holdout_ref"])
     sha = obj["holdout_sha256"]
     if not isinstance(sha, str) or _SHA.fullmatch(sha) is None:
         raise ValueError("NATIVE_HOLDOUT_PIN_INVALID")
@@ -60,13 +66,31 @@ def load_registration(control: Path, task: str) -> tuple[dict, str]:
     return obj["task_spec"], sha
 
 
+def registration_holdout_ref(control: Path, task: str) -> str | None:
+    """Optional private locator; preserve legacy load_registration's two-tuple."""
+    load_registration(control, task)
+    file = control / "pilot/worker_v08/native_tasks" / (task + ".json")
+    return strict_json_loads(file.read_text("utf-8")).get("holdout_ref")
+
+
 def preflight(control: Path, task: str, output: Path) -> None:
     obj, expected = load_registration(control, task)
     spec = parse_worker_task(obj)
+    # Legacy ex6/ex7/ex8 registrations are byte-identical and predated CP1.3.
+    # New tasks must satisfy their general lot size/handoff gate before they
+    # can reach the Worker executor.
+    if task not in {"ex6", "ex7", "ex8"}:
+        try:
+            check_task(control, {"task_spec": obj})
+        except LotBlocked as exc:
+            raise ValueError("NATIVE_LOT_PREFLIGHT_BLOCKED:" + str(exc)) from exc
     # Do not publish the hidden oracle hash in a model-visible task pack.
     with output.open("a", encoding="utf-8") as f:
         f.write(f"base_sha={spec.base_head_sha}\n")
         f.write(f"holdout_sha256={expected}\n")
+        ref = registration_holdout_ref(control, task)
+        if ref is not None:
+            f.write(f"holdout_ref={ref}\n")
 
 
 def _visible_feedback(visible: dict | None, attempt: int) -> dict:

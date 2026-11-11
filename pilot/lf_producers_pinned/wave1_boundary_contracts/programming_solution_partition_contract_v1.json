@@ -1,0 +1,38 @@
+{
+  "schema_version": "PROGRAMMING_SOLUTION_PARTITION_CONTRACT_V1",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "unit": "PG-04",
+  "input_contract": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+  "output_contract": "PROGRAMMING_SOLUTION_PARTITION_SET_V1",
+  "partition_policy": {
+    "canonical_spec_count": 1,
+    "partition_unit": "SOLUTION",
+    "minimum_rule": "SMALLEST_COHERENT_VALID_CHANGE",
+    "semantic_boundary_first": true,
+    "dependency_closure_required": true,
+    "risk_boundary_considered": true,
+    "write_scope_boundary_considered": true,
+    "token_count_alone_must_not_define_partition": true,
+    "file_count_alone_must_not_define_partition": true,
+    "multiple_independent_canonical_specs_forbidden": true,
+    "shared_contracts_referenced_not_copied": true
+  },
+  "coverage": {
+    "material_requirement_coverage_required_percent": 100,
+    "acceptance_obligation_coverage_required_percent": 100,
+    "orphan_requirement_forbidden": true,
+    "duplicate_ownership_forbidden": true,
+    "cross_partition_dependencies_explicit": true,
+    "partition_strategy_ref_required": true
+  },
+  "budget_feedback": {
+    "budget_capability": "CONTEXT_BUDGET_GOVERNANCE",
+    "budget_currentness_required": true,
+    "pg07_is_runtime_enforcer": true,
+    "pg07_red_returns_to_pg04_for_repartition": true,
+    "overflow_repair_edge_is_not_a_plan_dependency_cycle": true,
+    "material_context_truncation_forbidden": true
+  },
+  "runtime_activation": false,
+  "production_activation": false
+}

@@ -1,0 +1,2 @@
+# Example only: Claude provides the real public recipient in recipient.txt.
+# Required format is exactly one age1... X25519 recipient; never commit an identity.

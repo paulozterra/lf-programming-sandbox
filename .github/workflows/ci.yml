@@ -175,6 +175,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.12"
@@ -194,6 +196,7 @@ jobs:
           python3 -m pytest -q pilot/worker_v08/test_lot_preflight.py
           python3 -m pytest -q pilot/worker_v08/test_native_clients.py
           python3 -m pytest -q pilot/worker_v08/test_native_run.py
+          python3 -m pytest -q pilot/worker_v08/test_holdout_age.py
 
       - name: Offline ex5c deterministic derivation adversarial tests (pytest; NO MODEL)
         run: python3 -m pytest -q pilot/worker_v08/test_derive_context.py
@@ -252,3 +255,76 @@ jobs:
         run: |
           python3 -m pytest -q pilot/worker_v08/test_native_run.py pilot/worker_v08/test_native_push_policy.py pilot/worker_v08/test_native_push_guard.py pilot/worker_v08/test_push_workflow_no_secrets.py pilot/worker_v08/test_native_workflow_run_name.py pilot/worker_v08/test_native_history_redirect.py
           python3 pilot/worker_v08/test_workflow_policy.py
+
+  lf-producers-pinned:
+    name: LF pinned producer integrity and offline suites (no Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout sandbox
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Checkout exact LF SHA for independent byte comparison
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: cristhianlujan/claude-persona-lf-patch
+          ref: 882c7213f83887952a99ad0793174d535eb91233
+          path: lf-source
+          persist-credentials: false
+      - name: Setup Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Verify SHA-256 and byte equality with pinned LF commit
+        run: |
+          python3 pilot/lf_producers_pinned/verify_source_pin.py \
+            --root . --lf-source lf-source \
+            --json-out "$RUNNER_TEMP/lf-source-pin-result.json"
+      - name: Install pinned pytest
+        run: python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
+      - name: Run copied LF producer suites offline, without LF credentials
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          LF_SYNTHETIC_ONLY: "1"
+        run: |
+          python3 pilot/lf_producers_pinned/run_suites.py \
+            --out "$RUNNER_TEMP/lf-producer-suites.json"
+      - name: Publish offline suite classification and pin result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lf-pinned-producer-checks
+          path: |
+            ${{ runner.temp }}/lf-source-pin-result.json
+            ${{ runner.temp }}/lf-producer-suites.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+  cp3-2-intake:
+    name: CP3.2 intake simulated A9 and PG-01 fixture (offline)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Install offline pytest
+        run: python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
+      - name: Validate simulated request, rejects, deterministic state and no authority
+        run: |
+          python3 -m pytest -q pilot/orchestrator/test_intake.py
+      - name: Exercise CLI without persisting generated state in checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note"
+          cp pilot/runs/sample-reminder-note/request.md pilot/runs/sample-reminder-note/analysis.json "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note/"
+          python3 pilot/orchestrator/intake.py --root "$RUNNER_TEMP/cp3-2" --request-id sample-reminder-note
+          test -f "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note/state.json"

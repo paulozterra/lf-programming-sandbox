@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0045",
+  "title": "CP1.3: contexto y preflight genéricos para lotes híbridos",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: CP1.3 tras merge #85 f6af1b2"
+  },
+  "reason": "Generaliza derive_context a Java, TS/TSX y migraciones Flyway, respetando ex5c. Generaliza lot_preflight para los límites 240000 bytes, 12 fuentes, 6 escrituras, y handoff definido por tarea. Registro híbrido deriva contexto y valida lote; native preflight valida tareas nuevas. Sin alterar las tareas ex6-ex8, el vendor, ni la ruta API del workflow. Evidencia offline requerida antes de fusionar.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/derive_context.py",
+      "pilot/worker_v08/lot_preflight.py",
+      "pilot/worker_v08/register_task_context.py",
+      "pilot/worker_v08/native_run.py",
+      "pilot/worker_v08/test_derive_context.py",
+      "pilot/worker_v08/test_lot_preflight.py",
+      "pilot/worker_v08/test_register_task_context.py",
+      "standards/changes/CHG-0045.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

@@ -51,6 +51,29 @@ def api(method, path, payload=None, expected=(200,)):
         raise TrainError(f"HTTP {exc.code} {method} {path}: {message}") from exc
 
 
+def graphql(query: str, variables: dict) -> dict:
+    """GitHub GraphQL with the same workflow token as REST."""
+    token = os.environ["GH_TOKEN"]
+    body = json.dumps({"query": query, "variables": variables}).encode("utf-8")
+    request = urllib.request.Request("https://api.github.com/graphql", data=body, method="POST", headers={
+        "Authorization": "Bearer " + token,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "sandbox-merge-train-p0",
+        "Content-Type": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(request, timeout=35) as response:
+            if response.status != 200:
+                raise TrainError("GRAPHQL_HTTP_" + str(response.status))
+            result = json.loads(response.read())
+    except (urllib.error.HTTPError, urllib.error.URLError, ValueError) as exc:
+        raise TrainError("GRAPHQL_REQUEST_FAILED") from exc
+    if not isinstance(result, dict) or result.get("errors") or not isinstance(result.get("data"), dict):
+        raise TrainError("GRAPHQL_RESPONSE_INVALID")
+    return result["data"]
+
+
 def pr_data(number):
     return api("GET", f"/pulls/{number}")
 
@@ -70,6 +93,40 @@ def check_pr(pr):
         raise TrainError("HEAD_IS_MAIN")
     if "ready-to-merge" not in {x["name"] for x in pr["labels"]}:
         raise TrainError("LABEL_MISSING")
+
+
+def ready_if_labeled_draft(number, pr):
+    """Transition only an eligible same-repo labeled draft; never bypass policy."""
+    if not pr["draft"]:
+        return pr
+    # Reject closed, forked or unlabeled drafts BEFORE invoking GraphQL.
+    if pr["state"] != "open":
+        raise TrainError("PR_CLOSED_OR_DRAFT")
+    if pr["head"]["repo"]["full_name"] != os.environ["GITHUB_REPOSITORY"]:
+        raise TrainError("FORK_REJECTED")
+    if "ready-to-merge" not in {x["name"] for x in pr["labels"]}:
+        raise TrainError("PR_CLOSED_OR_DRAFT")
+    if pr["base"]["ref"] != "main" or pr["head"]["ref"] == "main":
+        check_pr(pr)  # fail closed; draft never receives a merge exemption
+    node_id = pr.get("node_id")
+    if not isinstance(node_id, str) or not node_id:
+        raise TrainError("DRAFT_READY_FAILED")
+    mutation = ("mutation MarkReady($id: ID!) { "
+                "markPullRequestReadyForReview(input: {pullRequestId: $id}) "
+                "{ pullRequest { id isDraft } } }")
+    try:
+        result = graphql(mutation, {"id": node_id})
+        changed = result["markPullRequestReadyForReview"]["pullRequest"]
+        if changed.get("id") != node_id or changed.get("isDraft") is not False:
+            raise ValueError("mutation did not make PR ready")
+        updated = pr_data(number)
+        if updated.get("draft") is not False:
+            raise ValueError("REST PR still draft")
+        check_pr(updated)
+        return updated
+    except (TrainError, ValueError, KeyError, TypeError) as exc:
+        # Absolutely no continuation after failed/ambiguous transition.
+        raise TrainError("DRAFT_READY_FAILED") from exc
 
 
 def checks_for_head(sha):
@@ -172,7 +229,7 @@ def dispatch_updated_head_ci(branch, sha):
 def run(number):
     dispatched_heads = set()
     for attempt in range(MAX_RESTARTS + 1):
-        pr = pr_data(number)
+        pr = ready_if_labeled_draft(number, pr_data(number))
         check_pr(pr)
         initial_head = pr["head"]["sha"]
         base = main_sha()

@@ -1,0 +1,7 @@
+-- Minimal schema ONLY for a disposable, local selector parity database.
+CREATE TABLE public.lf_activos (codigo_activo text PRIMARY KEY, nombre_canonico text NOT NULL, tipo_activo text NOT NULL, subtipo_activo text, estado_documental text NOT NULL, estado_operativo text NOT NULL, runtime_estado text, version text, ruta_esperada text, metadata jsonb NOT NULL, archived_at timestamptz);
+CREATE TABLE public.lf_profile_selection_registry_v1 (profile_code text PRIMARY KEY, canonical_profile_key text NOT NULL, profile_slug text NOT NULL, descriptor jsonb NOT NULL, source_kind text NOT NULL, source_ref text NOT NULL, source_revision text NOT NULL, descriptor_status text NOT NULL, stale_reason text, synced_at timestamptz NOT NULL DEFAULT now(), synced_by_execution_id text);
+CREATE TABLE public.lf_profile_selector_policy_v1 (profile_code text PRIMARY KEY, channels text[] NOT NULL, entry_policy text NOT NULL);
+CREATE TABLE public.lf_profile_write_authority_v1 (profile_code text NOT NULL, operation_code text NOT NULL, status text NOT NULL, PRIMARY KEY(profile_code,operation_code));
+CREATE TABLE public.lf_router_action_registry (asset_type text NOT NULL, action_code text NOT NULL, operation_code text, write_allowed boolean NOT NULL, status text NOT NULL, PRIMARY KEY(asset_type,action_code));
+CREATE TABLE public.lf_operation_execution (execution_id text PRIMARY KEY, operation_code text NOT NULL, target_code text NOT NULL, status text NOT NULL, request_sha256 text);

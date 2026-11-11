@@ -1,0 +1,55 @@
+{
+  "schema_version": "PG01_TECHNICAL_FRAME_V3_CANDIDATE",
+  "status": "DRAFT_NOT_RELEASED",
+  "envelope": "PROGRAMMING_ADMISSION_ENVELOPE_V3",
+  "supersedes_v2": false,
+  "writer_order": [
+    "resolve_A9_exact_context",
+    "resolve_C4_six_authoritative_sources",
+    "verify_provenance_currentness_and_digests",
+    "compose_technical_frame",
+    "evaluate_admission_gate",
+    "issue_envelope_v3_only_if_all_pass"
+  ],
+  "required_evidence": [
+    "standards_catalog_version",
+    "l3_manifest",
+    "control_qualification",
+    "d15_architecture",
+    "d17_optimization_policy",
+    "d17_approved_request_budget"
+  ],
+  "frame_binding": [
+    "context_id",
+    "context_sha256",
+    "binding_key_sha256",
+    "receipt_record_id",
+    "target_repo",
+    "target_head_sha"
+  ],
+  "evidence_shape": {
+    "source_ref": "nonempty",
+    "source_digest_sha256": "lowercase_hex64",
+    "authority_receipt_ref": "nonempty",
+    "verified_by": "independent_trusted_readback",
+    "currentness": "CURRENT"
+  },
+  "rules": {
+    "target_repo_and_head_from_A9_only": true,
+    "caller_json_as_authority_forbidden": true,
+    "all_six_must_verify": true,
+    "missing_is_block": true,
+    "frame_sha256": "sha256_postgresql_jsonb_text_of_six_evidences_plus_binding",
+    "v2_unchanged": true,
+    "pg02_consumes_verified_resolver_only": true,
+    "activation": false
+  },
+  "dependency_states": {
+    "standards_catalog_version": "BLOCK_PG00_C3_UNRELEASED",
+    "l3_manifest": "BLOCK_SOURCE_CONTRACT_AND_AUTHENTICATED_TRANSPORT_MISSING",
+    "control_qualification": "READBACK_EXISTS_NOT_VERIFIED_FOR_TARGET",
+    "d15_architecture": "BLOCK_PROJECT_ARCHITECTURE_REGISTRY_MISSING",
+    "d17_optimization_policy": "BLOCK_PG00_C11_UNRELEASED",
+    "d17_approved_request_budget": "BLOCK_APPROVED_BUDGET_SOURCE_MISSING"
+  }
+}

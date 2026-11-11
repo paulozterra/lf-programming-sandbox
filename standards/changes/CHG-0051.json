@@ -1,0 +1,56 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0051",
+  "title": "CP3.1: productores PG-02 a PG-14 fijados desde LF",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 CP3.1 plan ruta híbrida §6 P3 y pin LF 882c7213f83887952a99ad0793174d535eb91233"
+  },
+  "reason": "Fija byte a byte 252 fuentes candidatas PG-02 a PG-14, selector experimental, puente PG-04→PG-07 y H4 EX6 en pilot/lf_producers_pinned/, sin copiar profiles/ ni vendor/ ni tocar sistemas reales. SOURCE_PIN.json documenta origen/destino/SHA-256; CI compara cada archivo con checkout LF del SHA exacto, corre suites offline sin credenciales y señala explícitamente los tests de paridad que requieren psql/base desechable. Se incluyeron gate C6 y contrato de admisión Testing PG14 importados, sin copiar perfiles reales; las suites que requieren Postgres, profiles/ reales o ZIP histórico se registran REQUIERE_ENTORNO_LF. Se añadió contrato exacto de partición PG04 requerido por la prueba de puente PG03→PG04.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/lf_producers_pinned/INVENTORY.md",
+      "pilot/lf_producers_pinned/SOURCE_PIN.json",
+      "pilot/lf_producers_pinned/verify_source_pin.py",
+      "pilot/lf_producers_pinned/run_suites.py",
+      "pilot/lf_producers_pinned/pg02/",
+      "pilot/lf_producers_pinned/pg03_strategy_candidate/",
+      "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/",
+      "pilot/lf_producers_pinned/pg05_target_binding_candidate/",
+      "pilot/lf_producers_pinned/pg06_preflight_candidate/",
+      "pilot/lf_producers_pinned/pg07_worker_candidate/",
+      "pilot/lf_producers_pinned/pg08_build_candidate/",
+      "pilot/lf_producers_pinned/pg09_iteration_candidate/",
+      "pilot/lf_producers_pinned/pg10_conflict_candidate/",
+      "pilot/lf_producers_pinned/pg11_integrity_candidate/",
+      "pilot/lf_producers_pinned/pg12_identity_candidate/",
+      "pilot/lf_producers_pinned/pg13_freeze_candidate/",
+      "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/",
+      "pilot/lf_producers_pinned/selector_experimental/",
+      "pilot/lf_producers_pinned/ex6_real_chain_candidate/",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0051.json",
+      "standards/CAMBIOS.md",
+      "pilot/lf_producers_pinned/c6_context_gate/",
+      "pilot/lf_producers_pinned/wave1_boundary_contracts/"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

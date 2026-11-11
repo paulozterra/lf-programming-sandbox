@@ -215,6 +215,66 @@
       "sha256": "92c6a7380ba20ba4595a87b50dade4ab2062d12973f93e1646b759e8dee6d4e6",
       "git_blob_sha1": "8795a7c6e8fe3cecb1266a177244f4c6acc2d8a7",
       "bytes": 3251
+    },
+    "prog_frontend_exp/SKILL.md": {
+      "sha256": "ce6f6c13c7a91d801e0b2884fc506a1bee8db27b38e045e356e35a27768d4299",
+      "bytes": 2709,
+      "git_blob_sha1": "24d4e78a7e3155b35e8f1b7fa98ed1475a637d51"
+    },
+    "prog_frontend_exp/contracts/main_contract.md": {
+      "sha256": "9b8ce4c2badfc9b6386d5f2d26fdc5672f9fe66c2722fdc3bf8efa72464d9913",
+      "bytes": 1695,
+      "git_blob_sha1": "32ca8536dcf7a7d6d0a8f0ab1d41e593ec212334"
+    },
+    "prog_frontend_exp/contracts/missing_input_policy.md": {
+      "sha256": "46c22751e4bc5c9105ffc7cda1cfe19fabf10be1e80b5c53463f5e6ef355693b",
+      "bytes": 368,
+      "git_blob_sha1": "35ddb8f16a7c55ba4551db6ce45d081ed9bcf605"
+    },
+    "prog_frontend_exp/contracts/runtime_binding.json": {
+      "sha256": "013e3202bb99b06aaaaffeb9c1938bcbf9622d6aaec22da90f57dd93f1dd0939",
+      "bytes": 1055,
+      "git_blob_sha1": "be2935af1b447f2aad882183f348d33047bedb95"
+    },
+    "prog_frontend_exp/checklists/preflight_checklist.md": {
+      "sha256": "47c6207c3f2ada12d9ae7efde1bf1eda41850b3f388522074a9e289cfef7bafc",
+      "bytes": 435,
+      "git_blob_sha1": "20666f6a95c4c4bf6bbffce098f36ef96585a826"
+    },
+    "prog_frontend_exp/checklists/priority_checklist.md": {
+      "sha256": "ceecd63dfa27b72ca0b81815bc3d7023f0e1dcbe4b2876369d53a0c58554d7e6",
+      "bytes": 226,
+      "git_blob_sha1": "86ed9b21e0c90809e2b4f6b6c1a2b8cf407066ce"
+    },
+    "prog_data_exp/SKILL.md": {
+      "sha256": "91e71c950170f017f93d99c7f27ae448129d23a0f05b033a19691dc6d2c1d190",
+      "bytes": 2667,
+      "git_blob_sha1": "121cca38e0dd846301bdfa015e1b1145b76b875a"
+    },
+    "prog_data_exp/contracts/main_contract.md": {
+      "sha256": "43ed6d8dbc4a6338de67e3819e3fe0afa97319335a328b86098a2ff632d2d2ea",
+      "bytes": 1687,
+      "git_blob_sha1": "fba229d416ffcdc684adb2df5e88c63e8190a7f8"
+    },
+    "prog_data_exp/contracts/missing_input_policy.md": {
+      "sha256": "46c22751e4bc5c9105ffc7cda1cfe19fabf10be1e80b5c53463f5e6ef355693b",
+      "bytes": 368,
+      "git_blob_sha1": "35ddb8f16a7c55ba4551db6ce45d081ed9bcf605"
+    },
+    "prog_data_exp/contracts/runtime_binding.json": {
+      "sha256": "add1ebef3f78105839814cb796154790ae01787399fa1cf3ce4bad8b9b3e6ac3",
+      "bytes": 1043,
+      "git_blob_sha1": "8319c83ba09b4a4d5db5e87c320f9d98bdf57ea7"
+    },
+    "prog_data_exp/checklists/preflight_checklist.md": {
+      "sha256": "d2176170355bf584b782f9fadadb4bc5808556a17b4777c92062c329fd4fb11c",
+      "bytes": 427,
+      "git_blob_sha1": "b902a040111148c27a8ff0efaf051ee86f6e37d0"
+    },
+    "prog_data_exp/checklists/priority_checklist.md": {
+      "sha256": "60e1dc6fa67d8a3bf88fc2b4bc8054acaabb84ed0ab17cfcd4f24e196e90b659",
+      "bytes": 222,
+      "git_blob_sha1": "974c6059788f5603ac2e87f611b99b17144d3644"
     }
   }
 }

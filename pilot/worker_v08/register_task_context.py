@@ -15,6 +15,9 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import sys
+from derive_context import derive, ContextBlocked as DeriveBlocked
+from lot_preflight import check_task, LotBlocked
+from holdout_age import holdout_ref, AgeBlocked
 
 ROOT = Path(__file__).resolve().parents[2]
 PINROOT = ROOT / "pilot/lf_profiles_pinned"
@@ -22,7 +25,13 @@ PINFILE = PINROOT / "SOURCE_PIN.json"
 LF_SHA = "6c3092a88da95a6be5649448c52dd9a920325317"
 SHA64 = re.compile(r"^[0-9a-f]{64}$")
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")
-PROFILE = {"BACKEND": "prog_backend_exp"}
+NATIVE_ID = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
+SHA40 = re.compile(r"^[0-9a-f]{40}$")
+PROFILE = {"BACKEND": "prog_backend_exp", "FRONTEND": "prog_frontend_exp",
+           "DATA": "prog_data_exp"}
+PROFILE_CODE = {"BACKEND": "PERFIL-PROG-BACKEND-EXP",
+                "FRONTEND": "PERFIL-PROG-FRONTEND-EXP",
+                "DATA": "PERFIL-PROG-DATA-EXP"}
 FORMAT_COMMAND = {
     "name": "std-be-05-spotless-check",
     "argv": ["mvn", "-B", "-q", "-f", "apps/time-service/pom.xml", "spotless:check"],
@@ -88,6 +97,8 @@ def read_pins(root: Path = PINROOT) -> tuple[dict, dict[str, bytes]]:
     required = {"prog_backend_exp/SKILL.md",
                 "prog_backend_exp/contracts/main_contract.md",
                 "prog_backend_exp/contracts/runtime_binding.json",
+                "prog_frontend_exp/contracts/runtime_binding.json",
+                "prog_data_exp/contracts/runtime_binding.json",
                 "stack_skills_exp/pg00_normative_catalog_snapshot.json",
                 "stack_skills_exp/skill_catalog_exp.json",
                 "stack_skills_exp/project_stack_binding_fixtures.json"}
@@ -135,7 +146,7 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
     slug = PROFILE[area]
     binding = json.loads(source_text(files, slug + "/contracts/runtime_binding.json"))
     if (binding.get("area") != area or
-        binding.get("profile_code") != "PERFIL-PROG-BACKEND-EXP" or
+        binding.get("profile_code") != PROFILE_CODE[area] or
         binding.get("runtime_enabled") is not False or
         binding.get("production_authority") is not False):
         block("PROFILE_BINDING_INVALID")
@@ -155,7 +166,7 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
     rows = json.loads(source_text(files, stackroot + "project_stack_binding_fixtures.json"))["rows"]
     catalog = json.loads(source_text(files, stackroot + "skill_catalog_exp.json"))["skills"]
     bindings = [r for r in rows if r.get("project_ref") == project and r.get("area") == area]
-    if not bindings:
+    if not bindings and area != "FRONTEND":
         block("STACK_NOT_BOUND")
     priorities = [r.get("priority") for r in bindings]
     if any(type(p) is not int or p < 1 for p in priorities) or len(set(priorities)) != len(priorities):
@@ -172,6 +183,47 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
                    "Standards source: " + source_manifest["source_ref"],
                    "Catalog SHA-256: " + source_manifest["source_sha256"]]
     selected = []
+    if area == "FRONTEND":
+        # The LF fixture is immutable and historically bound to Angular.
+        # Only this sandbox explicitly binds FRONTEND to pinned Next.js.
+        nextpin_path = ROOT / "pilot/nextjs_source_pin.json"
+        if nextpin_path.is_symlink() or not nextpin_path.is_file():
+            block("NEXTJS_PIN_MISSING")
+        nextpin = json.loads(nextpin_path.read_text("utf-8"))
+        if (nextpin.get("schema_version") != "LF_SANDBOX_NEXTJS_PIN_V1"
+                or nextpin.get("source_repository") != "paulozterra/lf-programming-sandbox"
+                or nextpin.get("skill_path") != "standards/skills/nextjs/SKILL.md"
+                or nextpin.get("manifest_path") != "standards/skills/nextjs/skill.json"
+                or nextpin.get("skill_id") != "nextjs"
+                or nextpin.get("area") != "FRONTEND"
+                or nextpin.get("production_authority") is not False):
+            block("NEXTJS_PIN_INVALID")
+        nextskill = ROOT / nextpin["skill_path"]
+        nextmanifest = ROOT / nextpin["manifest_path"]
+        if (nextskill.is_symlink() or nextmanifest.is_symlink()
+                or not nextskill.is_file() or not nextmanifest.is_file()
+                or digest(nextskill.read_bytes()) != nextpin.get("skill_sha256")
+                or digest(nextmanifest.read_bytes()) != nextpin.get("manifest_sha256")):
+            block("NEXTJS_PIN_SHA_DRIFT")
+        metadata = json.loads(nextmanifest.read_text("utf-8"))
+        if (metadata.get("skill_id") != nextpin["skill_id"]
+                or metadata.get("skill_version") != nextpin.get("skill_version")
+                or metadata.get("scope") != "L2_STACK_ONLY"
+                or "STD-FE" not in metadata.get("domains", [])):
+            block("NEXTJS_METADATA_INVALID")
+        official = [r for r in standards["rules"] if r.get("domain") == "STD-FE"]
+        if len(official) < 3:
+            block("STD_RULES_UNAVAILABLE")
+        selected.append({"code": "NEXTJS", "version": metadata["skill_version"],
+                         "priority": 1, "sha256": nextpin["skill_sha256"],
+                         "rules_sha256": nextpin["manifest_sha256"],
+                         "standard_family": "STD-FE"})
+        skill_parts.extend(["\n## NEXTJS@" + metadata["skill_version"] + " priority 1",
+                            nextskill.read_text("utf-8"),
+                            "\n### Literal PG00 STD-FE rules"])
+        skill_parts.extend("- " + rule["id"] + " [" + rule["status"] + "]: " + rule["rule"]
+                           for rule in official)
+        bindings = []
     for row in bindings:
         code, version = row["skill_code"], row["skill_version"]
         entry = by_code.get((code, version))
@@ -189,11 +241,19 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
         selected.append({"code": code, "version": version, "priority": row["priority"],
                          "sha256": digest(files[path]), "rules_sha256": digest(files[rules_path]),
                          "standard_family": entry["standard_family"]})
+        skill_source = source_text(files, path)
+        if area == "BACKEND":
+            # Deduplicate STD-BE-05 from pinned Spring Boot prose without
+            # modifying any pinned source bytes; PG00 emits the canonical rule.
+            skill_source = "\n".join(line for line in skill_source.split("\n")
+                                      if not line.startswith("- **STD-BE-05:"))
         skill_parts.extend(["\n## " + code + "@" + version + " priority " + str(row["priority"]),
-                            source_text(files, path),
+                            skill_source,
                             "\n### Source-bound expert rules\n" + source_text(files, rules_path),
                             "\n### Literal PG00 " + entry["standard_family"] + " rules"])
-        skill_parts.extend("- " + r["id"] + " [" + r["status"] + "]: " + r["rule"] for r in official)
+        skill_parts.extend("- " + r["id"] + " [" + r["status"] + "]: " + r["rule"]
+                           for r in official if r["id"] != "STD-BE-05" or
+                           not any("STD-BE-05" in part for part in skill_parts))
     skills_bytes = ("\n".join(skill_parts) + "\n").encode("utf-8")
     return profile_bytes, skills_bytes, selected, source_manifest["source_sha256"]
 
@@ -220,7 +280,49 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         block("HISTORICAL_TASK_IMMUTABLE")
     if budget <= 0 or budget > 2_000_000:
         block("CONTEXT_BUDGET_INVALID")
+    # Preserve the historical security failure code before generic lot
+    # classification/mismatch (generated context is NEVER a write target).
+    proposed = task.get("task_spec", task)
+    if isinstance(proposed, dict) and any(
+            isinstance(p, str) and p.startswith(".lf/worker-context/")
+            for p in proposed.get("write_path_patterns", [])):
+        block("CONTEXT_WRITE_SCOPE_OVERLAP")
     selected = select_area(lot_paths, area)
+    spec_input = task.get("task_spec", task)
+    if not isinstance(spec_input, dict):
+        block("TASK_SPEC_INVALID")
+    if sorted(set(lot_paths)) != sorted(set(spec_input.get("write_path_patterns", []))):
+        block("LOT_WRITE_SCOPE_MISMATCH")
+    # Fail closed on invalid/non-ancestor base before deriving any contextual files.
+    if not (root / ".git").exists():
+        block("LOT_PREFLIGHT_NO_GIT")
+    if task_name.lower() not in {"ex6", "ex7", "ex8"}:
+        from lot_preflight import base_tree
+        try:
+            base_tree(root, spec_input.get("base_head_sha"))
+        except LotBlocked as exc:
+            block(str(exc))
+    try:
+        spec_paths = spec_input.get("spec_paths")
+        if spec_paths is None:
+            spec_paths = [spec_input["spec_path"]] if spec_input.get("spec_path") else []
+            spec_paths += [p for p in spec_input.get("context_path_patterns", [])
+                           if isinstance(p, str) and p.endswith((".md", ".txt"))]
+        derived = derive(root, lot_paths, sorted(set(spec_paths)))
+    except (DeriveBlocked, TypeError, KeyError) as exc:
+        block(str(exc))
+    # Gate all new scopes against task.base_head_sha, never the control checkout.
+    if not (root / ".git").exists():
+        block("LOT_PREFLIGHT_NO_GIT")
+    if task_name.lower() not in {"ex6", "ex7", "ex8"}:
+        prepared = copy.deepcopy(task)
+        effective = prepared.get("task_spec", prepared)
+        effective["context_path_patterns"] = sorted(set(
+            effective.get("context_path_patterns", []) + derived["context_paths"]))
+        try:
+            check_task(root, prepared)
+        except LotBlocked as exc:
+            block(str(exc))
     manifest, files = read_pins(pinned)
     profile, skills, identities, catalog_sha = build_material(files, project, selected)
     spec = task.get("task_spec") if "task_spec" in task else task
@@ -232,6 +334,11 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     dest = output["task_spec"] if "task_spec" in output else output
     paths = [f".lf/worker-context/{task_name}/{x}" for x in ("profile.md", "skills.md", "receipt.json")]
     context = list(dest.get("context_path_patterns", []))
+    # Existing task context is retained; derived sources are selected without
+    # hand-editing context_path_patterns.
+    for selected_path in derived["context_paths"]:
+        if selected_path not in context:
+            context.append(selected_path)
     protected = list(dest.get("protected_path_patterns", []))
     writes = list(dest.get("write_path_patterns", []))
     if any(any(p == w or w.startswith(".lf/worker-context/") for w in writes) for p in paths):
@@ -258,15 +365,18 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         "source_repository": manifest["source_repository"],
         "source_commit_sha": LF_SHA,
         "source_pin_sha256": digest((pinned / "SOURCE_PIN.json").read_bytes()),
-        "profile": {"code": "PERFIL-PROG-BACKEND-EXP", "sha256": digest(profile),
+        "profile": {"code": PROFILE_CODE[area], "sha256": digest(profile),
                     "source_files": {k: v["sha256"] for k, v in manifest["files"].items()
-                                     if k.startswith("prog_backend_exp/")}},
+                                     if k.startswith(PROFILE[area] + "/")}},
         "skills": identities,
         "catalog_sha256": catalog_sha,
         "project_ref": project,
         "area": area,
         "task_name": task_name,
         "source_lot_paths": sorted(set(lot_paths)),
+        "derived_context_sha256": digest(
+            (json.dumps(derived, sort_keys=True, ensure_ascii=False,
+                        separators=(",", ":")) + "\n").encode("utf-8")),
         "context_paths": paths,
         "context_sha256": {"profile.md": digest(profile), "skills.md": digest(skills)},
         "production_authority": False,
@@ -292,34 +402,107 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     return output, artifacts
 
 
+def native_registration_bytes(task_spec: dict, holdout_sha256: str,
+                              holdout_reference: str | None = None,
+                              task_name: str | None = None) -> bytes:
+    """Same two-key schema consumed by native_run.load_registration."""
+    if not isinstance(holdout_sha256, str) or not SHA64.fullmatch(holdout_sha256):
+        block("NATIVE_HOLDOUT_SHA_INVALID")
+    if not isinstance(task_spec, dict) or task_spec.get("max_attempts") != 1:
+        block("NATIVE_TASK_SPEC_INVALID")
+    if not isinstance(task_spec.get("base_head_sha"), str) or not SHA40.fullmatch(task_spec["base_head_sha"]):
+        block("NATIVE_BASE_HEAD_INVALID")
+    result = {"task_spec": task_spec, "holdout_sha256": holdout_sha256}
+    if holdout_reference is not None:
+        try:
+            result["holdout_ref"] = holdout_ref(task_name, holdout_reference)
+        except AgeBlocked as exc:
+            block(str(exc))
+    return canonical(result)
+
+
+def native_path(root: Path, task_name: str, native_out: Path) -> Path:
+    if not isinstance(task_name, str) or not NATIVE_ID.fullmatch(task_name):
+        block("NATIVE_TASK_ID_INVALID")
+    if task_name in {"ex6", "ex7", "ex8"}:
+        block("HISTORICAL_TASK_IMMUTABLE")
+    expected = root / "pilot/worker_v08/native_tasks" / (task_name + ".json")
+    if native_out != expected and native_out.resolve() != expected.resolve():
+        block("NATIVE_TASK_PATH_INVALID")
+    destination = expected
+    base = root / "pilot/worker_v08/native_tasks"
+    if base.is_symlink() or destination.is_symlink() or not destination.resolve().is_relative_to(base.resolve()):
+        block("NATIVE_TASK_PATH_INVALID")
+    return destination
+
+
+def write_native_registration(root: Path, task_name: str, native_out: Path,
+                              task_spec: dict, holdout_sha256: str,
+                              holdout_reference: str | None = None) -> bytes:
+    destination = native_path(root, task_name, native_out)
+    payload = native_registration_bytes(task_spec, holdout_sha256,
+                                        holdout_reference, task_name)
+    if destination.exists():
+        if not destination.is_file() or destination.read_bytes() != payload:
+            block("NATIVE_TASK_EXISTS")
+        return payload  # deterministic replay: identical bytes, no rewrite
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    # Exclusive creation, never overwrite a concurrent registration.
+    try:
+        with destination.open("xb") as target:
+            target.write(payload)
+    except FileExistsError:
+        block("NATIVE_TASK_EXISTS")
+    return payload
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--task-file", type=Path, required=True)
-    p.add_argument("--out-task", type=Path, required=True)
+    p.add_argument("--out-task", type=Path)
+    p.add_argument("--native-out", type=Path,
+                   help="Native task registration at pilot/worker_v08/native_tasks/<t>.json")
+    p.add_argument("--holdout-sha256", help="External 64-hex digest, never the oracle body")
+    p.add_argument("--holdout-ref", help="Optional pilot/holdouts/<task>.oracle.json.age")
     p.add_argument("--task-name", required=True)
     p.add_argument("--project", required=True)
     p.add_argument("--area", required=True, choices=("BACKEND", "FRONTEND", "DATA"))
     p.add_argument("--lot-path", required=True, action="append")
     p.add_argument("--context-budget-bytes", required=True, type=int)
     args = p.parse_args()
-    if args.task_file.resolve() == args.out_task.resolve():
+    if not args.out_task and not args.native_out:
+        block("TASK_OUTPUT_REQUIRED")
+    if args.native_out is None and (args.holdout_sha256 is not None or args.holdout_ref is not None):
+        block("NATIVE_TASK_PATH_INVALID")
+    if args.native_out is not None:
+        native_path(ROOT, args.task_name, args.native_out)
+        native_registration_bytes(
+            json.loads(args.task_file.read_text("utf-8")).get("task_spec", {}),
+            args.holdout_sha256, args.holdout_ref, args.task_name)
+    if args.out_task and args.task_file.resolve() == args.out_task.resolve():
         block("TASK_INPUT_IMMUTABLE")
     # Generated task registrations must not overwrite vendor/, production profiles,
     # historical native_tasks/, or any unrelated repository file.
-    permitted = (ROOT / "pilot/worker_v08/registered_tasks").resolve()
-    candidate = args.out_task.resolve()
-    if not candidate.is_relative_to(permitted) or candidate.suffix != ".json":
-        block("TASK_OUTPUT_SCOPE_INVALID")
-    if args.out_task.exists() or args.out_task.is_symlink():
-        block("TASK_OUTPUT_EXISTS")
+    if args.out_task:
+        permitted = (ROOT / "pilot/worker_v08/registered_tasks").resolve()
+        candidate = args.out_task.resolve()
+        if not candidate.is_relative_to(permitted) or candidate.suffix != ".json":
+            block("TASK_OUTPUT_SCOPE_INVALID")
+        if args.out_task.exists() or args.out_task.is_symlink():
+            block("TASK_OUTPUT_EXISTS")
     task = json.loads(args.task_file.read_text("utf-8"))
     enriched, _ = register(task, project=args.project, area=args.area,
                            lot_paths=args.lot_path, task_name=args.task_name,
                            budget=args.context_budget_bytes)
-    if args.out_task.exists():
-        block("TASK_OUTPUT_EXISTS")
-    args.out_task.parent.mkdir(parents=True, exist_ok=True)
-    args.out_task.write_bytes(canonical(enriched))
+    if args.native_out:
+        spec = enriched["task_spec"] if "task_spec" in enriched else enriched
+        write_native_registration(ROOT, args.task_name, args.native_out, spec,
+                                  args.holdout_sha256, args.holdout_ref)
+    if args.out_task:
+        if args.out_task.exists():
+            block("TASK_OUTPUT_EXISTS")
+        args.out_task.parent.mkdir(parents=True, exist_ok=True)
+        args.out_task.write_bytes(canonical(enriched))
     print("LF_PINNED_WORKER_CONTEXT_REGISTERED " + args.task_name)
     return 0
 

@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_PROFILE_RUNTIME_BINDING_V1",
+  "profile_code": "PERFIL-PROG-DATA-EXP",
+  "profile_slug": "prog_data_exp",
+  "area": "DATA",
+  "artifact_type": "PROFILE_PACK_CANDIDATE",
+  "document_status": "CANDIDATE_SANDBOX_ONLY",
+  "runtime_enabled": false,
+  "promotion_allowed": false,
+  "production_authority": false,
+  "output_schema": "schemas/output.schema.json",
+  "validator": "validators/validate_pack.py",
+  "model_context": {
+    "full_source_to_model": false,
+    "source_sections": [
+      "Purpose",
+      "RUNTIME CRITICAL GATE — EXECUTE FIRST",
+      "Standards authority"
+    ],
+    "max_chars": 8000
+  },
+  "execution_partition": {
+    "deterministic": [
+      "write_path_patterns",
+      "context_path_patterns",
+      "acceptance_commands"
+    ],
+    "semantic": [
+      "objective",
+      "expected_change"
+    ],
+    "hybrid": [
+      "functional_contract"
+    ]
+  },
+  "execution_budget": {
+    "max_input_tokens": 4000,
+    "max_output_tokens": 2000,
+    "resource_class": "SANDBOX_CANDIDATE_ONLY"
+  }
+}

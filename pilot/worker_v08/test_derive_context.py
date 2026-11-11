@@ -80,3 +80,35 @@ def test_more_than_six_write_targets_fails_closed(tmp_path):
 def test_parent_traversal_never_accepted(tmp_path):
     with pytest.raises(ContextBlocked, match="CONTEXT_PATH_INVALID"):
         derive(tmp_path, ["apps/x/../../.env"], [])
+
+def test_typescript_tsx_relative_imports_and_build_metadata(tmp_path):
+    file(tmp_path, "apps/web/package.json", '{"scripts":{}}')
+    file(tmp_path, "apps/web/tsconfig.json", '{"compilerOptions":{"strict":true}}')
+    file(tmp_path, "apps/web/src/lib/utils.ts", "export const value = 1;")
+    file(tmp_path, "apps/web/src/components/sample.tsx",
+         'import { value } from "../lib/utils";\\nexport const Sample = () => value;')
+    out = derive(tmp_path, ["apps/web/src/components/sample.tsx"], [])
+    reasons = {row["path"]: row["reason"] for row in out["files"]}
+    assert reasons["apps/web/src/lib/utils.ts"] == "IMPORT"
+    assert reasons["apps/web/package.json"] == "BUILD"
+    assert reasons["apps/web/tsconfig.json"] == "BUILD"
+    assert canonical(out) == canonical(derive(tmp_path, ["apps/web/src/components/sample.tsx"], []))
+
+
+def test_flyway_only_earlier_migrations_same_directory(tmp_path):
+    prefix = "db/migrations/"
+    for name in ("V1__initial.sql", "V2__contacts.sql", "V3__future.sql"):
+        file(tmp_path, prefix + name, "SELECT 1;")
+    file(tmp_path, "db/other/V1__outside.sql", "SELECT 1;")
+    out = derive(tmp_path, [prefix + "V2__contacts.sql"], [])
+    paths = set(out["context_paths"])
+    assert prefix + "V1__initial.sql" in paths
+    assert prefix + "V3__future.sql" not in paths
+    assert "db/other/V1__outside.sql" not in paths
+
+
+def test_new_language_denied_sensitive_files(tmp_path):
+    file(tmp_path, "apps/web/src/page.tsx", 'import x from "./holdout_secret";')
+    file(tmp_path, "apps/web/src/holdout_secret.ts", "DO NOT READ")
+    out = derive(tmp_path, ["apps/web/src/page.tsx"], [])
+    assert all("holdout" not in p for p in out["context_paths"])
