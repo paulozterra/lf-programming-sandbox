@@ -1,0 +1,141 @@
+{
+  "schema_version": "A1_EXISTING_SKILL_OPERATION_BINDING_V1",
+  "status": "CANDIDATE_BLOCKED_NOT_WIRED",
+  "skill_code": "PROGRAMMING_ANALYSIS_LF",
+  "operation_code": "EJECUCION_SKILL_LF",
+  "operation_source": "public.lf_operation_registry",
+  "observed_operation_status": "SANDBOX_ACTIVE",
+  "source_evidence_date": "2026-11-09",
+  "router_authority": "ACT-0001 (single canonical initial routing; no second route invoked by A1)",
+  "consumer_owns": [
+    "profile_selection",
+    "skill_execution_authorization",
+    "ticket_one_use",
+    "model_inference",
+    "independent_model_judge",
+    "run_ledger",
+    "receipt_verification",
+    "continuation_to_A2"
+  ],
+  "skill_owns": [
+    "semantic_input_preparation",
+    "semantic_candidate_validation",
+    "deterministic_result_validation",
+    "semantic_judge_result_structural_validation"
+  ],
+  "a1_interpretation_module": "skills/programming_analysis/steps/a1/semantic/semantic_boundary_v1.py",
+  "step_binding": [
+    {
+      "canonical_step": "init_execution",
+      "owner": "EXISTING_OPERATION",
+      "requirement": "stable execution identity and authority receipt; generic core rejects init_execution, requires existing operation initialization"
+    },
+    {
+      "canonical_step": "router",
+      "owner": "EXISTING_OPERATION",
+      "requirement": "verify existing ACT-0001 handoff; do not perform new direct routing"
+    },
+    {
+      "canonical_step": "skill_resolve",
+      "owner": "EXISTING_OPERATION",
+      "requirement": "exact registered skill code with CURRENT RELEASED source; no synthetic identifier"
+    },
+    {
+      "canonical_step": "skill_source_read",
+      "owner": "EXISTING_OPERATION",
+      "requirement": "read exact approved skill source and commit/sha currentness"
+    },
+    {
+      "canonical_step": "input_validate",
+      "owner": "A1_SKILL",
+      "entrypoint": "semantic.semantic_boundary_v1.prepare",
+      "requirement": "literal and already provided named/code/source context"
+    },
+    {
+      "canonical_step": "execute_skill",
+      "owner": "EXISTING_OPERATION",
+      "requirement": "actual model call yielding A1_SEMANTIC_MODEL_RESULT_V1 and host-issued receipt; no model call in A1"
+    },
+    {
+      "canonical_step": "output_validate",
+      "owner": "A1_SKILL",
+      "entrypoint": "semantic.semantic_boundary_v1.evaluate_model_candidate",
+      "requirement": "model output bound to original literal and received context, not self-attested"
+    },
+    {
+      "canonical_step": "semantic_judge",
+      "owner": "EXISTING_OPERATION",
+      "entrypoint": "semantic.semantic_boundary_v1.validate_review",
+      "requirement": "independently invoked judge, verified origin, PASS decision and no unsupported_claims, step hard FAIL otherwise"
+    },
+    {
+      "canonical_step": "report_output",
+      "owner": "EXISTING_OPERATION",
+      "requirement": "receipts persisted/readback, profile consumer returns and decides follow-up"
+    }
+  ],
+  "observed_blockers": [
+    "SKILL_ASSET_REGISTERED_CANDIDATE_READ_ONLY_RUNTIME_BINDING_DISABLED",
+    "A1_HAS_NO_EJECUCION_SKILL_LF_RUN",
+    "SKILL_OPERATION_SANDBOX_ACTIVE_NOT_RELEASED_FOR_A1",
+    "INDEPENDENT_SEMANTIC_JUDGE_ENFORCEMENT_NOT_ATTESTED_FOR_A1",
+    "NEW_STANDARD_CONSUMER_NOT_WIRED",
+    "REAL_PRODUCER_AND_JUDGE_RECEIPTS_MISSING",
+    "SKILL_EXECUTION_RECORDER_NOT_QUALIFIED",
+    "GOVERNED_EXECUTOR_PERMISSION_BOUNDARY_NOT_YET_WIRED",
+    "SERVER_SIDE_SEMANTIC_JUDGE_PASS_FAIL_RULES_UNQUALIFIED"
+  ],
+  "fail_closed_rules": [
+    "do not run model directly from Router",
+    "do not call profile directly from Router",
+    "do not pass service_role through Router",
+    "do not fabricate or accept self-declared model and judge receipts",
+    "do not treat REVIEW_STRUCTURAL_PASS_ONLY as independent review",
+    "do not infer runtime RELEASED/CURRENT from a registered CANDIDATO skill or GitHub PR draft",
+    "do not automatically invoke A2 before judge hard pass and canonical readback",
+    "do not alter existing operations or source registry in this candidate PR"
+  ],
+  "allowed_current_result": "SOURCE_BINDING_PROPOSAL_ONLY",
+  "independent_execution_verified": false,
+  "release_approved": false,
+  "merged": false,
+  "step_homologation_contract": "adapters/governed_step_homology_v1.json",
+  "step_recording": {
+    "observed_public_skill_execution_recorder": null,
+    "core_ref": "public.lf_record_operation_step_core_v1",
+    "direct_core_invocation_authorized": false,
+    "execution_channel": "AUTHORIZED_GITHUB_OIDC_EDGE_PATTERN_TO_BE_QUALIFIED_FOR_SKILL",
+    "read_only_connector_is_writer": false,
+    "governed_readback_required": true
+  },
+  "preflight_candidate": "adapters/governed_skill_step_preflight_v1.py",
+  "skill_internal_steps": "A1-A15",
+  "skill_package": "skills/programming_analysis",
+  "registration_granularity": "WHOLE_ANALYSIS_SKILL",
+  "asset_readback": {
+    "asset_id": 414,
+    "asset_count": 1,
+    "asset_type": "SKILL",
+    "estado_documental": "CANDIDATO",
+    "estado_operativo": "READ_ONLY",
+    "runtime_estado": "CANDIDATE_READ_ONLY",
+    "runtime_binding_enabled": false,
+    "source_origin": "GITHUB_MAIN",
+    "source_blob": "9abb2ce0513bcb3241dec459420c394e2c93a03c",
+    "main_blob_verified": true,
+    "pr_head_is_main": false,
+    "release_approved": false
+  },
+  "operation_readback": {
+    "operation_status": "SANDBOX_ACTIVE",
+    "required_active_steps": 9,
+    "contracts": 9,
+    "judge_bindings": 9,
+    "skill_run_count": 0,
+    "judge_code": "JUDGE-EJECUCION-SKILL-LF-v0.1",
+    "judge_status": "ACTIVE_ENFORCEMENT",
+    "pass_if_count": 0,
+    "fail_if_count": 0,
+    "independent_judge_negative_proven": false
+  }
+}

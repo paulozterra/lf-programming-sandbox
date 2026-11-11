@@ -1,0 +1,83 @@
+{
+  "schema_version": "PROGRAMMING_ANALYSIS_ASSET_REGISTRATION_CANDIDATE_V1",
+  "state": "PREPARED_NOT_EXECUTED",
+  "objective": "REGISTER_EXISTING_GITHUB_SOURCE_AS_SKILL_CANDIDATE_WITHOUT_RECREATION",
+  "proposed_asset": {
+    "codigo_activo": "PROGRAMMING_ANALYSIS_LF",
+    "nombre_canonico": "programming_analysis_lf",
+    "tipo_activo": "SKILL",
+    "subtipo_activo": "ANALYSIS_STAGE",
+    "estado_documental": "CANDIDATO",
+    "estado_operativo": "READ_ONLY",
+    "nivel_control": "CONTROLADO",
+    "runtime_estado": "CANDIDATE_READ_ONLY",
+    "impacto_automatico": "BLOQUEADO",
+    "accion_migracion": "REGISTER_SKILL_CANDIDATE",
+    "version": "v0.1-candidate",
+    "ruta_esperada": "skills/programming_analysis/SKILL.md",
+    "url": "supabase://public/lf_activos/PROGRAMMING_ANALYSIS_LF",
+    "owner_name": "LF_GOVERNANCE",
+    "source_spreadsheet_id": "SUPABASE_DIRECT_CONTROLLED_ENTRY",
+    "source_spreadsheet_title": "LF_OPERATION_CONTROLLED_CANDIDATES",
+    "source_sheet_name": "PROGRAMMING_ANALYSIS_SKILL_CANDIDATE_SOURCE",
+    "source_row_number": 1,
+    "legacy_standalone_a1_registration": false,
+    "metadata": {
+      "skill_step_model": "ONE_STAGE_SKILL_WITH_INTERNAL_A1_A15",
+      "internal_step_count": 15,
+      "no_internal_step_asset_registration": true,
+      "currentness": "NOT_ATTESTED_IN_MAIN",
+      "approval_status": "NOT_APPROVED",
+      "runtime_binding_enabled": false,
+      "standalone_A1_forbidden": true,
+      "operation_code_for_future_execution": "EJECUCION_SKILL_LF",
+      "no_source_recreation": true
+    }
+  },
+  "repository": {
+    "full_name": "cristhianlujan/claude-persona-lf-patch",
+    "source_pr_number": 3529,
+    "candidate_branch": "agent/analysis-a1-independent-skill-20261103",
+    "source_relative_path": "skills/programming_analysis/SKILL.md",
+    "observed_branch_blob_sha1": "9abb2ce0513bcb3241dec459420c394e2c93a03c",
+    "ci_proven_exact_head": "4fdea26a1e3d78c770ef0fc0d10abb552f9e7f3e",
+    "post_ci_head": "b7612579ae9d525383827a408aeeddce88a3162f",
+    "ci_success_job": "https://github.com/cristhianlujan/claude-persona-lf-patch/actions/runs/41871619926",
+    "ci_tests_total": 121,
+    "ci_test_split": {
+      "internal_a1": 109,
+      "package": 12
+    },
+    "ci_proof_same_skill_files": "commit compare shows only removed .github/workflows/lf-programming-analysis-package-regression.yml",
+    "main_source_exists_verified": false,
+    "main_attested_revision": null,
+    "main_readback_verified": false
+  },
+  "canonicity": {
+    "registration_table": "public.lf_activos",
+    "sequence": "public.lf_activos_id_seq",
+    "no_duplicate_exact_code_verified_at_review": true,
+    "existing_skill_creation_protocol": "CREACION_SKILL_LF_NOT_USED_FOR_INVENTORY_REGISTRATION",
+    "existing_skill_update_protocol": "ACTUALIZACION_SKILL_LF_NOT_USED_FOR_NEW_ASSET",
+    "db_mutation_route": "ACTUALIZACION_DB_LF via DB_WRITE_TRANSPORT + review + CI/PASE + Merge Train",
+    "record_step_function_is_not_asset_insert": true,
+    "no_change_to_router": true,
+    "no_change_to_skill_package_content": true
+  },
+  "required_guards_before_registration": [
+    "PR_3529_MERGED_AND_EXACT_MAIN_SKILL_SOURCE_RECONFIRMED",
+    "MAIN_SOURCE_BLOB_SHA_MATCHES_APPROVED_SKILL_MD_BLOB",
+    "CODE_AND_PATH_NOT_REGISTERED_AT_WRITE_TIME",
+    "MAIN_SOURCE_MANIFEST_A1_A15_PARITY_15_OF_15",
+    "SPECIFIC_DB_WRITE_EXECUTION_ID_AND_APPROVED_MIGRATION_BATCH_ID",
+    "MIGRATION_IDEMPOTENCE_DUPLICATE_FAIL_CLOSED",
+    "MIGRATION_SERVICE_ROLE_OR_AUTHORIZED_MERGE_TRAIN_ONLY",
+    "CANDIDATE_READ_ONLY_NO_RUNTIME_NO_PROMOTION",
+    "SOURCE_PROVENANCE_AND_GITHUB_READBACK_RECEIPTS",
+    "POST_WRITE_SAME_CODE_SINGLE_ROW_READBACK_AND_NO_A1_ASSET"
+  ],
+  "not_a_migration": true,
+  "effects_executed": false,
+  "asset_inserted": false,
+  "policy": "FAIL_CLOSED_ON_MISSING_MAIN_ATTESTATION_OR_APPROVAL"
+}

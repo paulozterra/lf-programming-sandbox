@@ -1,0 +1,102 @@
+{
+  "schema_version": "ANALYSIS_IMPLEMENTABILITY_CONTRACT_V1",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "producer_unit": "A6",
+  "consumer_units": ["A9"],
+  "output_contract": "IMPLEMENTABILITY_SCHEMA_V1",
+  "requirement_contract": {
+    "obligation_modes": [
+      "MUST_PRESERVE_EXACT",
+      "MUST_PRESERVE_SEMANTICS",
+      "RESOLVE_BEFORE_USE",
+      "INFORMATIVE"
+    ],
+    "side_effect_classes": [
+      "NONE",
+      "READ",
+      "WRITE",
+      "EXTERNAL_EFFECT",
+      "MIXED",
+      "UNKNOWN"
+    ],
+    "required_fields": [
+      "requirement_id",
+      "scope_refs[]",
+      "outcome",
+      "obligation_mode",
+      "authority_refs[]",
+      "evidence_refs[]",
+      "currentness_refs[]",
+      "input_contract_refs[]",
+      "output_contract_refs[]",
+      "state_contract_refs[]",
+      "error_behavior_refs[]",
+      "permission_refs[]",
+      "side_effect_class",
+      "preconditions[]",
+      "blockers[]",
+      "acceptance_signals[]"
+    ],
+    "explicit_empty_arrays_required_when_not_applicable": true
+  },
+  "binding_contract": {
+    "binding_kind_policy": "EVIDENCE_DERIVED_OPEN_CATALOG",
+    "required_fields": [
+      "binding_id",
+      "scope_refs[]",
+      "binding_kind",
+      "canonical_ref",
+      "resolved_current_value",
+      "value_transport",
+      "currentness_ref",
+      "resolver_ref",
+      "implementation_obligation",
+      "evidence_refs[]",
+      "blockers[]"
+    ],
+    "value_transport_values": [
+      "INLINE_RESOLVED_VALUE_PLUS_CANONICAL_REF",
+      "EXACT_REF_ONLY",
+      "EXACT_REF_PLUS_TYPED_RESOLVER"
+    ],
+    "canonical_ref_is_authority": true,
+    "resolved_literal_may_not_replace_canonical_ref": true,
+    "typed_resolver_required_when_resolution_deferred": true
+  },
+  "completeness_guards": {
+    "material_requirement_without_authority_or_explicit_blocker_forbidden": true,
+    "material_permission_unknown_requires_blocker": true,
+    "material_side_effect_unknown_requires_blocker": true,
+    "applicable_state_behavior_must_be_explicit_or_blocked": true,
+    "applicable_error_behavior_must_be_explicit_or_blocked": true,
+    "applicable_input_output_contracts_must_be_explicit_or_blocked": true,
+    "silent_material_field_omission_forbidden": true
+  },
+  "strategy_boundary": {
+    "technical_strategy_owned_by": "PG-03",
+    "forbidden_fields": [
+      "chosen_component_structure",
+      "chosen_framework_pattern",
+      "chosen_endpoint_design",
+      "chosen_internal_algorithm",
+      "chosen_state_management_library"
+    ],
+    "analysis_specifies_what_not_how": true
+  },
+  "output_requirements": [
+    "requirements[]",
+    "canonical_implementation_bindings[]",
+    "unresolved_material_items[]",
+    "source_refs[]",
+    "currentness_refs[]",
+    "implementability_fingerprint_sha256"
+  ],
+  "integration_boundary": {
+    "a9_must_preserve_full_artifact": true,
+    "programming_context_snapshot_field": "implementability_schema",
+    "receiver_parity_policy_owned_by_next_boundary": true
+  },
+  "no_parallel_engine": true,
+  "runtime_activation": false,
+  "production_activation": false
+}

@@ -1,0 +1,58 @@
+{
+  "schema": "LF_PROFILE_RUNTIME_BINDING_V1",
+  "profile_slug": "programming_analysis_lf",
+  "profile_code": "PERFIL-PROGRAMMING-ANALYSIS-LF",
+  "runtime_schema": {
+    "default": "schemas/runtime_output.schema.json",
+    "output_modes": {}
+  },
+  "canonical_validator": {
+    "path": "validators/runtime_validate.py",
+    "callable": "validate"
+  },
+  "semantic_utility": {
+    "path": "validators/runtime_semantic_utility.py",
+    "callable": "evaluate"
+  },
+  "governance": {
+    "source_first_required": true,
+    "schema_invention_allowed": false,
+    "fail_closed": true,
+    "exact_head_evidence_required": true,
+    "post_update_baseline_required": true
+  },
+  "model_context": {
+    "full_source_to_model": false,
+    "required_source_refs": [
+      "profiles/programming_analysis_lf/SKILL.md",
+      "profiles/programming_analysis_lf/contracts/analysis_source_binding.json"
+    ],
+    "allow_additional_sources": true,
+    "source_projection": {
+      "mode": "MARKDOWN_SECTIONS",
+      "include_sections": [
+        "Purpose",
+        "Runtime method capsule",
+        "Routing and evidence boundaries",
+        "Critical separation"
+      ],
+      "max_chars": 10000
+    },
+    "projection_rationale": {
+      "policy": "ANALYSIS_STAGE_SOURCE_FIRST",
+      "full_source_to_model": false,
+      "full_canonical_sources_retained": true,
+      "canonical_stage_contracts_loaded_by_authority_context": true,
+      "proposed_profile_pack_does_not_authorize_runtime": true,
+      "evolution_candidate_policy": "Only selected candidate source extends projected SKILL method; no source implies no evolution overlay. Budget bound includes exact extra source."
+    },
+    "conditional_sections": [
+      {
+        "when_source_ref": "profiles/programming_analysis_lf/contracts/profile_evolution_first_candidate_v1.md",
+        "include_sections": [
+          "Profile Evolution first candidate — domain specialization (DRAFT)"
+        ]
+      }
+    ]
+  }
+}

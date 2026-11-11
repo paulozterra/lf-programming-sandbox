@@ -1,0 +1,66 @@
+{
+  "schema_version": "PROGRAMMING_ANALYSIS_L1_L2_BUSINESS_SEMANTIC_SOURCE_READBACK_V1",
+  "record_type": "CANDIDATE_STATIC_READBACK_NOT_PYTHON_EXECUTION",
+  "business": "LF",
+  "source_commit": "b292d655b24d1e66183139b5670c3572b2a40a1c",
+  "pr_number": 3624,
+  "date_local": "2026-11-08",
+  "scope": "A1/A2/A3 candidate business isolation and Login B2B approved-scope regressions; no production, main, Router, permissions or canonical contracts",
+  "source_blobs": {
+    "skills/programming_analysis/steps/a1/validators/run.py": "39b46057b5fc82e2c92b95855b76c0332e2b36f3",
+    "skills/programming_analysis/steps/a2/validators/run.py": "b22ee1b1129bc22b5f0f81fbd11b5d236ee0064a",
+    "skills/programming_analysis/adapters/a2_a3_business_handoff_v1.py": "aada0436c071bd0c36af2628e30c5b0cd01ce6f9",
+    "skills/programming_analysis/steps/a2/adapters/golden_dimensions_v1.py": "e41b22c72a5d471a5906d1d46210fb75f157f4ab",
+    "skills/programming_analysis/steps/a2/adapters/a2_a3_intake_preview_v1.py": "3e235b4cd828cc05fbdda35c6ea1be5390a6104e",
+    "skills/programming_analysis/steps/a2/adapters/intent_brief_v1.py": "8aee9de3010f33cfff4a72ed2bcb6ad64f752ca8",
+    "skills/programming_analysis/steps/a2/evals/test_business_semantic_scope_l1_l2_20261108.py": "7e3e70eb914b67cae922e94e6f6778e6e50fa56a",
+    "skills/programming_analysis/steps/a2/schemas/output.schema.json": "a883ada66ebca10d8ca0bbc2ce5328ec270f6a71",
+    "skills/programming_analysis/adapters/a2_a3_business_handoff_v1.schema.json": "a7581c81177565c0b69a3b65f6becf1a12859898"
+  },
+  "source_only_readback": {
+    "checks_total": 20,
+    "checks_pass": 20,
+    "checks_fail": 0,
+    "semantics": "static text/ordering/source blob checks, not Python behavior"
+  },
+  "regression_suite": {
+    "file": "skills/programming_analysis/steps/a2/evals/test_business_semantic_scope_l1_l2_20261108.py",
+    "defined_total": 21,
+    "business_cases": 13,
+    "semantic_cases": 8,
+    "executed": 0,
+    "passed": null,
+    "failed": null,
+    "not_run_reason": "The GitHub private repository cannot be fetched in the local code runner (DNS unavailable); available GitHub PASE workflow does not run this unittest suite.",
+    "exact_head_command": "python -m unittest discover -s skills/programming_analysis/steps/a2/evals -p 'test_business_semantic_scope_l1_l2_20261108.py' -v"
+  },
+  "ci": {
+    "name": "PASE",
+    "run_id": 42563930428,
+    "source_commit": "b292d655b24d1e66183139b5670c3572b2a40a1c",
+    "conclusion": "success",
+    "python_suite_executed": false,
+    "qualification": "governance applicability only"
+  },
+  "scope_boundaries": {
+    "router_modified": false,
+    "canonical_contract_modified": false,
+    "main_modified": false,
+    "production_modified": false,
+    "saly_enabled": false,
+    "a3_runtime_authorized": false
+  },
+  "ekb_consulted": [
+    "PROGRAMMING-ANALYSIS-STAGE-SOURCE-ATTESTATION-GAP-001",
+    "PROGRAMMING-ANALYSIS-A14-EVIDENCE-TIER-FALSE-READY-001",
+    "PROGRAMMING-ANALYSIS-CONTEXT-SNAPSHOT-HANDOFF-001",
+    "PROGRAMMING-ANALYSIS-DEPTH-POLICY-UNDEFINED-001"
+  ],
+  "remaining": [
+    "Execute the 21 Python tests against an exact repository checkout and record stdout, exit code, source sha, CI/run identifier",
+    "Independent semantic judge evaluation of the exact user phrase and loss-of-negation mutant",
+    "Authenticate exact source/authority and A3 research input without circular A2 preclassification bypass",
+    "Verify A3 LF-only resolution with provider-bound source attestations"
+  ],
+  "closure": "SOURCE_CANDIDATE_PATCHED_AND_STATIC_VERIFIED__PYTHON_AND_RUNTIME_NOT_QUALIFIED"
+}

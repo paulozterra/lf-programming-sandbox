@@ -1,0 +1,247 @@
+{
+  "schema_version": "A1_GOVERNED_STEP_HOMOLOGY_V1",
+  "scope": "A1_SKILL_CONSUMPTION_AND_STEP_EVIDENCE",
+  "status": "CANDIDATE_SOURCE_ONLY_NOT_WIRED",
+  "authority_principle": "AUTHORIZED_EXECUTOR_WRITES; READ_ONLY_CONSUMER_OBSERVES",
+  "source_basis": {
+    "supabase_inspected_at": "2026-11-09",
+    "source_tables": [
+      "public.lf_operation_registry",
+      "public.lf_operation_steps",
+      "public.lf_operation_step_contracts",
+      "public.lf_operation_step_judge_bindings",
+      "public.lf_operation_execution",
+      "public.lf_operation_execution_steps",
+      "pg_proc",
+      "pg_roles"
+    ],
+    "github_paths": [
+      "supabase/functions/run-creacion-perfil-lf/index.ts",
+      "supabase/functions/lf-profiles-governance-caller-v1/caller.ts",
+      "CLAUDE.md",
+      "gobernanza/procedimientos/creacion_skill_lf_steps_validation.yaml"
+    ],
+    "registration_readback": {
+      "asset_table": "public.lf_activos",
+      "asset_id": 414,
+      "asset_count": 1,
+      "asset_state": "CANDIDATO",
+      "operational_state": "READ_ONLY",
+      "runtime_state": "CANDIDATE_READ_ONLY",
+      "runtime_binding_enabled": false,
+      "registered_main_skill_blob_sha1": "9abb2ce0513bcb3241dec459420c394e2c93a03c",
+      "github_main_skill_blob_sha1": "9abb2ce0513bcb3241dec459420c394e2c93a03c",
+      "main_blob_parity_verified": true,
+      "execution_count": 0,
+      "source": "2026-11-09 provider SELECT + GitHub main exact blob; source-only"
+    }
+  },
+  "identity_separation": {
+    "historical_analysis_unit": {
+      "plan_code": "PROGRAMMING_AGENT_ANALYSIS_REMEDIATION_V1",
+      "unit_code": "A1",
+      "observed_status": "DONE",
+      "must_not_mutate": true
+    },
+    "historical_qualification_unit": {
+      "plan_code": "PROGRAMMING_AGENT_ANALYSIS_REMEDIATION_V1",
+      "unit_code": "A1Q",
+      "observed_status": "DONE",
+      "must_not_mutate": true
+    },
+    "new_skill": {
+      "skill_code": "PROGRAMMING_ANALYSIS_LF",
+      "asset_type": "SKILL",
+      "observed_asset_count": 1,
+      "source_status": "REGISTERED_MAIN_CANDIDATE_READ_ONLY",
+      "runtime_activation_allowed": false,
+      "internal_steps": "A1-A15",
+      "registered_asset_id": 414,
+      "runtime_binding_enabled": false,
+      "approval_status": "NOT_APPROVED"
+    }
+  },
+  "observed_paths": [
+    {
+      "name": "INPUT_GOVERNANCE",
+      "operation": "EJECUCION_INPUT_GOVERNANCE_LF",
+      "coordinator": "programacion.fn_input_governance_direct_step_v1",
+      "authorized_public_entry": "public.fn_input_governance_queue_submit_oidc_v1",
+      "step_writer": "CURATOR_VALIDATOR_DOMAIN_RUN_RECORDS",
+      "authority": "CONTROLLED_OIDC_OR_SERVICE_ROLE_PUBLIC_WRAPPER",
+      "can_reuse_for_A1": false,
+      "note": "Screen-oriented curator/validator; not a generic skill step RPC"
+    },
+    {
+      "name": "PROFILE_UPDATER",
+      "operation": "ACTUALIZACION_PERFIL_LF",
+      "begin": "public.lf_profile_update_begin_v1",
+      "step_writer": "public.lf_record_profile_operation_step_v1",
+      "transport": "GITHUB_ISSUE_OIDC_EDGE_SERVICE_ROLE_RPC",
+      "can_reuse_for_A1": false,
+      "note": "Exactly bound to existing PERFIL operation; reuse the access pattern, not the function"
+    },
+    {
+      "name": "PROFILE_CREATOR",
+      "operation": "CREACION_PERFIL_LF",
+      "step_writer": "public.lf_record_creacion_perfil_step_v1",
+      "transport": "GITHUB_OIDC_EDGE_SERVICE_ROLE_RPC",
+      "can_reuse_for_A1": false,
+      "note": "Profile creation step recorder not suitable for SKILL execution"
+    },
+    {
+      "name": "SKILL_CREATOR",
+      "operation": "CREACION_SKILL_LF",
+      "step_writer": "public.lf_record_creacion_skill_step_v1",
+      "delegate": "public.lf_record_creation_factory_step_v1 -> public.lf_record_operation_step_core_v1",
+      "transport": "AUTHORIZED_OPERATION_EXECUTOR_ONLY",
+      "can_reuse_for_A1": false,
+      "note": "Records creation steps; neither inserts the SKILL asset nor records an execution of A1"
+    },
+    {
+      "name": "ANALYSIS_SKILL_EXECUTION",
+      "operation": "EJECUCION_SKILL_LF",
+      "step_writer": null,
+      "core_available": "public.lf_record_operation_step_core_v1",
+      "transport": "EXISTING_GOVERNED_GITHUB_OIDC_EDGE_PATTERN_PROPOSED_NOT_WIRED_FOR_SKILL",
+      "can_reuse_for_A1": true,
+      "note": "No scoped public EJECUCION_SKILL_LF step recorder found in live pg_proc; core cannot be called directly with caller-asserted trust"
+    }
+  ],
+  "common_step_request": {
+    "required": [
+      "execution_id",
+      "operation_code",
+      "target_type",
+      "target_code",
+      "step_id",
+      "evidence_ref",
+      "evidence_payload",
+      "actor_execution_id"
+    ],
+    "request_origin": "AUTHENTICATED_PROFILE_CONSUMER_OR_HOST",
+    "optional_source_provenance": [
+      "source_revision_sha",
+      "literal_request_sha256",
+      "producer_receipt_ref",
+      "independent_judge_receipt_ref"
+    ],
+    "do_not_accept_from_untrusted_input": [
+      "service_role_key",
+      "assumed_step_status",
+      "caller_declared_trust_valid"
+    ]
+  },
+  "common_step_result": {
+    "required": [
+      "execution_id",
+      "step_id",
+      "outcome",
+      "status",
+      "persisted_evidence_ref",
+      "readback_status"
+    ],
+    "accepted_outcomes": [
+      "STEP_RECORDED",
+      "BLOCKED",
+      "RETURN_TO_WORKER"
+    ],
+    "success_requires": [
+      "TRUSTED_AUTHORITY",
+      "EXACT_EXECUTION_BINDING",
+      "REAL_POSITIVE_EVIDENCE",
+      "SERVER_SIDE_STEP_JUDGE",
+      "ACTUAL_PERSISTENCE",
+      "INDEPENDENT_READBACK"
+    ],
+    "success_claim_allowed_before_readback": false
+  },
+  "A1_canonical_step_ids": [
+    "init_execution",
+    "router",
+    "skill_resolve",
+    "skill_source_read",
+    "input_validate",
+    "execute_skill",
+    "output_validate",
+    "semantic_judge",
+    "report_output"
+  ],
+  "permission_path": {
+    "caller_role": "SUPABASE_READ_ONLY_USER_FOR_DISCOVERY_AND_READBACK_ONLY",
+    "authorized_execution_pattern": "GITHUB_ISSUE_OR_GOVERNED_DISPATCH -> VERIFIED_GITHUB_OIDC -> APPROVED_EDGE_EXECUTOR -> SERVER_SIDE_RPC -> READBACK",
+    "existing_profile_workflow_is_skill_authorized": false,
+    "existing_ig_queue_is_skill_authorized": false,
+    "router_may_hold_service_role": false,
+    "access_grants_to_readonly_allowed": false,
+    "direct_rpc_from_readonly_allowed": false,
+    "new_parallel_runtime_allowed": false
+  },
+  "gates_before_operational_integration": [
+    "WHOLE_ANALYSIS_SKILL_REGISTERED_AND_EXACT_RUNTIME_RELEASE_STILL_REQUIRED",
+    "EJECUCION_SKILL_LF_OPERATION_QUALIFIED_FOR_CONSUMPTION",
+    "GOVERNED_EXECUTOR_APPROVED_FOR_SKILL_TARGET",
+    "OPERATION_SCOPED_SERVER_TRUST_AND_RECORDER_QUALIFIED",
+    "MODEL_PRODUCER_AND_INDEPENDENT_JUDGE_REAL_RECEIPTS",
+    "NEGATIVE_JUDGE_FAILURE_BLOCKS_PERSISTENCE_OR_PASS",
+    "READBACK_MATCHES_SAME_EXECUTION_ID_AND_SOURCE_HASH",
+    "NO_REUSE_OF_HISTORICAL_A1_OR_A1Q_DONE_RECORDS"
+  ],
+  "disallowed_shortcuts": [
+    "lf_record_creacion_skill_step_v1_as_skill_execution_writer",
+    "lf_record_profile_operation_step_v1_as_skill_execution_writer",
+    "programacion.fn_input_governance_direct_step_v1_as_skill_execution_writer",
+    "public.lf_record_operation_step_core_v1_called_from_readonly_or_without_server_trust",
+    "manual_supabase_readonly_DML_or_DDL",
+    "new_ROUTER_to_SKILL_direct_route",
+    "service_role_moved_to_router",
+    "synthetic_receipt_or_legacy_execution_replay",
+    "public.lf_skill_invoke_v1_substituted_for_EJECUCION_SKILL_LF_without_qualification"
+  ],
+  "asset_registration_out_of_scope": {
+    "asset_registry": "public.lf_activos",
+    "requires_separate_governed_creation_and_authorized_write": false,
+    "db_migration_if_needed": "EXACT_VERSION_DB_WRITE_TRANSPORT_VIA_MIGRATION_MERGE_TRAIN",
+    "this_document_is_not_asset_registration": true,
+    "registration_verified": true,
+    "new_registration_required": false,
+    "existing_asset_id": 414,
+    "explanation": "Registration completed via governed migration; no duplicate asset or update authorized here."
+  },
+  "existing_profile_skill_invoker": {
+    "function": "public.lf_skill_invoke_v1(text,text,jsonb)",
+    "status": "AVAILABLE_FOR_EXISTING_CATALOG_ONLY",
+    "profile_parent_operation": "EJECUCION_PERFIL_LF",
+    "catalog": "public.lf_skill_catalog_v1",
+    "invocation_ledger": "public.lf_skill_invocation_v1",
+    "observed_total_invocations": 0,
+    "A1_catalog_entry_found": false,
+    "approved_as_A1_EJECUCION_SKILL_LF_registrar": false,
+    "reason": "different ledger/operation and catalog binding; do not silently substitute for nine-step EJECUCION_SKILL_LF"
+  },
+  "local_envelope_preflight": {
+    "source": "adapters/governed_skill_step_preflight_v1.py",
+    "tests": "evals/test_governed_skill_step_preflight_v1.py",
+    "state": "SOURCE_ONLY_NOT_EXECUTION_AUTHORITY",
+    "test_cases_defined": 26,
+    "tests_executed_on_branch_head": false,
+    "preflight_positive": "PREFLIGHT_ONLY",
+    "synthetic_readback_positive": "READBACK_SHAPE_MATCH_ONLY",
+    "notes": "No OIDC verification, no RPC invocation, no server-side trust, no operational receipt",
+    "init_step_result": "REQUIRES_CANONICAL_BEGIN",
+    "model_step_result": "REQUIRES_SERVER_SIDE_INDEPENDENT_JUDGE",
+    "note": "Shape-only. Cannot attest role, OIDC, trust, persistence, judge independence, or active asset. Requires official operation begin at step 0."
+  },
+  "judge_enforcement_observed": {
+    "source": "public.lf_operation_judges/JUDGE-EJECUCION-SKILL-LF-v0.1",
+    "pass_if_count": 0,
+    "fail_if_count": 0,
+    "negative_semantic_judge_e2e_tested": false,
+    "hard_pass_may_not_be_inferred": true
+  },
+  "readonly_scope": "Executing a read-only SKILL can persist operation-step receipts by authorized worker; it must not mutate business objects or GitHub.",
+  "init_execution_exception": "init_execution must be opened/recorded by canonical operation begin; lf_record_operation_step_core_v1 explicitly rejects init_execution.",
+  "skill_package": "skills/programming_analysis",
+  "standalone_a1_registration_allowed": false,
+  "external_skill_code": "PROGRAMMING_ANALYSIS_LF"
+}

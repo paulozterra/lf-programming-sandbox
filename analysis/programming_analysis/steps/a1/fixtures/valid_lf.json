@@ -1,0 +1,29 @@
+{
+  "business": "LF",
+  "request_identity": {
+    "request_ref": "user://analysis-a1-case-001",
+    "request_kind": "USER_REQUEST"
+  },
+  "objective": {
+    "problem_statement": "Revisar el ingreso B2B LF",
+    "desired_outcome": "Determinar qué requisitos deben analizarse"
+  },
+  "target_hints": [
+    "B2B-AUTH-001"
+  ],
+  "source_refs": [
+    "user://analysis-a1-case-001"
+  ],
+  "provided_facts": [
+    {
+      "fact_code": "SOURCE_SCREEN_HINT",
+      "value": "B2B-AUTH-001",
+      "source_ref": "user://analysis-a1-case-001"
+    }
+  ],
+  "constraints": [
+    "No cambiar reglas vigentes sin autorización"
+  ],
+  "ambiguities": [],
+  "declared_intent_kind": "UNKNOWN"
+}

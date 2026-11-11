@@ -1,0 +1,82 @@
+{
+  "schema_version": "A2_P_RESEARCH_POLICY_BOUNDARY_READBACK_V1",
+  "status": "SOURCE_REVIEW_COMPLETE_RUNTIME_BLOCKED",
+  "business": "LF",
+  "source_commit": "070452ec3aec6f7dd478e48b492f103bfb04d643",
+  "pr": 3624,
+  "date": "2026-11-09",
+  "scope": "A2-P typed preclassification admission research; no A3 dispatch, Router or canonical policy edits",
+  "source_blobs": {
+    "depth_policy_contract": "0f07d3603c1bf3e4d2a4b9de5d6c3a3968bb4051",
+    "a3_targeted_evidence_contract": "97d06e88b963690202424a2936ae2b7bf597cea7",
+    "a2_validator": "b22ee1b1129bc22b5f0f81fbd11b5d236ee0064a",
+    "a2_unresolved_preview": "e53e4bed4859b7839a2aac05490f54309472cb54",
+    "regression_test": "fdca112fa1566167acf940f0acc0f24ed452bfcd"
+  },
+  "canonical_policy_readback": {
+    "material_contradiction_type": "BOOLEAN",
+    "unknown_value_for_material_contradiction_supported": false,
+    "unproven_false_may_be_assumed": false,
+    "policy_depth_engine": "EXISTING_A2_DEPTH_ONLY",
+    "a3_input_contracts": [
+      "REQUEST_CONTEXT_V1",
+      "ANALYSIS_CHANGE_CLASSIFICATION_V1"
+    ],
+    "source_research_preview_a3_dispatch_allowed": false
+  },
+  "exact_source_policy_checks": {
+    "checks": 14,
+    "passed": 14,
+    "failed": 0,
+    "mode": "read source JSON and evaluate canonical DSL in isolated JS, not Python A2 runtime or native judge",
+    "cases": [
+      "unknown_contradiction_rejected",
+      "int_zero_contradiction_rejected",
+      "unknown_materiality_l2",
+      "true_contradiction_l3",
+      "known_low_l1_only_projection",
+      "unknown_authority_l2",
+      "high_risk_l3",
+      "stale_affect_l3",
+      "unknown_current_l2",
+      "A3_two_contracts_exact",
+      "A2_run_semantic_status_gate",
+      "preview_no_dispatch",
+      "source_contract_no_parallel_engine",
+      "A3_source_no_parallel_resolver"
+    ]
+  },
+  "governed_source_permission_readback": {
+    "attempt": "SELECT private.fn_lf_source_investigation_prepare_v1('B2B-AUTH-001',12)",
+    "error": "SQLSTATE 42501: permission denied for function fn_lf_source_investigation_prepare_v1",
+    "private_function_execute_current_user": false,
+    "inventory_candidates_execute_current_user": false,
+    "public_targeted_acquisition_plan_execute_current_user": false,
+    "not_bypassed": true,
+    "required": "Host-authorized governed source resolver invocation. No direct ACL workaround."
+  },
+  "tests": {
+    "existing_local_semantic_helper": {
+      "executed": 15,
+      "passed": 15,
+      "blob_parity": "MATCHED"
+    },
+    "new_a2p_regressions": {
+      "defined": 10,
+      "executed": 0,
+      "passed": null
+    },
+    "prior_semantic_integration": {
+      "defined": 30,
+      "executed": 0
+    }
+  },
+  "current_blocking_codes": [
+    "A2_P_TYPED_CONTRADICTION_EVIDENCE_MISSING",
+    "A2_P_SOURCE_RESOLVER_NOT_ADMITTED",
+    "A2_P_NATIVE_SEMANTIC_JUDGE_READBACK_MISSING",
+    "A3_RESEARCH_ONLY_GATE_NOT_QUALIFIED"
+  ],
+  "closure": "NO_GO",
+  "next_lot": "Validate guarded source resolver invocation and typed negative evidence through authorized profile skill RUN; reconcile A2-P with existing depth policy; test full PR HEAD in a qualified Python checkout, independent review before A3 dispatch."
+}

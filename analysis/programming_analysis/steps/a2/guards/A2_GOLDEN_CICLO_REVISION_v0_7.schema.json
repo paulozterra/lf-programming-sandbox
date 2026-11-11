@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lf:a2-golden:review-cycle:proposal:v0.7",
+  "title": "A2 Golden — external review cycle candidate, NOT CANONICAL",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "execution_id",
+    "ticket_ref",
+    "a1_input_sha256",
+    "a2_contract_ref",
+    "a2_policy_blob_sha1",
+    "rubric_sha256",
+    "max_submissions",
+    "submissions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "A2_GOLDEN_REVIEW_CYCLE_PROPOSAL_V0_7"
+    },
+    "execution_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ticket_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "a1_input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "a2_contract_ref": {
+      "const": "A2_GOLDEN_CONTRATO_SALIDA_PROPUESTA_v0_3.schema.json"
+    },
+    "a2_policy_blob_sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "rubric_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "max_submissions": {
+      "const": 3
+    },
+    "submissions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/submission"
+      },
+      "minItems": 1,
+      "maxItems": 3
+    }
+  },
+  "$defs": {
+    "feedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "dimension_id",
+        "element_id",
+        "criterion_id",
+        "failure_code",
+        "severity",
+        "expected",
+        "observed",
+        "evidence_state",
+        "evidence_refs",
+        "repair_instruction",
+        "retryable"
+      ],
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dimension_id": {
+          "type": "string",
+          "pattern": "^(D(0[1-9]|1[0-2])|GLOBAL)$"
+        },
+        "element_id": {
+          "type": "string",
+          "pattern": "^(D(0[1-9]|1[0-2])-E0[1-6]|GLOBAL)$"
+        },
+        "criterion_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "failure_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "enum": [
+            "P0",
+            "P1",
+            "P2"
+          ]
+        },
+        "expected": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_state": {
+          "enum": [
+            "SOURCE_BOUND",
+            "NOT_PROVEN"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "repair_instruction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_state": {
+                "const": "SOURCE_BOUND"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "status",
+        "evidence_refs"
+      ],
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "RESOLVED",
+            "UNRESOLVED",
+            "REGRESSED"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "submission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_number",
+        "candidate_ref",
+        "candidate_sha256",
+        "deterministic",
+        "native_review",
+        "previous_defect_resolution"
+      ],
+      "properties": {
+        "attempt_number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "candidate_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "deterministic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "validator_ref",
+            "feedback"
+          ],
+          "properties": {
+            "result": {
+              "enum": [
+                "PASS",
+                "FAIL"
+              ]
+            },
+            "validator_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "feedback": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/feedback"
+              }
+            }
+          }
+        },
+        "native_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "result",
+            "receipt_ref",
+            "review_sha256",
+            "feedback"
+          ],
+          "properties": {
+            "mode": {
+              "const": "EXISTING_NATIVE_ROUTE"
+            },
+            "result": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "NOT_INVOKED",
+                "TECHNICAL_BLOCK"
+              ]
+            },
+            "receipt_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "review_sha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "feedback": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/feedback"
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "result": {
+                    "enum": [
+                      "PASS",
+                      "FAIL"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "receipt_ref": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "review_sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "result": {
+                    "enum": [
+                      "NOT_INVOKED",
+                      "TECHNICAL_BLOCK"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "receipt_ref": {
+                    "type": "null"
+                  },
+                  "review_sha256": {
+                    "type": "null"
+                  },
+                  "feedback": {
+                    "maxItems": 0
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "previous_defect_resolution": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resolution"
+          }
+        }
+      }
+    }
+  },
+  "$comment": "External controller envelope; producer A2 candidate must independently validate against v0.3. Do not accept issuer-supplied native judge PASS as trusted readback; controller checks exact externally verified receipts. Does not create or close tickets."
+}

@@ -1,0 +1,120 @@
+{
+  "schema_version": "A1_CORE_AUTHORIZED_INVENTORY_CONSUMER_READBACK_V1",
+  "scope": "PROGRAMMING_ANALYSIS_LF_CORE_A1_TO_EXISTING_D1_D4",
+  "source_head": "ac8ec56cf13274d4fd8c310e58618c095f0dff0d",
+  "date": "2026-11-07",
+  "evidence_tier": "SUPABASE_LIVE_CATALOG_READ_ONLY_PLUS_GITHUB_EXACT_SOURCE",
+  "supabase_connection_role": "supabase_read_only_user",
+  "live_function_acl": [
+    {
+      "schema": "private",
+      "function": "fn_lf_source_investigation_prepare_v1",
+      "security_definer": false,
+      "caller_execute": false,
+      "service_role_execute": true,
+      "allowed_roles": [
+        "postgres",
+        "service_role"
+      ]
+    },
+    {
+      "schema": "private",
+      "function": "fn_lf_d1_inventory_candidates_v1",
+      "security_definer": false,
+      "caller_execute": false,
+      "service_role_execute": true,
+      "allowed_roles": [
+        "postgres",
+        "service_role"
+      ]
+    },
+    {
+      "schema": "inventory",
+      "function": "fn_lookup_v3",
+      "security_definer": false,
+      "caller_execute": false,
+      "service_role_execute": true,
+      "allowed_roles": [
+        "postgres",
+        "programacion_auditor",
+        "programacion_builder",
+        "programacion_human_authority",
+        "programacion_verifier",
+        "service_role"
+      ]
+    }
+  ],
+  "failed_select_probes": [
+    {
+      "function": "private.fn_lf_d1_inventory_candidates_v1",
+      "sqlstate": "42501",
+      "result": "PERMISSION_DENIED"
+    },
+    {
+      "function": "inventory.fn_lookup_v3",
+      "sqlstate": "42501",
+      "result": "PERMISSION_DENIED"
+    }
+  ],
+  "live_registry": [
+    {
+      "code": "PROGRAMMING_ANALYSIS_LF",
+      "entity": "public.lf_activos",
+      "operational_state": "READ_ONLY",
+      "runtime_state": "CANDIDATE_READ_ONLY"
+    },
+    {
+      "code": "LF_GLOBAL_TECHNICAL_INVENTORY_V1",
+      "entity": "public.lf_activos",
+      "operational_state": "READ_ONLY",
+      "runtime_state": "CANDIDATE_READ_ONLY",
+      "inventory_status": "CANDIDATE_PENDING_QUALIFICATION"
+    },
+    {
+      "code": "EJECUCION_SKILL_LF",
+      "entity": "public.lf_operation_registry",
+      "status": "SANDBOX_ACTIVE",
+      "lifecycle_state": "OP_CANDIDATE"
+    },
+    {
+      "code": "EJECUCION_PERFIL_LF",
+      "entity": "public.lf_operation_registry",
+      "status": "PRODUCCION_CONTROLADA_READ_ONLY",
+      "lifecycle_state": "OP_OPERATIONAL"
+    }
+  ],
+  "canonical_preparation_source": {
+    "file": "services/profile_runtime_api/profile_runtime_api/source_investigation_preparation.py",
+    "python_entrypoint": "prepare_source_investigation",
+    "fixed_sql": "SELECT private.fn_lf_source_investigation_prepare_v1(%s, %s) AS preparation",
+    "expected_result_schema": "LF_SOURCE_INVESTIGATION_PREPARATION_V1",
+    "integration_state": "NOT_WIRED_TO_DISPATCHER_NOT_DEPLOYED",
+    "document": "services/profile_runtime_api/SOURCE_INVESTIGATION_PREPARATION_D4.md"
+  },
+  "core_bridge": {
+    "file": "skills/programming_analysis/adapters/a1_a2_candidate_bridge_v1.py",
+    "research_handoff_schema": "A1_INVENTORY_RESEARCH_HANDOFF_CANDIDATE_V1",
+    "status": "SOURCE_ONLY_CANDIDATE",
+    "a2_with_unresolved_ambiguity": "HALTED_AT_A1",
+    "a2_run_executed": false,
+    "canonical_inventory_invoked": false
+  },
+  "next_exact_steps": [
+    "AUTHORIZED_CONSUMER_RESOLVES_A1_RESEARCH_HANDOFF_AS_INTERNAL_SKILL_STEP",
+    "EXISTING_GOVERNED_WORKER_USES_TRUSTED_SERVICE_ROLE_CURSOR_TO_CALL_CANONICAL_D4_PREPARATION",
+    "CANONICAL_D1_D3_RETURNS_SOURCE_CANDIDATES_AND_CURRENTNESS_OR_EXPLICIT_FAIL_CLOSED",
+    "RECONCILE_OPEN_AMBIGUITIES_WITH_GENUINE_SOURCE_BINDINGS_AND_READBACK",
+    "ONLY_THEN_DELIVER_SOURCE_DERIVED_NINE_DEPTH_SIGNALS_TO_A2"
+  ],
+  "risk_controls": [
+    "No direct service_role from Router/profile/chat/A1",
+    "Do not grant read-only role new privileges",
+    "Do not declare metadata candidates as verified business authority",
+    "No alternative discovery engine",
+    "No A2 bypass on unresolved material ambiguity",
+    "No production activation without governed release"
+  ],
+  "operational_conclusion": "BLOCKED_UNTIL_EXISTING_GOVERNED_CONSUMER_IS_WIRED_AND_AUTHORIZED",
+  "code_modified_in_this_readback": false,
+  "no_merge": true
+}

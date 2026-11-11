@@ -1,0 +1,244 @@
+{
+  "schema_version": "A1_CORE_NATIVE_AUTHOR_EVIDENCE_CANDIDATE_V1",
+  "source_head": "c8662ed9e5a9faf7d750131d1aeeea18f29f672a",
+  "scope": "A1_SEMANTIC_CORE_ONLY",
+  "schema_source": "skills/programming_analysis/steps/a1/schemas/intent_analysis_candidate_v1.schema.json",
+  "method": "GPT_NATIVE_CURRENT_CHAT_AUTHOR_PROPOSAL",
+  "runtime_provider_attested": false,
+  "independent_semantic_review_verified": false,
+  "python_a1_run_executed": false,
+  "a2_run_executed": false,
+  "expected_structural_checks_count": 3,
+  "structural_checks_passed": 3,
+  "cases": [
+    {
+      "id": "A1_CORE_01",
+      "raw_request": "Implementa por primera vez el login B2B o también llamado inicio de sesión",
+      "candidate": {
+        "schema_version": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+        "operation": {
+          "kind": "IMPLEMENT",
+          "user_assumed_state": "CLAIMED_GREENFIELD",
+          "repo_verification_state": "PENDING_INVENTORY"
+        },
+        "target": {
+          "artifact_kind": "SCREEN",
+          "functional_archetype": "AUTH_FLOW",
+          "canonical_capability": "IDENTITY_AND_ACCESS",
+          "actor_scope": "B2B",
+          "raw_mentions": [
+            "login B2B",
+            "inicio de sesión"
+          ]
+        },
+        "desired_outcome": "Permitir que los usuarios empresariales se autentiquen e ingresen al entorno B2B",
+        "analysis_hints": [
+          "SECURITY_REVIEW",
+          "SESSION_REVIEW",
+          "ROUTING_REVIEW"
+        ],
+        "dimensions_to_investigate": [
+          "AUTH_MECHANISM",
+          "SESSION_POLICY",
+          "POST_LOGIN_ROUTING",
+          "ACCOUNT_RECOVERY",
+          "ERROR_HANDLING",
+          "EXISTING_ARTIFACT_INVENTORY"
+        ],
+        "evidence_spans": [
+          {
+            "dimension": "OPERATION",
+            "quote": "Implementa",
+            "start": 0,
+            "end": 10
+          },
+          {
+            "dimension": "ARTIFACT",
+            "quote": "login B2B",
+            "start": 30,
+            "end": 39
+          },
+          {
+            "dimension": "CAPABILITY",
+            "quote": "inicio de sesión",
+            "start": 58,
+            "end": 74
+          },
+          {
+            "dimension": "ACTOR_SCOPE",
+            "quote": "B2B",
+            "start": 36,
+            "end": 39
+          },
+          {
+            "dimension": "ASSUMPTION",
+            "quote": "por primera vez",
+            "start": 11,
+            "end": 26
+          }
+        ],
+        "explicit_constraints": [],
+        "material_ambiguities": []
+      },
+      "structural_grounding": {
+        "status": "PASS",
+        "errors": [],
+        "validation": "SOURCE_JSON_SCHEMA_RECURSIVE_JS_AND_GROUNDING_SPANS"
+      },
+      "a2_hint": {
+        "business": "LF",
+        "target_ref": "login B2B",
+        "change_type": "IMPLEMENT",
+        "target_granularity": "SCREEN",
+        "canonical_capability": "IDENTITY_AND_ACCESS"
+      },
+      "a2_evidence": "PENDING_NOT_FABRICATED"
+    },
+    {
+      "id": "A1_CORE_02",
+      "raw_request": "Necesito una vista para que las empresas entren al portal",
+      "candidate": {
+        "schema_version": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+        "operation": {
+          "kind": "IMPLEMENT",
+          "user_assumed_state": "UNSPECIFIED",
+          "repo_verification_state": "PENDING_INVENTORY"
+        },
+        "target": {
+          "artifact_kind": "SCREEN",
+          "functional_archetype": "AUTH_FLOW",
+          "canonical_capability": "IDENTITY_AND_ACCESS",
+          "actor_scope": "B2B",
+          "raw_mentions": [
+            "vista para que las empresas entren al portal"
+          ]
+        },
+        "desired_outcome": "Habilitar el ingreso de empresas al portal",
+        "analysis_hints": [
+          "SECURITY_REVIEW",
+          "SESSION_REVIEW",
+          "ROUTING_REVIEW"
+        ],
+        "dimensions_to_investigate": [
+          "AUTH_MECHANISM",
+          "SESSION_POLICY",
+          "POST_LOGIN_ROUTING",
+          "EXISTING_ARTIFACT_INVENTORY"
+        ],
+        "evidence_spans": [
+          {
+            "dimension": "OPERATION",
+            "quote": "Necesito",
+            "start": 0,
+            "end": 8
+          },
+          {
+            "dimension": "ARTIFACT",
+            "quote": "vista",
+            "start": 13,
+            "end": 18
+          },
+          {
+            "dimension": "CAPABILITY",
+            "quote": "entren al portal",
+            "start": 41,
+            "end": 57
+          },
+          {
+            "dimension": "ACTOR_SCOPE",
+            "quote": "empresas",
+            "start": 32,
+            "end": 40
+          }
+        ],
+        "explicit_constraints": [],
+        "material_ambiguities": []
+      },
+      "structural_grounding": {
+        "status": "PASS",
+        "errors": [],
+        "validation": "SOURCE_JSON_SCHEMA_RECURSIVE_JS_AND_GROUNDING_SPANS"
+      },
+      "a2_hint": {
+        "business": "LF",
+        "target_ref": "vista para que las empresas entren al portal",
+        "change_type": "IMPLEMENT",
+        "target_granularity": "SCREEN",
+        "canonical_capability": "IDENTITY_AND_ACCESS"
+      },
+      "a2_evidence": "PENDING_NOT_FABRICATED"
+    },
+    {
+      "id": "A1_CORE_03",
+      "raw_request": "Necesito un listado de operaciones con filtros",
+      "candidate": {
+        "schema_version": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+        "operation": {
+          "kind": "IMPLEMENT",
+          "user_assumed_state": "UNSPECIFIED",
+          "repo_verification_state": "PENDING_INVENTORY"
+        },
+        "target": {
+          "artifact_kind": "SCREEN",
+          "functional_archetype": "DATA_GRID_VIEW",
+          "canonical_capability": "DATA_EXPLORATION",
+          "actor_scope": "UNSPECIFIED",
+          "raw_mentions": [
+            "listado de operaciones"
+          ]
+        },
+        "desired_outcome": "Visualizar operaciones y permitir filtrarlas",
+        "analysis_hints": [
+          "DATA_ACCESS_REVIEW",
+          "PAGINATION_REVIEW"
+        ],
+        "dimensions_to_investigate": [
+          "FILTER_CRITERIA",
+          "PAGINATION_STRATEGY",
+          "DATA_ACCESS_SCOPE"
+        ],
+        "evidence_spans": [
+          {
+            "dimension": "OPERATION",
+            "quote": "Necesito",
+            "start": 0,
+            "end": 8
+          },
+          {
+            "dimension": "ARTIFACT",
+            "quote": "listado de operaciones",
+            "start": 12,
+            "end": 34
+          },
+          {
+            "dimension": "CAPABILITY",
+            "quote": "operaciones con filtros",
+            "start": 23,
+            "end": 46
+          }
+        ],
+        "explicit_constraints": [],
+        "material_ambiguities": []
+      },
+      "structural_grounding": {
+        "status": "PASS",
+        "errors": [],
+        "validation": "SOURCE_JSON_SCHEMA_RECURSIVE_JS_AND_GROUNDING_SPANS"
+      },
+      "a2_hint": {
+        "business": "LF",
+        "target_ref": "listado de operaciones",
+        "change_type": "IMPLEMENT",
+        "target_granularity": "SCREEN",
+        "canonical_capability": "DATA_EXPLORATION"
+      },
+      "a2_evidence": "PENDING_NOT_FABRICATED"
+    }
+  ],
+  "limits": [
+    "This is direct current-chat GPT semantic authoring, not a running A1 Python execution.",
+    "No independent reviewer or provider identity receipt.",
+    "A2 requires inventory/policy-derived signals, which must not be fabricated."
+  ],
+  "next_required_action": "EXECUTE_REAL_A1_SOURCE_PYTHON_THEN_REVIEW_AND_A2_CONSUME_WITH_EVIDENCE"
+}

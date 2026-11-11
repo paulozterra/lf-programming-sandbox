@@ -1,0 +1,135 @@
+{
+  "schema_version": "A2_PRECLASSIFICATION_RESEARCH_INDEPENDENT_REVIEW_PACKET_V1",
+  "source_commit": "6d1816bbec8ec95391da73fa70472f92208e7ad1",
+  "source_branch": "agent/programming-analysis-a1-a2-candidate-20261105",
+  "repository": "cristhianlujan/claude-persona-lf-patch",
+  "pr_number": 3624,
+  "source_files": [
+    {
+      "path": "skills/programming_analysis/steps/a2/adapters/unresolved_research_preview_v1.py",
+      "git_blob_sha1": "e3b807b15b0bc4ec12579c9b2e3f530a7ff57db1",
+      "role": "candidate source-only A1 ambiguity plan"
+    },
+    {
+      "path": "skills/programming_analysis/steps/a2/evals/test_unresolved_research_preview_v1.py",
+      "git_blob_sha1": "b94b786c4f4d344ecfe86f0275ad861ed6b795f5",
+      "role": "22 test methods defined; execution not attested at source head"
+    },
+    {
+      "path": "skills/programming_analysis/adapters/a1_a2_candidate_bridge_v1.py",
+      "git_blob_sha1": "9d59b52f6f896c07e518663de15ca8acac9ade84",
+      "role": "route from A1 REQUIRES_DECISION to A2 preview"
+    },
+    {
+      "path": "skills/programming_analysis/steps/a2/handoffs/A2_SOURCE_RESEARCH_CYCLE_DECISION_CANDIDATE_20261107.md",
+      "git_blob_sha1": "2c9cd08e9fd65305664369acec3a81754bd8f3b3",
+      "role": "proposal to break A2/A3 research cycle; NOT implemented"
+    },
+    {
+      "path": "skills/programming_analysis/steps/a2/validators/run.py",
+      "git_blob_sha1": "7c4282fe10f211ef1d33a3e2371209e0f5d02038",
+      "role": "canonical A2 validator unchanged"
+    },
+    {
+      "path": "skills/programming_analysis/steps/a1/validators/run.py",
+      "git_blob_sha1": "39b46057b5fc82e2c92b95855b76c0332e2b36f3",
+      "role": "A1 status and source typing"
+    }
+  ],
+  "canonical_contracts": [
+    "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_change_classification_contract_v1.json",
+    "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_targeted_evidence_contract_v1.json"
+  ],
+  "cases": [
+    {
+      "case_id": "A2_CORE_02",
+      "raw_request": "Necesito una vista para que las empresas entren al portal",
+      "expected_invariants": [
+        "do not assume AUTH_FLOW or credentials",
+        "preserve portal mode ambiguity and declared business",
+        "plan research before owner question",
+        "no A3 dispatch from preview"
+      ]
+    },
+    {
+      "case_id": "A2_CORE_04",
+      "raw_request": "No crees otra pantalla; usa la existente",
+      "expected_invariants": [
+        "REUSE not CREATE or MODIFY",
+        "literal NEGATION in constraints and evidence",
+        "functional capability UNKNOWN pending inventory",
+        "no A3 dispatch from preview"
+      ]
+    },
+    {
+      "case_id": "A2_ADVERSARIAL_CONSTRAINT_LOSS",
+      "test": "test_material_negation_cannot_disappear_from_payload",
+      "expected_invariants": [
+        "tampered A1 payload cannot silently drop explicit constraint"
+      ]
+    },
+    {
+      "case_id": "A2_ADVERSARIAL_OUTCOME_DRIFT",
+      "test": "test_desired_outcome_cannot_change_without_intent_hash",
+      "expected_invariants": [
+        "changed desired outcome with same candidate digest blocked"
+      ]
+    },
+    {
+      "case_id": "A2_ADVERSARIAL_MALFORMED",
+      "test": "test_malformed_declared_ambiguity_fail_closed_no_exception",
+      "expected_invariants": [
+        "malformed nested type returns BLOCKED, not uncaught exception"
+      ]
+    },
+    {
+      "case_id": "A2_A3_RESEARCH_CYCLE",
+      "expected_invariants": [
+        "A2 canonical classification currently requires A1 VALID_OUTPUT and nine signals",
+        "A3 requires exactly REQUEST_CONTEXT_V1 and ANALYSIS_CHANGE_CLASSIFICATION_V1",
+        "preview does not authorize A3 or break the cycle",
+        "assess conservative preclassification option against canonical depth policy and independent judge gate"
+      ]
+    }
+  ],
+  "reviewer_instructions": [
+    "Read every source file at source_commit and verify exact Git blobs. Do not substitute later HEAD.",
+    "If test execution is possible, run the Python tests against the exact frozen source, report runner, command, count, failures, exact commit and dependency coverage. Otherwise explicitly mark tests NOT_EXECUTED.",
+    "Review cases semantically: operation, artifact, negation, inferred capability, true source vs user hypothesis, and whether the research plan is useful, not merely structurally present.",
+    "Assess that zero evidence may be returned, contradictions and partial source failures, L3 precedence, L1 fail-closed, READ_ONLY vs canonical role, judge attestation and A3 two-input requirement.",
+    "Identify whether proposed A2-P classification would wrongly mark A1 as VALID_OUTPUT or misrepresent nine unknown signals as current authoritative evidence.",
+    "Do not read earlier reviewer verdicts, fabricate credentials, alter repository, or make any production or runtime writes.",
+    "Report issues by P0/P1/P2; distinguish defects in current preview code from open architecture decisions."
+  ],
+  "expected_response": {
+    "source_commit": "string",
+    "blobs_verified": "boolean",
+    "test_execution": {
+      "executed": "boolean",
+      "passed": "integer|null",
+      "failed": "integer|null",
+      "limitations": "string[]"
+    },
+    "cases": [
+      {
+        "case_id": "string",
+        "verdict": "PASS|FAIL|BLOCKED",
+        "findings": "string[]",
+        "issues": "string[]"
+      }
+    ],
+    "design_cycle_verdict": "RECOMMEND_A2_PROVISIONAL|REQUIRES_REDESIGN|BLOCKED",
+    "p0_p1_p2": "array",
+    "independent_identity_attested": "boolean",
+    "final_verdict": "SOURCE_REVIEW_PASS|SOURCE_REVIEW_FAIL|UNVERIFIED"
+  },
+  "explicit_limits": {
+    "no_native_judge_receipt": true,
+    "local_test_claim_post_patch": false,
+    "static_only_readback": true,
+    "a3_execution": false,
+    "source_attested": false,
+    "implementation_authorized": false,
+    "no_merge": true
+  }
+}

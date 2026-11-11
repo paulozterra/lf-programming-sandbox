@@ -1,0 +1,145 @@
+{
+  "schema_version": "A1_CORE_SEMANTIC_CORRECTION_BLIND_REVIEW_PACKET_V1",
+  "proposed_source_head": "76b76e1eafbbebc8d2bb7c29aa1339aa233194a1",
+  "original_freeze_sha": "ebc1198b257eb16eff704353deea047f9c31b0c4",
+  "original_packet_blob_sha1": "e198661a2053ab0bd704877fae0f0ca0013bc170",
+  "semantic_schema_blob_sha1": "fe06ae18acedb9f5a51ec265eb4690f91225d275",
+  "scope": "TWO_CORRECTED_SEMANTIC_CASES_ONLY",
+  "review_instructions": "Independently compare raw_request with candidate: action, negation, explicit constraints, ambiguity, whether capability is inferred without evidence, material unresolved items. Do not approve based only on JSON schema or evidence span literal matches. Do not consult previous verdicts.",
+  "cases": [
+    {
+      "case_id": "A1_CORE_02",
+      "raw_request": "Necesito una vista para que las empresas entren al portal",
+      "candidate": {
+        "schema_version": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+        "operation": {
+          "kind": "IMPLEMENT",
+          "user_assumed_state": "UNSPECIFIED",
+          "repo_verification_state": "PENDING_INVENTORY"
+        },
+        "target": {
+          "artifact_kind": "SCREEN",
+          "functional_archetype": "PORTAL_ENTRY_VIEW",
+          "canonical_capability": "ENTERPRISE_PORTAL_ACCESS",
+          "actor_scope": "B2B",
+          "raw_mentions": [
+            "vista para que las empresas entren al portal"
+          ]
+        },
+        "desired_outcome": "Habilitar la entrada de empresas al portal",
+        "analysis_hints": [
+          "PORTAL_ENTRY_REVIEW",
+          "EXISTING_ARTIFACT_INVENTORY"
+        ],
+        "dimensions_to_investigate": [
+          "PORTAL_ENTRY_MODE",
+          "AUTHENTICATION_IF_APPLICABLE",
+          "EXISTING_PORTAL_ENTRY"
+        ],
+        "evidence_spans": [
+          {
+            "dimension": "OPERATION",
+            "quote": "Necesito",
+            "start": 0,
+            "end": 8
+          },
+          {
+            "dimension": "ARTIFACT",
+            "quote": "vista",
+            "start": 13,
+            "end": 18
+          },
+          {
+            "dimension": "CAPABILITY",
+            "quote": "entren al portal",
+            "start": 41,
+            "end": 57
+          },
+          {
+            "dimension": "ACTOR_SCOPE",
+            "quote": "empresas",
+            "start": 32,
+            "end": 40
+          }
+        ],
+        "explicit_constraints": [],
+        "material_ambiguities": [
+          {
+            "code": "PORTAL_ENTRY_MODE_UNRESOLVED",
+            "statement": "La solicitud no determina si la entrada requiere autenticación o si consiste en navegación/acceso al portal.",
+            "materiality": "MATERIAL"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "A1_CORE_04",
+      "raw_request": "No crees otra pantalla; usa la existente",
+      "candidate": {
+        "schema_version": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+        "operation": {
+          "kind": "REUSE",
+          "user_assumed_state": "CLAIMED_EXISTING",
+          "repo_verification_state": "PENDING_INVENTORY"
+        },
+        "target": {
+          "artifact_kind": "SCREEN",
+          "functional_archetype": "EXISTING_SCREEN",
+          "canonical_capability": "UNKNOWN",
+          "actor_scope": "UNSPECIFIED",
+          "raw_mentions": [
+            "pantalla"
+          ]
+        },
+        "desired_outcome": "Reutilizar la pantalla existente sin crear otra",
+        "analysis_hints": [
+          "EXISTING_ARTIFACT_INVENTORY"
+        ],
+        "dimensions_to_investigate": [
+          "EXISTING_SCREEN_LOOKUP",
+          "FUNCTIONAL_CAPABILITY_RESOLUTION"
+        ],
+        "evidence_spans": [
+          {
+            "dimension": "OPERATION",
+            "quote": "usa la existente",
+            "start": 24,
+            "end": 40
+          },
+          {
+            "dimension": "ARTIFACT",
+            "quote": "pantalla",
+            "start": 14,
+            "end": 22
+          },
+          {
+            "dimension": "ASSUMPTION",
+            "quote": "existente",
+            "start": 31,
+            "end": 40
+          },
+          {
+            "dimension": "NEGATION",
+            "quote": "No crees otra pantalla",
+            "start": 0,
+            "end": 22
+          }
+        ],
+        "explicit_constraints": [
+          {
+            "text": "No crees otra pantalla"
+          }
+        ],
+        "material_ambiguities": [
+          {
+            "code": "FUNCTIONAL_CAPABILITY_UNSPECIFIED",
+            "statement": "La funcionalidad de la pantalla existente no está especificada.",
+            "materiality": "MATERIAL"
+          }
+        ]
+      }
+    }
+  ],
+  "not_an_independent_review_receipt": true,
+  "no_runtime_or_a2_invocation": true
+}

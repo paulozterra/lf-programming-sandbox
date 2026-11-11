@@ -1,0 +1,281 @@
+{
+  "schema_version": "PROGRAMMING_ENTRY_CONTRACT_V1",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "owner_scope": "SUPER_ADMIN",
+  "canonical_upstream": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+  "legacy_story_contract_role": "PRIOR_ART_ONLY",
+  "admission": {
+    "allowed_analysis_verdicts": [
+      "READY",
+      "PARTIAL_READY"
+    ],
+    "analysis_package_digest_required": true,
+    "source_currentness_required": true,
+    "exact_target_identity_required": true,
+    "target_granularity_required": true,
+    "authority_state_required": true,
+    "implementation_state_required": true,
+    "implementation_existing_delta_required": true,
+    "implementation_existing_greenfield_redefinition_forbidden": true,
+    "implementation_new_requires_no_current_implementation_evidence": true,
+    "reuse_before_build_evidence_required": true,
+    "applicable_design_bindings_required": true,
+    "programming_context_snapshot_required": true,
+    "programming_context_snapshot_receipt_required": true,
+    "scope_readiness_required": true,
+    "only_ready_scopes_admissible": true,
+    "partial_ready_requires_scope_isolation": true,
+    "cross_scope_blocker_contamination_forbidden": true,
+    "lossless_projection_required": true,
+    "story_identity_required": false,
+    "functional_version_required": false,
+    "agent_task_required_at_upstream_admission": false,
+    "material_front_coverage_required": true,
+    "analysis_stop_rule_required": true,
+    "implementability_schema_required": true,
+    "handoff_parity_receipt_required": true,
+    "snapshot_currentness_decision_required": true,
+    "decision_context_required": true
+  },
+  "target_binding": {
+    "required_fields": [
+      "repo_full_name",
+      "base_head_sha",
+      "source_snapshot_sha256"
+    ],
+    "state_dimensions_independent": true,
+    "authority_existing_implementation_new_allowed": true,
+    "authority_state_does_not_imply_implementation_state": true,
+    "implementation_existing_requires_exact_revision_binding": true,
+    "implementation_new_requires_negative_current_implementation_evidence": true,
+    "implementation_new_requires_reuse_assessment": true,
+    "design_binding_policy": "CANONICAL_REF_PLUS_CURRENT_RESOLVED_VALUE",
+    "design_literal_is_not_authority": true,
+    "implementation_strategy_owned_by": "PG-03",
+    "write_scope_owned_by": "PG-05",
+    "repo_or_head_inference_forbidden": true
+  },
+  "programming_context_snapshot": {
+    "schema_version": "PROGRAMMING_CONTEXT_SNAPSHOT_V1",
+    "assembled_by": "A9",
+    "material_bindings_prepared_by": "A6",
+    "required_fields": [
+      "objective",
+      "target",
+      "target_granularity",
+      "authority_state",
+      "implementation_state",
+      "requirements[]",
+      "authority_bindings[]",
+      "applicable_rules[]",
+      "applicable_invariants[]",
+      "preserve[]",
+      "material_front_coverage",
+      "implementability_schema",
+      "decision_context",
+      "analysis_stop_rule",
+      "scope_front_matrix[]",
+      "scope_readiness[]",
+      "package_readiness",
+      "unresolved_material_items[]",
+      "source_refs[]",
+      "currentness_refs[]",
+      "snapshot_schema_digest_sha256",
+      "authority_fingerprint_sha256",
+      "source_snapshot_sha256"
+    ],
+    "scope_readiness_contract": {
+      "status_values": [
+        "READY",
+        "NEED_MORE_EVIDENCE",
+        "REQUIRES_DECISION",
+        "BLOCKED",
+        "NOT_APPLICABLE"
+      ],
+      "required_fields": [
+        "scope_id",
+        "scope_kind",
+        "status",
+        "depends_on_scope_ids[]",
+        "material_front_refs[]",
+        "authority_refs[]",
+        "blockers[]",
+        "reason"
+      ],
+      "ready_requires_dependency_closure": true,
+      "ready_requires_no_material_blocker": true,
+      "blocked_scope_must_not_contaminate_ready_scope": true
+    },
+    "package_readiness_contract": {
+      "values": [
+        "READY",
+        "PARTIAL_READY",
+        "NEED_MORE_EVIDENCE",
+        "REQUIRES_DECISION",
+        "BLOCKED"
+      ],
+      "partial_ready_requires_at_least_one_ready_scope": true,
+      "partial_ready_requires_independent_execution_boundary": true,
+      "partial_ready_forbidden_when_cross_cutting_material_blocker_affects_ready_scope": true
+    },
+    "persistence": {
+      "required": true,
+      "capability": "DECISION_CONTEXT_ASOF",
+      "capability_version_policy": "CURRENT",
+      "record_entrypoint": "public.fn_lf_decision_context_asof_record_v1",
+      "resolve_entrypoint": "public.fn_lf_decision_context_asof_resolve_v1",
+      "store": "private.lf_decision_context_asof_v1",
+      "mode": "APPEND_ONLY_ASOF_RECEIPT",
+      "snapshot_extension_path": "extensions.programming_context_snapshot",
+      "full_scope_payload_persisted": true,
+      "scope_lookup_key": "scope_id",
+      "required_receipt_fields": [
+        "context_id",
+        "decision_ref",
+        "context_sha256",
+        "subject_ref",
+        "subject_version",
+        "decided_at",
+        "effective_at"
+      ],
+      "pg01_must_resolve_exact_receipt_before_use": true,
+      "resolved_context_digest_must_match_receipt": true,
+      "memory_only_snapshot_forbidden": true,
+      "latest_mutable_reinterpretation_forbidden": true,
+      "authority_copy_forbidden": true,
+      "canonical_refs_and_resolved_evidence_only": true,
+      "new_snapshot_store_forbidden": true
+    },
+    "transport_policy": {
+      "small_material_stable": "INLINE_RESOLVED_VALUE_PLUS_CANONICAL_REF",
+      "large_identified": "EXACT_REF_ONLY",
+      "dynamic_or_staleness_sensitive": "EXACT_REF_PLUS_TYPED_RESOLVER",
+      "irrelevant_to_current_batch": "OMIT"
+    },
+    "design_binding_transport": "CANONICAL_REF_PLUS_CURRENT_RESOLVED_VALUE",
+    "rediscovery_without_trigger_forbidden": true,
+    "allowed_requery_triggers": [
+      "MISSING",
+      "STALE",
+      "CONTRADICTION",
+      "SOURCE_DRIFT",
+      "MATERIAL_NEW_QUESTION"
+    ],
+    "typed_resolver_required_for_requery": true,
+    "freeform_source_query_when_typed_resolver_exists_forbidden": true,
+    "worker_projection_policy": "MINIMUM_RELEVANT_SUBSET",
+    "same_fingerprint_reuse_required": true,
+    "fingerprint_change_requires_rebuild": true,
+    "technical_strategy_fields_forbidden": [
+      "chosen_component_structure",
+      "chosen_framework_pattern",
+      "chosen_endpoint_design",
+      "chosen_internal_algorithm"
+    ],
+    "material_front_coverage": {
+      "schema_version": "MATERIAL_FRONT_COVERAGE_V1",
+      "producer_unit": "A7",
+      "contract_ref": "analysis_material_front_coverage_contract_v1.json",
+      "must_preserve_full_artifact": true,
+      "scope_readiness_is_separate_dimension": true,
+      "absence_never_means_not_applicable": true
+    },
+    "analysis_stop_rule": {
+      "schema_version": "ANALYSIS_STOP_RULE_V1",
+      "producer_unit": "A8",
+      "contract_ref": "analysis_stop_rule_contract_v1.json",
+      "stop_requires_decision_stable": true,
+      "stop_requires_all_material_fronts_accounted": true,
+      "scope_readiness_policy_owned_separately": true
+    },
+    "implementability_schema": {
+      "schema_version": "IMPLEMENTABILITY_SCHEMA_V1",
+      "producer_unit": "A6",
+      "contract_ref": "analysis_implementability_contract_v1.json",
+      "must_preserve_full_artifact": true,
+      "technical_strategy_owned_by": "PG-03",
+      "receiver_parity_policy_owned_by_next_boundary": true
+    },
+    "scope_front_consistency_contract": {
+      "matrix_required_fields": [
+        "scope_id",
+        "front_id",
+        "front_status",
+        "front_closure",
+        "effect_on_scope",
+        "evidence_refs[]",
+        "reason"
+      ],
+      "effect_values": [
+        "BLOCKS",
+        "PRESERVE",
+        "NOT_APPLICABLE"
+      ],
+      "bidirectional_scope_front_mapping_required": true,
+      "required_blocked_front_blocks_every_bound_scope": true,
+      "ready_scope_forbids_blocking_front": true,
+      "reuse_as_is_closed_front_may_preserve_scope": true,
+      "not_applicable_front_must_not_block_scope": true,
+      "partial_ready_requires_every_ready_scope_front_clean": true,
+      "pg01_admission_requires_front_clean_ready_scope": true
+    },
+    "snapshot_currentness_contract": {
+      "authority_capability": "CURRENTNESS_AUTHORITY",
+      "capability_version_policy": "CURRENT",
+      "decision_values": [
+        "CURRENT",
+        "CURRENT_REBOUND",
+        "STALE_AFFECTED",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "required_inputs": [
+        "context_sha256",
+        "snapshot_schema_digest_sha256",
+        "authority_fingerprint_sha256",
+        "source_snapshot_sha256"
+      ],
+      "same_fingerprint_reuse_required": true,
+      "same_current_snapshot_forbids_rediscovery": true,
+      "authority_fingerprint_change_requires_rebuild": true,
+      "snapshot_schema_digest_change_requires_rebuild": true,
+      "recorded_snapshot_immutable": true,
+      "mid_execution_rebind_forbidden": true,
+      "global_main_sha_change_alone_causes_stale": false,
+      "selective_affected_closure_required": true,
+      "dependency_completeness_required_for_auto_rebound": true,
+      "stale_affected_scope_blocks_affected_scope": true,
+      "unknown_state_fail_closed": true,
+      "worker_projection_invalidated_with_snapshot": true
+    },
+    "decision_context": {
+      "schema_version": "ANALYSIS_DECISION_CONTEXT_V1",
+      "producer_unit": "A5",
+      "contract_ref": "analysis_decision_context_adr_contract_v1.json",
+      "must_preserve_full_artifact": true,
+      "ready_scope_requires_no_unresolved_material_decision": true,
+      "requires_owner_decision_propagates_to_scope_readiness": true,
+      "blocked_adr_propagates_to_scope_readiness": true,
+      "technical_strategy_owned_by": "PG-03"
+    }
+  },
+  "compatibility": {
+    "existing_execution_bundle": "programacion.fn_agent_task_execution_bundle",
+    "existing_runtime_context": "programacion.fn_agent_task_runtime_context",
+    "action": "EXTEND_ENTRY_BOUNDARY_DO_NOT_DUPLICATE_RUNTIME",
+    "new_runtime_created": false,
+    "story_direct_consumption_after_cutover": false
+  },
+  "source_refs": [
+    "lf_eventos://20333",
+    "lf_eventos://20335"
+  ],
+  "handoff_parity": {
+    "schema_version": "ANALYSIS_PROGRAMMING_HANDOFF_PARITY_CONTRACT_V1",
+    "contract_ref": "analysis_programming_handoff_parity_contract_v1.json",
+    "producer_unit": "A9",
+    "consumer_unit": "PG-01",
+    "shared_snapshot_schema_required": true,
+    "exact_context_receipt_required": true,
+    "lossy_material_projection_forbidden": true
+  }
+}

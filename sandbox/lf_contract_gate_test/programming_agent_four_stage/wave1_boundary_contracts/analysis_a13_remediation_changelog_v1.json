@@ -1,0 +1,98 @@
+{
+  "schema_version": "ANALYSIS_A13_REMEDIATION_CHANGELOG_V1",
+  "state": "REMEDIATED_AFTER_A14_PREFLIGHT",
+  "unit": "A13",
+  "work_code": "PA-AN-013",
+  "model_candidate": {
+    "contract": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+    "logic_head": "19a81a20d827cf1c0a0122d6610d587cdea3e6f4",
+    "pull_request": 1858
+  },
+  "finding_inputs": [
+    {
+      "ref": "lf_eventos://20527",
+      "unit": "A10",
+      "result": "30_CASES_0_CRITICAL_OMISSIONS"
+    },
+    {
+      "ref": "lf_eventos://20532",
+      "unit": "A11",
+      "result": "11_ADVERSARIAL_TYPES_0_CRITICAL_FALSE_READY"
+    },
+    {
+      "ref": "lf_eventos://20534",
+      "unit": "A12",
+      "result": "CANDIDATE_0_CRITICAL_FALSE_NEGATIVES_IN_CONTRACT_REPLAY"
+    },
+    {
+      "ref": "ekb://PROGRAMMING-ANALYSIS-DEPTH-POLICY-UNDEFINED-001",
+      "unit": "A14_PREFLIGHT",
+      "result": "DEPTH_CLASSIFICATION_SEMANTICS_UNDEFINED"
+    }
+  ],
+  "reproducible_candidate_findings_requiring_model_change": [
+    {
+      "code": "ANALYSIS_DEPTH_CLASSIFICATION_SEMANTICS_UNDEFINED",
+      "severity": "HIGH",
+      "evidence_ref": "github://cristhianlujan/claude-persona-lf-patch/commit/a2fe50496653ae66246cde726c0613ef895fdef2",
+      "generalizable": true
+    }
+  ],
+  "changes": [
+    {
+      "change_code": "A13-DEPTH-POLICY-001",
+      "target": "analysis_change_classification_contract_v1.json",
+      "action": "ADD_MONOTONIC_L1_L2_L3_POLICY",
+      "rule_basis": [
+        "SAFE_CHANGE_ADMISSION materiality/authority/reversibility vocabulary",
+        "CURRENTNESS_AUTHORITY decision vocabulary",
+        "existing specialist requiredness"
+      ],
+      "properties": [
+        "L3 explicit high-risk precedence",
+        "L2 medium or unproven floor",
+        "L1 only fully bounded low-risk evidence",
+        "unknown material never L1",
+        "no arbitrary weights",
+        "no case-family hardcoding",
+        "depth is not execution permission"
+      ],
+      "contract_commit": "c9c0901289a3ac4a1850abbe415f0f3727410226",
+      "validator_commit": "2283a8d06d6493b322afd52a82cc8791542e02a1"
+    }
+  ],
+  "disposition": {
+    "code": "MODEL_REPAIRED_GENERALIZABLY",
+    "reason": "A14 preflight exposed a general classification-policy gap before any holdout case was materialized. The repair binds L1/L2/L3 to existing governed signal vocabularies with monotonic precedence and no weights or case-family branches.",
+    "case_specific_patch_applied": false,
+    "generalizable_rule_added_without_finding": false,
+    "stop_rule_changed": false,
+    "impact_model_changed": false,
+    "specialist_selection_changed": false,
+    "handoff_contract_changed": false
+  },
+  "regression": {
+    "affected_regression_set": [
+      "validate_wave1_boundary_contracts_v1.py --self-test"
+    ],
+    "rerun_required": true,
+    "rerun_status": "PASS",
+    "exact_head": "2283a8d06d6493b322afd52a82cc8791542e02a1",
+    "receipt": "PASS_WAVE1_BOUNDARY_CONTRACTS negatives=90",
+    "executor": "SentinelX:scalora-vps",
+    "prior_A10_A11_A12_evidence_preserved": true
+  },
+  "A14_boundary": {
+    "fresh_holdout_remains_unseen": true,
+    "holdout_cases_materialized_before_repair": 0,
+    "A14_cases_or_variants_used_for_tuning": false,
+    "candidate_logic_changed_for_general_finding": true,
+    "fresh_holdout_must_be_generated_after_exact_head": "2283a8d06d6493b322afd52a82cc8791542e02a1"
+  },
+  "guards": {
+    "case_specific_hardcoding_forbidden": true,
+    "runtime_activation": false,
+    "production_activation": false,
+    "merge": false
+  }
+}

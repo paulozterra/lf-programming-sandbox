@@ -1,0 +1,42 @@
+{
+  "schema": "ANALYSIS_A1_INTERNAL_STEP_CONTRACT_V1",
+  "skill_code": "PROGRAMMING_ANALYSIS_LF",
+  "status": "CANDIDATE_SOURCE_PREPARED_PENDING_QUALIFICATION",
+  "consumer": "ANALYSIS_STAGE_COORDINATOR_NOT_DIRECT_PROFILE_CALL",
+  "operation": "PURE_LOCAL_TRANSFORMATION",
+  "business_binding": {
+    "business": "LF",
+    "saly_binding": "NOT_QUALIFIED"
+  },
+  "input_schema": "schemas/input.schema.json",
+  "output_schema": "schemas/output.schema.json",
+  "canonical_output_schema": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_request_context_v1.schema.json",
+  "canonical_output_name": "REQUEST_CONTEXT_V1",
+  "implementation": "validators/run.py:run",
+  "self_consistency_guard": "judges/semantic_guard.py:check",
+  "next_capability_candidate": "INTERNAL_A2",
+  "runtime_authorization": "EXTERNAL_FUTURE_EXECUTION_STANDARD",
+  "no_internal_profile_code": true,
+  "no_internal_execution_id": true,
+  "no_implicit_router_or_SQL": true,
+  "effects_allowed": false,
+  "independent_semantic_qualification": "NOT_TESTED",
+  "currentness_attested": false,
+  "integrated_with_profile": false,
+  "semantic_boundary": {
+    "prepare": "semantic/semantic_boundary_v1.py:prepare",
+    "validate_model_candidate": "semantic/semantic_boundary_v1.py:evaluate_model_candidate",
+    "validate_review": "semantic/semantic_boundary_v1.py:validate_review",
+    "instruction_ref": "prompts/semantic_interpretation_v1.md",
+    "contract_ref": "contracts/semantic_execution_boundary_v1.md",
+    "model_runtime_wired": false,
+    "independent_judge_wired": false,
+    "local_review_pass_is_operational_authority": false,
+    "semantic_test_standins": "evals/test_semantic_boundary_v1.py"
+  },
+  "step_code": "A1",
+  "contract_scope": "INTERNAL_ANALYSIS_STEP_NOT_REGISTERABLE_SKILL",
+  "internal_step_entrypoint": "validators/run.py:run",
+  "external_skill_entrypoint": "skills/programming_analysis/SKILL.md",
+  "independent_skill_registration_allowed": false
+}

@@ -1,0 +1,26 @@
+name: Analysis F0 (offline)
+on:
+  pull_request:
+    paths:
+      - 'analysis/**'
+      - 'sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/**'
+      - '.github/workflows/analysis-f0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analysis-f0:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Verify pinned original Git blobs without network
+        run: python3 analysis/verify_source_manifest.py
+      - name: Install test dependencies
+        run: python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2 jsonschema==4.25.1
+      - name: Analysis A1-A5 visible test suites (offline)
+        run: python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py

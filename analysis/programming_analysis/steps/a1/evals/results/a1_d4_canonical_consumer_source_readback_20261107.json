@@ -1,0 +1,68 @@
+{
+  "schema_version": "A1_D4_CANONICAL_CONSUMER_SOURCE_READBACK_V1",
+  "source_commit": "4d0bf6c833018faaaae2bcb4654fe9f437bf4e25",
+  "scope": "PROGRAMMING_ANALYSIS_LF_A1_TO_EXISTING_D4_METADATA_ONLY",
+  "status": "SOURCE_WIRING_CANDIDATE_NOT_OPERATIONALLY_INTEGRATED",
+  "source_paths": [
+    {
+      "path": "skills/programming_analysis/adapters/a1_d4_inventory_consumer_candidate_v1.py",
+      "git_blob_sha1": "bd3cc4672a5c9e959ef992a69c2e001891787d95",
+      "role": "SOURCE_ONLY_CALLER_TO_EXISTING_D4"
+    },
+    {
+      "path": "services/profile_runtime_api/profile_runtime_api/source_investigation_preparation.py",
+      "git_blob_sha1": "479e551485b7b4504f851a95a5abfb0242a6babb",
+      "role": "EXISTING_UNMODIFIED_D4_SOURCE"
+    },
+    {
+      "path": "skills/programming_analysis/adapters/a1_d4_canonical_skill_invoker_binding_candidate_v1.sql",
+      "git_blob_sha1": "c3a863f55ccab698de59dd59adaa233b9f3bb8f9",
+      "role": "UNAPPLIED_INTERNAL_SQL_CANDIDATE_NOT_SKILL_REGISTRATION"
+    },
+    {
+      "path": "skills/programming_analysis/steps/a1/evals/test_a1_semantic_candidate_v1.py",
+      "git_blob_sha1": "cdcd97c40081dd97033e8ddadb4254b93ea33d40",
+      "role": "PYTHON_TESTS_DEFINED_NOT_EXECUTED"
+    }
+  ],
+  "verification": {
+    "readback_exact_source_blobs": true,
+    "static_source_gates": {
+      "passed": 16,
+      "total": 16
+    },
+    "python_test_methods_in_existing_suite": 29,
+    "new_d4_unit_tests_defined": 8,
+    "new_d4_unit_tests_executed": false,
+    "full_python_suite_executed": false,
+    "sql_candidate_executed": false,
+    "github_pase_prior_head": "PASS",
+    "github_pase_not_python_runtime": true,
+    "source_consumer_wired_to_governed_worker": false,
+    "actual_authorized_service_role_db_call": false,
+    "a2_real_signals_received": false,
+    "prod_activation": false
+  },
+  "live_authority_readback": {
+    "public.lf_skill_invoke_v1": "EXISTS__PARENT_EJECUCION_PERFIL_LF_AND_PROFILE_AUTHORITY_GATES",
+    "public.lf_skill_catalog_v1:PROGRAMMING_ANALYSIS_LF": "ABSENT",
+    "public.lf_activos:PROGRAMMING_ANALYSIS_LF": "CANDIDATE_READ_ONLY",
+    "public.lf_operation_registry:EJECUCION_SKILL_LF": "SANDBOX_ACTIVE__OP_CANDIDATE",
+    "private.fn_lf_source_investigation_prepare_v1": "PRESENT__EXECUTE_SERVICE_ROLE__READ_ONLY_USER_DENIED",
+    "services/profile_runtime_api/scripts/hetzner_queue_worker.py": "PROFILE_RUNTIME_LLAMA_WORKER__NOT_CORRECT_NATIVE_A1_EXECUTOR"
+  },
+  "design_boundary": {
+    "single_skill_owner": "PROGRAMMING_ANALYSIS_LF (A1-A15)",
+    "d4_only_handler_as_whole_skill": "PROHIBITED_FALSE_SKILL_COMPLETION",
+    "source_semantic_reviewer_identity_attested": false,
+    "a2_allowed": false,
+    "no_new_router": true,
+    "no_worker_change": true,
+    "no_service_role_credentials": true,
+    "no_new_grants": true,
+    "no_supabase_write": true,
+    "pr_draft": true
+  },
+  "next_required_work": "EXISTING_GOVERNED_NATIVE_SKILL_RUNNER_MUST_ADMIT_WHOLE_SKILL_AND_ACCEPT_SOURCE_ONLY_D4_ADAPTER_WITH_TRUSTED_CURSOR_AND_RECEIPT; NOT ACTIVATABLE_WHILE_SKILL_AND_OPERATION_ARE_CANDIDATE",
+  "acceptance": "NOT_READY_FOR_MERGE_OR_PRODUCTION"
+}

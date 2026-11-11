@@ -1,0 +1,302 @@
+{
+  "schema_version": "SPEC_DRIVEN_DELTA_DECISION_MATRIX_CANDIDATE_V1",
+  "status": "SOURCE_ONLY_TEST_SPEC_NOT_RUNTIME",
+  "note": "The reference function is ONLY a toy verifier of precedence; exact evidence shape, owner receipts and nonwaivable gate must be validated by governed runtime before use. Never use booleans to attest trust.",
+  "source_document": "skills/programming_analysis/handoffs/SPEC_DRIVEN_DELTA_DOCUMENTACION_GATE_CANDIDATE_20261106.md",
+  "authority": "CANONICAL_A1_A9_UNMODIFIED",
+  "case_count": 16,
+  "cases": [
+    {
+      "id": "C01_NO_CHANGE_VERIFIED",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "NONE",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null
+      },
+      "expected": "NO_OP_VERIFIED"
+    },
+    {
+      "id": "C02_DEFINED_NOT_IMPLEMENTED",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "MISSING",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null
+      },
+      "expected": "SPEC_READY_CANDIDATE"
+    },
+    {
+      "id": "C03_APPROVED_NEW_RULE_AND_CODE_DELTA",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "CHANGED",
+        "implementation_delta": "CHANGED",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null
+      },
+      "expected": "SPEC_READY_CANDIDATE"
+    },
+    {
+      "id": "C04_NO_STORED_SOURCE",
+      "input": {
+        "source_stored": false,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "NONE",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": "owner://irrelevant",
+        "owner_partial_scope_receipt": null
+      },
+      "expected": "BLOCKED_MISSING_DEFINITION"
+    },
+    {
+      "id": "C05_STALE_DEFINITION",
+      "input": {
+        "source_stored": true,
+        "source_current": false,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "NONE",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null
+      },
+      "expected": "BLOCKED_SOURCE_NOT_CURRENT"
+    },
+    {
+      "id": "C06_UNKNOWN_AS_IS",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "UNKNOWN",
+        "implementation_evidence_attested": false,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null
+      },
+      "expected": "BLOCKED_UNKNOWN_IMPLEMENTATION"
+    },
+    {
+      "id": "C07_MATERIAL_GAP_DECISION_PENDING",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "NONE",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": true,
+        "safe_independent_subscope": true,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null
+      },
+      "expected": "SPEC_PARTIAL_OWNER_DECISION"
+    },
+    {
+      "id": "C08_PARTIAL_SCOPE_APPROVED",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "NONE",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": true,
+        "safe_independent_subscope": true,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": "owner://signed/scope-a"
+      },
+      "expected": "SPEC_PARTIAL_SCOPE_APPROVED_CANDIDATE"
+    },
+    {
+      "id": "C09_MATERIAL_GAP_NO_INDEPENDENT_SCOPE",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "NONE",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": true,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": "owner://signed/scope-a"
+      },
+      "expected": "BLOCKED_MATERIAL_DEPENDENCY"
+    },
+    {
+      "id": "C10_SECURITY_FAIL_NOT_WAIVABLE",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "NONE",
+        "implementation_evidence_attested": true,
+        "non_waivable": true,
+        "material_gap": true,
+        "safe_independent_subscope": true,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": "owner://signed/scope-a"
+      },
+      "expected": "BLOCKED_UNWAIVABLE_GATE"
+    },
+    {
+      "id": "C11_NONCRITICAL_ALERT_UNACCEPTED",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "CHANGED",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null,
+        "minor_gap": true
+      },
+      "expected": "SPEC_OWNER_ACK_REQUIRED"
+    },
+    {
+      "id": "C12_NONCRITICAL_ALERT_ACCEPTED",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "CHANGED",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": "owner://signed/alert-1",
+        "owner_partial_scope_receipt": null,
+        "minor_gap": true
+      },
+      "expected": "SPEC_READY_WITH_ALERTS_CANDIDATE"
+    },
+    {
+      "id": "C13_RESTRUCTURE_WITHOUT_NEW_RULE",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "CHANGED",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null,
+        "mode": "RESTRUCTURE"
+      },
+      "expected": "SPEC_READY_CANDIDATE"
+    },
+    {
+      "id": "C14_ASSERTED_NOT_ATTESTED",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": false,
+        "definition_delta": "NONE",
+        "implementation_delta": "NONE",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null
+      },
+      "expected": "BLOCKED_AUTHORITY_NOT_ATTESTED"
+    },
+    {
+      "id": "C15_CHANGED_DEF_NO_IMPLEMENTATION_DELTA",
+      "input": {
+        "source_stored": true,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "CHANGED",
+        "implementation_delta": "NONE",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null
+      },
+      "expected": "BLOCKED_CHANGE_DELTA_CONFLICT"
+    },
+    {
+      "id": "C16_NO_SOURCE_AND_NO_CODE_UNKNOWN",
+      "input": {
+        "source_stored": false,
+        "source_current": true,
+        "authority_attested": true,
+        "definition_delta": "NONE",
+        "implementation_delta": "UNKNOWN",
+        "implementation_evidence_attested": true,
+        "non_waivable": false,
+        "material_gap": false,
+        "safe_independent_subscope": false,
+        "owner_ack_receipt": null,
+        "owner_partial_scope_receipt": null
+      },
+      "expected": "BLOCKED_MISSING_DEFINITION"
+    }
+  ],
+  "invariants": [
+    "NO_OP requires stored CURRENT source and verified absence of both definition and implementation delta",
+    "Unchanged business rules do not prohibit coding an unimplemented screen",
+    "A stored definition must precede authoritative spec-driven generation",
+    "Material missing docs can be excluded only with independent scope and exact owner receipt",
+    "Nonwaivable security, permissions and authority cannot be bypassed by acceptance",
+    "UNKNOWN implementation cannot silently become NO_OP",
+    "An unwaived nonmaterial alert is visible to owner prior to programming handoff",
+    "Every status remains candidate until A9/PG-01 governance and true source attestations"
+  ],
+  "qualification": {
+    "local_reference_cases_executed": 16,
+    "local_reference_total": 16,
+    "passed": true,
+    "real_server_case_receipts": 0,
+    "native_runtime_verified": false
+  }
+}

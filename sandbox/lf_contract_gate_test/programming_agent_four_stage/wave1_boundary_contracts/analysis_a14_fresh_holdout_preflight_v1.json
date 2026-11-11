@@ -1,0 +1,39 @@
+{
+  "schema_version": "ANALYSIS_A14_FRESH_HOLDOUT_PREFLIGHT_V1",
+  "state": "BLOCKED_BEFORE_HOLDOUT_MATERIALIZATION",
+  "unit": "A14",
+  "candidate_logic_head": "19a81a20d827cf1c0a0122d6610d587cdea3e6f4",
+  "required_gate": "classification_accuracy_min >= 0.95",
+  "finding": {
+    "code": "ANALYSIS_DEPTH_CLASSIFICATION_SEMANTICS_UNDEFINED",
+    "severity": "HIGH",
+    "reproducible": true,
+    "evidence": [
+      "analysis_change_classification_contract_v1.json declares only depth_levels=[L1,L2,L3], depth_reason_required and evidence_refs_required",
+      "validate_wave1_boundary_contracts_v1.py validates level enumeration but no decision semantics",
+      "repository search found no Programming Analysis depth-level decision policy",
+      "EKB search found no existing Programming Analysis L1/L2/L3 semantic policy"
+    ],
+    "impact": "A14 cannot objectively score >=95% L1/L2/L3 accuracy without inventing an oracle after seeing holdout cases."
+  },
+  "holdout_virginity": {
+    "cases_materialized": 0,
+    "variants_materialized": 0,
+    "case_payloads_seen_by_candidate_tuning": false,
+    "A10_cases_reused": false,
+    "A11_cases_reused": false,
+    "preserved": true
+  },
+  "disposition": {
+    "action": "RETURN_TO_A13",
+    "required_repair": "Define a general evidence-derived monotonic L1/L2/L3 policy from existing governed materiality/scope/authority/reversibility signals, then rerun classification contract regression before generating A14 holdout.",
+    "case_specific_thresholds_forbidden": true,
+    "arbitrary_weighting_forbidden": true,
+    "parallel_classifier_engine_forbidden": true
+  },
+  "guards": {
+    "runtime_activation": false,
+    "production_activation": false,
+    "merge": false
+  }
+}
