@@ -1,0 +1,10 @@
+{
+  "imitates": "lf_ops.pantalla_variantes",
+  "simulated": true,
+  "data": [
+    {
+      "code": "SBX-VAR-DESKTOP",
+      "status": "VIGENTE"
+    }
+  ]
+}
