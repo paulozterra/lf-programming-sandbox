@@ -1,0 +1,116 @@
+{
+  "schema_version": "ANALYSIS_DECISION_CONTEXT_ADR_CONTRACT_V1",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "unit": "A5",
+  "input_contracts": [
+    "REQUEST_CONTEXT_V1",
+    "ANALYSIS_CHANGE_CLASSIFICATION_V1",
+    "TARGETED_EVIDENCE_SET_V1",
+    "SHARED_CHANGE_IMPACT_ANALYSIS"
+  ],
+  "output_contract": "DECISION_CONTEXT",
+  "decision_context": {
+    "schema_version": "ANALYSIS_DECISION_CONTEXT_V1",
+    "status_values": [
+      "STABLE",
+      "UNRESOLVED",
+      "REQUIRES_DECISION",
+      "BLOCKED"
+    ],
+    "required_fields": [
+      "decision_id",
+      "subject_ref",
+      "scope_refs[]",
+      "material_question",
+      "status",
+      "options_considered[]",
+      "selected_option_ref",
+      "rationale",
+      "authority_refs[]",
+      "evidence_refs[]",
+      "currentness_refs[]",
+      "unresolved_questions[]",
+      "adr_disposition",
+      "adr_ref",
+      "persistence_ref",
+      "decision_fingerprint_sha256"
+    ],
+    "material_question_must_be_evidence_derived": true,
+    "selected_option_requires_stable_status": true,
+    "unresolved_material_question_forbids_stable": true,
+    "technical_implementation_strategy_forbidden": true
+  },
+  "adr_policy": {
+    "disposition_values": [
+      "NOT_REQUIRED",
+      "REUSE_CURRENT_ADR",
+      "NEW_ADR_REQUIRED",
+      "ADR_BLOCKED"
+    ],
+    "required_when_any": [
+      "canonical_authority_or_owner_changes",
+      "transversal_capability_created_extended_or_retired",
+      "cross_stage_or_multi_consumer_contract_changes",
+      "canonical_state_authority_or_lifecycle_changes",
+      "material_migration_cutover_or_long_lived_compatibility_changes",
+      "security_or_privacy_boundary_changes",
+      "runtime_or_production_topology_changes"
+    ],
+    "not_required_when_all": [
+      "decision_is_local_to_one_implementation_scope",
+      "no_shared_authority_or_contract_changes",
+      "no_material_lifecycle_or_compatibility_change",
+      "reversible_local_implementation_detail",
+      "technical_strategy_remains_owned_by_PG_03"
+    ],
+    "existing_adr": {
+      "authority_surface": "transversal.decision_log",
+      "required_state": "VIGENTE",
+      "assert_entrypoint": "programacion.fn_engineering_current_adr_assert_v1",
+      "exact_adr_ref_required": true,
+      "stale_or_missing_adr_fails_closed": true
+    },
+    "new_adr_required": {
+      "a5_may_not_self_approve_new_adr": true,
+      "status_must_be": "REQUIRES_DECISION",
+      "affected_scope_may_not_be_READY": true,
+      "local_provisional_override_forbidden": true
+    }
+  },
+  "persistence": {
+    "capability": "DECISION_CONTEXT_ASOF",
+    "capability_version_policy": "CURRENT",
+    "record_entrypoint": "public.fn_lf_decision_context_asof_record_v1",
+    "resolve_entrypoint": "public.fn_lf_decision_context_asof_resolve_v1",
+    "mode": "APPEND_ONLY_ASOF_RECEIPT",
+    "new_store_forbidden": true,
+    "historical_receipt_immutable": true,
+    "currentness_authority": "CURRENTNESS_AUTHORITY",
+    "memory_only_decision_context_forbidden": true
+  },
+  "scope_readiness_boundary": {
+    "ready_scope_requires_no_unresolved_material_decision": true,
+    "new_adr_required_propagates_requires_decision": true,
+    "blocked_adr_propagates_blocked": true,
+    "unrelated_independent_ready_scope_may_proceed": true
+  },
+  "integration_boundary": {
+    "a8_consumes_output_contract": "DECISION_CONTEXT",
+    "a9_must_preserve_full_artifact": true,
+    "programming_context_snapshot_field": "decision_context",
+    "pg01_must_consume_losslessly": true,
+    "pg03_retains_implementation_strategy_ownership": true
+  },
+  "reuse": {
+    "reused_capabilities": [
+      "DECISION_CONTEXT_ASOF",
+      "CURRENTNESS_AUTHORITY"
+    ],
+    "reused_existing_authority_assertion": "programacion.fn_engineering_current_adr_assert_v1",
+    "parallel_adr_engine_forbidden": true,
+    "parallel_decision_context_store_forbidden": true
+  },
+  "no_parallel_engine": true,
+  "runtime_activation": false,
+  "production_activation": false
+}
