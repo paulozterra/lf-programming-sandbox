@@ -20,6 +20,8 @@ def task_spec():
     return {
         "schema_version": 1,
         "task_id": "LF-WORKER-NATIVE-EX8",
+        "base_head_sha": subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "main"], text=True).strip(),
         "objective": "Sandbox-only exercise; no actual Worker dispatch",
         "context_path_patterns": ["apps/time-service/REMINDERS_SPEC.md"],
         "write_path_patterns": [WRITE],

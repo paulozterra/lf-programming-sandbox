@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0050",
+  "title": "CP2.4: preflight en base Git y límites de contexto expandidos",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: CP2.4 después de ex8b cifrado PASS"
+  },
+  "reason": "Cambiar preflight de index/working tree de control al base_head_sha inmutable de tarea. Exigir commit ancestro de main; ls-tree para existencia y patrones Worker, cat-file -s y git show para blob exacto; contabilizar archivos reales con límite 32 y bytes 240 KB. Conservar techo 6 escrituras y códigos de bloqueo. Históricos ex6/ex7/ex8 exentos en native_run, y registros históricos sin cambios.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/lot_preflight.py",
+      "pilot/worker_v08/native_run.py",
+      "pilot/worker_v08/register_task_context.py",
+      "pilot/worker_v08/test_lot_preflight.py",
+      "pilot/worker_v08/test_register_task_context.py",
+      "standards/changes/CHG-0050.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
