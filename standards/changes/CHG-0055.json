@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0055",
   "title": "F1: readbacks SBX Login con doble referencia y host A1-A5 offline",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo 2026-11-11: F1 opción A, doble referencia simulada sin alterar A1-A5"
