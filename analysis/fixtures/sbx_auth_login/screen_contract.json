@@ -1,0 +1,104 @@
+{
+  "imitates": "lf_ops.fn_screen_contract_v1",
+  "schema_version": "SBX_SCREEN_CONTRACT_FIXTURE_V1",
+  "target_ref": "SBX-AUTH-LOGIN",
+  "screen_status": "VIGENTE",
+  "contract_version": "SBX-v1",
+  "contract": {
+    "fields": [
+      {
+        "field_code": "SBX-F-USER",
+        "status": "VIGENTE",
+        "required": true
+      },
+      {
+        "field_code": "SBX-F-PASS",
+        "status": "VIGENTE",
+        "required": true
+      }
+    ],
+    "errors": [
+      {
+        "error_code": "SBX-E-GENERIC",
+        "status": "VIGENTE",
+        "generic": true
+      }
+    ],
+    "visual": {
+      "variants": [
+        {
+          "code": "SBX-V-DESKTOP",
+          "status": "VIGENTE"
+        }
+      ]
+    },
+    "context": {
+      "module_code": "SBX-M-AUTH"
+    },
+    "metadata": {
+      "screen_code": "SBX-AUTH-LOGIN"
+    },
+    "profiles": [],
+    "analytics": [],
+    "evidence": [],
+    "rules": [
+      {
+        "code": "SBX-R-USER",
+        "title": "Usuario obligatorio",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/1",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/1"
+      },
+      {
+        "code": "SBX-R-PASS",
+        "title": "Contraseña obligatoria",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/2",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/2"
+      },
+      {
+        "code": "SBX-R-LOCK",
+        "title": "Bloquear tras 5 fallos durante 15 minutos",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/3",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/3"
+      },
+      {
+        "code": "SBX-R-HASH",
+        "title": "Contraseña BCrypt",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/4",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/4"
+      },
+      {
+        "code": "SBX-R-ERR",
+        "title": "Error genérico y sesión de 30 minutos",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/5",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/5"
+      },
+      {
+        "code": "SBX-R-PENDING",
+        "title": "Verificación biométrica opcional",
+        "status": "VIGENTE",
+        "pending_decision": true,
+        "source_ref": "supabase://lf_ops.reglas/6",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/6"
+      },
+      {
+        "code": "SBX-R-CAND",
+        "title": "Recordar sesión en navegador",
+        "status": "CANDIDATO",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/7",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/7"
+      }
+    ],
+    "policies": []
+  }
+}
