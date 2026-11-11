@@ -1,0 +1,45 @@
+{
+  "schema_version": "CP33_SIMULATED_INPUTS_V1",
+  "simulation_only": true,
+  "project_ref": "lf_java",
+  "target_binding": {
+    "repo_full_name": "paulozterra/lf-programming-sandbox",
+    "base_head_sha": "d7ab063c1c4d72c4d0543e23fa39ed163f70e1a7",
+    "target_binding_ref": "fixture://p4-prioridad/main-pinned"
+  },
+  "profile_choices": {
+    "DATA": "PERFIL-PROG-DATA-EXP",
+    "BACKEND": "PERFIL-PROG-BACKEND-SPRING-EXP"
+  },
+  "atoms": [
+    {
+      "atom_id": "ATOM-P4-DATA",
+      "scope_id": "SCOPE-P4-DATA",
+      "front_id": "A7-FRONT-P4-DATA",
+      "area": "DATA",
+      "paths": [
+        "db/migration/V1__reminders_priority.sql"
+      ],
+      "depends_on": [],
+      "outcome_id": "OUTCOME-P4-DATA",
+      "business_outcome": "Crear estructura SQL de recordatorios y prioridad con CHECK y DEFAULT MEDIUM"
+    },
+    {
+      "atom_id": "ATOM-P4-BACKEND",
+      "scope_id": "SCOPE-P4-BACKEND",
+      "front_id": "A7-FRONT-P4-BACKEND",
+      "area": "BACKEND",
+      "paths": [
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+      ],
+      "depends_on": [
+        "ATOM-P4-DATA"
+      ],
+      "outcome_id": "OUTCOME-P4-BACKEND",
+      "business_outcome": "API de prioridad de recordatorios con edición, respuestas, filtros priority y q y errores 400"
+    }
+  ]
+}
