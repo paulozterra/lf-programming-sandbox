@@ -16,6 +16,7 @@
       "pilot/orchestrator/native_lot_binding.py",
       "pilot/orchestrator/test_native_lot_binding.py",
       "pilot/orchestrator/native_lot_registration.py",
+      "pilot/orchestrator/test_native_lot_registration.py",
       "pilot/orchestrator/CP3_4.md",
       "standards/changes/CHG-0057.json",
       ".github/workflows/ci.yml",
