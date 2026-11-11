@@ -1,0 +1,143 @@
+{
+  "schema_version": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+  "candidate_only": true,
+  "analysis_mode": "SIMULATED_ANALYSIS",
+  "request_sha256": "4213ab035c4f679fe0e9d02b3959dc0b6d63a5bfb301a1d16ed224c35f84447c",
+  "request_context": {
+    "intent": "Permitir una nota opcional en cada recordatorio, sin alterar fecha/hora ni título.",
+    "target_ref": "fixture://reminders/notes"
+  },
+  "classification": {
+    "target_granularity": "API",
+    "depth": "L2",
+    "authority_state": "UNKNOWN",
+    "implementation_state": "NEW"
+  },
+  "stage_trace": [
+    {
+      "stage": "A1",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    },
+    {
+      "stage": "A2",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    },
+    {
+      "stage": "A3",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    },
+    {
+      "stage": "A4",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    },
+    {
+      "stage": "A5",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    },
+    {
+      "stage": "A6",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    },
+    {
+      "stage": "A7",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    },
+    {
+      "stage": "A8",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    },
+    {
+      "stage": "A9",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    }
+  ],
+  "material_unknowns": [],
+  "decisions_pending": [],
+  "requirements": [
+    {
+      "requirement_id": "REQ-NOTE-001",
+      "scope_id": "SCOPE-REMINDER-NOTE",
+      "outcome": "Guardar una nota opcional junto al recordatorio.",
+      "acceptance_signal": "La API acepta y devuelve la nota suministrada.",
+      "evidence_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    },
+    {
+      "requirement_id": "REQ-NOTE-002",
+      "scope_id": "SCOPE-REMINDER-NOTE",
+      "outcome": "No cambiar texto ni hora de un recordatorio al guardar su nota.",
+      "acceptance_signal": "Texto y hora se preservan al modificar la nota.",
+      "evidence_refs": [
+        "fixture://cp3-2/sample-request"
+      ]
+    }
+  ],
+  "material_fronts": [
+    {
+      "front_id": "A7-FRONT-NOTE",
+      "scope_ids": [
+        "SCOPE-REMINDER-NOTE"
+      ],
+      "obligation_mode": "REQUIRED",
+      "closure": "BLOCKED",
+      "blockers": [
+        "FIXTURE_UNATTESTED"
+      ],
+      "evidence_refs": [
+        "fixture://cp3-2/sample-request"
+      ],
+      "reason": "Frente ficticio A7 para probar la entrada; evidencia no verificada."
+    }
+  ],
+  "scope_proposals": [
+    {
+      "scope_id": "SCOPE-REMINDER-NOTE",
+      "readiness_candidate": "BLOCKED",
+      "material_front_refs": [
+        "A7-FRONT-NOTE"
+      ],
+      "blockers": [
+        "FIXTURE_UNATTESTED"
+      ]
+    }
+  ],
+  "research_stop": {
+    "decision": "BLOCKED",
+    "decision_stable": false,
+    "all_material_fronts_accounted": true,
+    "unresolved_decision_changing_questions": []
+  },
+  "package_readiness_candidate": "BLOCKED",
+  "production_authority": false,
+  "handoff_allowed": false,
+  "downstream_authorized": false,
+  "pg01_consumer_verified": false
+}
