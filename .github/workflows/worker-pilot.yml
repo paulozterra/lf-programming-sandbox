@@ -112,7 +112,8 @@ jobs:
           done
           env -i PATH="$isolated_path" node --version | grep -Eq '^v22\.'
           env -i PATH="$isolated_path" npm --version
-          env -i PATH="$isolated_path" java -version 2>&1 | grep -E 'version "21'
+          # Java 21 is configured later only for tasks that require it.
+          env -i PATH="$isolated_path" java -version 2>&1 | grep -E 'version "'
           env -i PATH="$isolated_path" pg_isready -h 127.0.0.1 -p 5432 -U pilot -d pilot
           # Worker command environment keeps only SAFE_ENV_KEYS (not PGPASSWORD).
           # URL is intentionally local and disposable, never a production secret.
