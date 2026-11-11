@@ -277,6 +277,13 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         block("HISTORICAL_TASK_IMMUTABLE")
     if budget <= 0 or budget > 2_000_000:
         block("CONTEXT_BUDGET_INVALID")
+    # Preserve the historical security failure code before generic lot
+    # classification/mismatch (generated context is NEVER a write target).
+    proposed = task.get("task_spec", task)
+    if isinstance(proposed, dict) and any(
+            isinstance(p, str) and p.startswith(".lf/worker-context/")
+            for p in proposed.get("write_path_patterns", [])):
+        block("CONTEXT_WRITE_SCOPE_OVERLAP")
     selected = select_area(lot_paths, area)
     spec_input = task.get("task_spec", task)
     if not isinstance(spec_input, dict):
