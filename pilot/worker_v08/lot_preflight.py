@@ -120,13 +120,13 @@ def base_tree(root: Path, base: str) -> dict[str, tuple[str, str]]:
                         base, main], check=True, capture_output=True, timeout=30)
     except (subprocess.CalledProcessError, OSError, subprocess.TimeoutExpired):
         blocked("LOTE_BASE_INVALIDA")
-    records = _git_bytes(root, "ls-tree", "-rz", "--full-tree", base).split(b"\\0")
+    records = _git_bytes(root, "ls-tree", "-rz", "--full-tree", base).split(b"\0")
     entries = {}
     for row in records:
         if not row:
             continue
         try:
-            metadata, raw_path = row.split(b"\\t", 1)
+            metadata, raw_path = row.split(b"\t", 1)
             mode, kind, oid = metadata.decode("ascii").split(" ")
             path = raw_path.decode("utf-8")
         except (ValueError, UnicodeDecodeError):
