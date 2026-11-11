@@ -70,6 +70,11 @@ class FixtureHost:
         data = {}
         self.provenance = {}
         for entry in entries:
+            if (not isinstance(entry, dict)
+                    or not isinstance(entry.get("file"), str)
+                    or not isinstance(entry.get("sha256"), str)
+                    or len(entry["sha256"]) != 64):
+                block("SBX_SOURCE_PIN_INVALID")
             name = entry["file"]
             path = self.root / name
             if not path.is_file():
@@ -93,6 +98,10 @@ class FixtureHost:
         effective, policies = data["effective_rules.json"], data["policies.json"]
         if screen.get("target_ref") != TARGET or screen.get("screen_status") != "VIGENTE":
             block("SBX_SCREEN_IDENTITY_INVALID")
+        if (screen.get("schema_version") != "SBX_SCREEN_CONTRACT_FIXTURE_V1"
+                or not isinstance(screen.get("contract_version"), str)
+                or not screen["contract_version"]):
+            block("SBX_SCREEN_CONTRACT_INCOMPLETE")
         sections = screen.get("contract")
         names = {"fields", "errors", "visual", "context", "metadata",
                  "profiles", "analytics", "evidence", "rules", "policies"}
@@ -118,14 +127,25 @@ class FixtureHost:
             if code not in cfg or "valor_config" not in cfg[code]:
                 block("SBX_VIGENTE_VALOR_CONFIG_MISSING:" + str(code))
         links = effective.get("rules")
-        if not isinstance(links, list) or not links:
+        if (effective.get("schema_version") != "LF_EFFECTIVE_RULE_LINKS_FIXTURE_V1"
+                or type(effective.get("screen_id")) is not int
+                or effective["screen_id"] < 1
+                or effective.get("consumer") != "INPUT_GOVERNANCE"
+                or not isinstance(links, list) or not links):
             block("SBX_EFFECTIVE_RULES_INCOMPLETE")
         for row in links:
             if not isinstance(row, dict) or "config" not in row:
                 block("SBX_EFFECTIVE_VALOR_CONFIG_MISSING")
-        if not isinstance(policies.get("policy_links"), list) or not isinstance(policies.get("policy_objects"), list):
+        if (policies.get("schema_version") != "LF_SCREEN_POLICIES_READBACK_V1"
+                or not isinstance(policies.get("policy_links"), list)
+                or not isinstance(policies.get("policy_objects"), list)):
             block("SBX_POLICY_BACKUP_MISSING")
-        if not isinstance(data["inventory.json"].get("objects"), list):
+        if (data["inventory.json"].get("schema_version") != "A4_EXISTING_IMPACT_CORE_READBACK_V1"
+                or data["inventory.json"].get("target_ref") != TARGET
+                or data["inventory.json"].get("source_attested") is not False
+                or not isinstance(data["inventory.json"].get("objects"), list)
+                or not isinstance(data["inventory.json"].get("impacts"), list)
+                or not isinstance(data["inventory.json"].get("dependencies"), list)):
             block("SBX_INVENTORY_READBACK_INCOMPLETE")
         for name,field in (("elements.json","elements"),("states.json","states"),
                            ("variants.json","variants"),("relations.json","relations"),
