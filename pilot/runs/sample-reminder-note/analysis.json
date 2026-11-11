@@ -10,7 +10,7 @@
   "classification": {
     "target_granularity": "API",
     "depth": "L2",
-    "authority_state": "UNKNOWN",
+    "authority_state": "NEW",
     "implementation_state": "NEW"
   },
   "stage_trace": [
@@ -107,35 +107,31 @@
         "SCOPE-REMINDER-NOTE"
       ],
       "obligation_mode": "REQUIRED",
-      "closure": "BLOCKED",
-      "blockers": [
-        "FIXTURE_UNATTESTED"
-      ],
+      "closure": "CLOSED",
+      "blockers": [],
       "evidence_refs": [
         "fixture://cp3-2/sample-request"
       ],
-      "reason": "Frente ficticio A7 para probar la entrada; evidencia no verificada."
+      "reason": "Solo fixture simulado de A7; candidato de cobertura sin atestación ni permiso de ejecución."
     }
   ],
   "scope_proposals": [
     {
       "scope_id": "SCOPE-REMINDER-NOTE",
-      "readiness_candidate": "BLOCKED",
+      "readiness_candidate": "READY_CANDIDATE",
       "material_front_refs": [
         "A7-FRONT-NOTE"
       ],
-      "blockers": [
-        "FIXTURE_UNATTESTED"
-      ]
+      "blockers": []
     }
   ],
   "research_stop": {
-    "decision": "BLOCKED",
-    "decision_stable": false,
+    "decision": "STOP",
+    "decision_stable": true,
     "all_material_fronts_accounted": true,
     "unresolved_decision_changing_questions": []
   },
-  "package_readiness_candidate": "BLOCKED",
+  "package_readiness_candidate": "READY_CANDIDATE",
   "production_authority": false,
   "handoff_allowed": false,
   "downstream_authorized": false,
