@@ -136,6 +136,10 @@ def first_parent_merges() -> list[tuple[str, dict, set[str]]]:
         match = MERGE_MESSAGE.fullmatch(message)
         if not match:
             continue
+        # Avoid unaudited broad PR scans and unnecessary GitHub API calls.
+        body = run("git", "log", "-1", "--format=%B", sha)
+        if "[CP3.5]" not in body or "Verified native" not in body:
+            continue
         pr = api(f"pulls/{int(match.group(1))}")
         if pr.get("head", {}).get("ref", "").startswith("lf/native-integration/"):
             parents = run("git", "rev-list", "--parents", "-n", "1", sha).split()
