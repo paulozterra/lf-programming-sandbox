@@ -32,7 +32,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/83"
   },
   "decision_ref": "PR de corrección del Train: fusionar únicamente con CI completo PASS y behind_by=0 porque toca pilot/sandbox_train.py; Paulo relanza #81 por workflow_dispatch de main después. No editar ni relanzar #81 aquí, no activar CP0.3."
 }
