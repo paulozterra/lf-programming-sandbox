@@ -71,12 +71,22 @@ def event_kind(event_run_id: int, head: str) -> str:
     path = (event.get("path") or "").split("@")[0]
     if (event.get("id") != event_run_id or event.get("status") != "completed"
             or event.get("run_attempt") != 1 or
-            event.get("repository", {}).get("full_name") != REPO
-            or event.get("head_branch") != "main"):
+            event.get("repository", {}).get("full_name") != REPO):
         deny("SOURCE_WORKFLOW_UNTRUSTED")
+    # The Train is triggered by pull_request:labeled, so the source
+    # workflow's head_branch is the PR branch, NOT main. We verify the
+    # resulting merge on current main independently below.
     if path == TRAIN and event.get("conclusion") == "success":
+        if event.get("event") not in ("pull_request", "workflow_dispatch"):
+            deny("TRAIN_SOURCE_EVENT_INVALID")
+        if (event.get("event") == "workflow_dispatch"
+                and event.get("head_branch") != "main"):
+            deny("TRAIN_SOURCE_BRANCH_INVALID")
         return "TRAIN"
-    if path == NATIVE and event.get("conclusion") == "failure":
+    # Native Worker always checks out trusted main; fail closed on drift.
+    if (path == NATIVE and event.get("conclusion") == "failure"
+            and event.get("head_branch") == "main"
+            and event.get("event") in ("workflow_run", "workflow_dispatch")):
         return "NATIVE_FAIL"
     return "IRRELEVANT"
 
