@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0040",
+  "title": "CP0.2 B: humo de recuperación por conflicto exclusivo CAMBIOS",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-10: CP0.2 humo real de dos PRs simultáneos, el primero con reparación NUL del Train"
+  },
+  "reason": "Segundo PR trivial del mismo main y abierto en paralelo con el primer PR. Tras la fusión de A su CHG y el render CAMBIOS provocan un conflicto aislado. El Train debe fusionar main local, regenerar CAMBIOS, verificar C9, hacer push y despachar seis checks CI del HEAD nuevo.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "evidence/cp02/TWO_PR_SMOKE_B.md",
+      "standards/changes/CHG-0040.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/81"
+  },
+  "decision_ref": "CP0.2 únicamente. Dos PRs abiertos al mismo tiempo sobre main 2290a222; Paulo añade ready-to-merge primero en A y después en B, fallback workflow_dispatch en main si evento labeled no corre; verificar HEAD, 6 checks, merge SHA y recibo."
+}
