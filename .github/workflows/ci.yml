@@ -78,6 +78,7 @@ jobs:
         run: |
           python3 -m unittest discover -s pilot -p 'test_sandbox_train_policy.py' -v
           python3 -m unittest discover -s pilot -p 'test_sandbox_train_merge.py' -v
+          python3 -m unittest discover -s pilot -p 'test_sandbox_train_recovery.py' -v
       - run: python3 standards/tools/changes.py validate
       - run: python3 standards/tools/changes.py render --check
       - name: "Circuito C9: clasificación y versiones (solo PR)"
