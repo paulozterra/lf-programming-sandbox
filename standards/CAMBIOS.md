@@ -57,3 +57,4 @@
 | CHG-0053 | EDITORIAL | Análisis F0: contratos canónicos fijados y suites offline |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/94 |
 | CHG-0054 | ADDITIVE | CP3.3: división y asignación de lotes con productores PG02-PG05 fijados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/95 |
 | CHG-0057 | ADDITIVE | CP3.4: enlace de perfiles selector→nativo y registro/exportación por lote |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/99 |
+| CHG-0058 | ADDITIVE | CP3.5: integrar parche nativo PASS en PR draft y automatizar preparación CP3.4 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/100 |
