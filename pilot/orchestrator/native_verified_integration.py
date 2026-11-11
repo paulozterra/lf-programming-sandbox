@@ -260,10 +260,14 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     command(["git", "add", "--", str(chg.relative_to(root)), "standards/CAMBIOS.md"], cwd=root)
     command(["python3", "standards/tools/changes.py", "render", "--check"], cwd=root)
     command(["python3", "standards/tools/changes.py", "check", "--base", "origin/main"], cwd=root)
+    # Fail if main advanced while preparing this draft (no automatic rebase).
+    current_remote = command(["git", "ls-remote", "origin", "refs/heads/main"],
+                             cwd=root).decode().split()[0]
+    if current_remote != main:
+        block("MAIN_MOVED_BEFORE_PUBLICATION")
     command(["git", "switch", "-c", branch], cwd=root)
     command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] verified native patch {task} run {run_id}"],
             cwd=root)
-    new_head = command(["git", "rev-parse", "HEAD"], cwd=root).decode().strip()
     command(["git", "push", "--set-upstream", "origin", branch], cwd=root)
     body = (f"CP3.5: PASS verificado por workflow nativo confiable.\n\n"
             f"- Task: \`{task}\` · run: {run_id} · base: \`{base}\`\n"
@@ -284,7 +288,12 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     command(["git", "add", "--", str(chg.relative_to(root)), "standards/CAMBIOS.md"], cwd=root)
     command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] record PR evidence"], cwd=root)
     command(["git", "push", "origin", branch], cwd=root)
-    return {"pr_url": url, "branch": branch, "head_sha": new_head,
+    final_head = command(["git", "rev-parse", "HEAD"], cwd=root).decode().strip()
+    # GITHUB_TOKEN-created PR events do not reliably start CI. Dispatch exactly
+    # once, by the final HEAD branch; the Train verifies exact HEAD checks.
+    command(["gh", "workflow", "run", "ci.yml", "--repo", REPOSITORY,
+             "--ref", branch], cwd=root)
+    return {"pr_url": url, "branch": branch, "head_sha": final_head,
             "run_id": run_id, "patch_sha256": patch_hash, "files_sha256": changed,
             "merge_authorized": False}
 
