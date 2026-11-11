@@ -198,6 +198,11 @@ jobs:
           python3 -m pytest -q pilot/worker_v08/test_native_run.py
           python3 -m pytest -q pilot/worker_v08/test_holdout_age.py
 
+      - name: CP3.4 profile mapping, real paths and two-lot simulated handoff (NO MODEL)
+        run: |
+          python3 -m py_compile pilot/orchestrator/native_lot_binding.py pilot/orchestrator/native_lot_registration.py
+          python3 -m pytest -q pilot/orchestrator/test_native_lot_binding.py -p no:cacheprovider
+
       - name: Offline ex5c deterministic derivation adversarial tests (pytest; NO MODEL)
         run: python3 -m pytest -q pilot/worker_v08/test_derive_context.py
 
