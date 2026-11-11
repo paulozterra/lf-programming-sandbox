@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0054",
+  "title": "F1 Análisis: host offline y fuentes SBX de pantalla Login ficticia",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 aprobó F1 opción A: doble referencia simulada y fixture:// sha256 sin cambios A1-A5"
+  },
+  "reason": "Introduce host y fixtures simuladas para ejecutar A1-A5 offline con compatibilidad de referencias canónicas de identidad, procedencia SHA-256 separada y ninguna autoridad. Incluye cinco trampas, casos negativos y pruebas de determinismo. No toca productores A1-A5, vendor, intake o CP3.2.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/fixtures/sbx_auth_login/",
+      "analysis/host/fixture_readback_host.py",
+      "analysis/host/run_a1_a5_fixture.py",
+      "analysis/host/test_fixture_readback_host.py",
+      ".github/workflows/analysis-f0.yml",
+      "standards/changes/CHG-0054.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
