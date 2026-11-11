@@ -141,6 +141,42 @@ def register_lot(root: Path, folder: Path, lot: dict, mapped: dict,
             "production_authority": False}
 
 
+def seal_lot(root: Path, folder: Path, lot: dict, mapped: dict,
+             paths: list[str], task_name: str, template: dict, holdout: dict) -> dict:
+    """After committing generated context, pin the native task to that commit.
+
+    This deliberately precedes any export. The seal itself must be committed
+    before export so the Worker sees exactly the intended task and context.
+    """
+    sha, ref = verify_holdout(root, task_name, holdout)
+    task_file = WORKER / "native_tasks" / (task_name + ".json")
+    record = load(WORKER / "native_tasks", task_name + ".json")
+    spec = record.get("task_spec")
+    if (not isinstance(spec, dict) or record.get("holdout_sha256") != sha
+            or record.get("holdout_ref") != ref
+            or sorted(spec.get("write_path_patterns", [])) != paths):
+        blocked("CP34_NATIVE_REGISTRATION_DRIFT")
+    if git(root, "status", "--porcelain"):
+        blocked("CP34_WORKTREE_NOT_CLEAN")
+    head = git(root, "rev-parse", "HEAD")
+    old = spec.get("base_head_sha")
+    if old == head or not SHA40.fullmatch(old or ""):
+        blocked("CP34_SEAL_BASE_INVALID")
+    if git(root, "merge-base", "--is-ancestor", old, head):
+        # Success of merge-base has empty stdout. A failing command is
+        # handled by git() and therefore fails closed.
+        pass
+    for name in ("profile.md", "skills.md", "receipt.json"):
+        git(root, "cat-file", "-e", f"{head}:.lf/worker-context/{task_name}/{name}")
+    sealed = dict(spec, base_head_sha=head)
+    # The existing register_task_context controls the registration's shape.
+    payload = native_registration_bytes(sealed, sha, ref, task_name)
+    task_file.write_bytes(payload)
+    return {"status": "SEALED_NEEDS_COMMIT", "base_head_sha": head,
+            "native_task": task_file.relative_to(root).as_posix(),
+            "production_authority": False}
+
+
 def export_lot(root: Path, folder: Path, lot: dict, mapped: dict,
                paths: list[str], task_name: str, template: dict, holdout: dict) -> dict:
     sha, ref = verify_holdout(root, task_name, holdout)
@@ -166,7 +202,13 @@ def export_lot(root: Path, folder: Path, lot: dict, mapped: dict,
     pack_path = pack_dir / (task_name + ".task-pack.json")
     if pack_path.exists() or pack_path.is_symlink():
         blocked("CP34_PACK_EXISTS")
-    pack_hash = export(root, WORKER / "native_tasks" / (task_name + ".json"), pack_path)
+    # export_task_pack consumes the raw WorkerTaskSpec, not its wrapper.
+    # Temporary specs never enter the git repository or the proposal pack.
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="cp34-task-") as tmp:
+        raw_spec = Path(tmp) / "task.json"
+        raw_spec.write_bytes(canonical(spec))
+        pack_hash = export(root, raw_spec, pack_path)
     request = {"schema_version": "CP34_NATIVE_PROPOSAL_REQUEST_V1",
                "status": "PROPOSAL_REQUEST_ONLY",
                "task_name": task_name, "lot_id": lot["id"],
@@ -193,7 +235,7 @@ def main() -> int:
     ap.add_argument("--template", type=Path, required=True)
     ap.add_argument("--holdout-metadata", type=Path, required=True)
     ap.add_argument("--verified-predecessor", action="append", default=[])
-    ap.add_argument("--phase", choices=("register", "export"), required=True)
+    ap.add_argument("--phase", choices=("register", "seal", "export"), required=True)
     args = ap.parse_args()
     try:
         folder, lot, mapped, paths = choose(
@@ -203,6 +245,9 @@ def main() -> int:
         if args.phase == "register":
             result = register_lot(args.root, folder, lot, mapped, paths,
                                   args.task_name, template, metadata)
+        elif args.phase == "seal":
+            result = seal_lot(args.root, folder, lot, mapped, paths,
+                              args.task_name, template, metadata)
         else:
             result = export_lot(args.root, folder, lot, mapped, paths,
                                 args.task_name, template, metadata)
