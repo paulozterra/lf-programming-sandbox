@@ -1,0 +1,82 @@
+{
+  "imitates": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas",
+  "simulated": true,
+  "data": [
+    {
+      "code": "SBX-REQ-CREDENTIALS",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "title": "Usuario y contraseña obligatorios",
+      "config": {
+        "user_required": true,
+        "password_required": true
+      },
+      "id": 9011
+    },
+    {
+      "code": "SBX-REQ-LOCK",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "title": "Bloqueo tras cinco fallos por quince minutos",
+      "config": {
+        "attempts": 5,
+        "lock_minutes": 15,
+        "security_policy_id": 77
+      },
+      "id": 9012
+    },
+    {
+      "code": "SBX-REQ-BCRYPT",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "title": "Hash BCrypt de contraseñas",
+      "config": {
+        "password_hash": "BCrypt"
+      },
+      "id": 9013
+    },
+    {
+      "code": "SBX-REQ-GENERIC",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "title": "Error genérico sin revelar existencia de usuario",
+      "config": {
+        "generic_error": true
+      },
+      "id": 9014
+    },
+    {
+      "code": "SBX-REQ-SESSION",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "title": "Sesión expira en treinta minutos",
+      "config": {
+        "expiry_minutes": 30
+      },
+      "id": 9015
+    },
+    {
+      "code": "SBX-REQ-PENDING",
+      "status": "VIGENTE",
+      "pending_decision": true,
+      "title": "Dispositivo recordado pendiente",
+      "config": {
+        "remember_device": true
+      },
+      "id": 9016
+    },
+    {
+      "code": "SBX-REQ-CANDIDATE",
+      "status": "CANDIDATO",
+      "pending_decision": false,
+      "title": "Acceso por gesto experimental con alertas",
+      "alerts": [
+        "SBX-ALERT-UNREVIEWED"
+      ],
+      "config": {
+        "gesture_login": true
+      },
+      "id": 9017
+    }
+  ]
+}
