@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0053",
   "title": "Análisis F0: contratos canónicos fijados y suites offline",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo 2026-11-11: commit fuente 20968c79a83b2df182d9fd873c8aa0c6b8b832d4; F0 plan de Análisis v2"
