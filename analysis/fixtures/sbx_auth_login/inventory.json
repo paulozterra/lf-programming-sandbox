@@ -1,0 +1,14 @@
+{
+  "fixture_schema": "SBX_SOURCE_READBACK_V1",
+  "simulated": true,
+  "source_attested": false,
+  "authority_verified": false,
+  "imitates": "inventory.objects + inventory.fn_impact_analysis_v1 + inventory.fn_dependencies_v1",
+  "payload": {
+    "objects": [],
+    "impact_rows": [],
+    "dependency_rows": [],
+    "status": "IMPACT_UNKNOWN",
+    "simulated": true
+  }
+}
