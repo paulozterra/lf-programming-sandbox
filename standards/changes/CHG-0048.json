@@ -13,15 +13,16 @@
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/worker-native.yml",
+      "pilot/holdouts/recipient.txt",
       "pilot/holdouts/recipient.txt.example",
       "pilot/worker_v08/holdout_age.py",
-      "pilot/worker_v08/register_task_context.py",
       "pilot/worker_v08/native_run.py",
+      "pilot/worker_v08/register_task_context.py",
       "pilot/worker_v08/test_holdout_age.py",
-      ".github/workflows/worker-native.yml",
-      ".github/workflows/ci.yml",
-      "standards/changes/CHG-0048.json",
-      "standards/CAMBIOS.md"
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0048.json"
     ]
   },
   "existing_code_impact": {
