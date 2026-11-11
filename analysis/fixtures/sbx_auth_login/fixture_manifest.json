@@ -1,0 +1,58 @@
+{
+  "schema_version": "SBX_FIXTURE_MANIFEST_V1",
+  "simulated": true,
+  "files": {
+    "screen_contract.json": {
+      "sha256": "02aa2a720f7b2f4a8c553d1af4cfcc10ccd2118f8bbab168fb906bd1a7768353",
+      "imitates": "lf_ops.fn_screen_contract_v1"
+    },
+    "direct_rules.json": {
+      "sha256": "7afcc8b97889c0faaea1b1269578c2e05f47044efb95e11e6685982abf1353eb",
+      "imitates": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas"
+    },
+    "effective_rules.json": {
+      "sha256": "a6260ba98a28613dd0b2adba10596975a67e5219b775efc2cfb7afadb1264416",
+      "imitates": "programacion.fn_input_effective_rule_links_v1"
+    },
+    "policies.json": {
+      "sha256": "428e6239a9e7c3ae990238e67a27e7191126e86b3a8ca713d848fe30954061da",
+      "imitates": "lf_ops.pantallas_politicas + lf_ops.politicas_* (fallback)"
+    },
+    "elements.json": {
+      "sha256": "28a3bb1199dcd1566e8ad135789316c9f8d76b53fc2ab1ff9c3c9e2bec06f124",
+      "imitates": "lf_ops.pantalla_elementos"
+    },
+    "states.json": {
+      "sha256": "33dd1652824af5df78e4c23e4216b9227f65a38249d53b114ce7e969fabf90b1",
+      "imitates": "lf_ops.pantallas_estados"
+    },
+    "variants.json": {
+      "sha256": "12eacc789a7906988792e5f409b918be2e5acf2547d665576326953e066554e5",
+      "imitates": "lf_ops.pantalla_variantes"
+    },
+    "relations.json": {
+      "sha256": "5f9743d46217c5c65a695b7e872195166fbfab1a5478172fe70e6a9e2cc54c2e",
+      "imitates": "lf_ops.relaciones_b2b"
+    },
+    "inventory.json": {
+      "sha256": "50f514949673510a8fa54435ec4a226486350dbc380330729a8afd83abac1e1e",
+      "imitates": "inventory.objects + inventory.fn_impact_analysis_v1 + inventory.fn_dependencies_v1"
+    },
+    "ekb.json": {
+      "sha256": "56960fbc0f0b30f96c89323fa3170edd8d6d7f0325da9eb200e4aa07397cb168",
+      "imitates": "EKB architecture reference source"
+    },
+    "adr.json": {
+      "sha256": "4a5533e5bdcb089fc283a62f854b6ffa091e119cf5394958afef7de2862ee9b7",
+      "imitates": "transversal.decision_log + engineering current ADR assertion"
+    },
+    "decision_asof.json": {
+      "sha256": "c792b4ef11c44e2314b736d327025d5777e842511ee8b2b83c5fae6ec5274c6b",
+      "imitates": "public.fn_lf_decision_context_asof_resolve_v1"
+    },
+    "semantic_signals.json": {
+      "sha256": "8947d145e523ce9de6a51ceb9e345dd837fcb8b5fa7519b792c9ccd9a12aefae",
+      "imitates": "A1/A2 external semantic source typed input (fixture, not interpreter)"
+    }
+  }
+}
