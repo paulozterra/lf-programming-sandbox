@@ -60,3 +60,4 @@
 | CHG-0058 | ADDITIVE | CP3.5: integrar parche nativo PASS en PR draft y automatizar preparación CP3.4 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/100 |
 | CHG-0059 | ADDITIVE | CP3.6: encadenamiento por merge Train y bloqueo a tres intentos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/101 |
 | CHG-0060 | ADDITIVE | CP3.7: evidencia PG-06 a PG-14 por lote y H_REPORT gobernado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/102 |
+| CHG-0062 | EDITORIAL | P4: exámenes ocultos cifrados, chequeos visibles y plantillas de tarea del pedido de prioridad |  | paulozterra |  |

@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/p4data.oracle.json.age",
+  "holdout_sha256": "317d37eaaf569b4d37a40f5d5664653be0d29cfe29ea8820cdf0ed92ccc43a12",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "pilot/runs/p4-prioridad/request.md"
+}

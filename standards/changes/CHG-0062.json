@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0062",
+  "title": "P4: exámenes ocultos cifrados, chequeos visibles y plantillas de tarea del pedido de prioridad",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 P4 pedido de prioridad"
+  },
+  "reason": "Claude agrega, derivados solo de pilot/runs/p4-prioridad/request.md: dos exámenes ocultos cifrados con age (p4data y p4be), sus metadatos (SHA del oráculo descifrado y referencia), los chequeos visibles de cada lote y las plantillas de tarea (base y snapshot se completan al preparar el lote con prepare_native_lot.py). Validados localmente con implementación de referencia y mutantes.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/visible-tests/p4be/run_visible.py",
+      "db/visible-tests/p4data/run_visible.py",
+      "pilot/holdouts/p4be.oracle.json.age",
+      "pilot/holdouts/p4data.oracle.json.age",
+      "pilot/runs/p4-prioridad/claude_meta/p4be.json",
+      "pilot/runs/p4-prioridad/claude_meta/p4data.json",
+      "pilot/runs/p4-prioridad/templates/p4be.task.json",
+      "pilot/runs/p4-prioridad/templates/p4data.task.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0062.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
