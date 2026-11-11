@@ -1,0 +1,29 @@
+{
+  "imitates": "lf_ops.pantallas_politicas + lf_ops.politicas_seguridad",
+  "simulated": true,
+  "data": {
+    "policy_objects": [
+      {
+        "table": "lf_ops.politicas_seguridad",
+        "primary_key": "security_policy_id",
+        "policy_id": 77,
+        "policy_code": "SBX-POL-LOCK",
+        "status": "VIGENTE",
+        "parameters": {
+          "attempts": 5,
+          "lock_minutes": 15
+        },
+        "read_origin": "DIRECT_CANONICAL_POLICY_LOOKUP"
+      }
+    ],
+    "policy_links": [
+      {
+        "association_id": 9077,
+        "reference_role": "security_policy_id",
+        "policy_target_ref": "supabase://lf_ops.politicas_seguridad/77",
+        "status": "VIGENTE",
+        "policy_kind": "seguridad"
+      }
+    ]
+  }
+}
