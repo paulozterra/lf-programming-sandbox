@@ -56,3 +56,4 @@
 | CHG-0052 | ADDITIVE | CP3.2: entrada de pedido y análisis simulado con PG-01 fixture |  | paulozterra |  |
 | CHG-0053 | EDITORIAL | Análisis F0: contratos canónicos fijados y suites offline |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/94 |
 | CHG-0055 | ADDITIVE | F1: readbacks SBX Login con doble referencia y host A1-A5 offline |  | paulozterra |  |
+| CHG-0054 | EDITORIAL | F1 Análisis: host offline y fuentes SBX de pantalla Login ficticia |  | paulozterra |  |
