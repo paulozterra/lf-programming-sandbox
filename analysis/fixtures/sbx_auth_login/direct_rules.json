@@ -1,0 +1,164 @@
+{
+  "fixture_schema": "SBX_SOURCE_READBACK_V1",
+  "simulated": true,
+  "source_attested": false,
+  "authority_verified": false,
+  "imitates": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas",
+  "payload": {
+    "target_ref": "SBX-AUTH-LOGIN",
+    "rules": [
+      {
+        "code": "SBX-RULE-CREDENTIALS",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "title": "SBX-RULE-CREDENTIALS",
+        "source_ref": "supabase://lf_ops.reglas/900001",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/900001",
+        "alerts": []
+      },
+      {
+        "code": "SBX-RULE-LOCKOUT",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "title": "SBX-RULE-LOCKOUT",
+        "source_ref": "supabase://lf_ops.reglas/900002",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/900002",
+        "alerts": []
+      },
+      {
+        "code": "SBX-RULE-BCRYPT",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "title": "SBX-RULE-BCRYPT",
+        "source_ref": "supabase://lf_ops.reglas/900003",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/900003",
+        "alerts": []
+      },
+      {
+        "code": "SBX-RULE-ERROR-GENERIC",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "title": "SBX-RULE-ERROR-GENERIC",
+        "source_ref": "supabase://lf_ops.reglas/900004",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/900004",
+        "alerts": []
+      },
+      {
+        "code": "SBX-RULE-SESSION",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "title": "SBX-RULE-SESSION",
+        "source_ref": "supabase://lf_ops.reglas/900005",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/900005",
+        "alerts": []
+      },
+      {
+        "code": "SBX-RULE-PENDING",
+        "status": "VIGENTE",
+        "pending_decision": true,
+        "title": "SBX-RULE-PENDING",
+        "source_ref": "supabase://lf_ops.reglas/900007",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/900007",
+        "alerts": []
+      },
+      {
+        "code": "SBX-RULE-ALERT",
+        "status": "CANDIDATO",
+        "pending_decision": false,
+        "title": "SBX-RULE-ALERT",
+        "source_ref": "supabase://lf_ops.reglas/900008",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/900008",
+        "alerts": [
+          "SBX-ALERT-NEEDS-REVIEW"
+        ]
+      }
+    ],
+    "rule_definitions": [
+      {
+        "code": "SBX-RULE-CREDENTIALS",
+        "id": 900001,
+        "config": {
+          "required_fields": [
+            "SBX-USERNAME",
+            "SBX-PASSWORD"
+          ]
+        },
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/900001",
+        "binding_source": "LEGACY_EXPLICIT"
+      },
+      {
+        "code": "SBX-RULE-LOCKOUT",
+        "id": 900002,
+        "config": {
+          "max_failed_attempts": 5,
+          "lockout_minutes": 15,
+          "security_policy_id": 900081
+        },
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/900002",
+        "binding_source": "LEGACY_EXPLICIT"
+      },
+      {
+        "code": "SBX-RULE-BCRYPT",
+        "id": 900003,
+        "config": {
+          "password_hash": "BCrypt"
+        },
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/900003",
+        "binding_source": "LEGACY_EXPLICIT"
+      },
+      {
+        "code": "SBX-RULE-ERROR-GENERIC",
+        "id": 900004,
+        "config": {
+          "reveal_user_exists": false
+        },
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/900004",
+        "binding_source": "LEGACY_EXPLICIT"
+      },
+      {
+        "code": "SBX-RULE-SESSION",
+        "id": 900005,
+        "config": {
+          "session_expires_minutes": 30
+        },
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/900005",
+        "binding_source": "LEGACY_EXPLICIT"
+      },
+      {
+        "code": "SBX-RULE-PENDING",
+        "id": 900007,
+        "config": {
+          "otp_required": true
+        },
+        "status": "VIGENTE",
+        "pending_decision": true,
+        "source_ref": "supabase://lf_ops.reglas/900007",
+        "binding_source": "LEGACY_EXPLICIT"
+      },
+      {
+        "code": "SBX-RULE-ALERT",
+        "id": 900008,
+        "config": {
+          "risk_alert": "SBX-alert-incomplete"
+        },
+        "status": "CANDIDATO",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/900008",
+        "binding_source": "LEGACY_EXPLICIT",
+        "alerts": [
+          "SBX-ALERT-NEEDS-REVIEW"
+        ]
+      }
+    ]
+  }
+}
