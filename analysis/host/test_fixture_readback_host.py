@@ -71,16 +71,18 @@ def test_tampered_sha(tmp_path):
     assert host.run(folder=d)["blocking_codes"] == ["SBX_FIXTURE_SHA256_MISMATCH:policies.json"]
 
 
-def test_vigente_without_valor_config(tmp_path):
+def test_vigente_without_valor_config(tmp_path, monkeypatch):
     d = folder(tmp_path)
     p = d / "effective_rules.json"
     value = json.loads(p.read_text(encoding="utf8"))
     value["payload"]["rules"][0]["config"] = {}
     p.write_text(json.dumps(value, ensure_ascii=False, indent=2)+"\n", encoding="utf8")
-    manifest = d / "fixture_manifest.json"
-    pins = json.loads(manifest.read_text(encoding="utf8"))
-    pins["files"]["effective_rules.json"]["sha256"] = hashlib.sha256(p.read_bytes()).hexdigest()
-    manifest.write_text(json.dumps(pins), encoding="utf8")
+    # Re-pin in a trusted TEST-ONLY manifest, then exercise semantic checks.
+    pins = json.loads(host.HASHES.read_text(encoding="utf8"))
+    pins["effective_rules.json"] = hashlib.sha256(p.read_bytes()).hexdigest()
+    trust = tmp_path / "trusted_pin_override.json"
+    trust.write_text(json.dumps(pins), encoding="utf8")
+    monkeypatch.setattr(host, "HASHES", trust)
     assert host.run(folder=d)["blocking_codes"] == [
         "SBX_VIGENTE_RULE_VALUE_CONFIG_MISSING:SBX-RULE-CREDENTIALS"]
 
