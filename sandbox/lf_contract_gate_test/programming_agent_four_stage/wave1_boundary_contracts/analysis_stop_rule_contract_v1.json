@@ -1,0 +1,50 @@
+{
+  "schema_version": "ANALYSIS_STOP_RULE_CONTRACT_V1",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "unit": "A8",
+  "input_contracts": [
+    "TARGETED_EVIDENCE_SET_V1",
+    "DECISION_CONTEXT",
+    "MATERIAL_FRONT_COVERAGE_V1"
+  ],
+  "output_contract": "ANALYSIS_STOP_RULE_V1",
+  "decision": {
+    "values": ["STOP","CONTINUE","REQUIRES_DECISION","BLOCKED"],
+    "stop_requires": [
+      "decision_stable=true",
+      "all_material_fronts_accounted=true",
+      "unresolved_decision_changing_questions[]=empty",
+      "additional_available_evidence_capable_of_changing_material_decision[]=empty"
+    ],
+    "fronts_accounted_does_not_require_all_fronts_closed": true,
+    "blocked_or_decision_required_fronts_may_remain_explicit": true,
+    "missing_material_front_forbids_stop": true,
+    "stable_decision_with_incomplete_front_coverage_forbids_stop": true,
+    "front_coverage_complete_with_unstable_decision_forbids_stop": true
+  },
+  "required_fields": [
+    "decision",
+    "decision_stable",
+    "material_front_coverage_ref",
+    "all_material_fronts_accounted",
+    "unresolved_decision_changing_questions[]",
+    "additional_available_evidence_capable_of_changing_material_decision[]",
+    "evidence_refs[]",
+    "reason"
+  ],
+  "continuation_policy": {
+    "continue_only_for_material_evidence": true,
+    "no_curiosity_search": true,
+    "no_duplicate_read": true,
+    "no_full_scan_without_material_trigger": true
+  },
+  "integration_boundary": {
+    "consumer_unit": "A9",
+    "programming_context_snapshot_field": "analysis_stop_rule",
+    "material_front_coverage_contract": "MATERIAL_FRONT_COVERAGE_V1",
+    "scope_readiness_policy_unchanged_in_this_microlot": true
+  },
+  "no_parallel_engine": true,
+  "runtime_activation": false,
+  "production_activation": false
+}
