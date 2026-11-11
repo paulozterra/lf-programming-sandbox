@@ -43,11 +43,11 @@
       "fixture://sbx_auth_login/semantic_signals.json"
     ],
     "depth_signals": {
-      "materiality_level": "LOW",
+      "materiality_level": "UNKNOWN",
       "scope_bounded": "TRUE",
-      "authority_state": "SUFFICIENT",
-      "reversibility_state": "DEMONSTRATED",
-      "currentness_decision": "CURRENT",
+      "authority_state": "UNKNOWN",
+      "reversibility_state": "UNKNOWN",
+      "currentness_decision": "UNKNOWN_FAIL_CLOSED",
       "material_contradiction": false,
       "known_cross_scope_impact": false,
       "unresolved_material_signal_count": 0,
