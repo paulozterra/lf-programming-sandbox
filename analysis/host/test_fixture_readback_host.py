@@ -24,6 +24,11 @@ def test_positive_full_chain():
     assert set(out["stages"]) == {"A1", "A2", "A3", "A4", "A5"}
     a3, a4, a5 = (out["stages"][k] for k in ("A3", "A4", "A5"))
     assert a5["status"] != "BLOCKED"
+    profiles = {r["rule_code"]: r for r in a5["rule_profiles"]["rules"]}
+    assert len(profiles) == 8
+    assert len([r for r in profiles.values() if r["implementation_scope"] == "APPROVED_SCOPE"]) == 6
+    assert profiles["SBX-RULE-PENDING"]["implementation_scope"] == "EXCLUDED_PENDING"
+    assert profiles["SBX-RULE-ALERT"]["implementation_scope"] == "EXCLUDED_PENDING"
     allowed = a3["policy_scope_clear_rule_candidates"]
     codes = {r["rule_code"] for r in allowed}
     assert codes == {"SBX-RULE-CREDENTIALS", "SBX-RULE-LOCKOUT", "SBX-RULE-BCRYPT",
