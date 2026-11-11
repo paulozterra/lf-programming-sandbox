@@ -1,0 +1,13 @@
+{
+  "fixture_schema": "SBX_SOURCE_READBACK_V1",
+  "simulated": true,
+  "source_attested": false,
+  "authority_verified": false,
+  "imitates": "public.fn_lf_decision_context_asof_resolve_v1",
+  "payload": {
+    "schema_version": "LF_DECISION_CONTEXT_ASOF_RESOLUTION_V1",
+    "state": "UNKNOWN",
+    "subject_ref": "SBX-AUTH-LOGIN",
+    "authority_current": false
+  }
+}
