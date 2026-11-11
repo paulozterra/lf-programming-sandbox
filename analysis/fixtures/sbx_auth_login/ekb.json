@@ -1,0 +1,11 @@
+{
+  "fixture_schema": "SBX_SOURCE_READBACK_V1",
+  "simulated": true,
+  "source_attested": false,
+  "authority_verified": false,
+  "imitates": "EKB architecture reference source",
+  "payload": {
+    "records": [],
+    "authority_current": false
+  }
+}
