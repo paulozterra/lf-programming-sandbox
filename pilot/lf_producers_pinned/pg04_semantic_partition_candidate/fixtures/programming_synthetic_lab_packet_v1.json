@@ -1,0 +1,207 @@
+{
+  "schema_version": "LF_PROGRAMMING_SYNTHETIC_LAB_PACKET_V1",
+  "simulation_only": true,
+  "source_authenticity": "SYNTHETIC_NOT_ATTESTED",
+  "case_id": "LAB-PAYMENT-API-DB-UI-001",
+  "intent": "Confirmar un pago, registrar su estado y mostrar su historial",
+  "fake_a9": {
+    "schema_version": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+    "simulation_only": true,
+    "requirements": [
+      {
+        "id": "R1",
+        "outcome": "PAY"
+      },
+      {
+        "id": "R2",
+        "outcome": "PAY"
+      },
+      {
+        "id": "R3",
+        "outcome": "HISTORY"
+      }
+    ],
+    "acceptances": [
+      {
+        "id": "A1",
+        "signal": "API confirms successful payment"
+      },
+      {
+        "id": "A2",
+        "signal": "DB stores payment confirmation"
+      },
+      {
+        "id": "A3",
+        "signal": "UI displays payment history"
+      }
+    ],
+    "scope_ids": [
+      "S1"
+    ],
+    "authority_state": "SYNTHETIC",
+    "currentness": "NOT_ATTESTED",
+    "receipt_id": null
+  },
+  "strategy_fixture": {
+    "scope_ids": [
+      "S1"
+    ],
+    "requirement_ids": [
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "acceptance_ids": [
+      "A1",
+      "A2",
+      "A3"
+    ]
+  },
+  "outcome_registry": [
+    {
+      "outcome_id": "PAY",
+      "business_outcome": "Confirmar pago y registrar estado",
+      "evidence_ref": "synthetic://outcome/PAY"
+    },
+    {
+      "outcome_id": "HISTORY",
+      "business_outcome": "Mostrar historial de pagos",
+      "evidence_ref": "synthetic://outcome/HISTORY"
+    }
+  ],
+  "obligations": [
+    {
+      "atom_id": "API",
+      "outcome_id": "PAY",
+      "source_ref": "synthetic://atom/API",
+      "scope_id": "S1",
+      "risk_level": "MEDIUM",
+      "semantic_rationale": "API confirms payment",
+      "write_scope_reason": "Only backend endpoint",
+      "write_scope": [
+        "backend/api"
+      ],
+      "shared_contract_refs": [
+        "contract://payment-event-v1"
+      ],
+      "implementation_state": "NEW",
+      "bounded_reuse_assessment_ref": "synthetic://reuse/PAY",
+      "requirement_ids": [
+        "R1"
+      ],
+      "acceptance_ids": [
+        "A1"
+      ],
+      "depends_on": [],
+      "coimplement_with": []
+    },
+    {
+      "atom_id": "DB",
+      "outcome_id": "PAY",
+      "source_ref": "synthetic://atom/DB",
+      "scope_id": "S1",
+      "risk_level": "MEDIUM",
+      "semantic_rationale": "DB preserves payment state",
+      "write_scope_reason": "Only payment storage",
+      "write_scope": [
+        "database/migration"
+      ],
+      "shared_contract_refs": [
+        "contract://payment-event-v1"
+      ],
+      "implementation_state": "NEW",
+      "bounded_reuse_assessment_ref": "synthetic://reuse/PAY",
+      "requirement_ids": [
+        "R2"
+      ],
+      "acceptance_ids": [
+        "A2"
+      ],
+      "depends_on": [],
+      "coimplement_with": []
+    },
+    {
+      "atom_id": "UI",
+      "outcome_id": "HISTORY",
+      "source_ref": "synthetic://atom/UI",
+      "scope_id": "S1",
+      "risk_level": "LOW",
+      "semantic_rationale": "History reflects confirmed payment",
+      "write_scope_reason": "Only frontend component",
+      "write_scope": [
+        "frontend/ui"
+      ],
+      "shared_contract_refs": [
+        "contract://payment-event-v1"
+      ],
+      "implementation_state": "NEW",
+      "bounded_reuse_assessment_ref": "synthetic://reuse/UI",
+      "requirement_ids": [
+        "R3"
+      ],
+      "acceptance_ids": [
+        "A3"
+      ],
+      "depends_on": [
+        "API"
+      ],
+      "coimplement_with": []
+    }
+  ],
+  "partition_contract": {
+    "schema_version": "PROGRAMMING_SOLUTION_PARTITION_CONTRACT_V1",
+    "unit": "PG-04",
+    "runtime_activation": false,
+    "production_activation": false,
+    "partition_policy": {
+      "semantic_boundary_first": true,
+      "dependency_closure_required": true,
+      "risk_boundary_considered": true,
+      "write_scope_boundary_considered": true,
+      "shared_contracts_referenced_not_copied": true,
+      "token_count_alone_must_not_define_partition": true,
+      "file_count_alone_must_not_define_partition": true,
+      "partition_unit": "SOLUTION",
+      "minimum_rule": "SMALLEST_COHERENT_VALID_CHANGE",
+      "canonical_spec_count": 1
+    },
+    "coverage": {
+      "material_requirement_coverage_required_percent": 100,
+      "acceptance_obligation_coverage_required_percent": 100
+    }
+  },
+  "standard_catalog_version": "LAB-SYNTHETIC-01",
+  "standards": [
+    {
+      "standard_code": "LAB-STD-BACKEND",
+      "source_ref": "synthetic://std/backend",
+      "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "applies_to_write_scopes": [
+        "backend/api"
+      ]
+    },
+    {
+      "standard_code": "LAB-STD-DB",
+      "source_ref": "synthetic://std/db",
+      "source_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "applies_to_write_scopes": [
+        "database/migration"
+      ]
+    },
+    {
+      "standard_code": "LAB-STD-FRONTEND",
+      "source_ref": "synthetic://std/frontend",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "applies_to_write_scopes": [
+        "frontend/ui"
+      ]
+    }
+  ],
+  "validator_registry": [
+    {
+      "validation_code": "PROGRAMMING_GITHUB_FILE_TEXT_ASSERT_V1",
+      "status": "ACTIVE",
+      "source_ref": "synthetic://validator-catalog-not-authenticated"
+    }
+  ]
+}

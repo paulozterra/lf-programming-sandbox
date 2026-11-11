@@ -1,0 +1,106 @@
+{
+  "source": "Supabase original read-only",
+  "name": "programacion_1",
+  "sha256_pg_jsonb_text": "7e11d69f52f29cb1ba75f3f4ff76b2e036cc7a9e62a1b651dd9232a3a30738ed",
+  "payload": {
+    "channel": "PROGRAMACION",
+    "selector": "PROFILE_SELECTOR_LF",
+    "derivation": null,
+    "catalog_sha256": "0eeeeb3e429988085890a4aa99981a8e27b23869328a65ed44a46056c98d6722",
+    "request_sha256": "d4ea283480e46803881d5133668094f63fae48c39428c88a6ca479258a44e65e",
+    "schema_version": "LF_PROFILE_SELECTOR_SEMANTIC_REQUEST_V1",
+    "semantic_rules": [
+      "COMPARE_LITERAL_REQUEST_AGAINST_ALL_CANDIDATE_DESCRIPTORS",
+      "DO_NOT_PRESELECT_BY_KEYWORD_OR_PROFILE_NAME",
+      "USE_ONLY_DECLARED_DESCRIPTOR_EVIDENCE",
+      "SELECTED_REQUIRES_ONE_PROFILE",
+      "AMBIGUOUS_REQUIRES_TWO_OR_MORE_MATERIAL_CANDIDATES",
+      "NO_MATCH_WHEN_NO_DECLARED_PROFILE_CAPABILITY_FITS",
+      "NO_ROUTE_OR_EFFECT_AUTHORITY",
+      "CANDIDATES_ALREADY_FILTERED_BY_CHANNEL_AND_ENTRY_POLICY",
+      "MUTATION_REQUESTS_SELECT_ANALYSIS_PROFILE_FIRST"
+    ],
+    "literal_request": "Corregir endpoint Java de préstamos",
+    "route_authority": false,
+    "effect_authority": false,
+    "allowed_decisions": [
+      "SELECTED",
+      "AMBIGUOUS",
+      "NO_MATCH"
+    ],
+    "candidate_profiles": [
+      {
+        "version": null,
+        "channels": [
+          "PRODUCTO",
+          "PROGRAMACION"
+        ],
+        "descriptor": {
+          "description": "Convert product and UX decisions into executable UI specifications. Existing-screen findings become concrete remediation actions. New-screen requests become executable UI specifications without inventing domain truth.",
+          "schema_version": "LF_PROFILE_SELECTION_DESCRIPTOR_V1",
+          "selection_evidence": [
+            {
+              "kind": "PURPOSE",
+              "value": "Convert product and UX decisions into executable UI specifications. Existing-screen findings become concrete remediation actions. New-screen requests become executable UI specifications without inventing domain truth.",
+              "source_section": "Purpose"
+            },
+            {
+              "kind": "OWNERSHIP",
+              "value": "Keep domain truth from upstream profiles intact; UI owns presentation, hierarchy, components, states, tokens and responsive behavior, not financial/legal/privacy truth.",
+              "source_section": "New-screen invariants"
+            },
+            {
+              "kind": "BOUNDARY",
+              "value": "Candidate remediation evidence lives under `profiles/ui_architect/evals/<remediation_lot>/`.\nFuture profile writes require `ACTUALIZACION_PERFIL_LF` bound to `PERFIL-UI-ARCHITECT` before the first GitHub write.\nRuntime enablement, `VALIDATED`, production promotion, and automatic promotion remain blocked unless separately governed and authorized.",
+              "source_section": "Traceability and lifecycle"
+            }
+          ]
+        },
+        "entry_policy": "DIRECT",
+        "profile_code": "PERFIL-UI-ARCHITECT",
+        "profile_name": "PERFIL_UI_ARCHITECT",
+        "profile_slug": "ui_architect",
+        "runtime_status": "CANDIDATE_READ_ONLY",
+        "document_status": "CANDIDATO",
+        "profile_subtype": "UI Architect",
+        "descriptor_status": "CURRENT",
+        "operational_status": "READ_ONLY",
+        "selection_eligible": true,
+        "canonical_profile_key": "ui_architect",
+        "descriptor_source_ref": "github://cristhianlujan/claude-persona-lf-patch@f09b239941ecd91a65bef198b8041790c9997213/profiles/ui_architect/SKILL.md",
+        "descriptor_source_kind": "GITHUB_SKILL",
+        "execution_source_eligible": true,
+        "descriptor_source_revision": "eddf372e2bb8c1f7dd8cc7dd7b1b0cb007024da8",
+        "execution_source_eligibility": {
+          "reason": "PROFILE_EXECUTION_SOURCE_READY",
+          "eligible": true,
+          "repo_path": "profiles/ui_architect",
+          "profile_code": "PERFIL-UI-ARCHITECT",
+          "profile_slug": "ui_architect",
+          "runtime_status": "CANDIDATE_READ_ONLY",
+          "entrypoint_path": "profiles/ui_architect/SKILL.md",
+          "descriptor_status": "CURRENT"
+        }
+      }
+    ],
+    "authority_asset_type": null,
+    "catalog_profile_count": 1,
+    "catalog_schema_version": "LF_PROFILE_SELECTOR_CATALOG_V1",
+    "authority_entry_profiles": [],
+    "semantic_output_contract": {
+      "reason": "non-empty string",
+      "decision": "SELECTED|AMBIGUOUS|NO_MATCH",
+      "evidence_refs": [
+        {
+          "kind": "selection_evidence.kind",
+          "profile_code": "candidate profile code",
+          "source_section": "selection_evidence.source_section"
+        }
+      ],
+      "material_ambiguities": "array<object>",
+      "selected_profile_code": "string|null",
+      "ambiguous_profile_codes": "array<string>"
+    },
+    "downstream_execution_allowed": false
+  }
+}

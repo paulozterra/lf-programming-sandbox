@@ -1,0 +1,51 @@
+{
+  "source": "Supabase public schema (read-only pg_get_functiondef)",
+  "extracted_at_utc": "2026-11-05 16:34:02.427331+00",
+  "base_pr": 3550,
+  "base_commit": "d675a7248ac686049623c7f2c0906504bdfb6f34",
+  "hash_method": "sha256(pg_get_functiondef(oid)) using extensions.digest",
+  "functions": {
+    "lf_profile_selector_catalog_v1()": "a239d5a19301e4eebdd69f02c67ffa9295d541c9e315731573faa0b7a30bb195",
+    "lf_profile_selector_semantic_prepare_v2(text,text,jsonb,jsonb)": "c6f80a9cf42cd9bb7dd6d0d31ef9c0738b9572f4ed853f695e946f890e9dfff2",
+    "lf_profile_selector_semantic_prepare_v2(text,text,jsonb)": "0b8085578fedd42c730aaf7c21e7280a884af34745219ef2e28ece8b50f941a9",
+    "lf_profile_selector_semantic_finalize_v1(jsonb,jsonb)": "52100232ce00dc9b6b24c6bfa7892c6651607cc66216c06dc316f30d5b09b065",
+    "lf_profile_selector_semantic_validate_v1(jsonb,jsonb)": "8e6f272e9bdfde0de0e391d4e8ed219998fb7ba85525d638e73a2bae7d7e38e8",
+    "lf_profile_selector_descriptor_sync_v1(text,jsonb,text,text,text,text)": "45ae263da65f9de8fbe449713dfb686dc84b3c8d74b93b5abcd7c84362fb1c28",
+    "lf_profile_execution_source_eligibility_v1(text)": "fa22eeb6c9e04fea04cebbeeba8bcecfc4632bbcf5e6ccb0a28c108ebc6bc269"
+  },
+  "tables": {
+    "lf_activos": {
+      "scope": "tipo_activo='PERFIL' and archived_at IS NULL",
+      "rows": 11,
+      "sha256": "1b16c41e5da19caa391f9f98b9f61f8389e4e8545bee472ff1f4b91f5db39888"
+    },
+    "lf_profile_selection_registry_v1": {
+      "rows": 10,
+      "sha256": "76788f927f741ce71a80451c3ada719aeb0817d344f472e4e84f3828528a7eca"
+    },
+    "lf_profile_selector_policy_v1": {
+      "rows": 10,
+      "sha256": "8b47ae1061ab8aa6d466061ce49ee47c4dd16a95c340450e77d1c2b59227765a"
+    },
+    "lf_profile_write_authority_v1": {
+      "rows": 31,
+      "sha256": "4b0e994d973956b90208df6f790408a955b32ff1fd079c24133968cbe1e7cfe4"
+    },
+    "lf_router_action_registry": {
+      "rows": 42,
+      "sha256": "d60994e6d2e742beeb1bf1bc0ec0bc5a63445991359b301a538a1e65cbe651ca"
+    },
+    "lf_operation_execution": {
+      "rows_total": 2408,
+      "sha256": null,
+      "scope": "NOT EXTRACTED: pending minimization of eligibility-related rows"
+    }
+  },
+  "limitations": [
+    "No local disposable PostgreSQL runtime available; parity untested",
+    "Only seven initial function definitions exported; recursive dependency closure needs validation",
+    "No table row data exported; hash-only snapshot, privacy screening required",
+    "DDL and constraints not exported yet"
+  ],
+  "status": "STEP_1_PARTIAL_NO_PARITY_CLAIM"
+}

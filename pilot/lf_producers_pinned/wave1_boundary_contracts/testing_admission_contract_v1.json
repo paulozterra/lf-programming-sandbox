@@ -1,0 +1,24 @@
+{
+  "schema_version": "TESTING_ADMISSION_CONTRACT_V1",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "owner_scope": "SUPER_ADMIN",
+  "modes": {
+    "DESIGN_ONLY": {
+      "requires": ["analysis_package_ref", "analysis_package_sha256", "source_currentness_ref"],
+      "forbids": ["frozen_candidate_ref", "frozen_candidate_sha256"],
+      "agent_task_required": false,
+      "story_required": false,
+      "purpose": "Design tests from Analysis obligations before or independently of candidate implementation."
+    },
+    "EXECUTION": {
+      "requires": ["analysis_package_ref", "analysis_package_sha256", "source_currentness_ref", "frozen_candidate_ref", "frozen_candidate_sha256"],
+      "agent_task_required": false,
+      "story_required": false,
+      "purpose": "Admit an exact frozen candidate for Testing; test-pack freeze occurs later in TST-16."
+    }
+  },
+  "legacy_test_contract_role": "PRIOR_ART_AND_PROGRAMMING_HANDOFF_COMPATIBILITY",
+  "legacy_sources": ["programacion.test_contracts", "programacion.fn_test_contract_generation_source", "programacion.fn_submit_blind_test_contract"],
+  "no_parallel_engine": true,
+  "source_refs": ["lf_eventos://20333", "lf_eventos://20335"]
+}
