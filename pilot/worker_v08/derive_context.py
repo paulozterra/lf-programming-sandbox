@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic, bounded, offline context derivation for ex5c.
+"""Deterministic, bounded, offline context derivation for Worker tasks.
 
 Never reads denied files, secrets or hidden oracles. The returned record
 contains selected paths, the single winning reason, bytes, and rejected paths.
@@ -56,7 +56,8 @@ def denial(name: str, is_spec: bool = False) -> str | None:
         return "DENIED_KEY"
     if any(term in name.lower() for term in ("holdout", "secret", "oracle")):
         return "DENIED_SENSITIVE_NAME"
-    if not is_spec and (not parts or parts[0] != "apps"):
+    if not is_spec and (not parts or parts[0] not in ("apps", "frontend", "db")
+                        and not name.startswith("supabase/migrations/")):
         return "DENIED_OUTSIDE_APPS"
     return None
 
@@ -158,6 +159,51 @@ def derive(root: Path, write_scope: list[str], spec_paths: list[str]) -> dict:
                 break
             parent = parent.parent
 
+    # TS/TSX: relative imports plus project manifests; no recursive traversal.
+    for name in writes:
+        if not name.endswith((".ts", ".tsx")) or denial(name):
+            continue
+        source_file = _file(root, name)
+        if source_file is None:
+            continue
+        source = source_file.read_text(encoding="utf-8")
+        imports = sorted(set(re.findall(
+            r"""(?:import\\s+(?:[^;]*?\\s+from\\s+)?|require\\s*\\(|import\\s*\\()\\s*['"]([.][^'"]+)['"]""",
+            source)))
+        for module in imports:
+            base = PurePosixPath(name).parent / module
+            try:
+                relative = _safe_name(str(base))
+            except ContextBlocked:
+                continue
+            for candidate in (relative + ext for ext in
+                              (".ts", ".tsx", "/index.ts", "/index.tsx")):
+                if _file(root, candidate):
+                    add(candidate, "IMPORT")
+                    break
+        parent = (root / name).parent
+        while parent != root and parent.is_relative_to(root):
+            for manifest in ("package.json", "tsconfig.json"):
+                candidate = parent / manifest
+                if candidate.is_file() or candidate.is_symlink():
+                    add(candidate.relative_to(root).as_posix(), "BUILD")
+            parent = parent.parent
+
+    # Flyway: only earlier versioned migrations within the same directory.
+    for name in writes:
+        if not name.lower().endswith(".sql") or denial(name):
+            continue
+        target = PurePosixPath(name)
+        version = re.fullmatch(r"V([0-9]+)__[^/]+\\.sql", target.name)
+        if version is None:
+            continue
+        for other in _files(root, root / target.parent):
+            if other == name or denial(other):
+                continue
+            m = re.fullmatch(r"V([0-9]+)__[^/]+\\.sql", PurePosixPath(other).name)
+            if m and PurePosixPath(other).parent == target.parent and int(m[1]) < int(version[1]):
+                add(other, "IMPORT")
+
     for spec in specs:
         add(spec, "SPEC", spec=True)
 
@@ -207,14 +253,25 @@ def expected_ex5c(result: dict, root: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
-    parser.add_argument("--task", choices=("ex5c",), required=True)
+    parser.add_argument("--task", help="Legacy task (ex5c retains its exact output)")
+    parser.add_argument("--task-file", type=Path, help="Generic task specification JSON")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     from task_selector import select
     try:
-        task = select(args.task, require_holdout=True)
-        result = derive(args.root, task["write_path_patterns"], task["spec_paths"])
-        expected_ex5c(result, args.root)
+        if bool(args.task) == bool(args.task_file):
+            raise ContextBlocked("CONTEXT_TASK_INPUT_INVALID")
+        if args.task_file:
+            registration = json.loads(args.task_file.read_text(encoding="utf-8"))
+            task = registration.get("task_spec", registration)
+        else:
+            task = select(args.task, require_holdout=True)
+        spec_paths = task.get("spec_paths")
+        if spec_paths is None:
+            spec_paths = [task["spec_path"]] if task.get("spec_path") else []
+        result = derive(args.root, task["write_path_patterns"], spec_paths)
+        if args.task == "ex5c":
+            expected_ex5c(result, args.root)
         payload = canonical(result)
         result["sha256"] = hashlib.sha256(payload).hexdigest()
         output = args.output
