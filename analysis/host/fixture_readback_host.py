@@ -76,6 +76,22 @@ def read_all(folder=FIXTURES):
     _required(inventory, "objects", "impact_rows", "dependency_rows", "status")
     if screen["screen_code"] != TARGET or direct["target_ref"] != TARGET:
         raise FixtureBlocked("SBX_FIXTURE_TARGET_MISMATCH")
+    if screen["screen_id"] != effective["screen_id"]:
+        raise FixtureBlocked("SBX_FIXTURE_SCREEN_ID_MISMATCH")
+    _required(screen["contract"], "fields", "errors", "visual", "context",
+              "metadata", "profiles", "analytics", "evidence", "rules", "policies")
+    for name in ("elements.json", "states.json", "variants.json", "relations.json"):
+        _required(results[name][0], "rows")
+        if not isinstance(results[name][0]["rows"], list):
+            raise FixtureBlocked("SBX_FIXTURE_REQUIRED_FIELD_MISSING")
+    _required(results["ekb.json"][0], "records", "authority_current")
+    _required(results["adr.json"][0], "records", "adr_trigger_review", "authority_current")
+    _required(results["decision_asof.json"][0], "schema_version", "state",
+              "subject_ref", "authority_current")
+    if (results["ekb.json"][0]["authority_current"] is not False
+            or results["adr.json"][0]["authority_current"] is not False
+            or results["decision_asof.json"][0]["authority_current"] is not False):
+        raise FixtureBlocked("SBX_FIXTURE_AUTHORITY_FORBIDDEN")
     if not isinstance(inventory["objects"], list):
         raise FixtureBlocked("SBX_INVENTORY_REQUIRED")
     contract = screen["contract"]
