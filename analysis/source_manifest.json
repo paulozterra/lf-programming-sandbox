@@ -94,6 +94,11 @@
       "path": "analysis/reference/profiles/programming_analysis_lf/README.md",
       "source_path": "profiles/programming_analysis_lf/README.md",
       "blob_sha": "464bd1db2563687a729ea193aca1956053ad1b57"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_procedure_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_procedure_v1.json",
+      "blob_sha": "1291336699b88df5fd11178dc9043d7ec13bc06a"
     }
   ]
 }
