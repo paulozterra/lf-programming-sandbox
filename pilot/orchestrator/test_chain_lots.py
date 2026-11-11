@@ -147,7 +147,8 @@ def test_no_replay_or_fake_merge_unlock():
             "merge_commit_sha": "c" * 40,
             "base": {"ref": "main", "repo": {
                 "full_name": "paulozterra/lf-programming-sandbox"}},
-            "head": {"ref": "lf/native-integration/cp36data-run-901"}},
+            "head": {"ref": "lf/native-integration/cp36data-run-901",
+                     "repo": {"full_name": "paulozterra/lf-programming-sandbox"}}},
             lots, bindings, {backend})
 
 
