@@ -4,6 +4,30 @@
   "source_commit_sha": "882c7213f83887952a99ad0793174d535eb91233",
   "files": [
     {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/checkpoint_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/c6_context_gate/checkpoint_bridge_v1.py",
+      "sha256": "000000000000000000000000000000007642008a68039ffb227ea37cf2b49320",
+      "size_bytes": 2312
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/context_gate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/c6_context_gate/context_gate_v1.py",
+      "sha256": "000000000000000000000000000000002d27508487d63965e256631f72db3537",
+      "size_bytes": 6285
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/test_checkpoint_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/c6_context_gate/test_checkpoint_bridge_v1.py",
+      "sha256": "00000000000000000000000000000000b02c1b34b2120746f1663c61cc6a93f0",
+      "size_bytes": 3064
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/test_context_gate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/c6_context_gate/test_context_gate_v1.py",
+      "sha256": "000000000000000000000000000000005ee39276de4b76122aa0b30d1b7bbac8",
+      "size_bytes": 5309
+    },
+    {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/evidence/ex6_run_42707967927_receipt_index.json",
       "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/evidence/ex6_run_42707967927_receipt_index.json",
       "sha256": "555a5b49033e40ed1fe28244934fd31bfbb47169871500921776754a6cf7fdf5",
@@ -122,6 +146,12 @@
       "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_source_truth_v1.py",
       "sha256": "ce4c09f644dc9b368378d89147f44989b811a481dc93ab57ec8a33f97d87e957",
       "size_bytes": 9264
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02_qualification/test_pg02_c5_independent_sample_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02_qualification/test_pg02_c5_independent_sample_v1.py",
+      "sha256": "1849e083c51614c15b09c0289dc07768d848420a0bbf6f834380c6465dcafc84",
+      "size_bytes": 7116
     },
     {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/pg01_c4_readback_candidate_v1.sql",
@@ -254,12 +284,6 @@
       "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_stack_layers_adversarial_v1.py",
       "sha256": "264146c76a2c58fc38445b998c8ad39bd68c1de40546dca22c34e69bf98e6c81",
       "size_bytes": 1081
-    },
-    {
-      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02_qualification/test_pg02_c5_independent_sample_v1.py",
-      "destination_path": "pilot/lf_producers_pinned/pg02_qualification/test_pg02_c5_independent_sample_v1.py",
-      "sha256": "1849e083c51614c15b09c0289dc07768d848420a0bbf6f834380c6465dcafc84",
-      "size_bytes": 7116
     },
     {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_stack_source_candidate/pg03_stack_source_v1.py",
@@ -496,6 +520,12 @@
       "size_bytes": 3069
     },
     {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg_programming_offline_lab_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg_programming_offline_lab_v1.py",
+      "sha256": "f26391d64c28e30a888b9b307cfad0d9bb7f17684ef7baf77979084463b08968",
+      "size_bytes": 5100
+    },
+    {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg03_pg04_exact_handoff_bridge_v1.py",
       "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg03_pg04_exact_handoff_bridge_v1.py",
       "sha256": "49a52de2c0c6679fe9cc0e0875de691f628a460ab018d3d2d878a32f5cbe03e3",
@@ -538,10 +568,10 @@
       "size_bytes": 13103
     },
     {
-      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg_programming_offline_lab_v1.py",
-      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg_programming_offline_lab_v1.py",
-      "sha256": "f26391d64c28e30a888b9b307cfad0d9bb7f17684ef7baf77979084463b08968",
-      "size_bytes": 5100
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg_programming_offline_lab_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg_programming_offline_lab_v1.py",
+      "sha256": "26152948a0c338cc33526e712eb60830f4d8a13d213e9eb82d61663906e03399",
+      "size_bytes": 7638
     },
     {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg03_pg04_exact_handoff_bridge_v1.py",
@@ -602,12 +632,6 @@
       "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg04_semantic_partition_candidate_v1.py",
       "sha256": "b08581e2f43841c44feb4c7f43358d09ef39e517b48fde28cbe3f5e3d1192bbb",
       "size_bytes": 10483
-    },
-    {
-      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg_programming_offline_lab_v1.py",
-      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg_programming_offline_lab_v1.py",
-      "sha256": "26152948a0c338cc33526e712eb60830f4d8a13d213e9eb82d61663906e03399",
-      "size_bytes": 7638
     },
     {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg05_target_binding_candidate/tests/test_pg05_chain_c1_c5_v1.py",
@@ -1300,12 +1324,6 @@
       "size_bytes": 4373
     },
     {
-      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/SOURCE_PIN.json",
-      "destination_path": "pilot/lf_producers_pinned/selector_experimental/SOURCE_PIN.json",
-      "sha256": "4bee7fb0c41ae2dfa478ba8fd7f8f1deb62cd50cf7817dc64d307524f55d87c3",
-      "size_bytes": 2545
-    },
-    {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/expected/catalog.json",
       "destination_path": "pilot/lf_producers_pinned/selector_experimental/expected/catalog.json",
       "sha256": "5a7d58ac2756e3e140e88251da832b21b2487185dbbbc9232aab93c53e71aaf7",
@@ -1468,6 +1486,12 @@
       "size_bytes": 1476
     },
     {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/SOURCE_PIN.json",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/SOURCE_PIN.json",
+      "sha256": "4bee7fb0c41ae2dfa478ba8fd7f8f1deb62cd50cf7817dc64d307524f55d87c3",
+      "size_bytes": 2545
+    },
+    {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/tests/test_experimental.py",
       "destination_path": "pilot/lf_producers_pinned/selector_experimental/tests/test_experimental.py",
       "sha256": "4771dfc65e30a45a4b1704b2d7713e900b602c7b2b860e05434c3e8fcf074ceb",
@@ -1478,6 +1502,12 @@
       "destination_path": "pilot/lf_producers_pinned/selector_experimental/tests/test_parity.py",
       "sha256": "e689a39f52c1d323c6073c86171192f47c82927947d110c0d48d06d71fe79cfe",
       "size_bytes": 7902
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/testing_admission_contract_v1.json",
+      "destination_path": "pilot/lf_producers_pinned/wave1_boundary_contracts/testing_admission_contract_v1.json",
+      "sha256": "33380000742800009b900000a9d0000070853bea3b19c1b3a1f70bd49944bd96",
+      "size_bytes": 1185
     }
   ]
 }

@@ -309,3 +309,8 @@ Los productores se copian sin modificar. El orquestador solo los importará en e
 
 El manifiesto `SOURCE_PIN.json` se genera con `origin_path`, `destination_path` y `sha256` de cada copia. El test recalcula el SHA-256 y bloquea modificaciones, omisiones o rutas adicionales.
 
+- `sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/context_gate_v1.py` → `pilot/lf_producers_pinned/c6_context_gate/context_gate_v1.py` — módulo/prueba importado por productor (dependencia adicional verificada)
+- `sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/checkpoint_bridge_v1.py` → `pilot/lf_producers_pinned/c6_context_gate/checkpoint_bridge_v1.py` — módulo/prueba importado por productor (dependencia adicional verificada)
+- `sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/test_context_gate_v1.py` → `pilot/lf_producers_pinned/c6_context_gate/test_context_gate_v1.py` — módulo/prueba importado por productor (dependencia adicional verificada)
+- `sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/test_checkpoint_bridge_v1.py` → `pilot/lf_producers_pinned/c6_context_gate/test_checkpoint_bridge_v1.py` — módulo/prueba importado por productor (dependencia adicional verificada)
+- `sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/testing_admission_contract_v1.json` → `pilot/lf_producers_pinned/wave1_boundary_contracts/testing_admission_contract_v1.json` — contrato original (dependencia adicional verificada)
