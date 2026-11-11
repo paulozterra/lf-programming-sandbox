@@ -1,0 +1,18 @@
+{
+  "imitates": "lf_ops.pantalla_elementos",
+  "simulated": true,
+  "data": [
+    {
+      "code": "SBX-EL-USER",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-EL-PASSWORD",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-EL-SUBMIT",
+      "status": "VIGENTE"
+    }
+  ]
+}
