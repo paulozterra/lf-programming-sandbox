@@ -1,0 +1,21 @@
+{
+  "imitates": "programacion.fn_input_effective_rule_links_v1",
+  "simulated": true,
+  "data": {
+    "screen_id": 901,
+    "consumer": "INPUT_GOVERNANCE",
+    "rules": [
+      {
+        "code": "SBX-REQ-LOGSAFE",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "title": "Nunca registrar contraseñas en logs",
+        "binding_source": "DERIVED_GLOBAL",
+        "id": 9020,
+        "config": {
+          "log_password": false
+        }
+      }
+    ]
+  }
+}
