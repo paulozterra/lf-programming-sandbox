@@ -37,6 +37,20 @@ jobs:
     if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pilot
+          POSTGRES_DB: pilot
+          POSTGRES_PASSWORD: ${{ format('cp1-{0}-{1}', github.run_id, github.run_attempt) }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pilot -d pilot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     env:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -140,6 +154,35 @@ jobs:
           printf '%s\n' "$maven_version" | grep -Eq 'Apache Maven '
           printf '%s\n' "$maven_version" | grep -Eq 'Java version: 21([.+_-]|[, ]|$)'
           echo "EX6_ISOLATED_JAVA21_AND_MAVEN_PASS"
+      - name: Set up Node 22 for isolated Worker
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Expose Node, npm and PostgreSQL client in Worker fixed PATH
+        shell: bash
+        run: |
+          set -euo pipefail
+          for binary in node npm psql pg_isready; do
+            resolved="$(readlink -f "$(command -v "$binary")")"
+            test -x "$resolved"
+            sudo ln -sfn "$resolved" "/usr/local/bin/$binary"
+          done
+      - name: Smoke-test isolated Node, npm, Java and disposable PostgreSQL
+        shell: bash
+        env:
+          PGPASSWORD: ${{ format('cp1-{0}-{1}', github.run_id, github.run_attempt) }}
+        run: |
+          set -euo pipefail
+          isolated_path="/usr/local/bin:/usr/bin:/bin"
+          for binary in node npm psql pg_isready; do
+            test "$(/usr/bin/env -i PATH="$isolated_path" /bin/sh -c "command -v $binary")" = "/usr/local/bin/$binary"
+          done
+          env -i PATH="$isolated_path" node --version | grep -Eq '^v22\.'
+          env -i PATH="$isolated_path" npm --version
+          env -i PATH="$isolated_path" java -version 2>&1 | grep -E 'version "21'
+          env -i PATH="$isolated_path" pg_isready -h 127.0.0.1 -p 5432 -U pilot -d pilot
+          env -i PATH="$isolated_path" PGPASSWORD="$PGPASSWORD" psql -h 127.0.0.1 -U pilot -d pilot -X -Atqc 'SELECT 1' | grep -qx 1
+          echo CP1_1_ISOLATED_TOOLCHAIN_PASS
       - name: Check vendored source integrity before execution
         run: python3 control/pilot/worker_v08/verify_vendor.py
       - name: Admit task and registered base (fail closed until Claude registers ex6)
