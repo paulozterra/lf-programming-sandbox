@@ -47,4 +47,4 @@
 | CHG-0043 | EDITORIAL | CP1.1: Node 22 y PostgreSQL 17 efímero en ambos modos Worker |  | paulozterra |  |
 | CHG-0044 | EDITORIAL | CP1.2: perfiles FRONTEND/DATA y binding Next.js fijado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/85 |
 | CHG-0045 | EDITORIAL | CP1.3: contexto y preflight genéricos para lotes híbridos |  | paulozterra |  |
-| CHG-0046 | ADDITIVE | PR A: Train promueve draft etiquetado a Ready for review |  | paulozterra |  |
+| CHG-0046 | EDITORIAL | PR A: Train promueve draft etiquetado a Ready for review |  | paulozterra |  |

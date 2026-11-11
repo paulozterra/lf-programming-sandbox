@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0046",
   "title": "PR A: Train promueve draft etiquetado a Ready for review",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo 2026-11-11 PR A: draft con etiqueta ready-to-merge"
