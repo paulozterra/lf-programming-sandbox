@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0060",
+  "title": "CP3.7: evidencia PG-06 a PG-14 por lote y H_REPORT gobernado",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: #101 fusionado; CP3.7 evidencia automática y validación YAML"
+  },
+  "reason": "Orquestación posterior a merges verificados por Train: invoca productores fijados PG06/08/09v2/10/11/12/13/14 sin modificarlos; captura resultados reales de build/lint y pruebas con PostgreSQL y Git desechables, revisa REQ-* originales, produce H_REPORT y JSON por pedido en PR draft con CHG. Falla cerrado sin insumos originales y no confunde candidatos o Testing simulado con autoridad. La validación YAML existente permanece obligatoria.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/pg37-evidence.yml",
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/pg37_evidence.py",
+      "pilot/orchestrator/pg37_publish.py",
+      "pilot/orchestrator/test_pg37_evidence.py",
+      "pilot/orchestrator/CP3_7.md",
+      "standards/changes/CHG-0060.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
