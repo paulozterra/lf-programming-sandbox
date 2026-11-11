@@ -410,8 +410,9 @@ def _produce_lots(package, fixture, rows, outputs, dsn):
             "profile_currentness_sha256":current["currentness_sha256"]})
         assignment_hashes[sid]=assignment["assignment_sha256"]
         currentness_hashes[sid]=current["currentness_sha256"]
-    hashes={key:val.get("candidate_sha256",val.get("request_sha256"))
-        for key,val in outputs.items()}
+    # Pin the complete bytes of every actual producer output; a few producers
+    # intentionally have no candidate_sha256 property (do not add one to LF).
+    hashes={key:digest(value) for key,value in outputs.items()}
     hashes["PG04_AREA_OVERLAY"]=area_overlay["area_overlay_sha256"]
     return topo(lots),hashes,assignment_hashes,currentness_hashes
 
