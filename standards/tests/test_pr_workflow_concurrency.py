@@ -16,7 +16,7 @@ EXPECTED_CANCEL = "${{ github.event_name == 'pull_request' }}"
 @pytest.mark.parametrize("path", WORKFLOWS)
 def test_pr_only_concurrency_and_dispatch_isolation(path):
     source = (ROOT / path).read_text(encoding="utf-8")
-    matches = re.findall(r"(?m)^concurrency:\\s*\\n((?:^[ \\t]+[^\\n]*\\n)*)", source)
+    matches = re.findall(r"(?m)^concurrency:\n((?:^  [^\n]*\n)*)", source)
     assert len(matches) == 1, "Missing or duplicate top-level concurrency"
     fields = {}
     for line in matches[0].splitlines():
