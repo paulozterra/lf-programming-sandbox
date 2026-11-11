@@ -1,0 +1,20 @@
+{
+  "imitates": "programacion.fn_engineering_current_adr_assert_v1",
+  "simulated": true,
+  "data": {
+    "existing_adr_ref": null,
+    "adr_assertion": null,
+    "adr_search": null,
+    "adr_trigger_review": {
+      "flags": {
+        "canonical_authority_or_owner_changes": false,
+        "transversal_capability_created_extended_or_retired": false,
+        "cross_stage_or_multi_consumer_contract_changes": false,
+        "canonical_state_authority_or_lifecycle_changes": false,
+        "material_migration_cutover_or_long_lived_compatibility_changes": false,
+        "security_or_privacy_boundary_changes": "UNKNOWN",
+        "runtime_or_production_topology_changes": false
+      }
+    }
+  }
+}
