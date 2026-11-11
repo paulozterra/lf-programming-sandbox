@@ -96,6 +96,11 @@ def update_branch_locally(branch, expected_head, expected_main, token, repositor
     with tempfile.TemporaryDirectory(prefix="sandbox-train-") as directory:
         root = Path(directory)
         git(root, "init", "-q")
+        # git merge --no-commit requires a committer identity even on conflicts.
+        # Set it locally before fetching/checking out or attempting the merge.
+        git(root, "config", "--local", "user.name", "sandbox-train[bot]")
+        git(root, "config", "--local", "user.email",
+            "41898282+github-actions[bot]@users.noreply.github.com")
         remote = "https://github.com/" + repository + ".git"
         git(root, "remote", "add", "origin", remote)
         git(root, "fetch", "--no-tags", "origin",
