@@ -20,7 +20,10 @@
       "analysis/host/test_fixture_host.py",
       ".github/workflows/analysis-f0.yml",
       "standards/changes/CHG-0055.json",
-      "standards/CAMBIOS.md"
+      "standards/CAMBIOS.md",
+      "analysis/host/README.md",
+      "analysis/host/test_fixture_readback_host.py",
+      "analysis/fixtures/sbx_auth_login/fixture_manifest.json"
     ]
   },
   "existing_code_impact": {
