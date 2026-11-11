@@ -89,6 +89,13 @@ def prepare_merge(root, base_ref, expected_head):
     return git(root, "rev-parse", "HEAD").stdout.strip()
 
 
+def configure_bot_identity(root):
+    """Identity is local to the temporary clone, independent of runner HOME."""
+    git(root, "config", "--local", "user.name", "sandbox-train[bot]")
+    git(root, "config", "--local", "user.email",
+        "41898282+github-actions[bot]@users.noreply.github.com")
+
+
 def update_branch_locally(branch, expected_head, expected_main, token, repository):
     """No remote write until local merge + C9 checks succeed."""
     if not branch or branch.startswith("-") or branch == "main":
@@ -96,11 +103,8 @@ def update_branch_locally(branch, expected_head, expected_main, token, repositor
     with tempfile.TemporaryDirectory(prefix="sandbox-train-") as directory:
         root = Path(directory)
         git(root, "init", "-q")
-        # git merge --no-commit requires a committer identity even on conflicts.
-        # Set it locally before fetching/checking out or attempting the merge.
-        git(root, "config", "--local", "user.name", "sandbox-train[bot]")
-        git(root, "config", "--local", "user.email",
-            "41898282+github-actions[bot]@users.noreply.github.com")
+        # git merge --no-commit requires an identity even when conflicts occur.
+        configure_bot_identity(root)
         remote = "https://github.com/" + repository + ".git"
         git(root, "remote", "add", "origin", remote)
         git(root, "fetch", "--no-tags", "origin",
