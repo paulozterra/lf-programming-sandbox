@@ -218,21 +218,42 @@ def next_chg(root: Path) -> int:
     return max(used + [57]) + 1
 
 
-def record_and_check_change(root: Path, number: int, task: str,
-                            run_id: int, patch_sha: str, paths: list[str]) -> Path:
+def record_change(root: Path, number: int, task: str,
+                  run_id: int, patch_sha: str, paths: list[str]) -> Path:
     dest = root / f"standards/changes/CHG-{number:04d}.json"
     if dest.exists():
         block("CHG_COLLISION")
     payload = chg_payload(number, task, run_id, patch_sha, paths)
-    for candidate in ("EDITORIAL", "ADDITIVE"):
-        payload["change_class"] = candidate
-        dest.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
+    dest.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
+    command(["python3", "standards/tools/changes.py", "render"], cwd=root)
+    return dest
+
+
+def confirm_class_after_commit(root: Path, chg: Path) -> None:
+    """C9 compares base with HEAD, therefore check only AFTER committing."""
+    for attempt in range(2):
+        process = subprocess.run(
+            ["python3", "standards/tools/changes.py", "check",
+             "--base", "origin/main"], cwd=root, capture_output=True)
+        if process.returncode == 0:
+            return
+        try:
+            result = json.loads(process.stdout)
+        except (UnicodeError, ValueError):
+            block("C9_CHECK_INVALID")
+        errors = {item.get("reason_code") for item in result.get("findings", [])}
+        classes = result.get("detected_class", [])
+        if (errors != {"CHANGE_CLASS_MISMATCH"} or len(classes) != 1
+                or classes[0] not in ("ADDITIVE", "EDITORIAL") or attempt):
+            block("C9_CHECK_FAILED")
+        payload = obj(chg.read_bytes())
+        payload["change_class"] = classes[0]
+        chg.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
         command(["python3", "standards/tools/changes.py", "render"], cwd=root)
-        result = subprocess.run(["python3", "standards/tools/changes.py", "check",
-                                 "--base", "origin/main"], cwd=root, capture_output=True)
-        if result.returncode == 0:
-            return dest
-    block("C9_CLASSIFICATION_UNRESOLVED")
+        command(["git", "add", "--", str(chg.relative_to(root)),
+                 "standards/CAMBIOS.md"], cwd=root)
+        command(["git", "commit", "-m", "CP3.5: align C9 detected change class"], cwd=root)
+    block("C9_CHECK_FAILED")
 
 
 def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) -> dict:
@@ -255,11 +276,11 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     changed = validate_patch_against_repo(root, patch, base, allowed)
     patch_hash = hashlib.sha256(patch).hexdigest()
     num = next_chg(root)
-    chg = record_and_check_change(root, num, task, run_id, patch_hash, list(changed))
+    chg = record_change(root, num, task, run_id, patch_hash, list(changed))
     # Include exact per-file output digest in the PR for independent review.
     command(["git", "add", "--", str(chg.relative_to(root)), "standards/CAMBIOS.md"], cwd=root)
     command(["python3", "standards/tools/changes.py", "render", "--check"], cwd=root)
-    command(["python3", "standards/tools/changes.py", "check", "--base", "origin/main"], cwd=root)
+    # C9 requires committed HEAD; validation happens after the first commit.
     # Fail if main advanced while preparing this draft (no automatic rebase).
     current_remote = command(["git", "ls-remote", "origin", "refs/heads/main"],
                              cwd=root).decode().split()[0]
@@ -268,6 +289,7 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     command(["git", "switch", "-c", branch], cwd=root)
     command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] verified native patch {task} run {run_id}"],
             cwd=root)
+    confirm_class_after_commit(root, chg)
     command(["git", "push", "--set-upstream", "origin", branch], cwd=root)
     body = (f"CP3.5: PASS verificado por workflow nativo confiable.\n\n"
             f"- Task: \`{task}\` · run: {run_id} · base: \`{base}\`\n"
