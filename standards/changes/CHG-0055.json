@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0055",
+  "title": "PR-only workflow concurrency sin cancelar Train",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: política de concurrencia PR y workflow_dispatch independiente"
+  },
+  "reason": "Reemplaza la cancelación global en ci y agrega el mismo control al workflow Analysis F0: solo pushes sucesivos del mismo PR pueden cancelar corridas anteriores; workflow_dispatch usa github.run_id y no se cancela. Se prueba exactitud de ambas expresiones sin alterar sandbox-train ni worker.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/analysis-f0.yml",
+      "standards/tests/test_pr_workflow_concurrency.py",
+      "standards/changes/CHG-0055.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
