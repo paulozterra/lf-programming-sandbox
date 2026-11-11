@@ -93,6 +93,40 @@ else:
         self.assertEqual(len(run(self.root, "rev-list", "--parents", "-n", "1", "HEAD").split()), 3)
         self.assertFalse(merge.check_conflicts(self.root))
 
+    def test_merge_with_empty_home_and_no_system_git_identity(self):
+        """Reproduce Actions runner with no global/system author or committer."""
+        head, main = self.diverge(conflict_cambios=True)
+        run(self.root, "config", "--local", "--unset", "user.name")
+        run(self.root, "config", "--local", "--unset", "user.email")
+        from unittest.mock import patch
+        with patch.dict(os.environ, {
+            "HOME": "", "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+        }):
+            for field in ("user.name", "user.email"):
+                self.assertNotEqual(
+                    merge.git(self.root, "config", "--get", field, check=False).returncode, 0
+                )
+            # Must run immediately after git init in update_branch_locally.
+            merge.configure_bot_identity(self.root)
+            self.assertEqual(
+                merge.git(self.root, "config", "--local", "--get", "user.name").stdout.strip(),
+                "sandbox-train[bot]",
+            )
+            self.assertEqual(
+                merge.git(self.root, "config", "--local", "--get", "user.email").stdout.strip(),
+                "41898282+github-actions[bot]@users.noreply.github.com",
+            )
+            merged = merge.prepare_merge(self.root, main, head)
+            self.assertNotEqual(merged, head)
+            self.assertEqual(
+                (self.root / "standards/CAMBIOS.md").read_text(),
+                "CHG-0001\\nCHG-0002\\nCHG-0003\\n",
+            )
+            self.assertEqual(
+                len(run(self.root, "rev-list", "--parents", "-n", "1", "HEAD").split()), 3
+            )
+
     def test_other_conflict_rejected_without_commit(self):
         head, main = self.diverge(conflict_cambios=True, conflict_other=True)
         with self.assertRaisesRegex(merge.BranchConflict, "BRANCH_CONFLICT"):
