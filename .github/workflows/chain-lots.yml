@@ -72,4 +72,5 @@ jobs:
           retention-days: 30
       - name: Owner's approval remains mandatory
         if: always()
-        run: echo 'CP36_OWNER_GATE: Claude reviews, Paulo labels ready-to-merge, Train merges.'
+        run: |
+          echo "CP36_OWNER_GATE: Claude reviews, Paulo labels ready-to-merge, Train merges."

@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo 2026-11-11: #100 fusionado, CP3.6 encadenamiento automático y 2 lotes simulados"
   },
-  "reason": "Consumidor confiable de workflow_run del Train y Worker nativo: liga PR de integración al DAG por manifiesto explícito y merge de Git, prepara en worktree desde main nuevo con prepare_native_lot.py y PR draft/CHG gobernado; tres fallos con pruebas de intento nativas ponen pedido lógicamente BLOCKED y abren PR draft para state.json, sin escribir main directamente. Pruebas de integración simuladas dos lotes y negativos, sin modelo ni exámenes ocultos.",
+  "reason": "Consumidor confiable de workflow_run del Train y Worker nativo: liga PR de integración al DAG por manifiesto explícito y merge de Git, prepara en worktree desde main nuevo con prepare_native_lot.py y PR draft/CHG gobernado; tres fallos con pruebas de intento nativas ponen pedido lógicamente BLOCKED y abren PR draft para state.json, sin escribir main directamente. Pruebas de integración simuladas dos lotes y negativos, sin modelo ni exámenes ocultos. Corrección YAML de dos workflows y política de parseo con yaml.safe_load para todos los *.yml, bloqueante en CI.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -20,7 +20,9 @@
       ".github/workflows/chain-lots.yml",
       ".github/workflows/ci.yml",
       "standards/changes/CHG-0059.json",
-      "standards/CAMBIOS.md"
+      "standards/CAMBIOS.md",
+      ".github/workflows/native-verified-integration.yml",
+      "pilot/test_workflow_yaml_policy.py"
     ]
   },
   "existing_code_impact": {

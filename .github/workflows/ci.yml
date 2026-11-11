@@ -74,6 +74,10 @@ jobs:
       - run: python3 standards/tools/consumption.py render --check
       - name: Reject runner context in job env across all workflows
         run: python3 pilot/check_workflow_job_env.py
+      - name: Parse every GitHub Actions YAML and require jobs (offline, blocking)
+        run: |
+          python3 -m pip install --disable-pip-version-check --no-input PyYAML==6.0.3
+          python3 pilot/test_workflow_yaml_policy.py
       - name: Sandbox Train policy and local Git conflict tests (offline, no token)
         run: |
           python3 -m unittest discover -s pilot -p 'test_sandbox_train_policy.py' -v

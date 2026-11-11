@@ -49,4 +49,5 @@ jobs:
         run: python3 pilot/orchestrator/native_verified_integration.py --run-id "$NATIVE_RUN_ID"
       - name: Never approve or label ready-to-merge automatically
         if: always()
-        run: echo "CP35_OWNER_GATE_RETAINED: Claude reviews, Paulo labels, Train merges."
+        run: |
+          echo "CP35_OWNER_GATE_RETAINED: Claude reviews, Paulo labels, Train merges."
