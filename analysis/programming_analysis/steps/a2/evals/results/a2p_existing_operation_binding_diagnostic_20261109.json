@@ -1,0 +1,101 @@
+{
+  "schema_version": "PROGRAMMING_ANALYSIS_A2P_RUNTIME_BINDING_DIAGNOSTIC_V1",
+  "project": "PROGRAMMING_ANALYSIS_LF",
+  "readback_date": "2026-11-09",
+  "readback_source_commit": "3cc0d96d485d6e64a031ff716e365c852750d1c3",
+  "scope": "Read-only qualified source/operation/EKB review; no production, main, router, A3 dispatch, permissions, or canonical contracts touched.",
+  "status": "SOURCE_BINDING_DIAGNOSED_NOT_OPERATIONALLY_QUALIFIED",
+  "business_binding": {
+    "business": "LF",
+    "router_status": "ENABLED",
+    "other_business": "SALY",
+    "other_business_router_status": "RECOGNIZED_NOT_ENABLED"
+  },
+  "registered_asset": {
+    "table": "public.lf_activos",
+    "id": 414,
+    "codigo_activo": "PROGRAMMING_ANALYSIS_LF",
+    "tipo_activo": "SKILL",
+    "estado_documental": "CANDIDATO",
+    "estado_operativo": "READ_ONLY",
+    "runtime_estado": "CANDIDATE_READ_ONLY",
+    "runtime_binding_enabled": false,
+    "production_authorized": false,
+    "main_skill_blob_sha1": "9abb2ce0513bcb3241dec459420c394e2c93a03c",
+    "registered_source_blob_sha1": "9abb2ce0513bcb3241dec459420c394e2c93a03c",
+    "pr_skill_blob_sha1": "bfe7dc868c1677b2ce833a7b7322dc3cabb02590",
+    "readback": "Registration blob matches MAIN exactly; candidate PR source is not yet in MAIN. No duplicate skill registration required."
+  },
+  "governed_execution_operation": {
+    "operation_code": "EJECUCION_SKILL_LF",
+    "operation_status": "SANDBOX_ACTIVE",
+    "active_required_steps": 9,
+    "step_contracts": 9,
+    "step_judge_bindings": 9,
+    "judge_code": "JUDGE-EJECUCION-SKILL-LF-v0.1",
+    "judge_status": "ACTIVE_ENFORCEMENT",
+    "judge_pass_if": [],
+    "judge_fail_if": [],
+    "judge_behavior_attested_by_end_to_end_negative_case": false,
+    "recorded_operation_executions_for_asset": 0,
+    "recorded_skill_invocations": 0,
+    "gate": "Do not equate nine configured bindings, active status, or empty pass_if/fail_if arrays with demonstrated independent model judge enforcement."
+  },
+  "resolvers": {
+    "programacion_programming_resolver_registry_entries": 0,
+    "existing_active_evidence_verifiers": [
+      "private.lf_evidence_resolver_registry_v1:LF_SUPABASE_READBACK_V1",
+      "private.lf_evidence_resolver_registry_v1:LF_GITHUB_SOURCE_READBACK_V1"
+    ],
+    "direct_private_source_prepare": "SQLSTATE_42501_PERMISSION_DENIED",
+    "private_inventory_access_current_actor": "DENIED",
+    "no_acl_bypass": true,
+    "integration_requirement": "Use existing Router → Profile → EJECUCION_SKILL_LF with verified source reader/provider-bound evidence and native host authorization; do not create another D4 or request elevated SQL role in this read-only context."
+  },
+  "tests": {
+    "reexecuted_python_helper": {
+      "command": "python -m unittest -v test_a2_semantic_input_integrity_v1.py",
+      "python": "3.13.5",
+      "executed": 15,
+      "passed": 15,
+      "failed": 0,
+      "exit_code": 0,
+      "module_git_blob": "a0fa348b206cae31956be62cd92fdfa14fb8fdcc",
+      "test_git_blob": "df8314d38ff34c809928f200a7b92cbe55e22306",
+      "stdout_sha256": "578fc404e1f2a064dcd6eaf52c2ee51794870afd221c16944e2353813708b222",
+      "scope": "Locally isolated module and synthetic test fixtures; no private repository checkout"
+    },
+    "pending_repo_suites": {
+      "business_and_semantic": 21,
+      "golden_integration": 9,
+      "a2p_research_policy": 10,
+      "total": 40,
+      "executed": 0,
+      "qualification": "NOT_EXECUTED",
+      "code_source_commit": "3cc0d96d485d6e64a031ff716e365c852750d1c3",
+      "recommended_commands": [
+        "python -m unittest discover -s skills/programming_analysis/steps/a2/evals -p 'test_business_semantic_scope_l1_l2_20261108.py' -v",
+        "python -m unittest discover -s skills/programming_analysis/steps/a2/evals -p 'test_semantic_golden_preview_integration_v1.py' -v",
+        "python -m unittest discover -s skills/programming_analysis/steps/a2/evals -p 'test_a2_p_research_policy_boundary_v1.py' -v"
+      ]
+    },
+    "ci_policy": {
+      "pase_owner": ".github/workflows/pase.yml",
+      "pase_source_blob_sha1": "ed729e3f94391e83d91e18a89baf3b109891542b",
+      "single_ordinary_pr_entrypoint": true,
+      "repair_window_active": true,
+      "legacy_specialized_execution_disabled_by_current_plan": true,
+      "no_new_parallel_pr_workflow_created": true,
+      "required_resolution": "An authorized exact-HEAD specialized runner, via existing PASE owner/cutover when qualified, or a separate bounded offline execution receipt. Do not silently change PASE policy."
+    }
+  },
+  "unresolved": [
+    "P0_A2P_CONTRADICTION_BOOLEAN_NEGATIVE_EVIDENCE_NOT_AVAILABLE",
+    "P0_GOVERNED_MODEL_PRODUCER_AND_INDEPENDENT_JUDGE_READBACK_MISSING",
+    "P0_EJECUCION_SKILL_LF_RUNTIME_BINDING_DISABLED_FOR_ASSET",
+    "P0_SOURCE_RESOLVER_INVOKER_NOT_ADMITTED_42501",
+    "P0_SPECIALIZED_PYTHON_REPO_40_UNEXECUTED",
+    "P0_A3_RESEARCH_ONLY_GATE_NO_AUTHORIZED_RUN"
+  ],
+  "next": "Use the existing operation's 9 steps and independent provider-bound receipts; qualify A2-P's typed contradictory signal without fabricated false; obtain exact HEAD 40/40 test evidence; review negative model judge and source currentness; then propose activation through existing profile/operation. Keep draft NO-GO."
+}

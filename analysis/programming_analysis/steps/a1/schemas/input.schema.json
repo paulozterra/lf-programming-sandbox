@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "business",
+    "request_identity",
+    "objective",
+    "target_hints",
+    "source_refs",
+    "provided_facts",
+    "constraints",
+    "ambiguities",
+    "declared_intent_kind"
+  ],
+  "properties": {
+    "business": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 32
+    },
+    "request_identity": {
+      "type": "object",
+      "required": [
+        "request_ref",
+        "request_kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "request_ref": {
+          "type": "string",
+          "minLength": 3
+        },
+        "request_kind": {
+          "enum": [
+            "USER_REQUEST",
+            "SYSTEM_REQUEST",
+            "ISSUE",
+            "HANDOFF",
+            "FILE",
+            "EVENT",
+            "OTHER"
+          ]
+        }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "required": [
+        "problem_statement",
+        "desired_outcome"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "problem_statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "desired_outcome": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "target_hints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "provided_facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "fact_code",
+          "value",
+          "source_ref"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "fact_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {},
+          "source_ref": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    },
+    "ambiguities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "statement",
+          "materiality",
+          "resolution_state"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "materiality": {
+            "enum": [
+              "MATERIAL",
+              "NON_MATERIAL",
+              "UNKNOWN"
+            ]
+          },
+          "resolution_state": {
+            "enum": [
+              "OPEN",
+              "RESOLVED_FROM_SOURCE"
+            ]
+          }
+        }
+      }
+    },
+    "declared_intent_kind": {
+      "enum": [
+        "CREATE",
+        "EVOLVE",
+        "COMBINE",
+        "REPAIR",
+        "UNKNOWN"
+      ]
+    },
+    "original_request": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Texto literal opcional del usuario; conservar intacto. A1 no lo sustituye por la interpretación."
+    },
+    "input_mode": {
+      "enum": [
+        "STRUCTURED",
+        "SEMANTIC_CANDIDATE"
+      ],
+      "description": "SEMANTIC_CANDIDATE exige original_request y revisión semántica externa de la extracción. Default legacy STRUCTURED."
+    }
+  }
+}

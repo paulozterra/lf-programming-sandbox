@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "skill_code",
+    "business",
+    "status",
+    "payload",
+    "declared_intent_kind",
+    "blocking_codes",
+    "next_capability",
+    "external_authority_verified",
+    "operationally_integrated",
+    "effects_executed",
+    "normalized_prompt",
+    "original_request_sha256",
+    "semantic_review_required",
+    "interpretation_state",
+    "step_code"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "A1_INTERNAL_STEP_CANDIDATE_RESULT_V1"
+    },
+    "skill_code": {
+      "const": "PROGRAMMING_ANALYSIS_LF"
+    },
+    "business": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "VALID_OUTPUT",
+        "NEED_MORE_EVIDENCE",
+        "REQUIRES_DECISION",
+        "BLOCKED",
+        "REQUIRES_SEMANTIC_REVIEW"
+      ]
+    },
+    "payload": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "declared_intent_kind": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blocking_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "next_capability": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "external_authority_verified": {
+      "const": false
+    },
+    "operationally_integrated": {
+      "const": false
+    },
+    "effects_executed": {
+      "const": false
+    },
+    "normalized_prompt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Formato estructurado del objetivo y contexto recibido; no constituye validación semántica."
+    },
+    "original_request_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Hash del texto original literal si fue suministrado."
+    },
+    "semantic_review_required": {
+      "type": "boolean"
+    },
+    "interpretation_state": {
+      "enum": [
+        "PRESTRUCTURED_UNATTESTED",
+        "SEMANTIC_CANDIDATE_UNATTESTED",
+        "NO_VALID_INTERPRETATION",
+        "SEMANTIC_REVIEWED_CANDIDATE"
+      ],
+      "description": "No representa aprobación semántica ni habilita el paso A2."
+    },
+    "step_code": {
+      "const": "A1"
+    },
+    "intent_analysis": {
+      "type": "object",
+      "description": "Validated against schemas/intent_analysis_candidate_v1.schema.json by semantic adapter; no unresolved JSON Schema refs"
+    },
+    "semantic_candidate_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "semantic_reviewer_ref": {
+      "type": "string",
+      "minLength": 3
+    },
+    "semantic_review_identity_verified": {
+      "const": false
+    }
+  }
+}

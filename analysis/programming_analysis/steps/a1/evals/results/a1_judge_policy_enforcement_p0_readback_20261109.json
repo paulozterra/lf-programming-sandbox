@@ -1,0 +1,74 @@
+{
+  "schema_version": "A1_SKILL_JUDGE_POLICY_ENFORCEMENT_P0_READBACK_V1",
+  "business": "LF",
+  "skill_code": "PROGRAMMING_ANALYSIS_LF",
+  "operation_code": "EJECUCION_SKILL_LF",
+  "source_commit": "81f04677a7f22fc7d9ab395f447171562c02ffdc",
+  "scope": "SOURCE_AND_LOCAL_HERMETIC_TEST_ONLY; no RPC mutation, no runtime admission, no cross-business, no PASE modifications",
+  "status": "P0_JUDGE_POLICY_VACUOUS_NO_OPERATIONAL_QUALIFICATION",
+  "readback_20261109": {
+    "core": "public.lf_record_operation_step_core_v1",
+    "core_source_md5": "fe08a25c8e3c023d7181194d2dfdee0d",
+    "core_source_length_chars": 21411,
+    "core_semantic_judge_special_case": false,
+    "core_pass_if_uses_array_loop": true,
+    "core_fail_if_uses_array_loop": true,
+    "core_can_derive_clean_when_no_missing_positive_rules": true,
+    "trust_validation_valid_must_be_server_verified": true,
+    "semantic_step": {
+      "step_id": "semantic_judge",
+      "judge_code": "JUDGE-EJECUCION-SKILL-LF-v0.1",
+      "judge_status": "ACTIVE_ENFORCEMENT",
+      "pass_if": [],
+      "fail_if": [],
+      "required_evidence_keys": [
+        "semantic_judge_result",
+        "unsupported_claims"
+      ],
+      "clean_result_value": "STEP_PASS_WITH_EVIDENCE",
+      "blocked_result_value": "BLOCKED_STEP_NOT_CLEAN",
+      "return_result_value": "RETURN_TO_ROUTER"
+    },
+    "finding": "If an authorized server-side wrapper supplies trust_validation.valid=true with arrays [] and the two required evidence keys populated, the generic core's empty predicate loops alone cannot prove reviewer independence or negative enforcement. No such wrapper or exploit was invoked here."
+  },
+  "new_source": {
+    "guard_path": "skills/programming_analysis/steps/a1/adapters/judge_policy_gap_readback_v1.py",
+    "guard_sha1": "11534374a595ac0e82fecafcb970faaa185c88b2",
+    "test_path": "skills/programming_analysis/steps/a1/evals/test_judge_policy_gap_readback_v1.py",
+    "test_sha1": "05969c41a7083ba0763041712476a24b2619c4c6"
+  },
+  "test_result": {
+    "python": "Python 3.13",
+    "command": "python -I -B -m unittest discover -s evals -p test_judge_policy_gap_readback_v1.py -v",
+    "tests_executed": 14,
+    "passed": 14,
+    "failed": 0,
+    "exit_code": 0,
+    "exact_github_git_blob_parity": true,
+    "stdout_sha256": "852a03c29327b6791215362293ae93a241ee1c5aa040659c0c23c0b96ffaafdc",
+    "qualification": "HERMETIC_LOCAL_TESTS, NOT REAL SQL EXECUTION OR INDEPENDENT MODEL JUDGE"
+  },
+  "status_guard": {
+    "current_live_policy": [
+      "SEMANTIC_JUDGE_POSITIVE_AND_NEGATIVE_RULES_MISSING"
+    ],
+    "hypothetical_nonvacuous_policy": "POLICY_STRUCTURE_ONLY_UNATTESTED",
+    "runtime_qualified": false,
+    "independent_judge_verified": false,
+    "a3_allowed": false
+  },
+  "option_analysis": {
+    "preferred": "Use the existing operation and per-step judge binding to a separately-qualified semantic judge; require nonempty positive/negative rules and server-origin producer/judge receipts validated by a restricted operation-scoped executor before core recording. Do not reuse skill creator/IG recorders.",
+    "not_preferred": "Mutating shared v0.1 pass_if/fail_if for all nine steps creates cross-step risk.",
+    "forbidden": "Calling core from a read-only actor with caller-declared trust; promoting synthetic PASS; activating A3 from policy structure only."
+  },
+  "pending": [
+    "Existing scoped skill step wrapper authorization and server trust qualification",
+    "Independent producer and judge invocation receipts bound to request/candidate/source",
+    "Negative test in governed runtime proving semantic_judge FAIL cannot record clean step",
+    "Exact HEAD 60 functional tests (20 A1 + 40 A2), not to be confused with 60 runner smoke tests",
+    "Data-read authority for A3 resolver and policy for material_contradiction UNKNOWN; no false cast",
+    "Owner-governed change review before official judge/binding migration or runtime activation"
+  ],
+  "closure": "DRAFT_NO_GO"
+}

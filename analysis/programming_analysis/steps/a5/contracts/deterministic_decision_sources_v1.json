@@ -1,0 +1,98 @@
+{
+  "schema_version": "A5_DETERMINISTIC_DECISION_SOURCES_V1",
+  "step_code": "A5",
+  "business": "LF",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "canonical_inputs": [
+    "REQUEST_CONTEXT_V1",
+    "ANALYSIS_CHANGE_CLASSIFICATION_V1",
+    "TARGETED_EVIDENCE_SET_V1",
+    "SHARED_CHANGE_IMPACT_ANALYSIS"
+  ],
+  "output_contract": "ANALYSIS_DECISION_CONTEXT_V1",
+  "input_roles": [
+    {
+      "id": "S1_A1",
+      "source": "A1",
+      "ref": "REQUEST_CONTEXT_V1",
+      "use": "declared constraints, objective, source refs"
+    },
+    {
+      "id": "S2_A2",
+      "source": "A2",
+      "ref": "ANALYSIS_CHANGE_CLASSIFICATION_V1",
+      "use": "operation intent, target identity"
+    },
+    {
+      "id": "S3_A3",
+      "source": "A3",
+      "ref": "TARGETED_EVIDENCE_SET_V1",
+      "use": "governed source definitions, excluded pending, authority gaps"
+    },
+    {
+      "id": "S4_A4",
+      "source": "A4",
+      "ref": "SHARED_CHANGE_IMPACT_ANALYSIS",
+      "use": "per-item create/modify/delete/reuse, direct/indirect impact and unknown dependencies"
+    },
+    {
+      "id": "S5_ADR",
+      "source": "programacion.fn_engineering_current_adr_assert_v1",
+      "parameters": "exact p_adr from governed source",
+      "use": "assert current ADR; only when candidate ADR_ref was explicitly bound",
+      "conditional": true
+    },
+    {
+      "id": "S6_ASOF",
+      "source": "public.fn_lf_decision_context_asof_resolve_v1",
+      "parameters": "consumer_code, subject_ref, as_of provided by authorized host",
+      "use": "historical context; not latest/current authority",
+      "conditional": true
+    }
+  ],
+  "external_source_packet": "A5_GOVERNED_DECISION_READBACK_V1",
+  "may_not_search": true,
+  "may_not_run_sql": true,
+  "may_not_write": true,
+  "no_new_decision_store": true,
+  "material_adr_triggers": [
+    "canonical_authority_or_owner_changes",
+    "transversal_capability_created_extended_or_retired",
+    "cross_stage_or_multi_consumer_contract_changes",
+    "canonical_state_authority_or_lifecycle_changes",
+    "material_migration_cutover_or_long_lived_compatibility_changes",
+    "security_or_privacy_boundary_changes",
+    "runtime_or_production_topology_changes"
+  ],
+  "adr_dispositions": [
+    "NOT_REQUIRED",
+    "REUSE_CURRENT_ADR",
+    "NEW_ADR_REQUIRED",
+    "ADR_BLOCKED"
+  ],
+  "decision_statuses": [
+    "STABLE",
+    "UNRESOLVED",
+    "REQUIRES_DECISION",
+    "BLOCKED"
+  ],
+  "semantics": {
+    "status_STABLE_requires": "explicit current owner decision readback and no unresolved material question, plus no unresolved ADR; never inferred from A2/A3/A4",
+    "adr_not_required_requires": "explicit evidence that every material ADR trigger is false",
+    "adr_new_requires": "at least one evidenced true trigger and explicit no-current-ADR conclusion from authorized host",
+    "adr_reuse_requires": "exact ADR reference and PASS from existing fn_engineering_current_adr_assert_v1",
+    "asof_historical_not_current": "HISTORICAL_CONTEXT cannot by itself establish current owner decision",
+    "pending_rules": "exclude from approved implementation scope, do not create human decision automatically",
+    "unknown_impacts": "keep unresolved evidence gap, do not convert to human decision",
+    "no_user_choice_needed": "local reversible implementation details belong to PG-03"
+  },
+  "persistence": {
+    "capability": "DECISION_CONTEXT_ASOF",
+    "record": "public.fn_lf_decision_context_asof_record_v1",
+    "resolve": "public.fn_lf_decision_context_asof_resolve_v1",
+    "a5_does_not_record": true
+  },
+  "fingerprint": "sha256 of canonical JSON decision payload excluding decision_fingerprint_sha256",
+  "scope": "one target decision context; unresolved independent fronts visible, no false READY",
+  "source_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_decision_context_adr_contract_v1.json"
+}

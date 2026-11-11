@@ -1,0 +1,103 @@
+{
+  "schema_version": "A1_A2_SPECIALIZED_EXACT_HEAD_REPLAY_PREPARATION_V1",
+  "business": "LF",
+  "skill_code": "PROGRAMMING_ANALYSIS_LF",
+  "pr": 3624,
+  "date": "2026-11-09",
+  "source_commit": "6670cf50dfdb9d40cddc5adbd28ed82a8956854c",
+  "state": "RUNNER_PREPARED_SAFETY_SMOKED__GITHUB_CANDIDATE_TESTS_NOT_EXECUTED",
+  "runner": {
+    "path": "skills/programming_analysis/evals/run_a1_a2_exact_head_candidate_v1.py",
+    "git_blob_sha1": "ca967f5d563ac956c30c1deac028cae285adbc93",
+    "local_copy_exact_blob_verified": true,
+    "head_must_match": true,
+    "worktree_must_be_clean": true,
+    "checks_test_git_blobs": true,
+    "receipt_writes_outside_repo": true,
+    "python_isolated_flag": "-I -B",
+    "cannot_attest_host_isolation": true,
+    "suites": [
+      {
+        "name": "A1_REGISTERED_SKILL",
+        "file": "test_governed_step_homology_v1.py",
+        "expected": 20,
+        "real_passed": null
+      },
+      {
+        "name": "A1_JUDGE_POLICY_GAP",
+        "file": "test_judge_policy_gap_readback_v1.py",
+        "expected": 14,
+        "real_passed": null
+      },
+      {
+        "name": "A2_LF_SCOPE",
+        "file": "test_business_semantic_scope_l1_l2_20261108.py",
+        "expected": 21,
+        "real_passed": null
+      },
+      {
+        "name": "A2_GOLDEN_SEMANTIC",
+        "file": "test_semantic_golden_preview_integration_v1.py",
+        "expected": 9,
+        "real_passed": null
+      },
+      {
+        "name": "A2P_RESEARCH_POLICY",
+        "file": "test_a2_p_research_policy_boundary_v1.py",
+        "expected": 10,
+        "real_passed": null
+      }
+    ],
+    "required_total": 74,
+    "genuine_full_repo_tests_executed": 0
+  },
+  "local_smoke": {
+    "fixture": "Synthetic temporary Git repository with five simple unittest modules, not the PR's tests",
+    "synthetic_head": "e97cbb7b50fb0e83c092b7c2882608218b1ce610",
+    "synthetic_test_count": 74,
+    "synthetic_test_result": "PASS",
+    "wrong_head": "BLOCKED_EXACT_HEAD_MISMATCH_EXIT_2",
+    "dirty_source": "BLOCKED_DIRTY_WORKTREE_REJECTED_EXIT_2",
+    "verified_runner_blob": "ca967f5d563ac956c30c1deac028cae285adbc93",
+    "conclusion": "HARNESS_BEHAVIOR_ONLY"
+  },
+  "separate_actual_isolated_python": {
+    "A2_semantic_helper": {
+      "tests": 15,
+      "passed": 15,
+      "blob_guard": "a0fa348b206cae31956be62cd92fdfa14fb8fdcc",
+      "blob_test": "df8314d38ff34c809928f200a7b92cbe55e22306"
+    },
+    "A1_judge_policy_guard": {
+      "tests": 14,
+      "passed": 14,
+      "blob_guard": "11534374a595ac0e82fecafcb970faaa185c88b2",
+      "blob_test": "05969c41a7083ba0763041712476a24b2619c4c6",
+      "log_sha256": "852a03c29327b6791215362293ae93a241ee1c5aa040659c0c23c0b96ffaafdc"
+    },
+    "total_isolated_tests": 29,
+    "caveat": "Independent isolated unit tests, not the exact-head 74-case integration run and not native semantic model judge"
+  },
+  "source_defect_correction": {
+    "file": "skills/programming_analysis/steps/a2/evals/test_business_semantic_scope_l1_l2_20261108.py",
+    "new_blob": "d96569c71d26b3d58ad1c8e7f29d98fc501d79a1",
+    "reason": "REQUEST_CONTEXT_V1 literal is objective.problem_statement, not payload.original_request; SHA-256 stays in A1 result envelope",
+    "actual_repo_regression_executed_after_correction": false
+  },
+  "commands": {
+    "safe_runner": "python3 -I -B skills/programming_analysis/evals/run_a1_a2_exact_head_candidate_v1.py --repo-root \"$PWD\" --expected-head \"$HOST_VERIFIED_PR_HEAD_SHA\" --receipt-dir /tmp/lf-a1a2-exact-head-receipts",
+    "authority": "Execute only inside an approved unprivileged offline/sandboxed checkout bound by host to exact commit; do not treat a CLI-provided expected hash as independent host attestation.",
+    "prerequisite": "HOST_VERIFIED_PR_HEAD_SHA must be resolved out-of-band by the authorized runner from the intended GitHub PR HEAD; never set to self-read git rev-parse HEAD without independent comparison."
+  },
+  "blockers": [
+    "EXACT_HEAD_74_TESTS_NOT_EXECUTED",
+    "INDEPENDENT_MODEL_JUDGE_RECEIPTS_MISSING",
+    "JUDGE_V0_1_EMPTY_PASS_FAIL_RULES",
+    "SKILL_RUNTIME_BINDING_DISABLED",
+    "A2P_RESEARCH_ACL_AND_UNKNOWN_CONTRADICTION_GATE_OPEN"
+  ],
+  "runtime_qualified": false,
+  "independent_judge_verified": false,
+  "a3_allowed": false,
+  "closure": "DRAFT_NO_GO"
+}

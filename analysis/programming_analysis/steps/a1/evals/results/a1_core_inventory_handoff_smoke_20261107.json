@@ -1,0 +1,83 @@
+{
+  "schema_version": "A1_CORE_INVENTORY_HANDOFF_LOCAL_SMOKE_V1",
+  "scope": "PROGRAMMING_ANALYSIS_LF/CORE_A1_TO_EXISTING_INVENTORY",
+  "candidate_source_head": "d0b94626eb8321303f64c79b317ebfe6c87fcd0e",
+  "source_blobs": {
+    "skills/programming_analysis/adapters/a1_a2_candidate_bridge_v1.py": "9350add06790327887a7ea4c3489857b7028bdc5",
+    "skills/programming_analysis/steps/a1/semantic_intake_candidate_v1.py": "798a5059a1bb66aab27f3684d21babe0e3563267",
+    "skills/programming_analysis/steps/a1/schemas/intent_analysis_candidate_v1.schema.json": "fe06ae18acedb9f5a51ec265eb4690f91225d275",
+    "skills/programming_analysis/steps/a1/evals/test_a1_semantic_candidate_v1.py": "0d737d14bfab2340de5f54ab132d786d72ea6235"
+  },
+  "local_execution": {
+    "python_bridge_exact_blob_parity": true,
+    "seam": "MOCKED_A1_VALIDATOR_RETURN__REAL_SEMANTIC_INTAKE",
+    "suite": "test_research_handoff_bridge_smoke.py",
+    "tests_total": 4,
+    "tests_pass": 4,
+    "tests_fail": 0,
+    "actual_full_A1_to_A2_run": false,
+    "repository_full_unit_suite_executed": false,
+    "actual_inventory_lookup_executed": false
+  },
+  "observations": [
+    {
+      "id": "A1_CORE_02",
+      "a1_stub_status": "REQUIRES_DECISION",
+      "handoff_status": "HALTED_AT_A1",
+      "lookup_request_created": true,
+      "preserved": [
+        "ENTERPRISE_PORTAL_ACCESS",
+        "PORTAL_ENTRY_MODE_UNRESOLVED",
+        "original_request",
+        "request_sha256"
+      ],
+      "a2_result": null,
+      "allow_a2": false
+    },
+    {
+      "id": "A1_CORE_04",
+      "a1_stub_status": "REQUIRES_DECISION",
+      "handoff_status": "HALTED_AT_A1",
+      "lookup_request_created": true,
+      "preserved": [
+        "REUSE",
+        "UNKNOWN",
+        "No crees otra pantalla",
+        "FUNCTIONAL_CAPABILITY_UNSPECIFIED"
+      ],
+      "a2_result": null,
+      "allow_a2": false
+    },
+    {
+      "id": "INVALID_SEMANTIC",
+      "handoff_status": "HALTED_AT_A1",
+      "lookup_request_created": false,
+      "a2_result": null
+    },
+    {
+      "id": "A1_VALID_NO_DEPTH_SIGNALS",
+      "handoff_status": "A1_READY_A2_EVIDENCE_REQUIRED",
+      "a2_result": null
+    }
+  ],
+  "inventory_readonly_diagnostics": [
+    {
+      "function": "private.fn_lf_d1_inventory_candidates_v1",
+      "method": "SELECT",
+      "sqlstate": "42501",
+      "error": "permission denied for function fn_lf_d1_inventory_candidates_v1"
+    },
+    {
+      "function": "inventory.fn_lookup_v3",
+      "method": "SELECT",
+      "sqlstate": "42501",
+      "error": "permission denied for function fn_lookup_v3"
+    }
+  ],
+  "source_inventory_resolved": false,
+  "official_consumer_handoff_integrated": false,
+  "independent_judge_identity_attested": false,
+  "ci_note": "PASE is separate from Python A1/A2 unit suite",
+  "no_router_updater_supabase_write": true,
+  "closure": "BLOCKED_ON_AUTHORIZED_INVENTORY_CONSUMER_AND_EVIDENCE_DERIVED_A2_SIGNALS"
+}

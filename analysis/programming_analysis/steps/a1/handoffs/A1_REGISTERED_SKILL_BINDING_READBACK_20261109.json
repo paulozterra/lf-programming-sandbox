@@ -1,0 +1,86 @@
+{
+  "schema_version": "PROGRAMMING_A1_REGISTERED_SKILL_EXECUTION_BINDING_READBACK_V1",
+  "source_commit": "ec0d8777ce1ff523464a0414dcb65bee03d12c26",
+  "business": "LF",
+  "skill_code": "PROGRAMMING_ANALYSIS_LF",
+  "pr_number": 3624,
+  "date": "2026-11-09",
+  "status": "CANDIDATE_BINDING_SOURCE_CORRECTED__RUNTIME_NO_GO",
+  "scope": "Reconcile outdated A1/operation binding source to live registered asset; exact source readback and structural equivalence only. No router, main, SQL writes, permission or runtime activation.",
+  "readback": {
+    "asset": {
+      "id": 414,
+      "count": 1,
+      "estado_documental": "CANDIDATO",
+      "estado_operativo": "READ_ONLY",
+      "runtime_estado": "CANDIDATE_READ_ONLY",
+      "runtime_binding_enabled": false
+    },
+    "source": {
+      "registered_source_git_blob_sha1": "9abb2ce0513bcb3241dec459420c394e2c93a03c",
+      "main_skill_git_blob_sha1": "9abb2ce0513bcb3241dec459420c394e2c93a03c",
+      "main_source_matches_asset": true,
+      "pr_source_not_promoted": true
+    },
+    "operation": {
+      "code": "EJECUCION_SKILL_LF",
+      "status": "SANDBOX_ACTIVE",
+      "active_steps": 9,
+      "step_contracts": 9,
+      "judge_bindings": 9,
+      "skill_invocations": 0,
+      "independent_negative_judge_qualification": false
+    },
+    "resolver_state": {
+      "programacion_registry_count": 0,
+      "evidence_resolvers_active": 2,
+      "private_source_prepare_direct_SQLSTATE": "42501"
+    }
+  },
+  "changed_files": {
+    "skills/programming_analysis/steps/a1/adapters/governed_step_homology_v1.json": "cb6d146dc50ede89d5bc48b661728650cd3c233b",
+    "skills/programming_analysis/steps/a1/adapters/existing_skill_operation_binding_v1.json": "4fd117c814c49537990c60d8912a421136d3cea6",
+    "skills/programming_analysis/steps/a1/evals/test_governed_step_homology_v1.py": "f6f3e1819d8e003a8597122f9e3ac5ae61131981",
+    "skills/programming_analysis/steps/a1/handoffs/A1_EXISTING_SKILL_OPERATION_HANDOFF.md": "22177bec3a61f5327520cb018235f429913628ec"
+  },
+  "regression_evidence": {
+    "source_only_structure_equivalence": {
+      "checks": 20,
+      "pass": 20,
+      "fail": 0,
+      "engine": "JS assertion-based contract readback, independently compared to Python test intentions; not Python execution"
+    },
+    "new_source_tests": {
+      "method_count": 20,
+      "prior_methods": 14,
+      "added_methods": 6,
+      "python_run_attested": false,
+      "failed": null,
+      "passed": null
+    },
+    "pending_full_a2_suite": {
+      "tests_defined": 40,
+      "python_run_attested": false
+    }
+  },
+  "remaining_blockers": [
+    "SKILL_ASSET_CANDIDATE_RUNTIME_BINDING_DISABLED",
+    "EJECUCION_SKILL_LF_JUDGE_INDEPENDENCE_AND_NEGATIVE_ENFORCEMENT_NOT_PROVEN",
+    "EXACT_SOURCE_AND_PROVIDER_RECEIPT_BIDIRECTIONAL_READBACK_MISSING",
+    "PRIVATE_SOURCE_RESOLVER_CALLER_ACL_42501",
+    "PYTHON_REGRESSIONS_AT_FULL_PR_HEAD_NOT_EXECUTED",
+    "A2_P_UNKNOWN_CONTRADICTION_CANNOT_BE_COERCED_FALSE",
+    "A3_RUNTIME_RESEARCH_GATE_NOT_QUALIFIED"
+  ],
+  "next": "Use registered skill ID 414 and current main source as the source-of-truth; do not create a second asset. Execute specialized tests in approved exact-head runner, then qualify independent model judge + governed resolver and only after these gates consider runtime binding/activation in separately authorized stage.",
+  "no_change": [
+    "main",
+    "Router",
+    "Supabase DML/DDL",
+    "canonical A1/A2/A3 contracts",
+    "permissions",
+    "A3 dispatch",
+    "SALY enablement"
+  ],
+  "closure": "SOURCE_PATCHED_STATIC_VERIFIED__RUNTIME_NO_GO"
+}

@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "contract_code": "A1_NATIVE_SEMANTIC_ROUTE_V1",
+  "contract_status": "SOURCE_CANDIDATE_NOT_QUALIFIED",
+  "contract_owner": {
+    "skill_code": "PROGRAMMING_ANALYSIS_LF",
+    "step_code": "A1",
+    "scope": "INTERNAL_A1_SEMANTIC_SOURCE_ONLY"
+  },
+  "route_code": "PROGRAMMING_ANALYSIS_LF/A1/SEMANTIC_NATIVE_AUTHORING",
+  "operation_boundary": {
+    "runtime_operation_code": null,
+    "updater_operation_allowed": false,
+    "profile_operation_allowed": false,
+    "skill_child_run_allowed": false,
+    "supabase_write_allowed": false,
+    "router_dispatch_allowed": false
+  },
+  "native_transport": {
+    "transport_kind": "EXISTING_CONVERSATION_NATIVE_AUTHORING",
+    "allowed_bindings": [
+      {
+        "executor_mode": "GPT_NATIVE",
+        "executor_provider": "OPENAI_CHATGPT_NATIVE",
+        "current_surface": "CHATGPT_CURRENT_CONVERSATION"
+      },
+      {
+        "executor_mode": "CLAUDE_NATIVE",
+        "executor_provider": "ANTHROPIC_CLAUDE_NATIVE",
+        "current_surface": "CLAUDE_CURRENT_CONVERSATION"
+      }
+    ],
+    "remote_api_allowed": false,
+    "llama_allowed": false,
+    "session_creation_allowed": false,
+    "host_context_required": true
+  },
+  "artifacts": {
+    "intent_candidate_schema": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+    "intent_schema_path": "skills/programming_analysis/steps/a1/schemas/intent_analysis_candidate_v1.schema.json",
+    "canonical_context_schema": "REQUEST_CONTEXT_V1",
+    "a1_output_schema": "A1_INTERNAL_STEP_CANDIDATE_RESULT_V1",
+    "a2_handoff_schema": "A1_A2_SEMANTIC_TRANSPORT_CANDIDATE_V1",
+    "a2_depth_signals": "EVIDENCE_DERIVED_NINE_DEPTH_SIGNALS_REQUIRED"
+  },
+  "source_integrity": {
+    "raw_input_sha256": true,
+    "frozen_contract_sha256": true,
+    "semantic_protocol_sha256": true,
+    "candidate_sha256": true,
+    "capture_sha256": true,
+    "same_native_surface_required": true,
+    "user_supplied_mode_or_surface_is_not_authentication": true
+  },
+  "semantic_review": {
+    "separate_reviewer_required": true,
+    "reviewer_identity_verified_by_local_adapter": false,
+    "native_capture_equals_semantic_pass": false,
+    "source_readback_equals_provider_attestation": false
+  },
+  "explicit_rejected_couplings": {
+    "updater_operation": "ACTUALIZACION_PERFIL_LF",
+    "updater_contracts": [
+      "LF_PE10_V02_SAME_CHAT_NATIVE_HANDOFF_V1",
+      "LF_PE10_V02_SAME_CHAT_RAW_CAPTURE_V1"
+    ],
+    "updater_runtime_modules": [
+      "profile_updater_same_chat_v02.freeze_same_chat_handoff",
+      "profile_updater_same_chat_v02.capture_current_chat_raw"
+    ],
+    "other_operation_codes": [
+      "EJECUCION_PERFIL_LF",
+      "EJECUCION_SKILL_LF"
+    ],
+    "forbidden_model_transport": "LlamaHTTPClient"
+  },
+  "precedent_only": [
+    "skills/profile_creator/validators/profile_updater_same_chat_v02.py",
+    "skills/profile_creator/validators/profile_updater_native_material_bridge_v02.py",
+    "supabase/functions/lf-profiles-governance-caller-v1/profile_continuation.ts"
+  ],
+  "envelope_contract": {
+    "handoff_required_fields": [
+      "api_invocation",
+      "business",
+      "conversation_scope",
+      "current_surface",
+      "executor_mode",
+      "executor_provider",
+      "handoff_sha256",
+      "input_sha256",
+      "owner_skill_code",
+      "owner_step_code",
+      "raw_request",
+      "reviewer_independence_verified",
+      "route_code",
+      "route_contract_code",
+      "route_contract_sha256",
+      "runtime_qualified",
+      "schema_version",
+      "semantic_contract_sha256",
+      "semantic_protocol_sha256",
+      "session_creation",
+      "source_authority_verified"
+    ],
+    "capture_required_fields": [
+      "capture_sha256",
+      "capture_state",
+      "current_surface",
+      "executor_mode",
+      "executor_provider",
+      "handoff_sha256",
+      "input_sha256",
+      "intent_analysis",
+      "intent_sha256",
+      "next_authority",
+      "no_run_created",
+      "owner_skill_code",
+      "owner_step_code",
+      "reviewer_independence_verified",
+      "route_code",
+      "route_contract_code",
+      "route_contract_sha256",
+      "runtime_provider_attested",
+      "schema_version"
+    ],
+    "unknown_fields": "REJECT_EVEN_IF_SHA_RESIGNED",
+    "source_owned_mode_and_surface": "CALLER_AUTHENTICATION_NOT_PROVEN_BY_JSON"
+  }
+}

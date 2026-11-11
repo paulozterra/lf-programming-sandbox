@@ -1,0 +1,66 @@
+{
+  "schema_version": "A2_SEMANTIC_GOLDEN_BRIDGE_SOURCE_READBACK_V1",
+  "status": "SOURCE_CANDIDATE_LOCAL_HELPER_TESTED_INTEGRATION_NOT_EXECUTED",
+  "source_commit": "9dd1600e140cd9e72f23cbae601658e0b1a8bdef",
+  "business": "LF",
+  "pr": 3624,
+  "date_local": "2026-11-09",
+  "objective": "Reconcile A1 semantic candidate with A2's Golden 12x59 and A2-A3 non-dispatchable preview, without enabling SALY or runtime A3.",
+  "exact_blobs": {
+    "skills/programming_analysis/steps/a2/adapters/a2_semantic_input_integrity_v1.py": "a0fa348b206cae31956be62cd92fdfa14fb8fdcc",
+    "skills/programming_analysis/steps/a2/evals/test_a2_semantic_input_integrity_v1.py": "df8314d38ff34c809928f200a7b92cbe55e22306",
+    "skills/programming_analysis/steps/a2/adapters/golden_dimensions_v1.py": "0ec0796ac1f25b416faeac9ce072eb201ac07c63",
+    "skills/programming_analysis/steps/a2/adapters/a2_a3_intake_preview_v1.py": "45df388d83ba6c080ff072df6656eab09c74c57d",
+    "skills/programming_analysis/steps/a2/evals/test_semantic_golden_preview_integration_v1.py": "d68cd66fde9bba5f4668d92926c9d8c3e8a403ec"
+  },
+  "local_helper_tests": {
+    "command": "cd /mnt/data/l1_l2_verification && python -m unittest -v test_a2_semantic_input_integrity_v1.py",
+    "interpreter": "Python 3.13.5",
+    "test_file_local_git_blob": "df8314d38ff34c809928f200a7b92cbe55e22306",
+    "helper_file_local_git_blob": "a0fa348b206cae31956be62cd92fdfa14fb8fdcc",
+    "byte_parity_with_github": true,
+    "tests_executed": 15,
+    "tests_passed": 15,
+    "tests_failed": 0,
+    "exit_code": 0,
+    "source": "isolated local helper module plus synthetic fixtures; no checkout of complete private repository"
+  },
+  "github_pase": {
+    "run_id": 42570295429,
+    "conclusion": "success",
+    "source_commit": "9dd1600e140cd9e72f23cbae601658e0b1a8bdef",
+    "specialized_python_suite_attested": false
+  },
+  "source_readback": {
+    "golden_semantic_mode_accepted_only_with_integrity_check": true,
+    "preview_semantic_mode_accepted_only_with_integrity_check": true,
+    "prestructured_path_retained": true,
+    "golden_12_59_result_generated_at_runtime": false,
+    "a3_allowed": false,
+    "source_attested": false,
+    "judge_verified": false
+  },
+  "pending_regressions": {
+    "prior_l1_l2_suite_defined": 21,
+    "new_semantic_golden_preview_suite_defined": 9,
+    "existing_repo_suite_executed_on_exact_head": 0,
+    "reason": "No private repository checkout in local Python runner; DNS resolution github.com unavailable and PASE does not execute these specialized unittests.",
+    "command": "python -m unittest discover -s skills/programming_analysis/steps/a2/evals -p 'test_*.py' -v"
+  },
+  "ekb_refs": [
+    "PROGRAMMING-ANALYSIS-STAGE-SOURCE-ATTESTATION-GAP-001",
+    "PROGRAMMING-ANALYSIS-A14-EVIDENCE-TIER-FALSE-READY-001",
+    "PROGRAMMING-ANALYSIS-CONTEXT-SNAPSHOT-HANDOFF-001"
+  ],
+  "no_change": [
+    "Main",
+    "Router",
+    "Supabase",
+    "canonical A1/A2/A3 contracts",
+    "skill catalog",
+    "runtime admission",
+    "SALY enablement"
+  ],
+  "blocker": "A2_PRECLASSIFICATION_A3_RESEARCH_CYCLE_OPEN_AND_INDEPENDENT_NATIVE_REVIEW_MISSING",
+  "next_step": "Review A2-P research-only gate against canonical A3 two-input contract; do not dispatch A3 or close until exact source suite and judge/readback are verified."
+}
