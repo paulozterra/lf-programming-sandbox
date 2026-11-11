@@ -1,0 +1,30 @@
+{
+  "imitates": "explicit simulated semantic producer inputs for A1/A2, no interpreter",
+  "simulated": true,
+  "data": {
+    "request": "Crear la pantalla de login SBX-AUTH-LOGIN con las reglas vigentes",
+    "business": "LF",
+    "signals": {
+      "schema_version": "ANALYSIS_A2_TYPED_SIGNAL_CANDIDATE_V1",
+      "business": "LF",
+      "target_ref": "SBX-AUTH-LOGIN",
+      "change_type": "CREATE",
+      "target_granularity": "SCREEN",
+      "nested_parent_ref": null,
+      "evidence_refs": [
+        "fixture://sbx_auth_login/semantic_signals.json"
+      ],
+      "depth_signals": {
+        "materiality_level": "UNKNOWN",
+        "scope_bounded": "UNKNOWN",
+        "authority_state": "UNKNOWN",
+        "reversibility_state": "UNKNOWN",
+        "currentness_decision": "UNKNOWN",
+        "material_contradiction": false,
+        "known_cross_scope_impact": "UNKNOWN",
+        "unresolved_material_signal_count": 1,
+        "required_specialist_count": 0
+      }
+    }
+  }
+}
