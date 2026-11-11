@@ -55,3 +55,4 @@
 | CHG-0051 | ADDITIVE | CP3.1: productores PG-02 a PG-14 fijados desde LF |  | paulozterra |  |
 | CHG-0052 | ADDITIVE | CP3.2: entrada de pedido y análisis simulado con PG-01 fixture |  | paulozterra |  |
 | CHG-0053 | EDITORIAL | Análisis F0: contratos canónicos fijados y suites offline |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/94 |
+| CHG-0054 | ADDITIVE | CP3.3: división y asignación de lotes con productores PG02-PG05 fijados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/95 |
