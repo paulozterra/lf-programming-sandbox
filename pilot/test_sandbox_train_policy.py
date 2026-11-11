@@ -69,7 +69,7 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(len(seen), 1)
         self.assertIn("markPullRequestReadyForReview", seen[0][0])
         self.assertEqual(seen[0][1], {"id": "PR_eligible"})
-        self.assertEqual(read.call_count, 4)
+        self.assertEqual(read.call_count, 3)
         self.assertTrue(any(c.args[0] == "PUT" and c.args[1] == "/pulls/101/merge"
                             for c in api_mock.call_args_list))
 
