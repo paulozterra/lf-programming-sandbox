@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0041",
+  "title": "CP0.2 B: identidad Git local para merge efímero del Train",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-10: Train run 42943638927 falló BRANCH_CONFLICT MERGE_FAILED por committer identity unknown"
+  },
+  "reason": "Git merge --no-commit requiere identidad del committer incluso cuando hay conflicto en CAMBIOS.md. Configurar user.name y user.email inmediatamente después de git init en el repositorio efímero de update_branch_locally, sin modificar identidad global ni otros repositorios. Añadir prueba offline de conflicto CAMBIOS con HOME vacío y GIT_CONFIG_NOSYSTEM=1, sin identidad Git previa, comprobando merge y validación.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/sandbox_train_merge.py",
+      "pilot/test_sandbox_train_merge.py",
+      "standards/changes/CHG-0041.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/82"
+  },
+  "decision_ref": "Fusionar este PR sin que quede atrasado (toca pilot/sandbox_train*.py); después Paulo o Claude relanzan Train del #81 mediante workflow_dispatch desde main. No disparar Train #81 ni tocar rama #81 antes del merge; CP0.3 sigue sin activar."
+}

@@ -43,7 +43,7 @@ def check_tooling_unchanged(root, base_ref, expected_head):
         root, "diff", "--name-only", "-z", base_ref + "..." + expected_head,
         "--", "standards/tools/", ":(glob)pilot/sandbox_train*.py"
     ).stdout
-    paths = sorted(filter(None, changed.split("\\0")))
+    paths = sorted(filter(None, changed.split("\0")))
     if paths:
         raise BranchConflict("BRANCH_CONFLICT_TOOLING_CHANGED " + ",".join(paths))
 
@@ -89,6 +89,13 @@ def prepare_merge(root, base_ref, expected_head):
     return git(root, "rev-parse", "HEAD").stdout.strip()
 
 
+def configure_bot_identity(root):
+    """Identity is local to the temporary clone, independent of runner HOME."""
+    git(root, "config", "--local", "user.name", "sandbox-train[bot]")
+    git(root, "config", "--local", "user.email",
+        "41898282+github-actions[bot]@users.noreply.github.com")
+
+
 def update_branch_locally(branch, expected_head, expected_main, token, repository):
     """No remote write until local merge + C9 checks succeed."""
     if not branch or branch.startswith("-") or branch == "main":
@@ -96,6 +103,8 @@ def update_branch_locally(branch, expected_head, expected_main, token, repositor
     with tempfile.TemporaryDirectory(prefix="sandbox-train-") as directory:
         root = Path(directory)
         git(root, "init", "-q")
+        # git merge --no-commit requires an identity even when conflicts occur.
+        configure_bot_identity(root)
         remote = "https://github.com/" + repository + ".git"
         git(root, "remote", "add", "origin", remote)
         git(root, "fetch", "--no-tags", "origin",
