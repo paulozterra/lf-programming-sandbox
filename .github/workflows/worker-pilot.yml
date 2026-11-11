@@ -54,6 +54,20 @@ jobs:
     timeout-minutes: ${{ (inputs.task == 'exercise-3' || inputs.task == 'ex4a' || inputs.task == 'ex4b' || inputs.task == 'ex5c') && 30 || 10 }}
     permissions:
       contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pilot
+          POSTGRES_DB: pilot
+          POSTGRES_PASSWORD: pilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pilot -d pilot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     env:
       PYTHONDONTWRITEBYTECODE: "1"
       PILOT_TASK: ${{ inputs.task }}
@@ -75,6 +89,41 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Set up Node 22 for isolated Worker
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Expose Node, npm and PostgreSQL client in Worker fixed PATH
+        shell: bash
+        run: |
+          set -euo pipefail
+          for binary in node npm psql pg_isready; do
+            resolved="$(readlink -f "$(command -v "$binary")")"
+            test -x "$resolved"
+            sudo ln -sfn "$resolved" "/usr/local/bin/$binary"
+          done
+      - name: Smoke-test isolated Node, npm, Java and disposable PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          isolated_path="/usr/local/bin:/usr/bin:/bin"
+          for binary in node npm psql pg_isready; do
+            test "$(/usr/bin/env -i PATH="$isolated_path" /bin/sh -c "command -v $binary")" = "/usr/local/bin/$binary"
+          done
+          env -i PATH="$isolated_path" node --version | grep -Eq '^v22\.'
+          env -i PATH="$isolated_path" npm --version
+          # Java 21 is configured later only for tasks that require it.
+          env -i PATH="$isolated_path" java -version 2>&1 | grep -E 'version "'
+          env -i PATH="$isolated_path" pg_isready -h 127.0.0.1 -p 5432 -U pilot -d pilot
+          # Worker command environment keeps only SAFE_ENV_KEYS (not PGPASSWORD).
+          # URL is intentionally local and disposable, never a production secret.
+          isolated_home="$(mktemp -d)"
+          trap 'rm -rf "$isolated_home"' EXIT
+          env -i PATH="$isolated_path" HOME="$isolated_home" LANG=C.UTF-8 \
+            psql -w -X -v ON_ERROR_STOP=1 \
+              'postgresql://pilot:pilot@127.0.0.1:5432/pilot' \
+              -Atqc 'SELECT 1' | grep -qx 1
+          echo CP1_1_ISOLATED_TOOLCHAIN_PASS
       - name: Validate manual inputs and verify every vendored Worker byte BEFORE install
         id: vendor
         shell: bash

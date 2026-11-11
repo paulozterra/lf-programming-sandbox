@@ -44,3 +44,4 @@
 | CHG-0040 | EDITORIAL | CP0.2 B: humo de recuperación por conflicto exclusivo CAMBIOS |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/81 |
 | CHG-0041 | EDITORIAL | CP0.2 B: identidad Git local para merge efímero del Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/82 |
 | CHG-0042 | ADDITIVE | CP0.2 B: esperar propagación del HEAD y despachar CI ausente por SHA |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/83 |
+| CHG-0043 | EDITORIAL | CP1.1: Node 22 y PostgreSQL 17 efímero en ambos modos Worker |  | paulozterra |  |
