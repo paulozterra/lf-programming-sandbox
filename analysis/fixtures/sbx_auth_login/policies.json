@@ -1,0 +1,28 @@
+{
+  "imitates": "lf_ops.pantallas_politicas + lf_ops.politicas_*",
+  "schema_version": "LF_SCREEN_POLICIES_READBACK_V1",
+  "policy_links": [
+    {
+      "source_ref": "supabase://lf_ops.pantallas_politicas/71",
+      "reference_role": "security_policy_id",
+      "policy_target_ref": "supabase://lf_ops.politicas_seguridad/71",
+      "status": "VIGENTE",
+      "policy_kind": "seguridad"
+    }
+  ],
+  "policy_objects": [
+    {
+      "table": "lf_ops.politicas_seguridad",
+      "primary_key": "security_policy_id",
+      "policy_id": 71,
+      "policy_code": "SBX-P-LOGIN",
+      "status": "VIGENTE",
+      "parameters": {
+        "generic_error": true
+      },
+      "source_ref": "supabase://lf_ops.politicas_seguridad/71",
+      "read_origin": "DIRECT_CANONICAL_POLICY_LOOKUP",
+      "read_source_ref": "supabase://lf_ops.politicas_seguridad/71"
+    }
+  ]
+}
