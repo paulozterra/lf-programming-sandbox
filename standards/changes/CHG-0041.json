@@ -31,7 +31,7 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/82"
   },
   "decision_ref": "Fusionar este PR sin que quede atrasado (toca pilot/sandbox_train*.py); después Paulo o Claude relanzan Train del #81 mediante workflow_dispatch desde main. No disparar Train #81 ni tocar rama #81 antes del merge; CP0.3 sigue sin activar."
 }
