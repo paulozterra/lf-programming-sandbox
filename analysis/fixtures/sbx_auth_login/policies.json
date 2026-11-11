@@ -1,0 +1,34 @@
+{
+  "fixture_schema": "SBX_SOURCE_READBACK_V1",
+  "simulated": true,
+  "source_attested": false,
+  "authority_verified": false,
+  "imitates": "lf_ops.pantallas_politicas + lf_ops.politicas_* (fallback)",
+  "payload": {
+    "policy_objects": [
+      {
+        "table": "lf_ops.politicas_seguridad",
+        "primary_key": "security_policy_id",
+        "policy_id": 900081,
+        "policy_code": "SBX-POLICY-LOCKOUT",
+        "status": "VIGENTE",
+        "parameters": {
+          "max_attempts": 5,
+          "minutes": 15
+        },
+        "source_ref": "supabase://lf_ops.politicas_seguridad/900081",
+        "read_origin": "DIRECT_CANONICAL_POLICY_LOOKUP",
+        "read_source_ref": "supabase://lf_ops.politicas_seguridad/900081"
+      }
+    ],
+    "policy_links": [
+      {
+        "source_ref": "supabase://lf_ops.pantallas_politicas/900081",
+        "reference_role": "security_policy_id",
+        "policy_target_ref": "supabase://lf_ops.politicas_seguridad/900081",
+        "status": "VIGENTE",
+        "policy_kind": "seguridad"
+      }
+    ]
+  }
+}
