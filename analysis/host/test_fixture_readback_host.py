@@ -47,6 +47,12 @@ def test_chain_runs_real_a1_to_a5_with_six_effective_rules(tmp_path):
     assert len(out["fixture_provenance"]) == 13
     assert all(x.startswith("fixture://sbx_auth_login/") and len(x.rsplit("@",1)[1]) == 64
                for x in out["fixture_provenance"].values())
+    profiles = stages["A5"]["rule_profiles"]["rules"]
+    approved = [row for row in profiles if row["implementation_scope"] == "APPROVED_SCOPE"]
+    assert len(approved) == 6
+    assert {row["rule_code"] for row in approved} == {row["rule_code"] for row in valid}
+    assert all(row["rule_source_ref"].startswith("supabase://lf_ops.reglas/") for row in approved)
+    assert stages["A5"]["rule_profiles"]["source_attested"] is False if "source_attested" in stages["A5"]["rule_profiles"] else True
     assert stages["A5"]["source_attested"] is False
     assert stages["A5"]["a6_allowed"] is False
     assert all((tmp_path / (s.lower()+".json")).is_file() for s in stages)
