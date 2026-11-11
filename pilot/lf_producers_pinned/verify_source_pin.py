@@ -24,7 +24,7 @@ def check(root: Path, source: Path | None = None) -> dict:
             or raw.get("source_commit_sha") != PIN_COMMIT):
         raise ValueError("SOURCE_PIN_HEADER_DRIFT")
     entries = raw.get("files")
-    if not isinstance(entries, list) or len(entries) != 251:
+    if not isinstance(entries, list) or len(entries) != 252:
         raise ValueError("SOURCE_PIN_COUNT_INVALID")
     if source is not None:
         head = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"],

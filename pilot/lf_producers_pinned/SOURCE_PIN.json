@@ -1504,6 +1504,12 @@
       "size_bytes": 7902
     },
     {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/programming_solution_partition_contract_v1.json",
+      "destination_path": "pilot/lf_producers_pinned/wave1_boundary_contracts/programming_solution_partition_contract_v1.json",
+      "sha256": "e6e2f23645151247598c341ecdefdc9d6f4a7698bfad3223b1e1e05c0b1149bb",
+      "size_bytes": 1492
+    },
+    {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/testing_admission_contract_v1.json",
       "destination_path": "pilot/lf_producers_pinned/wave1_boundary_contracts/testing_admission_contract_v1.json",
       "sha256": "806b801b40fc0f000a16b6d32eb07e205d4c72001e9c1faef81c43832e306939",

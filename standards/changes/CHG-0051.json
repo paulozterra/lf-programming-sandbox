@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo 2026-11-11 CP3.1 plan ruta híbrida §6 P3 y pin LF 882c7213f83887952a99ad0793174d535eb91233"
   },
-  "reason": "Fija byte a byte 251 fuentes candidatas PG-02 a PG-14, selector experimental, puente PG-04→PG-07 y H4 EX6 en pilot/lf_producers_pinned/, sin copiar profiles/ ni vendor/ ni tocar sistemas reales. SOURCE_PIN.json documenta origen/destino/SHA-256; CI compara cada archivo con checkout LF del SHA exacto, corre suites offline sin credenciales y señala explícitamente los tests de paridad que requieren psql/base desechable. Se incluyeron gate C6 y contrato de admisión Testing PG14 importados, sin copiar perfiles reales; las suites que requieren Postgres, profiles/ reales o ZIP histórico se registran REQUIERE_ENTORNO_LF.",
+  "reason": "Fija byte a byte 252 fuentes candidatas PG-02 a PG-14, selector experimental, puente PG-04→PG-07 y H4 EX6 en pilot/lf_producers_pinned/, sin copiar profiles/ ni vendor/ ni tocar sistemas reales. SOURCE_PIN.json documenta origen/destino/SHA-256; CI compara cada archivo con checkout LF del SHA exacto, corre suites offline sin credenciales y señala explícitamente los tests de paridad que requieren psql/base desechable. Se incluyeron gate C6 y contrato de admisión Testing PG14 importados, sin copiar perfiles reales; las suites que requieren Postgres, profiles/ reales o ZIP histórico se registran REQUIERE_ENTORNO_LF. Se añadió contrato exacto de partición PG04 requerido por la prueba de puente PG03→PG04.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
