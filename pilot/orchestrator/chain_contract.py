@@ -72,7 +72,9 @@ def attest_merge(merge_sha: str, pr: dict, lots: dict,
     if (pr.get("merged") is not True or pr.get("base", {}).get("ref") != "main"
             or pr.get("base", {}).get("repo", {}).get("full_name") !=
             "paulozterra/lf-programming-sandbox"
-            or pr.get("merge_commit_sha") != merge_sha):
+            or pr.get("merge_commit_sha") != merge_sha
+            or pr.get("head", {}).get("repo", {}).get("full_name") !=
+            "paulozterra/lf-programming-sandbox"):
         deny("PR_NOT_MERGED_ON_MAIN")
     branch = pr.get("head", {}).get("ref", "")
     match = PR_HEAD.fullmatch(branch)
