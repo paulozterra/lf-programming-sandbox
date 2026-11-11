@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0046",
+  "title": "PR A: Train promueve draft etiquetado a Ready for review",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 PR A: draft con etiqueta ready-to-merge"
+  },
+  "reason": "El Train marca Ready for review con GraphQL markPullRequestReadyForReview únicamente cuando el PR está abierto, en el mismo repo y etiquetado ready-to-merge; relee la metadata REST, bloquea si falla con DRAFT_READY_FAILED, y mantiene check_pr para todas las compuertas habituales. Los drafts sin etiqueta, forks y cerrados bloquean. El workflow ya dispone de pull-requests: write, sin cambios de permisos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/sandbox_train.py",
+      "pilot/test_sandbox_train_policy.py",
+      "standards/changes/CHG-0046.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

@@ -43,6 +43,79 @@ class PolicyTests(unittest.TestCase):
                 with self.assertRaises(train.TrainError):
                     train.check_pr(pr)
 
+    def test_labeled_draft_transitions_then_normal_merge_flow(self):
+        draft = sample_pr(draft=True)
+        draft["node_id"] = "PR_eligible"
+        ready = sample_pr(draft=False)
+        ready["node_id"] = "PR_eligible"
+        seen = []
+        def fake_graphql(query, variables):
+            seen.append((query, variables))
+            return {"markPullRequestReadyForReview": {
+                "pullRequest": {"id": "PR_eligible", "isDraft": False}}}
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox",
+                                     "TRAIN_RECEIPT": os.devnull}), \
+             patch.object(train, "pr_data", side_effect=[draft, ready, ready, ready]) as read, \
+             patch.object(train, "graphql", side_effect=fake_graphql), \
+             patch.object(train, "main_sha", return_value="m" * 40), \
+             patch.object(train, "await_checks", return_value={"backend": {"conclusion": "success"}}), \
+             patch.object(train, "api") as api_mock:
+            api_mock.side_effect = lambda method, path, payload=None, expected=(200,): (
+                {"behind_by": 0, "status": "ahead"} if path.startswith("/compare/") else
+                {"merged": True, "sha": "c" * 40} if path.endswith("/merge") else
+                {"parents": [{}, {}]} if path == "/commits/" + "c" * 40 else
+                (_ for _ in ()).throw(AssertionError(path)))
+            train.run(101)
+        self.assertEqual(len(seen), 1)
+        self.assertIn("markPullRequestReadyForReview", seen[0][0])
+        self.assertEqual(seen[0][1], {"id": "PR_eligible"})
+        self.assertEqual(read.call_count, 4)
+        self.assertTrue(any(c.args[0] == "PUT" and c.args[1] == "/pulls/101/merge"
+                            for c in api_mock.call_args_list))
+
+    def test_draft_without_label_denied_before_graphql(self):
+        draft = sample_pr(draft=True)
+        draft["labels"] = []
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"}), \
+             patch.object(train, "pr_data", return_value=draft), \
+             patch.object(train, "graphql") as mutation:
+            with self.assertRaisesRegex(train.TrainError, "PR_CLOSED_OR_DRAFT"):
+                train.run(101)
+            mutation.assert_not_called()
+
+    def test_forked_draft_denied_before_graphql(self):
+        draft = sample_pr(draft=True, fork=True)
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"}), \
+             patch.object(train, "pr_data", return_value=draft), \
+             patch.object(train, "graphql") as mutation:
+            with self.assertRaisesRegex(train.TrainError, "FORK_REJECTED"):
+                train.run(101)
+            mutation.assert_not_called()
+
+    def test_failed_mutation_blocks_without_followup(self):
+        draft = sample_pr(draft=True)
+        draft["node_id"] = "PR_eligible"
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"}), \
+             patch.object(train, "pr_data", return_value=draft) as read, \
+             patch.object(train, "graphql", side_effect=train.TrainError("GRAPHQL_RESPONSE_INVALID")), \
+             patch.object(train, "main_sha") as main, \
+             patch.object(train, "api") as api_mock:
+            with self.assertRaisesRegex(train.TrainError, "DRAFT_READY_FAILED"):
+                train.run(101)
+            self.assertEqual(read.call_count, 1)
+            main.assert_not_called()
+            api_mock.assert_not_called()
+
+    def test_closed_pr_denied_even_with_label(self):
+        draft = sample_pr(draft=True)
+        draft["state"] = "closed"
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"}), \
+             patch.object(train, "pr_data", return_value=draft), \
+             patch.object(train, "graphql") as mutation:
+            with self.assertRaisesRegex(train.TrainError, "PR_CLOSED_OR_DRAFT"):
+                train.run(101)
+            mutation.assert_not_called()
+
     def test_label_missing_denied(self):
         pr = sample_pr()
         pr["labels"] = []

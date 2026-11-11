@@ -46,3 +46,4 @@
 | CHG-0042 | ADDITIVE | CP0.2 B: esperar propagación del HEAD y despachar CI ausente por SHA |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/83 |
 | CHG-0043 | EDITORIAL | CP1.1: Node 22 y PostgreSQL 17 efímero en ambos modos Worker |  | paulozterra |  |
 | CHG-0044 | EDITORIAL | CP1.2: perfiles FRONTEND/DATA y binding Next.js fijado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/85 |
+| CHG-0046 | ADDITIVE | PR A: Train promueve draft etiquetado a Ready for review |  | paulozterra |  |
