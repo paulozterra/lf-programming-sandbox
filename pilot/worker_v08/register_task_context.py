@@ -293,6 +293,15 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         block("TASK_SPEC_INVALID")
     if sorted(set(lot_paths)) != sorted(set(spec_input.get("write_path_patterns", []))):
         block("LOT_WRITE_SCOPE_MISMATCH")
+    # Fail closed on invalid/non-ancestor base before deriving any contextual files.
+    if not (root / ".git").exists():
+        block("LOT_PREFLIGHT_NO_GIT")
+    if task_name.lower() not in {"ex6", "ex7", "ex8"}:
+        from lot_preflight import base_tree
+        try:
+            base_tree(root, spec_input.get("base_head_sha"))
+        except LotBlocked as exc:
+            block(str(exc))
     try:
         spec_paths = spec_input.get("spec_paths")
         if spec_paths is None:
@@ -302,7 +311,7 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         derived = derive(root, lot_paths, sorted(set(spec_paths)))
     except (DeriveBlocked, TypeError, KeyError) as exc:
         block(str(exc))
-    # Derive first; then gate the exact effective read scope before publishing.
+    # Gate all new scopes against task.base_head_sha, never the control checkout.
     if not (root / ".git").exists():
         block("LOT_PREFLIGHT_NO_GIT")
     if task_name.lower() not in {"ex6", "ex7", "ex8"}:
