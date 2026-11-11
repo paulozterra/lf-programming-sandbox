@@ -86,7 +86,7 @@ def check_handoff(root: Path, handoff: dict | None = None) -> str:
     blocked("HANDOFF_LOT_A_MISSING")
 
 
-_SHA40 = re.compile(r"[0-9a-f]{40}\\Z")
+_SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 
 
 def _git_bytes(root: Path, *args: str) -> bytes:

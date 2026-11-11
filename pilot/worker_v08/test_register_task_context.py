@@ -64,6 +64,11 @@ def run(task, **overrides):
     params = dict(project="lf_java", area="BACKEND", lot_paths=[WRITE],
                   task_name="ex8", budget=160000, root=ROOT, pinned=PINS, persist=False)
     params.update(overrides)
+    if "root" in overrides and (params["root"] / ".git").exists():
+        scoped = copy.deepcopy(task)
+        payload = scoped.get("task_spec", scoped)
+        payload["base_head_sha"] = git(params["root"], "rev-parse", "HEAD")
+        task = scoped
     return mod.register(task, **params)
 
 
