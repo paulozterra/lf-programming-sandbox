@@ -17,6 +17,7 @@ import re
 import sys
 from derive_context import derive, ContextBlocked as DeriveBlocked
 from lot_preflight import check_task, LotBlocked
+from holdout_age import holdout_ref, AgeBlocked
 
 ROOT = Path(__file__).resolve().parents[2]
 PINROOT = ROOT / "pilot/lf_profiles_pinned"
@@ -392,7 +393,9 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     return output, artifacts
 
 
-def native_registration_bytes(task_spec: dict, holdout_sha256: str) -> bytes:
+def native_registration_bytes(task_spec: dict, holdout_sha256: str,
+                              holdout_reference: str | None = None,
+                              task_name: str | None = None) -> bytes:
     """Same two-key schema consumed by native_run.load_registration."""
     if not isinstance(holdout_sha256, str) or not SHA64.fullmatch(holdout_sha256):
         block("NATIVE_HOLDOUT_SHA_INVALID")
@@ -400,7 +403,13 @@ def native_registration_bytes(task_spec: dict, holdout_sha256: str) -> bytes:
         block("NATIVE_TASK_SPEC_INVALID")
     if not isinstance(task_spec.get("base_head_sha"), str) or not SHA40.fullmatch(task_spec["base_head_sha"]):
         block("NATIVE_BASE_HEAD_INVALID")
-    return canonical({"task_spec": task_spec, "holdout_sha256": holdout_sha256})
+    result = {"task_spec": task_spec, "holdout_sha256": holdout_sha256}
+    if holdout_reference is not None:
+        try:
+            result["holdout_ref"] = holdout_ref(task_name, holdout_reference)
+        except AgeBlocked as exc:
+            block(str(exc))
+    return canonical(result)
 
 
 def native_path(root: Path, task_name: str, native_out: Path) -> Path:
@@ -419,9 +428,11 @@ def native_path(root: Path, task_name: str, native_out: Path) -> Path:
 
 
 def write_native_registration(root: Path, task_name: str, native_out: Path,
-                              task_spec: dict, holdout_sha256: str) -> bytes:
+                              task_spec: dict, holdout_sha256: str,
+                              holdout_reference: str | None = None) -> bytes:
     destination = native_path(root, task_name, native_out)
-    payload = native_registration_bytes(task_spec, holdout_sha256)
+    payload = native_registration_bytes(task_spec, holdout_sha256,
+                                        holdout_reference, task_name)
     if destination.exists():
         if not destination.is_file() or destination.read_bytes() != payload:
             block("NATIVE_TASK_EXISTS")
@@ -443,6 +454,7 @@ def main() -> int:
     p.add_argument("--native-out", type=Path,
                    help="Native task registration at pilot/worker_v08/native_tasks/<t>.json")
     p.add_argument("--holdout-sha256", help="External 64-hex digest, never the oracle body")
+    p.add_argument("--holdout-ref", help="Optional pilot/holdouts/<task>.oracle.json.age")
     p.add_argument("--task-name", required=True)
     p.add_argument("--project", required=True)
     p.add_argument("--area", required=True, choices=("BACKEND", "FRONTEND", "DATA"))
@@ -451,13 +463,13 @@ def main() -> int:
     args = p.parse_args()
     if not args.out_task and not args.native_out:
         block("TASK_OUTPUT_REQUIRED")
-    if args.native_out is None and args.holdout_sha256 is not None:
+    if args.native_out is None and (args.holdout_sha256 is not None or args.holdout_ref is not None):
         block("NATIVE_TASK_PATH_INVALID")
     if args.native_out is not None:
         native_path(ROOT, args.task_name, args.native_out)
         native_registration_bytes(
             json.loads(args.task_file.read_text("utf-8")).get("task_spec", {}),
-            args.holdout_sha256)
+            args.holdout_sha256, args.holdout_ref, args.task_name)
     if args.out_task and args.task_file.resolve() == args.out_task.resolve():
         block("TASK_INPUT_IMMUTABLE")
     # Generated task registrations must not overwrite vendor/, production profiles,
@@ -476,7 +488,7 @@ def main() -> int:
     if args.native_out:
         spec = enriched["task_spec"] if "task_spec" in enriched else enriched
         write_native_registration(ROOT, args.task_name, args.native_out, spec,
-                                  args.holdout_sha256)
+                                  args.holdout_sha256, args.holdout_ref)
     if args.out_task:
         if args.out_task.exists():
             block("TASK_OUTPUT_EXISTS")
