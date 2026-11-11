@@ -401,7 +401,16 @@ jobs:
           set -euo pipefail
           PGPASSWORD=pilot psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c "INSERT INTO public.lf_project_area_pattern_exp(project_ref,area,path_prefix) VALUES ('lf_java','BACKEND','apps/time-service/src/main/java/')"
           python3 pilot/orchestrator/intake.py --request-id p4-prioridad
-          python3 pilot/orchestrator/plan_lots.py --request-id p4-prioridad
+          python3 - <<'PYDIAG'
+          import sys, pathlib, traceback
+          sys.path.insert(0, 'pilot/orchestrator')
+          import plan_lots
+          try:
+              plan_lots.plan(pathlib.Path('.'), 'p4-prioridad')
+          except Exception:
+              traceback.print_exc()
+              raise
+          PYDIAG
           python3 - <<'PY'
           import json,pathlib
           folder=pathlib.Path('pilot/runs/p4-prioridad')
