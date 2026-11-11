@@ -103,10 +103,21 @@ def base_tree(root: Path, base: str) -> dict[str, tuple[str, str]]:
         blocked("LOTE_BASE_INVALIDA")
     if _git_bytes(root, "cat-file", "-t", base).strip() != b"commit":
         blocked("LOTE_BASE_INVALIDA")
-    # Trusted main is the required ancestry boundary.
+    # CI pull-request checkouts are detached and may have only origin/main.
+    # Never accept the PR's HEAD as the trust boundary.
+    main = None
+    for candidate in ("refs/remotes/origin/main", "refs/heads/main"):
+        probe = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", candidate],
+            check=False, capture_output=True, timeout=30)
+        if probe.returncode == 0:
+            main = probe.stdout.decode("ascii").strip()
+            break
+    if main is None:
+        blocked("LOTE_BASE_INVALIDA")
     try:
         subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor",
-                        base, "main"], check=True, capture_output=True, timeout=30)
+                        base, main], check=True, capture_output=True, timeout=30)
     except (subprocess.CalledProcessError, OSError, subprocess.TimeoutExpired):
         blocked("LOTE_BASE_INVALIDA")
     records = _git_bytes(root, "ls-tree", "-rz", "--full-tree", base).split(b"\\0")

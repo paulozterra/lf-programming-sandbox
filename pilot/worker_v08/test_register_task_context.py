@@ -21,7 +21,7 @@ def task_spec():
         "schema_version": 1,
         "task_id": "LF-WORKER-NATIVE-EX8",
         "base_head_sha": subprocess.check_output(
-            ["git", "-C", str(ROOT), "rev-parse", "main"], text=True).strip(),
+            ["git", "-C", str(ROOT), "rev-parse", "refs/remotes/origin/main"], text=True).strip(),
         "objective": "Sandbox-only exercise; no actual Worker dispatch",
         "context_path_patterns": ["apps/time-service/REMINDERS_SPEC.md"],
         "write_path_patterns": [WRITE],
@@ -46,6 +46,7 @@ def git(root, *args):
 
 def init_git_fixture(root):
     git(root, "init", "-q")
+    git(root, "symbolic-ref", "HEAD", "refs/heads/main")
     git(root, "config", "user.name", "CP1.4 Offline")
     git(root, "config", "user.email", "cp14@example.invalid")
     spec = root / "apps/time-service/REMINDERS_SPEC.md"
