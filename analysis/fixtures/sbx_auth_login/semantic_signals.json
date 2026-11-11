@@ -1,0 +1,57 @@
+{
+  "imitates": "external semantic producer for A1 / typed classification signals for A2",
+  "simulation": true,
+  "request_text": "Crear la pantalla de login SBX-AUTH-LOGIN con las reglas vigentes",
+  "a1_structured": {
+    "business": "LF",
+    "request_identity": {
+      "request_ref": "fixture://sbx_auth_login/semantic_signals.json",
+      "request_kind": "USER_REQUEST"
+    },
+    "objective": {
+      "problem_statement": "Crear la pantalla de login SBX-AUTH-LOGIN con las reglas vigentes",
+      "desired_outcome": "Definir la pantalla ficticia SBX-AUTH-LOGIN sin implementar código"
+    },
+    "target_hints": [
+      "SBX-AUTH-LOGIN"
+    ],
+    "source_refs": [
+      "fixture://sbx_auth_login/semantic_signals.json"
+    ],
+    "provided_facts": [
+      {
+        "fact_code": "SOURCE_SCREEN_HINT",
+        "value": "SBX-AUTH-LOGIN",
+        "source_ref": "fixture://sbx_auth_login/semantic_signals.json"
+      }
+    ],
+    "constraints": [
+      "Solo reglas VIGENTE sin decisión pendiente",
+      "Sin autoridad productiva"
+    ],
+    "ambiguities": [],
+    "declared_intent_kind": "CREATE"
+  },
+  "a2_signals": {
+    "schema_version": "ANALYSIS_A2_TYPED_SIGNAL_CANDIDATE_V1",
+    "business": "LF",
+    "target_ref": "SBX-AUTH-LOGIN",
+    "change_type": "CREATE",
+    "target_granularity": "SCREEN",
+    "nested_parent_ref": null,
+    "evidence_refs": [
+      "fixture://sbx_auth_login/semantic_signals.json"
+    ],
+    "depth_signals": {
+      "materiality_level": "LOW",
+      "scope_bounded": "TRUE",
+      "authority_state": "SUFFICIENT",
+      "reversibility_state": "DEMONSTRATED",
+      "currentness_decision": "CURRENT",
+      "material_contradiction": false,
+      "known_cross_scope_impact": false,
+      "unresolved_material_signal_count": 0,
+      "required_specialist_count": 0
+    }
+  }
+}
