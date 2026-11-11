@@ -1,0 +1,13 @@
+{
+  "imitates": "lf_ops.pantallas_estados",
+  "states": [
+    {
+      "code": "SBX-ST-LOCKED",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-ST-READY",
+      "status": "VIGENTE"
+    }
+  ]
+}
