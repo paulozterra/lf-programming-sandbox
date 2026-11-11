@@ -395,14 +395,9 @@ def process(event_run_id: int) -> list[dict]:
     if not all_plans:
         return [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS"}]
     history = first_parent_merges()
-    current_pr = None
-    if kind == "TRAIN":
-        try:
-            current_pr, _ = merged_integration(head)
-        except ChainBlocked as exc:
-            if str(exc) in ("CP36_NOT_NATIVE_INTEGRATION", "CP36_HEAD_NOT_TRAIN_MERGE"):
-                return [{"status": "IGNORED_UNRELATED_TRAIN_MERGE"}]
-            raise
+    # Historical first-parent commits are the proof. Reconcile all merged
+    # native integrations so an unrelated Train merge between the source
+    # event and this job cannot silently lose a successor.
     outcomes = []
     for request, lots, state, bindings in all_plans:
         if state.get("stage") == "BLOCKED":
@@ -416,20 +411,16 @@ def process(event_run_id: int) -> list[dict]:
             continue
         if kind != "TRAIN":
             continue
-        # Do not schedule all ready lots after an unrelated train merge.
-        if current_pr is None:
-            continue
-        current_task = current_pr.get("head", {}).get("ref", "").split("-run-")[0]
-        merged_tasks = {receipt["task_name"] for receipt in completed.values()
-                        if receipt["merge_sha"] == head}
-        if not merged_tasks or current_task not in {
-                "lf/native-integration/" + t for t in merged_tasks}:
-            continue
         for lot_id in result["ready_lot_ids"]:
             lot = next(x for x in lots["lots"] if x["id"] == lot_id)
-            if not (set(lot["depends_on"]) & set(
-                    receipt["lot_id"] for receipt in completed.values()
-                    if receipt["merge_sha"] == head)):
+            if not lot["depends_on"]:
+                continue  # first/root lot is still enrolled by the owner
+            if not set(lot["depends_on"]).issubset(completed):
+                continue
+            task = bindings[lot_id]["task_name"]
+            # A registered task already merged on main is never prepared again.
+            registered = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+            if registered.exists() or registered.is_symlink():
                 continue
             outcomes.append({"request": request, "lot_id": lot_id,
                              **prepare_successor(request, bindings[lot_id] | {
