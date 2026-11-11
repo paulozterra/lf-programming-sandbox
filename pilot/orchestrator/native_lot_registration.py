@@ -28,6 +28,7 @@ from register_task_context import (
     write_native_registration,
 )
 from export_task_pack import export
+from programming_agent_runner.hashutil import source_snapshot_sha256
 
 SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 SHA64 = re.compile(r"[0-9a-f]{64}\Z")
@@ -199,7 +200,8 @@ def seal_lot(root: Path, folder: Path, lot: dict, mapped: dict,
         pass
     for name in ("profile.md", "skills.md", "receipt.json"):
         git(root, "cat-file", "-e", f"{head}:.lf/worker-context/{task_name}/{name}")
-    sealed = dict(spec, base_head_sha=head)
+    sealed = dict(spec, base_head_sha=head,
+                  source_snapshot_sha256=source_snapshot_sha256(root))
     # The existing register_task_context controls the registration's shape.
     payload = native_registration_bytes(sealed, sha, ref, task_name)
     task_file.write_bytes(payload)
@@ -236,10 +238,17 @@ def export_lot(root: Path, folder: Path, lot: dict, mapped: dict,
     # export_task_pack consumes the raw WorkerTaskSpec, not its wrapper.
     # Temporary specs never enter the git repository or the proposal pack.
     import tempfile
-    with tempfile.TemporaryDirectory(prefix="cp34-task-") as tmp:
-        raw_spec = Path(tmp) / "task.json"
-        raw_spec.write_bytes(canonical(spec))
-        pack_hash = export(root, raw_spec, pack_path)
+    with tempfile.TemporaryDirectory(prefix="cp34-source-") as tmp:
+        source = Path(tmp) / "source"
+        # The Worker hashes the base source tree. Never export from the control
+        # checkout containing the newer sealed registration commit.
+        git(root, "worktree", "add", "--detach", str(source), base)
+        try:
+            raw_spec = Path(tmp) / "task.json"
+            raw_spec.write_bytes(canonical(spec))
+            pack_hash = export(source, raw_spec, pack_path)
+        finally:
+            git(root, "worktree", "remove", "--force", str(source))
     request = {"schema_version": "CP34_NATIVE_PROPOSAL_REQUEST_V1",
                "status": "PROPOSAL_REQUEST_ONLY",
                "task_name": task_name, "lot_id": lot["id"],
