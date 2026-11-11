@@ -42,3 +42,4 @@
 | CHG-0038 | ADDITIVE | CP0.2: recuperación del Train ante conflicto exclusivo en CAMBIOS.md |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/79 |
 | CHG-0039 | EDITORIAL | CP0.2 A: corregir split de NUL en guard del Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/80 |
 | CHG-0041 | EDITORIAL | CP0.2 B: identidad Git local para merge efímero del Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/82 |
+| CHG-0042 | ADDITIVE | CP0.2 B: esperar propagación del HEAD y despachar CI ausente por SHA |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/83 |

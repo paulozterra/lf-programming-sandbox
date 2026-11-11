@@ -20,6 +20,8 @@ REQUIRED = (
 MAX_RESTARTS = 3
 WAIT_SECONDS = 1500
 POLL_SECONDS = 20
+POST_PUSH_VISIBILITY_SECONDS = 60
+CI_MISSING_GRACE_SECONDS = 60
 
 
 class TrainError(Exception):
@@ -91,13 +93,56 @@ def checks_for_head(sha):
     return found
 
 
-def await_checks(number, sha):
-    deadline = time.monotonic() + WAIT_SECONDS
+def ci_workflow_runs_for_head(sha):
+    """Only an actual ci.yml run on the exact commit can suppress dispatch."""
+    runs = []
+    page = 1
+    while True:
+        result = api("GET", f"/actions/workflows/ci.yml/runs?head_sha={sha}&per_page=100&page={page}")
+        batch = result["workflow_runs"]
+        runs.extend(run for run in batch if run.get("head_sha") == sha
+                    and run.get("event") in ("pull_request", "push", "workflow_dispatch")
+                    and run.get("status") != "action_required")
+        if len(batch) < 100:
+            break
+        page += 1
+        if page > 10:
+            raise TrainError("CI_RUN_PAGINATION_LIMIT")
+    return runs
+
+
+def wait_for_pushed_head(number, merged_head):
+    """GitHub PR REST metadata can lag a successful bot push."""
+    deadline = time.monotonic() + POST_PUSH_VISIBILITY_SECONDS
+    while True:
+        updated = pr_data(number)
+        check_pr(updated)
+        if updated["head"]["sha"] == merged_head:
+            return updated
+        if time.monotonic() >= deadline:
+            raise TrainError("POST_PUSH_HEAD_VISIBILITY_TIMEOUT")
+        print(json.dumps({"event": "waiting_post_push_pr_head", "expected": merged_head,
+                          "observed": updated["head"]["sha"]}), flush=True)
+        time.sleep(5)
+
+
+def await_checks(number, sha, dispatched_heads=None):
+    dispatched_heads = dispatched_heads if dispatched_heads is not None else set()
+    start = time.monotonic()
+    deadline = start + WAIT_SECONDS
     while time.monotonic() < deadline:
         pr = pr_data(number)
         check_pr(pr)
         if pr["head"]["sha"] != sha:
             return None  # changed: restart against new SHA
+        # Bot pushes may create only an action_required run, which cannot supply
+        # the six checks. After a bounded grace period, dispatch once per SHA.
+        if (sha not in dispatched_heads
+                and time.monotonic() - start >= CI_MISSING_GRACE_SECONDS
+                and not ci_workflow_runs_for_head(sha)):
+            dispatch_updated_head_ci(pr["head"]["ref"], sha)
+            dispatched_heads.add(sha)
+            print(json.dumps({"event": "ci_missing_fallback_dispatch", "head": sha}), flush=True)
         found = checks_for_head(sha)
         failed = [name for name in REQUIRED if name in found and found[name]["conclusion"] not in (None, "success")]
         if failed:
@@ -125,6 +170,7 @@ def dispatch_updated_head_ci(branch, sha):
 
 
 def run(number):
+    dispatched_heads = set()
     for attempt in range(MAX_RESTARTS + 1):
         pr = pr_data(number)
         check_pr(pr)
@@ -144,16 +190,14 @@ def run(number):
                 raise TrainError(str(exc)) from exc
             # A GitHub-token push does not schedule pull_request/push workflows.
             # Never dispatch before confirming the exact pushed HEAD and PR policy.
-            updated = pr_data(number)
-            check_pr(updated)
-            if updated["head"]["sha"] != merged_head:
-                print(json.dumps({"event": "post_push_head_moved_retry"}), flush=True)
-                continue
-            dispatch_updated_head_ci(updated["head"]["ref"], merged_head)
+            updated = wait_for_pushed_head(number, merged_head)
+            if merged_head not in dispatched_heads:
+                dispatch_updated_head_ci(updated["head"]["ref"], merged_head)
+                dispatched_heads.add(merged_head)
             continue
         if compare["status"] not in ("ahead", "identical"):
             raise TrainError("BRANCH_NOT_MERGEABLE " + compare["status"])
-        evidence = await_checks(number, initial_head)
+        evidence = await_checks(number, initial_head, dispatched_heads)
         if evidence is None:
             continue
         latest = pr_data(number)
