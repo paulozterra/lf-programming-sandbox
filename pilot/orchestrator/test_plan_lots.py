@@ -58,6 +58,8 @@ def test_three_areas_data_then_backend_then_frontend_with_selected_profiles(tmp_
         assert len(lot["profile_currentness_sha256"])==64
     assert all(len(value)==64 for value in out["producer_outputs_sha256"].values())
     assert (folder/"lots.json").read_bytes()==intake.canonical(out)
+    committed = ROOT/"pilot/runs"/THREE/"lots.json"
+    assert committed.read_bytes()==intake.canonical(out)  # exact CI-generated sample bytes
     state=json.loads((folder/"state.json").read_text())
     assert state["stage"]=="LOTS_PLANNED"
     assert state["lot_count"]==3
