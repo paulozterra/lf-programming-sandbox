@@ -1,0 +1,61 @@
+{
+  "schema": "PROGRAMMING_ANALYSIS_PROFILE_SOURCE_BINDING_V1",
+  "state": "CANDIDATE_NOT_RELEASED",
+  "authority": "CANONICAL_ANALYSIS_A1_A9_SOURCE",
+  "source_repository": "cristhianlujan/claude-persona-lf-patch",
+  "procedure": {
+    "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_procedure_v1.json",
+    "source_pr": 2145,
+    "ref": "agent/analysis-procedure-only-a1-a9-20261009",
+    "source_git_blob": "1291336699b88df5fd11178dc9043d7ec13bc06a",
+    "current_release_verified": false
+  },
+  "required_stage_sources": {
+    "A1": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_request_context_v1.schema.json",
+    "A2": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_change_classification_contract_v1.json",
+    "A3": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_targeted_evidence_contract_v1.json",
+    "A4": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/shared_change_impact_contract_v1.json",
+    "A5": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_decision_context_adr_contract_v1.json",
+    "A6": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_implementability_contract_v1.json",
+    "A7": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_material_front_coverage_contract_v1.json",
+    "A8": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_stop_rule_contract_v1.json",
+    "A9": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_programming_handoff_parity_contract_v1.json"
+  },
+  "qualification_policy": {
+    "currentness_resolver_required": true,
+    "mismatched_or_missing_source_blocks": true,
+    "model_may_not_choose_sources": true,
+    "retrieved_evidence_not_equivalent_to_governed_authority": true,
+    "selector_output_is_not_execution_permission": true,
+    "source_binding_must_be_current_released_before_governed_activation": true,
+    "runtime_profile_must_have_external_router_receipt": true,
+    "model_output_can_never_authorize_programming": true,
+    "pg01_real_persisted_consumer_required": true
+  },
+  "source_readback": {
+    "tier": "GIT_BLOB_EXISTENCE_ONLY",
+    "main_head": "e1c238f48a9fc17c2870243eb2b0b6d14d4bf26b",
+    "external_currentness": "NOT_ATTESTED",
+    "runtime_consumption": "NOT_VERIFIED",
+    "stage_git_blobs": {
+      "A1": "cb6cf1c663da4dc12c1f1a6fabedb6e666836d85",
+      "A2": "0f07d3603c1bf3e4d2a4b9de5d6c3a3968bb4051",
+      "A3": "97d06e88b963690202424a2936ae2b7bf597cea7",
+      "A4": "4d38665d7f6da4e556bc05e8ed10489b62ddcc0b",
+      "A5": "da77f17283ced275f5498f7a5be07a7180edb7bc",
+      "A6": "d000e6900300e12bcc1e1e56490ca3acf40713d1",
+      "A7": "a0ef134afc07ed6fcc2385b37212d01e678f0cc6",
+      "A8": "4bb7265c985b06e23cc2428c4332187a9330fdae",
+      "A9": "f74fc959975415f28a4ad4e02ad35671b7f4ad23"
+    }
+  },
+  "governed_adapter_candidate": {
+    "transport": "ProfileTask.lf_adapter_sources",
+    "adapter_type": "RouterAdapterSource",
+    "packaging": "ONE_AGGREGATE_A1_A9_RECEIPT",
+    "currentness": "CURRENTNESS_AUTHORITY@1.0.0",
+    "router_binding": "MISSING",
+    "pre_inference_gate": "NOT_WIRED_FAIL_CLOSED",
+    "activation_allowed": false
+  }
+}
