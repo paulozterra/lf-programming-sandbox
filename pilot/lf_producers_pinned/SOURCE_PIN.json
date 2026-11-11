@@ -6,25 +6,25 @@
     {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/checkpoint_bridge_v1.py",
       "destination_path": "pilot/lf_producers_pinned/c6_context_gate/checkpoint_bridge_v1.py",
-      "sha256": "000000000000000000000000000000007642008a68039ffb227ea37cf2b49320",
+      "sha256": "f95d8244f136f9338cb5b8c6517c069123632d04e069cd7ab8f5efb9bc2424d3",
       "size_bytes": 2312
     },
     {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/context_gate_v1.py",
       "destination_path": "pilot/lf_producers_pinned/c6_context_gate/context_gate_v1.py",
-      "sha256": "000000000000000000000000000000002d27508487d63965e256631f72db3537",
+      "sha256": "bbc8932c5c5bbc1576248e9f56caa066dd25d77c61a19d5484dfe4f27a446e35",
       "size_bytes": 6285
     },
     {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/test_checkpoint_bridge_v1.py",
       "destination_path": "pilot/lf_producers_pinned/c6_context_gate/test_checkpoint_bridge_v1.py",
-      "sha256": "00000000000000000000000000000000b02c1b34b2120746f1663c61cc6a93f0",
+      "sha256": "9daab7338b82cb01f82a7e93fc8c41ad61b6265ac81600d65f03f5968f3b9d83",
       "size_bytes": 3064
     },
     {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/c6_context_gate/test_context_gate_v1.py",
       "destination_path": "pilot/lf_producers_pinned/c6_context_gate/test_context_gate_v1.py",
-      "sha256": "000000000000000000000000000000005ee39276de4b76122aa0b30d1b7bbac8",
+      "sha256": "78224458e69085af102ee3cc0ada752c33f63cec89a084c63cb3d691a271bc0d",
       "size_bytes": 5309
     },
     {
@@ -1506,7 +1506,7 @@
     {
       "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/testing_admission_contract_v1.json",
       "destination_path": "pilot/lf_producers_pinned/wave1_boundary_contracts/testing_admission_contract_v1.json",
-      "sha256": "33380000742800009b900000a9d0000070853bea3b19c1b3a1f70bd49944bd96",
+      "sha256": "806b801b40fc0f000a16b6d32eb07e205d4c72001e9c1faef81c43832e306939",
       "size_bytes": 1185
     }
   ]
