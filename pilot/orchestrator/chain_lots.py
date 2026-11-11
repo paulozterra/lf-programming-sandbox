@@ -287,10 +287,22 @@ def worktree(base: str, branch: str, callback):
             run("git", "worktree", "remove", "--force", str(directory))
 
 
+def pending_draft(prefix: str) -> bool:
+    """Do not create another draft for the same task/request after main moves."""
+    rows = json.loads(run("gh", "pr", "list", "--repo", REPO,
+                          "--state", "open", "--limit", "100",
+                          "--json", "headRefName"))
+    if not isinstance(rows, list):
+        deny("PENDING_DRAFT_LIST_INVALID")
+    return any(isinstance(item, dict) and
+               str(item.get("headRefName", "")).startswith(prefix)
+               for item in rows)
+
+
 def prepare_successor(request: str, binding: dict, completed: dict, head: str) -> dict:
     task = binding["task_name"]
     branch = f"lf/native-registration/{task}-{head[:12]}"
-    if run("git", "ls-remote", "--heads", "origin", branch):
+    if pending_draft(f"lf/native-registration/{task}-") or run("git", "ls-remote", "--heads", "origin", branch):
         return {"status": "ALREADY_PREPARED", "branch": branch}
     def process(root: Path):
         folder = root / "pilot/orchestrator"
@@ -360,7 +372,7 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
 
 def block_request(request: str, state: dict, result: dict, head: str) -> dict:
     branch = f"lf/chain-blocked/{request}-{head[:12]}"
-    if run("git", "ls-remote", "--heads", "origin", branch):
+    if pending_draft(f"lf/chain-blocked/{request}-") or run("git", "ls-remote", "--heads", "origin", branch):
         return {"status": "BLOCKED_ALREADY_RECORDED", "branch": branch}
     def process(root: Path):
         target = root / "pilot/runs" / request / "state.json"
