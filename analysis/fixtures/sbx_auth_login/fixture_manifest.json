@@ -51,7 +51,7 @@
       "imitates": "public.fn_lf_decision_context_asof_resolve_v1"
     },
     "semantic_signals.json": {
-      "sha256": "8947d145e523ce9de6a51ceb9e345dd837fcb8b5fa7519b792c9ccd9a12aefae",
+      "sha256": "dcfd08de03eb12211e0d77ab4362b50c25a0c431992d33193a0d9f2a4a2444fd",
       "imitates": "A1/A2 external semantic source typed input (fixture, not interpreter)"
     }
   }
