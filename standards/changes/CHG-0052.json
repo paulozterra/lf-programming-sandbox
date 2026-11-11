@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0052",
+  "title": "CP3.2: entrada de pedido y análisis simulado con PG-01 fixture",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 CP3.2 tras merge CP3.1"
+  },
+  "reason": "Introduce intake offline determinista con request.md UTF-8/LF y SHA-256, fixture ANALYSIS_IMPLEMENTATION_PACKAGE_V1 con marcas SIMULATED_ANALYSIS y REQ-/A7/alcance/implementation_state; valida faltantes, duplicados y trazabilidad por frente. Ejecuta únicamente el preflight PG-01 C4/V3 fijado que rechaza autoridad; persiste state.json INTAKE_ACCEPTED con FIXTURE_UNATTESTED y todas las flags de autoridad falsas. Ejemplo ficticio, sin login real, sin perfiles ni Supabase.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/intake.py",
+      "pilot/orchestrator/test_intake.py",
+      "pilot/orchestrator/README.md",
+      "pilot/runs/sample-reminder-note/request.md",
+      "pilot/runs/sample-reminder-note/analysis.json",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0052.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

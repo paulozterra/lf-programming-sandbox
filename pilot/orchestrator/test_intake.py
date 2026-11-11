@@ -97,9 +97,9 @@ def test_front_without_requirement_blocks(tmp_path):
 def test_request_lf_normalization_and_sha_mismatch(tmp_path):
     folder = setup(tmp_path)
     original = (folder / "request.md").read_bytes()
-    (folder / "request.md").write_bytes(original.replace(b"\\n", b"\\r\\n"))
+    (folder / "request.md").write_bytes(original.replace(b"\n", b"\r\n"))
     assert intake.accept(tmp_path, NAME)["request_sha256"] == hashlib.sha256(original).hexdigest()
-    (folder / "request.md").write_bytes(original + b"extra\\n")
+    (folder / "request.md").write_bytes(original + b"extra\n")
     with pytest.raises(intake.IntakeBlocked, match="ANALYSIS_REQUEST_SHA_MISMATCH"):
         intake.accept(tmp_path, NAME)
 
