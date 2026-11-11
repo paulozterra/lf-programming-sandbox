@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0042",
+  "title": "CP0.2 B: esperar propagación del HEAD y despachar CI ausente por SHA",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-10: Train 42944680312 post_push_head_moved_retry y CHECK_WAIT_TIMEOUT; CI 42944710251 action_required"
+  },
+  "reason": "Después del push autenticado del bot, PR REST puede devolver brevemente HEAD viejo. Esperar hasta 60 segundos HEAD exacto; si sigue viejo, bloquear con POST_PUSH_HEAD_VISIBILITY_TIMEOUT. En await_checks, tras 60 segundos sin una corrida utilizable de ci.yml para el SHA exacto (excluyendo action_required), despachar workflow_dispatch una sola vez por HEAD con seguimiento por ejecución. Preservar validación 6 checks obligatorios y seguridad de tokens.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/sandbox_train.py",
+      "pilot/test_sandbox_train_recovery.py",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0042.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  },
+  "decision_ref": "PR de corrección del Train: fusionar únicamente con CI completo PASS y behind_by=0 porque toca pilot/sandbox_train.py; Paulo relanza #81 por workflow_dispatch de main después. No editar ni relanzar #81 aquí, no activar CP0.3."
+}
