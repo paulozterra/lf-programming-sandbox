@@ -140,3 +140,22 @@ def test_forged_natural_language_request_not_interpreted():
     with pytest.raises(FixtureBlocked) as exc:
         FixtureHost().run("Crear otra pantalla no declarada")
     assert exc.value.code == "SBX_SEMANTIC_REQUEST_NOT_PRESTRUCTURED"
+
+
+def test_pin_inventory_exact_13_and_source_ref_binding():
+    # Port of the unique integrity assertion from superseded PR #96,
+    # adjusted for #97's SOURCE_PIN format (not the incompatible #96 API).
+    from analysis.host.fixture_readback_host import FILES
+    pin = json.loads((DEFAULT_FIXTURES / "SOURCE_PIN.json").read_text(encoding="utf-8"))
+    entries = pin["files"]
+    assert len(entries) == len(FILES) == 13
+    assert [x["file"] for x in entries] == list(FILES)
+    refs = FixtureHost().read_all()
+    assert len(refs) == 13
+    host = FixtureHost()
+    host.read_all()
+    for entry in entries:
+        name = entry["file"]
+        assert host.provenance[name] == (
+            "fixture://sbx_auth_login/" + name + "@" + entry["sha256"]
+        )
