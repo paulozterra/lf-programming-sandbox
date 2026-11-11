@@ -48,3 +48,4 @@
 | CHG-0044 | EDITORIAL | CP1.2: perfiles FRONTEND/DATA y binding Next.js fijado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/85 |
 | CHG-0045 | EDITORIAL | CP1.3: contexto y preflight genéricos para lotes híbridos |  | paulozterra |  |
 | CHG-0046 | EDITORIAL | PR A: Train promueve draft etiquetado a Ready for review |  | paulozterra |  |
+| CHG-0047 | EDITORIAL | CP1.4: registro nativo directo desde contexto fijado |  | paulozterra |  |
