@@ -203,6 +203,11 @@ jobs:
           python3 -m py_compile pilot/orchestrator/native_lot_binding.py pilot/orchestrator/native_lot_registration.py
           python3 -m pytest -q pilot/orchestrator/test_native_lot_binding.py pilot/orchestrator/test_native_lot_registration.py -p no:cacheprovider
 
+      - name: CP3.5 native PASS artifact gates and one-command orchestration (NO MODEL)
+        run: |
+          python3 -m py_compile pilot/orchestrator/native_verified_integration.py pilot/orchestrator/prepare_native_lot.py
+          python3 -m pytest -q pilot/orchestrator/test_native_verified_integration.py pilot/orchestrator/test_prepare_native_lot.py -p no:cacheprovider
+
       - name: Offline ex5c deterministic derivation adversarial tests (pytest; NO MODEL)
         run: python3 -m pytest -q pilot/worker_v08/test_derive_context.py
 
