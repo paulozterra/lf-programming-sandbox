@@ -91,7 +91,8 @@ def test_two_lots_real_git_merge_to_preparation_then_block(tmp_path):
     changed = set(git(tmp_path, "diff", "--name-only", parents[1], "HEAD").splitlines())
     pr = {"number": 501, "merged": True, "merge_commit_sha": merge_sha,
           "base": {"ref": "main", "repo": {"full_name": "paulozterra/lf-programming-sandbox"}},
-          "head": {"ref": "lf/native-integration/cp36data-run-901"}}
+          "head": {"ref": "lf/native-integration/cp36data-run-901",
+                   "repo": {"full_name": "paulozterra/lf-programming-sandbox"}}}
     lot_id, receipt = attest_merge(merge_sha, pr, lots, binding, changed)
     assert lot_id == "SOL-001"
     completed = {lot_id: receipt}
@@ -138,7 +139,8 @@ def test_no_replay_or_fake_merge_unlock():
             "merge_commit_sha": "c" * 40,
             "base": {"ref": "main", "repo": {
                 "full_name": "paulozterra/lf-programming-sandbox"}},
-            "head": {"ref": "lf/native-integration/cp36data-run-901"}},
+            "head": {"ref": "lf/native-integration/cp36data-run-901",
+                     "repo": {"full_name": "paulozterra/lf-programming-sandbox"}}},
             lots, bindings, {data})
     with pytest.raises(ChainBlocked, match="INTEGRATION_SCOPE_MISMATCH"):
         attest_merge("c" * 40, {"number": 501, "merged": True,
