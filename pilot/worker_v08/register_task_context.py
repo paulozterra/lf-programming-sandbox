@@ -216,9 +216,7 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
         skill_parts.extend(["\n## NEXTJS@" + metadata["skill_version"] + " priority 1",
                             nextskill.read_text("utf-8"),
                             "\n### Literal PG00 STD-FE rules"])
-        skill_parts.extend("- STD-FE-04 [decisión de Paulo: (a) o (b)]"
-                           if rule["id"] == "STD-FE-04"
-                           else "- " + rule["id"] + " [" + rule["status"] + "]: " + rule["rule"]
+        skill_parts.extend("- " + rule["id"] + " [" + rule["status"] + "]: " + rule["rule"]
                            for rule in official)
         bindings = []
     for row in bindings:

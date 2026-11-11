@@ -113,7 +113,13 @@ class PinnedSource(unittest.TestCase):
             if area == "BACKEND":
                 self.assertEqual(rendered.count("- STD-BE-05 ["), 1)
             if area == "FRONTEND":
-                self.assertIn("STD-FE-04 [decisión de Paulo: (a) o (b)]", rendered)
+                catalog = json.loads((PINS / "stack_skills_exp" /
+                                      "pg00_normative_catalog_snapshot.json").read_text("utf-8"))
+                rule = next(x for x in catalog["rules"] if x["id"] == "STD-FE-04")
+                exact = "- " + rule["id"] + " [" + rule["status"] + "]: " + rule["rule"]
+                self.assertIn(exact, rendered)
+                self.assertNotIn("decisión de Paulo", rendered)
+                self.assertNotIn("(a) o (b)", rendered)
                 self.assertNotIn("ANGULAR_EXP@", rendered)
                 for n in ("01", "02", "03", "05", "06", "07"):
                     self.assertIn("STD-FE-" + n, rendered)
