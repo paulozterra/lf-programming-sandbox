@@ -60,13 +60,13 @@ class RacePolicyTests(unittest.TestCase):
                 return {"parents": [{}, {}]}
             raise AssertionError(path)
         with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox",
-                                     "GH_TOKEN": "fake", "TRAIN_RECEIPT": os.devnull}), \\
-             patch.object(train, "pr_data", side_effect=get_pr), \\
-             patch.object(train, "main_sha", return_value="m" * 40), \\
-             patch.object(train, "api", side_effect=api), \\
-             patch.object(train, "update_branch_locally", return_value="b" * 40) as update, \\
-             patch.object(train, "await_checks", return_value=green_checks("b" * 40)), \\
-             patch.object(train.time, "monotonic", side_effect=clock.monotonic), \\
+                                     "GH_TOKEN": "fake", "TRAIN_RECEIPT": os.devnull}), \
+             patch.object(train, "pr_data", side_effect=get_pr), \
+             patch.object(train, "main_sha", return_value="m" * 40), \
+             patch.object(train, "api", side_effect=api), \
+             patch.object(train, "update_branch_locally", return_value="b" * 40) as update, \
+             patch.object(train, "await_checks", return_value=green_checks("b" * 40)), \
+             patch.object(train.time, "monotonic", side_effect=clock.monotonic), \
              patch.object(train.time, "sleep", side_effect=clock.sleep):
             train.run(81)
         update.assert_called_once()
@@ -75,9 +75,9 @@ class RacePolicyTests(unittest.TestCase):
 
     def test_pr_head_visibility_timeout_fails_closed(self):
         clock = FakeClock()
-        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"}), \\
-             patch.object(train, "pr_data", return_value=pr()), \\
-             patch.object(train.time, "monotonic", side_effect=clock.monotonic), \\
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"}), \
+             patch.object(train, "pr_data", return_value=pr()), \
+             patch.object(train.time, "monotonic", side_effect=clock.monotonic), \
              patch.object(train.time, "sleep", side_effect=clock.sleep):
             with self.assertRaisesRegex(train.TrainError, "POST_PUSH_HEAD_VISIBILITY_TIMEOUT"):
                 train.wait_for_pushed_head(81, "b" * 40)
@@ -100,11 +100,11 @@ class RacePolicyTests(unittest.TestCase):
             if clock.now >= 80:
                 return green_checks("b" * 40)
             return {}
-        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"}), \\
-             patch.object(train, "pr_data", return_value=pr("b" * 40)), \\
-             patch.object(train, "api", side_effect=api), \\
-             patch.object(train, "checks_for_head", side_effect=checks), \\
-             patch.object(train.time, "monotonic", side_effect=clock.monotonic), \\
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"}), \
+             patch.object(train, "pr_data", return_value=pr("b" * 40)), \
+             patch.object(train, "api", side_effect=api), \
+             patch.object(train, "checks_for_head", side_effect=checks), \
+             patch.object(train.time, "monotonic", side_effect=clock.monotonic), \
              patch.object(train.time, "sleep", side_effect=clock.sleep):
             dispatched_heads = set()
             result = train.await_checks(81, "b" * 40, dispatched_heads)
