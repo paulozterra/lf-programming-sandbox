@@ -107,7 +107,7 @@ def test_two_runs_byte_exact():
 
 
 def test_pin_inventory_complete():
-    pins = json.loads(HASHES.read_text())
+    pins = {name: item["sha256"] for name, item in json.loads(HASHES.read_text())["files"].items()}
     assert len(pins) == len(FILES) == 13
     assert set(pins) == set(FILES)
     for name in FILES:
