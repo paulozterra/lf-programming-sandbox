@@ -32,6 +32,10 @@ def task_spec():
     }
 
 
+
+def sha256_bytes(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
 def run(task, **overrides):
     params = dict(project="lf_java", area="BACKEND", lot_paths=[WRITE],
                   task_name="ex8", budget=160000, root=ROOT, pinned=PINS, persist=False)
@@ -42,7 +46,7 @@ def run(task, **overrides):
 class PinnedSource(unittest.TestCase):
     def test_entire_source_pin_sha_and_git_blob(self):
         pin, files = mod.read_pins()
-        self.assertEqual(len(files), 42)
+        self.assertEqual(len(files), 54)
         self.assertEqual(set(pin["files"]), set(files))
         self.assertEqual(pin["source_commit_sha"], mod.LF_SHA)
         self.assertEqual(pin["status"], "CANDIDATE_SANDBOX_ONLY")
@@ -94,8 +98,58 @@ class PinnedSource(unittest.TestCase):
     def test_multi_area_is_blocked(self):
         with self.assertRaisesRegex(mod.ContextBlocked, "LOT_MULTI_AREA"):
             run(task_spec(), lot_paths=[WRITE, "frontend/src/app/page.tsx"])
-        with self.assertRaisesRegex(mod.ContextBlocked, "PROFILE_NOT_AVAILABLE"):
-            run(task_spec(), area="FRONTEND", lot_paths=["frontend/src/app/page.tsx"])
+        for area, scope, expected_profile, expected_skill in (
+            ("BACKEND", WRITE, "PERFIL-PROG-BACKEND-EXP", "SPRINGBOOT_EXP"),
+            ("FRONTEND", "frontend/src/app/page.tsx", "PERFIL-PROG-FRONTEND-EXP", "NEXTJS"),
+            ("DATA", "db/migration/V1__baseline.sql", "PERFIL-PROG-DATA-EXP", "FLYWAY_EXP"),
+        ):
+            _, artifacts = run(task_spec(), area=area, lot_paths=[scope],
+                               task_name="cp12_" + area.lower())
+            prefix = ".lf/worker-context/cp12_" + area.lower()
+            receipt = json.loads(artifacts[prefix + "/receipt.json"])
+            self.assertEqual(receipt["profile"]["code"], expected_profile)
+            self.assertIn(expected_skill, [row["code"] for row in receipt["skills"]])
+            rendered = artifacts[prefix + "/skills.md"].decode("utf-8")
+            if area == "BACKEND":
+                self.assertEqual(rendered.count("- STD-BE-05 ["), 1)
+            if area == "FRONTEND":
+                self.assertIn("STD-FE-04 [decisión de Paulo: (a) o (b)]", rendered)
+                self.assertNotIn("ANGULAR_EXP@", rendered)
+                for n in ("01", "02", "03", "05", "06", "07"):
+                    self.assertIn("STD-FE-" + n, rendered)
+            if area == "DATA":
+                self.assertIn("FLYWAY_EXP", rendered)
+
+
+    def test_nextjs_pin_and_pinned_lf_profiles_have_valid_sha(self):
+        from hashlib import sha256
+        pin, files = mod.read_pins()
+        self.assertEqual(len(files), 54)
+        for role in ("prog_frontend_exp", "prog_data_exp"):
+            for name in ("SKILL.md", "contracts/main_contract.md",
+                         "contracts/missing_input_policy.md",
+                         "contracts/runtime_binding.json",
+                         "checklists/preflight_checklist.md",
+                         "checklists/priority_checklist.md"):
+                path = role + "/" + name
+                self.assertEqual(sha256(files[path]).hexdigest(),
+                                 pin["files"][path]["sha256"])
+        cfg = json.loads((ROOT / "pilot/nextjs_source_pin.json").read_text())
+        for key, outpath in (("skill_sha256", "skill_path"),
+                             ("manifest_sha256", "manifest_path")):
+            self.assertEqual(sha256((ROOT / cfg[outpath]).read_bytes()).hexdigest(),
+                             cfg[key])
+
+    def test_historical_ex6_ex7_ex8_bytes_unchanged_by_registration(self):
+        historic = [ROOT / "pilot/worker_v08/native_tasks" / (x + ".json")
+                    for x in ("ex6", "ex7", "ex8")]
+        before = {str(x): sha256_bytes(x) for x in historic}
+        for area, paths in (("BACKEND", [WRITE]),
+                            ("FRONTEND", ["frontend/src/app/page.tsx"]),
+                            ("DATA", ["db/migration/V1__baseline.sql"])):
+            run(task_spec(), area=area, lot_paths=paths,
+                task_name="cp12_immutable_" + area.lower())
+        self.assertEqual(before, {str(x): sha256_bytes(x) for x in historic})
 
     def test_budget_exceeded_before_outputs(self):
         with self.assertRaisesRegex(mod.ContextBlocked, "CONTEXT_BUDGET_EXCEEDED"):
