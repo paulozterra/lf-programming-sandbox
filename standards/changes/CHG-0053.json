@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo 2026-11-11: commit fuente 20968c79a83b2df182d9fd873c8aa0c6b8b832d4; F0 plan de Análisis v2"
   },
-  "reason": "Copia exclusivamente fuentes canónicas con blobs originales fijados, añade perfil histórico de referencia sin activarlo, manifiesto SHA-1 Git y comprobación local git hash-object; CI offline A1-A5. No conecta LF Supabase, perfiles productivos ni vendor.",
+  "reason": "Copia exclusivamente fuentes canónicas con blobs originales fijados, añade perfil histórico de referencia sin activarlo, manifiesto SHA-1 Git y comprobación local git hash-object; CI offline A1-A5. No conecta LF Supabase, perfiles productivos ni vendor. Las 20 regresiones upstream identificadas por Claude se documentan con errores reales y xfail(strict=True) de ID exacto; seis referencias A10-A15 se copian byte-exact para corregir la ausencia de archivos en sandbox.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -20,7 +20,9 @@
       ".github/workflows/analysis-f0.yml",
       "standards/changes/CHG-0053.json",
       "standards/CAMBIOS.md",
-      "analysis/conftest.py"
+      "analysis/conftest.py",
+      "analysis/known_inherited_failures.json",
+      "analysis/test_known_inherited_failures.py"
     ]
   },
   "existing_code_impact": {
