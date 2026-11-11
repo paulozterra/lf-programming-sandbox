@@ -54,3 +54,4 @@
 | CHG-0050 | ADDITIVE | CP2.4: preflight en base Git y límites de contexto expandidos |  | paulozterra |  |
 | CHG-0051 | ADDITIVE | CP3.1: productores PG-02 a PG-14 fijados desde LF |  | paulozterra |  |
 | CHG-0052 | ADDITIVE | CP3.2: entrada de pedido y análisis simulado con PG-01 fixture |  | paulozterra |  |
+| CHG-0053 | ADDITIVE | CP3.3: división y asignación de lotes con productores PG02-PG05 fijados |  | paulozterra |  |

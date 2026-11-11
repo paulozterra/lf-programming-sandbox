@@ -328,3 +328,71 @@ jobs:
           cp pilot/runs/sample-reminder-note/request.md pilot/runs/sample-reminder-note/analysis.json "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note/"
           python3 pilot/orchestrator/intake.py --root "$RUNNER_TEMP/cp3-2" --request-id sample-reminder-note
           test -f "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note/state.json"
+  
+  cp3-3-planning:
+    name: CP3.3 pinned PG02-PG05 and real disposable SQL selector
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pilot
+          POSTGRES_PASSWORD: pilot
+          POSTGRES_DB: selector_exp_test_cp33
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pilot -d selector_exp_test_cp33"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      SELECTOR_EXP_DISPOSABLE_DB: "YES"
+      SELECTOR_EXP_TEST_DSN: postgresql://pilot:pilot@127.0.0.1:5432/selector_exp_test_cp33
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Check PostgreSQL 17 disposable localhost and load ORIGINAL pinned SQL
+        run: |
+          pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33
+          python3 pilot/orchestrator/selector_db.py
+      - name: Run CP3.3 offline integration tests and adversarial gates
+        run: |
+          python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
+          python3 -m pytest -q pilot/orchestrator/test_plan_lots.py
+          python3 -m pytest -q pilot/orchestrator/test_intake.py
+      - name: Produce three-area and note fixture JSON to private runner staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in sample-three-area-notes sample-reminder-note; do
+            mkdir -p "$RUNNER_TEMP/cp33/pilot/runs/$name"
+            cp "pilot/runs/$name/request.md" "pilot/runs/$name/analysis.json" "pilot/runs/$name/planning_fixture.json" "$RUNNER_TEMP/cp33/pilot/runs/$name/"
+            python3 pilot/orchestrator/intake.py --root "$RUNNER_TEMP/cp33" --request-id "$name"
+            python3 pilot/orchestrator/plan_lots.py --root "$RUNNER_TEMP/cp33" --request-id "$name"
+          done
+          python3 - <<'PY'
+          import json,os,pathlib
+          root=pathlib.Path(os.environ["RUNNER_TEMP"])/"cp33/pilot/runs/sample-three-area-notes"
+          x=json.loads((root/"lots.json").read_text())
+          print("CP33_THREE_AREA_LOTS_JSON_START")
+          print(json.dumps(x,sort_keys=True,separators=(",",":"),ensure_ascii=True))
+          print("CP33_THREE_AREA_LOTS_JSON_END")
+          PY
+      - name: Publish exact generated lots and deterministic state from disposable DB
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cp33-disposable-selector-lots
+          path: ${{ runner.temp }}/cp33/pilot/runs/
+          if-no-files-found: ignore
+          retention-days: 30
+

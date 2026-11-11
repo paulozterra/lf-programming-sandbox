@@ -1,0 +1,43 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0053",
+  "title": "CP3.3: división y asignación de lotes con productores PG02-PG05 fijados",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 CP3.3 tras fusionar CP3.2 PR #93"
+  },
+  "reason": "Orquestador de lotes candidato para paquete de análisis simulado, con ejecución de productores PG02→PG03→PG04→PG05 byte-fijados y puente selector PG04→PG07, verificando perfil elegido por fixture contra funciones SQL experimentales originales en PostgreSQL 17 desechable. Los inputs adicionales son fixtures explícitos A7/rutas sin inventar salidas de productor ni autoridad. DAG topológico y huellas por salida, state.json LOTS_PLANNED; falla por multiarea/ciclo, no selector sin entorno, o solicitud no admitida. Ajuste de fixture ficticio de CP3.2 para cobertura READY_CANDIDATE únicamente no atestiguada. No se invoca Worker ni PG07 real, proyección de rol y skill queda para CP3.4. Sin Supabase, vendor ni productores editados.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/plan_lots.py",
+      "pilot/orchestrator/selector_db.py",
+      "pilot/orchestrator/test_plan_lots.py",
+      "pilot/runs/sample-reminder-note/analysis.json",
+      "pilot/runs/sample-reminder-note/planning_fixture.json",
+      "pilot/runs/sample-three-area-notes/request.md",
+      "pilot/runs/sample-three-area-notes/analysis.json",
+      "pilot/runs/sample-three-area-notes/planning_fixture.json",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0053.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
