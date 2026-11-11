@@ -154,10 +154,10 @@ def check_size(root: Path, task: dict, *, prompt: str) -> dict:
     writes = task.get("write_path_patterns")
     if not isinstance(contexts, list) or not isinstance(writes, list):
         blocked("LOTE_DEMASIADO_GRANDE")
-    if not contexts or not writes or len(set(contexts)) != len(contexts) or len(set(writes)) != len(writes):
-        blocked("LOTE_CONTEXTO_O_ESCRITURA_INVALIDO")
     if len(writes) > MAX_WRITE_FILES:
         blocked("LOTE_DEMASIADO_GRANDE")
+    if not contexts or not writes or len(set(contexts)) != len(contexts) or len(set(writes)) != len(writes):
+        blocked("LOTE_CONTEXTO_O_ESCRITURA_INVALIDO")
     base = task.get("base_head_sha")
     entries = base_tree(root, base)
     expanded = set()

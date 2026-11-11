@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0050",
   "title": "CP2.4: preflight en base Git y límites de contexto expandidos",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo 2026-11-11: CP2.4 después de ex8b cifrado PASS"
