@@ -237,8 +237,14 @@ def _source_chain(package, fixture, rows, sha, state):
             "bounded_reuse_assessment_ref":"fixture://a3/reuse/"+row["atom_id"],
             "requirement_ids":rids,"acceptance_ids":["ACC-"+r for r in rids],
             "depends_on":sorted(row["depends_on"]),"coimplement_with":[]})
-    partition=partition_by_semantic_outcome(strategy=strategy,partition_contract=contract,
-                obligations=obligations,outcome_registry=outcomes)
+    from pg04_semantic_partition_candidate_v1 import PartitionBlocked
+    try:
+        partition=partition_by_semantic_outcome(strategy=strategy,partition_contract=contract,
+                    obligations=obligations,outcome_registry=outcomes)
+    except PartitionBlocked as exc:
+        if str(exc)=="SOLUTION_DEPENDENCY_CYCLE":
+            blocked("LOTES_CICLO")
+        raise
     dossier=build_coverage_dossier(partition=partition,strategy=strategy,original_obligations=obligations)
     # DoD checks are unexecuted synthetic candidate obligations, never PASS.
     standard="STD-CP33-FIXTURE"
