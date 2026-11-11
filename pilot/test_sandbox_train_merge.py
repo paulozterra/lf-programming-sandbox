@@ -120,8 +120,8 @@ else:
             merged = merge.prepare_merge(self.root, main, head)
             self.assertNotEqual(merged, head)
             self.assertEqual(
-                (self.root / "standards/CAMBIOS.md").read_text(),
-                "CHG-0001\\nCHG-0002\\nCHG-0003\\n",
+                (self.root / "standards/CAMBIOS.md").read_text().splitlines(),
+                ["CHG-0001", "CHG-0002", "CHG-0003"],
             )
             self.assertEqual(
                 len(run(self.root, "rev-list", "--parents", "-n", "1", "HEAD").split()), 3
