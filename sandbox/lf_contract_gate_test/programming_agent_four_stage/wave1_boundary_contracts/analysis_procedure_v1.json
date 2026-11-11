@@ -1,0 +1,277 @@
+{
+  "schema_version": "PROGRAMMING_AGENT_ANALYSIS_PROCEDURE_V1",
+  "version": "1.0.0-procedure-only",
+  "status": "SOURCE_PREPARED_VALIDATION_DEFERRED",
+  "owner_domain": "PROGRAMMING_AGENT_ANALYSIS",
+  "provenance": {
+    "plan_code": "PROGRAMMING_AGENT_ANALYSIS_REMEDIATION_V1",
+    "source_dir": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/",
+    "authority": "Git canonical source + EKB + Supabase governed records",
+    "source_contract_policy": "REUSE_EXACT_EXISTING_CONTRACTS_NO_PARALLEL_ENGINE"
+  },
+  "scope": {
+    "included": [
+      "A1",
+      "A2",
+      "A3",
+      "A4",
+      "A5",
+      "A6",
+      "A7",
+      "A8",
+      "A9"
+    ],
+    "excluded": [
+      "B2B_IMPLEMENTATION",
+      "ANY_LIVE_CASE",
+      "FIXTURE_OR_SAMPLE",
+      "E2E",
+      "A10_A15_EXECUTION",
+      "PG01_RUNTIME_EXECUTION",
+      "GIT_MERGE",
+      "DEPLOY_OR_PRODUCTION",
+      "MIGRATION_APPLY"
+    ],
+    "is_case_execution": false,
+    "tests_allowed_in_this_batch": false,
+    "no_case_attached": true,
+    "workflow_product_independent": true
+  },
+  "inputs": {
+    "required": [
+      "task_intent",
+      "target_hints",
+      "requested_outcome",
+      "explicit_scope",
+      "source_refs_if_known"
+    ],
+    "optional": [
+      "prior_receipts",
+      "owner_decisions",
+      "existing_authority_refs"
+    ],
+    "forbidden_default_inferences": [
+      "story_id",
+      "functional_version_id",
+      "agent_task_id",
+      "specific_framework",
+      "database_schema_choice",
+      "implementation_state_from_authority_state"
+    ]
+  },
+  "owner_contract": {
+    "process_owner": "ANALYSIS_AGENT",
+    "authority_owner": "existing governed authority / SUPER_ADMIN only for genuinely required human decisions",
+    "specialist_use": "CAPABILITY_SELECTOR candidates require consumer-owned admission; no automatic execution",
+    "technical_strategy_owner": "PG-03",
+    "write_execution_owner": "Programming / PG-05",
+    "tests_owner": "Testing after completion of procedure authoring"
+  },
+  "steps": [
+    {
+      "sequence": 1,
+      "unit": "A1",
+      "code": "INTAKE_NORMALIZE",
+      "source_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_request_context_v1.schema.json",
+      "requires": [
+        "request",
+        "explicit_scope",
+        "source_and_target_hints"
+      ],
+      "produces": "REQUEST_CONTEXT_V1",
+      "procedure": "Normalize intent, target, exclusions, expected outcome, declared decision owner and evidence references. Never infer implementation or force Story/Agent Task identity.",
+      "guard": "Unclear essential intent -> REQUIRES_DECISION; missing exact target -> NEED_MORE_EVIDENCE; no implementation action.",
+      "on_success": "A2",
+      "execution_this_batch": "NOT_INVOKED"
+    },
+    {
+      "sequence": 2,
+      "unit": "A2",
+      "code": "CLASSIFY_SCOPE_AND_DEPTH",
+      "source_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_change_classification_contract_v1.json",
+      "requires": [
+        "REQUEST_CONTEXT_V1"
+      ],
+      "produces": "ANALYSIS_CHANGE_CLASSIFICATION_V1",
+      "procedure": "Derive change type, open target granularity and L1/L2/L3 from existing governed risk/materiality/reversibility signals. Specialist selector lists candidates but does not execute them.",
+      "guard": "Material unknown -> at least L2 and NEED_MORE_EVIDENCE; L3 high-risk dominates; no weights or case hardcoding.",
+      "on_success": "A3",
+      "execution_this_batch": "NOT_INVOKED"
+    },
+    {
+      "sequence": 3,
+      "unit": "A3",
+      "code": "RESOLVE_MINIMAL_CURRENT_CONTEXT",
+      "source_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_targeted_evidence_contract_v1.json",
+      "requires": [
+        "REQUEST_CONTEXT_V1",
+        "ANALYSIS_CHANGE_CLASSIFICATION_V1"
+      ],
+      "produces": "TARGETED_EVIDENCE_SET_V1",
+      "procedure": "Consult EKB and canonical authority first; resolve target, independent AUTHORITY_STATE and IMPLEMENTATION_STATE, current evidence, AS-IS/delta or bounded absence and reuse options; stop at minimum sufficient evidence.",
+      "guard": "Missing/stale/contradictory material authority -> NEED_MORE_EVIDENCE or BLOCKED; no speculative full search.",
+      "on_success": "A4",
+      "execution_this_batch": "NOT_INVOKED"
+    },
+    {
+      "sequence": 4,
+      "unit": "A4",
+      "code": "CALCULATE_CHANGE_IMPACT",
+      "source_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/shared_change_impact_contract_v1.json",
+      "requires": [
+        "TARGETED_EVIDENCE_SET_V1",
+        "ANALYSIS_CHANGE_CLASSIFICATION_V1"
+      ],
+      "produces": "SHARED_CHANGE_IMPACT_ANALYSIS",
+      "procedure": "Consume existing transversal impact core and produce analysis projection: direct, indirect, consumers, data, interfaces, lifecycle, permissions and shared dependencies.",
+      "guard": "Unknown impact is visible, never silently excluded; no new parallel impact engine.",
+      "on_success": "A5",
+      "execution_this_batch": "NOT_INVOKED"
+    },
+    {
+      "sequence": 5,
+      "unit": "A5",
+      "code": "RESOLVE_DECISIONS_AND_ADR",
+      "source_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_decision_context_adr_contract_v1.json",
+      "requires": [
+        "REQUEST_CONTEXT_V1",
+        "TARGETED_EVIDENCE_SET_V1",
+        "SHARED_CHANGE_IMPACT_ANALYSIS"
+      ],
+      "produces": "ANALYSIS_DECISION_CONTEXT_V1",
+      "procedure": "Preserve facts vs decisions and versioned ADR refs; reuse DECISION_CONTEXT_ASOF/CURRENTNESS_AUTHORITY; request human decision only for genuine material tradeoff or missing active ADR.",
+      "guard": "Required new ADR or unresolved owner decision -> REQUIRES_DECISION; analysis cannot approve itself; local HOW remains PG-03.",
+      "on_success": "A6",
+      "execution_this_batch": "NOT_INVOKED"
+    },
+    {
+      "sequence": 6,
+      "unit": "A6",
+      "code": "SPECIFY_IMPLEMENTABILITY",
+      "source_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_implementability_contract_v1.json",
+      "requires": [
+        "ANALYSIS_DECISION_CONTEXT_V1",
+        "SHARED_CHANGE_IMPACT_ANALYSIS",
+        "TARGETED_EVIDENCE_SET_V1"
+      ],
+      "produces": "IMPLEMENTABILITY_SCHEMA_V1",
+      "procedure": "Emit outcomes, typed requirements, interfaces/states/errors/permissions/side effects, acceptance signals and CANONICAL_IMPLEMENTATION_BINDINGS. Preserve AS-IS/delta for existing implementation and reuse-before-build for new.",
+      "guard": "Missing material obligation or permission/side effect -> typed blocker on affected scope. Do not choose technology, create tests, write SQL or implement.",
+      "on_success": "A7",
+      "execution_this_batch": "NOT_INVOKED"
+    },
+    {
+      "sequence": 7,
+      "unit": "A7",
+      "code": "ACCOUNT_FOR_MATERIAL_FRONTS",
+      "source_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_material_front_coverage_contract_v1.json",
+      "requires": [
+        "SHARED_CHANGE_IMPACT_ANALYSIS",
+        "IMPLEMENTABILITY_SCHEMA_V1",
+        "ANALYSIS_DECISION_CONTEXT_V1"
+      ],
+      "produces": "MATERIAL_FRONT_COVERAGE_V1",
+      "procedure": "Derive all evidence-backed material fronts from impact, requirements, bindings, decisions, risks and specialist outputs. Emit each once with scope refs, status and evidence/currentness.",
+      "guard": "Unknown material -> BLOCKED front; NOT_APPLICABLE demands reason+evidence; REUSE_AS_IS demands currentness.",
+      "on_success": "A8",
+      "execution_this_batch": "NOT_INVOKED"
+    },
+    {
+      "sequence": 8,
+      "unit": "A8",
+      "code": "DECIDE_RESEARCH_STOP",
+      "source_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_stop_rule_contract_v1.json",
+      "requires": [
+        "TARGETED_EVIDENCE_SET_V1",
+        "ANALYSIS_DECISION_CONTEXT_V1",
+        "MATERIAL_FRONT_COVERAGE_V1"
+      ],
+      "produces": "ANALYSIS_STOP_RULE_V1",
+      "procedure": "STOP only if decision stable, all material fronts accounted, no unresolved decision-changing question and no reasonable available evidence would change a material decision.",
+      "guard": "Material missing -> CONTINUE with targeted return to A3/A4/A5/A6/A7 as indicated; human decision -> REQUIRES_DECISION; impossible material evidence -> BLOCKED. No curiosity loops.",
+      "on_success": "A9",
+      "execution_this_batch": "NOT_INVOKED"
+    },
+    {
+      "sequence": 9,
+      "unit": "A9",
+      "code": "ASSEMBLE_AND_QUALIFY_HANDOFF",
+      "source_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_programming_handoff_parity_contract_v1.json",
+      "requires": [
+        "REQUEST_CONTEXT_V1",
+        "ANALYSIS_CHANGE_CLASSIFICATION_V1",
+        "TARGETED_EVIDENCE_SET_V1",
+        "SHARED_CHANGE_IMPACT_ANALYSIS",
+        "ANALYSIS_DECISION_CONTEXT_V1",
+        "IMPLEMENTABILITY_SCHEMA_V1",
+        "MATERIAL_FRONT_COVERAGE_V1",
+        "ANALYSIS_STOP_RULE_V1"
+      ],
+      "produces": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+      "procedure": "Assemble lossless package, scope_front_matrix and per-scope readiness; compile PROGRAMMING_CONTEXT_SNAPSHOT_V1; define immutable DECISION_CONTEXT_ASOF receipt, digest/currentness, exact PG-01 parity and minimum worker projection; never execute PG-01 in process authoring.",
+      "guard": "READY only front-clean current scope; PARTIAL_READY only independent scope with complete dependency closure; otherwise NEED_MORE_EVIDENCE/REQUIRES_DECISION/BLOCKED. No fabricated READY.",
+      "on_success": "PROCEDURE_SOURCE_COMPLETE",
+      "execution_this_batch": "NOT_INVOKED"
+    }
+  ],
+  "transition_contract": {
+    "statuses": [
+      "NOT_STARTED",
+      "IN_PROGRESS",
+      "NEED_MORE_EVIDENCE",
+      "REQUIRES_DECISION",
+      "BLOCKED",
+      "PROCEDURE_SOURCE_COMPLETE",
+      "VALIDATION_DEFERRED"
+    ],
+    "allowed_normal_path": "A1>A2>A3>A4>A5>A6>A7>A8>A9",
+    "conditional_return": "A8 may route only to the step responsible for the specific material missing evidence; do not restart or re-open everything",
+    "on_block": "Preserve typed blocker, affected scope, authority/evidence/source ref and next resolver; no fake PASS or work outside Analysis",
+    "on_decision": "Return explicit decision context to SUPER_ADMIN where an actual material product/authority choice is needed; do not auto-approve ADR",
+    "on_currentness_change": "Rebuild only affected material projections, never silently rebind an immutable as-of snapshot",
+    "on_stop": "A8 STOP ends research, NOT all blockers and NOT executable handoff readiness"
+  },
+  "completion_gate": {
+    "procedure_source_completion": [
+      "all A1-A9 sources explicitly referenced",
+      "all nine transitions and owners defined",
+      "inputs/outputs and fail-closed paths explicit",
+      "A9 handoff identity/scope/currentness contract declared",
+      "A10-A15 and any live cases deferred",
+      "no implementation touched"
+    ],
+    "qualification_deferred_until_user_stage": "AFTER_PROCEDURES",
+    "empirical_exit_not_claimed": true,
+    "freeze_not_claimed": true,
+    "runtime_not_activated": true,
+    "pg01_not_invoked": true
+  },
+  "handoff_contract": {
+    "author": "A9",
+    "producer": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+    "nested_snapshot": "PROGRAMMING_CONTEXT_SNAPSHOT_V1",
+    "store": "DECISION_CONTEXT_ASOF@CURRENT (reuse only)",
+    "must_include": [
+      "IMPLEMENTABILITY_SCHEMA_V1",
+      "MATERIAL_FRONT_COVERAGE_V1",
+      "ANALYSIS_STOP_RULE_V1",
+      "scope_readiness[]",
+      "scope_front_matrix[]",
+      "decision_context",
+      "source_refs[]",
+      "currentness_refs[]",
+      "source_snapshot_sha256",
+      "authority_fingerprint_sha256",
+      "snapshot_schema_digest_sha256"
+    ],
+    "status_values": [
+      "READY",
+      "PARTIAL_READY",
+      "NEED_MORE_EVIDENCE",
+      "REQUIRES_DECISION",
+      "BLOCKED"
+    ],
+    "receiver": "PG-01; contract declaration only in this source-only batch",
+    "admission_rule": "Only independently READY and front-clean scopes after currentness and exact producer/receiver digest parity; not exercised in this batch"
+  }
+}
