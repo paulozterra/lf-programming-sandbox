@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0057",
   "title": "CP3.4: enlace de perfiles selector→nativo y registro/exportación por lote",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo 2026-11-11: continuar CP3.4 después de fusionar #95"
