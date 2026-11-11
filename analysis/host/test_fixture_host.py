@@ -34,6 +34,9 @@ def test_complete_a1_a5_fixture():
     assert len(result["source_provenance"]) == len(FILES)
     assert all(r.startswith("fixture://sbx_auth_login/") and len(r.rsplit("@", 1)[-1]) == 64
                for r in result["source_provenance"].values())
+    assert a3["target_resolution"]["source_ref"].startswith("supabase://")
+    assert a3["target_resolution"]["screen_readback_not_source_attestation"] is True
+    assert result["source_provenance"]["screen_contract.json"].startswith("fixture://")
     assert all(stages[k]["source_attested"] is False for k in ("A3", "A4", "A5"))
 
 
