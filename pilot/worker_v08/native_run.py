@@ -26,6 +26,7 @@ from programming_agent_runner.worker_patch import parse_patch_proposal, inspect_
 from programming_agent_runner.verified_worker import run_verified_worker, validate_verified_worker_receipt
 import programming_agent_runner.verified_worker as verified_module
 from native_proposal_client import NativeProposalClient, read_proposal_envelope
+from lot_preflight import check_task, LotBlocked
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
@@ -63,6 +64,14 @@ def load_registration(control: Path, task: str) -> tuple[dict, str]:
 def preflight(control: Path, task: str, output: Path) -> None:
     obj, expected = load_registration(control, task)
     spec = parse_worker_task(obj)
+    # Legacy ex6/ex7/ex8 registrations are byte-identical and predated CP1.3.
+    # New tasks must satisfy their general lot size/handoff gate before they
+    # can reach the Worker executor.
+    if task not in {"ex6", "ex7", "ex8"}:
+        try:
+            check_task(control, {"task_spec": obj})
+        except LotBlocked as exc:
+            raise ValueError("NATIVE_LOT_PREFLIGHT_BLOCKED:" + str(exc)) from exc
     # Do not publish the hidden oracle hash in a model-visible task pack.
     with output.open("a", encoding="utf-8") as f:
         f.write(f"base_sha={spec.base_head_sha}\n")
