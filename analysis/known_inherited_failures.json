@@ -1,0 +1,107 @@
+{
+  "source_commit": "20968c79a83b2df182d9fd873c8aa0c6b8b832d4",
+  "verified_by": "claude 2026-11-11, comparación lado a lado",
+  "evidence_run": "https://github.com/paulozterra/lf-programming-sandbox/actions/runs/43092650930",
+  "failures": [
+    {
+      "node_id": "steps/a1/evals/test_a1_native_chat_semantic_source_v1.py::A1GenericNativeTransport::test_12_no_client_or_model_invocation_in_transport",
+      "area": "A1",
+      "observed_error": "AssertionError: 'llama' unexpectedly found in \"{'route_contract_code': 'a1_native_semantic_route_v1', 'route_code': 'programming_analysis_lf/a1/semantic_native_authoring', 'owner_skill_code': 'programming_analysis_lf', 'owner_step_code': 'a1', 'route_contract_sha256': 'fa204f30ee2c81945557f8492f4e624979c1e4593ec57ae693f12f90eed66a38', 'schema_version': 'a1_native_chat_semantic_handoff_candidate_v1', 'business': 'lf', 'executor_mode': 'gpt_native', 'executor_provider': 'openai_chatgpt_native', 'current_surface': 'chatgpt_current_conversation', 'conversation_scope': 'existing_conversation_only', 'session_creation': false, 'api_invocation': false, 'raw_request': 'implementa por primera vez el login b2b o también llamado inicio de sesión', 'input_sha256': 'bc2433765fd998705b5a032a3278a8b7576f32b0bbe406a6b11710e2b9cb5ef4', 'semantic_contract_sha256': '9731f45a97d538f48c8bca4c898d594af338a7d3681b03ce2bc6176242710410', 'semantic_protocol_sha256': '4b87877c9df27ece673dede48da3e40d2c1105c1089caf0ef987f3796c894537', 'reviewer_independence_verified': false, 'source_authority_verified': false, 'runtime_qualified': false, 'handoff_sha256': 'b3914dc908c8c3f1959765acb1bd3718eb1ce9b5f78784ee8a7230f5174912ad'}\""
+    },
+    {
+      "node_id": "steps/a1/evals/test_a1_semantic_candidate_v1.py::SemanticA1Candidate::test_existing_d4_consumes_02_with_metadata_only_no_a2",
+      "area": "A1",
+      "observed_error": "AssertionError: 'BLOCKED' != 'METADATA_PREPARED_AMBIGUITIES_OPEN'"
+    },
+    {
+      "node_id": "steps/a1/evals/test_a1_semantic_candidate_v1.py::SemanticA1Candidate::test_existing_d4_consumes_04_preserving_negation",
+      "area": "A1",
+      "observed_error": "AssertionError: 'BLOCKED' != 'METADATA_PREPARED_AMBIGUITIES_OPEN'"
+    },
+    {
+      "node_id": "steps/a1/evals/test_a1_semantic_candidate_v1.py::SemanticA1Candidate::test_existing_d4_rejects_canonical_currentness_block",
+      "area": "A1",
+      "observed_error": "AssertionError: 'A1_D4_CANONICAL_PREPARATION_FAILED' != 'A1_D4_CANONICAL_PREPARATION_BLOCKED'"
+    },
+    {
+      "node_id": "steps/a2/evals/test_intent_brief_v1.py::IntentBriefTests::test_01_human_primary_not_checklist",
+      "area": "A2",
+      "observed_error": "AssertionError: 'BLOCKED' != 'PREVIEW_PREPARED_NOT_DISPATCHABLE'"
+    },
+    {
+      "node_id": "steps/a2/evals/test_intent_brief_v1.py::IntentBriefTests::test_02_ambiguities_empty_not_assumed_resolved",
+      "area": "A2",
+      "observed_error": "KeyError: 'human_intent_brief'"
+    },
+    {
+      "node_id": "steps/a2/evals/test_intent_brief_v1.py::IntentBriefTests::test_05_missing_constraints_are_not_none_exist",
+      "area": "A2",
+      "observed_error": "KeyError: 'human_intent_brief'"
+    },
+    {
+      "node_id": "steps/a2/evals/test_intent_brief_v1.py::IntentBriefTests::test_07_no_unproven_login_policy_as_fact",
+      "area": "A2",
+      "observed_error": "KeyError: 'human_intent_brief'"
+    },
+    {
+      "node_id": "steps/a2/evals/test_intent_brief_v1.py::IntentBriefTests::test_08_a3_questions_are_separate_from_owner_questions",
+      "area": "A2",
+      "observed_error": "KeyError: 'human_intent_brief'"
+    },
+    {
+      "node_id": "steps/a2/evals/test_intent_brief_v1.py::IntentBriefTests::test_09_required_33_are_not_lost",
+      "area": "A2",
+      "observed_error": "KeyError: 'human_intent_brief'"
+    },
+    {
+      "node_id": "steps/a2/evals/test_intent_brief_v1.py::IntentBriefTests::test_10_no_auto_run_and_no_judge",
+      "area": "A2",
+      "observed_error": "KeyError: 'human_intent_brief'"
+    },
+    {
+      "node_id": "steps/a2/evals/test_intent_brief_v1.py::IntentBriefTests::test_19_brief_in_preview_digest",
+      "area": "A2",
+      "observed_error": "KeyError: 'human_intent_brief'"
+    },
+    {
+      "node_id": "steps/a2/evals/test_intent_brief_v1.py::IntentBriefTests::test_20_canonical_contract_not_replaced",
+      "area": "A2",
+      "observed_error": "TypeError: 'NoneType' object is not iterable"
+    },
+    {
+      "node_id": "steps/a2/evals/test_run_business_binding_v1.py::BridgeWiringCandidate::test_26_caller_business_alone_not_authority",
+      "area": "A2",
+      "observed_error": "AssertionError: UNEXPECTED_STEP_INJECTION"
+    },
+    {
+      "node_id": "steps/a2/evals/test_run_business_binding_v1.py::BridgeWiringCandidate::test_27_consistent_run_binding_yields_only_a3_candidate",
+      "area": "A2",
+      "observed_error": "AssertionError: UNEXPECTED_STEP_INJECTION"
+    },
+    {
+      "node_id": "steps/a2/evals/test_run_business_binding_v1.py::BridgeWiringCandidate::test_28_caller_business_veto_does_not_override_run",
+      "area": "A2",
+      "observed_error": "AssertionError: UNEXPECTED_STEP_INJECTION"
+    },
+    {
+      "node_id": "steps/a2/evals/test_run_business_binding_v1.py::BridgeWiringCandidate::test_29_a1_business_conflict_still_blocks_handoff",
+      "area": "A2",
+      "observed_error": "AssertionError: UNEXPECTED_STEP_INJECTION"
+    },
+    {
+      "node_id": "steps/a2/evals/test_run_business_binding_v1.py::BridgeWiringCandidate::test_30_malformed_run_readback_fails_closed",
+      "area": "A2",
+      "observed_error": "AssertionError: UNEXPECTED_STEP_INJECTION"
+    },
+    {
+      "node_id": "steps/a2/evals/test_unresolved_research_preview_v1.py::PendingResearchTests::test_work_order_requires_verifiable_source_and_delta",
+      "area": "A2",
+      "observed_error": "AssertionError: False is not true"
+    },
+    {
+      "node_id": "evals/test_analysis_package_v1.py::AnalysisStagePackage::test_a3_candidate_consumer_and_remaining_steps_not_fake_executors",
+      "area": "paquete",
+      "observed_error": "AssertionError: False is not true"
+    }
+  ]
+}
