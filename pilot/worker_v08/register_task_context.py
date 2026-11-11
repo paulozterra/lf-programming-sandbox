@@ -15,6 +15,8 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import sys
+from derive_context import derive, ContextBlocked as DeriveBlocked
+from lot_preflight import check_task, LotBlocked
 
 ROOT = Path(__file__).resolve().parents[2]
 PINROOT = ROOT / "pilot/lf_profiles_pinned"
@@ -276,6 +278,27 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     if budget <= 0 or budget > 2_000_000:
         block("CONTEXT_BUDGET_INVALID")
     selected = select_area(lot_paths, area)
+    spec_input = task.get("task_spec", task)
+    if not isinstance(spec_input, dict):
+        block("TASK_SPEC_INVALID")
+    if sorted(set(lot_paths)) != sorted(set(spec_input.get("write_path_patterns", []))):
+        block("LOT_WRITE_SCOPE_MISMATCH")
+    # Historical EX8 fixture remains replayable; new registrations run the
+    # general lot gate before any output is written.
+    if task_name.lower() not in {"ex6", "ex7", "ex8"} and (root / ".git").exists():
+        try:
+            check_task(root, task)
+        except LotBlocked as exc:
+            block(str(exc))
+    try:
+        spec_paths = spec_input.get("spec_paths")
+        if spec_paths is None:
+            spec_paths = [spec_input["spec_path"]] if spec_input.get("spec_path") else []
+            spec_paths += [p for p in spec_input.get("context_path_patterns", [])
+                           if isinstance(p, str) and p.endswith((".md", ".txt"))]
+        derived = derive(root, lot_paths, sorted(set(spec_paths)))
+    except (DeriveBlocked, TypeError, KeyError) as exc:
+        block(str(exc))
     manifest, files = read_pins(pinned)
     profile, skills, identities, catalog_sha = build_material(files, project, selected)
     spec = task.get("task_spec") if "task_spec" in task else task
@@ -287,6 +310,11 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     dest = output["task_spec"] if "task_spec" in output else output
     paths = [f".lf/worker-context/{task_name}/{x}" for x in ("profile.md", "skills.md", "receipt.json")]
     context = list(dest.get("context_path_patterns", []))
+    # Existing task context is retained; derived sources are selected without
+    # hand-editing context_path_patterns.
+    for selected_path in derived["context_paths"]:
+        if selected_path not in context:
+            context.append(selected_path)
     protected = list(dest.get("protected_path_patterns", []))
     writes = list(dest.get("write_path_patterns", []))
     if any(any(p == w or w.startswith(".lf/worker-context/") for w in writes) for p in paths):
@@ -322,6 +350,9 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         "area": area,
         "task_name": task_name,
         "source_lot_paths": sorted(set(lot_paths)),
+        "derived_context_sha256": digest(
+            (json.dumps(derived, sort_keys=True, ensure_ascii=False,
+                        separators=(",", ":")) + "\\n").encode("utf-8")),
         "context_paths": paths,
         "context_sha256": {"profile.md": digest(profile), "skills.md": digest(skills)},
         "production_authority": False,
