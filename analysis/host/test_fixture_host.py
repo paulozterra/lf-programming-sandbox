@@ -83,14 +83,22 @@ def test_tampered_fixture_blocks(tmp_path):
     assert run(folder=folder)["blocking_codes"] == ["SBX_FIXTURE_SHA256_MISMATCH:screen_contract.json"]
 
 
-def test_vigente_rule_missing_config_blocks(tmp_path):
+def test_vigente_rule_missing_config_blocks(tmp_path, monkeypatch):
+    import hashlib
+    import fixture_readback_host as host
     folder = _clone(tmp_path)
-    # Patch the raw file without rewriting the pinned hash: this is a tamper,
-    # and must fail earlier than business-field validation.
     row = json.loads((folder / "effective_rules.json").read_text())
     row["payload"]["rules"][0].pop("config")
-    (folder / "effective_rules.json").write_text(json.dumps(row))
-    assert run(folder=folder)["blocking_codes"] == ["SBX_FIXTURE_SHA256_MISMATCH:effective_rules.json"]
+    target = folder / "effective_rules.json"
+    target.write_text(json.dumps(row, ensure_ascii=False), encoding="utf-8")
+    # Explicit test-only re-pin: validates the semantic gate after integrity.
+    pins = json.loads(HASHES.read_text(encoding="utf-8"))
+    pins["effective_rules.json"] = hashlib.sha256(target.read_bytes()).hexdigest()
+    trusted_pin = tmp_path / "trusted_pin_override.json"
+    trusted_pin.write_text(json.dumps(pins), encoding="utf-8")
+    monkeypatch.setattr(host, "HASHES", trusted_pin)
+    assert run(folder=folder)["blocking_codes"] == [
+        "SBX_FIXTURE_REQUIRED_FIELD_MISSING"]
 
 
 def test_two_runs_byte_exact():
