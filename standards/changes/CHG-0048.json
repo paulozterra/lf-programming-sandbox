@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0048",
   "title": "CP2.1: oráculos cifrados age en Worker nativo",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo 2026-11-11: CP2.1 sobre merge P1 7d5906a"
