@@ -22,12 +22,20 @@ STAGES = [
     "pg10_conflict_candidate", "pg11_integrity_candidate",
     "pg12_identity_candidate", "pg13_freeze_candidate",
     "pg14_testing_handoff_candidate", "selector_experimental",
-    "ex6_real_chain_candidate",
+    "c6_context_gate", "ex6_real_chain_candidate",
 ]
 # Parity executes psql against an explicitly opted-in disposable Postgres.
 ENVIRONMENT_LF = {
     "selector_experimental/tests/test_parity.py":
     "Requires psql and an explicitly opted-in disposable PostgreSQL DSN",
+    "selector_experimental/tests/test_experimental.py":
+    "Requires psql and an explicitly opted-in disposable PostgreSQL DSN",
+    "selector_experimental/integration/test_pg04_pg07_selector_bridge_v1.py":
+    "Requires disposable Postgres and LF experimental profile fixtures",
+    "pg03_strategy_candidate/test_pg03_semantic_adapter_v1.py":
+    "Imports real profiles/systemic_root_cause_repair_lf validator, forbidden to copy",
+    "pg04_semantic_partition_candidate/test_analysis_fresh_request_b2b_v1.py":
+    "Imports real profiles/programming_analysis_lf validator, forbidden to copy",
 }
 
 
@@ -52,6 +60,11 @@ def main() -> int:
         if not tests:
             results.append({"suite": stage, "status": "SIN_PRUEBAS", "reason": "No test_*.py files"})
             continue
+        if stage == "ex6_real_chain_candidate":
+            results.append({"suite": stage, "status": "REQUIERE_ENTORNO_LF",
+                            "test_files": len(tests),
+                            "reason": "H4 EX6 tests require native-attempt-proof.zip and historical CI evidence; no private artifacts copied"})
+            continue
         chosen = [p for p in tests if p.relative_to(PINNED).as_posix() not in ENVIRONMENT_LF]
         excluded = [p for p in tests if p not in chosen]
         if not chosen:
@@ -64,10 +77,17 @@ def main() -> int:
             p = subprocess.run(call, cwd=PINNED, env=env, text=True,
                                capture_output=True, timeout=160, check=False)
             output = (p.stdout + "\n" + p.stderr)[-8000:]
-            ok = p.returncode == 0
-            results.append({"suite": stage, "status": "PASS" if ok else "FAIL",
+            status = "PASS" if p.returncode == 0 else "FAIL"
+            if p.returncode == 5 and "no tests ran" in output:
+                # These source tests check invariants at module top level.
+                scripts = [subprocess.run([sys.executable, "-B", str(test)],
+                             cwd=PINNED, env=env, text=True, capture_output=True,
+                             timeout=120, check=False) for test in chosen]
+                status = "PASS_SCRIPT_ASSERTIONS" if all(x.returncode == 0 for x in scripts) else "FAIL"
+                output = ("\n".join(x.stdout + "\n" + x.stderr for x in scripts))[-8000:]
+            results.append({"suite": stage, "status": status,
                             "test_files": len(chosen), "output_tail": output})
-            failed |= not ok
+            failed |= status == "FAIL"
         except subprocess.TimeoutExpired:
             results.append({"suite": stage, "status": "FAIL",
                             "reason": "Offline suite exceeded 160 seconds"})
