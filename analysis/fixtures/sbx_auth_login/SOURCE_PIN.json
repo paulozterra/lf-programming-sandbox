@@ -1,0 +1,73 @@
+{
+  "schema_version": "SBX_FIXTURE_PIN_V1",
+  "fixture_id": "SBX-AUTH-LOGIN",
+  "simulation": true,
+  "hash_algorithm": "sha256",
+  "files": [
+    {
+      "file": "screen_contract.json",
+      "sha256": "2fe1a77f3c1d4aa84cfdc4c7f7455002dd0ad9fd1d49c6c96f0e0f142a76354e",
+      "imitates": "lf_ops.fn_screen_contract_v1"
+    },
+    {
+      "file": "direct_rules.json",
+      "sha256": "25d6788f6b6c9e6a70c359530c756c0dd58241ad91829efb610159d0ab42ede6",
+      "imitates": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas"
+    },
+    {
+      "file": "effective_rules.json",
+      "sha256": "e42c7e3bc30fccfafbf4165f77510bbfdc2021cdc5978135eb54c56e3323e7e0",
+      "imitates": "programacion.fn_input_effective_rule_links_v1"
+    },
+    {
+      "file": "policies.json",
+      "sha256": "1ff2f1334011b07dbc4e9a88284977f3d67c554a67eef5ed855c03dd1b3ff8f6",
+      "imitates": "lf_ops.pantallas_politicas + lf_ops.politicas_*"
+    },
+    {
+      "file": "elements.json",
+      "sha256": "d417a39c32ec3861833ee1405ed0bb031f38dd91b8d62d77aae4f040ca244ba9",
+      "imitates": "lf_ops.pantalla_elementos"
+    },
+    {
+      "file": "states.json",
+      "sha256": "36b51e11ccdfb890d23d9248ddaa72bc1f2e24ee65ba8331ce1269ec102cbdb4",
+      "imitates": "lf_ops.pantallas_estados"
+    },
+    {
+      "file": "variants.json",
+      "sha256": "3f260e0f8565c73d6f4da5ace8e6a3f8564dd1625e664a4cafc94cc180cea6d1",
+      "imitates": "lf_ops.pantalla_variantes"
+    },
+    {
+      "file": "relations.json",
+      "sha256": "5fc1564fdf85c20fca18494faaa7f5e4f82238d67c72bce976f37ecd5b00bcc7",
+      "imitates": "lf_ops.relaciones_b2b"
+    },
+    {
+      "file": "inventory.json",
+      "sha256": "d68c9cce616d7bbeb6571c77a0048d45a0fc0de66ef31e497cc9c4b4ca02a41f",
+      "imitates": "inventory.objects + inventory.fn_impact_analysis_v1 + inventory.fn_dependencies_v1"
+    },
+    {
+      "file": "ekb.json",
+      "sha256": "854c9abaccb696eb83c4532f9153b392f765339451cf2b7430ccd3add32c2b2e",
+      "imitates": "EKB exact governed lookup"
+    },
+    {
+      "file": "adr.json",
+      "sha256": "a6cd0dad36621a69d0bfeb81ce8a2b329b797b9cc147adeb00b8026c67fcd2ce",
+      "imitates": "programacion.fn_engineering_current_adr_assert_v1 / transversal.decision_log"
+    },
+    {
+      "file": "decision_asof.json",
+      "sha256": "e62ae35f838e1ca857e84ca677b607a7cc008bc6c0d1fcf357488eac0c019283",
+      "imitates": "public.fn_lf_decision_context_asof_resolve_v1"
+    },
+    {
+      "file": "semantic_signals.json",
+      "sha256": "9d15bacf6665cb246d9e5948205fd899345af92674a51032522b16fd985622d1",
+      "imitates": "external semantic producer for A1 / typed classification signals for A2"
+    }
+  ]
+}
