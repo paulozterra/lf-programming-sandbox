@@ -175,3 +175,23 @@ def test_plan_binding_and_blocked_stage_fail_closed():
     with pytest.raises(ChainBlocked, match="BLOCK_STATE_NOT_REQUIRED"):
         blocked_state({"stage": "LOTS_PLANNED"},
                       {"stage": "CHAIN_READY", "reason_code": None})
+
+
+def test_train_labeled_pr_event_must_not_be_mistaken_for_main_branch():
+    """Train operates on a PR event but verifies the resulting main merge."""
+    trusted = {
+        "id": 55, "path": ".github/workflows/sandbox-train.yml@refs/heads/main",
+        "status": "completed", "run_attempt": 1, "conclusion": "success",
+        "event": "pull_request", "head_branch": "lf/native-integration/demo-run-42",
+        "repository": {"full_name": "paulozterra/lf-programming-sandbox"},
+    }
+    with patch.object(chain_lots, "api", return_value=trusted):
+        assert chain_lots.event_kind(55, "a" * 40) == "TRAIN"
+    with patch.object(chain_lots, "api", return_value={
+            **trusted, "repository": {"full_name": "attacker/repository"}}):
+        with pytest.raises(ChainBlocked, match="SOURCE_WORKFLOW_UNTRUSTED"):
+            chain_lots.event_kind(55, "a" * 40)
+    with patch.object(chain_lots, "api", return_value={
+            **trusted, "event": "workflow_dispatch"}):
+        with pytest.raises(ChainBlocked, match="TRAIN_SOURCE_BRANCH_INVALID"):
+            chain_lots.event_kind(55, "a" * 40)
