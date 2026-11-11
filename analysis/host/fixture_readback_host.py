@@ -136,6 +136,8 @@ def a3_sources(inputs):
         "source_function": "lf_ops.fn_screen_contract_v1",
         "target_ref": TARGET,
         "screen_ref": screen_ref,
+        "fixture_source_ref": inputs["screen_contract.json"][1],
+        "direct_rules_fixture_ref": inputs["direct_rules.json"][1],
         "screen_status": screen["screen_status"],
         "contract_version": screen["contract_version"],
         "contract_sections": {k: copy.deepcopy(screen["contract"][k]) for k in
@@ -148,7 +150,8 @@ def a3_sources(inputs):
             "source_function": "programacion.fn_input_effective_rule_links_v1",
             "business": BUSINESS, "target_ref": TARGET,
             "consumer": "INPUT_GOVERNANCE", "source_ref": effective_ref,
-            "source_attested": False, "rules": copy.deepcopy(effective["rules"])
+            "source_attested": False, "rules": copy.deepcopy(effective["rules"]),
+            "fixture_source_ref": inputs["effective_rules.json"][1]
         },
         "policy_resolution_readback": {
             "schema_version": "LF_SCREEN_POLICIES_READBACK_V1",
@@ -157,6 +160,7 @@ def a3_sources(inputs):
             "source_ref": screen_ref, "source_attested": False,
             "policy_objects": objects,
             "supplemental_policy_source_refs": supplemental,
+            "fixture_source_ref": inputs["policies.json"][1],
         },
     }
 
@@ -202,7 +206,8 @@ def run(request="Crear la pantalla de login SBX-AUTH-LOGIN con las reglas vigent
         # Empty inventory is evidence of *unknown* impact, never no impact.
         sidecar = {"schema_version": "A4_EXISTING_IMPACT_CORE_READBACK_V1",
                    "business": BUSINESS, "target_ref": TARGET,
-                   "source_attested": False, "inventory": inv["objects"]}
+                   "source_attested": False, "inventory": inv["objects"],
+                   "fixture_source_ref": refs["inventory.json"]}
         a4 = _module("sbx_a4", "steps/a4/validators/run.py").run(a3, classification, sidecar)
         stages["A4"] = a4
         if a4["status"] == "BLOCKED":
@@ -215,7 +220,12 @@ def run(request="Crear la pantalla de login SBX-AUTH-LOGIN con las reglas vigent
                     "business": BUSINESS, "target_ref": TARGET,
                     "source_attested": False,
                     "adr_trigger_review": review,
-                    "asof_resolution": copy.deepcopy(inputs["decision_asof.json"][0])}
+                    "asof_resolution": copy.deepcopy(inputs["decision_asof.json"][0]),
+                    "fixture_source_refs": {
+                        "adr": refs["adr.json"],
+                        "ekb": refs["ekb.json"],
+                        "decision_asof": refs["decision_asof.json"]
+                    }}
         a5 = _module("sbx_a5", "steps/a5/validators/run.py").run(
             {"REQUEST_CONTEXT_V1": a1["payload"],
              "ANALYSIS_CHANGE_CLASSIFICATION_V1": classification,
