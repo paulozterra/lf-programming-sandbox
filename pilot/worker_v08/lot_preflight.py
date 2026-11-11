@@ -11,15 +11,16 @@ import json
 import re
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from derive_context import denial, MAX_BYTES, MAX_CONTEXT, MAX_WRITE
 
 ROOT = Path(__file__).resolve().parents[2]
 LOT_PATH = "apps/time-service/src/main/java/lf/sandbox/time/reminder/"
 LOT_A = tuple(LOT_PATH + name for name in
               ("Reminder.java", "ReminderRepository.java", "InMemoryReminderRepository.java"))
-MAX_BYTES = 240_000
-MAX_CONTEXT_FILES = 12
-MAX_WRITE_FILES = 6
+MAX_CONTEXT_FILES = MAX_CONTEXT
+MAX_WRITE_FILES = MAX_WRITE
+ALLOWED_WRITE = (".java", ".ts", ".tsx", ".sql")
 
 
 class LotBlocked(ValueError):
@@ -48,8 +49,18 @@ def sha_registration(task: str, catalog: dict) -> str:
     return actual
 
 
-def check_handoff(root: Path) -> str:
+def check_handoff(root: Path, handoff: dict | None = None) -> str:
     """Lot A must be part of a real PR merge on first-parent main history."""
+    if handoff is not None:
+        predecessor = handoff.get("previous_lot")
+        produced = handoff.get("expected_files")
+        if not isinstance(predecessor, str) or not predecessor or not isinstance(produced, list) or not produced:
+            blocked("HANDOFF_LOT_A_MISSING")
+        if any(not isinstance(p, str) or p.startswith("/") or
+               ".." in PurePosixPath(p).parts or denial(p) or
+               not (root / p).is_file() or (root / p).is_symlink() for p in produced):
+            blocked("HANDOFF_LOT_A_MISSING")
+        return predecessor
     if any(not (root / item).is_file() or (root / item).is_symlink() for item in LOT_A):
         blocked("HANDOFF_LOT_A_MISSING")
     history = git(root, "log", "--first-parent", "-n", "150", "--format=%H")
@@ -80,12 +91,14 @@ def check_size(root: Path, task: dict, *, prompt: str) -> dict:
         blocked("LOTE_DEMASIADO_GRANDE")
     if not contexts or not writes or len(set(contexts)) != len(contexts) or len(set(writes)) != len(writes):
         blocked("LOTE_CONTEXTO_O_ESCRITURA_INVALIDO")
-    # ex4 uses explicit canonical file names. Never count untracked files.
+    # All extensions and areas share the same limits. Never read untracked files.
     tracked = set(git(root, "ls-files").splitlines())
     bytes_total = len(prompt.encode("utf-8"))
     counted = set()
     for name in contexts:
-        if not isinstance(name, str) or name not in tracked:
+        if (not isinstance(name, str) or name.startswith("/") or
+                ".." in PurePosixPath(name).parts or name not in tracked or
+                denial(name, is_spec=True)):
             blocked("LOTE_CONTEXTO_FALTANTE")
         path = root / name
         if not path.is_file() or path.is_symlink():
@@ -94,7 +107,9 @@ def check_size(root: Path, task: dict, *, prompt: str) -> dict:
     if len(counted) > MAX_CONTEXT_FILES:
         blocked("LOTE_DEMASIADO_GRANDE")
     for name in writes:
-        if not isinstance(name, str) or not name.startswith(LOT_PATH) or not name.endswith(".java"):
+        if (not isinstance(name, str) or name.startswith("/") or
+                ".." in PurePosixPath(name).parts or
+                not name.endswith(ALLOWED_WRITE) or denial(name)):
             blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
         path = root / name
         if path.is_symlink():
@@ -110,6 +125,19 @@ def check_size(root: Path, task: dict, *, prompt: str) -> dict:
     return {"context_files": len(contexts), "write_files": len(writes), "bytes": bytes_total}
 
 
+def check_task(root: Path, task: dict, *, prompt: str = "") -> dict:
+    """Generic fail-closed lot gate; handoff is task-owned, not EX5c-owned."""
+    spec = task.get("task_spec", task)
+    if not isinstance(spec, dict):
+        blocked("LOTE_CONTEXTO_O_ESCRITURA_INVALIDO")
+    handoff = task.get("handoff", spec.get("handoff"))
+    if handoff is not None:
+        if not isinstance(handoff, dict):
+            blocked("HANDOFF_LOT_A_MISSING")
+        check_handoff(root, handoff)
+    return check_size(root, spec, prompt=prompt)
+
+
 def preflight(root: Path, task_name: str) -> dict:
     from task_selector import select
 
@@ -123,15 +151,22 @@ def preflight(root: Path, task_name: str) -> dict:
     sys.path.insert(0, str(root / "vendor/programming-agent/src"))
     from programming_agent_runner.worker import WORKER_SYSTEM_INSTRUCTION
     prompt = WORKER_SYSTEM_INSTRUCTION + "\n" + json.dumps(task, ensure_ascii=False)
-    return check_size(root, task, prompt=prompt)
+    return check_task(root, task, prompt=prompt)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", required=True, choices=("ex4a", "ex4b"))
+    parser.add_argument("--task", choices=("ex4a", "ex4b"))
+    parser.add_argument("--task-file", type=Path)
     args = parser.parse_args()
     try:
-        result = preflight(ROOT, args.task)
+        if bool(args.task) == bool(args.task_file):
+            blocked("LOTE_TAREA_DESCONOCIDA")
+        if args.task_file:
+            registration = json.loads(args.task_file.read_text(encoding="utf-8"))
+            result = check_task(ROOT, registration)
+        else:
+            result = preflight(ROOT, args.task)
     except LotBlocked as exc:
         print(str(exc))
         return 1

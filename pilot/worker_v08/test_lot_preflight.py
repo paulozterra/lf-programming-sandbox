@@ -105,3 +105,34 @@ def test_tracked_small_scope_passes(tmp_path):
     assert result["context_files"] == 1
     assert result["write_files"] == 1
     assert 0 < result["bytes"] < 240_000
+
+def test_generic_tsx_and_sql_writes_are_allowed(tmp_path):
+    root = repo(tmp_path)
+    for path in ("apps/web/src/page.tsx", "db/migrations/V2__new.sql"):
+        assert check_size(root, {
+            "context_path_patterns": ["README.md"],
+            "write_path_patterns": [path]}, prompt="")["write_files"] == 1
+
+
+def test_generic_handoff_task_owned_and_missing(tmp_path):
+    from lot_preflight import check_task
+    root = repo(tmp_path)
+    task = {"context_path_patterns": ["README.md"],
+            "write_path_patterns": ["apps/web/src/page.tsx"],
+            "handoff": {"previous_lot": "lot_a",
+                        "expected_files": ["apps/web/src/lib/lot-a.ts"]}}
+    with pytest.raises(LotBlocked, match="HANDOFF_LOT_A_MISSING"):
+        check_task(root, task)
+    make_file(root, "apps/web/src/lib/lot-a.ts")
+    assert check_task(root, task)["context_files"] == 1
+
+
+def test_generic_limits_for_all_areas(tmp_path):
+    from lot_preflight import check_task
+    root = repo(tmp_path)
+    for ext, prefix in ((".java", "apps/service/src/main/java/"),
+                        (".tsx", "apps/web/src/"), (".sql", "db/migrations/")):
+        task = {"context_path_patterns": ["README.md"],
+                "write_path_patterns": [prefix + "N" + str(i) + ext for i in range(7)]}
+        with pytest.raises(LotBlocked, match="LOTE_DEMASIADO_GRANDE"):
+            check_task(root, task)
