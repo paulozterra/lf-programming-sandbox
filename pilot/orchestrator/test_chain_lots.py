@@ -202,6 +202,7 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
     lots, plan, data, backend = fixtures(tmp_path)
     bindings = validate_plan(plan, lots, "simulated")
     merged = "a" * 40
+    newer_main = "b" * 40  # unrelated Train merge occurred before reconciliation
     pr = {"number": 501, "merged": True, "merge_commit_sha": merged,
           "base": {"ref": "main", "repo": {
               "full_name": "paulozterra/lf-programming-sandbox"}},
@@ -219,7 +220,7 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
         emitted.append((request, binding["lot_id"], head, set(receipts)))
         return {"status": "DRAFT_PREPARED", "merge_authorized": False}
     shared = (
-        patch.object(chain_lots, "check_main", return_value=merged),
+        patch.object(chain_lots, "check_main", return_value=newer_main),
         patch.object(chain_lots, "plans", return_value=[
             ("simulated", lots, status, bindings)]),
         patch.object(chain_lots, "first_parent_merges", return_value=history),
@@ -235,7 +236,7 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
               patch.object(chain_lots, "failed_lots", return_value={})):
             result = chain_lots.process(501)
         assert result[0]["status"] == "DRAFT_PREPARED"
-        assert emitted == [("simulated", "SOL-002", merged, {"SOL-001"})]
+        assert emitted == [("simulated", "SOL-002", newer_main, {"SOL-001"})]
         with (patch.object(chain_lots, "event_kind", return_value="NATIVE_FAIL"),
               patch.object(chain_lots, "failed_lots",
                            return_value={"SOL-002": [101, 102, 103]}),
