@@ -302,7 +302,9 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     except (DeriveBlocked, TypeError, KeyError) as exc:
         block(str(exc))
     # Derive first; then gate the exact effective read scope before publishing.
-    if task_name.lower() not in {"ex6", "ex7", "ex8"} and (root / ".git").exists():
+    if task_name.lower() not in {"ex6", "ex7", "ex8"}:
+        if not (root / ".git").exists():
+            block("LOT_PREFLIGHT_NO_GIT")
         prepared = copy.deepcopy(task)
         effective = prepared.get("task_spec", prepared)
         effective["context_path_patterns"] = sorted(set(
@@ -364,7 +366,7 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         "source_lot_paths": sorted(set(lot_paths)),
         "derived_context_sha256": digest(
             (json.dumps(derived, sort_keys=True, ensure_ascii=False,
-                        separators=(",", ":")) + "\\n").encode("utf-8")),
+                        separators=(",", ":")) + "\n").encode("utf-8")),
         "context_paths": paths,
         "context_sha256": {"profile.md": digest(profile), "skills.md": digest(skills)},
         "production_authority": False,
