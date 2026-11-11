@@ -56,7 +56,37 @@ def load(folder: Path, name: str) -> dict:
         blocked("CP34_INPUT_INVALID:" + name)
 
 
-def choose(root: Path, request: str, lot_id: str, completed: set[str]):
+def verify_handoffs(root: Path, lots: dict, proofs: list[dict]) -> set[str]:
+    """A dependent lot never unlocks based on caller-supplied IDs alone.
+
+    CP3.4 validates only explicit, existing merge evidence. The later CP3.6
+    stage remains responsible for automatically discovering those receipts.
+    """
+    completed = set()
+    by_id = {item["id"]: item for item in lots.get("lots", [])}
+    if not isinstance(proofs, list):
+        blocked("CP34_HANDOFF_PROOF_INVALID")
+    for proof in proofs:
+        if not isinstance(proof, dict):
+            blocked("CP34_HANDOFF_PROOF_INVALID")
+        lot_id = proof.get("lot_id")
+        sha = proof.get("merge_sha")
+        files = proof.get("expected_files")
+        if (lot_id not in by_id or lot_id in completed or
+                not isinstance(sha, str) or not SHA40.fullmatch(sha) or
+                not isinstance(files, list) or
+                not files or sorted(files) != sorted(by_id[lot_id]["write_paths"])):
+            blocked("CP34_HANDOFF_PROOF_INVALID")
+        # Prove SHA is on current HEAD history (caller should work on main
+        # containing the predecessor merge), not just any reachable object.
+        git(root, "merge-base", "--is-ancestor", sha, "HEAD")
+        for path in files:
+            git(root, "cat-file", "-e", f"{sha}:{path}")
+        completed.add(lot_id)
+    return completed
+
+
+def choose(root: Path, request: str, lot_id: str, proofs: list[dict]):
     folder = root / "pilot/runs" / request
     if folder.is_symlink() or not folder.is_dir():
         blocked("CP34_RUN_INVALID")
@@ -65,6 +95,7 @@ def choose(root: Path, request: str, lot_id: str, completed: set[str]):
         blocked("CP34_LOTS_NOT_PLANNED")
     if state.get("lots_sha256") != hashlib.sha256(canonical(lots)).hexdigest():
         blocked("CP34_LOTS_SHA_DRIFT")
+    completed = verify_handoffs(root, lots, proofs)
     candidates = {lot["id"]: lot for lot in next_ready(lots, completed)}
     if lot_id not in candidates:
         blocked("CP34_DEPENDENCY_NOT_VERIFIED")
@@ -234,12 +265,14 @@ def main() -> int:
     ap.add_argument("--task-name", required=True)
     ap.add_argument("--template", type=Path, required=True)
     ap.add_argument("--holdout-metadata", type=Path, required=True)
-    ap.add_argument("--verified-predecessor", action="append", default=[])
+    ap.add_argument("--handoff-proof", type=Path, action="append", default=[],
+                    help="One JSON proof per merged predecessor (lot_id, merge_sha, expected_files)")
     ap.add_argument("--phase", choices=("register", "seal", "export"), required=True)
     args = ap.parse_args()
     try:
+        proofs = [json.loads(path.read_text("utf-8")) for path in args.handoff_proof]
         folder, lot, mapped, paths = choose(
-            args.root, args.request_id, args.lot_id, set(args.verified_predecessor))
+            args.root, args.request_id, args.lot_id, proofs)
         template = json.loads(args.template.read_text("utf-8"))
         metadata = json.loads(args.holdout_metadata.read_text("utf-8"))
         if args.phase == "register":
