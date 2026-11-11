@@ -60,7 +60,7 @@ jobs:
         env:
           POSTGRES_USER: pilot
           POSTGRES_DB: pilot
-          POSTGRES_PASSWORD: ${{ format('cp1-{0}-{1}', github.run_id, github.run_attempt) }}
+          POSTGRES_PASSWORD: pilot
         ports:
           - 5432:5432
         options: >-
@@ -104,8 +104,6 @@ jobs:
           done
       - name: Smoke-test isolated Node, npm, Java and disposable PostgreSQL
         shell: bash
-        env:
-          PGPASSWORD: ${{ format('cp1-{0}-{1}', github.run_id, github.run_attempt) }}
         run: |
           set -euo pipefail
           isolated_path="/usr/local/bin:/usr/bin:/bin"
@@ -116,7 +114,14 @@ jobs:
           env -i PATH="$isolated_path" npm --version
           env -i PATH="$isolated_path" java -version 2>&1 | grep -E 'version "21'
           env -i PATH="$isolated_path" pg_isready -h 127.0.0.1 -p 5432 -U pilot -d pilot
-          env -i PATH="$isolated_path" PGPASSWORD="$PGPASSWORD" psql -h 127.0.0.1 -U pilot -d pilot -X -Atqc 'SELECT 1' | grep -qx 1
+          # Worker command environment keeps only SAFE_ENV_KEYS (not PGPASSWORD).
+          # URL is intentionally local and disposable, never a production secret.
+          isolated_home="$(mktemp -d)"
+          trap 'rm -rf "$isolated_home"' EXIT
+          env -i PATH="$isolated_path" HOME="$isolated_home" LANG=C.UTF-8 \
+            psql -w -X -v ON_ERROR_STOP=1 \
+              'postgresql://pilot:pilot@127.0.0.1:5432/pilot' \
+              -Atqc 'SELECT 1' | grep -qx 1
           echo CP1_1_ISOLATED_TOOLCHAIN_PASS
       - name: Validate manual inputs and verify every vendored Worker byte BEFORE install
         id: vendor

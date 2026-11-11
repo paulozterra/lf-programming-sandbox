@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo 2026-11-11: P1 CP1.1"
   },
-  "reason": "Extender infraestructura de ejecución nativa/API con herramientas accesibles desde el PATH fijo del Worker y una instancia Postgres temporal; sin tocar vendor.",
+  "reason": "Node 22 y Postgres 17 desechable para ambos Workers. El vendor filtra el entorno a SAFE_ENV_KEYS y no transmite PGPASSWORD; por ello se usa usuario/base/contraseña pilot/pilot/pilot en 127.0.0.1:5432, exclusiva del runner efímero y sin valor de secreto. Un smoke test sin PGPASSWORD, con env -i y URL explícita, demuestra conexión SQL real desde el mismo entorno restringido. No tocar vendor ni tareas históricas.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -15,6 +15,7 @@
     "paths": [
       ".github/workflows/worker-native.yml",
       ".github/workflows/worker-pilot.yml",
+      "pilot/worker_v08/README.md",
       "standards/changes/CHG-0043.json",
       "standards/CAMBIOS.md"
     ]

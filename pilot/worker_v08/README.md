@@ -2,6 +2,18 @@
 
 **Estado:** PR draft, únicamente revisión estática. No se ha ejecutado el workflow pagado ni instalado secretos ni cargado saldo. El ensayo gratuito original con FakeModel fue calificado como PASS por Claude (evidencia reportada por Paulo).
 
+## CP1.1 — PostgreSQL 17 desechable para ambos modos (2026-11-11)
+
+Los jobs `worker-native.yml` (híbrido) y `worker-pilot.yml` (API) disponen de Node 22, npm y PostgreSQL 17 **solo dentro del runner efímero** de GitHub Actions. La conexión de pruebas es:
+
+```text
+postgresql://pilot:pilot@127.0.0.1:5432/pilot
+```
+
+Usuario: `pilot`. Contraseña: `pilot`. Base: `pilot`. Host: `127.0.0.1`, puerto: `5432`. **Es una credencial fija ficticia, no es un secreto ni debe reutilizarse en infraestructura persistente o productiva.** Las tareas y los exámenes del sandbox que necesiten Postgres usan explícitamente esta URL. No apunta a Supabase ni a otra BD real.
+
+El Worker vendorizado filtra las variables de entorno a `SAFE_ENV_KEYS` y **no** transmite `PGPASSWORD` a los procesos de prueba. Por eso el smoke test de CP1.1 ejecuta `psql -w` con la URL completa dentro de `env -i`, conservando únicamente `PATH`, `HOME` y `LANG`: verifica conectividad sin depender de `PGPASSWORD` ni de una variable inyectada al Worker. El mensaje `CP1_1_ISOLATED_TOOLCHAIN_PASS` solo se emite después de una consulta SQL exitosa. El servicio se descarta al terminar el job.
+
 ## 1. Fuente, procedencia y aislamiento
 
 El Worker **original** de `cristhianlujan/programming-agent` en el commit `298307e2f9cac72abfde2b181f3554b0e28bad24` está copiado exactamente en `vendor/programming-agent/`. Únicamente contiene `src/`, `pyproject.toml` y el archivo adicional de auditoría `PROVENANCE.json`: **72 archivos fuente, 675415 bytes**. Se verificó que los SHA-1 de Git de los 72 blobs copiados coinciden con los del commit original; `PROVENANCE.json` registra además SHA-256, tamaño y ruta de **cada** archivo.
