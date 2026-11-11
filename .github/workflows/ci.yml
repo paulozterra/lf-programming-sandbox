@@ -217,6 +217,11 @@ jobs:
           python3 -m py_compile pilot/orchestrator/chain_contract.py pilot/orchestrator/chain_lots.py
           python3 -m pytest -q pilot/orchestrator/test_chain_lots.py -p no:cacheprovider
 
+      - name: CP3.7 pinned PG06-PG14 source candidates and two-lot H_REPORT (NO MODEL)
+        run: |
+          python3 -m py_compile pilot/orchestrator/pg37_evidence.py pilot/orchestrator/pg37_publish.py
+          python3 -m pytest -q pilot/orchestrator/test_pg37_evidence.py -p no:cacheprovider
+
       - name: Offline ex5c deterministic derivation adversarial tests (pytest; NO MODEL)
         run: python3 -m pytest -q pilot/worker_v08/test_derive_context.py
 
