@@ -130,7 +130,10 @@ def verified_failures(task: str, runs: list[dict], proofs: dict[int, dict | None
         matched[n] = run_id
     if matched and set(matched) != set(range(1, max(matched) + 1)):
         deny("ATTEMPT_GAP")
-    return [matched[k] for k in sorted(matched)]
+    ordered = [matched[k] for k in sorted(matched)]
+    if ordered != sorted(ordered):
+        deny("ATTEMPT_OUT_OF_ORDER")
+    return ordered
 
 
 def progress(lots: dict, completed: dict[str, dict], failures: dict[str, list[int]],
