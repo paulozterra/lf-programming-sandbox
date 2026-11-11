@@ -175,6 +175,14 @@ class FixtureHost:
             block("SBX_SEMANTIC_SIGNALS_INCOMPLETE")
         if a1_input.get("objective", {}).get("problem_statement") != request_text:
             block("SBX_SEMANTIC_REQUEST_DRIFT")
+        # Rebind all external A1/A2 fixture evidence to verified file bytes.
+        # No bare fixture path is a trusted source reference.
+        semantic_ref = self.provenance["semantic_signals.json"]
+        a1_input["request_identity"]["request_ref"] = semantic_ref
+        a1_input["source_refs"] = [semantic_ref]
+        for fact in a1_input["provided_facts"]:
+            fact["source_ref"] = semantic_ref
+        a2_input["evidence_refs"] = [semantic_ref]
         # Exact approved model-independent host signal; no prompt interpretation.
         a1 = load_stage("a1").run(a1_input)
         if a1.get("status") != "VALID_OUTPUT":
