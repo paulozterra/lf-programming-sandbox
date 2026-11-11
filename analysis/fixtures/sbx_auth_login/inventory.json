@@ -1,0 +1,10 @@
+{
+  "imitates": "inventory.objects + inventory.fn_impact_analysis_v1 + inventory.fn_dependencies_v1",
+  "schema_version": "A4_EXISTING_IMPACT_CORE_READBACK_V1",
+  "business": "LF",
+  "target_ref": "SBX-AUTH-LOGIN",
+  "source_attested": false,
+  "objects": [],
+  "impacts": [],
+  "dependencies": []
+}
