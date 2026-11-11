@@ -1,0 +1,137 @@
+{
+  "schema_version": "ANALYSIS_CONTROLLED_BENCHMARK_V1",
+  "state": "REGISTERED_BASELINE_BOUND_READY_FOR_CONTRACT_REPLAY",
+  "unit": "A12",
+  "exit_criterion": "Comparación reproducible contra baseline",
+  "work_code": "PA-AN-012",
+  "comparison": {
+    "same_sample_required": true,
+    "sample_ref": "TS-PROGRAMMING-ANALYSIS-A10-HIST-V1",
+    "case_count": 30,
+    "case_id_range": [
+      "A10-HIST-001",
+      "A10-HIST-030"
+    ],
+    "oracle_basis": "A10_CRITICAL_OMISSION_EXPECTATIONS"
+  },
+  "baseline": {
+    "baseline_id": "PRE_WAVE1_STORY_ANALYSIS_V1",
+    "authority_reason": "Exact repository state immediately before merged Wave 1 stage-boundary cutover PR #1688",
+    "repository": "cristhianlujan/claude-persona-lf-patch",
+    "exact_commit": "dc4560b0b0f509b2a6b93946e7b03f878ee24604",
+    "source_contract": "skills/creating-integral-user-stories/SKILL.md",
+    "source_contract_blob": "0c20dbc4d5d2504e92ce1236677f92bef59b681f",
+    "worker_sources": [
+      {
+        "path": "skills/creating-integral-user-stories/agents/screen-decomposer.md",
+        "blob": "9fef6fc4f4e7b712fa57cee316eeaed1933b3850"
+      },
+      {
+        "path": "skills/creating-integral-user-stories/agents/story-core-author.md",
+        "blob": "d18e5119552ba3a43e1d04b1bd336a8beeace55b"
+      },
+      {
+        "path": "skills/creating-integral-user-stories/agents/cross-cutting-enricher.md",
+        "blob": "ce6e942de41ca693b2680406018ba32124742e02"
+      },
+      {
+        "path": "skills/creating-integral-user-stories/agents/field-contract-author.md",
+        "blob": "f36075ef461b6af4a8a57e221e4247e191bf4b1a"
+      },
+      {
+        "path": "skills/creating-integral-user-stories/agents/test-deriver.md",
+        "blob": "4cc11ef2e5c5126b29bed366b0e98745f1c1e18f"
+      }
+    ],
+    "known_output_boundary": "STORY_PACK_A_Q",
+    "runtime_state": "DISABLED",
+    "baseline_is_historical_source_not_current_authority": true
+  },
+  "candidate": {
+    "candidate_id": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+    "repository": "cristhianlujan/claude-persona-lf-patch",
+    "pull_request": 1858,
+    "logic_head": "19a81a20d827cf1c0a0122d6610d587cdea3e6f4",
+    "evaluation_head": "f6edc93bf2f4b8470be865805936517fa3cfc0b9",
+    "output_boundary": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+    "no_parallel_engine": true
+  },
+  "metrics": {
+    "quality": {
+      "required": true,
+      "fields": [
+        "critical_omission_count",
+        "false_negative_count",
+        "critical_signal_recall"
+      ],
+      "score_rule": "Same A10 oracle for both arms; absence of evidence is not converted to PASS."
+    },
+    "overanalysis": {
+      "required": true,
+      "metric_kind": "STRUCTURAL_PROXY",
+      "fields": [
+        "fixed_domain_burden_per_applicable_case",
+        "evidence_triggered_front_policy",
+        "structural_overanalysis_proxy_count"
+      ],
+      "score_rule": "Measure fixed mandatory analysis domains imposed independently of case evidence versus evidence-triggered/open-catalog material fronts. This is a structural overanalysis proxy, not a claim about model token use."
+    },
+    "reads": {
+      "required": true,
+      "metric_kind": "EXACT_SOURCE_REPLAY",
+      "fields": [
+        "source_access_count",
+        "duplicate_source_access_count"
+      ],
+      "score_rule": "Count actual exact-source reads performed by the replay harness with per-arm cache reset; do not infer reads from declared references."
+    },
+    "time": {
+      "required": true,
+      "metric_kind": "EXACT_SOURCE_REPLAY",
+      "fields": [
+        "p50_ms",
+        "p95_ms",
+        "p99_ms"
+      ],
+      "benchmark_capability": "PERFORMANCE_EXACT_SOURCE_BENCHMARK@1.0.0",
+      "score_rule": "Measure exact-source contract replay using time.perf_counter_ns. This does not claim model-inference latency."
+    },
+    "downstream_reinterpretation": {
+      "required": true,
+      "metric_kind": "CONTRACT_ADMISSION",
+      "fields": [
+        "reinterpretation_required_cases",
+        "direct_admission_compatible_cases"
+      ],
+      "score_rule": "Evaluate exact arm output boundary against the current PG-01 admission contract. Legacy Story output cannot be treated as Analysis package by narrative equivalence."
+    }
+  },
+  "execution": {
+    "arm_order_policy": "ALTERNATE_OR_RANDOMIZED_BY_CASE",
+    "same_case_inputs": true,
+    "same_oracle": true,
+    "exact_source_pinning": true,
+    "candidate_may_reuse_A10_evidence_only_for_quality_if_exact_oracle_and_logic_head_match": true,
+    "fresh_measurement_required_for": [
+      "overanalysis",
+      "source_access_count",
+      "duplicate_source_access_count",
+      "elapsed_ms",
+      "downstream_reinterpretation"
+    ],
+    "missing_metric_behavior": "A12_REMAINS_IN_PROGRESS",
+    "token_estimation_forbidden": true,
+    "benchmark_scope": "CONTRACT_MODEL_REPLAY",
+    "model_inference_latency_claimed": false,
+    "runtime_execution_required": false,
+    "legacy_runtime_reactivation_required": false
+  },
+  "guards": {
+    "legacy_runtime_reactivation_forbidden": true,
+    "case_specific_solution_hardcoding_forbidden": true,
+    "A14_fresh_holdout_contamination_forbidden": true,
+    "runtime_activation": false,
+    "production_activation": false,
+    "merge": false
+  }
+}
