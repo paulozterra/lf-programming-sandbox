@@ -404,7 +404,15 @@ jobs:
           python3 - <<'PYDIAG'
           import sys, pathlib, traceback
           sys.path.insert(0, 'pilot/orchestrator')
-          import plan_lots
+          import plan_lots, json
+          original_assign=plan_lots.assign_pg05
+          def diagnosed_assign(**kw):
+              lot=kw['lot']
+              result=kw['prepare'](kw['literal_request'],kw['project_ref'],lot['area'],lot['paths'])
+              req=result.get('request',{})
+              print('P4_SELECTOR_BINDING_DIAG '+json.dumps({'area':lot['area'],'lot_paths':lot['paths'],'request_paths':req.get('file_paths'),'project_ref':kw['project_ref'],'request_project_ref':req.get('project_ref'),'request_area':req.get('area'),'downstream':req.get('downstream_execution_allowed'),'lot_rules':lot['project_rules'],'request_rules':req.get('project_rules')},sort_keys=True),flush=True)
+              return original_assign(**kw)
+          plan_lots.assign_pg05=diagnosed_assign
           try:
               plan_lots.plan(pathlib.Path('.'), 'p4-prioridad')
           except Exception:
