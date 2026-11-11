@@ -380,6 +380,7 @@ jobs:
           docker run --detach --rm --name cp33-disposable-db --network host \
             -e POSTGRES_USER=pilot -e POSTGRES_PASSWORD=pilot \
             -e POSTGRES_DB=selector_exp_test_cp33 \
+            -e POSTGRES_INITDB_ARGS=--locale=C \
             postgres:17 -c listen_addresses=127.0.0.1
           for attempt in $(seq 1 40); do
             if pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33 >/dev/null 2>&1; then
@@ -404,20 +405,8 @@ jobs:
           python3 - <<'PYDIAG'
           import sys, pathlib, traceback
           sys.path.insert(0, 'pilot/orchestrator')
-          import plan_lots, json
-          original_assign=plan_lots.assign_pg05
-          def diagnosed_assign(**kw):
-              lot=kw['lot']
-              result=kw['prepare'](kw['literal_request'],kw['project_ref'],lot['area'],lot['paths'])
-              req=result.get('request',{})
-              print('P4_SELECTOR_BINDING_DIAG '+json.dumps({'area':lot['area'],'lot_paths':lot['paths'],'request_paths':req.get('file_paths'),'project_ref':kw['project_ref'],'request_project_ref':req.get('project_ref'),'request_area':req.get('area'),'downstream':req.get('downstream_execution_allowed'),'lot_rules':lot['project_rules'],'request_rules':req.get('project_rules')},sort_keys=True),flush=True)
-              return original_assign(**kw)
-          plan_lots.assign_pg05=diagnosed_assign
-          try:
-              plan_lots.plan(pathlib.Path('.'), 'p4-prioridad')
-          except Exception:
-              traceback.print_exc()
-              raise
+          import plan_lots
+          plan_lots.plan(pathlib.Path('.'), 'p4-prioridad')
           PYDIAG
           python3 - <<'PY'
           import json,pathlib
