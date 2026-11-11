@@ -89,9 +89,12 @@ def read_all(folder=FIXTURES):
     _required(results["semantic_signals.json"][0], "schema_version", "business", "target_ref",
               "change_type", "target_granularity", "nested_parent_ref", "evidence_refs", "depth_signals")
     for row in effective["rules"]:
-        _required(row, "code", "status", "pending_decision", "binding_source", "source_ref", "config")
-        if row["status"] == "VIGENTE" and not row["pending_decision"] and not row["config"]:
+        _required(row, "code", "status", "pending_decision", "binding_source", "source_ref")
+        if row["status"] == "VIGENTE" and not row["pending_decision"] and (
+                "config" not in row or not row["config"]):
             raise FixtureBlocked("SBX_VIGENTE_RULE_VALUE_CONFIG_MISSING:" + row["code"])
+        if "config" not in row:
+            raise FixtureBlocked("SBX_FIXTURE_REQUIRED_FIELD_MISSING")
     return results
 
 
