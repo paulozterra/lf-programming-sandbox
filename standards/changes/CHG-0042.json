@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0042",
   "title": "CP0.2 B: esperar propagación del HEAD y despachar CI ausente por SHA",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo 2026-11-10: Train 42944680312 post_push_head_moved_retry y CHECK_WAIT_TIMEOUT; CI 42944710251 action_required"
