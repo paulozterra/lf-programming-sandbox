@@ -24,6 +24,8 @@ PINFILE = PINROOT / "SOURCE_PIN.json"
 LF_SHA = "6c3092a88da95a6be5649448c52dd9a920325317"
 SHA64 = re.compile(r"^[0-9a-f]{64}$")
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")
+NATIVE_ID = re.compile(r"^[a-z][a-z0-9_-]{0,31}$")
+SHA40 = re.compile(r"^[0-9a-f]{40}$")
 PROFILE = {"BACKEND": "prog_backend_exp", "FRONTEND": "prog_frontend_exp",
            "DATA": "prog_data_exp"}
 PROFILE_CODE = {"BACKEND": "PERFIL-PROG-BACKEND-EXP",
@@ -388,34 +390,96 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     return output, artifacts
 
 
+def native_registration_bytes(task_spec: dict, holdout_sha256: str) -> bytes:
+    """Same two-key schema consumed by native_run.load_registration."""
+    if not isinstance(holdout_sha256, str) or not SHA64.fullmatch(holdout_sha256):
+        block("NATIVE_HOLDOUT_SHA_INVALID")
+    if not isinstance(task_spec, dict) or task_spec.get("max_attempts") != 1:
+        block("NATIVE_TASK_SPEC_INVALID")
+    if not isinstance(task_spec.get("base_head_sha"), str) or not SHA40.fullmatch(task_spec["base_head_sha"]):
+        block("NATIVE_BASE_HEAD_INVALID")
+    return canonical({"task_spec": task_spec, "holdout_sha256": holdout_sha256})
+
+
+def native_path(root: Path, task_name: str, native_out: Path) -> Path:
+    if not isinstance(task_name, str) or not NATIVE_ID.fullmatch(task_name):
+        block("NATIVE_TASK_ID_INVALID")
+    if task_name in {"ex6", "ex7", "ex8"}:
+        block("HISTORICAL_TASK_IMMUTABLE")
+    expected = root / "pilot/worker_v08/native_tasks" / (task_name + ".json")
+    if native_out != expected and native_out.resolve() != expected.resolve():
+        block("NATIVE_TASK_PATH_INVALID")
+    destination = expected
+    base = root / "pilot/worker_v08/native_tasks"
+    if base.is_symlink() or destination.is_symlink() or not destination.resolve().is_relative_to(base.resolve()):
+        block("NATIVE_TASK_PATH_INVALID")
+    return destination
+
+
+def write_native_registration(root: Path, task_name: str, native_out: Path,
+                              task_spec: dict, holdout_sha256: str) -> bytes:
+    destination = native_path(root, task_name, native_out)
+    payload = native_registration_bytes(task_spec, holdout_sha256)
+    if destination.exists():
+        if not destination.is_file() or destination.read_bytes() != payload:
+            block("NATIVE_TASK_EXISTS")
+        return payload  # deterministic replay: identical bytes, no rewrite
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    # Exclusive creation, never overwrite a concurrent registration.
+    try:
+        with destination.open("xb") as target:
+            target.write(payload)
+    except FileExistsError:
+        block("NATIVE_TASK_EXISTS")
+    return payload
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--task-file", type=Path, required=True)
-    p.add_argument("--out-task", type=Path, required=True)
+    p.add_argument("--out-task", type=Path)
+    p.add_argument("--native-out", type=Path,
+                   help="Native task registration at pilot/worker_v08/native_tasks/<t>.json")
+    p.add_argument("--holdout-sha256", help="External 64-hex digest, never the oracle body")
     p.add_argument("--task-name", required=True)
     p.add_argument("--project", required=True)
     p.add_argument("--area", required=True, choices=("BACKEND", "FRONTEND", "DATA"))
     p.add_argument("--lot-path", required=True, action="append")
     p.add_argument("--context-budget-bytes", required=True, type=int)
     args = p.parse_args()
-    if args.task_file.resolve() == args.out_task.resolve():
+    if not args.out_task and not args.native_out:
+        block("TASK_OUTPUT_REQUIRED")
+    if args.native_out is None and args.holdout_sha256 is not None:
+        block("NATIVE_TASK_PATH_INVALID")
+    if args.native_out is not None:
+        native_path(ROOT, args.task_name, args.native_out)
+        native_registration_bytes(
+            json.loads(args.task_file.read_text("utf-8")).get("task_spec", {}),
+            args.holdout_sha256)
+    if args.out_task and args.task_file.resolve() == args.out_task.resolve():
         block("TASK_INPUT_IMMUTABLE")
     # Generated task registrations must not overwrite vendor/, production profiles,
     # historical native_tasks/, or any unrelated repository file.
-    permitted = (ROOT / "pilot/worker_v08/registered_tasks").resolve()
-    candidate = args.out_task.resolve()
-    if not candidate.is_relative_to(permitted) or candidate.suffix != ".json":
-        block("TASK_OUTPUT_SCOPE_INVALID")
-    if args.out_task.exists() or args.out_task.is_symlink():
-        block("TASK_OUTPUT_EXISTS")
+    if args.out_task:
+        permitted = (ROOT / "pilot/worker_v08/registered_tasks").resolve()
+        candidate = args.out_task.resolve()
+        if not candidate.is_relative_to(permitted) or candidate.suffix != ".json":
+            block("TASK_OUTPUT_SCOPE_INVALID")
+        if args.out_task.exists() or args.out_task.is_symlink():
+            block("TASK_OUTPUT_EXISTS")
     task = json.loads(args.task_file.read_text("utf-8"))
     enriched, _ = register(task, project=args.project, area=args.area,
                            lot_paths=args.lot_path, task_name=args.task_name,
                            budget=args.context_budget_bytes)
-    if args.out_task.exists():
-        block("TASK_OUTPUT_EXISTS")
-    args.out_task.parent.mkdir(parents=True, exist_ok=True)
-    args.out_task.write_bytes(canonical(enriched))
+    if args.native_out:
+        spec = enriched["task_spec"] if "task_spec" in enriched else enriched
+        write_native_registration(ROOT, args.task_name, args.native_out, spec,
+                                  args.holdout_sha256)
+    if args.out_task:
+        if args.out_task.exists():
+            block("TASK_OUTPUT_EXISTS")
+        args.out_task.parent.mkdir(parents=True, exist_ok=True)
+        args.out_task.write_bytes(canonical(enriched))
     print("LF_PINNED_WORKER_CONTEXT_REGISTERED " + args.task_name)
     return 0
 
