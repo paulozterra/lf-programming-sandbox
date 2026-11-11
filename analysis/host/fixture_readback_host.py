@@ -20,7 +20,7 @@ FILES = ("screen_contract.json", "direct_rules.json", "effective_rules.json",
          "policies.json", "elements.json", "states.json", "variants.json",
          "relations.json", "inventory.json", "ekb.json", "adr.json",
          "decision_asof.json", "semantic_signals.json")
-HASHES = ROOT / "analysis/fixture_sha256_pins.json"
+HASHES = FIXTURES / "fixture_manifest.json"
 
 
 class FixtureBlocked(Exception):
@@ -41,7 +41,7 @@ def load(name, folder=FIXTURES):
     if not path.is_file():
         raise FixtureBlocked("SBX_FIXTURE_MISSING:" + name)
     raw = path.read_bytes()
-    pins = json.loads(HASHES.read_text(encoding="utf-8"))
+    pins = {k: v["sha256"] for k, v in json.loads(HASHES.read_text(encoding="utf-8"))["files"].items()}
     if hashlib.sha256(raw).hexdigest() != pins[name]:
         raise FixtureBlocked("SBX_FIXTURE_SHA256_MISMATCH:" + name)
     try:
@@ -78,11 +78,26 @@ def read_all(folder=FIXTURES):
         raise FixtureBlocked("SBX_FIXTURE_TARGET_MISMATCH")
     if not isinstance(inventory["objects"], list):
         raise FixtureBlocked("SBX_INVENTORY_REQUIRED")
+    contract = screen["contract"]
+    _required(contract, "fields", "errors", "visual", "context", "metadata",
+              "profiles", "analytics", "evidence", "rules", "policies")
+    if not isinstance(inventory["objects"], list) or inventory["objects"]:
+        raise FixtureBlocked("SBX_INVENTORY_REQUIRED")
+    for filename in ("elements.json", "states.json", "variants.json", "relations.json"):
+        _required(results[filename][0], "rows")
+    _required(results["decision_asof.json"][0], "schema_version", "state", "subject_ref")
+    _required(results["semantic_signals.json"][0], "schema_version", "business", "target_ref",
+              "change_type", "target_granularity", "nested_parent_ref", "evidence_refs", "depth_signals")
     for row in effective["rules"]:
         _required(row, "code", "status", "pending_decision", "binding_source", "source_ref", "config")
         if row["status"] == "VIGENTE" and not row["pending_decision"] and not row["config"]:
             raise FixtureBlocked("SBX_VIGENTE_RULE_VALUE_CONFIG_MISSING:" + row["code"])
     return results
+
+
+def _reject_unexpected_request(request):
+    if not isinstance(request, str) or TARGET not in request:
+        raise FixtureBlocked("SBX_REQUEST_TARGET_NOT_EXPLICIT")
 
 
 def a3_sources(inputs):
@@ -130,6 +145,7 @@ def a3_sources(inputs):
 def run(request="Crear la pantalla de login SBX-AUTH-LOGIN con las reglas vigentes",
         folder=FIXTURES):
     try:
+        _reject_unexpected_request(request)
         inputs = read_all(folder)
         refs = {name: ref for name, (_, ref) in inputs.items()}
         semantic = copy.deepcopy(inputs["semantic_signals.json"][0])
