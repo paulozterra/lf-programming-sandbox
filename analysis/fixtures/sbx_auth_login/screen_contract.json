@@ -1,0 +1,41 @@
+{
+  "imitates": "lf_ops.fn_screen_contract_v1",
+  "simulated": true,
+  "data": {
+    "target_ref": "SBX-AUTH-LOGIN",
+    "screen_id": 901,
+    "screen_status": "VIGENTE",
+    "contract_version": "SBX-v1",
+    "contract_sections": {
+      "fields": [
+        {
+          "field_code": "SBX-CREDENTIALS",
+          "status": "VIGENTE",
+          "required": true
+        }
+      ],
+      "errors": [
+        {
+          "error_code": "SBX-INVALID-LOGIN",
+          "status": "VIGENTE"
+        }
+      ],
+      "visual": {
+        "theme": "SBX-NEUTRAL"
+      },
+      "context": {
+        "module_code": "SBX-AUTH"
+      },
+      "metadata": {
+        "screen_code": "SBX-AUTH-LOGIN"
+      },
+      "profiles": [],
+      "analytics": [],
+      "evidence": []
+    },
+    "contract_extra": {
+      "rules": [],
+      "policies": []
+    }
+  }
+}
