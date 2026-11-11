@@ -50,3 +50,4 @@
 | CHG-0046 | EDITORIAL | PR A: Train promueve draft etiquetado a Ready for review |  | paulozterra |  |
 | CHG-0047 | EDITORIAL | CP1.4: registro nativo directo desde contexto fijado |  | paulozterra |  |
 | CHG-0048 | ADDITIVE | CP2.1: oráculos cifrados age en Worker nativo |  | paulozterra |  |
+| CHG-0049 | EDITORIAL | CP2.3: registro ex8b, prueba real de examen cifrado con age |  | paulozterra |  |
