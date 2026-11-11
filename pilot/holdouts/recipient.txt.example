@@ -1,1 +1,2 @@
-# Example only. Claude supplies the actual public recipient in recipient.txt.\n# Format: exactly one age1... recipient. NEVER commit an identity/private key.\n
+# Example only: Claude provides the real public recipient in recipient.txt.
+# Required format is exactly one age1... X25519 recipient; never commit an identity.

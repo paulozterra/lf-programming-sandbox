@@ -9,9 +9,9 @@ import re
 import subprocess
 import sys
 
-TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\\Z")
-SHA256 = re.compile(r"[0-9a-f]{64}\\Z")
-RECIPIENT = re.compile(r"age1[023456789acdefghjklmnpqrstuvwxyz]{58}\\Z")
+TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
+SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+RECIPIENT = re.compile(r"age1[023456789acdefghjklmnpqrstuvwxyz]{58}\Z")
 
 class AgeBlocked(ValueError):
     pass

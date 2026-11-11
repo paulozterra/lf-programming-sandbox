@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0048",
+  "title": "CP2.1: oráculos cifrados age en Worker nativo",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: CP2.1 sobre merge P1 7d5906a"
+  },
+  "reason": "Introduce registro nativo opcional holdout_ref sin alterar el contrato legacy ex6-ex8; implementa validación estricta de ruta y destinatario age, pin del tarball age 1.3.2 oficial con SHA-256 verificado, y descifrado solo en el workflow nativo confiable con PILOT_HOLDOUT_AGE_KEY en el paso privado y comprobación SHA del oráculo descifrado. Trigger sin secretos. No se crea ni solicita clave privada ni se lee ningún examen real.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/holdouts/recipient.txt.example",
+      "pilot/worker_v08/holdout_age.py",
+      "pilot/worker_v08/register_task_context.py",
+      "pilot/worker_v08/native_run.py",
+      "pilot/worker_v08/test_holdout_age.py",
+      ".github/workflows/worker-native.yml",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0048.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
