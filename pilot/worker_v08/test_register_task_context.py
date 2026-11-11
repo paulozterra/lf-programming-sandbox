@@ -103,7 +103,9 @@ class PinnedSource(unittest.TestCase):
             ("FRONTEND", "frontend/src/app/page.tsx", "PERFIL-PROG-FRONTEND-EXP", "NEXTJS"),
             ("DATA", "db/migration/V1__baseline.sql", "PERFIL-PROG-DATA-EXP", "FLYWAY_EXP"),
         ):
-            _, artifacts = run(task_spec(), area=area, lot_paths=[scope],
+            scoped = task_spec()
+            scoped["write_path_patterns"] = [scope]
+            _, artifacts = run(scoped, area=area, lot_paths=[scope],
                                task_name="cp12_" + area.lower())
             prefix = ".lf/worker-context/cp12_" + area.lower()
             receipt = json.loads(artifacts[prefix + "/receipt.json"])
@@ -153,7 +155,9 @@ class PinnedSource(unittest.TestCase):
         for area, paths in (("BACKEND", [WRITE]),
                             ("FRONTEND", ["frontend/src/app/page.tsx"]),
                             ("DATA", ["db/migration/V1__baseline.sql"])):
-            run(task_spec(), area=area, lot_paths=paths,
+            scoped = task_spec()
+            scoped["write_path_patterns"] = paths
+            run(scoped, area=area, lot_paths=paths,
                 task_name="cp12_immutable_" + area.lower())
         self.assertEqual(before, {str(x): sha256_bytes(x) for x in historic})
 

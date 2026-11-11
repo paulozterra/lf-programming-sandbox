@@ -283,13 +283,6 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         block("TASK_SPEC_INVALID")
     if sorted(set(lot_paths)) != sorted(set(spec_input.get("write_path_patterns", []))):
         block("LOT_WRITE_SCOPE_MISMATCH")
-    # Historical EX8 fixture remains replayable; new registrations run the
-    # general lot gate before any output is written.
-    if task_name.lower() not in {"ex6", "ex7", "ex8"} and (root / ".git").exists():
-        try:
-            check_task(root, task)
-        except LotBlocked as exc:
-            block(str(exc))
     try:
         spec_paths = spec_input.get("spec_paths")
         if spec_paths is None:
@@ -299,6 +292,16 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         derived = derive(root, lot_paths, sorted(set(spec_paths)))
     except (DeriveBlocked, TypeError, KeyError) as exc:
         block(str(exc))
+    # Derive first; then gate the exact effective read scope before publishing.
+    if task_name.lower() not in {"ex6", "ex7", "ex8"} and (root / ".git").exists():
+        prepared = copy.deepcopy(task)
+        effective = prepared.get("task_spec", prepared)
+        effective["context_path_patterns"] = sorted(set(
+            effective.get("context_path_patterns", []) + derived["context_paths"]))
+        try:
+            check_task(root, prepared)
+        except LotBlocked as exc:
+            block(str(exc))
     manifest, files = read_pins(pinned)
     profile, skills, identities, catalog_sha = build_material(files, project, selected)
     spec = task.get("task_spec") if "task_spec" in task else task

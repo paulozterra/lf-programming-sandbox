@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import posixpath
 import re
 from pathlib import Path, PurePosixPath
 
@@ -168,12 +169,13 @@ def derive(root: Path, write_scope: list[str], spec_paths: list[str]) -> dict:
             continue
         source = source_file.read_text(encoding="utf-8")
         imports = sorted(set(re.findall(
-            r"""(?:import\\s+(?:[^;]*?\\s+from\\s+)?|require\\s*\\(|import\\s*\\()\\s*['"]([.][^'"]+)['"]""",
+            r"""(?:import\s+(?:[^;]*?\s+from\s+)?|require\s*\(|import\s*\()\s*['"]([.][^'"]+)['"]""",
             source)))
         for module in imports:
-            base = PurePosixPath(name).parent / module
+            # Normalize ../ locally, then apply the strict path policy.
+            relative = posixpath.normpath(str(PurePosixPath(name).parent / module))
             try:
-                relative = _safe_name(str(base))
+                _safe_name(relative)
             except ContextBlocked:
                 continue
             for candidate in (relative + ext for ext in
@@ -194,13 +196,13 @@ def derive(root: Path, write_scope: list[str], spec_paths: list[str]) -> dict:
         if not name.lower().endswith(".sql") or denial(name):
             continue
         target = PurePosixPath(name)
-        version = re.fullmatch(r"V([0-9]+)__[^/]+\\.sql", target.name)
+        version = re.fullmatch(r"V([0-9]+)__[^/]+\.sql", target.name)
         if version is None:
             continue
         for other in _files(root, root / target.parent):
             if other == name or denial(other):
                 continue
-            m = re.fullmatch(r"V([0-9]+)__[^/]+\\.sql", PurePosixPath(other).name)
+            m = re.fullmatch(r"V([0-9]+)__[^/]+\.sql", PurePosixPath(other).name)
             if m and PurePosixPath(other).parent == target.parent and int(m[1]) < int(version[1]):
                 add(other, "IMPORT")
 
