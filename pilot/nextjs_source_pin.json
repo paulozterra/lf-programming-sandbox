@@ -1,0 +1,13 @@
+{
+  "schema_version": "LF_SANDBOX_NEXTJS_PIN_V1",
+  "source_repository": "paulozterra/lf-programming-sandbox",
+  "source_commit_sha": "07ba7f5bf635b797bd6a1f6f7549efd4561e9235",
+  "skill_path": "standards/skills/nextjs/SKILL.md",
+  "manifest_path": "standards/skills/nextjs/skill.json",
+  "skill_sha256": "fbb895672c9c13ff2725a3ce7405999d202d99882621d37058e4d116b97b9068",
+  "manifest_sha256": "0fd82aef96813caf4a2d8f1ba5f43417d7164999674827ca2fc2f715e11154a5",
+  "skill_id": "nextjs",
+  "skill_version": "0.2.0",
+  "area": "FRONTEND",
+  "production_authority": false
+}
