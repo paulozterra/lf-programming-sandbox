@@ -19,7 +19,7 @@
       "scope_bounded": "TRUE",
       "authority_state": "UNKNOWN",
       "reversibility_state": "UNKNOWN",
-      "currentness_decision": "UNKNOWN",
+      "currentness_decision": "UNKNOWN_FAIL_CLOSED",
       "material_contradiction": false,
       "known_cross_scope_impact": true,
       "unresolved_material_signal_count": 0,
