@@ -19,7 +19,8 @@
       "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/",
       ".github/workflows/analysis-f0.yml",
       "standards/changes/CHG-0053.json",
-      "standards/CAMBIOS.md"
+      "standards/CAMBIOS.md",
+      "analysis/conftest.py"
     ]
   },
   "existing_code_impact": {
@@ -34,6 +35,6 @@
   "requested_by": "agent:gpt",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/94"
   }
 }
