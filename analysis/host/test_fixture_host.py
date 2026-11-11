@@ -93,7 +93,7 @@ def test_vigente_rule_missing_config_blocks(tmp_path, monkeypatch):
     target.write_text(json.dumps(row, ensure_ascii=False), encoding="utf-8")
     # Explicit test-only re-pin: validates the semantic gate after integrity.
     pins = json.loads(HASHES.read_text(encoding="utf-8"))
-    pins["effective_rules.json"] = hashlib.sha256(target.read_bytes()).hexdigest()
+    pins["files"]["effective_rules.json"]["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
     trusted_pin = tmp_path / "trusted_pin_override.json"
     trusted_pin.write_text(json.dumps(pins), encoding="utf-8")
     monkeypatch.setattr(host, "HASHES", trusted_pin)
