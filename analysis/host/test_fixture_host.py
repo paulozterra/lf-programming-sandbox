@@ -98,7 +98,7 @@ def test_vigente_rule_missing_config_blocks(tmp_path, monkeypatch):
     trusted_pin.write_text(json.dumps(pins), encoding="utf-8")
     monkeypatch.setattr(host, "HASHES", trusted_pin)
     assert run(folder=folder)["blocking_codes"] == [
-        "SBX_FIXTURE_REQUIRED_FIELD_MISSING"]
+        "SBX_VIGENTE_RULE_VALUE_CONFIG_MISSING:SBX-RULE-CREDENTIALS"]
 
 
 def test_two_runs_byte_exact():
