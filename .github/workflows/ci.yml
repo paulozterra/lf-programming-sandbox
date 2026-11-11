@@ -395,6 +395,32 @@ jobs:
           python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
           python3 -m pytest -q pilot/orchestrator/test_plan_lots.py
           python3 -m pytest -q pilot/orchestrator/test_intake.py
+      - name: P4 priority request intake + genuine pinned DATA/BACKEND planning
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=pilot psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c "INSERT INTO public.lf_project_area_pattern_exp(project_ref,area,path_prefix) VALUES ('lf_java','BACKEND','apps/time-service/src/main/java/')"
+          python3 pilot/orchestrator/intake.py --request-id p4-prioridad
+          python3 pilot/orchestrator/plan_lots.py --request-id p4-prioridad
+          python3 - <<'PY'
+          import json,pathlib
+          folder=pathlib.Path('pilot/runs/p4-prioridad')
+          lots=json.loads((folder/'lots.json').read_text())
+          state=json.loads((folder/'state.json').read_text())
+          assert [x['area'] for x in lots['lots']]==['DATA','BACKEND'], 'P4_AREA_DAG_INVALID'
+          assert [x['profile_code'] for x in lots['lots']]==['PERFIL-PROG-DATA-EXP','PERFIL-PROG-BACKEND-SPRING-EXP'], 'P4_PROFILE_INVALID'
+          assert len(lots['lots'][0]['write_paths'])==1
+          assert len(lots['lots'][1]['write_paths'])<=4
+          assert lots['lots'][1]['depends_on']==[lots['lots'][0]['id']]
+          assert state['stage']=='LOTS_PLANNED' and state['lot_count']==2
+          assert lots['worker_invoked'] is False
+          print('P4_OUTPUT_LOTS_JSON_BEGIN')
+          print((folder/'lots.json').read_text(),end='')
+          print('P4_OUTPUT_LOTS_JSON_END')
+          print('P4_OUTPUT_STATE_JSON_BEGIN')
+          print((folder/'state.json').read_text(),end='')
+          print('P4_OUTPUT_STATE_JSON_END')
+          PY
       - name: Produce three-area and note fixture JSON to private runner staging
         shell: bash
         run: |

@@ -1,0 +1,205 @@
+{
+  "schema_version": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+  "candidate_only": true,
+  "analysis_mode": "SIMULATED_ANALYSIS",
+  "request_sha256": "d7bd49ad7f33e8d99891906c4cf3dd2be5a9528c68e6aa94f892bf14749a6cc9",
+  "request_context": {
+    "intent": "Incorporar prioridad HIGH/MEDIUM/LOW, valor predeterminado MEDIUM, escritura por API, lectura y filtros con q, y migración SQL de tabla con CHECK y DEFAULT.",
+    "target_ref": "fixture://p4-prioridad/simulated-a9"
+  },
+  "classification": {
+    "target_granularity": "API",
+    "depth": "L2",
+    "authority_state": "NEW",
+    "implementation_state": "NEW"
+  },
+  "stage_trace": [
+    {
+      "stage": "A1",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "stage": "A2",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "stage": "A3",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "stage": "A4",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "stage": "A5",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "stage": "A6",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "stage": "A7",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "stage": "A8",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "stage": "A9",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    }
+  ],
+  "material_unknowns": [],
+  "decisions_pending": [],
+  "requirements": [
+    {
+      "requirement_id": "REQ-PRIORITY-DATA-001",
+      "scope_id": "SCOPE-P4-DATA",
+      "outcome": "La migración crea la tabla de recordatorios con columna priority obligatoria y DEFAULT MEDIUM.",
+      "acceptance_signal": "Al ejecutar la migración, la tabla existe y una fila sin priority se almacena con MEDIUM.",
+      "evidence_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "requirement_id": "REQ-PRIORITY-DATA-002",
+      "scope_id": "SCOPE-P4-DATA",
+      "outcome": "La base restringe priority exactamente a HIGH, MEDIUM y LOW.",
+      "acceptance_signal": "Intentos de insertar o actualizar valores distintos de HIGH, MEDIUM o LOW son rechazados por la restricción de la tabla.",
+      "evidence_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "requirement_id": "REQ-PRIORITY-BE-001",
+      "scope_id": "SCOPE-P4-BACKEND",
+      "outcome": "Crear recordatorios con prioridad HIGH, MEDIUM o LOW; cuando no se proporciona prioridad se usa MEDIUM.",
+      "acceptance_signal": "POST /api/reminders acepta cada valor válido y asigna MEDIUM cuando falta priority.",
+      "evidence_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "requirement_id": "REQ-PRIORITY-BE-002",
+      "scope_id": "SCOPE-P4-BACKEND",
+      "outcome": "Editar la prioridad de un recordatorio existente.",
+      "acceptance_signal": "PUT /api/reminders/{id} permite establecer HIGH, MEDIUM o LOW y persiste el valor.",
+      "evidence_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "requirement_id": "REQ-PRIORITY-BE-003",
+      "scope_id": "SCOPE-P4-BACKEND",
+      "outcome": "Incluir priority en las respuestas de los recordatorios.",
+      "acceptance_signal": "Las respuestas de creación, edición, consulta y listado contienen priority con valor válido.",
+      "evidence_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "requirement_id": "REQ-PRIORITY-BE-004",
+      "scope_id": "SCOPE-P4-BACKEND",
+      "outcome": "Filtrar GET /api/reminders por priority y combinarlo con el parámetro de búsqueda q.",
+      "acceptance_signal": "GET /api/reminders?priority=HIGH devuelve solo HIGH; combinado con q cumple ambos filtros.",
+      "evidence_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    },
+    {
+      "requirement_id": "REQ-PRIORITY-BE-005",
+      "scope_id": "SCOPE-P4-BACKEND",
+      "outcome": "Rechazar priority inválida con HTTP 400.",
+      "acceptance_signal": "POST, PUT y GET con filtro priority inválida devuelven HTTP 400.",
+      "evidence_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ]
+    }
+  ],
+  "material_fronts": [
+    {
+      "front_id": "A7-FRONT-P4-DATA",
+      "scope_ids": [
+        "SCOPE-P4-DATA"
+      ],
+      "obligation_mode": "REQUIRED",
+      "closure": "CLOSED",
+      "blockers": [],
+      "evidence_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ],
+      "reason": "Frente A7 simulado, candidato sin respaldo productivo ni autorización PG-01."
+    },
+    {
+      "front_id": "A7-FRONT-P4-BACKEND",
+      "scope_ids": [
+        "SCOPE-P4-BACKEND"
+      ],
+      "obligation_mode": "REQUIRED",
+      "closure": "CLOSED",
+      "blockers": [],
+      "evidence_refs": [
+        "fixture://p4-prioridad/simulated-a9"
+      ],
+      "reason": "Frente A7 simulado, candidato sin respaldo productivo ni autorización PG-01."
+    }
+  ],
+  "scope_proposals": [
+    {
+      "scope_id": "SCOPE-P4-DATA",
+      "readiness_candidate": "READY_CANDIDATE",
+      "material_front_refs": [
+        "A7-FRONT-P4-DATA"
+      ],
+      "blockers": []
+    },
+    {
+      "scope_id": "SCOPE-P4-BACKEND",
+      "readiness_candidate": "READY_CANDIDATE",
+      "material_front_refs": [
+        "A7-FRONT-P4-BACKEND"
+      ],
+      "blockers": []
+    }
+  ],
+  "research_stop": {
+    "decision": "STOP",
+    "decision_stable": true,
+    "all_material_fronts_accounted": true,
+    "unresolved_decision_changing_questions": []
+  },
+  "package_readiness_candidate": "READY_CANDIDATE",
+  "production_authority": false,
+  "handoff_allowed": false,
+  "downstream_authorized": false,
+  "pg01_consumer_verified": false
+}
