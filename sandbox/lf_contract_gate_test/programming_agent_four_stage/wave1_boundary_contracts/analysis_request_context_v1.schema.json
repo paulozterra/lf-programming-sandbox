@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lf/programming-agent/analysis/request-context-v1",
+  "title": "Analysis Request Context V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_identity",
+    "objective",
+    "target_hints",
+    "source_refs",
+    "provided_facts",
+    "constraints",
+    "ambiguities",
+    "no_solution_inferred"
+  ],
+  "properties": {
+    "schema_version": {"const": "REQUEST_CONTEXT_V1"},
+    "request_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_ref", "request_kind"],
+      "properties": {
+        "request_ref": {"type": "string", "minLength": 3},
+        "request_kind": {"enum": ["USER_REQUEST", "SYSTEM_REQUEST", "ISSUE", "HANDOFF", "FILE", "EVENT", "OTHER"]}
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["problem_statement", "desired_outcome"],
+      "properties": {
+        "problem_statement": {"type": "string", "minLength": 1},
+        "desired_outcome": {"type": "string", "minLength": 1}
+      }
+    },
+    "target_hints": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "source_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 3}},
+    "provided_facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fact_code", "value", "source_ref"],
+        "properties": {
+          "fact_code": {"type": "string", "minLength": 1},
+          "value": {},
+          "source_ref": {"type": "string", "minLength": 3}
+        }
+      }
+    },
+    "constraints": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "ambiguities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "statement", "materiality", "resolution_state"],
+        "properties": {
+          "code": {"type": "string", "minLength": 1},
+          "statement": {"type": "string", "minLength": 1},
+          "materiality": {"enum": ["MATERIAL", "NON_MATERIAL", "UNKNOWN"]},
+          "resolution_state": {"enum": ["OPEN", "RESOLVED_FROM_SOURCE"]}
+        }
+      }
+    },
+    "no_solution_inferred": {"const": true}
+  }
+}
