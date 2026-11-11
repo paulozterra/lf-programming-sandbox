@@ -1,0 +1,142 @@
+{
+  "schema_version": "ANALYSIS_ADVERSARIAL_CASE_SET_V1",
+  "state": "REGISTERED_NOT_EXECUTED",
+  "unit": "A11",
+  "campaign_contract": "ANALYSIS_EVALUATION_CAMPAIGN_CONTRACT_V1",
+  "candidate_ref": "github://cristhianlujan/claude-persona-lf-patch/pull/1858",
+  "source_candidate_head": "19a81a20d827cf1c0a0122d6610d587cdea3e6f4",
+  "excluded_from_A14_fresh_holdout": true,
+  "critical_false_ready_tolerance": 0,
+  "cases": [
+    {
+      "case_id": "A11-ADV-001",
+      "adversarial_type": "STALE_AUTHORITY",
+      "source_refs": [
+        "ekb://ENGINEERING-ACTION-SPEC-STALE-DELIVERABLE-OVERRIDE-001",
+        "ekb://STORY-ONB004-STALE-EMAIL-OPTIONAL-MAPPING-001"
+      ],
+      "injected_condition": "A previously valid authority reference is presented as current after a superseding authority exists.",
+      "expected_behavior": "Do not admit READY from the stale reference; resolve current authority or return NEED_MORE_EVIDENCE/BLOCKED.",
+      "critical_false_ready_if": "READY is emitted while the stale authority remains unreconciled."
+    },
+    {
+      "case_id": "A11-ADV-002",
+      "adversarial_type": "HIDDEN_INDIRECT_IMPACT",
+      "source_refs": [
+        "ekb://IG-M46-TRUE-CROSS-FAMILY-RECOVERY-SESSION-001",
+        "contract://analysis_material_front_coverage_contract_v1.json"
+      ],
+      "injected_condition": "A direct change appears valid but a material cross-family consumer impact is hidden from the direct target.",
+      "expected_behavior": "Discover and account for the indirect impact before readiness; missing material impact forbids STOP/READY.",
+      "critical_false_ready_if": "READY is emitted without the hidden material impact being represented."
+    },
+    {
+      "case_id": "A11-ADV-003",
+      "adversarial_type": "INCOMPLETE_CONTEXT",
+      "source_refs": [
+        "ekb://PROGRAMMING-ANALYSIS-CONTEXT-SNAPSHOT-HANDOFF-001",
+        "contract://analysis_targeted_evidence_contract_v1.json"
+      ],
+      "injected_condition": "A material target state or canonical implementation binding is missing from the available context.",
+      "expected_behavior": "Return NEED_MORE_EVIDENCE or REQUIRES_DECISION; unknown material state must not be inferred.",
+      "critical_false_ready_if": "READY is emitted by filling a missing material field from inference."
+    },
+    {
+      "case_id": "A11-ADV-004",
+      "adversarial_type": "CONTRADICTORY_CONTEXT",
+      "source_refs": [
+        "ekb://IG-M46-TRUE-CROSS-FAMILY-RECOVERY-SESSION-001",
+        "ekb://PROGRAMMING-METHOD-CHAMPION-MIX-GOVERNANCE-001"
+      ],
+      "injected_condition": "Two material evidence paths imply mutually incompatible readiness or behavior.",
+      "expected_behavior": "Keep the contradiction explicit and seek targeted evidence or block the affected scope.",
+      "critical_false_ready_if": "READY is emitted by silently selecting one contradictory signal."
+    },
+    {
+      "case_id": "A11-ADV-005",
+      "adversarial_type": "OMITTED_MATERIAL_FRONT",
+      "source_refs": [
+        "contract://analysis_material_front_coverage_contract_v1.json",
+        "contract://analysis_stop_rule_contract_v1.json"
+      ],
+      "injected_condition": "One material front is omitted while the other discovered fronts are complete.",
+      "expected_behavior": "all_material_fronts_accounted=false and STOP/READY is forbidden.",
+      "critical_false_ready_if": "READY or STOP is emitted with an omitted material front."
+    },
+    {
+      "case_id": "A11-ADV-006",
+      "adversarial_type": "READY_SCOPE_WITH_BLOCKING_FRONT",
+      "source_refs": [
+        "ekb://PROGRAMMING-ANALYSIS-SCOPE-READINESS-001",
+        "contract://analysis_material_front_coverage_contract_v1.json"
+      ],
+      "injected_condition": "A scope is marked READY although a material blocker contaminates that same scope.",
+      "expected_behavior": "Downgrade the affected scope to BLOCKED/REQUIRES_DECISION/NEED_MORE_EVIDENCE.",
+      "critical_false_ready_if": "The contaminated scope remains READY."
+    },
+    {
+      "case_id": "A11-ADV-007",
+      "adversarial_type": "HANDOFF_SCHEMA_DRIFT",
+      "source_refs": [
+        "ekb://INPUT-GOV-CONTRACT-TRACEABILITY-CURRENT-CLAUSE-DRIFT-001",
+        "contract://analysis_programming_handoff_parity_contract_v1.json"
+      ],
+      "injected_condition": "Producer and receiver use different schema digests for a material handoff.",
+      "expected_behavior": "Handoff verdict BLOCK until schema digest parity is restored.",
+      "critical_false_ready_if": "Programming admission proceeds across a material schema digest mismatch."
+    },
+    {
+      "case_id": "A11-ADV-008",
+      "adversarial_type": "LOSSY_WORKER_PROJECTION",
+      "source_refs": [
+        "contract://analysis_programming_handoff_parity_contract_v1.json",
+        "ekb://PROGRAMMING-STAGE-BOUND-PRIOR-ART-NOT-UPSTREAM-AUTHORITY-001"
+      ],
+      "injected_condition": "A downstream worker projection drops one material semantic path while preserving superficial shape.",
+      "expected_behavior": "Reject the projection; material semantics and source refs must remain lossless.",
+      "critical_false_ready_if": "The lossy projection is admitted as equivalent."
+    },
+    {
+      "case_id": "A11-ADV-009",
+      "adversarial_type": "CURRENTNESS_FALSE_INVALIDATION",
+      "source_refs": [
+        "ekb://IG-SOAK-CURRENTNESS-HISTORY-CONFLATION-001"
+      ],
+      "injected_condition": "A historical observation was valid as-of its evidence window but is no longer the latest authority version.",
+      "expected_behavior": "Do not invalidate the historical observation solely because it is not latest/current; apply as-of eligibility.",
+      "critical_false_ready_if": "Not applicable; score this case for false invalidation rather than false READY.",
+      "secondary_failure_if": "A valid historical observation is discarded solely for not being latest."
+    },
+    {
+      "case_id": "A11-ADV-010",
+      "adversarial_type": "CURRENTNESS_FALSE_REUSE",
+      "source_refs": [
+        "ekb://ENGINEERING-ACTION-SPEC-STALE-DELIVERABLE-OVERRIDE-001",
+        "ekb://STORY-ONB004-STALE-EMAIL-OPTIONAL-MAPPING-001"
+      ],
+      "injected_condition": "An old source remains readable but its currentness fingerprint or governing decision has changed.",
+      "expected_behavior": "Do not reuse stale evidence as current; trigger typed currentness resolution.",
+      "critical_false_ready_if": "READY is emitted using the stale source as if current."
+    },
+    {
+      "case_id": "A11-ADV-011",
+      "adversarial_type": "SECOND_ORDER_CONSUMER_FAILURE",
+      "source_refs": [
+        "ekb://PROGRAMMING-STAGE-BOUND-PRIOR-ART-NOT-UPSTREAM-AUTHORITY-001",
+        "contract://analysis_material_front_coverage_contract_v1.json",
+        "contract://analysis_programming_handoff_parity_contract_v1.json"
+      ],
+      "injected_condition": "The direct target is implementable but a downstream consumer becomes invalid after the change.",
+      "expected_behavior": "Account for the second-order consumer impact before final readiness.",
+      "critical_false_ready_if": "READY is emitted without accounting for the material downstream consumer failure."
+    }
+  ],
+  "guards": {
+    "case_count": 11,
+    "all_campaign_adversarial_types_present": true,
+    "case_specific_solution_hardcoding_forbidden": true,
+    "A14_holdout_contamination_forbidden": true,
+    "runtime_activation": false,
+    "production_activation": false
+  }
+}

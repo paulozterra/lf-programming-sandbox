@@ -1,0 +1,274 @@
+{
+  "schema_version": "A1_SEMANTIC_BLIND_REVIEW_INPUT_V1",
+  "source_head": "231fbf16b43a76fae9da9e42857748040e8fa745",
+  "skill_code": "PROGRAMMING_ANALYSIS_LF",
+  "step_code": "A1",
+  "stage": "REVIEW_REQUEST_NOT_EXECUTED",
+  "candidate_schema_ref": "skills/programming_analysis/steps/a1/schemas/intent_analysis_candidate_v1.schema.json",
+  "source_candidate_blob_sha1": "64d28e858fe32277aca72a3f355161dc5c9e37b0",
+  "reviewer_requirements": {
+    "different_authenticated_native_conversation": true,
+    "allowed_modes": [
+      "GPT_NATIVE",
+      "CLAUDE_NATIVE"
+    ],
+    "independent_reviewer_receipt_required": true,
+    "no_fixture_self_attestation": true,
+    "do_not_consult_existing_PASS_verdicts": true,
+    "review_each_case_semantically": [
+      "What action is requested vs explicitly prohibited?",
+      "Are capability and target functionally faithful to the raw request?",
+      "Does the request assert repository state or merely an assumption?",
+      "Are unsupported inferences or missing material ambiguities present?"
+    ],
+    "output_per_case": [
+      "case_id",
+      "verdict:PASS|FAIL",
+      "issues",
+      "candidate_sha256",
+      "reviewer_execution_id"
+    ],
+    "source_candidate_sha256_algorithm": "SHA256 over canonical JSON: UTF8 JSON stringify candidate with recursively sorted keys, no ASCII escaping, separators comma/colon"
+  },
+  "cases": [
+    {
+      "case_id": "A1_CORE_01",
+      "raw_request": "Implementa por primera vez el login B2B o también llamado inicio de sesión",
+      "candidate": {
+        "schema_version": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+        "operation": {
+          "kind": "IMPLEMENT",
+          "user_assumed_state": "CLAIMED_GREENFIELD",
+          "repo_verification_state": "PENDING_INVENTORY"
+        },
+        "target": {
+          "artifact_kind": "SCREEN",
+          "functional_archetype": "AUTH_FLOW",
+          "canonical_capability": "IDENTITY_AND_ACCESS",
+          "actor_scope": "B2B",
+          "raw_mentions": [
+            "login B2B",
+            "inicio de sesión"
+          ]
+        },
+        "desired_outcome": "Permitir que los usuarios empresariales se autentiquen e ingresen al entorno B2B",
+        "analysis_hints": [
+          "SECURITY_REVIEW",
+          "SESSION_REVIEW",
+          "ROUTING_REVIEW"
+        ],
+        "dimensions_to_investigate": [
+          "AUTH_MECHANISM",
+          "SESSION_POLICY",
+          "POST_LOGIN_ROUTING",
+          "ACCOUNT_RECOVERY",
+          "ERROR_HANDLING",
+          "EXISTING_ARTIFACT_INVENTORY"
+        ],
+        "evidence_spans": [
+          {
+            "dimension": "OPERATION",
+            "quote": "Implementa",
+            "start": 0,
+            "end": 10
+          },
+          {
+            "dimension": "ARTIFACT",
+            "quote": "login B2B",
+            "start": 30,
+            "end": 39
+          },
+          {
+            "dimension": "CAPABILITY",
+            "quote": "inicio de sesión",
+            "start": 58,
+            "end": 74
+          },
+          {
+            "dimension": "ACTOR_SCOPE",
+            "quote": "B2B",
+            "start": 36,
+            "end": 39
+          },
+          {
+            "dimension": "ASSUMPTION",
+            "quote": "por primera vez",
+            "start": 11,
+            "end": 26
+          }
+        ],
+        "explicit_constraints": [],
+        "material_ambiguities": []
+      }
+    },
+    {
+      "case_id": "A1_CORE_02",
+      "raw_request": "Necesito una vista para que las empresas entren al portal",
+      "candidate": {
+        "schema_version": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+        "operation": {
+          "kind": "IMPLEMENT",
+          "user_assumed_state": "UNSPECIFIED",
+          "repo_verification_state": "PENDING_INVENTORY"
+        },
+        "target": {
+          "artifact_kind": "SCREEN",
+          "functional_archetype": "AUTH_FLOW",
+          "canonical_capability": "IDENTITY_AND_ACCESS",
+          "actor_scope": "B2B",
+          "raw_mentions": [
+            "vista para que las empresas entren al portal"
+          ]
+        },
+        "desired_outcome": "Habilitar el ingreso de empresas al portal",
+        "analysis_hints": [
+          "SECURITY_REVIEW",
+          "SESSION_REVIEW",
+          "ROUTING_REVIEW"
+        ],
+        "dimensions_to_investigate": [
+          "AUTH_MECHANISM",
+          "SESSION_POLICY",
+          "POST_LOGIN_ROUTING",
+          "EXISTING_ARTIFACT_INVENTORY"
+        ],
+        "evidence_spans": [
+          {
+            "dimension": "OPERATION",
+            "quote": "Necesito",
+            "start": 0,
+            "end": 8
+          },
+          {
+            "dimension": "ARTIFACT",
+            "quote": "vista",
+            "start": 13,
+            "end": 18
+          },
+          {
+            "dimension": "CAPABILITY",
+            "quote": "entren al portal",
+            "start": 41,
+            "end": 57
+          },
+          {
+            "dimension": "ACTOR_SCOPE",
+            "quote": "empresas",
+            "start": 32,
+            "end": 40
+          }
+        ],
+        "explicit_constraints": [],
+        "material_ambiguities": []
+      }
+    },
+    {
+      "case_id": "A1_CORE_03",
+      "raw_request": "Necesito un listado de operaciones con filtros",
+      "candidate": {
+        "schema_version": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+        "operation": {
+          "kind": "IMPLEMENT",
+          "user_assumed_state": "UNSPECIFIED",
+          "repo_verification_state": "PENDING_INVENTORY"
+        },
+        "target": {
+          "artifact_kind": "SCREEN",
+          "functional_archetype": "DATA_GRID_VIEW",
+          "canonical_capability": "DATA_EXPLORATION",
+          "actor_scope": "UNSPECIFIED",
+          "raw_mentions": [
+            "listado de operaciones"
+          ]
+        },
+        "desired_outcome": "Visualizar operaciones y permitir filtrarlas",
+        "analysis_hints": [
+          "DATA_ACCESS_REVIEW",
+          "PAGINATION_REVIEW"
+        ],
+        "dimensions_to_investigate": [
+          "FILTER_CRITERIA",
+          "PAGINATION_STRATEGY",
+          "DATA_ACCESS_SCOPE"
+        ],
+        "evidence_spans": [
+          {
+            "dimension": "OPERATION",
+            "quote": "Necesito",
+            "start": 0,
+            "end": 8
+          },
+          {
+            "dimension": "ARTIFACT",
+            "quote": "listado de operaciones",
+            "start": 12,
+            "end": 34
+          },
+          {
+            "dimension": "CAPABILITY",
+            "quote": "operaciones con filtros",
+            "start": 23,
+            "end": 46
+          }
+        ],
+        "explicit_constraints": [],
+        "material_ambiguities": []
+      }
+    },
+    {
+      "case_id": "A1_CORE_04",
+      "raw_request": "No crees otra pantalla; usa la existente",
+      "candidate": {
+        "schema_version": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+        "operation": {
+          "kind": "CREATE",
+          "user_assumed_state": "CLAIMED_EXISTING",
+          "repo_verification_state": "PENDING_INVENTORY"
+        },
+        "target": {
+          "artifact_kind": "SCREEN",
+          "functional_archetype": "AUTH_FLOW",
+          "canonical_capability": "SCREEN_CREATION",
+          "actor_scope": "UNSPECIFIED",
+          "raw_mentions": [
+            "pantalla"
+          ]
+        },
+        "desired_outcome": "Crear una pantalla nueva",
+        "analysis_hints": [],
+        "dimensions_to_investigate": [],
+        "evidence_spans": [
+          {
+            "dimension": "OPERATION",
+            "quote": "crees",
+            "start": 3,
+            "end": 8
+          },
+          {
+            "dimension": "ARTIFACT",
+            "quote": "pantalla",
+            "start": 14,
+            "end": 22
+          },
+          {
+            "dimension": "CAPABILITY",
+            "quote": "pantalla",
+            "start": 14,
+            "end": 22
+          },
+          {
+            "dimension": "ASSUMPTION",
+            "quote": "existente",
+            "start": 31,
+            "end": 40
+          }
+        ],
+        "explicit_constraints": [],
+        "material_ambiguities": []
+      }
+    }
+  ],
+  "no_review_prejudgment_in_file": true,
+  "not_an_independent_review_receipt": true,
+  "run_created": false
+}

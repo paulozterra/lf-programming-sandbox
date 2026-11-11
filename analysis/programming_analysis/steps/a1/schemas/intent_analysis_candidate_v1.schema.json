@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Semantic A1 intent candidate, distinct from REQUEST_CONTEXT_V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation",
+    "target",
+    "desired_outcome",
+    "analysis_hints",
+    "dimensions_to_investigate",
+    "evidence_spans",
+    "explicit_constraints",
+    "material_ambiguities"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "A1_INTENT_ANALYSIS_CANDIDATE_V1"
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "user_assumed_state",
+        "repo_verification_state"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "IMPLEMENT",
+            "CREATE",
+            "MODIFY",
+            "REBUILD",
+            "REPAIR",
+            "REUSE",
+            "REMOVE",
+            "REVIEW",
+            "UNKNOWN"
+          ]
+        },
+        "user_assumed_state": {
+          "enum": [
+            "CLAIMED_GREENFIELD",
+            "CLAIMED_EXISTING",
+            "UNSPECIFIED"
+          ]
+        },
+        "repo_verification_state": {
+          "const": "PENDING_INVENTORY"
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_kind",
+        "functional_archetype",
+        "canonical_capability",
+        "actor_scope",
+        "raw_mentions"
+      ],
+      "properties": {
+        "artifact_kind": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "functional_archetype": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "canonical_capability": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "actor_scope": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "raw_mentions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        }
+      }
+    },
+    "desired_outcome": {
+      "type": "string",
+      "minLength": 3
+    },
+    "analysis_hints": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_]{2,100}$"
+      }
+    },
+    "dimensions_to_investigate": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_]{2,100}$"
+      }
+    },
+    "evidence_spans": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dimension",
+          "quote",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "dimension": {
+            "enum": [
+              "OPERATION",
+              "ARTIFACT",
+              "CAPABILITY",
+              "ACTOR_SCOPE",
+              "ASSUMPTION",
+              "CONSTRAINT",
+              "NEGATION"
+            ]
+          },
+          "quote": {
+            "type": "string",
+            "minLength": 1
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "explicit_constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    },
+    "material_ambiguities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "statement",
+          "materiality"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 3
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 3
+          },
+          "materiality": {
+            "enum": [
+              "MATERIAL",
+              "UNKNOWN"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

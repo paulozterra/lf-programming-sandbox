@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0053",
+  "title": "Análisis F0: contratos canónicos fijados y suites offline",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: commit fuente 20968c79a83b2df182d9fd873c8aa0c6b8b832d4; F0 plan de Análisis v2"
+  },
+  "reason": "Copia exclusivamente fuentes canónicas con blobs originales fijados, añade perfil histórico de referencia sin activarlo, manifiesto SHA-1 Git y comprobación local git hash-object; CI offline A1-A5. No conecta LF Supabase, perfiles productivos ni vendor. Las 20 regresiones upstream identificadas por Claude se documentan con errores reales y xfail(strict=True) de ID exacto; seis referencias A10-A15 se copian byte-exact para corregir la ausencia de archivos en sandbox.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/source_manifest.json",
+      "analysis/verify_source_manifest.py",
+      "analysis/reference/profiles/programming_analysis_lf/",
+      "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/",
+      ".github/workflows/analysis-f0.yml",
+      "standards/changes/CHG-0053.json",
+      "standards/CAMBIOS.md",
+      "analysis/conftest.py",
+      "analysis/known_inherited_failures.json",
+      "analysis/test_known_inherited_failures.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/94"
+  }
+}

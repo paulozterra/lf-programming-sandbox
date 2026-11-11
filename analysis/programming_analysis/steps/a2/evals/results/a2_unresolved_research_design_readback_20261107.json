@@ -1,0 +1,58 @@
+{
+  "schema_version": "A2_UNRESOLVED_RESEARCH_DESIGN_READBACK_V1",
+  "source_commit": "ff545447d9ac64fc0a4527948c95b5c080422054",
+  "scope": "A1_REQUIRES_DECISION_TO_A2_DESIGN_ONLY_RESEARCH_PREVIEW",
+  "source_blobs": {
+    "skills/programming_analysis/steps/a2/adapters/unresolved_research_preview_v1.py": "f419e51a3fc8bfd585c95f6d9a3e119ed29459f5",
+    "skills/programming_analysis/steps/a2/evals/test_unresolved_research_preview_v1.py": "3b305f6b878ecc29480281d73968c1ab46caa28a",
+    "skills/programming_analysis/adapters/a1_a2_candidate_bridge_v1.py": "9d59b52f6f896c07e518663de15ca8acac9ade84",
+    "skills/programming_analysis/steps/a1/evals/test_a1_semantic_candidate_v1.py": "713a3fbc2eda8933f8ebc8c72c23213eb5b3fb5f",
+    "skills/programming_analysis/steps/a2/validators/run.py": "7c4282fe10f211ef1d33a3e2371209e0f5d02038"
+  },
+  "local_python": {
+    "test_suite": "test_unresolved_research_preview_v1.py",
+    "method_count": 15,
+    "passed": 15,
+    "failed": 0,
+    "exact_source_blob_parity": true,
+    "fixture_source": "LOCAL_SYNTHETIC_A1_CASE_02_AND_04__NOT_PROVIDER_ATTESTED",
+    "full_repository_a1_bridge_suite_executed": false,
+    "actual_native_semantic_judge_executed": false
+  },
+  "static_readback": {
+    "checks_total": 16,
+    "passed": 16,
+    "checks_source": "GITHUB_EXACT_HEAD"
+  },
+  "behavior": {
+    "case_02": "RESEARCH_PLAN_ONLY_WITH_PORTAL_ENTRY_MODE_UNRESOLVED",
+    "case_04": "RESEARCH_PLAN_ONLY_WITH_REUSE_AND_NO_NEW_SCREEN",
+    "invalid_or_drifted": "BLOCKED_WITH_NO_CLASSIFICATION",
+    "a1_status_stays": "REQUIRES_DECISION",
+    "bridge_status_stays": "HALTED_AT_A1",
+    "a2_classification": null,
+    "a2_depth_classified": false,
+    "a3_canonical_inputs": null,
+    "a3_dispatch_allowed": false,
+    "source_authenticated": false,
+    "independent_judge_attested": false,
+    "runtime_integrated": false
+  },
+  "design_dependencies": [
+    "A3_CANONICAL_TWO_INPUT_INTERFACE_UNCHANGED",
+    "A2_POLICY_SOURCE_UNCHANGED"
+  ],
+  "excluded": [
+    "NO_D4_INTEGRATION",
+    "NO_ROUTER_CHANGE",
+    "NO_RUNTIME_OR_PERMISSIONS_CHANGE",
+    "NO_A3_DISPATCH",
+    "NO_PRODUCTION_OR_MERGE"
+  ],
+  "remaining": [
+    "EXECUTE_EXACT_HEAD_FULL_A1_A2_PYTHON_REGRESSIONS",
+    "OBTAIN_INDEPENDENT_SEMANTIC_QUALITY_REVIEW_FOR_A2_RESEARCH_PLAN",
+    "DESIGN_SOURCE_BOUND_AMBIGUITY_RESOLUTION_WITHOUT_BYPASSING_A3_TWO_CANONICAL_INPUTS"
+  ],
+  "closure": "DESIGN_SOURCE_AND_LOCAL_TESTS_READY__NOT_OPERATIONALLY_INTEGRATED"
+}

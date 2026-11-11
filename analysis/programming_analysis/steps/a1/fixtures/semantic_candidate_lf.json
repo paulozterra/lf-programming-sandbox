@@ -1,0 +1,36 @@
+{
+  "business": "LF",
+  "original_request": "Evalúa las reglas y definiciones de la talla de login o inicio de sesión de B2B e inmolementa lo que falta.",
+  "input_mode": "SEMANTIC_CANDIDATE",
+  "request_identity": {
+    "request_ref": "consumer-context://example-A1-01",
+    "request_kind": "USER_REQUEST"
+  },
+  "objective": {
+    "problem_statement": "Evaluar las reglas y definiciones del inicio de sesión B2B",
+    "desired_outcome": "Identificar las brechas e implementar los cambios faltantes conforme a las definiciones autorizadas"
+  },
+  "target_hints": [
+    "B2B-AUTH-001"
+  ],
+  "source_refs": [
+    "consumer-context://example-A1-01"
+  ],
+  "provided_facts": [
+    {
+      "fact_code": "TARGET_CODE_RECEIVED",
+      "value": "B2B-AUTH-001",
+      "source_ref": "consumer-context://example-A1-01"
+    },
+    {
+      "fact_code": "TARGET_NAME_RECEIVED",
+      "value": "Inicio de sesión B2B",
+      "source_ref": "consumer-context://example-A1-01"
+    }
+  ],
+  "constraints": [
+    "Preservar el alcance literal; no interpretar una definición como código implementado"
+  ],
+  "ambiguities": [],
+  "declared_intent_kind": "UNKNOWN"
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": "ANALYSIS_MATERIAL_FRONT_COVERAGE_CONTRACT_V1",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "producer_unit": "A7",
+  "consumer_units": ["A9"],
+  "input_contracts": [
+    "SHARED_CHANGE_IMPACT_ANALYSIS",
+    "ANALYSIS_IMPLEMENTATION_DRAFT",
+    "RISK_AND_QUALITY_SIGNALS"
+  ],
+  "output_contract": "MATERIAL_FRONT_COVERAGE_V1",
+  "front_discovery": {
+    "front_kind_policy": "EVIDENCE_DERIVED_OPEN_CATALOG",
+    "front_kind_hints": [
+      "UI_VISUAL",
+      "RESPONSIVE",
+      "ACCESSIBILITY",
+      "STATE_ERROR",
+      "DATA_CONTRACT",
+      "API_CONTRACT",
+      "PERMISSION",
+      "SIDE_EFFECT",
+      "ANALYTICS",
+      "OBSERVABILITY",
+      "PERFORMANCE",
+      "SECURITY_PRIVACY",
+      "MIGRATION_CUTOVER",
+      "ROLLBACK_RECOVERY",
+      "CONSUMER_HANDOFF",
+      "OTHER"
+    ],
+    "candidate_derivation_sources": [
+      "target_granularity",
+      "change_classification",
+      "direct_impacts[]",
+      "indirect_impacts[]",
+      "consumers[]",
+      "dependency_paths[]",
+      "requirements[]",
+      "authority_bindings[]",
+      "applicable_invariants[]",
+      "risk_and_quality_signals[]",
+      "specialist_outputs[]",
+      "unresolved_material_gaps[]"
+    ],
+    "domain_name_only_selection_forbidden": true,
+    "closed_static_front_catalog_forbidden": true
+  },
+  "front_contract": {
+    "status_values": ["REQUIRED","REUSE_AS_IS","NOT_APPLICABLE"],
+    "closure_values": ["CLOSED","BLOCKED"],
+    "required_fields": [
+      "front_id",
+      "front_kind",
+      "status",
+      "closure",
+      "source_signal_refs[]",
+      "scope_refs[]",
+      "authority_refs[]",
+      "evidence_refs[]",
+      "currentness_refs[]",
+      "blockers[]",
+      "reason"
+    ]
+  },
+  "coverage_guards": {
+    "every_material_candidate_emitted_exactly_once": true,
+    "silent_omission_forbidden": true,
+    "unknown_material_signal_requires_blocked_front": true,
+    "required_front_requires_scope_binding": true,
+    "required_closed_front_requires_material_evidence": true,
+    "reuse_as_is_requires_currentness": true,
+    "not_applicable_requires_evidence_and_reason": true,
+    "unmapped_material_signals_must_be_explicit": true,
+    "absence_never_means_not_applicable": true
+  },
+  "output_requirements": [
+    "front_candidate_refs[]",
+    "material_fronts[]",
+    "unmapped_material_signals[]",
+    "all_material_fronts_accounted",
+    "coverage_fingerprint_sha256",
+    "source_refs[]",
+    "currentness_refs[]"
+  ],
+  "integration_boundary": {
+    "a9_must_preserve_full_artifact": true,
+    "programming_context_snapshot_field": "material_front_coverage",
+    "scope_readiness_is_separate_dimension": true,
+    "stop_rule_policy_change_owned_by": "A8",
+    "no_stop_rule_change_in_this_contract": true
+  },
+  "no_parallel_engine": true,
+  "runtime_activation": false,
+  "production_activation": false
+}

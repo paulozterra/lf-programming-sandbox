@@ -1,0 +1,55 @@
+{
+  "schema_version": "SHARED_CHANGE_IMPACT_ANALYSIS_CONTRACT_V1",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "provider": "SHARED_CHANGE_IMPACT_ANALYSIS",
+  "units": [
+    "A4",
+    "TST-05"
+  ],
+  "transformation_action": "TRANSVERSALIZE_EXISTING_CORE",
+  "sources": [
+    "LF_GLOBAL_TECHNICAL_INVENTORY_V1",
+    "inventory.fn_impact_analysis_v1",
+    "inventory.fn_dependencies_v1",
+    "IG_CURATOR_VALIDATOR_REFACTOR_V2:M7.11"
+  ],
+  "core_input_contracts": [
+    "ANALYSIS_CHANGE_CLASSIFICATION_V1",
+    "TARGETED_EVIDENCE_SET_V1"
+  ],
+  "core_output_contract": "SHARED_CHANGE_IMPACT_MAP_V1",
+  "core_output_requirements": [
+    "direct_impacts[]",
+    "indirect_impacts[]",
+    "consumers[]",
+    "dependency_paths[]",
+    "evidence_refs[]",
+    "unresolved_material_impacts[]"
+  ],
+  "analysis_projection": {
+    "unit": "A4",
+    "exit_requirement": "DIRECT_INDIRECT_CONSUMER_IMPACT_MAP"
+  },
+  "testing_projection": {
+    "unit": "TST-05",
+    "consumes_same_core": true,
+    "output_contract": "TEST_CHANGE_IMPACT_MAP_V1",
+    "adds_only": [
+      "test_relevant_impacts[]",
+      "coverage_obligations[]",
+      "test_evidence_refs[]"
+    ],
+    "parallel_impact_engine_forbidden": true,
+    "exit_requirement": "NO_KNOWN_MATERIAL_IMPACT_OMITTED_WITHOUT_JUSTIFICATION"
+  },
+  "currentness_capability": "CURRENTNESS_AUTHORITY",
+  "source_resolution_capability": "SOURCE_RESOLUTION_POLICY",
+  "consumer_migration_policy": "KEEP_EXISTING_CONSUMERS_AS_ADAPTERS_UNTIL_QUALIFIED_CUTOVER",
+  "runtime_activation": false,
+  "production_activation": false,
+  "no_parallel_engine": true,
+  "source_refs": [
+    "lf_eventos://20315",
+    "lf_eventos://20334"
+  ]
+}

@@ -1,0 +1,185 @@
+{
+  "schema_version": "A5_MATERIAL_DECISION_OUTPUT_V1",
+  "status": "SOURCE_ONLY_CANDIDATE",
+  "applies_to": "ANALYSIS_DECISION_CONTEXT_V1",
+  "source_of_truth": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_decision_context_adr_contract_v1.json",
+  "purpose": "Preserve detailed material source evidence and decision disposition for every A3/A4 item, without conflating evidence gaps with human choices.",
+  "input_contracts": [
+    "REQUEST_CONTEXT_V1",
+    "ANALYSIS_CHANGE_CLASSIFICATION_V1",
+    "TARGETED_EVIDENCE_SET_V1",
+    "SHARED_CHANGE_IMPACT_ANALYSIS"
+  ],
+  "output_additions": {
+    "material_ledger": {
+      "schema_version": "A5_MATERIAL_DECISION_LEDGER_V1",
+      "required": [
+        "items[]",
+        "source_collection_counts",
+        "missing_collections[]",
+        "source_detail",
+        "upstream_contract_snapshot.A3",
+        "upstream_contract_snapshot.A4",
+        "source_digest_sha256",
+        "ledger_fingerprint_sha256",
+        "coverage"
+      ],
+      "guarantee": "lossless full A3/A4 input snapshot + material item payloads"
+    },
+    "decision_items": {
+      "cardinality": "exactly one per known A3/A4 collection row and A3 material status item",
+      "required": [
+        "decision_item_id",
+        "source_stage",
+        "source_path",
+        "kind",
+        "subject_ref",
+        "subject_code",
+        "title",
+        "description",
+        "requested_action",
+        "definition_action",
+        "decision_classification",
+        "owner_decision_required",
+        "material_question",
+        "owner_role",
+        "next_action",
+        "source_payload",
+        "source_payload_sha256",
+        "source_attested"
+      ],
+      "classes": [
+        "NO_NEW_DECISION_REQUIRED_SOURCE_CANDIDATE",
+        "EXCLUDED_FROM_APPROVED_SCOPE",
+        "TARGETED_EVIDENCE_REQUIRED",
+        "CANONICAL_CONTEXT_PRESERVED",
+        "REQUIRES_OWNER_DECISION"
+      ],
+      "material_question": "explicit source-bound question only; null when no genuine owner question",
+      "no_auto_decision_from_pending_definition": true,
+      "no_auto_decision_from_missing_evidence": true
+    },
+    "pending_owner_decisions": "only from explicit source-bound material_decisions[] reviewed readback; never invented",
+    "pending_evidence_items": "only targeted source readbacks, not human escalations",
+    "material_coverage": "input vs projected counts; all missing collections visible",
+    "scope_disposition": "candidate advisory, not runtime or source authority",
+    "candidate_independent_scope_available": "advisory only for independent approved definition candidates",
+    "a6_allowed": "always false until external governed admission",
+    "architecture_decision_items": {
+      "required": [
+        "trigger",
+        "material_question",
+        "evidence_ref",
+        "decision_required",
+        "semantic_review_needed",
+        "status",
+        "selected_option_ref",
+        "authority_currentness_attested"
+      ],
+      "source": "A5 canonical ADR trigger classification plus optional source-bound material_detail",
+      "missing_question": "null and semantic_review_needed=true; never invent owner question",
+      "currentness": "unattested pending external authority"
+    },
+    "rule_profiles": {
+      "schema_version": "A5_RULE_LAYER_CONSOLIDATION_V1",
+      "granularity": "one record per unique A3 rule_code + canonical source_ref, not one per occurrence",
+      "mandatory_fields": [
+        "rule_code",
+        "rule_source_ref",
+        "title",
+        "description",
+        "rule_status",
+        "pending_decision",
+        "implementation_scope",
+        "scope_approved_source_candidate",
+        "inheritance",
+        "policy_dependencies",
+        "policy_objects",
+        "material_item_ids",
+        "implementation_impacts",
+        "layers.FRONTEND",
+        "layers.BACKEND",
+        "layer_classification",
+        "layer_verification_state",
+        "unresolved_layer_evidence",
+        "rule_source_row",
+        "source_attested",
+        "independent_semantic_review",
+        "code_destination",
+        "rule_fingerprint_sha256"
+      ],
+      "input_sources": [
+        "A3.policy_scope_clear_rule_candidates",
+        "A3.policy_deferred_rule_items",
+        "A3.excluded_rule_items",
+        "A3.evidence_items",
+        "A3.policy_resolution.rule_policy_dependencies",
+        "A3.policy_resolution.approved_policy_objects",
+        "A3.policy_resolution.excluded_policy_objects",
+        "A4.direct_impacts",
+        "conditional A5 host readback rule_layer_bindings"
+      ],
+      "layer_values": [
+        "FRONTEND",
+        "BACKEND"
+      ],
+      "layer_applicability": [
+        "APPLIES",
+        "NOT_APPLICABLE",
+        "UNKNOWN"
+      ],
+      "layer_classification": [
+        "SHARED_CANDIDATE",
+        "FRONTEND_ONLY_CANDIDATE",
+        "BACKEND_ONLY_CANDIDATE",
+        "NO_APPLICABLE_LAYER_CANDIDATE",
+        "UNKNOWN"
+      ],
+      "layer_determination": "Require source-bound explicit classification for each layer. Only dual affirmative establishes shared; single affirmative plus explicit negative establishes single-layer candidate; missing => UNKNOWN.",
+      "no_heuristic_inference": true,
+      "no_invented_responsibility": true,
+      "approved_rule_identity_missing": "BLOCKED",
+      "excluded_rule_identity_missing": "Retain full row in unresolved_rule_identities, do not block unrelated approved scope",
+      "code_destination_required": false,
+      "not_runtime_attested": true,
+      "exact_material_item_links": true,
+      "no_new_policy_resolver": true,
+      "evidence_and_semantic_review_required_for_real_layer_verdict": true
+    }
+  },
+  "judges": {
+    "deterministic": "steps/a5/judges/material_parity_v1.py",
+    "semantic_packet": "steps/a5/judges/semantic_review_packet_v1.py",
+    "semantic_rubric": [
+      "SEMANTIC_MEANING_PRESERVED",
+      "NO_FALSE_OWNER_ESCALATION",
+      "MATERIAL_QUESTION_EVIDENCE_GROUNDED",
+      "PROPER_OWNER_AND_AUTHORITY",
+      "NO_POLICY_PROMOTION",
+      "SCOPE_CONTINUITY",
+      "A6_IMPLEMENTABILITY_USEFULNESS",
+      "RULE_IDENTITY_NO_DUPLICATION",
+      "FRONTEND_BACKEND_RESPONSIBILITY_GROUNDED",
+      "NO_LAYER_GUESS_FROM_RULE_NAME"
+    ],
+    "model_inference_inside_a5": false,
+    "independent_semantic_review_required_before_operational_certification": true,
+    "proof_of_independence_from_unit_tests": false,
+    "rule_layer_parity": "steps/a5/judges/rule_layer_parity_v1.py"
+  },
+  "restrictions": [
+    "No new ADR engine or store",
+    "No source lookup within A5",
+    "A5Q frozen C2 >=5 pending decisions is case-specific and must not be applied universally",
+    "No runtime approval from an exact quote or source URL alone",
+    "Pending or CANDIDATO rule not implementable",
+    "Source-only candidate even if all mechanical tests pass",
+    "No rewrite A1/A2/A3/A4",
+    "Do not infer Frontend/Backend from rule names, screen kind or source URL; source readbacks without layer scope result UNKNOWN"
+  ],
+  "testing": {
+    "candidate_suite": "python3 -m unittest discover -s skills/programming_analysis/steps/a5/evals -p 'test_*.py' -v",
+    "human_readback": "steps/a5/evals/render_a5_material_human_v1.py",
+    "synthetic_fixture_notice_required": true
+  }
+}

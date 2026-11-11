@@ -1,0 +1,43 @@
+{
+  "schema_version": "A1_SEMANTIC_MODEL_RESULT_V1",
+  "original_request_sha256": "COMPUTED_IN_TEST_OR_MODEL_ADAPTER",
+  "objective": {
+    "problem_statement": "Evaluar las reglas y definiciones de la pantalla de inicio de sesión B2B",
+    "desired_outcome": "Identificar lo faltante e implementar los cambios necesarios tras verificar las definiciones vigentes"
+  },
+  "target_hints": [
+    "B2B-AUTH-001"
+  ],
+  "source_refs": [
+    "user://semantic-case-b2b-01"
+  ],
+  "provided_facts": [
+    {
+      "fact_code": "SCREEN_CODE_PROVIDED",
+      "value": "B2B-AUTH-001",
+      "source_ref": "user://semantic-case-b2b-01"
+    },
+    {
+      "fact_code": "SCREEN_NAME_PROVIDED",
+      "value": "Inicio de sesión B2B",
+      "source_ref": "user://semantic-case-b2b-01"
+    }
+  ],
+  "constraints": [
+    "No modificar definiciones oficiales sin autorización"
+  ],
+  "ambiguities": [],
+  "declared_intent_kind": "UNKNOWN",
+  "observed_actions": [
+    {
+      "id": "ACT-EVALUATE",
+      "literal_span": "Evalúa",
+      "normalized_action": "evaluar"
+    },
+    {
+      "id": "ACT-IMPLEMENT",
+      "literal_span": "inmolementa",
+      "normalized_action": "implementar"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "schema_version": "ANALYSIS_PROGRAMMING_HANDOFF_PARITY_CONTRACT_V1",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "producer_unit": "A9",
+  "consumer_unit": "PG-01",
+  "shared_snapshot_contract": {
+    "schema_version": "PROGRAMMING_CONTEXT_SNAPSHOT_V1",
+    "contract_ref": "programming_entry_contract_v1.json#programming_context_snapshot",
+    "shared_schema_digest_required": true,
+    "parallel_receiver_schema_forbidden": true
+  },
+  "producer_requirements": {
+    "snapshot_schema_digest_sha256_required": true,
+    "full_material_payload_required": true,
+    "material_paths": [
+      "target",
+      "target_granularity",
+      "authority_state",
+      "implementation_state",
+      "implementability_schema",
+      "material_front_coverage",
+      "analysis_stop_rule",
+      "scope_readiness[]",
+      "package_readiness",
+      "authority_fingerprint_sha256",
+      "source_snapshot_sha256"
+    ]
+  },
+  "persistence_requirements": {
+    "context_id_required": true,
+    "context_sha256_required": true,
+    "exact_recorded_context_required": true,
+    "latest_mutable_reinterpretation_forbidden": true
+  },
+  "receiver_requirements": {
+    "resolve_exact_context_id": true,
+    "recompute_context_sha256": true,
+    "context_sha256_must_match_receipt": true,
+    "receiver_schema_digest_must_match_producer_schema_digest": true,
+    "all_material_paths_must_validate": true,
+    "unknown_material_field_policy": "BLOCK",
+    "missing_material_field_policy": "BLOCK",
+    "lossy_material_projection_forbidden": true
+  },
+  "projection_policy": {
+    "worker_projection_after_parity_only": true,
+    "minimum_relevant_subset_allowed": true,
+    "projection_must_preserve_source_refs": true,
+    "projection_must_preserve_material_semantics": true,
+    "projection_digest_required": true,
+    "upstream_snapshot_mutation_forbidden": true
+  },
+  "receipt": {
+    "schema_version": "PROGRAMMING_CONTEXT_HANDOFF_RECEIPT_V1",
+    "required_fields": [
+      "context_id",
+      "context_sha256",
+      "snapshot_schema_digest_sha256",
+      "receiver_schema_digest_sha256",
+      "material_projection_sha256",
+      "validated_material_paths[]",
+      "verdict"
+    ],
+    "verdict_values": ["ACCEPT","BLOCK"]
+  },
+  "no_parallel_engine": true,
+  "runtime_activation": false,
+  "production_activation": false
+}

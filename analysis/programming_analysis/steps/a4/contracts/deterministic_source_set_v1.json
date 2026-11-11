@@ -1,0 +1,213 @@
+{
+  "schema_version": "A4_DETERMINISTIC_SOURCE_SET_V1",
+  "skill_code": "PROGRAMMING_ANALYSIS_LF",
+  "step_code": "A4",
+  "state": "SOURCE_CANDIDATE_UNATTESTED",
+  "purpose": "A4 uses A3/A2 definitions first. Existing graph providers are conditional on exact references to existing reusable assets; no target code or destination is required for planned new development.",
+  "canonical_inputs": [
+    "TARGETED_EVIDENCE_SET_V1",
+    "ANALYSIS_CHANGE_CLASSIFICATION_V1"
+  ],
+  "readback_sidecar": "A4_EXISTING_IMPACT_CORE_READBACK_V1",
+  "binding": {
+    "input_target": "A3.target_ref (canonical); A2.target_ref must match A3.declared_target_hint or A3.target_ref",
+    "inventory_key": "inventory.objects.object_ref",
+    "match": "EXACT_EQUALITY_ONLY",
+    "query_only_after": "Optional exact inventory reference for a preexisting reusable/affected asset, not necessarily a target implementation",
+    "no_matched_inventory_object": "PLANNED_BUILD_WITH_UNVERIFIED_EXISTING_IMPACT when change intent is a new build; otherwise IMPACT_UNKNOWN. Never block code creation solely because there is no target path.",
+    "no_heuristic_lookup": true,
+    "zero_rows_is_not_zero_impact": true,
+    "version_and_currentness": "Host revalidates exact A3 source_refs/currentness; A4 never self-attests.",
+    "target_code_location_required": false
+  },
+  "sources": [
+    {
+      "id": "S1_A3",
+      "priority": 1,
+      "producer": "PROGRAMMING_ANALYSIS_LF/A3",
+      "read": "TARGETED_EVIDENCE_SET_V1",
+      "fields": [
+        "target_ref",
+        "declared_target_hint",
+        "evidence_items",
+        "policy_resolution",
+        "material_contract_readback",
+        "as_is_baseline_or_new_implementation_evidence",
+        "source_refs",
+        "unresolved_material_gaps",
+        "authority_state",
+        "implementation_state"
+      ],
+      "no_reread": true
+    },
+    {
+      "id": "S2_A2",
+      "priority": 2,
+      "producer": "PROGRAMMING_ANALYSIS_LF/A2",
+      "read": "ANALYSIS_CHANGE_CLASSIFICATION_V1",
+      "fields": [
+        "target_ref",
+        "change_type",
+        "target_granularity",
+        "evidence_refs"
+      ],
+      "no_reread": true
+    },
+    {
+      "id": "S3_INV_OBJECT",
+      "priority": 3,
+      "producer": "inventory.objects",
+      "lookup": "EXACT object_ref supplied through authorized A3->inventory binding",
+      "required_fields": [
+        "object_ref",
+        "object_type",
+        "active",
+        "currentness",
+        "source_version",
+        "definition_sha256",
+        "observed_main_sha"
+      ],
+      "lookup_policy": "Exact object_ref from authorized binding only; no target-code destination required in PLANNED_BUILD",
+      "conditional": true,
+      "required_for": "EXISTING_CHANGE or preexisting reusable asset graph impact only"
+    },
+    {
+      "id": "S4_IMPACT_CORE",
+      "priority": 4,
+      "producer": "inventory.fn_impact_analysis_v1",
+      "query": "p_object_ref=<S3.object_ref>;p_max_depth=3;p_min_confidence=0.80",
+      "return_fields": [
+        "depth",
+        "affected_ref",
+        "affected_type",
+        "via_relation",
+        "min_confidence",
+        "source_system"
+      ],
+      "max_depth": 3,
+      "min_confidence": 0.8,
+      "consumer": "SHARED_CHANGE_IMPACT_ANALYSIS",
+      "conditional": true,
+      "required_for": "An existing inventory object with exact reference, never a planned target"
+    },
+    {
+      "id": "S5_DEPENDENCIES",
+      "priority": 5,
+      "producer": "inventory.fn_dependencies_v1",
+      "query": "p_object_ref=<S3.object_ref>;p_direction=BOTH;p_max_depth=2",
+      "return_fields": [
+        "depth",
+        "direction",
+        "source_ref",
+        "relation_type",
+        "target_ref",
+        "evidence_type",
+        "confidence"
+      ],
+      "max_depth": 2,
+      "direction": "BOTH",
+      "conditional": true,
+      "required_for": "An existing inventory object with exact reference, never a planned target"
+    }
+  ],
+  "exception": "Planned target with no code path uses A3-approved obligations, no graph lookup or invented destination. Unknown dependency/cross-system impact is explicit and scoped; A8 can return only to the material missing source.",
+  "security": [
+    "LF only; SALY not enabled",
+    "Existing governed host acquires reads; no SQL/network inside A4",
+    "Do not conflate policy VIGENTE with code implemented/deployed",
+    "No unknown->NONE conversion",
+    "No new impact engine; same shared core as TST-05",
+    "Unknown/partial dependency graph remains visible",
+    "Readback is not independent attestation or A4 operational approval"
+  ],
+  "reference_contract": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/shared_change_impact_contract_v1.json",
+  "modes": {
+    "PLANNED_BUILD": {
+      "trigger": "Explicit A2 operation CREATE, IMPLEMENT or BUILD_NEW; an unverified intention, not proof that no code exists",
+      "target_destination_required": false,
+      "target_implementation_ref_required": false,
+      "inputs": [
+        "S1_A3",
+        "S2_A2"
+      ],
+      "direct_output": "CREATION obligations on new target, each with change_action=CREATE and source definition_action=REUSE; A2 intent is unverified, not authority to create",
+      "excluded": "Pending/candidate definitions and policy-dependent rules without approved binding",
+      "existing_dependencies": "No source-qualified existing asset => UNKNOWN, not NO_IMPACT",
+      "source_research": "Only targeted A3 readback if a material decision can change"
+    },
+    "EXISTING_CHANGE": {
+      "trigger": "Exact target or affected existing asset bound to inventory.object_ref",
+      "target_inventory_binding": "REQUIRED_FOR_GRAPH_LOOKUP",
+      "inputs": [
+        "S1_A3",
+        "S2_A2",
+        "S3_INV_OBJECT",
+        "S4_IMPACT_CORE",
+        "S5_DEPENDENCIES"
+      ],
+      "expected_item_change_action": "UNKNOWN without exact per-item before/after evidence"
+    }
+  },
+  "change_operation": {
+    "scope": "CLASSIFY_TARGET_ACTION_AND_PER_ITEM_IMPLEMENTATION; NOT AN AUTHORIZATION",
+    "action_vocabulary": [
+      "CREATE",
+      "MODIFY",
+      "DELETE",
+      "REPLACE",
+      "REUSE",
+      "NO_CHANGE",
+      "UNKNOWN"
+    ],
+    "intent_aliases": {
+      "CREATE": [
+        "CREATE",
+        "CREATE_SCREEN",
+        "IMPLEMENT",
+        "IMPLEMENT_NEW",
+        "BUILD_NEW"
+      ],
+      "MODIFY": [
+        "MODIFY",
+        "UPDATE",
+        "PATCH",
+        "REFACTOR",
+        "RESTRUCTURE"
+      ],
+      "DELETE": [
+        "DELETE",
+        "REMOVE"
+      ],
+      "REPLACE": [
+        "REPLACE"
+      ],
+      "REUSE": [
+        "REUSE",
+        "USE_AS_IS"
+      ],
+      "NO_CHANGE": [
+        "NO_CHANGE"
+      ]
+    },
+    "unsupported_intent": "UNKNOWN_WITH_EXPLICIT_GAP_NO_INFERRED_CHANGE",
+    "target_intent_is_not_implementation_fact": true,
+    "item_action_rules": {
+      "PLANNED_BUILD": "Source rule/field existing => definition_action=REUSE; new target screen obligation => change_action=CREATE; never claim existing policy is created",
+      "EXISTING_CHANGE": "Graph edges imply POSSIBLE_IMPACT, not item change; change_action=UNKNOWN until exact item-level delta is provided",
+      "DELETE": "Requires explicit A2 intent and target authority; does not execute deletion",
+      "REPLACE": "Requires explicit A2 intent and comparison of old/new; no inferred replacement from missing path",
+      "REUSE": "No code mutation; only claim REUSE_AS_IS/NO_CHANGE if exact currentness and parity independently evidenced",
+      "NO_CHANGE": "Cannot be concluded from a zero-row impact graph"
+    },
+    "output_fields": [
+      "requested_change_type",
+      "target_change_action",
+      "change_action_basis",
+      "direct_impacts[].change_action",
+      "direct_impacts[].definition_action",
+      "direct_impacts[].change_action_basis"
+    ],
+    "unapproved_source_definition_is_not_changed": true,
+    "target_code_destination_required": false
+  }
+}

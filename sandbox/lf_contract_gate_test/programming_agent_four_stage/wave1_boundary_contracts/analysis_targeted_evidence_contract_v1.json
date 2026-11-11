@@ -1,0 +1,52 @@
+{
+  "schema_version": "ANALYSIS_TARGETED_EVIDENCE_CONTRACT_V1",
+  "state": "SOURCE_ONLY_CANDIDATE",
+  "unit": "A3",
+  "input_contracts": ["REQUEST_CONTEXT_V1","ANALYSIS_CHANGE_CLASSIFICATION_V1"],
+  "output_contract": "TARGETED_EVIDENCE_SET_V1",
+  "acquisition": {
+    "capability": "TARGETED_EVIDENCE_ACQUISITION",
+    "source_resolution": "SOURCE_RESOLUTION_POLICY",
+    "data_access": "TYPED_DATA_ACCESS",
+    "query_only_missing_or_material_evidence": true,
+    "reuse_current_evidence_before_fetch": true,
+    "duplicate_read_forbidden": true,
+    "full_repository_search_without_trigger_forbidden": true,
+    "stop_when": "MINIMUM_SUFFICIENT_CONTEXT_REACHED",
+    "continue_only_if": ["REQUIRED_EVIDENCE_MISSING","MATERIAL_CONTRADICTION","CURRENTNESS_UNPROVEN","SOURCE_DRIFT"],
+    "blocked_if": ["REQUIRED_SOURCE_UNAVAILABLE","MATERIAL_AMBIGUITY_REQUIRES_DECISION"]
+  },
+  "target_resolution": {
+    "required_when_target_hints_present": true,
+    "target_granularity_required": true,
+    "resolver_order": ["EXACT_TARGET_IDENTITY","CURRENT_CANONICAL_AUTHORITY","CURRENT_IMPLEMENTATION","RELATED_AUTHORITIES","CONSUMERS_AND_DEPENDENCIES"],
+    "state_dimensions": {
+      "authority_state": ["EXISTING","NEW","UNKNOWN"],
+      "implementation_state": ["EXISTING","NEW","UNKNOWN"]
+    },
+    "authority_existing_requires": ["exact_target_ref","authority_currentness_ref","authority_refs[]"],
+    "authority_new_requires": ["negative_canonical_authority_evidence[]","canonical_search_scope[]","new_authority_reason"],
+    "implementation_existing_requires": ["implementation_refs[]","implementation_currentness_refs[]","as_is_consumers[]","as_is_dependencies[]","explicit_delta"],
+    "implementation_new_requires": ["negative_current_implementation_evidence[]","reuse_search_scope[]","reuse_candidates_evaluated[]","authority_refs_or_explicit_gaps[]"],
+    "authority_existing_implementation_new_allowed": true,
+    "authority_state_does_not_imply_implementation_state": true,
+    "implementation_existing_greenfield_redefinition_forbidden": true,
+    "implementation_existing_delta_required_downstream": true,
+    "unknown_dimension_behavior": "NEED_MORE_EVIDENCE_OR_REQUIRES_DECISION",
+    "technical_solution_selection_deferred_to_programming": true,
+    "no_parallel_asset_resolver": true
+  },
+  "design_authority_evidence": {
+    "resolve_when_applicable": ["SHELL","DESIGN_SYSTEM","DESIGN_TOKENS","BRAND_ASSETS","RESPONSIVE"],
+    "canonical_ref_is_authority": true,
+    "resolved_current_value_may_accompany_ref": true,
+    "resolved_literal_must_not_replace_canonical_ref": true,
+    "physical_asset_resolution_required_when_material": true,
+    "binding_decision_owned_by": "A6"
+  },
+  "output_requirements": ["evidence_items[]","source_refs[]","currentness_refs[]","target_granularity","authority_state","implementation_state","target_resolution","authority_binding_refs[]","as_is_baseline_or_new_implementation_evidence","unresolved_material_gaps[]","sufficiency_verdict"],
+  "sufficiency_verdicts": ["SUFFICIENT","NEED_MORE_EVIDENCE","REQUIRES_DECISION","BLOCKED"],
+  "no_over_search": true,
+  "no_parallel_engine": true,
+  "source_refs": ["lf_eventos://20333","lf_eventos://20334"]
+}

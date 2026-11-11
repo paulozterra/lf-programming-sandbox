@@ -1,0 +1,75 @@
+{
+  "schema_version": "A1_CORE_SEMANTIC_REVIEW_GAP_REPRO_V1",
+  "source_head": "5a2ac1d807280e60053f522c3d32d5407bf16472",
+  "scope": "PROGRAMMING_ANALYSIS_LF/A1_CORE_ONLY",
+  "verified_original_files": [
+    {
+      "path": "skills/programming_analysis/steps/a1/semantic_intake_candidate_v1.py",
+      "git_blob_sha1": "fd2294d0a2e2890fe8bc9242be84e875ea8d16f4"
+    },
+    {
+      "path": "skills/programming_analysis/steps/a1/schemas/intent_analysis_candidate_v1.schema.json",
+      "git_blob_sha1": "16a40dba2bf7348f3b8f8f8ec2f6f71b264dc038"
+    }
+  ],
+  "execution_tier": "LOCAL_PYTHON_ORIGINAL_ADAPTER_AND_SCHEMA_WITH_FIXTURE_REVIEWER",
+  "original_python_interpreter_executed": true,
+  "tested_original_function": "semantic_intake_candidate_v1.extract",
+  "functional_positive_3_cases": {
+    "tested": 3,
+    "passed": 3,
+    "results": [
+      "REVIEWED_CANDIDATE",
+      "REVIEWED_CANDIDATE",
+      "REVIEWED_CANDIDATE"
+    ],
+    "reconciled_contract": "A1_INTENT_ANALYSIS_CANDIDATE_V1",
+    "independent_review": false
+  },
+  "negative_checks": [
+    {
+      "case": "MISSING_REVIEWER",
+      "observed": "BLOCKED",
+      "expected": "BLOCKED",
+      "pass": true
+    },
+    {
+      "case": "SOURCE_SPAN_TAMPERED",
+      "observed": "REQUIRES_SEMANTIC_REVIEW",
+      "expected": "REQUIRES_SEMANTIC_REVIEW",
+      "pass": true
+    },
+    {
+      "case": "REVIEWER_RETURNS_FAIL",
+      "observed": "REQUIRES_SEMANTIC_REVIEW",
+      "expected": "REQUIRES_SEMANTIC_REVIEW",
+      "pass": true
+    }
+  ],
+  "semantic_false_positive_reproduction": {
+    "input": "No crees otra pantalla; usa la existente",
+    "forged_candidate_operation": "CREATE",
+    "forged_candidate_outcome": "Crear una pantalla nueva",
+    "evidence_spans_from_literals": [
+      "crees",
+      "pantalla",
+      "pantalla",
+      "existente"
+    ],
+    "callback_reviewer_kind": "FIXTURE_SELF_DECLARED_PASS",
+    "observed_extract_status": "REVIEWED_CANDIDATE",
+    "observed_independent_reviewer_identity_verified": false,
+    "observed_external_authority_verified": false,
+    "classified": "UNATTESTED_CANDIDATE_NOT_OPERATIONAL_PASS",
+    "root_cause": "Deterministic schema/span checks do not establish semantic truth; review callback identity and review quality are not authenticated.",
+    "remediation_boundary": "Require distinct verified GPT_NATIVE/CLAUDE_NATIVE review with exact candidate hash and source binding; do not treat fixture PASS as operational qualification. This is CORE, not an excuse to redesign the Router or Updater."
+  },
+  "acceptance_status": "CORE_SOURCE_PROPOSAL_PASS__INDEPENDENT_SEMANTIC_VERIFICATION_BLOCKED",
+  "impact": {
+    "a1_runtime_modified": false,
+    "updater_modified": false,
+    "router_modified": false,
+    "postgres_modified": false,
+    "merge_authorized": false
+  }
+}

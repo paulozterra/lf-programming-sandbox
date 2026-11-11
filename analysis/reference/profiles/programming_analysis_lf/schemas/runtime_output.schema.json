@@ -1,0 +1,365 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Programming Analysis LF candidate — unqualified model output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "candidate_only",
+    "request_context",
+    "classification",
+    "stage_trace",
+    "material_unknowns",
+    "decisions_pending",
+    "requirements",
+    "material_fronts",
+    "scope_proposals",
+    "research_stop",
+    "package_readiness_candidate"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1"
+    },
+    "candidate_only": {
+      "const": true
+    },
+    "request_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intent",
+        "target_ref"
+      ],
+      "properties": {
+        "intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_granularity",
+        "depth",
+        "authority_state",
+        "implementation_state"
+      ],
+      "properties": {
+        "target_granularity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "depth": {
+          "enum": [
+            "L1",
+            "L2",
+            "L3"
+          ]
+        },
+        "authority_state": {
+          "enum": [
+            "EXISTING",
+            "NEW",
+            "UNKNOWN"
+          ]
+        },
+        "implementation_state": {
+          "enum": [
+            "EXISTING",
+            "NEW",
+            "UNKNOWN"
+          ]
+        }
+      }
+    },
+    "stage_trace": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stage",
+          "outcome",
+          "source_refs"
+        ],
+        "properties": {
+          "stage": {
+            "enum": [
+              "A1",
+              "A2",
+              "A3",
+              "A4",
+              "A5",
+              "A6",
+              "A7",
+              "A8",
+              "A9"
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "material_unknowns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unknown_id",
+          "scope_id",
+          "question"
+        ],
+        "properties": {
+          "unknown_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "question": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "decisions_pending": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decision_id",
+          "scope_id",
+          "question"
+        ],
+        "properties": {
+          "decision_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "question": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requirement_id",
+          "scope_id",
+          "outcome",
+          "acceptance_signal",
+          "evidence_refs"
+        ],
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome": {
+            "type": "string",
+            "minLength": 1
+          },
+          "acceptance_signal": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "material_fronts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "front_id",
+          "scope_ids",
+          "obligation_mode",
+          "closure",
+          "blockers",
+          "evidence_refs",
+          "reason"
+        ],
+        "properties": {
+          "front_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "obligation_mode": {
+            "enum": [
+              "REQUIRED",
+              "REUSE_AS_IS",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "closure": {
+            "enum": [
+              "CLOSED",
+              "BLOCKED"
+            ]
+          },
+          "blockers": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scope_proposals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scope_id",
+          "readiness_candidate",
+          "material_front_refs",
+          "blockers"
+        ],
+        "properties": {
+          "scope_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "readiness_candidate": {
+            "enum": [
+              "READY_CANDIDATE",
+              "NEED_MORE_EVIDENCE",
+              "REQUIRES_DECISION",
+              "BLOCKED"
+            ]
+          },
+          "material_front_refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "blockers": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "research_stop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "decision_stable",
+        "all_material_fronts_accounted",
+        "unresolved_decision_changing_questions"
+      ],
+      "properties": {
+        "decision": {
+          "enum": [
+            "STOP",
+            "CONTINUE",
+            "REQUIRES_DECISION",
+            "BLOCKED"
+          ]
+        },
+        "decision_stable": {
+          "type": "boolean"
+        },
+        "all_material_fronts_accounted": {
+          "type": "boolean"
+        },
+        "unresolved_decision_changing_questions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "package_readiness_candidate": {
+      "enum": [
+        "READY_CANDIDATE",
+        "PARTIAL_READY_CANDIDATE",
+        "NEED_MORE_EVIDENCE",
+        "REQUIRES_DECISION",
+        "BLOCKED"
+      ]
+    }
+  }
+}

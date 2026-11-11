@@ -1,0 +1,77 @@
+{
+  "schema_version": "ANALYSIS_EVALUATION_HISTORICAL_CORPUS_V1",
+  "state": "A10_EXIT_CRITERION_PASSED_NOT_FROZEN",
+  "unit": "A10",
+  "campaign_contract": "ANALYSIS_EVALUATION_CAMPAIGN_CONTRACT_V1",
+  "candidate_ref": "github://cristhianlujan/claude-persona-lf-patch/pull/1858",
+  "case_count": 30,
+  "case_id_range": ["A10-HIST-001","A10-HIST-030"],
+  "batch_refs": [
+    {
+      "batch_id": "A10-HIST-BATCH-01",
+      "path": "analysis_evaluation_cases_batch01_v1.json",
+      "blob_sha": "268396e11a8eb57bde4ec109f2291a70d6187090",
+      "case_count": 5
+    },
+    {
+      "batch_id": "A10-HIST-BATCH-02",
+      "path": "analysis_evaluation_cases_batch02_v1.json",
+      "blob_sha": "d19df3d762d396d7e09c0a07f996c915898d068e",
+      "case_count": 10
+    },
+    {
+      "batch_id": "A10-HIST-BATCH-03",
+      "path": "analysis_evaluation_cases_batch03_v1.json",
+      "blob_sha": "7e79e6ceb236042cd8d3ae5a415b79f9f06eb004",
+      "case_count": 10
+    },
+    {
+      "batch_id": "A10-HIST-BATCH-04",
+      "path": "analysis_evaluation_cases_batch04_v1.json",
+      "blob_sha": "359d15e7a10b908aaafa37306827de21baf30737",
+      "case_count": 5
+    }
+  ],
+  "required_change_families": [
+    "BUG",
+    "FEATURE",
+    "MIGRATION",
+    "RUNTIME",
+    "CONCURRENCY_IDEMPOTENCY",
+    "GOVERNANCE",
+    "MODEL_OR_INTELLIGENCE"
+  ],
+  "coverage_readback": {
+    "total_cases": 30,
+    "unique_case_ids": true,
+    "contiguous_case_ids_001_030": true,
+    "all_required_change_families_present": true,
+    "all_cases_source_bound": true,
+    "all_cases_have_material_expectations": true,
+    "critical_omission_scored_cases": 30,
+    "critical_omissions_total": 0,
+    "all_depth_oracles_pending_independent_label": true,
+    "all_batches_excluded_from_A14_fresh_holdout": true,
+    "runtime_activation": false,
+    "production_activation": false
+  },
+  "a10_exit_readback": {
+    "canonical_exit_criterion": "Aproximadamente 30 casos LF con 0 omisiones críticas",
+    "suite_code": "TS-PROGRAMMING-ANALYSIS-A10-HIST-V1",
+    "suite_run_id": "e46c0d14-863e-4518-8e11-42f21abce855",
+    "cases_scored": 30,
+    "critical_omissions_total": 0,
+    "passed": true,
+    "depth_labels_are_not_an_A10_exit_blocker": true,
+    "latency_is_not_an_A10_exit_blocker": true
+  },
+  "pending_before_A10_pass": [],
+  "campaign_followups_not_A10_blockers": [
+    "TARGET_AND_DEPTH_CLASSIFICATION_ORACLE_FOR_LATER_ACCURACY_GATES",
+    "LATENCY_BENCHMARK_IN_A12",
+    "A11_ADVERSARIAL_FALSE_READY_VALIDATION",
+    "A12_CONTROLLED_BASELINE_COMPARISON",
+    "A14_FRESH_HOLDOUT_VALIDATION"
+  ],
+  "freeze": false
+}

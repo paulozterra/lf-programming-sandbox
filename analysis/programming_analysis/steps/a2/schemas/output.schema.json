@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "A2 source-only internal step result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "skill_code",
+    "business",
+    "step_code",
+    "status",
+    "blocking_codes",
+    "classification",
+    "source_attested",
+    "independent_judge_verified",
+    "operationally_integrated",
+    "effects_executed",
+    "next_step"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "A2_INTERNAL_STEP_CANDIDATE_RESULT_V1"
+    },
+    "skill_code": {
+      "const": "PROGRAMMING_ANALYSIS_LF"
+    },
+    "step_code": {
+      "const": "A2"
+    },
+    "business": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 2,
+      "maxLength": 32,
+      "description": "Exact business from A1; null only for BLOCKED"
+    },
+    "status": {
+      "enum": [
+        "BLOCKED",
+        "NEED_MORE_EVIDENCE",
+        "CANDIDATE_UNATTESTED"
+      ]
+    },
+    "blocking_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "classification": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "change_type",
+            "target_ref",
+            "target_granularity",
+            "nested_parent_ref",
+            "depth_level",
+            "depth_reason_predicates",
+            "evidence_refs",
+            "signals_sha256",
+            "specialist_resolution"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "ANALYSIS_CHANGE_CLASSIFICATION_V1"
+            },
+            "change_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_granularity": {
+              "type": "string",
+              "minLength": 1
+            },
+            "nested_parent_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "depth_level": {
+              "enum": [
+                "L1",
+                "L2",
+                "L3"
+              ]
+            },
+            "depth_reason_predicates": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "evidence_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 3
+              }
+            },
+            "signals_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "specialist_resolution": {
+              "enum": [
+                "PENDING",
+                "NOT_REQUESTED"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "source_attested": {
+      "const": false
+    },
+    "independent_judge_verified": {
+      "const": false
+    },
+    "operationally_integrated": {
+      "const": false
+    },
+    "effects_executed": {
+      "const": false
+    },
+    "next_step": {
+      "type": "null"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "CANDIDATE_UNATTESTED",
+              "NEED_MORE_EVIDENCE"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "business": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 32
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "BLOCKED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "business": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

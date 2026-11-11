@@ -1,0 +1,134 @@
+{
+  "schema_version": "ANALYSIS_F0_SOURCE_MANIFEST_V1",
+  "source_repository": "cristhianlujan/claude-persona-lf-patch",
+  "source_commit": "20968c79a83b2df182d9fd873c8aa0c6b8b832d4",
+  "wave1_tree_sha": "a642338089bffeed93b5f785e3e7a25abae51be6",
+  "profile_tree_sha": "cda95c81fca5d5e9f670c11aa2b02b811fbef668",
+  "files": [
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_request_context_v1.schema.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_request_context_v1.schema.json",
+      "blob_sha": "cb6cf1c663da4dc12c1f1a6fabedb6e666836d85"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_change_classification_contract_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_change_classification_contract_v1.json",
+      "blob_sha": "0f07d3603c1bf3e4d2a4b9de5d6c3a3968bb4051"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_targeted_evidence_contract_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_targeted_evidence_contract_v1.json",
+      "blob_sha": "97d06e88b963690202424a2936ae2b7bf597cea7"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/shared_change_impact_contract_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/shared_change_impact_contract_v1.json",
+      "blob_sha": "4d38665d7f6da4e556bc05e8ed10489b62ddcc0b"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_decision_context_adr_contract_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_decision_context_adr_contract_v1.json",
+      "blob_sha": "da77f17283ced275f5498f7a5be07a7180edb7bc"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_implementability_contract_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_implementability_contract_v1.json",
+      "blob_sha": "d000e6900300e12bcc1e1e56490ca3acf40713d1"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_material_front_coverage_contract_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_material_front_coverage_contract_v1.json",
+      "blob_sha": "a0ef134afc07ed6fcc2385b37212d01e678f0cc6"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_stop_rule_contract_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_stop_rule_contract_v1.json",
+      "blob_sha": "4bb7265c985b06e23cc2428c4332187a9330fdae"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_programming_handoff_parity_contract_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_programming_handoff_parity_contract_v1.json",
+      "blob_sha": "f74fc959975415f28a4ad4e02ad35671b7f4ad23"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/programming_entry_contract_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/programming_entry_contract_v1.json",
+      "blob_sha": "56e561a72f8cfd9d085dd8087b854ff2ac740b1b"
+    },
+    {
+      "path": "analysis/reference/profiles/programming_analysis_lf/SKILL.md",
+      "source_path": "profiles/programming_analysis_lf/SKILL.md",
+      "blob_sha": "1c9aafd71b88a62ba132cde5a5d7ca74e3676258"
+    },
+    {
+      "path": "analysis/reference/profiles/programming_analysis_lf/contracts/runtime_binding.json",
+      "source_path": "profiles/programming_analysis_lf/contracts/runtime_binding.json",
+      "blob_sha": "6b69e954df3182be4c878fbb62f0ba822ab5f2f6"
+    },
+    {
+      "path": "analysis/reference/profiles/programming_analysis_lf/contracts/analysis_source_binding.json",
+      "source_path": "profiles/programming_analysis_lf/contracts/analysis_source_binding.json",
+      "blob_sha": "28db5c3cfdb737b887013d9e87b42ecd44564c6b"
+    },
+    {
+      "path": "analysis/reference/profiles/programming_analysis_lf/schemas/runtime_output.schema.json",
+      "source_path": "profiles/programming_analysis_lf/schemas/runtime_output.schema.json",
+      "blob_sha": "35058804577d8c3154890eae511a4331750847a3"
+    },
+    {
+      "path": "analysis/reference/profiles/programming_analysis_lf/validators/runtime_validate.py",
+      "source_path": "profiles/programming_analysis_lf/validators/runtime_validate.py",
+      "blob_sha": "b3a420b76c4c4bd77259c0aadb2c82d77faee343"
+    },
+    {
+      "path": "analysis/reference/profiles/programming_analysis_lf/validators/runtime_semantic_utility.py",
+      "source_path": "profiles/programming_analysis_lf/validators/runtime_semantic_utility.py",
+      "blob_sha": "d782d2b2ff61d71b8902bf49b7988d9f8f2212d0"
+    },
+    {
+      "path": "analysis/reference/profiles/programming_analysis_lf/evals/test_runtime_candidate_v1.py",
+      "source_path": "profiles/programming_analysis_lf/evals/test_runtime_candidate_v1.py",
+      "blob_sha": "954c5deccf287bd484111d4848024252f1b67c69"
+    },
+    {
+      "path": "analysis/reference/profiles/programming_analysis_lf/README.md",
+      "source_path": "profiles/programming_analysis_lf/README.md",
+      "blob_sha": "464bd1db2563687a729ea193aca1956053ad1b57"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_procedure_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_procedure_v1.json",
+      "blob_sha": "1291336699b88df5fd11178dc9043d7ec13bc06a"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_evaluation_historical_corpus_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_evaluation_historical_corpus_v1.json",
+      "blob_sha": "e2cc90b666c1ff76aca93a36cb69417af2eae986"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_adversarial_cases_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_adversarial_cases_v1.json",
+      "blob_sha": "49272675074cce125be13478ee6c2572df40dd05"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_a12_benchmark_contract_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_a12_benchmark_contract_v1.json",
+      "blob_sha": "0e21128a8b778deb39a62304dcc07eb0ac5762e8"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_a13_remediation_changelog_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_a13_remediation_changelog_v1.json",
+      "blob_sha": "e0cd31d8cd9bb3736dadfa0c81fedac5d710caca"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_a14_fresh_holdout_preflight_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_a14_fresh_holdout_preflight_v1.json",
+      "blob_sha": "e983ef07203aec02a279db47cfb6eae190619d5c"
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_v1_freeze_manifest_v1.json",
+      "source_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_v1_freeze_manifest_v1.json",
+      "blob_sha": "4e0556aa2076c61686fdbad162a9125f44ffcf53"
+    }
+  ]
+}

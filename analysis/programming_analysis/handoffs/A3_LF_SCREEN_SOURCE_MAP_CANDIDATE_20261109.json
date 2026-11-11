@@ -1,0 +1,231 @@
+{
+  "schema_version": "A3_BUSINESS_SOURCE_MAP_CANDIDATE_V1",
+  "state": "SOURCE_ONLY_NO_A3_EXECUTION",
+  "business": "LF",
+  "business_router_state_at_readback": "ENABLED",
+  "artifact_family": "SCREEN",
+  "sample_target": "B2B-AUTH-001",
+  "source_selection": "GOVERNED_TARGET_BINDING_AND_MATERIAL_EVIDENCE_NEED",
+  "routing_rules": [
+    "Only authoritative host-bound business=LF may select this map; A1 user text does not authenticate business",
+    "SALY=RECOGNIZED_NOT_ENABLED must not be looked up or reclassified as LF",
+    "Favor one consolidated screen-contract read; expand to link tables only to resolve authority, currentness or material gaps",
+    "Separate source object status, relation/binding status, decision state, and applicable obligation",
+    "An approved underlying policy does not imply the screen-policy association is approved",
+    "Never use this document as A3's third canonical input; A3 retains REQUEST_CONTEXT_V1 + ANALYSIS_CHANGE_CLASSIFICATION_V1",
+    "Never assert implementation exists because definition exists; inspect GitHub baseline and AS-IS when necessary",
+    "All source readbacks must have exact ref/version/hash/currentness or typed unknown, and must preserve constraints"
+  ],
+  "source_order": [
+    {
+      "step": 1,
+      "need": "EXACT_TARGET_IDENTITY_AND_CONSOLIDATED_DEFINITIONS",
+      "source": "lf_ops.fn_screen_contract_v1(p_app_shell_code,p_module_code,p_screen_code)",
+      "provider": "SUPABASE",
+      "volatility": "STABLE",
+      "verified_exists": true,
+      "observed_contract_sections": [
+        "analytics",
+        "context",
+        "errors",
+        "evidence",
+        "fields",
+        "metadata",
+        "policies",
+        "profiles",
+        "rules",
+        "visual"
+      ],
+      "caution": "Contract content mixes statuses and is not blanket approval; screen status CANDIDATO at readback."
+    },
+    {
+      "step": 2,
+      "need": "CURRENT_RULES_WITH_LINK_AND_DECISION_STATUS",
+      "source": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas",
+      "provider": "SUPABASE",
+      "verified_exists": true,
+      "caution": "Filter by exact target ID; status VIGENTE and pendiente_decision must be resolved in source, not guessed from name."
+    },
+    {
+      "step": 3,
+      "need": "MANDATORY_EFFECTIVE_AND_INHERITED_RULE_LINK_READBACK",
+      "source": "programacion.fn_input_effective_rule_links_v1(p_pantalla_id,'INPUT_GOVERNANCE')",
+      "provider": "SUPABASE",
+      "verified_exists": true,
+      "read_authorized_in_current_lf_context": true,
+      "caution": "Reconcile all 283 effective links against the 71 direct links; 212 DERIVED_GLOBAL are source-derived, never auto-promote recommendations; neither status nor source readback proves current authority."
+    },
+    {
+      "step": 4,
+      "need": "MANDATORY_CENTRAL_POLICIES_AND_RULE_DEPENDENCIES",
+      "source": "lf_ops.fn_screen_contract_v1(...).contract.policies; lf_ops.reglas.valor_config; lf_ops.pantallas_politicas; fallback typed lf_ops.politicas_* for refs missing from contract.policies",
+      "provider": "SUPABASE",
+      "verified_exists": true,
+      "caution": "Resolve every explicit numeric policy reference in 283 effective rules (250 VIGENTE) against canonical policy objects and screen-binding status; read source params but never infer approval from a CANDIDATO association. Mandatory policy readback required. Missing policy security_policy_id=25 found CANDIDATO via typed read; keep provenance. Do not promote."
+    },
+    {
+      "step": 5,
+      "need": "ELEMENTS_STATES_VARIANTS_AND_DEPENDENCIES",
+      "source": "lf_ops.pantalla_elementos; lf_ops.pantallas_estados; lf_ops.pantalla_variantes; lf_ops.relaciones_b2b",
+      "provider": "SUPABASE",
+      "verified_exists": true,
+      "caution": "Check linkage and applicable decision status; avoid treating design candidates as approved."
+    },
+    {
+      "step": 6,
+      "need": "SCHEMA_CROSS_REFERENCES_AND_DEPENDENCIES",
+      "source": "inventory.objects; inventory.dependencies; inventory.fn_lookup_v3",
+      "provider": "SUPABASE",
+      "volatility": "STABLE",
+      "verified_exists": true,
+      "caution": "Technical inventory is evidence of cataloging; external business authority is not inferred."
+    },
+    {
+      "step": 7,
+      "need": "CURRENT_IMPLEMENTATION_AND_AS_IS_DELTA",
+      "source": "GitHub repository and exact ref authorized by LF run binding",
+      "provider": "GITHUB",
+      "verified_exists": true,
+      "caution": "Unresolved repository/commit is UNKNOWN, not proof that implementation does not exist."
+    },
+    {
+      "step": 8,
+      "need": "EKB_AND_HISTORICAL_DECISIONS_IF_MATERIAL",
+      "source": "public.lf_error_knowledge and linked official decisions",
+      "provider": "SUPABASE",
+      "verified_exists": true,
+      "caution": "EKB prevention is constraint/context, not a replacement for target-specific policy authority."
+    }
+  ],
+  "source_readback": {
+    "function_signature": "lf_ops.fn_screen_contract_v1(text,text,text) RETURNS TABLE(...contract jsonb)",
+    "function_volatility": "STABLE",
+    "sample_args": [
+      "B2B_APP_SHELL",
+      "B2B_AUTENTICACION",
+      "B2B-AUTH-001"
+    ],
+    "sample_screen_status": "CANDIDATO",
+    "sample_contract_version": "v1.2",
+    "sample_sections_count": 10,
+    "sample_section_keys": [
+      "analytics",
+      "context",
+      "errors",
+      "evidence",
+      "fields",
+      "metadata",
+      "policies",
+      "profiles",
+      "rules",
+      "visual"
+    ],
+    "business_catalog_readback": [
+      {
+        "business": "LF",
+        "status": "ENABLED"
+      },
+      {
+        "business": "SALY",
+        "status": "RECOGNIZED_NOT_ENABLED"
+      }
+    ]
+  },
+  "source_resolvers_reuse": [
+    "private.lf_evidence_resolver_registry_v1: LF_SUPABASE_READBACK_V1",
+    "private.lf_evidence_resolver_registry_v1: LF_GITHUB_SOURCE_READBACK_V1"
+  ],
+  "access_protection": {
+    "read_only": true,
+    "extra_sql_functions_created": false,
+    "router_modified": false,
+    "saly_enabled": false,
+    "currentness_attested_for_target": false,
+    "a3_runtime_dispatch_allowed": false
+  },
+  "next_step": "Bind source map through existing A3 source resolver under authenticated LF business and exact contract before runtime admission. No new A2 catalog.",
+  "mandatory_effective_rule_inheritance": {
+    "state": "REQUIRED_SOURCE_READBACK_BEFORE_A3_RULE_SELECTION",
+    "source": "programacion.fn_input_effective_rule_links_v1(p_pantalla_id, 'INPUT_GOVERNANCE')",
+    "origin_types": [
+      "LEGACY_EXPLICIT",
+      "DECLARATIVE_APPLICABILITY_V1",
+      "DERIVED_GLOBAL"
+    ],
+    "input_location": "resolved_sources.effective_rule_readback",
+    "input_contract_note": "A3 retains exactly two canonical inputs: REQUEST_CONTEXT_V1 + ANALYSIS_CHANGE_CLASSIFICATION_V1; this is existing LF governed source evidence sidecar",
+    "readback_fields": [
+      "business=LF",
+      "target_ref",
+      "screen_id (canonical numeric id)",
+      "consumer=INPUT_GOVERNANCE",
+      "source_function",
+      "source_ref",
+      "source_attested=false",
+      "rules[{code,status,pending_decision,source_ref,binding_source}]"
+    ],
+    "validation": "All direct rows must match their effective counterparts. DERIVED_GLOBAL entries must be distinct, VIGENTE and not pending. Missing, drifted or duplicated readback BLOCKS A3, never quietly uses only direct rules.",
+    "scope_rule": "Use all VIGENTE/no-pending effective rules as source-only candidates. Exclude CANDIDATO/pending. Never claim currentness nor semantic applicability for derived global from status alone.",
+    "t_remed_similarity": "programacion.fn_t_remed_inherited_rules_v1 returns recommendations from similar screens, NOT authorized effective links; do not add automatically. Current read-only user lacks EXECUTE; no bypass attempted.",
+    "sample_readback_20261109": {
+      "target": "B2B-AUTH-001",
+      "screen_id": 51,
+      "total_effective": 283,
+      "distinct_rule_ids": 283,
+      "established_status_vigente_no_pending": 250,
+      "candidato": 33,
+      "derived_global": 212,
+      "declared_applicability": 2,
+      "legacy_explicit": 69,
+      "crosscheck_missing_direct": 0,
+      "crosscheck_inherited_overlap_direct": 0,
+      "currentness_attested": false
+    }
+  },
+  "mandatory_central_policy_resolution": {
+    "state": "REQUIRED_SOURCE_READBACK_BEFORE_A3_IMPLEMENTABLE_SCOPE",
+    "source": "lf_ops.fn_screen_contract_v1(...).contract.policies + lf_ops.reglas.valor_config + lf_ops.pantallas_politicas",
+    "resolution": "reuse existing LF screen contract and T-REMED/IG effective-rule read path; never introduce new policy resolver",
+    "required_readback_sidecar": "resolved_sources.policy_resolution_readback",
+    "required_source_fields": [
+      "schema_version=LF_SCREEN_POLICIES_READBACK_V1",
+      "business=LF",
+      "target_ref",
+      "source_function=lf_ops.fn_screen_contract_v1",
+      "source_ref=supabase://lf_ops.pantallas/<target>",
+      "source_attested=false",
+      "policy_objects[{table,primary_key,policy_id,policy_code,status,parameters,source_ref,read_origin,read_source_ref}]",
+      "supplemental_policy_source_refs[]: exact refs for canonical policy rows absent from consolidated contract"
+    ],
+    "effective_rules_required": "effective_rule_readback.rules[] must each include 'config' = lf_ops.reglas.valor_config (object, list or null), for approved AND pending rules, allowing readback parity and recursive extraction of numeric *_policy_id references; also inspect declaration fields relation_key/relation_keys ending in _policy_id when rules intentionally delegate numeric lookup to a screen-level binding",
+    "screen_policy_links_required": "policy_links[] must each carry reference_role and policy_target_ref in addition to source_ref, policy_kind, status",
+    "policy_scope": "all effective-rule numeric *_policy_id refs and generic relation_key/relation_keys declarations (even without embedded numeric ID), including inherited DERIVED_GLOBAL, plus every screen-policy binding object",
+    "partial_pending_policy_behavior": "policy status not VIGENTE or screen association not VIGENTE => exclude only that policy-dependent rule/function from implementation scope, keep unrelated approved rules; record references and alerts",
+    "fail_closed": "missing mandatory source/readback fields, duplicate policy IDs/source_ref, incomplete rule configs, link-target mismatch, drift => A3 BLOCKED (inventory unreliable), never falsely approved",
+    "attestation_note": "SQL readback and candidate projection are NOT currentness attestation, independent judge, A4 permission or runtime",
+    "no_write_performed": true,
+    "supplemental_fallback_rule": "If a rule references a numeric policy ID missing from contract.policies, use the existing typed canonical lf_ops.politicas_* table read with source_ref provenance; never assert that it came from the screen contract.",
+    "test_case_findings_20261109": {
+      "central_contract_policy_objects": 13,
+      "central_contract_vigente": 8,
+      "central_contract_candidato": 5,
+      "rule_numeric_policy_references": 14,
+      "referencing_approved_rules": 10,
+      "missing_from_screen_contract": [
+        "supabase://lf_ops.politicas_seguridad/25"
+      ],
+      "missing_object_status": "CANDIDATO",
+      "missing_object_code": "SEC-B2B-TRUSTED-DEVICE",
+      "all_screen_binding_links_status": "CANDIDATO",
+      "note": "source-only observed facts; no authorized implementation binding",
+      "indirect_reference_declarations": [
+        "B2B-RULE-RATE-001:rate_limit_policy_id",
+        "B2B-RULE-TIMEOUT-001:timeout_policy_id"
+      ],
+      "total_reference_occurrences_including_declared": 16,
+      "distinct_rules_with_policy_dependencies": 12,
+      "central_total_including_typed_fallback": 14,
+      "central_candidate_including_typed_fallback": 6
+    }
+  }
+}

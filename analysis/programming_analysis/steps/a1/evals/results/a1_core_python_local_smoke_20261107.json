@@ -1,0 +1,122 @@
+{
+  "schema_version": "A1_CORE_EXACT_SOURCE_LOCAL_PYTHON_SMOKE_RECEIPT_V1",
+  "scope": "PROGRAMMING_ANALYSIS_LF/A1_AND_SOURCE_ONLY_A2_HANDOFF",
+  "source_head": "34a0e8d1c0a662fd84c70ac17a7dba068831d012",
+  "execution_environment": "LOCAL_PYTHON_3_13_WITH_JSONSCHEMA_4_26",
+  "provenance_tier": "AUTHOR_REPORTED_LOCAL_EXECUTION_NO_EXTERNAL_RUNTIME_ATTESTATION",
+  "sources": [
+    {
+      "path": "skills/programming_analysis/steps/a1/validators/run.py",
+      "git_blob_sha1": "39b46057b5fc82e2c92b95855b76c0332e2b36f3",
+      "local_byte_reconciled": true
+    },
+    {
+      "path": "skills/programming_analysis/steps/a1/semantic_intake_candidate_v1.py",
+      "git_blob_sha1": "fd2294d0a2e2890fe8bc9242be84e875ea8d16f4",
+      "local_byte_reconciled": true
+    },
+    {
+      "path": "skills/programming_analysis/steps/a1/judges/semantic_guard.py",
+      "git_blob_sha1": "b11f88ef4234f98e7056f013c1ac31da3e93d1fc",
+      "local_byte_reconciled": true
+    },
+    {
+      "path": "skills/programming_analysis/steps/a1/schemas/input.schema.json",
+      "git_blob_sha1": "1dd4b3f40ff33d3557358552f9bb72da99bff46f",
+      "local_byte_reconciled": true
+    },
+    {
+      "path": "skills/programming_analysis/steps/a1/schemas/output.schema.json",
+      "git_blob_sha1": "49aae78791ece47bcf86bb29b45e34a43f7071fe",
+      "local_byte_reconciled": true
+    },
+    {
+      "path": "skills/programming_analysis/steps/a1/schemas/intent_analysis_candidate_v1.schema.json",
+      "git_blob_sha1": "16a40dba2bf7348f3b8f8f8ec2f6f71b264dc038",
+      "local_byte_reconciled": true
+    },
+    {
+      "path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts/analysis_request_context_v1.schema.json",
+      "git_blob_sha1": "cb6cf1c663da4dc12c1f1a6fabedb6e666836d85",
+      "local_byte_reconciled": true
+    },
+    {
+      "path": "skills/programming_analysis/adapters/a1_a2_candidate_bridge_v1.py",
+      "git_blob_sha1": "cd4787c60f7cfefcdfdbd79c0e83cba068558231",
+      "local_byte_reconciled": true
+    }
+  ],
+  "cases": [
+    {
+      "input": "Implementa por primera vez el login B2B o también llamado inicio de sesión",
+      "semantic_status": "REVIEWED_CANDIDATE",
+      "a1_status": "VALID_OUTPUT",
+      "capability": "IDENTITY_AND_ACCESS",
+      "a1_payload_schema": "REQUEST_CONTEXT_V1",
+      "next_capability": "A2",
+      "bridge_status": "A1_READY_A2_EVIDENCE_REQUIRED"
+    },
+    {
+      "input": "Necesito una vista para que las empresas entren al portal",
+      "semantic_status": "REVIEWED_CANDIDATE",
+      "a1_status": "VALID_OUTPUT",
+      "capability": "IDENTITY_AND_ACCESS",
+      "a1_payload_schema": "REQUEST_CONTEXT_V1",
+      "next_capability": "A2",
+      "bridge_status": "A1_READY_A2_EVIDENCE_REQUIRED"
+    },
+    {
+      "input": "Necesito un listado de operaciones con filtros",
+      "semantic_status": "REVIEWED_CANDIDATE",
+      "a1_status": "VALID_OUTPUT",
+      "capability": "DATA_EXPLORATION",
+      "a1_payload_schema": "REQUEST_CONTEXT_V1",
+      "next_capability": "A2",
+      "bridge_status": "A1_READY_A2_EVIDENCE_REQUIRED"
+    }
+  ],
+  "negative_cases": [
+    {
+      "case": "NO_SEMANTIC_PRODUCER",
+      "blocking_code": "SEMANTIC_PRODUCER_UNAVAILABLE"
+    },
+    {
+      "case": "OTHER_BUSINESS",
+      "blocking_code": "BUSINESS_SCOPE_NOT_PROVIDED_OR_NOT_LF"
+    },
+    {
+      "case": "CONFLICTING_RAW_ENVELOPE_BUSINESS",
+      "blocking_code": "RAW_ENVELOPE_BUSINESS_CONFLICT"
+    },
+    {
+      "case": "EMPTY_REQUEST_NO_BUSINESS",
+      "blocking_code": "BUSINESS_SCOPE_NOT_PROVIDED_OR_NOT_LF"
+    }
+  ],
+  "results": {
+    "semantic_python": {
+      "pass": 3,
+      "total": 3
+    },
+    "full_a1_python": {
+      "pass": 3,
+      "total": 3
+    },
+    "a1_a2_handoff_python": {
+      "pass": 3,
+      "total": 3
+    },
+    "negative_gates": {
+      "pass": 4,
+      "total": 4
+    },
+    "native_provider_independently_attested": false,
+    "semantic_reviewer_independent": false,
+    "fixture_reviewer_used": true,
+    "a2_depth_signals_attested": false,
+    "a2_run_executed": false,
+    "operation_runtime_integrated": false,
+    "production_activated": false
+  },
+  "next": "Run independent native semantic review with actual provider-verified context, then source-bound A2 typed signal evidence; keep PR DRAFT until complete."
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": "A2_P0_SOURCE_HARDENING_READBACK_V1",
+  "scope": "A2_DESIGN_UNRESOLVED_A1_RESEARCH_PREVIEW",
+  "source_commit": "7129a15038555377e52517ce707ec0029828030e",
+  "review_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "source_blobs": {
+    "skills/programming_analysis/steps/a2/adapters/unresolved_research_preview_v1.py": "e3b807b15b0bc4ec12579c9b2e3f530a7ff57db1",
+    "skills/programming_analysis/steps/a2/evals/test_unresolved_research_preview_v1.py": "b94b786c4f4d344ecfe86f0275ad861ed6b795f5",
+    "skills/programming_analysis/steps/a2/handoffs/A2_SOURCE_RESEARCH_CYCLE_DECISION_CANDIDATE_20261107.md": "2c9cd08e9fd65305664369acec3a81754bd8f3b3",
+    "skills/programming_analysis/steps/a2/evals/a2_preclassification_research_independent_review_packet_20261107.json": "0c7b381ea449224cbb0fd003f15c8e3587d6c6b2",
+    "skills/programming_analysis/steps/a2/validators/run.py": "7c4282fe10f211ef1d33a3e2371209e0f5d02038"
+  },
+  "evidence": {
+    "source_readback_verified": true,
+    "static_checks_total": 19,
+    "static_checks_passed": 19,
+    "regression_unit_tests_defined": 22,
+    "new_adversarial_tests_added": 7,
+    "unit_tests_executed_on_current_source": false,
+    "old_15_pass_superseded": true,
+    "full_A1_A2_regression_executed": false,
+    "independent_semantic_reviewer_executed": false,
+    "a3_executed": false,
+    "database_inventory_executed": false,
+    "runner_boundary": "NO_NEW_PR_WORKFLOW: repository PASE single ordinary PR entrypoint; do not create unallowlisted CI workflow",
+    "github_actions_pase_cannot_be_equated_to_unittest": true
+  },
+  "findings": [
+    {
+      "code": "A2_NEGATION_PAYLOAD_LOSS",
+      "status": "SOURCE_PATCHED_UNEXECUTED",
+      "impact": "A1 explicit NEGATION might be dropped from A2 research plan unless cross-linked to candidate"
+    },
+    {
+      "code": "A2_DESIRED_OUTCOME_PAYLOAD_DRIFT",
+      "status": "SOURCE_PATCHED_UNEXECUTED",
+      "impact": "A1 result objective could be changed without changing semantic candidate SHA"
+    },
+    {
+      "code": "A2_UNTYPED_AMBIGUITY_OR_TARGET",
+      "status": "SOURCE_PATCHED_UNEXECUTED",
+      "impact": "Malformed nested input could crash instead of failing closed"
+    },
+    {
+      "code": "A1_A2_A3_RESEARCH_CYCLE",
+      "status": "P0_DESIGN_OPEN",
+      "impact": "A1 requires decision, A2 requires valid output, A3 requires A2 canonical classification; research preview doesn't break cycle"
+    }
+  ],
+  "proposed_path": "SOURCE_RESEARCH_PRECLASSIFICATION_WITH_UNKNOWN_TYPED_SIGNALS_NO_A3_EXECUTION_BEFORE_GATES",
+  "proposal_implemented": false,
+  "canonical_contracts_modified": false,
+  "router_or_d4_modified": false,
+  "runtime_or_supabase_modified": false,
+  "authorization_or_permissions_changed": false,
+  "pr_state": "DRAFT_NO_MERGE",
+  "remaining": [
+    "EXECUTE_PYTHON_A1_A2_REGRESSIONS_ON_EXACT_HEAD_WITH_REAL_COMMAND_OUTPUT",
+    "INDEPENDENTLY_REVIEW_SIX_CASES_AND_PRECLASSIFICATION_DECISION",
+    "DESIGN_CANONICAL_TWO_INPUT_A3_RESEARCH_ADMISSION_WITH_EVIDENCE_TIER_AND_MONOTONIC_DEPTH",
+    "ONLY_AFTER_REVIEW_CONSIDER_A2_VALIDATOR_GATE_CHANGE"
+  ],
+  "closure": "PARTIAL_SOURCE_PATCH_READY_FOR_TEST__P0_ARCHITECTURE_CYCLE_NOT_RESOLVED"
+}

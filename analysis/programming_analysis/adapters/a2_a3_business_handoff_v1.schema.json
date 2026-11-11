@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "A2->A3 same-business handoff CANDIDATE ONLY; independent native judge not wired",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "blocking_codes",
+    "business",
+    "a3_inputs",
+    "research_brief",
+    "source_attested",
+    "judge_verified",
+    "runtime_qualified",
+    "a3_allowed",
+    "next_step"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "A2_A3_BUSINESS_HANDOFF_CANDIDATE_V1"
+    },
+    "status": {
+      "enum": [
+        "BLOCKED",
+        "CANDIDATE_PENDING_NATIVE_JUDGE_READBACK"
+      ]
+    },
+    "blocking_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "business": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 2,
+      "maxLength": 32
+    },
+    "a3_inputs": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "REQUEST_CONTEXT_V1",
+            "ANALYSIS_CHANGE_CLASSIFICATION_V1"
+          ],
+          "properties": {
+            "REQUEST_CONTEXT_V1": {
+              "type": "object",
+              "required": [
+                "schema_version"
+              ],
+              "properties": {
+                "schema_version": {
+                  "const": "REQUEST_CONTEXT_V1"
+                }
+              }
+            },
+            "ANALYSIS_CHANGE_CLASSIFICATION_V1": {
+              "type": "object",
+              "required": [
+                "schema_version"
+              ],
+              "properties": {
+                "schema_version": {
+                  "const": "ANALYSIS_CHANGE_CLASSIFICATION_V1"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "research_brief": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "business",
+            "target_ref",
+            "product",
+            "module",
+            "objective",
+            "constraints",
+            "declared_facts",
+            "source_refs",
+            "research_questions",
+            "business_boundary"
+          ],
+          "properties": {
+            "business": {
+              "type": "string",
+              "minLength": 2
+            },
+            "target_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "product": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value",
+                "source_ref"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "DECLARED_UNATTESTED"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "state": {
+                        "const": "UNKNOWN"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "source_ref": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "state": {
+                        "const": "DECLARED_UNATTESTED"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "source_ref": {
+                        "type": "string",
+                        "minLength": 3
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "module": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value",
+                "source_ref"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "DECLARED_UNATTESTED"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "state": {
+                        "const": "UNKNOWN"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "null"
+                      },
+                      "source_ref": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "state": {
+                        "const": "DECLARED_UNATTESTED"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "source_ref": {
+                        "type": "string",
+                        "minLength": 3
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "objective": {
+              "type": "object"
+            },
+            "constraints": {
+              "type": "array"
+            },
+            "declared_facts": {
+              "type": "array"
+            },
+            "source_refs": {
+              "type": "array",
+              "minItems": 1
+            },
+            "research_questions": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "items": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "target_ref",
+                  "business"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "TARGET_IDENTITY",
+                      "CURRENT_AUTHORITY_AND_POLICIES",
+                      "CURRENT_IMPLEMENTATION_AND_PARAMETERS",
+                      "DEPENDENCIES_AND_CONSUMERS"
+                    ]
+                  },
+                  "target_ref": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "business": {
+                    "type": "string",
+                    "minLength": 2
+                  }
+                }
+              }
+            },
+            "business_boundary": {
+              "const": "SAME_BUSINESS_UNLESS_GROUNDED_DEPENDENCY"
+            }
+          }
+        }
+      ]
+    },
+    "source_attested": {
+      "const": false
+    },
+    "judge_verified": {
+      "const": false
+    },
+    "runtime_qualified": {
+      "const": false
+    },
+    "a3_allowed": {
+      "const": false
+    },
+    "next_step": {
+      "type": "null"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "BLOCKED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "business": {
+            "type": "null"
+          },
+          "a3_inputs": {
+            "type": "null"
+          },
+          "research_brief": {
+            "type": "null"
+          },
+          "blocking_codes": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "CANDIDATE_PENDING_NATIVE_JUDGE_READBACK"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "business": {
+            "type": "string",
+            "minLength": 2
+          },
+          "a3_inputs": {
+            "type": "object"
+          },
+          "research_brief": {
+            "type": "object"
+          },
+          "blocking_codes": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}
