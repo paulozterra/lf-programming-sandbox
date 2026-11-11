@@ -25,7 +25,7 @@ from native_lot_registration import canonical
 from native_verified_integration import next_chg
 from native_lot_binding import next_ready
 
-sys.path.insert(0, str(ROOT / "pilot/worker_v08"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pilot/worker_v08"))
 
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "paulozterra/lf-programming-sandbox"
