@@ -1,0 +1,128 @@
+{
+  "schema_version": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+  "candidate_only": true,
+  "request_context": {
+    "intent": "Evaluar una mejora acotada y observable del cascarón B2B_APP_SHELL, sin inventar definición, alterar producto ni seleccionar un scope histórico como vigente",
+    "target_ref": "lf_ops://B2B_APP_SHELL"
+  },
+  "classification": {
+    "target_granularity": "COMPONENT",
+    "depth": "L2",
+    "authority_state": "UNKNOWN",
+    "implementation_state": "UNKNOWN"
+  },
+  "stage_trace": [
+    {
+      "stage": "A1",
+      "outcome": "Solicitud acotada a un solo cambio observable; alcance funcional exacto requiere definición CURRENT",
+      "source_refs": [
+        "request://A1_A9_FRESH_REQUEST_B2B_APP_SHELL_20261103"
+      ]
+    },
+    {
+      "stage": "A2",
+      "outcome": "Profundidad L2 provisional por materialidad de autoridad e implementación desconocida",
+      "source_refs": [
+        "github://profiles/programming_analysis_lf/contracts/analysis_source_binding.json"
+      ]
+    },
+    {
+      "stage": "A3",
+      "outcome": "Snapshot v1.0 solo de contraste: NOT_ADMITTED, 0/9 scopes READY; definición de cambio CURRENT no probada",
+      "source_refs": [
+        "supabase://private.lf_decision_context_asof_v1/B2B_APP_SHELL/v1.0"
+      ]
+    },
+    {
+      "stage": "A4",
+      "outcome": "Impacto real no derivable sin target funcional CURRENT; no simular SHARED_CHANGE_IMPACT_ANALYSIS",
+      "source_refs": []
+    },
+    {
+      "stage": "A5",
+      "outcome": "Decisión de alcance/definición original pendiente; no se resuelve mediante fixture",
+      "source_refs": []
+    },
+    {
+      "stage": "A6",
+      "outcome": "Implementability tipada no acreditada; no afirmar obligaciones de efecto/permiso/backend",
+      "source_refs": [
+        "supabase://private.lf_decision_context_asof_v1/B2B_APP_SHELL/v1.0"
+      ]
+    },
+    {
+      "stage": "A7",
+      "outcome": "Frente de definición/autoridad sigue bloqueado; sin cierre artificial",
+      "source_refs": [
+        "supabase://private.lf_decision_context_asof_v1/B2B_APP_SHELL/v1.0"
+      ]
+    },
+    {
+      "stage": "A8",
+      "outcome": "CONTINUE: requiere fuente CURRENT y decisión material de cambio; STOP no equivale a READY",
+      "source_refs": []
+    },
+    {
+      "stage": "A9",
+      "outcome": "No ensamblar snapshot/handoff autorizado; esta es una propuesta offline de bloqueo",
+      "source_refs": []
+    }
+  ],
+  "material_unknowns": [
+    {
+      "unknown_id": "U-CURRENT-001",
+      "scope_id": "S-PROBE-001",
+      "question": "¿Cuál es la definición de producto vigente y autorizada de un cambio mínimo concreto en B2B_APP_SHELL, con referencia resoluble y evidencia de currentness?"
+    },
+    {
+      "unknown_id": "U-ASIS-002",
+      "scope_id": "S-PROBE-001",
+      "question": "¿Qué componente exacto implementa hoy esa conducta y qué delta es necesario, si corresponde?"
+    }
+  ],
+  "decisions_pending": [],
+  "requirements": [],
+  "material_fronts": [
+    {
+      "front_id": "F-AUTHORITY-CURRENT-001",
+      "scope_ids": [
+        "S-PROBE-001"
+      ],
+      "obligation_mode": "REQUIRED",
+      "closure": "BLOCKED",
+      "blockers": [
+        "CANONICAL_TARGET_DEFINITION_NOT_VERIFIED",
+        "CURRENTNESS_NOT_ATTESTED",
+        "A6_TYPED_BINDINGS_UNAVAILABLE"
+      ],
+      "evidence_refs": [
+        "supabase://private.lf_decision_context_asof_v1/B2B_APP_SHELL/v1.0"
+      ],
+      "reason": "El contexto histórico muestra NEED_MORE_EVIDENCE y no acredita un cambio puntual CURRENT"
+    }
+  ],
+  "scope_proposals": [
+    {
+      "scope_id": "S-PROBE-001",
+      "readiness_candidate": "NEED_MORE_EVIDENCE",
+      "material_front_refs": [
+        "F-AUTHORITY-CURRENT-001"
+      ],
+      "blockers": [
+        "CANONICAL_TARGET_DEFINITION_NOT_VERIFIED",
+        "CURRENTNESS_NOT_ATTESTED",
+        "A6_TYPED_BINDINGS_UNAVAILABLE"
+      ]
+    }
+  ],
+  "research_stop": {
+    "decision": "CONTINUE",
+    "decision_stable": false,
+    "all_material_fronts_accounted": true,
+    "unresolved_decision_changing_questions": [
+      "Confirmar definición canónica y comportamiento observable",
+      "Verificar AS-IS, delta y obligaciones tipadas"
+    ]
+  },
+  "package_readiness_candidate": "NEED_MORE_EVIDENCE"
+}

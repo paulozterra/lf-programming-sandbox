@@ -1,0 +1,23 @@
+{
+  "schema_version": "LF_EX5C_OWNER_ATTEMPT_DECISION_V1",
+  "decision_ref": "LF-OWNER-EX5C-ATTEMPT-1-20261106",
+  "decision_date": "2026-11-06",
+  "decision_maker": "Paulo",
+  "decision_text": "aceptar PASS del intento 1; sin nueva iteración",
+  "decision_state": "RESOLVED",
+  "action": "ACCEPT_PASS_ATTEMPT_1_NO_NEW_ITERATION",
+  "reason_code": "BUDGET_DECISION",
+  "run_id": 42284754122,
+  "worker_model": "claude-sonnet-5-5",
+  "cost_reported_usd": "0.070022",
+  "attempts_used": 1,
+  "max_attempts": 1,
+  "budget_cap_usd": "0.35",
+  "evidence_kind": "REAL_SANDBOX_UNAUTHENTICATED",
+  "source_ref": "owner-mandate-ex5c-2026-11-06",
+  "receipt_authenticated": false,
+  "production_authority": false,
+  "retry_authorized": false,
+  "worker_invoked": false,
+  "decision_authenticated": false
+}

@@ -1,0 +1,86 @@
+{
+  "schema_version": "LF_EX6_EXTERNAL_BUNDLE_INDEX_V1",
+  "kind": "DERIVED_INDEX_NOT_ORIGINAL_BUNDLE",
+  "source": {
+    "repository": "paulozterra/lf-programming-sandbox",
+    "workflow_run_id": 42707967927,
+    "run_url": "https://github.com/paulozterra/lf-programming-sandbox/actions/runs/42707967927",
+    "run_head_sha": "7734cef007523f427c7c94eba61e2d648081e057",
+    "run_conclusion": "success",
+    "artifact_id": 13715275651,
+    "artifact_name": "ex6-build-lint-aosp-two-snapshots-v1",
+    "artifact_zip_sha256": "2e8950a77ee9707df3cc7ab77e52e592a96f317fb4cc0736b3c28e8044671769",
+    "bundle_json_sha256": "5008714c29f55c2813792d6da98002393febdc5adbe5070ae194970742ff9fbd",
+    "sidecar_check": "PASS"
+  },
+  "formatter": {
+    "version": "1.30.0",
+    "flags": [
+      "--aosp",
+      "--dry-run",
+      "--set-exit-if-changed"
+    ]
+  },
+  "snapshots": [
+    {
+      "label": "baseline",
+      "commit": "53ab6b1a85da95f3e2a38d7f3298af731c6698ab",
+      "tree": "2c199d6c49b76ea8a23e15149425ece0f29e1410",
+      "commands": {
+        "build": {
+          "exit_code": 0,
+          "stdout_sha256": "01a9eff22ce3e5d203957a01fdb84fd8cb5ff2105bdf6925ab73a07c9bc0f560",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "format_aosp": {
+          "exit_code": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "javac_lint": {
+          "exit_code": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "label": "candidate",
+      "commit": "912c4ad9ea71f48edbd1ac58089441f9ed2c3449",
+      "commands": {
+        "build": {
+          "exit_code": 0,
+          "stdout_sha256": "2bcde8dbc87ff61afddc26a19e7057fe55a7881cb562b5d701a6580784104e49",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "format_aosp": {
+          "exit_code": 1,
+          "stdout_sha256": "fa8a031945ca6a646983c2aee0312bda5a4168a817b59a13f85eb5e08ab22d5c",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "finding_paths": [
+            "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStats.java",
+            "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsController.java",
+            "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsService.java"
+          ]
+        },
+        "javac_lint": {
+          "exit_code": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "visible_ex6": {
+          "exit_code": 0,
+          "stdout_sha256": "9606daa85c688626c3c568f6bf902291eab4fb538cdb7d5b73438f5c152ee376",
+          "stdout_text": "EX6_VISIBLE_OK\n",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    }
+  ],
+  "authority": {
+    "production_authority": false,
+    "super_admin": false,
+    "receipt_authenticated": false
+  },
+  "warning": "This index is derived; not a substitute for immutable original ZIP. SHA and all argv must be checked against original ZIP before admission."
+}

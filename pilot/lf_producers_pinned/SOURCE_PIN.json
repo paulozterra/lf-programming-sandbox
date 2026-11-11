@@ -1,0 +1,1483 @@
+{
+  "schema_version": "LF_PRODUCER_SOURCE_PIN_V1",
+  "source_repository": "cristhianlujan/claude-persona-lf-patch",
+  "source_commit_sha": "882c7213f83887952a99ad0793174d535eb91233",
+  "files": [
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/evidence/ex6_run_42707967927_receipt_index.json",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/evidence/ex6_run_42707967927_receipt_index.json",
+      "sha256": "555a5b49033e40ed1fe28244934fd31bfbb47169871500921776754a6cf7fdf5",
+      "size_bytes": 3580
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/evidence/ex6_task_registration.json",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/evidence/ex6_task_registration.json",
+      "sha256": "e79931b4b17ea47a1cbb8d1f766967d6a9a0817cce9ad281f11ac3a511b6d2b1",
+      "size_bytes": 2612
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tests/test_ex6_bundle_index_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tests/test_ex6_bundle_index_v1.py",
+      "sha256": "3c38cce2e749586bdb72c384c3720658fd5cc897e665a815f2c5534ffbbe2142",
+      "size_bytes": 2426
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tests/test_ex6_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tests/test_ex6_chain_v1.py",
+      "sha256": "4138687078cb6cebd1034fc01cd742f63d80f0d8c8d9d2cc8ea454b37a5f7ee3",
+      "size_bytes": 11237
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tests/test_ex6_evidence_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tests/test_ex6_evidence_v1.py",
+      "sha256": "5272f5f231e4b37905e53a5462848eb5112170ddcac18a4d96d51ef9d2871d44",
+      "size_bytes": 3040
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tests/test_ex6_local_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tests/test_ex6_local_v2.py",
+      "sha256": "6a24af44efffde31a57a076a4c503efa7101f44122c6ce446cba435a54907bd2",
+      "size_bytes": 4371
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tests/test_ex6_n1_one_pass_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tests/test_ex6_n1_one_pass_v1.py",
+      "sha256": "e48800496032489192ac8e0665076d743667d16ccfec3fcd8a7406ef9830d203",
+      "size_bytes": 3003
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tests/test_ex6_pg09_native_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tests/test_ex6_pg09_native_v2.py",
+      "sha256": "9ce7288b25caa5e18cfffb169eedf8ba7e25ef4dfa84249aa222f694938793a8",
+      "size_bytes": 5551
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_build_lint_index_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_build_lint_index_v1.py",
+      "sha256": "867cbaae3474ac8d08ab0667760dd71e3d451b1a2f3e383794ae54f0d02467dc",
+      "size_bytes": 4310
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_build_lint_inputs_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_build_lint_inputs_v1.py",
+      "sha256": "6f4e626c5f802c71a7ae8530040dfeb141664ea668976b668ef5afcea8fa121f",
+      "size_bytes": 9568
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_local_freeze_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_local_freeze_v1.py",
+      "sha256": "008bd84dcabe47ddac98d07bef42c5f2a9d338490e691d88a89b0dfeef4a0b68",
+      "size_bytes": 5593
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_n1_one_pass_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_n1_one_pass_v1.py",
+      "sha256": "5d8c7703b66583d5d576f7bf4b7df7d4686d7b485f4aec9a08456be5c7133629",
+      "size_bytes": 2171
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_n1_receipts_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_n1_receipts_v1.py",
+      "sha256": "c5d7e316027108d2f979554fb0ef189eca509583efd103694927c3d67367c38e",
+      "size_bytes": 5707
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_one_pass_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_one_pass_v1.py",
+      "sha256": "39541d9e45fba9d22962b4b25a809bcaa3e87daa0218a037618e08145bcd6051",
+      "size_bytes": 25306
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_pg06_evidence_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_pg06_evidence_v1.py",
+      "sha256": "1c6cd1c6c54cc51cab5e4b0ae2af15d557d5bff31cae17fd31d4f284477c1f02",
+      "size_bytes": 6660
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_pg07_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_pg07_v1.py",
+      "sha256": "2149ae63b2a283cd300f13506d8ca427145173d1c08e95e4072c3be324b113e1",
+      "size_bytes": 7888
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_pg12_pg13_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_pg12_pg13_v2.py",
+      "sha256": "f5903e53c6384708657bba7f9f8d59f296ab90b85ce831c4356a0c607c9c8629",
+      "size_bytes": 14035
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_real_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_real_chain_v1.py",
+      "sha256": "4f00ef27322f06bf4e0c9c38c8599031a194671471edc76871b274111d55bc60",
+      "size_bytes": 17628
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_real_world_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_real_world_v1.py",
+      "sha256": "692acf4499c3003cb0ade2d39b6c4c4196db40ad688d5aadad3a74fd7a413318",
+      "size_bytes": 6978
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/ex6_real_chain_candidate/tools/ex6_source_truth_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/ex6_real_chain_candidate/tools/ex6_source_truth_v1.py",
+      "sha256": "ce4c09f644dc9b368378d89147f44989b811a481dc93ab57ec8a33f97d87e957",
+      "size_bytes": 9264
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/pg01_c4_readback_candidate_v1.sql",
+      "destination_path": "pilot/lf_producers_pinned/pg02/pg01_c4_readback_candidate_v1.sql",
+      "sha256": "0c948138ad8e8432929b660d9826ee06aaae2013102c4095dbe48361615e3852",
+      "size_bytes": 1924
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/pg01_technical_frame_v3_candidate_contract.json",
+      "destination_path": "pilot/lf_producers_pinned/pg02/pg01_technical_frame_v3_candidate_contract.json",
+      "sha256": "5442160e0b52c2a7008f84d3a5e7b061115994931c3e894acbf256c347f10444",
+      "size_bytes": 1813
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/pg01_technical_frame_v3_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/pg01_technical_frame_v3_candidate_v1.py",
+      "sha256": "2b029822d17b674965deb1706dd79c5c583885784a095d99e0d0794081d6baf0",
+      "size_bytes": 2019
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/pg02_c4_evidence_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/pg02_c4_evidence_adapter_v1.py",
+      "sha256": "54f80592a2622a297e6719dfe1a2488ee38b5df1205975e5b4d881ad15e26a4f",
+      "size_bytes": 1961
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/pg02_classification_outcome_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/pg02_classification_outcome_v1.py",
+      "sha256": "b8a7fee03d75944a024f0445e7b03473b04fdeaf08fbf486bcd46eeb62c4c6bc",
+      "size_bytes": 857
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/pg02_classifier_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/pg02_classifier_v1.py",
+      "sha256": "8a7b2f8345972763fa41133ff0191837e29f85b2385358129f02967aa66e8b4d",
+      "size_bytes": 9835
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/pg02_pg00_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/pg02_pg00_bridge_v1.py",
+      "sha256": "e1c7afe5598c5facd256605a92b45933194dafaa9e49e852605a6c88a3b5fed3",
+      "size_bytes": 659
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/pg02_scope_isolation_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/pg02_scope_isolation_v2.py",
+      "sha256": "26c8a253b813717562fa4f06fe5b92a4f166b9c832eb382ef8dfa59344c87f2a",
+      "size_bytes": 158
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_h2c4_pg03_c6_integration_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_h2c4_pg03_c6_integration_v1.py",
+      "sha256": "0db6b7a91ad5d5612b1a451899f802fe34db35bf54f6ba20eaaaea1a8332e4b0",
+      "size_bytes": 3520
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg01_c4_readback_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg01_c4_readback_candidate_v1.py",
+      "sha256": "6fa9ffa19ce1468e1ad1f54c2dcebf88a7ebe97faca4ca1361055603ba405419",
+      "size_bytes": 779
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg01_c4_six_source_frame_synthetic_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg01_c4_six_source_frame_synthetic_v1.py",
+      "sha256": "777400ec9edef799a8acdf771e642440dd39520d48c191739ecaa9d1196ef6e0",
+      "size_bytes": 3586
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg01_technical_frame_v3_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg01_technical_frame_v3_candidate_v1.py",
+      "sha256": "102863f5a03951d8e7bc748ea285d6be2d7dd592e98071d27ef1e16907f1f3f6",
+      "size_bytes": 1390
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg02_c4_evidence_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_c4_evidence_adapter_v1.py",
+      "sha256": "16a506f7de681dc54789cbce4a549ff0bddf586460925b20056f18ff598396f6",
+      "size_bytes": 1154
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg02_classification_outcome_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_classification_outcome_v1.py",
+      "sha256": "21e4891c7a7eea91a61a451b969a3f324e4139d85003e50707033156366c8eb6",
+      "size_bytes": 846
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg02_classifier_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_classifier_v1.py",
+      "sha256": "243c864d4f341e9a31934f863f4f060171d5ea440cd29d61b3d2f8ee0ac9e353",
+      "size_bytes": 3040
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg02_domain_stack_layers_adversarial_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_domain_stack_layers_adversarial_v1.py",
+      "sha256": "19e650071c3ea51ef226e405ca2e4a04ca3e297c0cda3f84c1afa861a2280175",
+      "size_bytes": 888
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg02_h2c4_handoff_boundary_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_h2c4_handoff_boundary_v1.py",
+      "sha256": "c15625249d551195d65098cb405607549e9fac99b6a12ac619c661ab91c12ac3",
+      "size_bytes": 1452
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg02_independent_findings_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_independent_findings_v1.py",
+      "sha256": "299bb4bb280bdfb32bc9285266ba7ab46ef209a5f78f453b397a024c8ca6625e",
+      "size_bytes": 1851
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg02_pg00_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_pg00_bridge_v1.py",
+      "sha256": "ba115f85ca5c0f419a5dcfcb4387f4080be5891223893172018691dc7e852107",
+      "size_bytes": 897
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg02_pg01_binding_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_pg01_binding_v1.py",
+      "sha256": "09dc7aa99aa8b8a5135fb625ce9edc52261805037ada071f55593774068ab17e",
+      "size_bytes": 1443
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg02_scope_isolation_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_scope_isolation_v2.py",
+      "sha256": "e276247b8f60802f93f1475a8fecf4699841036bf594f57880737d1b046a6002",
+      "size_bytes": 2922
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02/test_pg02_stack_layers_adversarial_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02/test_pg02_stack_layers_adversarial_v1.py",
+      "sha256": "264146c76a2c58fc38445b998c8ad39bd68c1de40546dca22c34e69bf98e6c81",
+      "size_bytes": 1081
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg02_qualification/test_pg02_c5_independent_sample_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg02_qualification/test_pg02_c5_independent_sample_v1.py",
+      "sha256": "1849e083c51614c15b09c0289dc07768d848420a0bbf6f834380c6465dcafc84",
+      "size_bytes": 7116
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_stack_source_candidate/pg03_stack_source_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_stack_source_candidate/pg03_stack_source_v1.py",
+      "sha256": "69e9b4d29b11b4d18e589cea9ec7f54143e1bccc341cd77cb5fd846119f52f46",
+      "size_bytes": 5987
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_stack_source_candidate/test_pg03_stack_lock_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_stack_source_candidate/test_pg03_stack_lock_v1.py",
+      "sha256": "2f564e8daf95d292fabb127ca1647e62c1ea9437fd864ebc596e7fa2ab2cc8ae",
+      "size_bytes": 2244
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_stack_source_candidate/test_pg03_stack_semantics_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_stack_source_candidate/test_pg03_stack_semantics_v1.py",
+      "sha256": "3ffda23595b2179d0207b93a47c6b16eb0b30fd54533fa63c092af1a745fc5a5",
+      "size_bytes": 2404
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_stack_source_candidate/test_pg03_stack_source_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_stack_source_candidate/test_pg03_stack_source_v1.py",
+      "sha256": "23118365da985085f2d9c038351bffadeba588e4f43635731f4a7ca57efacb84",
+      "size_bytes": 1746
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_architecture_d15_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_architecture_d15_v1.py",
+      "sha256": "962688a6e48bfa239c0e549e80c100f345cca0cd2d42bbbbc6704b4ab3d53f39",
+      "size_bytes": 4551
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_assurance_envelope_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_assurance_envelope_v1.py",
+      "sha256": "17be6cecd8f41ca7ef896d26f41f5922f67b8f8bd130f02a54371d93002b1a6f",
+      "size_bytes": 2481
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_c2_catalog_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_c2_catalog_adapter_v1.py",
+      "sha256": "233477796c902a312aa97969a77c775d13f3c425898ae41cdc0f5fa6666b792e",
+      "size_bytes": 4098
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_c2_l3_type_b_binding_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_c2_l3_type_b_binding_v1.py",
+      "sha256": "e35d25ccc42e572d09d9cb8709b25eb13dfa8bc8e86ca78567404c41eb0ee8e3",
+      "size_bytes": 4527
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_c2_precedence_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_c2_precedence_candidate_v1.py",
+      "sha256": "acd06e2f7525603ec0abaaf5e3ae06c35a458d8b64c17dbc5219e36748487d21",
+      "size_bytes": 6113
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_c2_skill_receipt_binding_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_c2_skill_receipt_binding_v1.py",
+      "sha256": "7cb5923e1003363e206da6884e556bc784665e610cc55f1b4c099697d4bc02e4",
+      "size_bytes": 4833
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_c9_real_runtime_readiness_v1.sql",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_c9_real_runtime_readiness_v1.sql",
+      "sha256": "a312b7e50d02a093d94b867f423fbca50f8ae513ccdedb172d5f1cc7168561a4",
+      "size_bytes": 4694
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_c9_subject_binding_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_c9_subject_binding_v1.py",
+      "sha256": "fb4e6da5f7ace8d4a365ebe52ed990ac95330709343b79772865ca0c00f76835",
+      "size_bytes": 3299
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_domain_judges_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_domain_judges_v1.py",
+      "sha256": "4c8cebff8029e11205a3e4c380c7c324cc81868cefda50e10a40e4c22e5dbd1e",
+      "size_bytes": 8345
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_exception_routing_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_exception_routing_v1.py",
+      "sha256": "03c347c5c0fafe123c192c091d88287167c55b010a429af7e04d7508c6cba283",
+      "size_bytes": 2642
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_handoff_boundary_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_handoff_boundary_v1.py",
+      "sha256": "f91b7a601fad4c7a2e12a9c5170fd6d99e59062cf67b51df8900c4a8fe951b59",
+      "size_bytes": 5927
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_reuse_binding_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_reuse_binding_v1.py",
+      "sha256": "579b5f3c43d1a0e09cee115de12fc33072125041dfe6a2b331aac242617bcf1c",
+      "size_bytes": 2612
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_semantic_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_semantic_adapter_v1.py",
+      "sha256": "eb10a1dc5f9376dad49a1e9c0e98722b8a296c4bb8547a5ac43d74cbc6f75e48",
+      "size_bytes": 1476
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_strategy_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_strategy_v1.py",
+      "sha256": "abb429358e0174f04b6537c6d11b4c361d1cf27a267a39a9a813e2571c5e6151",
+      "size_bytes": 3947
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/pg03_sufficiency_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/pg03_sufficiency_v1.py",
+      "sha256": "e1ef8495d93e920d69a306ae1f8c89280ba61c754ef017025e5642b7ebb130c0",
+      "size_bytes": 4525
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg02_pg03_strategy_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg02_pg03_strategy_chain_v1.py",
+      "sha256": "0208d2575bba73a2d5db036b360d1e646c4fa588b872a2331d873bb08b45b477",
+      "size_bytes": 1909
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_analysis_rule_projection_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_analysis_rule_projection_v1.py",
+      "sha256": "e4fc4304d3fe28de28fcfb8f59414d6be020394f3e17bca002b0d9f0088451d6",
+      "size_bytes": 2342
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_architecture_d15_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_architecture_d15_v1.py",
+      "sha256": "1c669e44d049da73362c7e3bd82f8afc4c8220545f39308b44b3efc3aaa9a6b4",
+      "size_bytes": 2938
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_assurance_envelope_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_assurance_envelope_v1.py",
+      "sha256": "7a2fdd8364428ce7b9faea1369be4f5f67f7f33893fa89f6c67f902097d341b6",
+      "size_bytes": 1863
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_c2_catalog_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_c2_catalog_adapter_v1.py",
+      "sha256": "da1c208c54d6fd51e8a55d4b05d45eb2c7adc564386666169d91ef47b0523373",
+      "size_bytes": 5090
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_c2_l3_type_b_binding_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_c2_l3_type_b_binding_v1.py",
+      "sha256": "09db691d5956d0de7ebb6c84eb6d3e6e7f4c70594bbc5204d3e8fd2592872328",
+      "size_bytes": 4471
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_c2_precedence_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_c2_precedence_candidate_v1.py",
+      "sha256": "3392c17cdc86c78a72080ee523ef1dbe7f0fd8bda01913c2b7b858bbf592eb1f",
+      "size_bytes": 5450
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_c2_skill_receipt_binding_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_c2_skill_receipt_binding_v1.py",
+      "sha256": "4ff3d715f92a9c2c49d7f21bb4bd15e9c21365797b7104d662e50925fc4411b6",
+      "size_bytes": 3979
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_c5_projection_integrity_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_c5_projection_integrity_v1.py",
+      "sha256": "b75c1bebd51ab4f73ed6a0f2babeb4cab53104941016bab6867813d1c6b6a060",
+      "size_bytes": 2486
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_c9_subject_binding_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_c9_subject_binding_v1.py",
+      "sha256": "48f30fe6b67c26b0eb6c3499d2fa2c320338629f48c97d48c7e30bfabc757294",
+      "size_bytes": 4116
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_domain_judges_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_domain_judges_v1.py",
+      "sha256": "a202405c008cf15f9b5db60b0d0a2de1e69c9588ad005e39bf22d3903825091f",
+      "size_bytes": 1876
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_exception_routing_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_exception_routing_v1.py",
+      "sha256": "834908548500090c4654fcb95c4ea7326a14548924a3febd24d7ca7b3d9a70dc",
+      "size_bytes": 2460
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_handoff_boundary_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_handoff_boundary_v1.py",
+      "sha256": "c2364a29d082c14b29c8e0799ba568d416183405c6b0648e0dd9e2d64e8c85af",
+      "size_bytes": 4327
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_reuse_binding_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_reuse_binding_v1.py",
+      "sha256": "c590681121e49cf54b39ec459d2ec202239732f70e656180088373a64cd9a0dc",
+      "size_bytes": 1414
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_semantic_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_semantic_adapter_v1.py",
+      "sha256": "4aa22ba8c0a5696dcdd633904568f47981713d5216c5f4657bcece036e237d9a",
+      "size_bytes": 1378
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_strategy_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_strategy_v1.py",
+      "sha256": "4ea054a5fc82de53bafa83b24d8e061e75269fe4629fcb49fead40ba82d5e1b9",
+      "size_bytes": 2289
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg03_strategy_candidate/test_pg03_sufficiency_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg03_strategy_candidate/test_pg03_sufficiency_v1.py",
+      "sha256": "771fc700508992a5936e6e222725eedf85eb3d4b17e0a7cc543b252855b7a9f3",
+      "size_bytes": 3299
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/analysis_trial_b2b_app_shell_unadmitted_v1.json",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/analysis_trial_b2b_app_shell_unadmitted_v1.json",
+      "sha256": "ff65ae449516cd52198a2e5b79d542efd658db32d7a37cc98c1608a526c38413",
+      "size_bytes": 4271
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/fixtures/programming_synthetic_lab_packet_v1.json",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/fixtures/programming_synthetic_lab_packet_v1.json",
+      "sha256": "e686234c89554db48ee8f9998f79268d43f980f9e3431499276a40152f4a4c5c",
+      "size_bytes": 5438
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/test_analysis_fresh_request_b2b_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/test_analysis_fresh_request_b2b_v1.py",
+      "sha256": "0fe05d20285a199a9f72a62fbf1fe296c335d15ff30095cf8a05eb02a09d3881",
+      "size_bytes": 3069
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg03_pg04_exact_handoff_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg03_pg04_exact_handoff_bridge_v1.py",
+      "sha256": "49a52de2c0c6679fe9cc0e0875de691f628a460ab018d3d2d878a32f5cbe03e3",
+      "size_bytes": 4437
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg04_definition_of_done_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg04_definition_of_done_candidate_v1.py",
+      "sha256": "5e864f6e549dd5b18735e29bcafd1eadf8cfd6023a90482ffcd6f042a4f30cb3",
+      "size_bytes": 8870
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg04_independent_review_request_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg04_independent_review_request_v1.py",
+      "sha256": "363fc765489d9b356ce5ba263c2d7e492bbe2ac803b5e84fd134543c6b58b638",
+      "size_bytes": 5624
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg04_local_semantic_judge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg04_local_semantic_judge_v1.py",
+      "sha256": "1b02b18300656f39b5017cebc932c28ef28d85c79432d2e4be3d7eaa2c067329",
+      "size_bytes": 4030
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg04_partition_admission_probe_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg04_partition_admission_probe_v1.py",
+      "sha256": "18aa914f4619850a3a02576f7282987cd7f47ab7ef31c44bda2987c1253a6158",
+      "size_bytes": 9665
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg04_remaining_edges_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg04_remaining_edges_v1.py",
+      "sha256": "92f48085bd4b48815f9816ed1a8ae53e2444ef589b55bf31159aa95fa127f777",
+      "size_bytes": 8674
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg04_semantic_partition_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg04_semantic_partition_candidate_v1.py",
+      "sha256": "a0000cff86aaabbdf5c9447fa293ff63d83fd69103f7aee2b85eea579f33691e",
+      "size_bytes": 13103
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tests/test_pg_programming_offline_lab_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tests/test_pg_programming_offline_lab_v1.py",
+      "sha256": "f26391d64c28e30a888b9b307cfad0d9bb7f17684ef7baf77979084463b08968",
+      "size_bytes": 5100
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg03_pg04_exact_handoff_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg03_pg04_exact_handoff_bridge_v1.py",
+      "sha256": "2a4f370946f90142e2a389d31952cf427898f6de15b40ce32682d945625e83ca",
+      "size_bytes": 4013
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg04_c6_repartition_proposal_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg04_c6_repartition_proposal_v1.py",
+      "sha256": "97cdd885eb9dcdb4762496beef393f43ac31b910a73ed5afb0e73c2b149a8c60",
+      "size_bytes": 10922
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg04_c7_coverage_dossier_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg04_c7_coverage_dossier_v1.py",
+      "sha256": "267b6bd2a4f012fe6a682eae67061e52e177ec0fa1c990af22e6460253117132",
+      "size_bytes": 9272
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg04_definition_of_done_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg04_definition_of_done_candidate_v1.py",
+      "sha256": "a472bbf739de303309ea1fc34d73c76ed0c8fdb95599505e6db25c37b64fcb01",
+      "size_bytes": 9072
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg04_independent_review_request_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg04_independent_review_request_v1.py",
+      "sha256": "0dc76a42df7b243e9ab8b30b211c53163b3782798e4a40d37f2121b98b6acf50",
+      "size_bytes": 7534
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg04_local_semantic_judge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg04_local_semantic_judge_v1.py",
+      "sha256": "0f271719e042dbe7dc7252de11d79370a015b8c8443d89600d8b2e54b9bd878a",
+      "size_bytes": 8311
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg04_partition_admission_probe_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg04_partition_admission_probe_v1.py",
+      "sha256": "4b88b4228c223654e89d9b04a74feb2a2775fb7a57f5dcba4fce88b71e4e1322",
+      "size_bytes": 8481
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg04_pg05_exit_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg04_pg05_exit_candidate_v1.py",
+      "sha256": "43e474ff0d8ad3c15eda877f840ddaac4d0c11be809d3ca6560cacaa2ae4560d",
+      "size_bytes": 8298
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg04_pg07_budget_feedback_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg04_pg07_budget_feedback_candidate_v1.py",
+      "sha256": "c41f0ffd38e387436dfea4672a38820bae41ce913d8b32efe57da63f56008722",
+      "size_bytes": 5693
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg04_semantic_partition_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg04_semantic_partition_candidate_v1.py",
+      "sha256": "b08581e2f43841c44feb4c7f43358d09ef39e517b48fde28cbe3f5e3d1192bbb",
+      "size_bytes": 10483
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg04_semantic_partition_candidate/tools/pg_programming_offline_lab_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg04_semantic_partition_candidate/tools/pg_programming_offline_lab_v1.py",
+      "sha256": "26152948a0c338cc33526e712eb60830f4d8a13d213e9eb82d61663906e03399",
+      "size_bytes": 7638
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg05_target_binding_candidate/tests/test_pg05_chain_c1_c5_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg05_target_binding_candidate/tests/test_pg05_chain_c1_c5_v1.py",
+      "sha256": "2ed9e71c6ca6e53624a7ea693b327463eef89c782ead9facf87d3953ea156a1f",
+      "size_bytes": 11695
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg05_target_binding_candidate/tools/pg05_c1_target_binding_preflight_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg05_target_binding_candidate/tools/pg05_c1_target_binding_preflight_v1.py",
+      "sha256": "841f33888304e84d7729ea6c72513fd809430801bf7745ff1334180e763a581a",
+      "size_bytes": 5326
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg05_target_binding_candidate/tools/pg05_c2_write_scope_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg05_target_binding_candidate/tools/pg05_c2_write_scope_candidate_v1.py",
+      "sha256": "8273f910f579e423cd03d86bf9b194b88981745b67e93a582f2332c5177ed461",
+      "size_bytes": 10317
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg05_target_binding_candidate/tools/pg05_c3_collision_lock_plan_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg05_target_binding_candidate/tools/pg05_c3_collision_lock_plan_candidate_v1.py",
+      "sha256": "18b17be26e3b33c9dc889c6e7bc6d544c7be659b4c3240a52ca5a68c02acf2b8",
+      "size_bytes": 8485
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg05_target_binding_candidate/tools/pg05_c4_write_boundary_preflight_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg05_target_binding_candidate/tools/pg05_c4_write_boundary_preflight_v1.py",
+      "sha256": "4ed9c677d2c76013b3b172fdd705b6ad60d08c2a8b7093907f09abd81e14c748",
+      "size_bytes": 10375
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg05_target_binding_candidate/tools/pg05_c5_independent_assurance_request_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg05_target_binding_candidate/tools/pg05_c5_independent_assurance_request_v1.py",
+      "sha256": "99f000f55c98ee7f7994ed2a8c0e9d9553f2f22d8153b5e49a570e5931feb742",
+      "size_bytes": 8710
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg05_target_binding_candidate/tools/pg05_pg06_exit_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg05_target_binding_candidate/tools/pg05_pg06_exit_candidate_v1.py",
+      "sha256": "caa5a973a1e81399e4d1dbe13d9163a09b29c09162fdc16b39f0b458203ff7eb",
+      "size_bytes": 8124
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg06_preflight_candidate/tests/test_pg06_c1_c5_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg06_preflight_candidate/tests/test_pg06_c1_c5_chain_v1.py",
+      "sha256": "040822c4a089530becf1a8b6d78483c89cb91fb54109108914f9639a97eb7e50",
+      "size_bytes": 13336
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg06_preflight_candidate/tools/pg06_c1_currentness_reuse_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg06_preflight_candidate/tools/pg06_c1_currentness_reuse_candidate_v1.py",
+      "sha256": "70ce99c7ac845bed26a45ca75028574443245510088de9ecc241542a44800c21",
+      "size_bytes": 5618
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg06_preflight_candidate/tools/pg06_c2_toolchain_environment_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg06_preflight_candidate/tools/pg06_c2_toolchain_environment_candidate_v1.py",
+      "sha256": "9d718cd83510e8d0fb246fb8fce0e7a9a473a3a9df68ee772b22cb7f72257312",
+      "size_bytes": 9135
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg06_preflight_candidate/tools/pg06_c3_reversibility_plan_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg06_preflight_candidate/tools/pg06_c3_reversibility_plan_candidate_v1.py",
+      "sha256": "6c44731fefbda28fe004e9d4ea4def9cf73fc52a7e23a80eedef4866146a80dc",
+      "size_bytes": 8850
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg06_preflight_candidate/tools/pg06_c4_baseline_capture_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg06_preflight_candidate/tools/pg06_c4_baseline_capture_candidate_v1.py",
+      "sha256": "cc5d4027d47ef792e642dde642b70d7f76c5bc48dc360fa89872657b48c59b48",
+      "size_bytes": 8014
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg06_preflight_candidate/tools/pg06_c5_independent_assurance_request_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg06_preflight_candidate/tools/pg06_c5_independent_assurance_request_v1.py",
+      "sha256": "76af8d205dd986d54b49cc5f4e1d12ea2ecd58b4b7776e0c78f63710ecd31bab",
+      "size_bytes": 7555
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/fixtures/ex5c_owner_attempt_decision_v1.json",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/fixtures/ex5c_owner_attempt_decision_v1.json",
+      "sha256": "19b920bd8b3ae0b643a4d1d4b8967132d8007bdb853780ca295a0d6c7dbe45eb",
+      "size_bytes": 797
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/fixtures/lf-evidence-bundle-v1.json",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/fixtures/lf-evidence-bundle-v1.json",
+      "sha256": "436bc771ccd04b5eeb407102f7c55a3338bacf43f8f292773f293aa615a8da3b",
+      "size_bytes": 267568
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/fixtures/lf-evidence-bundle-v2.json",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/fixtures/lf-evidence-bundle-v2.json",
+      "sha256": "0988de2e39f5139596d05c3cbfcbe8c8998c753cdb009414e5b38da65172217b",
+      "size_bytes": 62957
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/fixtures/lf-evidence-bundle-v3.json",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/fixtures/lf-evidence-bundle-v3.json",
+      "sha256": "417b504380e4ebe9f4345b2b33c21d6a8f0d0a05b1e51ef2a86de3822bc09ec0",
+      "size_bytes": 225780
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tests/test_ex5c_real_evidence_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tests/test_ex5c_real_evidence_chain_v1.py",
+      "sha256": "75d227097862f8c5cdce9d76405affa84ad5e170932fef079dc721728c936260",
+      "size_bytes": 3972
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tests/test_pg07_c1_c6_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tests/test_pg07_c1_c6_chain_v1.py",
+      "sha256": "62947150f99d2e530552b8649ee1e2a195a059fd749b47e59a8ef1726b786d1c",
+      "size_bytes": 14795
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tests/test_pg07_ex5c_format_remediation_v3_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tests/test_pg07_ex5c_format_remediation_v3_adapter_v1.py",
+      "sha256": "3683224ee1e95112292491d84a8ea7390ec16fe70cadf76e50a671118b8c39e0",
+      "size_bytes": 6505
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tests/test_pg07_real_worker_evidence_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tests/test_pg07_real_worker_evidence_adapter_v1.py",
+      "sha256": "b627554ac3001e23b82db4a44614ef9aac5ee4909f0a3a7243d8ae8a303b320e",
+      "size_bytes": 13640
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tests/test_pg08_ex5c_v2_format_lint_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tests/test_pg08_ex5c_v2_format_lint_adapter_v1.py",
+      "sha256": "45b3873e21bf40e48818f2e93c31eb3f1261897304a74c5b7da5bc5d6b508498",
+      "size_bytes": 7408
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tests/test_pg08_ex5c_v3_candidate_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tests/test_pg08_ex5c_v3_candidate_bridge_v1.py",
+      "sha256": "c4cb16a66a2606ab2942d2f4fb6fbda0c925c398155ceef63c9979c938911cba",
+      "size_bytes": 1630
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tests/test_pg09_pg10_ex5c_owner_decision_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tests/test_pg09_pg10_ex5c_owner_decision_bridge_v1.py",
+      "sha256": "f79300302a74c620d81445226a4eff278e96311677d1456a6198659f609925fa",
+      "size_bytes": 3382
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg07_c1_worker_dispatch_plan_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg07_c1_worker_dispatch_plan_v1.py",
+      "sha256": "8426b226de7b80934c97cc07e7d31c98cc2fd98e705b837f43edcdb77daef9ba",
+      "size_bytes": 8217
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg07_c2_task_batch_projection_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg07_c2_task_batch_projection_v1.py",
+      "sha256": "f7ca0a7e47c3210882c4662dd481d24128bc17d0cdd0ee6d84f9649bdb9d5afc",
+      "size_bytes": 8911
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg07_c3_context_budget_projection_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg07_c3_context_budget_projection_v1.py",
+      "sha256": "92bf7983f6c998e25fb1eb8105d6edd9ca7f17a81f3975b21a06aff842c3bc60",
+      "size_bytes": 11561
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg07_c4_contract_first_standards_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg07_c4_contract_first_standards_candidate_v1.py",
+      "sha256": "c1fa34962157878d5b2b2a89e199fd78c3213700a57399edd9632704fed7eb49",
+      "size_bytes": 9542
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg07_c5_iteration_guard_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg07_c5_iteration_guard_candidate_v1.py",
+      "sha256": "cfc9b7dd780b41fa438a521b79ce20a7b5fe48d74eb9055f3f744774d8eaff00",
+      "size_bytes": 8949
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg07_c6_worker_batch_evidence_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg07_c6_worker_batch_evidence_candidate_v1.py",
+      "sha256": "45ca0152eb371649fb5245e63412c67def0ac8cbf7a339aee01df527e9d2c19d",
+      "size_bytes": 9301
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg07_ex5c_format_remediation_v3_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg07_ex5c_format_remediation_v3_adapter_v1.py",
+      "sha256": "fec10baf6aec7c9e6dd4fba376e81e726840920fb9a77e2e9ccd82087a5528b4",
+      "size_bytes": 9153
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg07_real_worker_evidence_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg07_real_worker_evidence_adapter_v1.py",
+      "sha256": "91854e9f4ee25d1bccf2541c0900202175cfd4d20914d1bd3eda46ea082e99ff",
+      "size_bytes": 24470
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg08_ex5c_v2_format_lint_adapter_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg08_ex5c_v2_format_lint_adapter_v1.py",
+      "sha256": "6a7d67845aec7026a78a1ec031f57069dc4648dc5169a0e642fd069f84249972",
+      "size_bytes": 15008
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg08_ex5c_v3_candidate_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg08_ex5c_v3_candidate_bridge_v1.py",
+      "sha256": "3f04a078fedc3018cb738a906b4a416ebd0ccadfd1b51b40fb5c805b32b40f51",
+      "size_bytes": 9581
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg07_worker_candidate/tools/pg09_pg10_ex5c_owner_decision_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg07_worker_candidate/tools/pg09_pg10_ex5c_owner_decision_bridge_v1.py",
+      "sha256": "42f69f0ccc75b09f5c9b7b9a69365bc1e5b1f4ebb4572d83b60b711c70597e07",
+      "size_bytes": 4119
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg08_build_candidate/tests/test_pg08_full_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg08_build_candidate/tests/test_pg08_full_chain_v1.py",
+      "sha256": "629ef96280b33e61715ff82a686c3698e96167f7beeb40bf9cbdc934d7d9fadb",
+      "size_bytes": 15666
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg08_build_candidate/tools/pg08_c1_build_compilation_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg08_build_candidate/tools/pg08_c1_build_compilation_candidate_v1.py",
+      "sha256": "8a9a1bc432c53c1b08f38c05b41b14cd44a2b6658be60a4cacd9593955bd388c",
+      "size_bytes": 7412
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg08_build_candidate/tools/pg08_c2_format_lint_delta_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg08_build_candidate/tools/pg08_c2_format_lint_delta_candidate_v1.py",
+      "sha256": "54c7d3bcdd0fcee08951a468c0add83b9c1afd0b0a59ba3a9a5217da150b49ae",
+      "size_bytes": 12106
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg08_build_candidate/tools/pg08_c3_typecheck_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg08_build_candidate/tools/pg08_c3_typecheck_candidate_v1.py",
+      "sha256": "2b8b5baacb9fa7e8514e6498c69462976f8da153069536c5d0f2c02265448d0e",
+      "size_bytes": 7803
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg08_build_candidate/tools/pg08_c4_test_flyway_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg08_build_candidate/tools/pg08_c4_test_flyway_candidate_v1.py",
+      "sha256": "c8b7fc9ba1fed1d9cb2e6567ac98388e79d6e78c36dcd3bc43e4ccf4ff57681d",
+      "size_bytes": 10531
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg08_build_candidate/tools/pg08_c5_contract_lint_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg08_build_candidate/tools/pg08_c5_contract_lint_candidate_v1.py",
+      "sha256": "73d810b3c90e3c80f2fc93123adb780a1c0cd5d13734ffb036b044174026dc47",
+      "size_bytes": 11930
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg08_build_candidate/tools/pg08_c6_check_receipts_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg08_build_candidate/tools/pg08_c6_check_receipts_candidate_v1.py",
+      "sha256": "baca7271410d74e6a82918338a72b6435add21da4e628a132b560ec533306630",
+      "size_bytes": 9858
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg08_build_candidate/tools/pg08_c6_final_receipts_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg08_build_candidate/tools/pg08_c6_final_receipts_candidate_v1.py",
+      "sha256": "e0ad5aa73f3f78d2ce9b3ed9010aa6ef47e5cbfe1fa60754778c7f770c9538ef",
+      "size_bytes": 9783
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg08_build_candidate/tools/pg08_c7_arch_boundary_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg08_build_candidate/tools/pg08_c7_arch_boundary_candidate_v1.py",
+      "sha256": "f8e23a765bf401d98ee408b96c0de7db6e6be0db17cb856a2a8508235c68cb09",
+      "size_bytes": 11311
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg08_build_candidate/tools/pg08_c8_iac_container_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg08_build_candidate/tools/pg08_c8_iac_container_candidate_v1.py",
+      "sha256": "480bd32652adc1570a59a9549c1f529ec856e607334a24c3b3e0137ce86ae4ef",
+      "size_bytes": 13169
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg09_iteration_candidate/tests/test_pg09_iteration_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg09_iteration_candidate/tests/test_pg09_iteration_chain_v1.py",
+      "sha256": "4d580baddecdb7deb3cf4783caac11fbf878df233e5054d257785fb587a5a4c9",
+      "size_bytes": 12484
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg09_iteration_candidate/tools/pg09_c1_iteration_cost_governor_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg09_iteration_candidate/tools/pg09_c1_iteration_cost_governor_candidate_v1.py",
+      "sha256": "abe89486720e92716bc93f39b21630082a6593ee3005ca0b99b3e13659591a7c",
+      "size_bytes": 11481
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg09_iteration_candidate/tools/pg09_c1_iteration_cost_governor_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg09_iteration_candidate/tools/pg09_c1_iteration_cost_governor_candidate_v2.py",
+      "sha256": "5e1abfcaf569dba87cf5ecccd882ecc8aceed4a2ffc873d0aac90b42d099be1a",
+      "size_bytes": 5709
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg09_iteration_candidate/tools/pg09_c2_convergence_guard_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg09_iteration_candidate/tools/pg09_c2_convergence_guard_candidate_v1.py",
+      "sha256": "08def1c3143a5e13f43d9d3d5d21b3aaf4ecb833a59144ad0d030e04bc33f326",
+      "size_bytes": 9202
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg09_iteration_candidate/tools/pg09_c3_quality_bypass_guard_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg09_iteration_candidate/tools/pg09_c3_quality_bypass_guard_candidate_v1.py",
+      "sha256": "94b93541d57eed81b5b53b220011ecc0244d7f05bed99c741efc529f978e43c5",
+      "size_bytes": 10200
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg09_iteration_candidate/tools/pg09_c4_typed_escalation_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg09_iteration_candidate/tools/pg09_c4_typed_escalation_candidate_v1.py",
+      "sha256": "b35b0b569c2944f244739e3b9a1bf75145705196022666757f8772e8689ec41f",
+      "size_bytes": 5996
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg09_iteration_candidate/tools/pg09_c5_adversarial_assurance_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg09_iteration_candidate/tools/pg09_c5_adversarial_assurance_candidate_v1.py",
+      "sha256": "943818a82bd784fad74ea46951ccc074478db0cc6c4db2acd0c9710520eff960",
+      "size_bytes": 8778
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg10_conflict_candidate/tests/test_pg10_decision_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg10_conflict_candidate/tests/test_pg10_decision_chain_v1.py",
+      "sha256": "13ab9719d11d9def0989496384e42596b3829fc4a3cb62a24822c0227544e501",
+      "size_bytes": 12399
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg10_conflict_candidate/tools/pg10_c1_conflict_inventory_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg10_conflict_candidate/tools/pg10_c1_conflict_inventory_candidate_v1.py",
+      "sha256": "32333ab95d8d376eccf638523d701cf707b77970215a9d268207e9385ff468f7",
+      "size_bytes": 7638
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg10_conflict_candidate/tools/pg10_c2_precedence_legacy_guard_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg10_conflict_candidate/tools/pg10_c2_precedence_legacy_guard_candidate_v1.py",
+      "sha256": "78436b6167432f36a9a8ad1c0d6240287855f0441b570801cee53208142ebb69",
+      "size_bytes": 7844
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg10_conflict_candidate/tools/pg10_c3_typed_decision_routing_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg10_conflict_candidate/tools/pg10_c3_typed_decision_routing_candidate_v1.py",
+      "sha256": "a52b0d0dbb818b2e5f976bef944e7411e7e5c059df39f6b7fdac8a3310bf1eb0",
+      "size_bytes": 7785
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg10_conflict_candidate/tools/pg10_c4_human_decision_packet_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg10_conflict_candidate/tools/pg10_c4_human_decision_packet_candidate_v1.py",
+      "sha256": "2e012de45065df2693bc830c373b4e6e9cae2de823a0f74906f97844fc0b508a",
+      "size_bytes": 7934
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg10_conflict_candidate/tools/pg10_c5_negative_assurance_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg10_conflict_candidate/tools/pg10_c5_negative_assurance_candidate_v1.py",
+      "sha256": "ba6c49d77c5c686108751e386364432f4be9bb89b12fc82ea8384b2f43ad086c",
+      "size_bytes": 6980
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg10_conflict_candidate/tools/pg10_decision_lineage_dedup_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg10_conflict_candidate/tools/pg10_decision_lineage_dedup_candidate_v1.py",
+      "sha256": "996cbd38740b13e12dcd4aee57ed841d8c8882541bb28189fc832381e556ed87",
+      "size_bytes": 5213
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tests/test_pg10_pg11_bridge_and_waiver_time_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tests/test_pg10_pg11_bridge_and_waiver_time_v1.py",
+      "sha256": "799c43d6ec321aaf7460465397d1fefe71a977ca04566571c6f771c2c4ff7a6a",
+      "size_bytes": 6478
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tests/test_pg11_integrity_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tests/test_pg11_integrity_chain_v1.py",
+      "sha256": "a81eeb2da7f55a4680262ba4e1c50cd2a2f69c86597420a80b7980fc8100178f",
+      "size_bytes": 11532
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_c1_diff_hygiene_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_c1_diff_hygiene_candidate_v1.py",
+      "sha256": "c281439851d62c7085cc4d9e07cde1be5e051be2cf4a05978e80550dedf6b739",
+      "size_bytes": 9680
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_c1_diff_hygiene_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_c1_diff_hygiene_candidate_v2.py",
+      "sha256": "a6ab94faa538c173e4a168ec1525b6c19644eb6a787eec9bf7e2c030a8507e4b",
+      "size_bytes": 10179
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_c2_terminology_catalog_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_c2_terminology_catalog_candidate_v1.py",
+      "sha256": "f2fce615d628d5243feb6bc11ef52755323fce44b44859314b31d1392bdf3417",
+      "size_bytes": 7263
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_c2_terminology_catalog_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_c2_terminology_catalog_candidate_v2.py",
+      "sha256": "f698282f09de22fdeec067dfc2ad6163115f076331a7b9bb9b7f76ac4df90dce",
+      "size_bytes": 7263
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_c3_suppression_waiver_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_c3_suppression_waiver_candidate_v1.py",
+      "sha256": "2c2bc887b959be29157e15b78d98d070cb84e7de35784fb7e3601acf9b73f56a",
+      "size_bytes": 6246
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_c3_suppression_waiver_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_c3_suppression_waiver_candidate_v2.py",
+      "sha256": "98f69115371b0da9bb35abc27cee3ed9e6e280c2fad1d6bc2f659e6d1b5d1c94",
+      "size_bytes": 6246
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_c4_diff_requirement_batch_trace_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_c4_diff_requirement_batch_trace_candidate_v1.py",
+      "sha256": "ff02bb3c7c4ddd62c7551a77583adcff1cc6adc4229c5fa2598af3fed24cf8e8",
+      "size_bytes": 7053
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_c4_diff_requirement_batch_trace_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_c4_diff_requirement_batch_trace_candidate_v2.py",
+      "sha256": "506a6ae01468b22cf446a44e62c0cea5220693660b85dfd1f0a9375fe5b2144a",
+      "size_bytes": 7661
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_c5_independent_reviewer_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_c5_independent_reviewer_candidate_v1.py",
+      "sha256": "e6a849e5b8a966b5a8d1a89df43725add44c8deda1996070e7d7e36f3091a75a",
+      "size_bytes": 5721
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_c5_independent_reviewer_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_c5_independent_reviewer_candidate_v2.py",
+      "sha256": "dffa8f096f6a018c94669d95135a4dde4e993837d722e957e62ec097e4f4290d",
+      "size_bytes": 5721
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_integrity_extension_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_integrity_extension_candidate_v1.py",
+      "sha256": "9f8fbfb7819da352e9b4a7cf79de6d3d0dc5571b2dc2300cd5be9950722609d0",
+      "size_bytes": 11057
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_pg10_handoff_bridge_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_pg10_handoff_bridge_candidate_v1.py",
+      "sha256": "cff58ce89bef15d31258a4a52218e2e4576b09b73bec0427f702fad964dadcba",
+      "size_bytes": 5510
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg11_integrity_candidate/tools/pg11_pg10_handoff_bridge_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg11_integrity_candidate/tools/pg11_pg10_handoff_bridge_candidate_v2.py",
+      "sha256": "4c98f5eb7e1f6c77f98cfac4c0004e4c407df36b9c8b5c288dab4bbfc06c5ef7",
+      "size_bytes": 7326
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tests/test_pg12_identity_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tests/test_pg12_identity_chain_v1.py",
+      "sha256": "3abf9594f6f1c71f0beebc9b3cb9c2bf1f45ebc4daf65eaabf2a784d12959be4",
+      "size_bytes": 9729
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_c1_candidate_identity_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_c1_candidate_identity_v1.py",
+      "sha256": "64ef012ce2ebb11080a9bd2312899d31417c3ed4e5778b73afd3a0d01be1679f",
+      "size_bytes": 6592
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_c1_candidate_identity_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_c1_candidate_identity_v2.py",
+      "sha256": "d92d51c0550f441f9af44edcf350bbd099640f5e37ef7898a18d97bbfa7ee7bd",
+      "size_bytes": 8035
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_c2_execution_inputs_usage_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_c2_execution_inputs_usage_candidate_v1.py",
+      "sha256": "4b7e765e5d0dd9c3169138f4d8fada1bef3ddec19d6d5549dcfcdcdb1b3ffa9f",
+      "size_bytes": 8591
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_c2_execution_inputs_usage_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_c2_execution_inputs_usage_candidate_v2.py",
+      "sha256": "63868d39b30da9e9b4c28811da9376c800bc54cf6100759114321d92679121b3",
+      "size_bytes": 8591
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_c3_check_results_link_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_c3_check_results_link_candidate_v1.py",
+      "sha256": "df01aaf7351aa3f547da7c2dec34bdcfd9fd2e06755bb0739252a8dab481276e",
+      "size_bytes": 5707
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_c3_check_results_link_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_c3_check_results_link_candidate_v2.py",
+      "sha256": "546680dc17be4cef6225070206728276e692ef365e2dbf80e7f64c249b6a77f2",
+      "size_bytes": 5707
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_c4_persistence_readback_request_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_c4_persistence_readback_request_candidate_v1.py",
+      "sha256": "49ce3498a0f03f8dbc4bfb1bdfc4cdfdab35d47b5b85a8e3b58a29b37e61304a",
+      "size_bytes": 5180
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_c4_persistence_readback_request_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_c4_persistence_readback_request_candidate_v2.py",
+      "sha256": "d20c244cde546eac3de49e37eb8bbaea5a156585e36d13f1eadad6267c7d87b5",
+      "size_bytes": 5180
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_disposable_postgres_readback_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_disposable_postgres_readback_v1.py",
+      "sha256": "61822e439ac561a4064d1ac0e4e4c064232a9f5ff1885e0dc525682636c08528",
+      "size_bytes": 3568
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_disposable_postgres_readback_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_disposable_postgres_readback_v2.py",
+      "sha256": "783185eea67980c90e2fe6dc21c476702b9b859319268f94855c7f9abef79d61",
+      "size_bytes": 3287
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_git_identity_and_pg11_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_git_identity_and_pg11_bridge_v1.py",
+      "sha256": "b1919b2599c09978e9352967960c10fb23c1dc3dd4bf594bf030b5ec7dbe8d54",
+      "size_bytes": 4470
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg12_identity_candidate/tools/pg12_git_identity_and_pg11_bridge_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg12_identity_candidate/tools/pg12_git_identity_and_pg11_bridge_v2.py",
+      "sha256": "ca7df4113af743323d8ea6d1436fa8ec0e06010707cbbd940e80e4ece9e2684a",
+      "size_bytes": 4920
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tests/test_pg13_disposable_git_enforcement_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tests/test_pg13_disposable_git_enforcement_v1.py",
+      "sha256": "b434b11344d4e9a12d5dcd6dcea7929d0067ac3145f3d614f437ffac57f6b60a",
+      "size_bytes": 1257
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tests/test_pg13_freeze_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tests/test_pg13_freeze_chain_v1.py",
+      "sha256": "357ef9e6a2c43d1829b4a529756f9b4c6967f7b50dadfddb6cd67fd1cfef5100",
+      "size_bytes": 7422
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_c1_freeze_intent_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_c1_freeze_intent_candidate_v1.py",
+      "sha256": "e709c4a980db7206d5d3e68b7ad5f929b45a45b7f270adfcf2c3be1838bc7c9b",
+      "size_bytes": 2075
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_c1_freeze_intent_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_c1_freeze_intent_candidate_v2.py",
+      "sha256": "352b6bc59236df90b32cbd7b5f363641f86363b4cca50c7dce98843f56499ec3",
+      "size_bytes": 2075
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_c2_rebuild_comparison_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_c2_rebuild_comparison_candidate_v1.py",
+      "sha256": "9cb9937095b05ecc22564d822cd59362f55ab4d87d652f814d418b62f8b44a0d",
+      "size_bytes": 2617
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_c2_rebuild_comparison_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_c2_rebuild_comparison_candidate_v2.py",
+      "sha256": "f1d4a6d2fcc758bbbfc6f272745d43e4dda75b1c92e600c74089eaa480e07205",
+      "size_bytes": 2617
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_c3_mutation_block_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_c3_mutation_block_candidate_v1.py",
+      "sha256": "882ba1caec97362fdc35d698fd94a621a960c11053fdf4e95add55f4ea142616",
+      "size_bytes": 2380
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_c3_mutation_block_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_c3_mutation_block_candidate_v2.py",
+      "sha256": "e62b76d2fdafa8b7a0fa41cbb5cc97d7c647859a59423734eea077a3386bb314",
+      "size_bytes": 2380
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_disposable_git_mutation_test_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_disposable_git_mutation_test_v1.py",
+      "sha256": "59088964c8c06c973b5db4812e95e481a5aa469a63788c096d9a4fa1a2eb2ffb",
+      "size_bytes": 6379
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_ex5c_reconstructed_freeze_attack_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_ex5c_reconstructed_freeze_attack_v1.py",
+      "sha256": "6dd9b79e69527afdbb6e8cf473e4ae1aa5a44190746d914251161145b3dded31",
+      "size_bytes": 5420
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_ex5c_reconstructed_freeze_attack_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_ex5c_reconstructed_freeze_attack_v2.py",
+      "sha256": "feabebef31e10641efc744820b9db00adf5bb49a0d55c09800a7f96ca7474917",
+      "size_bytes": 5461
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_pg12_exact_freeze_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_pg12_exact_freeze_bridge_v1.py",
+      "sha256": "57ef79760647526fbd0f693040b6ca876f578d90d5f8cdb61f27142a9610dd0d",
+      "size_bytes": 2951
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg13_freeze_candidate/tools/pg13_pg12_exact_freeze_bridge_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg13_freeze_candidate/tools/pg13_pg12_exact_freeze_bridge_v2.py",
+      "sha256": "aee8a553ee56748c05c42fcfa4d43e10a27d578fdd6ffabdc54d08ef665ec3f4",
+      "size_bytes": 2951
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tests/test_pg14_final_chain_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tests/test_pg14_final_chain_v1.py",
+      "sha256": "542b99aabb5b1e7230ea7208ac2306ae80613a9b3edb22249d70891cf3046658",
+      "size_bytes": 9800
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_c1_testing_execution_contract_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_c1_testing_execution_contract_candidate_v1.py",
+      "sha256": "9fc651bdf0b06e283a7350b6c429564ccdb16f4305e2f8315677a7c74f81b717",
+      "size_bytes": 3160
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_c1_testing_execution_contract_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_c1_testing_execution_contract_candidate_v2.py",
+      "sha256": "0cf931f6bd24ae42b0d20fb17578e04a6035a8f72f2a294380d1e250a268b6aa",
+      "size_bytes": 3160
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_c2_completeness_guard_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_c2_completeness_guard_v1.py",
+      "sha256": "2377a51482b53cb97f0559a302ed0aea7f90ebeae03ca9383986db5a05aa589e",
+      "size_bytes": 1916
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_c2_completeness_guard_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_c2_completeness_guard_v2.py",
+      "sha256": "da33c81cd1154860487211d648d4e153ef081e2512600a1b9e635f45e7672917",
+      "size_bytes": 2017
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_c2_testing_payload_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_c2_testing_payload_candidate_v1.py",
+      "sha256": "235913453267038a91c75b4bd7c04dcab769c0156455168709e6642f1612978a",
+      "size_bytes": 3047
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_c2_testing_payload_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_c2_testing_payload_candidate_v2.py",
+      "sha256": "80d51505fbfce8ce07e358ea1a6a27538b01ea832c9ff28cbc71f5819f60ee6b",
+      "size_bytes": 3373
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_c3_testing_admission_readback_request_candidate_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_c3_testing_admission_readback_request_candidate_v1.py",
+      "sha256": "4089f5bde6f71b37e7c348f22ef09c22a8edfb9499ae7f58d4e1eb0b2fb1a571",
+      "size_bytes": 2295
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_c3_testing_admission_readback_request_candidate_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_c3_testing_admission_readback_request_candidate_v2.py",
+      "sha256": "6bc538787a5dd70c2c01129995b7bf4e532de97294e7e1e6054ba6200c397c10",
+      "size_bytes": 2295
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_disposable_testing_readback_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_disposable_testing_readback_v1.py",
+      "sha256": "5f50bcaa3d7c28225a00b79a841924c09254d8761efa4d1f60997fda7c1d0a52",
+      "size_bytes": 5464
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_disposable_testing_readback_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_disposable_testing_readback_v2.py",
+      "sha256": "96fbfbf297db7bc5df23c30b1a3acc86a7ced8b8b090163a78986606a427e5e7",
+      "size_bytes": 3409
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_local_testing_receiver_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_local_testing_receiver_v1.py",
+      "sha256": "a608b090ad4ff2656c4ec9835259fa6ac6a1fa921ccfcfe8d399a50db7a0e42f",
+      "size_bytes": 4338
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_local_testing_receiver_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_local_testing_receiver_v2.py",
+      "sha256": "e0e058cfafdd92df0c37977e5a0a60a8f1be67c27d4acfbe3b0bdf9582de196e",
+      "size_bytes": 4422
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_pg13_freeze_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_pg13_freeze_bridge_v1.py",
+      "sha256": "ced0ddccf5f2069a6cd514c781874d5ba8bec6afcaf6a5d384c61de175318d0e",
+      "size_bytes": 4373
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/pg14_testing_handoff_candidate/tools/pg14_pg13_freeze_bridge_v2.py",
+      "destination_path": "pilot/lf_producers_pinned/pg14_testing_handoff_candidate/tools/pg14_pg13_freeze_bridge_v2.py",
+      "sha256": "5640606f26e6fce06bc822ae56ce114a6d8aa615ca925aaf67d7ada84c89cbe3",
+      "size_bytes": 4373
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/SOURCE_PIN.json",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/SOURCE_PIN.json",
+      "sha256": "4bee7fb0c41ae2dfa478ba8fd7f8f1deb62cd50cf7817dc64d307524f55d87c3",
+      "size_bytes": 2545
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/expected/catalog.json",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/expected/catalog.json",
+      "sha256": "5a7d58ac2756e3e140e88251da832b21b2487185dbbbc9232aab93c53e71aaf7",
+      "size_bytes": 35176
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/expected/producto_1.json",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/expected/producto_1.json",
+      "sha256": "f1a27e9e14f267cbfa9514e1c3bacae734e1ea5e4f2c0c45172350d5e08d682b",
+      "size_bytes": 18067
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/expected/producto_2.json",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/expected/producto_2.json",
+      "sha256": "fdbee1e803a812c7026399a4dd9644eb660f83099e4edcdce8a88eacb3789eb4",
+      "size_bytes": 18068
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/expected/programacion_1.json",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/expected/programacion_1.json",
+      "sha256": "30294dc3c8b612636a8849d5c65284092162ff4e727beb79065d737c1feead74",
+      "size_bytes": 4883
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/expected/programacion_2.json",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/expected/programacion_2.json",
+      "sha256": "868a1019f50354502227220bda92a62ec6f85ba3dadefe4ebdd159c7ba3e2df8",
+      "size_bytes": 4887
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/expected/sin_canal.json",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/expected/sin_canal.json",
+      "sha256": "b8c1d57e7b811c2429c97e046cadf38f50c5727a975494926778e9299d7cab6c",
+      "size_bytes": 21012
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/experimental/area_policy_exp.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/experimental/area_policy_exp.sql",
+      "sha256": "6a883f451fb1c16b4d75ff5f184ab8544cfa528827a009cca870a6e8c0292a20",
+      "size_bytes": 1444
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/experimental/functions_exp.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/experimental/functions_exp.sql",
+      "sha256": "76749833bad348fede8a8fa1b2358fe1b7778fec2ad6da42c2b731f84e8ad433",
+      "size_bytes": 12823
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/experimental/seed_profiles_exp.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/experimental/seed_profiles_exp.sql",
+      "sha256": "b0382110090f80ed7c58748f1d50bc91e4aca1f9d18cfcba80485b6d50495bbf",
+      "size_bytes": 6801
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/integration/pg05_profile_assignment_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/integration/pg05_profile_assignment_bridge_v1.py",
+      "sha256": "5d2627a9df540392961dc408e449786aeb088dc1f4549f2c32fb5bc3030a381b",
+      "size_bytes": 20716
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/integration/test_pg04_pg07_selector_bridge_v1.py",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/integration/test_pg04_pg07_selector_bridge_v1.py",
+      "sha256": "24097ff86bfeaf9ac1a4eb384ea6bfd3ae591a4a8288f6aaf80eb2b7b4b9d4e2",
+      "size_bytes": 26166
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/data/lf_activos.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/data/lf_activos.sql",
+      "sha256": "5a996f2fe25220e4e998216ddeb63dd25b66a8364c7b2a4d671235cc3f4f83c3",
+      "size_bytes": 4312
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/data/lf_operation_execution.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/data/lf_operation_execution.sql",
+      "sha256": "ca542c9026cc233b2057ea5b41fb4a7c4951dcf73770d03f49a3e62c522135a3",
+      "size_bytes": 5568
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/data/lf_profile_selection_registry_v1.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/data/lf_profile_selection_registry_v1.sql",
+      "sha256": "62699058f66257f6af8afa31ae73fcea8c24efebda3f75ee9d07092f3da4d4b2",
+      "size_bytes": 18404
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/data/lf_profile_selector_policy_v1.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/data/lf_profile_selector_policy_v1.sql",
+      "sha256": "6afae148ab9efa451e18c2a690739a2d331b4db25cd15275085557db7fcad53a",
+      "size_bytes": 1146
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/data/lf_profile_write_authority_v1.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/data/lf_profile_write_authority_v1.sql",
+      "sha256": "c7bbae3cdec72b4172b49da49d2f23cdc24462c135a634df37156197d7dbb77b",
+      "size_bytes": 2567
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/data/lf_router_action_registry.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/data/lf_router_action_registry.sql",
+      "sha256": "1fbebacabce9ed4451391c681a3a706e1b529edce144093710138cade2f79103",
+      "size_bytes": 3522
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/functions/lf_profile_execution_source_eligibility_v1.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/functions/lf_profile_execution_source_eligibility_v1.sql",
+      "sha256": "0be784f6b579caba402d5c9affd23c3e5298f206619534cfa1487fe01f6b3a31",
+      "size_bytes": 2713
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/functions/lf_profile_selector_catalog_v1.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/functions/lf_profile_selector_catalog_v1.sql",
+      "sha256": "5d20cc6ce2c516592df9599af67e8ea881ca6a61787457c6faacedc5849f364d",
+      "size_bytes": 3671
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/functions/lf_profile_selector_descriptor_sync_v1.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/functions/lf_profile_selector_descriptor_sync_v1.sql",
+      "sha256": "3fd39402b4616f1bfe07ad5c83d7069f186f473c39fa1056725f32ad76713d46",
+      "size_bytes": 3697
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/functions/lf_profile_selector_semantic_finalize_v1.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/functions/lf_profile_selector_semantic_finalize_v1.sql",
+      "sha256": "79ae1e86d6542cbb1065d761c6dd6b822ff9c7238ef2d36180a4be7b033b9cce",
+      "size_bytes": 2262
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/functions/lf_profile_selector_semantic_prepare_v2_3args.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/functions/lf_profile_selector_semantic_prepare_v2_3args.sql",
+      "sha256": "8e500f8e5989d17150f6ef2f6a009ed8c658a01fa48b7a26a3bbc75a4fb24d92",
+      "size_bytes": 379
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/functions/lf_profile_selector_semantic_prepare_v2_4args.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/functions/lf_profile_selector_semantic_prepare_v2_4args.sql",
+      "sha256": "3638321aa8c9bedcc54956c0c5d8655f908905df5a1fa708ff0f383b41eafb58",
+      "size_bytes": 5596
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/functions/lf_profile_selector_semantic_validate_v1.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/functions/lf_profile_selector_semantic_validate_v1.sql",
+      "sha256": "9e63403d80861c0eedca8185348319bdd183aeed3a33c85a55ae3269a8d21708",
+      "size_bytes": 8370
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/schema/bootstrap.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/schema/bootstrap.sql",
+      "sha256": "8cd9499eacd4fa524782134da58fb5f93afd279443e09b01d4d49d3f9e76c05e",
+      "size_bytes": 194
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/schema/constraints.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/schema/constraints.sql",
+      "sha256": "a777bf996a2c41c4090b663bfda5dba2ca8e004fb2e65cfe18e716ce1c5374d2",
+      "size_bytes": 851
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/original/schema/tables.sql",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/original/schema/tables.sql",
+      "sha256": "32bafb3b9a90fae3d2f1da18c70662b4ed94c932b56155fcd13b8a0b1f809aa2",
+      "size_bytes": 1476
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/tests/test_experimental.py",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/tests/test_experimental.py",
+      "sha256": "4771dfc65e30a45a4b1704b2d7713e900b602c7b2b860e05434c3e8fcf074ceb",
+      "size_bytes": 14898
+    },
+    {
+      "origin_path": "sandbox/lf_contract_gate_test/programming_agent_four_stage/selector_experimental/tests/test_parity.py",
+      "destination_path": "pilot/lf_producers_pinned/selector_experimental/tests/test_parity.py",
+      "sha256": "e689a39f52c1d323c6073c86171192f47c82927947d110c0d48d06d71fe79cfe",
+      "size_bytes": 7902
+    }
+  ]
+}
