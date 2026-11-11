@@ -39,7 +39,7 @@ def check(root: Path, source: Path | None = None) -> dict:
             raise ValueError("SOURCE_PIN_ENTRY_INVALID")
         if (not origin.startswith(ORIGIN_PREFIX) or not dest.startswith(TARGET_PREFIX)
                 or dest != TARGET_PREFIX + origin.removeprefix(ORIGIN_PREFIX)
-                or ".." in PurePosixPath(dest).parts or "\" in dest
+                or ".." in PurePosixPath(dest).parts or chr(92) in dest
                 or dest in seen or not SHA64.fullmatch(expected)
                 or any(x in PurePosixPath(dest).parts for x in ("profiles", "vendor"))):
             raise ValueError("SOURCE_PIN_SCOPE_INVALID")
