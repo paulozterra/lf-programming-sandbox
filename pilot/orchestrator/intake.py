@@ -17,9 +17,9 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 PG01 = ROOT / "pilot/lf_producers_pinned/pg02"
-REQ = re.compile(r"REQ-[A-Z0-9]+(?:-[A-Z0-9]+)*\\Z")
-SLUG = re.compile(r"[a-z][a-z0-9_-]{0,63}\\Z")
-HEX = re.compile(r"[0-9a-f]{64}\\Z")
+REQ = re.compile(r"REQ-[A-Z0-9]+(?:-[A-Z0-9]+)*\Z")
+SLUG = re.compile(r"[a-z][a-z0-9_-]{0,63}\Z")
+HEX = re.compile(r"[0-9a-f]{64}\Z")
 STAGES = [f"A{i}" for i in range(1, 10)]
 READINESS = {"READY_CANDIDATE", "NEED_MORE_EVIDENCE", "REQUIRES_DECISION", "BLOCKED"}
 AUTHORITY = {"production_authority", "handoff_allowed", "merge_allowed",
