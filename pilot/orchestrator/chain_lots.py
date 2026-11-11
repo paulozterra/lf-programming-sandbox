@@ -117,6 +117,8 @@ def plans() -> list[tuple[str, dict, dict, dict]]:
         state = json.loads((folder / "state.json").read_text("utf-8"))
         if state.get("stage") not in ("LOTS_PLANNED", "BLOCKED"):
             deny("CHAIN_STAGE_INVALID")
+        if state.get("lots_sha256") != hashlib.sha256(canonical(lots)).hexdigest():
+            deny("CHAIN_STATE_LOTS_DRIFT")
         bindings = validate_plan(plan, lots, request)
         rows.append((request, lots, state, bindings))
     return rows
@@ -163,6 +165,9 @@ def completed_lots(lots: dict, bindings: dict, history: list[tuple]) -> dict:
         lot_id, receipt = attest_merge(sha, pr, lots, bindings, changed)
         if lot_id in result:
             deny("DUPLICATE_LOT_MERGE")
+        lot = next(item for item in lots["lots"] if item["id"] == lot_id)
+        if not set(lot["depends_on"]).issubset(result):
+            deny("OUT_OF_ORDER_MERGE")
         for path in receipt["expected_files"]:
             run("git", "cat-file", "-e", sha + ":" + path)
         result[lot_id] = receipt
