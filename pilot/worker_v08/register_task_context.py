@@ -22,7 +22,11 @@ PINFILE = PINROOT / "SOURCE_PIN.json"
 LF_SHA = "6c3092a88da95a6be5649448c52dd9a920325317"
 SHA64 = re.compile(r"^[0-9a-f]{64}$")
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$")
-PROFILE = {"BACKEND": "prog_backend_exp"}
+PROFILE = {"BACKEND": "prog_backend_exp", "FRONTEND": "prog_frontend_exp",
+           "DATA": "prog_data_exp"}
+PROFILE_CODE = {"BACKEND": "PERFIL-PROG-BACKEND-EXP",
+                "FRONTEND": "PERFIL-PROG-FRONTEND-EXP",
+                "DATA": "PERFIL-PROG-DATA-EXP"}
 FORMAT_COMMAND = {
     "name": "std-be-05-spotless-check",
     "argv": ["mvn", "-B", "-q", "-f", "apps/time-service/pom.xml", "spotless:check"],
@@ -88,6 +92,8 @@ def read_pins(root: Path = PINROOT) -> tuple[dict, dict[str, bytes]]:
     required = {"prog_backend_exp/SKILL.md",
                 "prog_backend_exp/contracts/main_contract.md",
                 "prog_backend_exp/contracts/runtime_binding.json",
+                "prog_frontend_exp/contracts/runtime_binding.json",
+                "prog_data_exp/contracts/runtime_binding.json",
                 "stack_skills_exp/pg00_normative_catalog_snapshot.json",
                 "stack_skills_exp/skill_catalog_exp.json",
                 "stack_skills_exp/project_stack_binding_fixtures.json"}
@@ -135,7 +141,7 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
     slug = PROFILE[area]
     binding = json.loads(source_text(files, slug + "/contracts/runtime_binding.json"))
     if (binding.get("area") != area or
-        binding.get("profile_code") != "PERFIL-PROG-BACKEND-EXP" or
+        binding.get("profile_code") != PROFILE_CODE[area] or
         binding.get("runtime_enabled") is not False or
         binding.get("production_authority") is not False):
         block("PROFILE_BINDING_INVALID")
@@ -155,7 +161,7 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
     rows = json.loads(source_text(files, stackroot + "project_stack_binding_fixtures.json"))["rows"]
     catalog = json.loads(source_text(files, stackroot + "skill_catalog_exp.json"))["skills"]
     bindings = [r for r in rows if r.get("project_ref") == project and r.get("area") == area]
-    if not bindings:
+    if not bindings and area != "FRONTEND":
         block("STACK_NOT_BOUND")
     priorities = [r.get("priority") for r in bindings]
     if any(type(p) is not int or p < 1 for p in priorities) or len(set(priorities)) != len(priorities):
@@ -172,6 +178,49 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
                    "Standards source: " + source_manifest["source_ref"],
                    "Catalog SHA-256: " + source_manifest["source_sha256"]]
     selected = []
+    if area == "FRONTEND":
+        # The LF fixture is immutable and historically bound to Angular.
+        # Only this sandbox explicitly binds FRONTEND to pinned Next.js.
+        nextpin_path = ROOT / "pilot/nextjs_source_pin.json"
+        if nextpin_path.is_symlink() or not nextpin_path.is_file():
+            block("NEXTJS_PIN_MISSING")
+        nextpin = json.loads(nextpin_path.read_text("utf-8"))
+        if (nextpin.get("schema_version") != "LF_SANDBOX_NEXTJS_PIN_V1"
+                or nextpin.get("source_repository") != "paulozterra/lf-programming-sandbox"
+                or nextpin.get("skill_path") != "standards/skills/nextjs/SKILL.md"
+                or nextpin.get("manifest_path") != "standards/skills/nextjs/skill.json"
+                or nextpin.get("skill_id") != "nextjs"
+                or nextpin.get("area") != "FRONTEND"
+                or nextpin.get("production_authority") is not False):
+            block("NEXTJS_PIN_INVALID")
+        nextskill = ROOT / nextpin["skill_path"]
+        nextmanifest = ROOT / nextpin["manifest_path"]
+        if (nextskill.is_symlink() or nextmanifest.is_symlink()
+                or not nextskill.is_file() or not nextmanifest.is_file()
+                or digest(nextskill.read_bytes()) != nextpin.get("skill_sha256")
+                or digest(nextmanifest.read_bytes()) != nextpin.get("manifest_sha256")):
+            block("NEXTJS_PIN_SHA_DRIFT")
+        metadata = json.loads(nextmanifest.read_text("utf-8"))
+        if (metadata.get("skill_id") != nextpin["skill_id"]
+                or metadata.get("skill_version") != nextpin.get("skill_version")
+                or metadata.get("scope") != "L2_STACK_ONLY"
+                or "STD-FE" not in metadata.get("domains", [])):
+            block("NEXTJS_METADATA_INVALID")
+        official = [r for r in standards["rules"] if r.get("domain") == "STD-FE"]
+        if len(official) < 3:
+            block("STD_RULES_UNAVAILABLE")
+        selected.append({"code": "NEXTJS", "version": metadata["skill_version"],
+                         "priority": 1, "sha256": nextpin["skill_sha256"],
+                         "rules_sha256": nextpin["manifest_sha256"],
+                         "standard_family": "STD-FE"})
+        skill_parts.extend(["\n## NEXTJS@" + metadata["skill_version"] + " priority 1",
+                            nextskill.read_text("utf-8"),
+                            "\n### Literal PG00 STD-FE rules"])
+        skill_parts.extend("- STD-FE-04 [decisión de Paulo: (a) o (b)]"
+                           if rule["id"] == "STD-FE-04"
+                           else "- " + rule["id"] + " [" + rule["status"] + "]: " + rule["rule"]
+                           for rule in official)
+        bindings = []
     for row in bindings:
         code, version = row["skill_code"], row["skill_version"]
         entry = by_code.get((code, version))
@@ -189,11 +238,19 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
         selected.append({"code": code, "version": version, "priority": row["priority"],
                          "sha256": digest(files[path]), "rules_sha256": digest(files[rules_path]),
                          "standard_family": entry["standard_family"]})
+        skill_source = source_text(files, path)
+        if area == "BACKEND":
+            # Deduplicate STD-BE-05 from pinned Spring Boot prose without
+            # modifying any pinned source bytes; PG00 emits the canonical rule.
+            skill_source = "\n".join(line for line in skill_source.split("\n")
+                                      if not line.startswith("- **STD-BE-05:"))
         skill_parts.extend(["\n## " + code + "@" + version + " priority " + str(row["priority"]),
-                            source_text(files, path),
+                            skill_source,
                             "\n### Source-bound expert rules\n" + source_text(files, rules_path),
                             "\n### Literal PG00 " + entry["standard_family"] + " rules"])
-        skill_parts.extend("- " + r["id"] + " [" + r["status"] + "]: " + r["rule"] for r in official)
+        skill_parts.extend("- " + r["id"] + " [" + r["status"] + "]: " + r["rule"]
+                           for r in official if r["id"] != "STD-BE-05" or
+                           not any("STD-BE-05" in part for part in skill_parts))
     skills_bytes = ("\n".join(skill_parts) + "\n").encode("utf-8")
     return profile_bytes, skills_bytes, selected, source_manifest["source_sha256"]
 
@@ -258,9 +315,9 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         "source_repository": manifest["source_repository"],
         "source_commit_sha": LF_SHA,
         "source_pin_sha256": digest((pinned / "SOURCE_PIN.json").read_bytes()),
-        "profile": {"code": "PERFIL-PROG-BACKEND-EXP", "sha256": digest(profile),
+        "profile": {"code": PROFILE_CODE[area], "sha256": digest(profile),
                     "source_files": {k: v["sha256"] for k, v in manifest["files"].items()
-                                     if k.startswith("prog_backend_exp/")}},
+                                     if k.startswith(PROFILE[area] + "/")}},
         "skills": identities,
         "catalog_sha256": catalog_sha,
         "project_ref": project,
