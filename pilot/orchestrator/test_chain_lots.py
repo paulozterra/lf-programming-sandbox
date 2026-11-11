@@ -195,3 +195,54 @@ def test_train_labeled_pr_event_must_not_be_mistaken_for_main_branch():
             **trusted, "event": "workflow_dispatch"}):
         with pytest.raises(ChainBlocked, match="TRAIN_SOURCE_BRANCH_INVALID"):
             chain_lots.event_kind(55, "a" * 40)
+
+
+def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(tmp_path):
+    """Exercise the orchestration entrypoint, not just the pure reducer."""
+    lots, plan, data, backend = fixtures(tmp_path)
+    bindings = validate_plan(plan, lots, "simulated")
+    merged = "a" * 40
+    pr = {"number": 501, "merged": True, "merge_commit_sha": merged,
+          "base": {"ref": "main", "repo": {
+              "full_name": "paulozterra/lf-programming-sandbox"}},
+          "head": {"ref": "lf/native-integration/cp36data-run-901",
+                   "repo": {"full_name": "paulozterra/lf-programming-sandbox"}}}
+    history = [(merged, pr, {data, "standards/CAMBIOS.md"})]
+    status = {"stage": "LOTS_PLANNED",
+              "lots_sha256": plan["lots_sha256"]}
+    emitted = []
+    def sim_run(*args, **kwargs):
+        if args[:3] == ("git", "cat-file", "-e"):
+            return ""  # virtual merged-tree proof only in this isolated test
+        raise AssertionError("Unexpected host operation " + repr(args))
+    def ready(request, binding, receipts, head):
+        emitted.append((request, binding["lot_id"], head, set(receipts)))
+        return {"status": "DRAFT_PREPARED", "merge_authorized": False}
+    shared = (
+        patch.object(chain_lots, "check_main", return_value=merged),
+        patch.object(chain_lots, "plans", return_value=[
+            ("simulated", lots, status, bindings)]),
+        patch.object(chain_lots, "first_parent_merges", return_value=history),
+        patch.object(chain_lots, "merged_integration", return_value=(pr, {data})),
+        patch.object(chain_lots, "run", side_effect=sim_run),
+        patch.object(chain_lots, "prepare_successor", side_effect=ready),
+    )
+    from contextlib import ExitStack
+    with ExitStack() as stack:
+        for context in shared:
+            stack.enter_context(context)
+        with (patch.object(chain_lots, "event_kind", return_value="TRAIN"),
+              patch.object(chain_lots, "failed_lots", return_value={})):
+            result = chain_lots.process(501)
+        assert result[0]["status"] == "DRAFT_PREPARED"
+        assert emitted == [("simulated", "SOL-002", merged, {"SOL-001"})]
+        with (patch.object(chain_lots, "event_kind", return_value="NATIVE_FAIL"),
+              patch.object(chain_lots, "failed_lots",
+                           return_value={"SOL-002": [101, 102, 103]}),
+              patch.object(chain_lots, "block_request",
+                           return_value={"status": "BLOCKED_PENDING_OWNER_MERGE",
+                                         "reason_code": BLOCK_CODE})):
+            result = chain_lots.process(103)
+        assert result[0]["status"] == "BLOCKED_PENDING_OWNER_MERGE"
+        assert result[0]["reason_code"] == BLOCK_CODE
+        assert len(emitted) == 1  # no successor release after 3 failures
