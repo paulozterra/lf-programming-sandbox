@@ -161,12 +161,33 @@ def _material_candidates(a3, a4, a6):
             by_candidate[ref] = _front(
                 ref, SECTION_KIND[key], "REQUIRED", "CLOSED", [ref],
                 "Typed screen contract section supplied by A3", a3["target_ref"])
-    # A4 impacts MUST be represented by material fronts with matching refs.
-    # A4 repeats the A3 material signals; it must not produce duplicates.
+    # A4 can reference both A3 screen JSON pointers and canonical rule
+    # source refs. These are distinct *evidence signals*, not interchangeable
+    # identities: preserve each exact ref, avoid duplicate candidate creation.
+    approved_refs = set(included.values())
+    excluded_refs = {x.get("source_ref"): x.get("exclusion_reason")
+                     for x in a3.get("excluded_rule_items", [])}
     for impact in a4.get("direct_impacts", []):
         ref = impact.get("affected_ref")
-        if ref not in by_candidate:
-            fail("F3_A7_DIRECT_IMPACT_OMITTED:" + str(ref))
+        if not isinstance(ref, str) or not ref:
+            fail("F3_A7_DIRECT_IMPACT_UNTYPED")
+        if ref in by_candidate:
+            continue
+        if ref in approved_refs and impact.get("source_status") == "VIGENTE":
+            by_candidate[ref] = _front(
+                ref, "OTHER", "REQUIRED", "CLOSED", [ref],
+                "A4 direct impact on A3 approved rule ref (source-only)",
+                a3["target_ref"])
+        elif ref in excluded_refs:
+            by_candidate[ref] = _front(
+                ref, "OTHER", "NOT_APPLICABLE", "CLOSED", [ref],
+                "A3 rule excluded from approved scope: " +
+                str(excluded_refs[ref]), a3["target_ref"])
+        else:
+            by_candidate[ref] = _front(
+                ref, "OTHER", "REQUIRED", "BLOCKED", [],
+                "A4 direct impact lacks a verifiable A3 approved binding",
+                a3["target_ref"], "F3_A7_DIRECT_IMPACT_UNRESOLVED:" + ref)
     for label in ("indirect_impacts", "consumers", "dependency_paths"):
         for ix, row in enumerate(a4.get(label, [])):
             if not isinstance(row, dict) or not isinstance(row.get("affected_ref"), str):
