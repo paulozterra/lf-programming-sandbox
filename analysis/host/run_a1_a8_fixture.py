@@ -33,7 +33,7 @@ def run_f3(fixtures=None, output_dir=None):
     a7 = run_a7(
         result["stages"], result["a2_signals"], result["admission_envelope"],
         result["admission"], result["a6"], category_sources)
-    a8 = run_a8(result["stages"]["A3"], result["stages"]["A5"], a7)
+    a8 = run_a8(result["stages"]["A3"], result["stages"]["A5"], a7, result["admission"])
     result["a7"] = a7
     result["a8"] = a8
     if output_dir is not None:
@@ -66,6 +66,9 @@ if __name__ == "__main__":
         "all_material_fronts_accounted": output["a7"]["all_material_fronts_accounted"],
         "a8_decision": output["a8"]["decision"],
         "a8_reason": output["a8"]["reason"],
+        "a8_decision_stable": output["a8"]["decision_stable"],
+        "a8_decision_stable_basis": output["a8"]["decision_stable_basis"],
+        "a8_decision_stable_lifted_codes": output["a8"]["decision_stable_lifted_codes"],
         "a8_requested_material_evidence": output["a8"]["requested_material_evidence_refs"],
         "a7_fingerprint": output["a7"]["coverage_fingerprint_sha256"],
         "a8_fingerprint": output["a8"]["stop_rule_fingerprint_sha256"],

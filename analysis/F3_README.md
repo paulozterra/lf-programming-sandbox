@@ -104,3 +104,15 @@ artefactos F1/F2. Todo el material se mantiene simulado, sin Supabase.
   Nunca se usa `title` o descripción para elegir el kind.
 - El estado real A8 se lee del runner después de la corrección y **no**
   se fuerza a STOP: la estabilidad de A5 es independiente del lift simulado.
+
+
+## Última revisión Claude: A5 estable exclusivamente por lift simulado
+
+A8 recibe el recibo SIMULATED_ADMISSION_V1 verificado en A7. Solo bajo
+`A5.status=UNRESOLVED`, blockers normalizados sin perder trazabilidad,
+todos presentes en `admission.lifted_codes`, sin `decision_items` ni preguntas
+de decisión abiertas y fila `decisions[]` con `adr_disposition=NOT_REQUIRED`,
+puede declarar `decision_stable=true`, `decision_stable_basis=SIMULATED_ADMISSION_LIFT`
+y los códigos levantados explícitos. `REQUIRES_DECISION` nunca se levanta.
+El STOP, si se produce, se limita al **análisis de sandbox**; no cambia
+`source_attested=false` ni permite producción, merge o despliegue.

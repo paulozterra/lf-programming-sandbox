@@ -38,13 +38,15 @@ def test_login_all_six_obligations_have_required_front(case):
     assert set(case["a7"]["front_candidate_refs"]) == {f["candidate_ref"] for f in fronts}
 
 
-def test_login_decision_preserves_real_a4_unknown(case):
-    # F2 A4 always leaves shared dependencies not attested. A8 cannot
-    # artificially STOP even when coverage accounting is complete.
+def test_login_decision_respects_simulated_lift(case):
+    # The one unresolved A5 code was lifted by the F2 admission.
+    # STOP means only the bounded simulated analysis can stop searching.
     a7, a8 = case["a7"], case["a8"]
-    assert a8["decision"] == "CONTINUE", a8
-    assert "A4:A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED" in a8["requested_material_evidence_refs"]
-    assert a8["decision_stable"] is False
+    assert a8["decision"] == "STOP", a8
+    assert a8["requested_material_evidence_refs"] == []
+    assert a8["decision_stable"] is True
+    assert a8["decision_stable_basis"] == "SIMULATED_ADMISSION_LIFT"
+    assert a8["decision_stable_lifted_codes"] == ["A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED"]
     assert a7["all_material_fronts_accounted"] is True
     lifted = [f for f in a7["material_fronts"] if f["closure_basis"] == "SIMULATED_ADMISSION_LIFT"]
     assert len(lifted) == 1
@@ -137,7 +139,7 @@ def test_a8_blocked_front_never_stops(case):
     row["lifted_code"] = None
     row["admission_evidence_ref"] = None
     a7["coverage_fingerprint_sha256"] = digest({k:v for k,v in a7.items() if k != "coverage_fingerprint_sha256"})
-    check = a8_run(case["stages"]["A3"], case["stages"]["A5"], a7)
+    check = a8_run(case["stages"]["A3"], case["stages"]["A5"], a7, case["admission"])
     assert check["decision"] != "STOP"
     assert "F3_NEW_UNLIFTED_MATERIAL_GAP" in check["requested_material_evidence_refs"]
 
@@ -146,17 +148,17 @@ def test_a8_owner_question_requires_decision(case):
     a5 = deepcopy(case["stages"]["A5"])
     a5["status"] = "REQUIRES_DECISION"
     a5["unresolved_material_questions"] = ["Owner must approve security trade-off"]
-    a8 = a8_run(case["stages"]["A3"], a5, case["a7"])
+    a8 = a8_run(case["stages"]["A3"], a5, case["a7"], case["admission"])
     assert a8["decision"] == "REQUIRES_DECISION"
     assert a8["unresolved_decision_changing_questions"] == [
         "Owner must approve security trade-off"]
 
 
 def test_a8_exact_missing_material_evidence_continues(case):
-    a8 = a8_run(case["stages"]["A3"], case["stages"]["A5"], case["a7"])
-    assert a8["decision"] == "CONTINUE"
-    assert a8["requested_material_evidence_refs"] == [
-        "A4:A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED"]
+    a8 = a8_run(case["stages"]["A3"], case["stages"]["A5"], case["a7"], case["admission"])
+    assert a8["decision"] == "STOP"
+    assert a8["decision_stable_basis"] == "SIMULATED_ADMISSION_LIFT"
+    assert a8["requested_material_evidence_refs"] == []
     assert a8["continuation_policy"] == {
         "continue_only_for_material_evidence": True,
         "no_curiosity_search": True,
@@ -166,7 +168,7 @@ def test_a8_exact_missing_material_evidence_continues(case):
 
 
 def test_a8_invalid_input_blocked(case):
-    a8 = a8_run(None, case["stages"]["A5"], case["a7"])
+    a8 = a8_run(None, case["stages"]["A5"], case["a7"], case["admission"])
     assert a8["decision"] == "BLOCKED"
     assert a8["blocking_code"] == "F3_A8_INPUT_INVALID"
 
@@ -174,7 +176,7 @@ def test_a8_invalid_input_blocked(case):
 def test_a8_mismatched_coverage_fingerprint_blocked(case):
     a7 = deepcopy(case["a7"])
     a7["material_fronts"][0]["status"] = "REUSE_AS_IS"
-    a8 = a8_run(case["stages"]["A3"], case["stages"]["A5"], a7)
+    a8 = a8_run(case["stages"]["A3"], case["stages"]["A5"], a7, case["admission"])
     assert a8["decision"] == "BLOCKED"
     assert a8["blocking_code"] == "F3_A8_COVERAGE_DIGEST_INVALID"
 
@@ -267,3 +269,37 @@ def test_a7_nonlifted_material_gap_remains_blocked(case):
     assert len(blocked) == 1
     assert blocked[0]["closure"] == "BLOCKED"
     assert blocked[0]["closure_basis"] == "MATERIAL_GAP_UNRESOLVED"
+
+
+def test_a8_unlifted_a5_code_cannot_become_stable(case):
+    a5 = deepcopy(case["stages"]["A5"])
+    unknown = "A4:F3_UNLIFTED_MATERIAL_CODE"
+    a5["blocking_codes"].append(unknown)
+    a5["unresolved_material_questions"].append(unknown)
+    a5["decision_context"]["unresolved_questions"].append(unknown)
+    a5["decisions"][0]["unresolved_questions"].append(unknown)
+    result = a8_run(case["stages"]["A3"], a5, case["a7"], case["admission"])
+    assert result["decision"] != "STOP"
+    assert result["decision_stable"] is False
+    assert result["decision_stable_basis"] == "NOT_STABLE"
+    assert unknown in result["requested_material_evidence_refs"]
+
+
+def test_a8_requires_decision_never_lifted(case):
+    a5 = deepcopy(case["stages"]["A5"])
+    a5["status"] = "REQUIRES_DECISION"
+    a5["unresolved_material_questions"] = ["A5_NEW_ARCHITECTURE_DECISION_REQUIRES_OWNER"]
+    a5["blocking_codes"] = ["A5_NEW_ARCHITECTURE_DECISION_REQUIRES_OWNER"]
+    result = a8_run(case["stages"]["A3"], a5, case["a7"], case["admission"])
+    assert result["decision"] == "REQUIRES_DECISION"
+    assert result["decision_stable"] is False
+    assert result["decision_stable_basis"] != "SIMULATED_ADMISSION_LIFT"
+
+
+def test_a8_admission_missing_or_forged_is_blocked(case):
+    assert a8_run(case["stages"]["A3"], case["stages"]["A5"],
+                  case["a7"], None)["decision"] == "BLOCKED"
+    forged = deepcopy(case["admission"])
+    forged["lifted_codes"] = []
+    assert a8_run(case["stages"]["A3"], case["stages"]["A5"],
+                  case["a7"], forged)["decision"] == "BLOCKED"
