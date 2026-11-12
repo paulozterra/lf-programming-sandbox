@@ -99,8 +99,10 @@ class PinnedSource(unittest.TestCase):
         task, artifacts = run(task_spec())
         expected = {".lf/worker-context/ex8/profile.md",
                     ".lf/worker-context/ex8/skills.md",
+                    ".lf/worker-context/ex8/protocolo.md",
                     ".lf/worker-context/ex8/receipt.json"}
         self.assertEqual(set(artifacts), expected)
+        self.assertIn(b"Modo continuo", artifacts[".lf/worker-context/ex8/protocolo.md"])
         self.assertTrue(expected.issubset(task["context_path_patterns"]))
         self.assertTrue(expected.issubset(task["protected_path_patterns"]))
         self.assertFalse(expected.intersection(task["write_path_patterns"]))
@@ -218,7 +220,7 @@ class PinnedSource(unittest.TestCase):
             self.assertEqual(mod.write_native_registration(
                 root, "cp14fresh", native_out, enriched, digest), raw)
             self.assertEqual(native_out.read_bytes(), raw)
-            self.assertEqual(len(artifacts), 3)
+            self.assertEqual(len(artifacts), 4)
 
     def test_native_fail_closed_paths_sha_historic_and_existing(self):
         with tempfile.TemporaryDirectory() as directory:
