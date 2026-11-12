@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import os
 import zipfile
 
 import pytest
@@ -14,7 +15,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from native_verified_integration import (
     IntegrationBlocked, extract_exact_zip, extract_exact_zip_bundle, verify_run, allowed_paths,
-    validate_patch_against_repo, chg_payload,
+    validate_patch_against_repo, chg_payload, assert_existing_tree, sanitized_stderr,
 )
 
 
@@ -135,3 +136,41 @@ def test_visible_cost_feedback_bundle_rejects_missing_and_oversized():
             archive.writestr(name, b"x" * (11 if name == "feedback.json" else 2))
     with pytest.raises(IntegrationBlocked, match="ARTIFACT_SIZE_INVALID"):
         extract_exact_zip_bundle(stream.getvalue(), required)
+
+
+def test_resume_identical_tree_offline(tmp_path):
+    git(tmp_path, "init", "-b", "main")
+    git(tmp_path, "config", "user.email", "ci@example.invalid")
+    git(tmp_path, "config", "user.name", "CP35")
+    (tmp_path / "candidate.txt").write_text("verified patch\n")
+    git(tmp_path, "add", ".")
+    git(tmp_path, "commit", "-m", "original verified integration")
+    sha = git(tmp_path, "rev-parse", "HEAD")
+    tree = git(tmp_path, "rev-parse", "HEAD^{tree}")
+    assert_existing_tree(tmp_path, sha, tree)
+
+
+def test_resume_different_tree_blocks_offline(tmp_path):
+    git(tmp_path, "init", "-b", "main")
+    git(tmp_path, "config", "user.email", "ci@example.invalid")
+    git(tmp_path, "config", "user.name", "CP35")
+    (tmp_path / "candidate.txt").write_text("verified patch\n")
+    git(tmp_path, "add", ".")
+    git(tmp_path, "commit", "-m", "original verified integration")
+    sha = git(tmp_path, "rev-parse", "HEAD")
+    (tmp_path / "candidate.txt").write_text("modified branch\n")
+    git(tmp_path, "add", ".")
+    git(tmp_path, "commit", "-m", "unverified modifications")
+    different_tree = git(tmp_path, "rev-parse", "HEAD^{tree}")
+    with pytest.raises(IntegrationBlocked, match="CP35_BRANCH_EXISTS_DIFFERENT"):
+        assert_existing_tree(tmp_path, sha, different_tree)
+
+
+def test_diagnostic_redacts_token_and_limits_stderr(monkeypatch):
+    monkeypatch.setenv("GH_TOKEN", "ghp_test_ThisIsNotARealToken123456")
+    sample = b"gh: denied ghp_test_ThisIsNotARealToken123456 bearer anothercredential\n" + b"x" * 2000
+    diagnostic = sanitized_stderr(sample)
+    assert "ghp_test_ThisIsNotARealToken123456" not in diagnostic
+    assert "anothercredential" not in diagnostic
+    assert "[REDACTED]" in diagnostic
+    assert len(diagnostic) <= 1200

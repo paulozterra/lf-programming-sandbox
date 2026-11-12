@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0066",
+  "change_class": "EDITORIAL",
+  "title": "CP3.5: stderr sanitizado y recuperación estricta de rama nativa",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "P4 DATA Worker PASS 43146245998 e integración CP3.5 #43146351774; owner habilitó creación de PR en Actions"
+  },
+  "reason": "Los fallos de gh/git requieren diagnósticos stderr acotados sin credenciales. Una falla tras publicar la rama no debe bloquear permanentemente: repetir la generación desde el main histórico de esa rama y reutilizarla solo si todo su Git tree coincide, con rechazo explícito de árbol distinto, sin repetir Worker ni examen oculto.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/native_verified_integration.py",
+      "pilot/orchestrator/test_native_verified_integration.py",
+      "standards/changes/CHG-0066.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
