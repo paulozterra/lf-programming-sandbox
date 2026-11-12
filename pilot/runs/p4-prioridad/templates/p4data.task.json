@@ -1,8 +1,8 @@
 {
   "task_spec": {
     "schema_version": 1,
-    "base_head_sha": "<FILL_AT_PREP>",
-    "source_snapshot_sha256": "<FILL_AT_PREP>",
+    "base_head_sha": "23fc22c78d7092acc3685e5687ea80cfad8001d2",
+    "source_snapshot_sha256": "f568305f4ee14aac9ee7f5173b4fe49b5159e6a483f3b5a8bdc0cb7b7b66a97b",
     "max_attempts": 1,
     "allow_deletions": false,
     "max_context_bytes": 200000,
