@@ -105,7 +105,24 @@ def _simulated_stability(a5, a7, admission):
     normalized = [c.split(":", 1)[1] if c.startswith("A4:") else c for c in codes]
     if not all(c in lifts for c in normalized):
         return False, [], "NOT_STABLE"
-    if a5.get("decision_items") not in (None, []):
+    # A5 always projects informational decision_items (obligation, excluded
+    # scope, evidence to obtain). Their presence is NOT an owner decision.
+    # Refuse any item that could actually change a governed choice.
+    items = a5.get("decision_items")
+    if not isinstance(items, list):
+        return False, [], "NOT_STABLE"
+    if (a5.get("pending_owner_decisions") != []
+            or a5.get("architecture_decision_items") != []
+            or any(not isinstance(item, dict)
+                   or item.get("owner_decision_required") is not False
+                   or item.get("material_question") is not None
+                   or item.get("decision_classification") not in (
+                       "NO_NEW_DECISION_REQUIRED_SOURCE_CANDIDATE",
+                       "EXCLUDED_FROM_APPROVED_SCOPE",
+                       "TARGETED_EVIDENCE_REQUIRED",
+                       "CANONICAL_CONTEXT_PRESERVED",
+                   )
+                   for item in items)):
         return False, [], "NOT_STABLE"
     if a5.get("material_adr_triggers_true") != [] or a5.get("material_adr_triggers_unknown") != []:
         return False, [], "NOT_STABLE"
