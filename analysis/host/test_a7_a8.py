@@ -43,7 +43,7 @@ def test_login_decision_preserves_real_a4_unknown(case):
     # artificially STOP even when coverage accounting is complete.
     a7, a8 = case["a7"], case["a8"]
     assert a8["decision"] == "CONTINUE", a8
-    assert "A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED" in a8["requested_material_evidence_refs"]
+    assert "A4:A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED" in a8["requested_material_evidence_refs"]
     assert a8["decision_stable"] is False
     assert a7["all_material_fronts_accounted"] is True
     lifted = [f for f in a7["material_fronts"] if f["closure_basis"] == "SIMULATED_ADMISSION_LIFT"]
@@ -156,7 +156,7 @@ def test_a8_exact_missing_material_evidence_continues(case):
     a8 = a8_run(case["stages"]["A3"], case["stages"]["A5"], case["a7"])
     assert a8["decision"] == "CONTINUE"
     assert a8["requested_material_evidence_refs"] == [
-        "A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED"]
+        "A4:A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED"]
     assert a8["continuation_policy"] == {
         "continue_only_for_material_evidence": True,
         "no_curiosity_search": True,
