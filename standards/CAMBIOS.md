@@ -76,3 +76,4 @@
 | CHG-0074 | EDITORIAL | P4: registro nativo p4be2 (lote BACKEND) |  | paulozterra |  |
 | CHG-0075 | ADDITIVE | Train: reintentos ante fallos transitorios de GitHub y HEAD de merge ya al día |  | paulozterra |  |
 | CHG-0076 | EDITORIAL | P4: tests de controlador aislados (DirtiesContext) + insumos p4be3 |  | paulozterra |  |
+| CHG-0077 | EDITORIAL | P4: registro nativo p4be3 (lote BACKEND) |  | paulozterra |  |
