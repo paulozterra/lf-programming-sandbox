@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0061",
+  "title": "P4: entrada simulada prioridad de recordatorios y planificación DATA a BACKEND",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "P4 paso 1 autorizado por Paulo el 2026-11-11; análisis simulado y planificación sin programar"
+  },
+  "reason": "Pedido literal de prioridades HIGH/MEDIUM/LOW y migración. Análisis SIMULATED_ANALYSIS y frentes DATA/BACKEND; PG02→PG05 y selector original ejecutados en PostgreSQL17 desechable con locale C para orden de paths consistente, y metadato experimental local del prefijo apps/time-service/src/main/java/. Se versionan los resultados exactos intake/plan sin código de producto, Worker ni holdouts.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "db/README.md",
+      "pilot/runs/p4-prioridad/request.md",
+      "pilot/runs/p4-prioridad/analysis.json",
+      "pilot/runs/p4-prioridad/planning_fixture.json",
+      "pilot/runs/p4-prioridad/state.json",
+      "pilot/runs/p4-prioridad/lots.json",
+      "standards/changes/CHG-0061.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/103"
+  }
+}
