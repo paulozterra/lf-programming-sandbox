@@ -1,0 +1,34 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0087",
+  "title": "Modo continuo por defecto para el constructor (A+B)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12: modo continuo como default"
+  },
+  "reason": "Documenta en el repo la regla por defecto del constructor: bucle por lote, reintentos sin permiso dentro del límite de 3, avance automático al siguiente lote y condiciones de parada. Complementa la política C (#130).",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/MODO_CONTINUO.md",
+      "standards/changes/CHG-0087.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
