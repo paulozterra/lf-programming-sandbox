@@ -7,6 +7,10 @@ on:
       - '.github/workflows/analysis-f0.yml'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
@@ -22,5 +26,7 @@ jobs:
         run: python3 analysis/verify_source_manifest.py
       - name: Install test dependencies
         run: python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2 jsonschema==4.25.1
+      - name: Validate workflow concurrency policy (offline)
+        run: python3 -m pytest -q standards/tests/test_pr_workflow_concurrency.py
       - name: Analysis A1-A5 visible test suites (offline)
         run: python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py
