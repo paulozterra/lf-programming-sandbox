@@ -65,3 +65,4 @@
 | CHG-0063 | EDITORIAL | P4DATA: registro nativo SOL-002 y exportación gobernada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/105 |
 | CHG-0064 | EDITORIAL | CP3.5: inventario exacto de tres recibos de feedback y costo nativo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/106 |
 | CHG-0066 | EDITORIAL | CP3.5: stderr seguro y reanudación por árbol idéntico |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/108 |
+| CHG-0067 | EDITORIAL | CP3.6: plan P4 prioridad DATA→BACKEND y prueba de activación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/111 |
