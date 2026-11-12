@@ -1,7 +1,7 @@
 {
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0063",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "title": "P4DATA: registro nativo SOL-002 y exportación gobernada",
   "trigger": {
     "kind": "OWNER",

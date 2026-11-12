@@ -62,4 +62,4 @@
 | CHG-0060 | ADDITIVE | CP3.7: evidencia PG-06 a PG-14 por lote y H_REPORT gobernado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/102 |
 | CHG-0061 | ADDITIVE | P4: entrada simulada prioridad de recordatorios y planificación DATA a BACKEND |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/103 |
 | CHG-0062 | EDITORIAL | P4: exámenes ocultos cifrados, chequeos visibles y plantillas de tarea del pedido de prioridad |  | paulozterra |  |
-| CHG-0063 | ADDITIVE | P4DATA: registro nativo SOL-002 y exportación gobernada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/105 |
+| CHG-0063 | EDITORIAL | P4DATA: registro nativo SOL-002 y exportación gobernada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/105 |
