@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Merge Train P0: trusted main code, fail closed, GitHub REST only (stdlib)."""
+import http.client
 import json
 import os
 import re
@@ -28,7 +29,11 @@ class TrainError(Exception):
     pass
 
 
-def api(method, path, payload=None, expected=(200,)):
+TRANSIENT_HTTP = (500, 502, 503, 504)
+NETWORK_RETRIES = 4
+
+
+def _api_once(method, path, payload, expected):
     token = os.environ["GH_TOKEN"]
     base = "https://api.github.com/repos/" + os.environ["GITHUB_REPOSITORY"]
     data = json.dumps(payload).encode() if payload is not None else None
@@ -49,6 +54,58 @@ def api(method, path, payload=None, expected=(200,)):
     except urllib.error.HTTPError as exc:
         message = exc.read(800).decode("utf-8", errors="replace")
         raise TrainError(f"HTTP {exc.code} {method} {path}: {message}") from exc
+
+
+def api(method, path, payload=None, expected=(200,)):
+    """GitHub REST with bounded retries for transient failures only.
+
+    Network drops (RemoteDisconnected, resets, timeouts) and 5xx are retried
+    with backoff. Merge PUTs are never blindly retried here: the caller
+    re-reads PR state first (see merge_with_retry)."""
+    retryable = method == "GET"
+    for attempt in range(NETWORK_RETRIES):
+        try:
+            return _api_once(method, path, payload, expected)
+        except TrainError as exc:
+            code = exc.__cause__.code if isinstance(exc.__cause__, urllib.error.HTTPError) else None
+            if not (retryable and code in TRANSIENT_HTTP) or attempt == NETWORK_RETRIES - 1:
+                raise
+        except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError, OSError):
+            if not retryable or attempt == NETWORK_RETRIES - 1:
+                raise TrainError(f"NETWORK {method} {path}")
+        print(json.dumps({"event": "api_retry", "method": method, "path": path, "attempt": attempt + 1}), flush=True)
+        time.sleep(3 * (2 ** attempt))
+    raise TrainError(f"NETWORK {method} {path}")
+
+
+CHECKS_LAG_RETRIES = 12
+CHECKS_LAG_SECONDS = 10
+
+
+def merge_with_retry(number, head, payload):
+    """GitHub may still report required checks as 'expected' a few seconds
+    after they completed, and a merge PUT can lose its connection. Re-read the
+    PR before every retry; never merge a different HEAD."""
+    for attempt in range(CHECKS_LAG_RETRIES):
+        try:
+            return api("PUT", f"/pulls/{number}/merge", payload)
+        except TrainError as exc:
+            text = str(exc)
+            lag = "HTTP 405" in text and "required status check" in text
+            server = any(f"HTTP {c} " in text for c in TRANSIENT_HTTP) or text.startswith("NETWORK ")
+            if not (lag or server) or attempt == CHECKS_LAG_RETRIES - 1:
+                raise
+        except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError, OSError):
+            if attempt == CHECKS_LAG_RETRIES - 1:
+                raise TrainError("NETWORK PUT merge")
+        current = api("GET", f"/pulls/{number}")
+        if current.get("merged") and current.get("merge_commit_sha"):
+            return {"merged": True, "sha": current["merge_commit_sha"]}
+        if current["head"]["sha"] != head:
+            raise TrainError("HEAD_CHANGED_DURING_MERGE_RETRY")
+        print(json.dumps({"event": "merge_retry", "attempt": attempt + 1}), flush=True)
+        time.sleep(CHECKS_LAG_SECONDS)
+    raise TrainError("MERGE_RETRY_EXHAUSTED")
 
 
 def graphql(query: str, variables: dict) -> dict:
@@ -271,9 +328,9 @@ def run(number):
         if latest.get("mergeable") is False:
             raise TrainError("PR_NOT_MERGEABLE")
         try:
-            merged = api("PUT", f"/pulls/{number}/merge",
-                         {"sha": initial_head, "merge_method": "merge",
-                          "commit_title": f"Merge PR #{number} via sandbox-train"})
+            merged = merge_with_retry(number, initial_head,
+                                      {"sha": initial_head, "merge_method": "merge",
+                                       "commit_title": f"Merge PR #{number} via sandbox-train"})
         except TrainError as exc:
             # Main may have moved between last read and merge; restart safely.
             if main_sha() != base or pr_data(number)["head"]["sha"] != initial_head:

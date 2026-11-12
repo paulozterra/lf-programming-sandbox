@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0075",
+  "title": "Train: reintentos ante fallos transitorios de GitHub y HEAD de merge ya al día",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12: solución de raíz, no caso a caso"
+  },
+  "reason": "Causa raíz de las fusiones fallidas recurrentes (#104, #113, #117, #118): (1) la API de GitHub corta conexiones o tarda segundos en reconocer checks ya terminados ('6 of 6 required status checks are expected') y el Train se rendía al primer error; (2) un PR ya sincronizado cuyo HEAD es un merge commit daba RENDER_PARENTS_INVALID. Se agregan reintentos acotados (GET con backoff; merge PUT releyendo el PR antes de reintentar y sin cambiar nunca de HEAD) y se corrige la verificación de padres.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/sandbox_train.py",
+      "pilot/sandbox_train_merge.py",
+      "pilot/test_sandbox_train_merge.py",
+      "pilot/test_sandbox_train_retry.py",
+      "standards/changes/CHG-0075.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
