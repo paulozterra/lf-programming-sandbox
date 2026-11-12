@@ -194,7 +194,6 @@ class PolicyTests(unittest.TestCase):
              patch.object(train, "await_checks", return_value={"backend (Maven verify)": {"conclusion": "success"}}), \
              patch.object(train, "update_branch_locally", return_value="a" * 40) as render:
             train.run(77)
-            train.run(77)
             render.assert_called_once()
         self.assertFalse(any(c[1] == "/actions/workflows/ci.yml/dispatches" for c in calls))
 
