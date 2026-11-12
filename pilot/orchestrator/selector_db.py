@@ -43,6 +43,14 @@ def bootstrap() -> None:
                  "experimental/area_policy_exp.sql",
                  "experimental/functions_exp.sql"):
         run_psql(dsn, file=SELECTOR / path)
+    print("CP33_PINNED_LOCAL_SELECTOR_BOOTSTRAP_PASS")
+
+
+def seed_t1_patterns():
+    """Opt-in, after historical byte-for-byte regressions, disposable DB only."""
+    if os.environ.get("ATOMIZE_T1_SELECTOR") != "YES":
+        raise ValueError("ATOM_T1_SELECTOR_OPT_IN_REQUIRED")
+    dsn = dsn_checked()
     # T1 routes are versioned project metadata in a local disposable DB only.
     # The original pinned selector SQL and seed remain byte-identical.
     rules = json.loads((Path(__file__).parent / "atomize_rules_v1.json").read_text())
@@ -58,12 +66,21 @@ def bootstrap() -> None:
         run_psql(dsn, sql=("INSERT INTO public.lf_project_area_pattern_exp"
             "(project_ref,area,path_prefix) VALUES "
             "('lf_java','" + area + "','" + prefix + "') ON CONFLICT DO NOTHING"))
-    print("CP33_PINNED_LOCAL_SELECTOR_BOOTSTRAP_PASS")
+    print("ATOM_T1_SELECTOR_PATTERNS_READY")
+
+
 
 
 if __name__ == "__main__":
     try:
-        bootstrap()
+        if "--t1-patterns" in sys.argv[1:]:
+            if sys.argv[1:] != ["--t1-patterns"]:
+                raise ValueError("SELECTOR_ARGUMENTS_INVALID")
+            seed_t1_patterns()
+        elif not sys.argv[1:]:
+            bootstrap()
+        else:
+            raise ValueError("SELECTOR_ARGUMENTS_INVALID")
     except (ValueError, RuntimeError, OSError) as exc:
         print("SELECTOR_REQUIERE_ENTORNO", file=sys.stderr)
         sys.exit(1)
