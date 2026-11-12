@@ -234,8 +234,8 @@ def run(number):
         initial_head = pr["head"]["sha"]
         base = main_sha()
         compare = api("GET", f"/compare/{base}...{initial_head}")
-        if compare["behind_by"] > 0:
-            print(json.dumps({"event": "local_merge_main", "pr": number, "head": initial_head, "main": base}), flush=True)
+        if compare["behind_by"] > 0 or compare["status"] in ("ahead", "identical"):
+            print(json.dumps({"event": "local_merge_and_render", "pr": number, "head": initial_head, "main": base}), flush=True)
             try:
                 merged_head = update_branch_locally(
                     pr["head"]["ref"], initial_head, base,
@@ -245,13 +245,16 @@ def run(number):
                     print(json.dumps({"event": "ref_moved_retry", "reason": str(exc)}), flush=True)
                     continue
                 raise TrainError(str(exc)) from exc
-            # A GitHub-token push does not schedule pull_request/push workflows.
-            # Never dispatch before confirming the exact pushed HEAD and PR policy.
-            updated = wait_for_pushed_head(number, merged_head)
-            if merged_head not in dispatched_heads:
-                dispatch_updated_head_ci(updated["head"]["ref"], merged_head)
-                dispatched_heads.add(merged_head)
-            continue
+            if merged_head != initial_head:
+                # A GitHub-token push does not schedule pull_request/push workflows.
+                # Verify propagated SHA, then dispatch checks for the new HEAD.
+                updated = wait_for_pushed_head(number, merged_head)
+                if merged_head not in dispatched_heads:
+                    dispatch_updated_head_ci(updated["head"]["ref"], merged_head)
+                    dispatched_heads.add(merged_head)
+                continue
+            # Already current and the derived view is unchanged: use this
+            # validated HEAD without another push or a new Actions run.
         if compare["status"] not in ("ahead", "identical"):
             raise TrainError("BRANCH_NOT_MERGEABLE " + compare["status"])
         evidence = await_checks(number, initial_head, dispatched_heads)
