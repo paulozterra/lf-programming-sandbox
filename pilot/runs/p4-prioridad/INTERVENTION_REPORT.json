@@ -1,0 +1,768 @@
+{
+  "by_code": {
+    "MANUAL_BASE_PREP": [
+      "db/README.md"
+    ],
+    "MANUAL_CHAIN_PLAN": [
+      "pilot/orchestrator/chain_plans/p4-prioridad.json"
+    ],
+    "MANUAL_COMMIT_OF_GENERATED": [
+      "pilot/runs/p4-prioridad/analysis.json",
+      "pilot/runs/p4-prioridad/lots.json",
+      "pilot/runs/p4-prioridad/state.json"
+    ],
+    "MANUAL_LABEL": [
+      "PR #103",
+      "PR #104",
+      "PR #105",
+      "PR #110",
+      "PR #111",
+      "PR #113",
+      "PR #117",
+      "PR #118",
+      "PR #120",
+      "PR #121",
+      "PR #122"
+    ],
+    "MANUAL_LOT_DIVISION": [
+      "pilot/runs/p4-prioridad/planning_fixture.json"
+    ],
+    "MANUAL_REGISTRATION": [
+      ".lf/worker-context/p4be2/profile.md",
+      ".lf/worker-context/p4be2/receipt.json",
+      ".lf/worker-context/p4be2/skills.md",
+      ".lf/worker-context/p4be3/profile.md",
+      ".lf/worker-context/p4be3/receipt.json",
+      ".lf/worker-context/p4be3/skills.md",
+      "pilot/runs/p4-prioridad/proposal_requests/p4be2.proposal-request.json",
+      "pilot/runs/p4-prioridad/proposal_requests/p4be2.task-pack.json",
+      "pilot/runs/p4-prioridad/proposal_requests/p4be3.proposal-request.json",
+      "pilot/runs/p4-prioridad/proposal_requests/p4be3.task-pack.json",
+      "pilot/worker_v08/native_tasks/p4be2.json",
+      "pilot/worker_v08/native_tasks/p4be3.json"
+    ],
+    "MANUAL_TASK_TEMPLATE": [
+      "pilot/runs/p4-prioridad/templates/p4be.task.json",
+      "pilot/runs/p4-prioridad/templates/p4be2.task.json",
+      "pilot/runs/p4-prioridad/templates/p4be3.task.json",
+      "pilot/runs/p4-prioridad/templates/p4data.task.json"
+    ],
+    "MANUAL_TEST_EDIT": [
+      "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerDeleteSearchVisibleTest.java",
+      "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java"
+    ]
+  },
+  "intervencion_manual": "SI",
+  "intervention_count": 49,
+  "label_events": [
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 103,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 104,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 104,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 104,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 105,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 110,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 110,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 110,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 111,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 113,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 113,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 113,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 113,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 113,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 113,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 117,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 117,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 118,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 118,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 120,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 121,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 122,
+      "verdict": "INTERVENTION"
+    }
+  ],
+  "notes": [
+    "PAULO_O_GPT: Paulo y GPT comparten identidad de GitHub; no se distinguen.",
+    "ALLOWED_HUMAN y EXAMINER_EXPECTED no cuentan como intervención."
+  ],
+  "request_id": "p4-prioridad",
+  "revision": "5bd546acc0af90185a67c427eebb92873ff50b8f",
+  "rows": [
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "148138fdcfdc",
+      "description": "Producido por la ruta",
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "subject": "[CP3.5][CHG-0078] verified native patch p4be3 run 43277057137",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "148138fdcfdc",
+      "description": "Producido por la ruta",
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java",
+      "subject": "[CP3.5][CHG-0078] verified native patch p4be3 run 43277057137",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "148138fdcfdc",
+      "description": "Producido por la ruta",
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "subject": "[CP3.5][CHG-0078] verified native patch p4be3 run 43277057137",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "148138fdcfdc",
+      "description": "Producido por la ruta",
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+      "subject": "[CP3.5][CHG-0078] verified native patch p4be3 run 43277057137",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "ef8f7508a08c",
+      "description": "Paquete de tarea exportado a mano",
+      "path": "pilot/runs/p4-prioridad/proposal_requests/p4be3.proposal-request.json",
+      "subject": "[P4][CHG-0077] Native registration p4be3",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "ef8f7508a08c",
+      "description": "Paquete de tarea exportado a mano",
+      "path": "pilot/runs/p4-prioridad/proposal_requests/p4be3.task-pack.json",
+      "subject": "[P4][CHG-0077] Native registration p4be3",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "4c7c63aee42c",
+      "description": "Registro de tarea ejecutado a mano (no por la ruta)",
+      "path": "pilot/worker_v08/native_tasks/p4be3.json",
+      "subject": "[CP3.4] seal native task base p4be3",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "cfc100c41fb7",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/p4be3/profile.md",
+      "subject": "[CP3.4] register native context p4be3",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "cfc100c41fb7",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/p4be3/receipt.json",
+      "subject": "[CP3.4] register native context p4be3",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "cfc100c41fb7",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/p4be3/skills.md",
+      "subject": "[CP3.4] register native context p4be3",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "cfc100c41fb7",
+      "description": "Registro de tarea ejecutado a mano (no por la ruta)",
+      "path": "pilot/worker_v08/native_tasks/p4be3.json",
+      "subject": "[CP3.4] register native context p4be3",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_TEST_EDIT",
+      "commit": "16c022aed299",
+      "description": "Test existente modificado a mano",
+      "path": "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerDeleteSearchVisibleTest.java",
+      "subject": "[P4][CHG-0076] Isolate reminder controller tests; p4be3 inputs",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_TEST_EDIT",
+      "commit": "16c022aed299",
+      "description": "Test existente modificado a mano",
+      "path": "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java",
+      "subject": "[P4][CHG-0076] Isolate reminder controller tests; p4be3 inputs",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "16c022aed299",
+      "description": "Material del examinador independiente",
+      "path": "pilot/holdouts/p4be3.oracle.json.age",
+      "subject": "[P4][CHG-0076] Isolate reminder controller tests; p4be3 inputs",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "16c022aed299",
+      "description": "Material del examinador independiente",
+      "path": "pilot/runs/p4-prioridad/claude_meta/p4be3.json",
+      "subject": "[P4][CHG-0076] Isolate reminder controller tests; p4be3 inputs",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_TASK_TEMPLATE",
+      "commit": "16c022aed299",
+      "description": "Plantilla de tarea escrita a mano",
+      "path": "pilot/runs/p4-prioridad/templates/p4be3.task.json",
+      "subject": "[P4][CHG-0076] Isolate reminder controller tests; p4be3 inputs",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "0ac10188d89d",
+      "description": "Paquete de tarea exportado a mano",
+      "path": "pilot/runs/p4-prioridad/proposal_requests/p4be2.proposal-request.json",
+      "subject": "[P4][CHG-0074] Native registration p4be2",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "0ac10188d89d",
+      "description": "Paquete de tarea exportado a mano",
+      "path": "pilot/runs/p4-prioridad/proposal_requests/p4be2.task-pack.json",
+      "subject": "[P4][CHG-0074] Native registration p4be2",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "0d0ee190cb8b",
+      "description": "Registro de tarea ejecutado a mano (no por la ruta)",
+      "path": "pilot/worker_v08/native_tasks/p4be2.json",
+      "subject": "[CP3.4] seal native task base p4be2",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "42f31542d1b1",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/p4be2/profile.md",
+      "subject": "[CP3.4] register native context p4be2",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "42f31542d1b1",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/p4be2/receipt.json",
+      "subject": "[CP3.4] register native context p4be2",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "42f31542d1b1",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/p4be2/skills.md",
+      "subject": "[CP3.4] register native context p4be2",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "42f31542d1b1",
+      "description": "Registro de tarea ejecutado a mano (no por la ruta)",
+      "path": "pilot/worker_v08/native_tasks/p4be2.json",
+      "subject": "[CP3.4] register native context p4be2",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_TEST_EDIT",
+      "commit": "f757ec75dbaa",
+      "description": "Test existente modificado a mano",
+      "path": "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java",
+      "subject": "P4: legacy visible test accepts priority; p4be2 holdout ref, metadata and template",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "f757ec75dbaa",
+      "description": "Material del examinador independiente",
+      "path": "pilot/holdouts/p4be2.oracle.json.age",
+      "subject": "P4: legacy visible test accepts priority; p4be2 holdout ref, metadata and template",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "f757ec75dbaa",
+      "description": "Material del examinador independiente",
+      "path": "pilot/runs/p4-prioridad/claude_meta/p4be2.json",
+      "subject": "P4: legacy visible test accepts priority; p4be2 holdout ref, metadata and template",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_TASK_TEMPLATE",
+      "commit": "f757ec75dbaa",
+      "description": "Plantilla de tarea escrita a mano",
+      "path": "pilot/runs/p4-prioridad/templates/p4be2.task.json",
+      "subject": "P4: legacy visible test accepts priority; p4be2 holdout ref, metadata and template",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "24672a0b1c1f",
+      "description": "Producido por la ruta",
+      "path": "pilot/worker_v08/native_tasks/p4be.json",
+      "subject": "[CP3.4] seal native task base p4be",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "9ead964e7195",
+      "description": "Producido por la ruta",
+      "path": ".lf/worker-context/p4be/profile.md",
+      "subject": "[CP3.4] register native context p4be",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "9ead964e7195",
+      "description": "Producido por la ruta",
+      "path": ".lf/worker-context/p4be/receipt.json",
+      "subject": "[CP3.4] register native context p4be",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "9ead964e7195",
+      "description": "Producido por la ruta",
+      "path": ".lf/worker-context/p4be/skills.md",
+      "subject": "[CP3.4] register native context p4be",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "9ead964e7195",
+      "description": "Producido por la ruta",
+      "path": "pilot/worker_v08/native_tasks/p4be.json",
+      "subject": "[CP3.4] register native context p4be",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "ROUTE_TOOLING_CHANGE",
+      "commit": "b2357b0ab498",
+      "description": "Cambio de herramientas de la ruta (no cuenta para el pedido)",
+      "path": "pilot/orchestrator/chain_contract.py",
+      "subject": "[CP3.6][CHG-0067] Register P4 DATA to BACKEND chain and offline merge test",
+      "verdict": "TOOLING"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_CHAIN_PLAN",
+      "commit": "b2357b0ab498",
+      "description": "Plan de cadena escrito a mano",
+      "path": "pilot/orchestrator/chain_plans/p4-prioridad.json",
+      "subject": "[CP3.6][CHG-0067] Register P4 DATA to BACKEND chain and offline merge test",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "ROUTE_TOOLING_CHANGE",
+      "commit": "b2357b0ab498",
+      "description": "Cambio de herramientas de la ruta (no cuenta para el pedido)",
+      "path": "pilot/orchestrator/test_chain_lots.py",
+      "subject": "[CP3.6][CHG-0067] Register P4 DATA to BACKEND chain and offline merge test",
+      "verdict": "TOOLING"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "954a3d9edf43",
+      "description": "Producido por la ruta",
+      "path": "db/migration/V1__reminders_priority.sql",
+      "subject": "[CP3.5][CHG-0065] verified native patch p4data run 43146245998",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "f14029c1c12c",
+      "description": "Producido por la ruta",
+      "path": "pilot/runs/p4-prioridad/proposal_requests/p4data.proposal-request.json",
+      "subject": "[P4DATA][CHG-0063] export native registration without model",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "f14029c1c12c",
+      "description": "Producido por la ruta",
+      "path": "pilot/runs/p4-prioridad/proposal_requests/p4data.task-pack.json",
+      "subject": "[P4DATA][CHG-0063] export native registration without model",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "f14029c1c12c",
+      "description": "Producido por la ruta",
+      "path": "pilot/runs/p4-prioridad/templates/p4data.task.json",
+      "subject": "[P4DATA][CHG-0063] export native registration without model",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "84491cdf020a",
+      "description": "Producido por la ruta",
+      "path": "pilot/worker_v08/native_tasks/p4data.json",
+      "subject": "[CP3.4] seal native task base p4data",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "929f8e6b42b9",
+      "description": "Producido por la ruta",
+      "path": ".lf/worker-context/p4data/profile.md",
+      "subject": "[CP3.4] register native context p4data",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "929f8e6b42b9",
+      "description": "Producido por la ruta",
+      "path": ".lf/worker-context/p4data/receipt.json",
+      "subject": "[CP3.4] register native context p4data",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "929f8e6b42b9",
+      "description": "Producido por la ruta",
+      "path": ".lf/worker-context/p4data/skills.md",
+      "subject": "[CP3.4] register native context p4data",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "929f8e6b42b9",
+      "description": "Producido por la ruta",
+      "path": "pilot/worker_v08/native_tasks/p4data.json",
+      "subject": "[CP3.4] register native context p4data",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "7939b38a45bc",
+      "description": "Material del examinador independiente",
+      "path": "apps/time-service/visible-tests/p4be/run_visible.py",
+      "subject": "[P4][CHG-0062] Exámenes cifrados, chequeos visibles y plantillas del pedido de prioridad",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "7939b38a45bc",
+      "description": "Material del examinador independiente",
+      "path": "db/visible-tests/p4data/run_visible.py",
+      "subject": "[P4][CHG-0062] Exámenes cifrados, chequeos visibles y plantillas del pedido de prioridad",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "7939b38a45bc",
+      "description": "Material del examinador independiente",
+      "path": "pilot/holdouts/p4be.oracle.json.age",
+      "subject": "[P4][CHG-0062] Exámenes cifrados, chequeos visibles y plantillas del pedido de prioridad",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "7939b38a45bc",
+      "description": "Material del examinador independiente",
+      "path": "pilot/holdouts/p4data.oracle.json.age",
+      "subject": "[P4][CHG-0062] Exámenes cifrados, chequeos visibles y plantillas del pedido de prioridad",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "7939b38a45bc",
+      "description": "Material del examinador independiente",
+      "path": "pilot/runs/p4-prioridad/claude_meta/p4be.json",
+      "subject": "[P4][CHG-0062] Exámenes cifrados, chequeos visibles y plantillas del pedido de prioridad",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "7939b38a45bc",
+      "description": "Material del examinador independiente",
+      "path": "pilot/runs/p4-prioridad/claude_meta/p4data.json",
+      "subject": "[P4][CHG-0062] Exámenes cifrados, chequeos visibles y plantillas del pedido de prioridad",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_TASK_TEMPLATE",
+      "commit": "7939b38a45bc",
+      "description": "Plantilla de tarea escrita a mano",
+      "path": "pilot/runs/p4-prioridad/templates/p4be.task.json",
+      "subject": "[P4][CHG-0062] Exámenes cifrados, chequeos visibles y plantillas del pedido de prioridad",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_TASK_TEMPLATE",
+      "commit": "7939b38a45bc",
+      "description": "Plantilla de tarea escrita a mano",
+      "path": "pilot/runs/p4-prioridad/templates/p4data.task.json",
+      "subject": "[P4][CHG-0062] Exámenes cifrados, chequeos visibles y plantillas del pedido de prioridad",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "ROUTE_TOOLING_CHANGE",
+      "commit": "2759a24d0a1c",
+      "description": "Cambio de herramientas de la ruta (no cuenta para el pedido)",
+      "path": ".github/workflows/ci.yml",
+      "subject": "[P4][CHG-0061] Tanda 2: pin real selector lots/state, assert deterministic CI and preserve original producers",
+      "verdict": "TOOLING"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_COMMIT_OF_GENERATED",
+      "commit": "2759a24d0a1c",
+      "description": "Lotes comiteados a mano",
+      "path": "pilot/runs/p4-prioridad/lots.json",
+      "subject": "[P4][CHG-0061] Tanda 2: pin real selector lots/state, assert deterministic CI and preserve original producers",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_COMMIT_OF_GENERATED",
+      "commit": "2759a24d0a1c",
+      "description": "Estado del pedido comiteado a mano",
+      "path": "pilot/runs/p4-prioridad/state.json",
+      "subject": "[P4][CHG-0061] Tanda 2: pin real selector lots/state, assert deterministic CI and preserve original producers",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "ROUTE_TOOLING_CHANGE",
+      "commit": "05e46506ea5e",
+      "description": "Cambio de herramientas de la ruta (no cuenta para el pedido)",
+      "path": ".github/workflows/ci.yml",
+      "subject": "[P4] Tanda 1: petición exacta, A9 simulado, frentes y fixture; correr productores fijados en CI",
+      "verdict": "TOOLING"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_BASE_PREP",
+      "commit": "05e46506ea5e",
+      "description": "Estructura base preparada a mano",
+      "path": "db/README.md",
+      "subject": "[P4] Tanda 1: petición exacta, A9 simulado, frentes y fixture; correr productores fijados en CI",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_COMMIT_OF_GENERATED",
+      "commit": "05e46506ea5e",
+      "description": "Salida de Análisis/planificación comiteada a mano (no por la ruta)",
+      "path": "pilot/runs/p4-prioridad/analysis.json",
+      "subject": "[P4] Tanda 1: petición exacta, A9 simulado, frentes y fixture; correr productores fijados en CI",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_LOT_DIVISION",
+      "commit": "05e46506ea5e",
+      "description": "División en lotes / áreas / rutas escrita a mano (fixture simulado)",
+      "path": "pilot/runs/p4-prioridad/planning_fixture.json",
+      "subject": "[P4] Tanda 1: petición exacta, A9 simulado, frentes y fixture; correr productores fijados en CI",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "REQUEST",
+      "commit": "05e46506ea5e",
+      "description": "Texto del pedido",
+      "path": "pilot/runs/p4-prioridad/request.md",
+      "subject": "[P4] Tanda 1: petición exacta, A9 simulado, frentes y fixture; correr productores fijados en CI",
+      "verdict": "ALLOWED_HUMAN"
+    }
+  ],
+  "schema_version": "LF_INTERVENTION_REPORT_V1",
+  "tasks": [
+    "p4be",
+    "p4be2",
+    "p4be3",
+    "p4data"
+  ]
+}
