@@ -205,6 +205,7 @@ class GitHub:
             data=body, method=method,
             headers={"Accept": "application/vnd.github+json",
                      "Authorization": "Bearer " + self.token,
+                     "Content-Type": "application/json",
                      "X-GitHub-Api-Version": "2022-11-28",
                      "User-Agent": "LF-auto-integrate-policy-C"})
         try:
