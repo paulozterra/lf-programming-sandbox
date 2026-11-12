@@ -314,6 +314,27 @@ def prepare_legacy(root, slug, *, base_head_sha=None):
     return planned
 
 
+def read_accepted_package(root, slug):
+    """T1 accepts the shared intake contract, not F5-specific screen fields."""
+    folder = Path(root) / "pilot/runs" / slug
+    paths = [folder / name for name in ("request.md", "analysis.json", "state.json")]
+    if any(p.is_symlink() or not p.is_file() for p in paths):
+        blocked("ATOM_INTAKE_INPUT_MISSING")
+    request, raw, raw_state = [p.read_bytes() for p in paths]
+    try:
+        package, state = json.loads(raw), json.loads(raw_state)
+        _, digest = intake.validate(package, request)
+    except (ValueError, UnicodeError, intake.IntakeBlocked):
+        blocked("ATOM_INTAKE_INVALID")
+    if (state.get("stage") not in ("INTAKE_ACCEPTED", "LOTS_PLANNED")
+            or state.get("request_sha256") != digest
+            or state.get("analysis_sha256") != hashlib.sha256(intake.canonical(package)).hexdigest()
+            or state.get("pg01", {}).get("status") != "FIXTURE_UNATTESTED"
+            or state.get("production_authority") is not False):
+        blocked("ATOM_INTAKE_NOT_ACCEPTED")
+    return package, state
+
+
 def prepare(root, slug, *, base_head_sha=None, legacy=False):
     """Default T1 path; old F5.1 owner fixture only via explicit regression flag."""
     if legacy:
@@ -323,7 +344,7 @@ def prepare(root, slug, *, base_head_sha=None, legacy=False):
     import atomize
     import generate_chain
     root = Path(root)
-    package, state = read_package(root, slug)
+    package, state = read_accepted_package(root, slug)
     folder = root / "pilot/runs" / slug
     # Detect pre-T1 owner intervention, but never read or grant authority to it.
     report = {"schema_version": "T1_INTERVENTION_REPORT_V1", "request_id": slug,
