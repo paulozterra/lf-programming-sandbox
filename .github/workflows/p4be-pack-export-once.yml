@@ -1,4 +1,4 @@
-name: P4BE exact export (temporary, no model)
+name: P4BE exact export and Spotless preparation (temporary)
 on:
   push:
     branches:
@@ -6,11 +6,11 @@ on:
     paths:
       - .github/workflows/p4be-pack-export-once.yml
 permissions:
-  contents: read
+  contents: write
 jobs:
-  export:
+  format:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -22,32 +22,90 @@ jobs:
           ref: 9ead964e71958db2004499cbeb85463e37d3696d
           path: base
           persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: a7a52117f2b686e97042e2e96eb4193e038dd6d8
+          path: candidate
+          sparse-checkout: pilot/native_proposals/p4be.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
-      - name: Export exact native task pack (capture-only, no model or oracle)
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Export exact task packet using authoritative worker
         shell: bash
         run: |
           set -euo pipefail
           test "$(git -C base rev-parse HEAD)" = 9ead964e71958db2004499cbeb85463e37d3696d
           python3 - <<'PY'
           import json,pathlib
-          raw=json.loads(pathlib.Path("control/pilot/worker_v08/native_tasks/p4be.json").read_text())
-          spec=raw["task_spec"]
-          assert spec["base_head_sha"]=="9ead964e71958db2004499cbeb85463e37d3696d"
-          pathlib.Path("p4be.current-spec.json").write_text(json.dumps(spec,sort_keys=True))
+          task=json.loads(pathlib.Path("control/pilot/worker_v08/native_tasks/p4be.json").read_text())["task_spec"]
+          assert task["base_head_sha"]=="9ead964e71958db2004499cbeb85463e37d3696d"
+          pathlib.Path("p4be.current-spec.json").write_text(json.dumps(task))
           PY
           PYTHONPATH=control/vendor/programming-agent/src python3 control/pilot/worker_v08/export_task_pack.py --repo base --task-spec p4be.current-spec.json --out p4be.pack.json
           python3 - <<'PY'
           import json,hashlib,pathlib
-          raw=pathlib.Path("p4be.pack.json").read_bytes()
-          pack=json.loads(raw)
-          assert pack["user_payload"]["task"]["base_head_sha"]=="9ead964e71958db2004499cbeb85463e37d3696d"
-          print("EXACT_P4BE_PACK", hashlib.sha256(raw).hexdigest(),flush=True)
+          packet=pathlib.Path("p4be.pack.json").read_bytes()
+          assert json.loads(packet)["user_payload"]["task"]["base_head_sha"]=="9ead964e71958db2004499cbeb85463e37d3696d"
+          assert hashlib.sha256(packet).hexdigest()=="652edd84653c092231a57393dd243027d5c29edf9092d764945e3dd5c8bc0e20"
+          prior=json.loads(pathlib.Path("candidate/pilot/native_proposals/p4be.json").read_text())
+          assert len(prior["proposal"]["changed_paths"])==4
+          assert all(x.endswith(".java") for x in prior["proposal"]["changed_paths"])
+          pathlib.Path("candidate.patch").write_text(prior["proposal"]["patch"])
+          PY
+          git -C base apply --check ../candidate.patch
+          git -C base apply ../candidate.patch
+      - name: Apply palantir-java-format with Spotless and validate visible Java
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn -B -q -f base/apps/time-service/pom.xml spotless:apply
+          mvn -B -q -f base/apps/time-service/pom.xml spotless:check
+          git -C base diff --check
+          python3 - <<'PY'
+          import json,subprocess,pathlib
+          changed=subprocess.check_output(["git","-C","base","diff","--name-only"],text=True).splitlines()
+          registered=json.loads(pathlib.Path("p4be.current-spec.json").read_text())["write_path_patterns"]
+          assert sorted(changed)==sorted(registered),(changed,registered)
+          print("P4BE_FORMAT_SCOPE_OK",changed,flush=True)
+          PY
+          mvn -B -q -f base/apps/time-service/pom.xml package
+          (cd base && python3 apps/time-service/visible-tests/p4be/run_visible.py)
+      - name: Create canonical formatted proposal
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,hashlib,pathlib,subprocess
+          canonical=lambda o:json.dumps(o,sort_keys=True,separators=(",",":"),ensure_ascii=False,allow_nan=False).encode()
+          paths=json.loads(pathlib.Path("p4be.current-spec.json").read_text())["write_path_patterns"]
+          patch=subprocess.check_output(["git","-C","base","diff","--no-ext-diff","--",*paths]).decode()
+          proposal={"schema_version":1,"summary":"Add priority HIGH/MEDIUM/LOW with MEDIUM default, create/edit responses and combined filtering, formatted by palantir Spotless; only four permitted Java files.","patch":patch,"changed_paths":sorted(paths)}
+          pack=hashlib.sha256(pathlib.Path("p4be.pack.json").read_bytes()).hexdigest()
+          envelope={"author":"GPT_NATIVE","task_pack_sha256":pack,"proposal_sha256":hashlib.sha256(canonical(proposal)).hexdigest(),"proposal":proposal}
+          pathlib.Path("p4be.formatted-proposal.json").write_bytes(canonical(envelope)+b"\n")
+          print("P4BE_FORMATTED_PROPOSAL",pack,envelope["proposal_sha256"],len(patch),flush=True)
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: p4be-exact-pack-only
-          path: p4be.pack.json
+          name: p4be-spotless-proposal
+          path: |
+            p4be.formatted-proposal.json
+            p4be.pack.json
           if-no-files-found: error
           retention-days: 7
+      - name: Save formatted proposal to temporary branch for governed connector promotion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method PUT "repos/${{ github.repository }}/contents/pilot/tmp-p4be-formatted-proposal.json" \
+            -f message="Temporary Spotless-verified proposal, not a native submission" \
+            -f branch=tmp/p4be-pack-export-exact \
+            -f content="$(base64 -w0 p4be.formatted-proposal.json)" >/dev/null
