@@ -78,6 +78,17 @@ def test_owner_decision_one_real_pg04_lot(tmp_path):
     intake.accept(tmp_path, "f5-login")
     out = bridge.prepare(tmp_path, "f5-login", base_head_sha="d940576ffea313e2ee62060e3f289c6825f83776")
     assert out["schema_version"] == "CP33_LOTS_CANDIDATE_V1"
+    fixture = json.loads((folder/"planning_fixture.json").read_text())
+    assert fixture["owner_area_decision"]["front_ids"] == sorted(
+        f["front_id"] for f in json.loads((folder/"analysis.json").read_text())["material_fronts"])
+    from pilot.orchestrator import plan_lots
+    package = json.loads((folder/"analysis.json").read_text())
+    snapshot, mapping, pg01 = plan_lots._source_inputs(
+        package, fixture["atoms"], fixture, package["request_sha256"], {})
+    assert len(snapshot["material_front_coverage"]["material_fronts"]) == 19
+    assert len(snapshot["scope_front_matrix"]) == 19
+    assert pg01["source"] == "PG01_C4"
+
     assert out["pg01_status"] == "FIXTURE_UNATTESTED"
     assert out["worker_invoked"] is False
     assert len(out["lots"]) == 1

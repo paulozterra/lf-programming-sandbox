@@ -212,6 +212,15 @@ def _planning_fixture(package, decision, base_head_sha):
             "target_binding_ref": "fixture://f5-login/owner-decision",
         },
         "profile_choices": {"BACKEND": "PERFIL-PROG-BACKEND-SPRING-EXP"},
+        "owner_area_decision": {
+            "schema_version": OWNER_SCHEMA,
+            "decision_type": "OWNER_DECISION_SANDBOX",
+            "simulation_only": True,
+            "production_authority": False,
+            "area": "BACKEND",
+            "scope_id": decision["scope_id"],
+            "front_ids": list(decision["front_ids"]),
+        },
         "atoms": [{
             "atom_id": "ATOM-F5-LOGIN-BACKEND",
             "scope_id": decision["scope_id"],
