@@ -59,5 +59,10 @@
     "Controller",
     "Service"
   ],
-  "max_paths": 6
+  "max_paths": 6,
+  "project_patterns": {
+    "BACKEND": "apps/time-service/src/main/java/",
+    "FRONTEND": "frontend/src/",
+    "DATA": "db/migration/"
+  }
 }

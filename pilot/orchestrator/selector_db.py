@@ -43,6 +43,21 @@ def bootstrap() -> None:
                  "experimental/area_policy_exp.sql",
                  "experimental/functions_exp.sql"):
         run_psql(dsn, file=SELECTOR / path)
+    # T1 routes are versioned project metadata in a local disposable DB only.
+    # The original pinned selector SQL and seed remain byte-identical.
+    rules = json.loads((Path(__file__).parent / "atomize_rules_v1.json").read_text())
+    patterns = rules.get("project_patterns", {})
+    if rules.get("schema_version") != "T1_ATOMIZE_RULES_V1":
+        raise ValueError("ATOM_RULES_INVALID")
+    for area, prefix in sorted(patterns.items()):
+        if (area not in ("BACKEND", "FRONTEND", "DATA") or not
+                isinstance(prefix, str) or not prefix.endswith("/") or
+                not prefix.startswith(("apps/", "frontend/", "db/")) or
+                ".." in prefix or "'" in prefix):
+            raise ValueError("ATOM_PROJECT_PATTERN_INVALID")
+        run_psql(dsn, sql=("INSERT INTO public.lf_project_area_pattern_exp"
+            "(project_ref,area,path_prefix) VALUES "
+            "('lf_java','" + area + "','" + prefix + "') ON CONFLICT DO NOTHING"))
     print("CP33_PINNED_LOCAL_SELECTOR_BOOTSTRAP_PASS")
 
 

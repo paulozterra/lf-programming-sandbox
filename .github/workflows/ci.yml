@@ -405,7 +405,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          PGPASSWORD=pilot psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c "INSERT INTO public.lf_project_area_pattern_exp(project_ref,area,path_prefix) VALUES ('lf_java','BACKEND','apps/time-service/src/main/java/')"
+          PGPASSWORD=pilot psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c "INSERT INTO public.lf_project_area_pattern_exp(project_ref,area,path_prefix) VALUES ('lf_java','BACKEND','apps/time-service/src/main/java/') ON CONFLICT DO NOTHING"
           mkdir -p "$RUNNER_TEMP/p4/pilot/runs/p4-prioridad"
           cp pilot/runs/p4-prioridad/request.md pilot/runs/p4-prioridad/analysis.json pilot/runs/p4-prioridad/planning_fixture.json "$RUNNER_TEMP/p4/pilot/runs/p4-prioridad/"
           python3 pilot/orchestrator/intake.py --root "$RUNNER_TEMP/p4" --request-id p4-prioridad
