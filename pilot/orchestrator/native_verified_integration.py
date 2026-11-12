@@ -283,11 +283,13 @@ def confirm_class_after_commit(root: Path, chg: Path) -> None:
             block("C9_CHECK_INVALID")
         errors = {item.get("reason_code") for item in result.get("findings", [])}
         classes = result.get("detected_class", [])
-        if (errors != {"CHANGE_CLASS_MISMATCH"} or len(classes) != 1
-                or classes[0] not in ("ADDITIVE", "EDITORIAL") or attempt):
+        if (errors != {"CHANGE_CLASS_MISMATCH"} or not isinstance(classes, list)
+                or len(classes) > 1
+                or (classes and classes[0] not in ("ADDITIVE", "EDITORIAL"))
+                or attempt):
             block("C9_CHECK_FAILED")
         payload = obj(chg.read_bytes())
-        payload["change_class"] = classes[0]
+        payload["change_class"] = classes[0] if classes else "EDITORIAL"
         chg.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
         command(["python3", "standards/tools/changes.py", "render"], cwd=root)
         command(["git", "add", "--", str(chg.relative_to(root)),

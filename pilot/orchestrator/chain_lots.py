@@ -22,7 +22,7 @@ import tempfile
 from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_state,
                             progress, validate_plan, verified_failures, deny)
 from native_lot_registration import canonical
-from native_verified_integration import next_chg
+from native_verified_integration import IntegrationBlocked, next_chg
 from native_lot_binding import next_ready
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pilot/worker_v08"))
@@ -105,6 +105,35 @@ def merged_integration(head: str) -> tuple[dict, set[str]]:
         deny("NOT_NATIVE_INTEGRATION")
     changed = set(run("git", "diff", "--name-only", parents[1], head).splitlines())
     return pr, changed
+
+
+def validated_manual_integration(number: int, head: str) -> str:
+    """Accept only a Train merge on the trusted first-parent main ancestry."""
+    if type(number) is not int or number <= 0:
+        deny("INTEGRATION_PR_INVALID")
+    pr = api(f"pulls/{number}")
+    sha = pr.get("merge_commit_sha")
+    branch = pr.get("head", {}).get("ref", "")
+    if (pr.get("number") != number or pr.get("merged") is not True
+            or not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha)
+            or not re.fullmatch(r"lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-[1-9][0-9]*", branch)
+            or pr.get("base", {}).get("ref") != "main"
+            or pr.get("base", {}).get("repo", {}).get("full_name") != REPO
+            or pr.get("head", {}).get("repo", {}).get("full_name") != REPO):
+        deny("MANUAL_INTEGRATION_PR_UNTRUSTED")
+    result = subprocess.run(["git", "merge-base", "--is-ancestor", sha, head],
+                            cwd=ROOT, capture_output=True, timeout=120)
+    if result.returncode:
+        deny("MANUAL_INTEGRATION_NOT_ANCESTOR")
+    if sha not in set(run("git", "rev-list", "--first-parent", "HEAD").splitlines()):
+        deny("MANUAL_INTEGRATION_NOT_TRAIN")
+    if run("git", "log", "-1", "--format=%s", sha) != (
+            f"Merge PR #{number} via sandbox-train"):
+        deny("MANUAL_INTEGRATION_NOT_TRAIN")
+    parents = run("git", "rev-list", "--parents", "-n", "1", sha).split()
+    if len(parents) != 3 or parents[0] != sha:
+        deny("MANUAL_INTEGRATION_NOT_TRAIN")
+    return sha
 
 
 def plans() -> list[tuple[str, dict, dict, dict]]:
@@ -386,15 +415,19 @@ def block_request(request: str, state: dict, result: dict, head: str) -> dict:
     return worktree(head, branch, process)
 
 
-def process(event_run_id: int) -> list[dict]:
+def process(event_run_id: int | None = None, integration_pr: int | None = None) -> list[dict]:
     head = check_main()
-    kind = event_kind(event_run_id, head)
+    manual_sha = (validated_manual_integration(integration_pr, head)
+                  if integration_pr is not None else None)
+    kind = "TRAIN" if manual_sha is not None else event_kind(event_run_id, head)
     if kind == "IRRELEVANT":
         return [{"status": "IGNORED_SOURCE_EVENT"}]
     all_plans = plans()
     if not all_plans:
         return [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS"}]
     history = first_parent_merges()
+    if manual_sha is not None and not any(sha == manual_sha for sha, _, _ in history):
+        deny("MANUAL_INTEGRATION_OUTSIDE_HISTORY")
     # Historical first-parent commits are the proof. Reconcile all merged
     # native integrations so an unrelated Train merge between the source
     # event and this job cannot silently lose a successor.
@@ -404,6 +437,9 @@ def process(event_run_id: int) -> list[dict]:
             outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
             continue
         completed = completed_lots(lots, bindings, history)
+        if manual_sha is not None and not any(
+                proof["merge_sha"] == manual_sha for proof in completed.values()):
+            continue  # Requested integration is for a different chain.
         failures = failed_lots(bindings)
         result = progress(lots, completed, failures, bindings)
         if result["stage"] == "BLOCKED":
@@ -422,6 +458,11 @@ def process(event_run_id: int) -> list[dict]:
             registered = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
             if registered.exists() or registered.is_symlink():
                 continue
+            if manual_sha is not None and pending_draft(
+                    f"lf/native-registration/{task}-"):
+                outcomes.append({"request": request, "lot_id": lot_id,
+                                 "status": "ALREADY_PREPARED"})
+                continue
             outcomes.append({"request": request, "lot_id": lot_id,
                              **prepare_successor(request, bindings[lot_id] | {
                                  "lot_id": lot_id}, completed, head)})
@@ -430,15 +471,21 @@ def process(event_run_id: int) -> list[dict]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source-run-id", required=True, type=int)
+    parser.add_argument("--source-run-id", type=int)
+    parser.add_argument("--integration-pr", type=int)
     args = parser.parse_args()
     try:
-        if (os.environ.get("GITHUB_REPOSITORY") != REPO or
-                not os.environ.get("GH_TOKEN") or args.source_run_id <= 0):
+        if (os.environ.get("GITHUB_REPOSITORY") != REPO
+                or not os.environ.get("GH_TOKEN")
+                or (args.integration_pr is None and
+                    (args.source_run_id is None or args.source_run_id <= 0))
+                or (args.integration_pr is not None and
+                    (args.integration_pr <= 0 or args.source_run_id is not None))):
             deny("TRUSTED_RUN_ENV_REQUIRED")
-        print(json.dumps(process(args.source_run_id), sort_keys=True))
-    except (ChainBlocked, OSError, ValueError, KeyError) as exc:
-        code = str(exc) if isinstance(exc, ChainBlocked) else "CP36_UNEXPECTED_FAILURE"
+        print(json.dumps(process(args.source_run_id, args.integration_pr), sort_keys=True))
+    except (ChainBlocked, IntegrationBlocked, OSError, ValueError, KeyError) as exc:
+        code = (str(exc) if isinstance(exc, (ChainBlocked, IntegrationBlocked))
+                else "CP36_UNEXPECTED_FAILURE")
         print(code, file=sys.stderr)
         return 1
     return 0
