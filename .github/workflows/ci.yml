@@ -400,7 +400,6 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
           python3 -m pytest -q pilot/orchestrator/test_plan_lots.py
-          python3 -m pytest -q pilot/orchestrator/test_atomize.py
           python3 -m pytest -q pilot/orchestrator/test_intake.py
       - name: P4 priority intake and real PG02-PG05 selector outputs equal committed JSON
         shell: bash
@@ -447,6 +446,12 @@ jobs:
           print(json.dumps(x,sort_keys=True,separators=(",",":"),ensure_ascii=True))
           print("CP33_THREE_AREA_LOTS_JSON_END")
           PY
+      - name: T1 fixture-free A9 atoms, PG02-PG05 and chain on disposable selector
+        env:
+          ATOMIZE_T1_SELECTOR: "YES"
+        run: |
+          python3 pilot/orchestrator/selector_db.py --t1-patterns
+          python3 -m pytest -q pilot/orchestrator/test_atomize.py -p no:cacheprovider
       - name: Publish exact generated lots and deterministic state from disposable DB
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
