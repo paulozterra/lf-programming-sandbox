@@ -1,0 +1,101 @@
+{
+  "imitates": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas",
+  "schema_version": "SBX_DIRECT_RULES_READBACK_V1",
+  "linked_rules": [
+    {
+      "code": "SBX-R-USER",
+      "title": "Usuario obligatorio",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/1",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/1"
+    },
+    {
+      "code": "SBX-R-PASS",
+      "title": "Contraseña obligatoria",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/2",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/2"
+    },
+    {
+      "code": "SBX-R-LOCK",
+      "title": "Bloquear tras 5 fallos durante 15 minutos",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/3",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/3"
+    },
+    {
+      "code": "SBX-R-HASH",
+      "title": "Contraseña BCrypt",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/4",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/4"
+    },
+    {
+      "code": "SBX-R-ERR",
+      "title": "Error genérico y sesión de 30 minutos",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/5",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/5"
+    },
+    {
+      "code": "SBX-R-PENDING",
+      "title": "Verificación biométrica opcional",
+      "status": "VIGENTE",
+      "pending_decision": true,
+      "source_ref": "supabase://lf_ops.reglas/6",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/6"
+    },
+    {
+      "code": "SBX-R-CAND",
+      "title": "Recordar sesión en navegador",
+      "status": "CANDIDATO",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/7",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/7"
+    }
+  ],
+  "valor_config": [
+    {
+      "code": "SBX-R-USER",
+      "valor_config": {}
+    },
+    {
+      "code": "SBX-R-PASS",
+      "valor_config": {}
+    },
+    {
+      "code": "SBX-R-LOCK",
+      "valor_config": {
+        "failed_attempts": 5,
+        "lock_minutes": 15
+      }
+    },
+    {
+      "code": "SBX-R-HASH",
+      "valor_config": {
+        "algorithm": "BCrypt"
+      }
+    },
+    {
+      "code": "SBX-R-ERR",
+      "valor_config": {
+        "generic_error": true,
+        "session_minutes": 30,
+        "security_policy_id": 71
+      }
+    },
+    {
+      "code": "SBX-R-PENDING",
+      "valor_config": {}
+    },
+    {
+      "code": "SBX-R-CAND",
+      "valor_config": {}
+    }
+  ]
+}

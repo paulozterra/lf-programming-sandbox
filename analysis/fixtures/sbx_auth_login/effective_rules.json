@@ -1,0 +1,91 @@
+{
+  "imitates": "programacion.fn_input_effective_rule_links_v1",
+  "schema_version": "LF_EFFECTIVE_RULE_LINKS_FIXTURE_V1",
+  "screen_id": 731,
+  "consumer": "INPUT_GOVERNANCE",
+  "rules": [
+    {
+      "code": "SBX-R-USER",
+      "title": "Usuario obligatorio",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/1",
+      "config": {}
+    },
+    {
+      "code": "SBX-R-PASS",
+      "title": "Contraseña obligatoria",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/2",
+      "config": {}
+    },
+    {
+      "code": "SBX-R-LOCK",
+      "title": "Bloquear tras 5 fallos durante 15 minutos",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/3",
+      "config": {
+        "failed_attempts": 5,
+        "lock_minutes": 15
+      }
+    },
+    {
+      "code": "SBX-R-HASH",
+      "title": "Contraseña BCrypt",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/4",
+      "config": {
+        "algorithm": "BCrypt"
+      }
+    },
+    {
+      "code": "SBX-R-LOG",
+      "title": "Nunca registrar contraseñas",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "binding_source": "DERIVED_GLOBAL",
+      "source_ref": "supabase://lf_ops.reglas/105",
+      "config": {
+        "log_password": false
+      }
+    },
+    {
+      "code": "SBX-R-ERR",
+      "title": "Error genérico y sesión de 30 minutos",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/5",
+      "config": {
+        "generic_error": true,
+        "session_minutes": 30,
+        "security_policy_id": 71
+      }
+    },
+    {
+      "code": "SBX-R-PENDING",
+      "title": "Verificación biométrica opcional",
+      "status": "VIGENTE",
+      "pending_decision": true,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/6",
+      "config": {}
+    },
+    {
+      "code": "SBX-R-CAND",
+      "title": "Recordar sesión en navegador",
+      "status": "CANDIDATO",
+      "pending_decision": false,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/7",
+      "config": {}
+    }
+  ]
+}
