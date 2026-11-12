@@ -79,3 +79,4 @@
 | CHG-0076 | EDITORIAL | P4: tests de controlador aislados (DirtiesContext) + insumos p4be3 |  | paulozterra |  |
 | CHG-0077 | EDITORIAL | P4: registro nativo p4be3 (lote BACKEND) |  | paulozterra |  |
 | CHG-0078 | EDITORIAL | CP3.5: integración verificada nativa p4be3 (run 43277057137) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/122 |
+| CHG-0079 | EDITORIAL | F2 Análisis: admisión simulada D-AN6(a) y A6 implementabilidad |  | paulozterra |  |

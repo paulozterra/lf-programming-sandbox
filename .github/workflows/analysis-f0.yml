@@ -29,7 +29,7 @@ jobs:
       - name: Validate workflow concurrency policy (offline)
         run: python3 -m pytest -q standards/tests/test_pr_workflow_concurrency.py
       - name: Analysis A1-A5 visible test suites (offline)
-        run: python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py analysis/host
+        run: python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py analysis/host analysis/a6
       - name: F1 simulated A5 evidence (offline, no provider)
         run: |
           python3 analysis/host/run_a1_a5_fixture.py --output-dir "$RUNNER_TEMP/sbx-f1"
@@ -69,3 +69,6 @@ jobs:
           }
           print("F1_A5_SIMULATED_RESULT=" + json.dumps(summary, ensure_ascii=False, sort_keys=True))
           PY
+      - name: F2 simulated A5-to-A6 admission evidence (offline)
+        run: |
+          python3 -m analysis.host.run_a1_a6_fixture --output-dir "$RUNNER_TEMP/sbx-f2"
