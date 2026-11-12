@@ -247,3 +247,88 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
         assert result[0]["status"] == "BLOCKED_PENDING_OWNER_MERGE"
         assert result[0]["reason_code"] == BLOCK_CODE
         assert len(emitted) == 1  # no successor release after 3 failures
+
+
+def test_p4_priority_chain_plan_data_merge_releases_backend_offline():
+    """Actual owner-enrolled plan: a trusted p4data merge queues p4be only."""
+    plans = chain_lots.plans()
+    selected = [row for row in plans if row[0] == "p4-prioridad"]
+    assert len(selected) == 1
+    request, lots, state, bindings = selected[0]
+    assert state["stage"] == "LOTS_PLANNED"
+    assert bindings["SOL-002"]["task_name"] == "p4data"
+    assert bindings["SOL-001"]["task_name"] == "p4be"
+    assert bindings["SOL-001"]["template_path"] == (
+        "pilot/runs/p4-prioridad/templates/p4be.task.json")
+    assert bindings["SOL-001"]["holdout_metadata_path"] == (
+        "pilot/runs/p4-prioridad/claude_meta/p4be.json")
+    assert next_ready(lots, set())[0]["id"] == "SOL-002"
+    assert next_ready(lots, {"SOL-002"})[0]["id"] == "SOL-001"
+
+    merged = "a" * 40
+    current_main = "b" * 40
+    source_pr = {
+        "number": 110, "merged": True, "merge_commit_sha": merged,
+        "base": {"ref": "main", "repo": {
+            "full_name": "paulozterra/lf-programming-sandbox"}},
+        "head": {"ref": "lf/native-integration/p4data-run-43146245998",
+                 "repo": {"full_name": "paulozterra/lf-programming-sandbox"}},
+    }
+    merged_paths = {
+        "db/migration/V1__reminders_priority.sql", "standards/CAMBIOS.md",
+        "standards/changes/CHG-0065.json",
+    }
+    emitted = []
+
+    def simulate_run(*args, **kwargs):
+        if args[:3] == ("git", "cat-file", "-e"):
+            assert args[3] == merged + ":db/migration/V1__reminders_priority.sql"
+            return ""
+        raise AssertionError("Unexpected host operation " + repr(args))
+
+    def capture_prepare(selected_request, binding, proofs, head):
+        emitted.append((selected_request, binding["lot_id"], binding["task_name"],
+                        binding["template_path"], binding["holdout_metadata_path"],
+                        set(proofs), head))
+        return {"status": "DRAFT_PREPARED", "model_invoked": False}
+
+    from contextlib import ExitStack
+    with ExitStack() as stack:
+        for manager in (
+            patch.object(chain_lots, "check_main", return_value=current_main),
+            patch.object(chain_lots, "event_kind", return_value="TRAIN"),
+            patch.object(chain_lots, "plans", return_value=selected),
+            patch.object(chain_lots, "first_parent_merges",
+                         return_value=[(merged, source_pr, merged_paths)]),
+            patch.object(chain_lots, "run", side_effect=simulate_run),
+            patch.object(chain_lots, "failed_lots", return_value={}),
+            patch.object(chain_lots, "prepare_successor",
+                         side_effect=capture_prepare),
+        ):
+            stack.enter_context(manager)
+        result = chain_lots.process(43238891957)
+    assert result == [{"request": "p4-prioridad", "lot_id": "SOL-001",
+                       "status": "DRAFT_PREPARED", "model_invoked": False}]
+    assert emitted == [(
+        "p4-prioridad", "SOL-001", "p4be",
+        "pilot/runs/p4-prioridad/templates/p4be.task.json",
+        "pilot/runs/p4-prioridad/claude_meta/p4be.json",
+        {"SOL-002"}, current_main,
+    )]
+
+
+def test_p4_priority_plan_rejects_mixed_or_cross_request_binding_paths():
+    """P4 path enrollment is exact; unrelated or mixed metadata is denied."""
+    root = Path(__file__).resolve().parents[2]
+    lots = json.loads((root / "pilot/runs/p4-prioridad/lots.json").read_text("utf-8"))
+    plan = json.loads((root / "pilot/orchestrator/chain_plans/p4-prioridad.json")
+                      .read_text("utf-8"))
+    assert set(validate_plan(plan, lots, "p4-prioridad")) == {"SOL-001", "SOL-002"}
+    for target in (
+        "pilot/runs/other/templates/p4be.task.json",
+        "pilot/orchestrator/native_inputs/p4be.task.json",
+    ):
+        mutated = json.loads(json.dumps(plan))
+        mutated["bindings"][1]["template_path"] = target
+        with pytest.raises(ChainBlocked, match="BINDING_PATH_INVALID"):
+            validate_plan(mutated, lots, "p4-prioridad")

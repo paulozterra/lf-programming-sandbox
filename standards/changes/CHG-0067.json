@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0067",
+  "title": "CP3.6: plan P4 prioridad DATA→BACKEND y prueba de activación",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo: registrar encadenamiento p4-prioridad antes de fusionar PR #110"
+  },
+  "reason": "Enrolar los lotes existentes SOL-002/p4data y SOL-001/p4be en el DAG CP3.6, aceptar exclusivamente plantillas y metadatos anclados al pedido en validate_plan y verificar offline que el merge DATA por Train libera preparación del lote BACKEND, sin modelo ni oráculo.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/chain_contract.py",
+      "pilot/orchestrator/chain_plans/p4-prioridad.json",
+      "pilot/orchestrator/test_chain_lots.py",
+      "standards/changes/CHG-0067.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

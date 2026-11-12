@@ -50,12 +50,19 @@ def validate_plan(plan: dict, lots: dict, request: str) -> dict[str, dict]:
         if (lot not in by_lot or lot in found or not isinstance(task, str)
                 or not ID.fullmatch(task) or task in tasks):
             deny("BINDING_ID_INVALID")
-        for key in ("template_path", "holdout_metadata_path"):
-            name = row[key]
-            expected = f"pilot/orchestrator/native_inputs/{task}."
-            suffix = "task.json" if key == "template_path" else "holdout.json"
-            if name != expected + suffix:
-                deny("BINDING_PATH_INVALID")
+        legacy = {
+            "template_path": f"pilot/orchestrator/native_inputs/{task}.task.json",
+            "holdout_metadata_path": f"pilot/orchestrator/native_inputs/{task}.holdout.json",
+        }
+        request_paths = {
+            "template_path": f"pilot/runs/{request}/templates/{task}.task.json",
+            "holdout_metadata_path": f"pilot/runs/{request}/claude_meta/{task}.json",
+        }
+        # Bind both paths to one canonical layout. No mixing layouts or paths
+        # outside the owner-selected request and task are accepted.
+        if not (all(row[key] == layout[key] for key in legacy)
+                or all(row[key] == layout[key] for key in request_paths)):
+            deny("BINDING_PATH_INVALID")
         tasks.add(task)
         found[lot] = row
     if set(found) != set(by_lot):
