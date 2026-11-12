@@ -47,11 +47,11 @@ def sanitized_stderr(stderr: bytes) -> str:
         if len(secret) >= 4:
             message = message.replace(secret, "[REDACTED]")
     # Scrub common GitHub credential formats even when not in our env.
-    message = re.sub(r"(?i)Bearer\\s+[^\\s,;]+", "Bearer [REDACTED]", message)
+    message = re.sub(r"(?i)Bearer\s+[^\s,;]+", "Bearer [REDACTED]", message)
     message = re.sub(r"(?i)(?:gh[pousr]_|github_pat_)[a-zA-Z0-9_]+", "[REDACTED]", message)
-    message = re.sub(r"(?i)(https?://)[^\\s/@]+@",
+    message = re.sub(r"(?i)(https?://)[^\s/@]+@",
                      r"\\1[REDACTED]@", message)
-    message = re.sub(r"[\\x00-\\x1f\\x7f]+", " ", message).strip()
+    message = re.sub(r"[\x00-\x1f\x7f]+", " ", message).strip()
     return message[:1200] or "(empty stderr)"
 
 
@@ -326,7 +326,7 @@ def reuse_identical_branch(root: Path, branch: str, remote_sha: str,
         block("BRANCH_EXISTS_DIFFERENT")
     paths = set(command(["git", "diff", "--name-only", historic, remote_sha],
                         cwd=root).decode().splitlines())
-    chgs = [p for p in paths if re.fullmatch(r"standards/changes/CHG-\\d{4}\\.json", p)]
+    chgs = [p for p in paths if re.fullmatch(r"standards/changes/CHG-\d{4}\.json", p)]
     if len(chgs) != 1 or paths != allowed | {"standards/CAMBIOS.md", chgs[0]}:
         block("BRANCH_EXISTS_DIFFERENT")
     number = int(CHG.fullmatch(Path(chgs[0]).stem).group(1))
