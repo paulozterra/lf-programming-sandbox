@@ -30,3 +30,42 @@ jobs:
         run: python3 -m pytest -q standards/tests/test_pr_workflow_concurrency.py
       - name: Analysis A1-A5 visible test suites (offline)
         run: python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py analysis/host
+      - name: F1 simulated A5 evidence (offline, no provider)
+        run: |
+          python3 analysis/host/run_a1_a5_fixture.py --output-dir "$RUNNER_TEMP/sbx-f1"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          base = Path(os.environ["RUNNER_TEMP"]) / "sbx-f1"
+          a3 = json.loads((base / "a3.json").read_text())
+          a4 = json.loads((base / "a4.json").read_text())
+          a5 = json.loads((base / "a5.json").read_text())
+          rules = a5["rule_profiles"]["rules"]
+          assert len(rules) == 8
+          summary = {
+              "simulation": True,
+              "a3_status": a3["status"],
+              "a4_status": a4["status"],
+              "a4_target_action": a4["target_change_action"],
+              "a4_no_impact_claimed": a4["no_impact_claimed"],
+              "a5_status": a5["status"],
+              "a5_source_attested": a5["source_attested"],
+              "a5_a6_allowed": a5["a6_allowed"],
+              "included": [
+                  {"code": r["rule_code"], "source_ref": r["rule_source_ref"],
+                   "scope": r["implementation_scope"]}
+                  for r in rules if r["implementation_scope"] == "APPROVED_SCOPE"
+              ],
+              "excluded": [
+                  {"code": r["rule_code"],
+                   "reason": r["rule_source_row"].get("exclusion_reason"),
+                   "source_ref": r["rule_source_ref"]}
+                  for r in rules if r["implementation_scope"] == "EXCLUDED_PENDING"
+              ],
+              "inherited_derived_global_vigente": a3["counts"]["inherited_derived_global_vigente"],
+              "policy_supplemental_source_refs": a3["policy_resolution"]["supplemental_policy_source_refs"],
+              "unresolved_material_impacts": a4["unresolved_material_impacts"],
+          }
+          print("F1_A5_SIMULATED_RESULT=" + json.dumps(summary, ensure_ascii=False, sort_keys=True))
+          PY
