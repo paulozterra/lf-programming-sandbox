@@ -64,4 +64,4 @@
 | CHG-0062 | EDITORIAL | P4: exámenes ocultos cifrados, chequeos visibles y plantillas de tarea del pedido de prioridad |  | paulozterra |  |
 | CHG-0063 | EDITORIAL | P4DATA: registro nativo SOL-002 y exportación gobernada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/105 |
 | CHG-0064 | EDITORIAL | CP3.5: inventario exacto de tres recibos de feedback y costo nativo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/106 |
-| CHG-0065 | EDITORIAL | CP3.5: integración verificada nativa p4data (run 43146245998) |  | paulozterra |  |
+| CHG-0065 | EDITORIAL | CP3.5: integración verificada nativa p4data (run 43146245998) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/110 |
