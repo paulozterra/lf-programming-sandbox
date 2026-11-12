@@ -7,6 +7,13 @@ import java.util.Optional;
 public interface ReminderRepository {
     Reminder save(String text, LocalTime at);
 
+    default Reminder save(String text, LocalTime at, String priority) {
+        if (!"MEDIUM".equals(priority)) {
+            throw new IllegalArgumentException("unsupported priority");
+        }
+        return save(text, at);
+    }
+
     List<Reminder> findAll();
 
     Optional<Reminder> findById(long id);
@@ -16,6 +23,13 @@ public interface ReminderRepository {
     List<Reminder> findByTextContaining(String query);
 
     Optional<Reminder> update(long id, String text, LocalTime at);
+
+    default Optional<Reminder> update(long id, String text, LocalTime at, String priority) {
+        if (!"MEDIUM".equals(priority)) {
+            throw new IllegalArgumentException("unsupported priority");
+        }
+        return update(id, text, at);
+    }
 
     Optional<Reminder> snooze(long id, int minutes);
 }

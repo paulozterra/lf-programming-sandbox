@@ -42,12 +42,28 @@ public class ReminderController {
         }
     }
 
+    private static String validPriority(Map<String, Object> body) {
+        Object priority = body.getOrDefault("priority", "MEDIUM");
+        if (!(priority instanceof String text)
+                || !(text.equals("HIGH") || text.equals("MEDIUM") || text.equals("LOW"))) {
+            throw new IllegalArgumentException("invalid priority");
+        }
+        return text;
+    }
+
+    private static String validFilterPriority(String priority) {
+        if (priority == null || priority.equals("HIGH") || priority.equals("MEDIUM") || priority.equals("LOW")) {
+            return priority;
+        }
+        throw new IllegalArgumentException("invalid priority filter");
+    }
+
     @PostMapping("/api/reminders")
     public ResponseEntity<Object> create(@RequestBody(required = false) Map<String, Object> body) {
         final Reminder saved;
         try {
             LocalTime time = validBodyTime(body);
-            saved = repository.save((String) body.get("text"), time);
+            saved = repository.save((String) body.get("text"), time, validPriority(body));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (IllegalStateException e) {
@@ -69,7 +85,7 @@ public class ReminderController {
         try {
             LocalTime time = validBodyTime(body);
             return repository
-                    .update(value, (String) body.get("text"), time)
+                    .update(value, (String) body.get("text"), time, validPriority(body))
                     .<ResponseEntity<Object>>map(r -> ResponseEntity.ok(toResponse(r)))
                     .orElseGet(() -> ResponseEntity.notFound().build());
         } catch (IllegalArgumentException e) {
@@ -115,7 +131,20 @@ public class ReminderController {
     }
 
     @GetMapping("/api/reminders")
-    public List<ReminderResponse> list(@RequestParam(name = "q", required = false) String q) {
+    public ResponseEntity<List<ReminderResponse>> listFiltered(
+            @RequestParam(name = "q", required = false) String q,
+            @RequestParam(name = "priority", required = false) String priority) {
+        try {
+            String selected = validFilterPriority(priority);
+            return ResponseEntity.ok(list(q).stream()
+                    .filter(r -> selected == null || selected.equals(r.priority()))
+                    .toList());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    public List<ReminderResponse> list(String q) {
         List<Reminder> found = (q == null || q.isBlank()) ? repository.findAll() : repository.findByTextContaining(q);
         return found.stream().map(ReminderController::toResponse).toList();
     }
@@ -149,8 +178,8 @@ public class ReminderController {
     }
 
     private static ReminderResponse toResponse(Reminder r) {
-        return new ReminderResponse(r.id(), r.text(), r.at().format(TIME));
+        return new ReminderResponse(r.id(), r.text(), r.at().format(TIME), r.priority());
     }
 
-    public record ReminderResponse(long id, String text, String at) {}
+    public record ReminderResponse(long id, String text, String at, String priority) {}
 }

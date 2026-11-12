@@ -77,3 +77,4 @@
 | CHG-0075 | ADDITIVE | Train: reintentos ante fallos transitorios de GitHub y HEAD de merge ya al día |  | paulozterra |  |
 | CHG-0076 | EDITORIAL | P4: tests de controlador aislados (DirtiesContext) + insumos p4be3 |  | paulozterra |  |
 | CHG-0077 | EDITORIAL | P4: registro nativo p4be3 (lote BACKEND) |  | paulozterra |  |
+| CHG-0078 | EDITORIAL | CP3.5: integración verificada nativa p4be3 (run 43277057137) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/122 |

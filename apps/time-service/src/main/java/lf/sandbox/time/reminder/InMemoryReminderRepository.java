@@ -36,6 +36,13 @@ public class InMemoryReminderRepository implements ReminderRepository {
         return at.truncatedTo(ChronoUnit.SECONDS);
     }
 
+    private static String validatedPriority(String priority) {
+        if (priority == null || !(priority.equals("HIGH") || priority.equals("MEDIUM") || priority.equals("LOW"))) {
+            throw new IllegalArgumentException("invalid priority");
+        }
+        return priority;
+    }
+
     private boolean duplicates(long excludedId, String text, LocalTime at) {
         String key = text.toLowerCase(Locale.ROOT);
         for (Reminder existing : reminders) {
@@ -50,12 +57,18 @@ public class InMemoryReminderRepository implements ReminderRepository {
 
     @Override
     public synchronized Reminder save(String text, LocalTime at) {
+        return save(text, at, "MEDIUM");
+    }
+
+    @Override
+    public synchronized Reminder save(String text, LocalTime at, String priority) {
         String normalizedText = validatedText(text);
         LocalTime normalizedTime = validatedTime(at);
+        String normalizedPriority = validatedPriority(priority);
         if (duplicates(-1, normalizedText, normalizedTime)) {
             throw new IllegalStateException("duplicate reminder");
         }
-        Reminder reminder = new Reminder(nextId, normalizedText, normalizedTime);
+        Reminder reminder = new Reminder(nextId, normalizedText, normalizedTime, normalizedPriority);
         reminders.add(reminder);
         nextId++;
         return reminder;
@@ -65,13 +78,24 @@ public class InMemoryReminderRepository implements ReminderRepository {
     public synchronized Optional<Reminder> update(long id, String text, LocalTime at) {
         String normalizedText = validatedText(text);
         LocalTime normalizedTime = validatedTime(at);
+        return updateValidated(id, normalizedText, normalizedTime, null);
+    }
+
+    @Override
+    public synchronized Optional<Reminder> update(long id, String text, LocalTime at, String priority) {
+        String normalizedText = validatedText(text);
+        LocalTime normalizedTime = validatedTime(at);
+        return updateValidated(id, normalizedText, normalizedTime, validatedPriority(priority));
+    }
+
+    private Optional<Reminder> updateValidated(long id, String text, LocalTime at, String priority) {
         for (int i = 0; i < reminders.size(); i++) {
             Reminder existing = reminders.get(i);
             if (existing.id() == id) {
-                if (duplicates(id, normalizedText, normalizedTime)) {
+                if (duplicates(id, text, at)) {
                     throw new IllegalStateException("duplicate reminder");
                 }
-                Reminder updated = new Reminder(id, normalizedText, normalizedTime);
+                Reminder updated = new Reminder(id, text, at, priority == null ? existing.priority() : priority);
                 reminders.set(i, updated);
                 return Optional.of(updated);
             }
@@ -91,7 +115,7 @@ public class InMemoryReminderRepository implements ReminderRepository {
                 if (duplicates(id, existing.text(), newTime)) {
                     throw new IllegalStateException("duplicate reminder");
                 }
-                Reminder updated = new Reminder(id, existing.text(), newTime);
+                Reminder updated = new Reminder(id, existing.text(), newTime, existing.priority());
                 reminders.set(i, updated);
                 return Optional.of(updated);
             }
