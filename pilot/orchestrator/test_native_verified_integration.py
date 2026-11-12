@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from native_verified_integration import (
-    IntegrationBlocked, extract_exact_zip, verify_run, allowed_paths,
+    IntegrationBlocked, extract_exact_zip, extract_exact_zip_bundle, verify_run, allowed_paths,
     validate_patch_against_repo, chg_payload,
 )
 
@@ -100,3 +100,38 @@ def test_chg_declares_no_authority():
     assert chg["approved_by"] == "paulozterra"
     assert chg["evidence"]["pr_url"] == ""
     assert chg["security_pin_invalidation"]["invalidates"] is False
+
+
+def test_visible_cost_feedback_bundle_accepts_exact_three_members():
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name in ("status.json", "feedback.json", "cost.json"):
+            archive.writestr(name, b'{"ok":true}')
+    required = {n: 1000 for n in ("status.json", "feedback.json", "cost.json")}
+    actual = extract_exact_zip_bundle(stream.getvalue(), required)
+    assert set(actual) == set(required)
+    assert all(value == b'{"ok":true}' for value in actual.values())
+
+
+@pytest.mark.parametrize("extra", ["../evil.json", "receipt-extra.json", "status.json"])
+def test_visible_cost_feedback_bundle_rejects_extra_duplicate_and_traversal(extra):
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name in ("status.json", "feedback.json", "cost.json"):
+            archive.writestr(name, b'{"ok":true}')
+        archive.writestr(extra, b"attack")
+    required = {n: 1000 for n in ("status.json", "feedback.json", "cost.json")}
+    with pytest.raises(IntegrationBlocked, match="ARTIFACT_INVENTORY_INVALID"):
+        extract_exact_zip_bundle(stream.getvalue(), required)
+
+
+def test_visible_cost_feedback_bundle_rejects_missing_and_oversized():
+    required = {n: 10 for n in ("status.json", "feedback.json", "cost.json")}
+    with pytest.raises(IntegrationBlocked, match="ARTIFACT_INVENTORY_INVALID"):
+        extract_exact_zip_bundle(zipped("status.json", b'{}'), required)
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name in required:
+            archive.writestr(name, b"x" * (11 if name == "feedback.json" else 2))
+    with pytest.raises(IntegrationBlocked, match="ARTIFACT_SIZE_INVALID"):
+        extract_exact_zip_bundle(stream.getvalue(), required)

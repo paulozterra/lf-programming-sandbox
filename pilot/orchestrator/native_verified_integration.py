@@ -60,27 +60,39 @@ def obj(raw: bytes) -> dict:
     return value
 
 
-def extract_exact_zip(raw: bytes, expected: str, limit: int) -> bytes:
-    if len(raw) > limit + 300_000:
+def extract_exact_zip_bundle(raw: bytes, expected: dict[str, int]) -> dict[str, bytes]:
+    """Exact, bounded Actions artifact ZIP inventory (no extra or duplicate files).
+
+    The native Worker deliberately uploads three visible-only receipts in one
+    artifact. Inspect all of them while still denying traversal and symlinks.
+    """
+    if not expected or len(raw) > sum(expected.values()) + 300_000:
         block("ARTIFACT_OVERSIZE")
     try:
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-            info = archive.infolist()
-            if len(info) != 1 or info[0].filename != expected:
+            infos = archive.infolist()
+            if (len(infos) != len(expected)
+                    or {member.filename for member in infos} != set(expected)):
                 block("ARTIFACT_INVENTORY_INVALID")
-            member = info[0]
-            mode = (member.external_attr >> 16) & 0o170000
-            if member.is_dir() or mode not in (0, 0o100000):
-                block("ARTIFACT_NOT_REGULAR_FILE")
-            if member.file_size == 0 or member.file_size > limit:
-                block("ARTIFACT_SIZE_INVALID")
-            value = archive.read(member)
-            if len(value) != member.file_size:
-                block("ARTIFACT_BYTES_INVALID")
-            return value
+            result = {}
+            for member in infos:
+                mode = (member.external_attr >> 16) & 0o170000
+                if member.is_dir() or mode not in (0, 0o100000) or member.flag_bits & 1:
+                    block("ARTIFACT_NOT_REGULAR_FILE")
+                if not 0 < member.file_size <= expected[member.filename]:
+                    block("ARTIFACT_SIZE_INVALID")
+                value = archive.read(member)
+                if len(value) != member.file_size:
+                    block("ARTIFACT_BYTES_INVALID")
+                result[member.filename] = value
+            return result
     except (zipfile.BadZipFile, OSError, RuntimeError):
         block("ARTIFACT_ARCHIVE_INVALID")
 
+
+def extract_exact_zip(raw: bytes, expected: str, limit: int) -> bytes:
+    """Backward-compatible strict single-file extractor."""
+    return extract_exact_zip_bundle(raw, {expected: limit})[expected]
 
 def verify_run(run: dict, jobs: dict, expected_run: int) -> None:
     if (run.get("id") != expected_run or run.get("conclusion") != "success"
@@ -109,9 +121,16 @@ def get_verified_patch(run_id: int) -> tuple[bytes, dict, dict]:
         if len(found) != 1:
             block("NATIVE_ARTIFACT_MISSING_OR_DUPLICATED")
         archive = gh_api(f"repos/{REPOSITORY}/actions/artifacts/{found[0]['id']}/zip")
-        raw[name] = extract_exact_zip(archive, file, limit)
-    status = obj(raw["native-visible-feedback-and-cost"])
-    proof = obj(raw["native-attempt-proof"])
+        expected = ({"status.json": 32_000, "feedback.json": 32_000,
+                     "cost.json": 32_000}
+                    if name == "native-visible-feedback-and-cost"
+                    else {file: limit})
+        raw[name] = extract_exact_zip_bundle(archive, expected)
+    status = obj(raw["native-visible-feedback-and-cost"]["status.json"])
+    # All three native receipts are present, parseable and unmodified.
+    obj(raw["native-visible-feedback-and-cost"]["feedback.json"])
+    obj(raw["native-visible-feedback-and-cost"]["cost.json"])
+    proof = obj(raw["native-attempt-proof"]["attempt-proof.json"])
     if (status.get("schema_version") != "LF_NATIVE_RESULT_SUMMARY_V1"
             or status.get("status") != "PASS" or status.get("production_authority") is not False
             or status.get("receipt_authenticated") is not False
@@ -124,7 +143,7 @@ def get_verified_patch(run_id: int) -> tuple[bytes, dict, dict]:
     task = status["task_id"]
     if not isinstance(task, str) or not TASK.fullmatch(task):
         block("NATIVE_TASK_UNSAFE")
-    return raw["native-verified-patch"], status, proof
+    return raw["native-verified-patch"]["worker.patch"], status, proof
 
 
 def allowed_paths(reg: dict) -> tuple[str, set[str]]:
