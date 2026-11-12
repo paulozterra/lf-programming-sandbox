@@ -73,3 +73,4 @@
 | CHG-0071 | EDITORIAL | CP3.6: pruebas de cadena p4-prioridad herméticas |  | paulozterra |  |
 | CHG-0072 | ADDITIVE | C9: CAMBIOS derivado por Train sin conflictos entre PRs |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/116 |
 | CHG-0073 | EDITORIAL | P4: el test visible heredado acepta la prioridad; insumos de la tarea p4be2 |  | paulozterra |  |
+| CHG-0074 | EDITORIAL | P4: registro nativo p4be2 (lote BACKEND) |  | paulozterra |  |
