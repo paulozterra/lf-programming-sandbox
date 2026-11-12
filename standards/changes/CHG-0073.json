@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0073",
+  "title": "P4: el test visible heredado acepta la prioridad; insumos de la tarea p4be2",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12 P4 lote BACKEND"
+  },
+  "reason": "El pedido P4 exige que todas las respuestas incluyan priority; ReminderControllerVisibleTest (protegido) exigía exactamente 3 campos y hacía imposible el lote BACKEND (corrida 43264021905). Claude, autor de los exámenes, lo ajusta a 4 campos con priority=MEDIUM por defecto. Se agregan el examen cifrado (mismo oráculo de p4be), metadatos y plantilla para registrar p4be2 sobre esta base.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java",
+      "pilot/holdouts/p4be2.oracle.json.age",
+      "pilot/runs/p4-prioridad/claude_meta/p4be2.json",
+      "pilot/runs/p4-prioridad/templates/p4be2.task.json",
+      "standards/changes/CHG-0073.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}

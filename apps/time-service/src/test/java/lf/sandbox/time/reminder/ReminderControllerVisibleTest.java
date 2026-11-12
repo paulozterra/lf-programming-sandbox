@@ -49,7 +49,9 @@ class ReminderControllerVisibleTest {
                 .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("/api/reminders/\\d+")))
                 .andExpect(jsonPath("$.text").value("take a break"))
                 .andExpect(jsonPath("$.at").value("13:20:30"))
-                .andExpect(jsonPath("$.*", hasSize(3)));
+                // P4 (pilot/runs/p4-prioridad/request.md): responses now also carry priority.
+                .andExpect(jsonPath("$.priority").value("MEDIUM"))
+                .andExpect(jsonPath("$.*", hasSize(4)));
 
         mvc.perform(get("/api/reminders"))
                 .andExpect(status().isOk())
