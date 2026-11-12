@@ -49,10 +49,10 @@ def _safe_command_stderr(raw: bytes) -> str:
             message = message.replace(secret, "[REDACTED]")
     message = re.sub(r"(?i)(?:gh[pousr]_[a-z0-9_]+|github_pat_[a-z0-9_]+)",
                      "[REDACTED]", message)
-    message = re.sub(r"(?i)(authorization\\s*[:=]\\s*(?:bearer|basic)\\s+)\\S+",
-                     r"\\1[REDACTED]", message)
-    message = re.sub(r"(?i)(https?://)[^/\\s@]+@", r"\\1[REDACTED]@", message)
-    return message.replace("\\r", " ").replace("\\n", " ")[:1200]
+    message = re.sub(r"(?i)(authorization\s*[:=]\s*(?:bearer|basic)\s+)\S+",
+                     r"\1[REDACTED]", message)
+    message = re.sub(r"(?i)(https?://)[^/\s@]+@", r"\\1[REDACTED]@", message)
+    return message.replace("\r", " ").replace("\n", " ")[:1200]
 
 
 def command(args: list[str], *, cwd: Path | None = None,
@@ -344,7 +344,7 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
     changed_names = command(["git", "diff", "--name-only", parent, remote_sha],
                             cwd=root).decode().splitlines()
     matches = [name for name in changed_names
-               if re.fullmatch(r"standards/changes/CHG-[0-9]{4}\\.json", name)]
+               if re.fullmatch(r"standards/changes/CHG-[0-9]{4}\.json", name)]
     if len(matches) != 1:
         block("BRANCH_EXISTS_DIFFERENT")
     chg_file = matches[0]
@@ -360,7 +360,7 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
                 payload = chg_payload(number, task, run_id,
                                       hashlib.sha256(patch).hexdigest(), list(changed))
                 target = work / chg_file
-                target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\\n",
+                target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
                                   encoding="utf-8")
                 command(["python3", "standards/tools/changes.py", "render"], cwd=work)
                 command(["git", "add", "--", *sorted(changed), chg_file,
