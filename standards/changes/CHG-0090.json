@@ -7,22 +7,24 @@
     "kind": "OWNER",
     "reference": "T1: alcance detallado, plan-cero-intervencion-ruta-20261112.md"
   },
-  "reason": "El camino nuevo aplica A7.execution_area con source_ref o tabla T1 versionada; ante frente sin regla bloquea ATOM_AREA_UNRESOLVED. Las rutas se generan determinísticamente, PG02-PG05 siguen fijados; plantillas y plan CP3.6 se derivan de lots.json. P4 conserva fixture solo para regresión; no se consumen owner overrides.",
+  "reason": "El camino nuevo aplica A7.execution_area con source_ref o tabla T1 versionada; ante frente sin regla bloquea ATOM_AREA_UNRESOLVED. Las rutas se generan determinísticamente, PG02-PG05 siguen fijados; plantillas y plan CP3.6 se derivan de lots.json. P4 conserva fixture solo para regresión; no se consumen owner overrides. Las rutas de proyecto se insertan solo en PostgreSQL de prueba por selector_db; el workflow F5 antiguo usa --legacy para mantener evidencia histórica. Nunca se altera PG02-PG05 fijado.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/f5-package.yml",
       "pilot/orchestrator/atomize.py",
       "pilot/orchestrator/atomize_rules_v1.json",
-      "pilot/orchestrator/plan_lots.py",
-      "pilot/orchestrator/package_to_lots.py",
       "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/package_to_lots.py",
+      "pilot/orchestrator/plan_lots.py",
+      "pilot/orchestrator/selector_db.py",
       "pilot/orchestrator/test_atomize.py",
       "pilot/orchestrator/test_package_to_lots.py",
-      ".github/workflows/ci.yml",
-      "standards/changes/CHG-0090.json",
-      "standards/CAMBIOS.md"
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0090.json"
     ]
   },
   "approved_by": "paulozterra",
