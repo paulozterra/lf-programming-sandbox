@@ -8,7 +8,8 @@
       "status": "VIGENTE",
       "pending_decision": false,
       "source_ref": "supabase://lf_ops.reglas/1",
-      "association_ref": "supabase://lf_ops.reglas_pantallas/1"
+      "association_ref": "supabase://lf_ops.reglas_pantallas/1",
+      "categoria": "flujo"
     },
     {
       "code": "SBX-R-PASS",
@@ -16,7 +17,8 @@
       "status": "VIGENTE",
       "pending_decision": false,
       "source_ref": "supabase://lf_ops.reglas/2",
-      "association_ref": "supabase://lf_ops.reglas_pantallas/2"
+      "association_ref": "supabase://lf_ops.reglas_pantallas/2",
+      "categoria": "flujo"
     },
     {
       "code": "SBX-R-LOCK",
@@ -24,7 +26,8 @@
       "status": "VIGENTE",
       "pending_decision": false,
       "source_ref": "supabase://lf_ops.reglas/3",
-      "association_ref": "supabase://lf_ops.reglas_pantallas/3"
+      "association_ref": "supabase://lf_ops.reglas_pantallas/3",
+      "categoria": "rate_limiting"
     },
     {
       "code": "SBX-R-HASH",
@@ -32,7 +35,8 @@
       "status": "VIGENTE",
       "pending_decision": false,
       "source_ref": "supabase://lf_ops.reglas/4",
-      "association_ref": "supabase://lf_ops.reglas_pantallas/4"
+      "association_ref": "supabase://lf_ops.reglas_pantallas/4",
+      "categoria": "seguridad"
     },
     {
       "code": "SBX-R-ERR",
@@ -40,7 +44,8 @@
       "status": "VIGENTE",
       "pending_decision": false,
       "source_ref": "supabase://lf_ops.reglas/5",
-      "association_ref": "supabase://lf_ops.reglas_pantallas/5"
+      "association_ref": "supabase://lf_ops.reglas_pantallas/5",
+      "categoria": "error_states"
     },
     {
       "code": "SBX-R-PENDING",
@@ -48,7 +53,8 @@
       "status": "VIGENTE",
       "pending_decision": true,
       "source_ref": "supabase://lf_ops.reglas/6",
-      "association_ref": "supabase://lf_ops.reglas_pantallas/6"
+      "association_ref": "supabase://lf_ops.reglas_pantallas/6",
+      "categoria": "ux"
     },
     {
       "code": "SBX-R-CAND",
@@ -56,7 +62,8 @@
       "status": "CANDIDATO",
       "pending_decision": false,
       "source_ref": "supabase://lf_ops.reglas/7",
-      "association_ref": "supabase://lf_ops.reglas_pantallas/7"
+      "association_ref": "supabase://lf_ops.reglas_pantallas/7",
+      "categoria": "copy"
     }
   ],
   "valor_config": [

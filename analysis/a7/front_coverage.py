@@ -49,6 +49,63 @@ AREA_HINTS = {
     "OTHER": ("UNKNOWN", ()),
 }
 
+# Source category comes only from the SHA-pinned fixture read by the F1 host.
+# Never classify title/description free text.
+CATEGORY_KIND = {
+    "seguridad": "SECURITY_PRIVACY", "security": "SECURITY_PRIVACY",
+    "ataques": "SECURITY_PRIVACY", "rate_limiting": "SECURITY_PRIVACY",
+    "ux": "UI_VISUAL", "estados_ui": "UI_VISUAL", "copy": "UI_VISUAL",
+    "error_states": "STATE_ERROR", "datos": "DATA_CONTRACT",
+    "api": "API_CONTRACT", "analytics": "ANALYTICS",
+}
+
+
+def category_kind(value):
+    if not isinstance(value, str):
+        return "OTHER"
+    return CATEGORY_KIND.get(value.strip().casefold(), "OTHER")
+
+
+def _checked_categories(categories, a3):
+    if not isinstance(categories, dict) or set(categories) != {
+        "direct", "effective", "fixture_provenance"
+    }:
+        fail("F3_A7_CATEGORY_SOURCE_REQUIRED")
+    proof = categories["fixture_provenance"]
+    if (not isinstance(proof, dict)
+            or any(not isinstance(proof.get(k), str)
+                   or not proof[k].startswith("fixture://sbx_auth_login/" + k + "@")
+                   or len(proof[k].split("@")[-1]) != 64
+                   for k in ("direct_rules.json", "effective_rules.json"))):
+        fail("F3_A7_CATEGORY_PROVENANCE_INVALID")
+    # The F1 host verified these source bytes and SHA256 before constructing
+    # this binding. No bare provider text or user description is consulted.
+    direct, effective = categories["direct"], categories["effective"]
+    if not isinstance(direct, dict) or not isinstance(effective, dict):
+        fail("F3_A7_CATEGORY_SOURCE_INVALID")
+    for code, row in direct.items():
+        if (not isinstance(row, dict) or not isinstance(row.get("source_ref"), str)
+                or not isinstance(row.get("categoria"), str)):
+            fail("F3_A7_CATEGORY_SOURCE_INVALID")
+    for code, row in effective.items():
+        if (not isinstance(row, dict) or not isinstance(row.get("source_ref"), str)
+                or not isinstance(row.get("categoria"), str)):
+            fail("F3_A7_CATEGORY_SOURCE_INVALID")
+        if code in direct and direct[code] != row:
+            fail("F3_A7_CATEGORY_SOURCE_DISAGREEMENT")
+        if row["source_ref"] not in a3.get("source_refs", []) and code in {
+            x.get("rule_code") for x in a3.get("policy_scope_clear_rule_candidates", [])
+        }:
+            fail("F3_A7_CATEGORY_RULE_REF_UNKNOWN")
+    return effective
+
+
+def _kind_for_rule(code, categories, a3):
+    if code not in categories:
+        fail("F3_A7_CATEGORY_RULE_UNBOUND:" + str(code))
+    row = categories[code]
+    return category_kind(row["categoria"])
+
 
 def fail(code):
     raise AdmissionBlocked(code)
@@ -98,7 +155,8 @@ def _front(candidate, kind, status, closure, evidence, reason, scope, blocker=No
     }
 
 
-def _material_candidates(a3, a4, a6):
+def _material_candidates(a3, a4, a6, admission, category_sources):
+    categories = _checked_categories(category_sources, a3)
     readback = a3.get("material_contract_readback")
     if not isinstance(readback, dict):
         fail("F3_A7_MATERIAL_READBACK_MISSING")
@@ -137,6 +195,7 @@ def _material_candidates(a3, a4, a6):
                 fail("F3_A7_RULE_POINTER_INVALID")
             if code not in included and code not in excluded:
                 fail("F3_A7_RULE_SCOPE_UNKNOWN")
+            kind = _kind_for_rule(code, categories, a3)
         if code in excluded:
             status, closure, reason, blocker = (
                 "NOT_APPLICABLE", "CLOSED", "Explicitly excluded from approved A3 scope: " + str(excluded[code]), None)
@@ -175,7 +234,7 @@ def _material_candidates(a3, a4, a6):
             continue
         if ref in approved_refs and impact.get("source_status") == "VIGENTE":
             by_candidate[ref] = _front(
-                ref, "OTHER", "REQUIRED", "CLOSED", [ref],
+                ref, _kind_for_rule(next(c for c, v in included.items() if v == ref), categories, a3), "REQUIRED", "CLOSED", [ref],
                 "A4 direct impact on A3 approved rule ref (source-only)",
                 a3["target_ref"])
         elif ref in excluded_refs:
@@ -201,7 +260,7 @@ def _material_candidates(a3, a4, a6):
                 "F3_A7_A4_UNRESOLVED:" + label)
     # Every A6 requirement is an independently accountable candidate.
     obligations = a6.get("requirements")
-    if not isinstance(obligations, list) or len(obligations) != 6:
+    if not isinstance(obligations, list) or not obligations:
         fail("F3_A7_A6_OBLIGATIONS_INVALID")
     for req in obligations:
         code, refs = req.get("requirement_id"), req.get("evidence_refs")
@@ -211,7 +270,7 @@ def _material_candidates(a3, a4, a6):
         if candidate in by_candidate:
             fail("F3_A7_DUPLICATE_CANDIDATE")
         by_candidate[candidate] = _front(
-            candidate, "OTHER", "REQUIRED", "CLOSED", refs,
+            candidate, _kind_for_rule(code, categories, a3), "REQUIRED", "CLOSED", refs,
             "A6 verifiable WHAT obligation (not a technical implementation choice)",
             a3["target_ref"], obligations=[code])
     gaps = a4.get("unresolved_material_impacts")
@@ -227,13 +286,34 @@ def _material_candidates(a3, a4, a6):
             candidate, "OTHER", "REQUIRED", "BLOCKED", [],
             "A4 external shared dependencies lack source attestation",
             a3["target_ref"], gap["code"])
+    # Lift *only* fronts whose entire blocking set is the single exact code
+    # recorded in the already-verified simulated admission receipt.
+    lifts = admission.get("lifted_codes")
+    if not isinstance(lifts, list) or len(lifts) != len(set(lifts)):
+        fail("F3_A7_ADMISSION_LIFTS_INVALID")
+    admission_ref = "sha256:" + digest(admission)
+    for front in by_candidate.values():
+        blockers = front["blockers"]
+        if (front["closure"] == "BLOCKED" and len(blockers) == 1
+                and blockers[0] in lifts):
+            lifted = blockers[0]
+            front["closure"] = "CLOSED"
+            front["closure_basis"] = "SIMULATED_ADMISSION_LIFT"
+            front["lifted_code"] = lifted
+            front["admission_evidence_ref"] = admission_ref
+            front["evidence_refs"] = sorted(set(front["evidence_refs"] + [admission_ref]))
+            front["blockers"] = []
+        else:
+            front["closure_basis"] = "SOURCE_ONLY" if front["closure"] == "CLOSED" else "MATERIAL_GAP_UNRESOLVED"
+            front["lifted_code"] = None
+            front["admission_evidence_ref"] = None
     return by_candidate
 
 
-def validate_coverage(packet, a3, a4, a6):
+def validate_coverage(packet, a3, a4, a6, admission, category_sources):
     if not isinstance(packet, dict) or packet.get("schema_version") != "MATERIAL_FRONT_COVERAGE_V1":
         fail("F3_A7_OUTPUT_INVALID")
-    expected = _material_candidates(a3, a4, a6)
+    expected = _material_candidates(a3, a4, a6, admission, category_sources)
     candidates = packet.get("front_candidate_refs")
     fronts = packet.get("material_fronts")
     if not isinstance(candidates, list) or not isinstance(fronts, list):
@@ -269,7 +349,7 @@ def validate_coverage(packet, a3, a4, a6):
     return True
 
 
-def run(stages, signals, envelope, admission, a6):
+def run(stages, signals, envelope, admission, a6, category_sources):
     # Gate verifies *all* real upstream A1–A5 digests; A6 binds to same receipt.
     verify(stages, signals, envelope, admission)
     _contract()
@@ -282,7 +362,7 @@ def run(stages, signals, envelope, admission, a6):
             or a6.get("requires_independent_exam") is not True):
         fail("F3_A7_A6_DIGEST_OR_ADMISSION_INVALID")
     a3, a4 = stages["A3"], stages["A4"]
-    candidates = _material_candidates(a3, a4, a6)
+    candidates = _material_candidates(a3, a4, a6, admission, category_sources)
     fronts = [candidates[key] for key in sorted(candidates)]
     out = {
         "schema_version": "MATERIAL_FRONT_COVERAGE_V1",
@@ -298,8 +378,9 @@ def run(stages, signals, envelope, admission, a6):
         "currentness_refs": [],
         "admission_envelope_sha256": admission["envelope_sha256"],
         "a6_fingerprint_sha256": a6["implementability_fingerprint_sha256"],
+        "category_source_sha256": {k: v.split("@")[-1] for k, v in category_sources["fixture_provenance"].items()},
         "authority_flags": deepcopy(admission["authority_flags"]),
     }
     out["coverage_fingerprint_sha256"] = digest(out)
-    validate_coverage(out, a3, a4, a6)
+    validate_coverage(out, a3, a4, a6, admission, category_sources)
     return out

@@ -11,7 +11,8 @@
       "pending_decision": false,
       "binding_source": "LEGACY_EXPLICIT",
       "source_ref": "supabase://lf_ops.reglas/1",
-      "config": {}
+      "config": {},
+      "categoria": "flujo"
     },
     {
       "code": "SBX-R-PASS",
@@ -20,7 +21,8 @@
       "pending_decision": false,
       "binding_source": "LEGACY_EXPLICIT",
       "source_ref": "supabase://lf_ops.reglas/2",
-      "config": {}
+      "config": {},
+      "categoria": "flujo"
     },
     {
       "code": "SBX-R-LOCK",
@@ -32,7 +34,8 @@
       "config": {
         "failed_attempts": 5,
         "lock_minutes": 15
-      }
+      },
+      "categoria": "rate_limiting"
     },
     {
       "code": "SBX-R-HASH",
@@ -43,7 +46,8 @@
       "source_ref": "supabase://lf_ops.reglas/4",
       "config": {
         "algorithm": "BCrypt"
-      }
+      },
+      "categoria": "seguridad"
     },
     {
       "code": "SBX-R-LOG",
@@ -54,7 +58,8 @@
       "source_ref": "supabase://lf_ops.reglas/105",
       "config": {
         "log_password": false
-      }
+      },
+      "categoria": "SECURITY"
     },
     {
       "code": "SBX-R-ERR",
@@ -67,7 +72,8 @@
         "generic_error": true,
         "session_minutes": 30,
         "security_policy_id": 71
-      }
+      },
+      "categoria": "error_states"
     },
     {
       "code": "SBX-R-PENDING",
@@ -76,7 +82,8 @@
       "pending_decision": true,
       "binding_source": "LEGACY_EXPLICIT",
       "source_ref": "supabase://lf_ops.reglas/6",
-      "config": {}
+      "config": {},
+      "categoria": "ux"
     },
     {
       "code": "SBX-R-CAND",
@@ -85,7 +92,8 @@
       "pending_decision": false,
       "binding_source": "LEGACY_EXPLICIT",
       "source_ref": "supabase://lf_ops.reglas/7",
-      "config": {}
+      "config": {},
+      "categoria": "copy"
     }
   ]
 }

@@ -76,3 +76,31 @@ python3 -m analysis.host.run_a1_a8_fixture --output-dir /tmp/sbx-f3
 
 El runner **extiende** F2 sin duplicarlo y genera A7 y A8 además de los
 artefactos F1/F2. Todo el material se mantiene simulado, sin Supabase.
+
+## Revisión Claude — cierre simulado, N variable y categoría tipada
+
+- A7 acepta **N >= 1** obligaciones de A6; no existe mínimo fijo seis.
+  Una lista vacía se bloquea. Login conserva seis como dato observado.
+- A7 respeta la admisión sellada por F2. Solo un frente con exactamente un
+  blocker presente en `admission.lifted_codes` cambia a CLOSED, con
+  `closure_basis=SIMULATED_ADMISSION_LIFT`, `lifted_code` explícito y
+  `admission_evidence_ref=sha256:<digest del recibo>` incluido en
+  `evidence_refs`. Otros motivos siguen BLOCKED.
+  No hay nueva autoridad, CURRENT ni garantía de cierre real.
+- `lf_ops.reglas.categoria` se representa con valores **ficticios** únicamente
+  en `direct_rules.json` y `effective_rules.json`; ambos archivos quedan
+  pinneados por SOURCE_PIN.json. El host F1 lee los bytes verificados con SHA
+  y entrega a A7 el vínculo `(rule_code, source_ref, categoria)`. A3 no se
+  modifica ni se consulta Supabase.
+- Tabla normalizada con `strip().casefold()`:
+  `seguridad|SECURITY|ataques|rate_limiting` → SECURITY_PRIVACY;
+  `ux|estados_ui|copy` → UI_VISUAL;
+  `error_states` → STATE_ERROR;
+  `datos` → DATA_CONTRACT;
+  `api` → API_CONTRACT;
+  `analytics` → ANALYTICS;
+  cualquier otro valor, incluidos `flujo`, `negocio`, `BUSINESS`,
+  `legal` y `tecnico`, → OTHER.
+  Nunca se usa `title` o descripción para elegir el kind.
+- El estado real A8 se lee del runner después de la corrección y **no**
+  se fuerza a STOP: la estabilidad de A5 es independiente del lift simulado.

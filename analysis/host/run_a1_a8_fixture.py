@@ -8,15 +8,31 @@ from pathlib import Path
 
 from analysis.host.run_a1_a5_fixture import encoded
 from analysis.host.run_a1_a6_fixture import run_f2
+from analysis.host.fixture_readback_host import FixtureHost
 from analysis.a7.front_coverage import run as run_a7
 from analysis.a8.stop_rule import run as run_a8
 
 
 def run_f3(fixtures=None, output_dir=None):
     result = run_f2(fixtures=fixtures, output_dir=output_dir)
+    # Verified by F1 host SOURCE_PIN.json before this metadata is read.
+    checked_host = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
+    pinned = checked_host.read_all()
+    def binding(rows):
+        return {row["code"]: {"source_ref": row["source_ref"],
+                              "categoria": row["categoria"]} for row in rows}
+    category_sources = {
+        "direct": binding(pinned["direct_rules.json"]["linked_rules"]),
+        "effective": binding(pinned["effective_rules.json"]["rules"]),
+        "fixture_provenance": {
+            name: checked_host.provenance[name] for name in
+            ("direct_rules.json", "effective_rules.json")
+        },
+    }
+    result["category_sources"] = category_sources
     a7 = run_a7(
         result["stages"], result["a2_signals"], result["admission_envelope"],
-        result["admission"], result["a6"])
+        result["admission"], result["a6"], category_sources)
     a8 = run_a8(result["stages"]["A3"], result["stages"]["A5"], a7)
     result["a7"] = a7
     result["a8"] = a8
@@ -44,6 +60,8 @@ if __name__ == "__main__":
             "area_candidates": row["execution_area_candidates"],
             "obligations": row["obligation_refs"],
             "blockers": row["blockers"],
+            "closure_basis": row["closure_basis"],
+            "lifted_code": row["lifted_code"],
         } for row in output["a7"]["material_fronts"]],
         "all_material_fronts_accounted": output["a7"]["all_material_fronts_accounted"],
         "a8_decision": output["a8"]["decision"],
