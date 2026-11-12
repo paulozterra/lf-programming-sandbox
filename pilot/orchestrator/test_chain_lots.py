@@ -249,7 +249,7 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
         assert len(emitted) == 1  # no successor release after 3 failures
 
 
-def test_p4_priority_chain_plan_data_merge_releases_backend_offline():
+def test_p4_priority_chain_plan_data_merge_releases_backend_offline(tmp_path):
     """Actual owner-enrolled plan: a trusted p4data merge queues p4be only."""
     plans = chain_lots.plans()
     selected = [row for row in plans if row[0] == "p4-prioridad"]
@@ -304,6 +304,9 @@ def test_p4_priority_chain_plan_data_merge_releases_backend_offline():
             patch.object(chain_lots, "failed_lots", return_value={}),
             patch.object(chain_lots, "prepare_successor",
                          side_effect=capture_prepare),
+            # Hermetic: the real repo may already contain native_tasks/p4be.json
+            # once the lot is registered; the simulation must not depend on it.
+            patch.object(chain_lots, "ROOT", tmp_path),
         ):
             stack.enter_context(manager)
         result = chain_lots.process(43238891957)
@@ -376,7 +379,7 @@ def test_cp36_manual_pr_requires_train_and_ancestry():
         chain_lots.validated_manual_integration(110, head)
 
 
-def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be():
+def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be(tmp_path):
     selected = [row for row in chain_lots.plans() if row[0] == "p4-prioridad"]
     assert len(selected) == 1
     sha, head = "a" * 40, "b" * 40
@@ -407,6 +410,7 @@ def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be():
                 patch.object(chain_lots, "run", side_effect=git_sim),
                 patch.object(chain_lots, "pending_draft", return_value=pending),
                 patch.object(chain_lots, "prepare_successor", side_effect=prepare),
+                patch.object(chain_lots, "ROOT", tmp_path),  # hermetic: ignore real native_tasks
             ):
                 stack.enter_context(item)
             return chain_lots.process(integration_pr=110)

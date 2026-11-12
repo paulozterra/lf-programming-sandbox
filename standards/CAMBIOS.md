@@ -70,3 +70,4 @@
 | CHG-0067 | EDITORIAL | CP3.6: plan P4 prioridad DATA→BACKEND y prueba de activación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/111 |
 | CHG-0068 | EDITORIAL | CP3.6: C9 vacío, códigos de bloqueo y recuperación por integration_pr |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/112 |
 | CHG-0069 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/113 |
+| CHG-0071 | EDITORIAL | CP3.6: pruebas de cadena p4-prioridad herméticas |  | paulozterra |  |
