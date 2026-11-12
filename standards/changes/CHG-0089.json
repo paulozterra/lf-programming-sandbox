@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0089",
   "title": "T0: informe automático de intervenciones por pedido (INTERVENCION_MANUAL SI/NO)",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo 2026-11-12: pruebas transparentes, T0 del plan cero intervención"
