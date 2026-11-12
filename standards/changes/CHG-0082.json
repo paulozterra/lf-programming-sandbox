@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0082",
+  "title": "F5.1: entrada A9 por intake y puente PG04 fail-closed",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12 F5.1 entrada A9→PG04, separación reglas técnicas y negocio"
+  },
+  "reason": "Reusa A9 real y el intake intacto; puente F5.1 detecta bloqueo material de partición sin inventar requisito de DATA, áreas UNKNOWN ni contexto de examen. PG00 y negocio permanecen físicamente distinguibles. No se registra trabajo Worker. El flujo plan_lots exige un requisito por scope, inexistente para DATA en A9 Login.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/package_to_lots.py",
+      "pilot/orchestrator/test_package_to_lots.py",
+      ".github/workflows/f5-package.yml",
+      "pilot/runs/f5-login/",
+      "standards/changes/CHG-0082.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
