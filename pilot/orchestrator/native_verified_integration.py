@@ -45,13 +45,13 @@ def sanitized_stderr(raw: bytes) -> str:
         secret = os.environ.get(key, "")
         if secret:
             text = text.replace(secret, "[REDACTED]")
-    text = re.sub(r"(?i)(authorization\\s*:\\s*(?:bearer|basic)\\s+)\\S+",
-                  r"\\1[REDACTED]", text)
-    text = re.sub(r"(?i)(https?://)[^/\\s@]+@",
-                  r"\\1[REDACTED]@", text)
+    text = re.sub(r"(?i)(authorization\s*:\s*(?:bearer|basic)\s+)\S+",
+                  r"\1[REDACTED]", text)
+    text = re.sub(r"(?i)(https?://)[^/\s@]+@",
+                  r"\1[REDACTED]@", text)
     text = re.sub(r"(?:gh[pousr]_[A-Za-z0-9_]{12,}|github_pat_[A-Za-z0-9_]{12,})",
                   "[REDACTED]", text)
-    text = re.sub(r"\\x1b\\[[0-9;]*[A-Za-z]", "", text)
+    text = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", text)
     text = " ".join(text.split())
     return text[:800] if text else "(stderr empty)"
 
@@ -352,7 +352,7 @@ def resume_prepared_branch(root: Path, branch: str, remote_sha: str, main: str,
     diff_paths = command(["git", "diff", "--name-only", original, remote_sha],
                          cwd=root).decode().splitlines()
     ids = [p for p in diff_paths
-           if re.fullmatch(r"standards/changes/CHG-\\d{4}\\.json", p)]
+           if re.fullmatch(r"standards/changes/CHG-\d{4}\.json", p)]
     if len(ids) != 1:
         block("BRANCH_EXISTS_DIFFERENT")
     chg_number = int(ids[0][-9:-5])
