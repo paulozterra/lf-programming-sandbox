@@ -55,7 +55,7 @@ def read_package(root, slug):
     package = json.loads(analysis)
     _, request_sha = intake.validate(package, raw)
     status = json.loads(state)
-    if (status.get("stage") != "INTAKE_ACCEPTED"
+    if (status.get("stage") not in ("INTAKE_ACCEPTED", "LOTS_PLANNED")
             or status.get("request_sha256") != request_sha
             or status.get("analysis_sha256") != hashlib.sha256(intake.canonical(package)).hexdigest()
             or status.get("pg01", {}).get("status") != "FIXTURE_UNATTESTED"):
@@ -144,28 +144,176 @@ def derive(package):
     }
 
 
-def prepare(root, slug):
+
+# Owner decision is a bounded sandbox routing authorization, not LF authority.
+# Paths are proposed future write boundaries: no Java files are created here.
+AUTH_PATHS = [
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthUser.java",
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+]
+OWNER_FILE = "owner_area_decision.json"
+OWNER_SCHEMA = "F51_OWNER_AREA_DECISION_SANDBOX_V1"
+
+
+def _decision(package, folder, slug):
+    decision_path = folder / OWNER_FILE
+    if not decision_path.exists():
+        return None
+    if decision_path.is_symlink() or not decision_path.is_file():
+        blocked("F51_OWNER_DECISION_INVALID")
+    try:
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+    except (ValueError, OSError, UnicodeError):
+        blocked("F51_OWNER_DECISION_INVALID")
+    expected_requirements = sorted(x["requirement_id"] for x in package["requirements"])
+    expected_fronts = sorted(x["front_id"] for x in package["material_fronts"])
+    if (not isinstance(decision, dict)
+            or decision.get("schema_version") != OWNER_SCHEMA
+            or decision.get("decision_type") != "OWNER_DECISION_SANDBOX"
+            or decision.get("decided_by") != "Paulo"
+            or decision.get("role") != "owner"
+            or decision.get("date") != "2026-11-12"
+            or decision.get("request_id") != slug
+            or decision.get("scope_id") != "SBX-AUTH-LOGIN"
+            or decision.get("area") != "BACKEND"
+            or decision.get("lot_count") != 1
+            or decision.get("requirement_ids") != expected_requirements
+            or decision.get("front_ids") != expected_fronts
+            or decision.get("analysis_sha256") !=
+               hashlib.sha256(intake.canonical(package)).hexdigest()
+            or decision.get("analysis_gap_pending_before_lf") is not True
+            or decision.get("sandbox_only") is not True
+            or decision.get("production_authority") is not False
+            or decision.get("handoff_allowed") is not False
+            or decision.get("pg01_consumer_verified") is not False
+            or decision.get("default_users_source") != "apps/time-service/.env.example"
+            or decision.get("password_hash_algorithm") != "BCrypt"
+            or decision.get("data_migration_required") is not False):
+        blocked("F51_OWNER_DECISION_INVALID")
+    return decision
+
+
+def _planning_fixture(package, decision, base_head_sha):
+    if (not isinstance(base_head_sha, str) or len(base_head_sha) != 40
+            or any(ch not in "0123456789abcdef" for ch in base_head_sha)):
+        blocked("F51_BASE_SHA_INVALID")
+    # PG-04 receives the original source requirements through plan_lots:
+    # one real A9 scope/atom, all six unmodified outcomes and acceptance
+    # signals. The atom's business outcome is an exact concatenation only.
+    return {
+        "schema_version": "CP33_SIMULATED_INPUTS_V1",
+        "simulation_only": True,
+        "project_ref": "lf_java",
+        "target_binding": {
+            "repo_full_name": "paulozterra/lf-programming-sandbox",
+            "base_head_sha": base_head_sha,
+            "target_binding_ref": "fixture://f5-login/owner-decision",
+        },
+        "profile_choices": {"BACKEND": "PERFIL-PROG-BACKEND-SPRING-EXP"},
+        "atoms": [{
+            "atom_id": "ATOM-F5-LOGIN-BACKEND",
+            "scope_id": decision["scope_id"],
+            "front_id": decision["front_ids"][0],
+            "area": "BACKEND",
+            "paths": list(AUTH_PATHS),
+            "depends_on": [],
+            "outcome_id": "OUTCOME-F5-LOGIN-BACKEND",
+            "business_outcome": "\\n".join(
+                r["outcome"] for r in package["requirements"]),
+        }],
+    }
+
+
+def _business_context(package, decision):
+    rules = package["applicable_rules"]
+    ids = {r["requirement_id"] for r in rules}
+    if (len(rules) != 6 or ids != set(decision["requirement_ids"])
+            or len({r["rule_code"] for r in rules}) != len(rules)
+            or package["programming_context_snapshot"]["applicable_rules"] != rules):
+        blocked("F51_BUSINESS_RULE_COVERAGE_INVALID")
+    return {
+        "schema_version": "F51_CANDIDATE_BUSINESS_RULES_V1",
+        "area": "BACKEND",
+        "registration_status": "NOT_REGISTERED",
+        "status": "CANDIDATE_ONLY",
+        "source_analysis_sha256": decision["analysis_sha256"],
+        "owner_decision_ref": "pilot/runs/f5-login/" + OWNER_FILE,
+        "rules": deepcopy(rules),
+        "requirements": deepcopy(package["requirements"]),
+        "production_authority": False,
+    }
+
+
+def _write_once(path, value):
+    content = intake.canonical(value)
+    if path.is_symlink():
+        blocked("F51_OUTPUT_PATH_INVALID")
+    if path.exists():
+        if path.read_bytes() != content:
+            blocked("F51_OUTPUT_DRIFT:" + path.name)
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("xb") as out:
+            out.write(content)
+
+
+def prepare(root, slug, *, base_head_sha=None):
     package, state = read_package(root, slug)
     assessment = derive(package)
-    # plan_lots requires one atom per scope, each with >=1 requirement.
-    # No A6 requirement currently belongs to a DATA_CONTRACT front, even
-    # though A7 reports two DATA_CONTRACT screen-field candidates.
-    if not assessment["business_rules_by_area"]["DATA"]:
-        blocked("F51_DATA_REQUIREMENT_NOT_SOURCE_BOUND")
-    if assessment["pg04_area_resolution_pending"]:
-        blocked("F51_PG04_UNKNOWN_FRONT_NEEDS_DECISION")
-    # Implementation of PG04 planning is deliberately fail-closed until
-    # source-bound per-area scopes exist; never forge scope IDs or DoD.
-    blocked("F51_PG04_SCOPE_PARTITION_NOT_SOURCE_BOUND")
+    folder = Path(root) / "pilot/runs" / slug
+    owner = _decision(package, folder, slug)
+    if owner is None:
+        # Preserve the original exact fail-closed code and behavior.
+        if not assessment["business_rules_by_area"]["DATA"]:
+            blocked("F51_DATA_REQUIREMENT_NOT_SOURCE_BOUND")
+        blocked("F51_PG04_SCOPE_PARTITION_NOT_SOURCE_BOUND")
+    if slug != "f5-login":
+        blocked("F51_OWNER_DECISION_SCOPE_INVALID")
+    context = _business_context(package, owner)
+    _write_once(Path(root) / ".lf/worker-context/f5backend/reglas_tecnicas.json",
+                technical_rules("BACKEND"))
+    _write_once(Path(root) / ".lf/worker-context/f5backend/reglas_negocio.json",
+                context)
+    # For already planned runs, the fixture is immutable and the original
+    # planner provides the canonical drift + state checks.
+    fixture_path = folder / "planning_fixture.json"
+    if fixture_path.exists():
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        if (fixture.get("schema_version") != "CP33_SIMULATED_INPUTS_V1"
+                or fixture.get("target_binding", {}).get("target_binding_ref") !=
+                "fixture://f5-login/owner-decision"):
+            blocked("F51_PLANNING_FIXTURE_INVALID")
+    else:
+        if not base_head_sha:
+            blocked("F51_BASE_SHA_REQUIRED")
+        fixture = _planning_fixture(package, owner, base_head_sha)
+        _write_once(fixture_path, fixture)
+    planned = plan_lots.plan(Path(root), slug)
+    if len(planned["lots"]) != 1:
+        blocked("F51_LOT_COUNT_INVALID")
+    lot = planned["lots"][0]
+    if (lot["area"] != "BACKEND"
+            or len(lot["write_paths"]) > 6
+            or sorted(lot["write_paths"]) != sorted(AUTH_PATHS)
+            or lot["depends_on"] != []
+            or sorted(lot["requirement_ids"]) != owner["requirement_ids"]
+            or lot["production_authority"] is not False
+            or planned.get("worker_invoked") is not False):
+        blocked("F51_LOT_OWNER_SCOPE_INVALID")
+    return planned
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--root", type=Path, default=ROOT)
     p.add_argument("--request-id", default="f5-login")
+    p.add_argument("--base-head-sha", default=None)
     args = p.parse_args()
     try:
-        prepare(args.root, args.request_id)
+        result = prepare(args.root, args.request_id, base_head_sha=args.base_head_sha)
+        print("F51_LOTS_PLANNED:" + args.request_id + ":" + str(len(result["lots"])))
     except PackageLotsBlocked as exc:
         print("F51_BLOCKED:" + str(exc), file=sys.stderr)
         return 2

@@ -1,10 +1,11 @@
-name: F5.1 Analysis package intake and conservative PG04 bridge (offline)
+name: F5.1 Analysis owner decision to one backend PG04 lot (offline)
 on:
   pull_request:
     paths:
       - 'pilot/orchestrator/package_to_lots.py'
       - 'pilot/orchestrator/test_package_to_lots.py'
       - 'pilot/runs/f5-login/**'
+      - '.lf/worker-context/f5backend/**'
       - '.github/workflows/f5-package.yml'
   workflow_dispatch:
 
@@ -14,35 +15,76 @@ permissions:
 jobs:
   f5-packet:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      SELECTOR_EXP_DISPOSABLE_DB: "YES"
+      SELECTOR_EXP_TEST_DSN: postgresql://pilot:pilot@127.0.0.1:5432/selector_exp_test_cp33
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2 jsonschema==4.25.1
-      - name: Reconstruct sandbox-only A1-A5 skill alias used by F0 test harness
+      - name: Reconstruct sandbox-only A1-A5 skill alias
         run: |
           mkdir -p skills
           ln -s ../analysis/programming_analysis skills/programming_analysis
-      - name: A9 actual package, unchanged intake, no model or Supabase
+      - name: Start PostgreSQL 17 disposable on loopback
+        shell: bash
         run: |
-          python3 -m analysis.host.run_a1_a9_fixture --root . --slug f5-login
-          python3 -m pilot.orchestrator.intake --root . --request-id f5-login
+          set -euo pipefail
+          docker run --detach --rm --name f51-disposable-db --network host \
+            -e POSTGRES_USER=pilot -e POSTGRES_PASSWORD=pilot \
+            -e POSTGRES_DB=selector_exp_test_cp33 \
+            -e POSTGRES_INITDB_ARGS=--locale=C \
+            postgres:17 -c listen_addresses=127.0.0.1
+          for attempt in $(seq 1 40); do
+            if pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33 >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33
+      - name: Load byte-pinned SQL PG02-PG05 selector and project backend prefix
+        run: |
+          python3 pilot/orchestrator/selector_db.py
+          PGPASSWORD=pilot psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c "INSERT INTO public.lf_project_area_pattern_exp(project_ref,area,path_prefix) VALUES ('lf_java','BACKEND','apps/time-service/src/main/java/')"
+      - name: A9 authentic output matches committed bytes and real intake
+        run: |
+          python3 -m analysis.host.run_a1_a9_fixture --root "$RUNNER_TEMP/f5" --slug f5-login
+          cmp "$RUNNER_TEMP/f5/pilot/runs/f5-login/request.md" pilot/runs/f5-login/request.md
+          cmp "$RUNNER_TEMP/f5/pilot/runs/f5-login/analysis.json" pilot/runs/f5-login/analysis.json
+          python3 -m pilot.orchestrator.intake --root "$RUNNER_TEMP/f5" --request-id f5-login
+      - name: Owner decision and actual pinned PG04/PG05 one-lot planning
+        run: |
+          set -euo pipefail
+          cp pilot/runs/f5-login/owner_area_decision.json "$RUNNER_TEMP/f5/pilot/runs/f5-login/"
+          python3 -m pilot.orchestrator.package_to_lots --root "$RUNNER_TEMP/f5" --request-id f5-login --base-head-sha d940576ffea313e2ee62060e3f289c6825f83776
           python3 -m pytest -q pilot/orchestrator/test_package_to_lots.py -p no:cacheprovider
-      - name: Verify candidate contexts remain separate and no lots were invented
-        run: |
           python3 - <<'PY'
-          import json,pathlib
-          folder=pathlib.Path('pilot/runs/f5-login')
-          state=json.loads((folder/'state.json').read_text())
-          assert state['stage']=='INTAKE_ACCEPTED'
-          assert not (folder/'lots.json').exists()
-          for area,name in (('DATA','f5data'),('BACKEND','f5backend')):
-              root=pathlib.Path('.lf/worker-context')/name
-              tech=json.loads((root/'reglas_tecnicas.json').read_text())
-              business=json.loads((root/'reglas_negocio.json').read_text())
-              assert tech['area']==business['area']==area
-              assert 'STD-SEC' in tech['families']
-              assert business['registration_status']=='NOT_REGISTERED'
-          print('F51_CANDIDATE_BLOCKS_SEPARATED_AND_UNREGISTERED')
+          import os,json,pathlib
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'f5'
+          folder=root/'pilot/runs/f5-login'
+          lots=json.loads((folder/'lots.json').read_text())
+          assert [x['area'] for x in lots['lots']]==['BACKEND']
+          assert len(lots['lots'][0]['requirement_ids'])==6
+          assert lots['worker_invoked'] is False
+          print('F51_ONE_BACKEND_LOT_FROM_PINNED_PG04_PASS')
+          for name in ('planning_fixture.json','lots.json','state.json'):
+              p=folder/name
+              import base64
+              print('F51_B64_BEGIN:'+name)
+              print(base64.b64encode(p.read_bytes()).decode('ascii'))
+              print('F51_B64_END:'+name)
           PY
+      - name: Verify final committed outputs when available
+        run: |
+          set -euo pipefail
+          for name in planning_fixture.json lots.json state.json; do
+            if [ -f "pilot/runs/f5-login/$name" ]; then
+              cmp "$RUNNER_TEMP/f5/pilot/runs/f5-login/$name" "pilot/runs/f5-login/$name"
+            fi
+          done
+      - if: always()
+        run: docker rm -f f51-disposable-db || true
