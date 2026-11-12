@@ -13,7 +13,7 @@
   },
   "approved_by": "paulozterra",
   "artifacts": [],
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "change_id": "CHG-0069",
   "evidence": {
     "pr_url": ""
@@ -33,6 +33,6 @@
   "title": "CP3.6: encadenamiento gobernado p4-prioridad",
   "trigger": {
     "kind": "OWNER",
-    "reference": "Paulo 2026-11-11 CP3.6 encadenamiento autom\u00e1tico"
+    "reference": "Paulo 2026-11-11 CP3.6 encadenamiento automático"
   }
 }
