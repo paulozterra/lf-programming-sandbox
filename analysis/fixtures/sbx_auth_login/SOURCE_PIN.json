@@ -66,7 +66,7 @@
     },
     {
       "file": "semantic_signals.json",
-      "sha256": "e10a02e098a732c4de0c4e6a205bc96059b13fb2eb9a809dae4ef5e47e594d01",
+      "sha256": "9ee434790a5a4aa61d7603658291949240173cc9bb1124d8bf1f7c3b47273e67",
       "imitates": "external semantic producer for A1 / typed classification signals for A2"
     }
   ]

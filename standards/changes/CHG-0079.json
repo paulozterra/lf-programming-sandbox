@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0079",
+  "title": "F2 Análisis: admisión simulada D-AN6(a) y A6 implementabilidad",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12: F2 D-AN6=(a) sandbox only"
+  },
+  "reason": "Extiende exclusivamente fixtures de Análisis con señales tipadas sintéticas y pin SHA256, agrega puerta cerrada A5→A6 con digest y obligaciones fuente-sólo, y pruebas offline de rechazo por código/estatus/scope. No modifica A1–A5, Programación, catálogos ni vendors; sin autoridad productiva.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/host/simulated_admission_gate.py",
+      "analysis/host/run_a1_a6_fixture.py",
+      "analysis/host/test_simulated_admission_a6.py",
+      "analysis/a6/",
+      "analysis/fixtures/sbx_auth_login/semantic_signals.json",
+      "analysis/fixtures/sbx_auth_login/SOURCE_PIN.json",
+      "analysis/F2_README.md",
+      ".github/workflows/analysis-f0.yml",
+      "standards/changes/CHG-0079.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
