@@ -1,0 +1,69 @@
+{
+  "task_spec": {
+    "schema_version": 1,
+    "base_head_sha": "<FILL_AT_PREP>",
+    "source_snapshot_sha256": "<FILL_AT_PREP>",
+    "max_attempts": 1,
+    "allow_deletions": false,
+    "max_context_bytes": 200000,
+    "max_patch_bytes": 60000,
+    "task_id": "LF-WORKER-NATIVE-F5-LOGIN-BACKEND",
+    "max_changed_files": 4,
+    "objective": "Lote BACKEND del pedido pilot/runs/f5-login (paquete A9 de Análisis, SBX-AUTH-LOGIN): implementar login según apps/time-service/AUTH_SPEC.md. Requisitos REQ-SBX-R-* de analysis.json. Reglas de negocio con sus valores: .lf/worker-context/f5backend/reglas_negocio.json. Reglas técnicas STD-BE + STD-SEC: .lf/worker-context/f5backend/reglas_tecnicas.json. Solo 4 archivos nuevos en apps/time-service/src/main/java/lf/sandbox/time/auth/. Sigue el perfil y skills de .lf/worker-context/<tarea>/ (STD-BE-05: mvn spotless:check). Chequeo visible: apps/time-service/visible-tests/f5backend/.",
+    "write_path_patterns": [
+      "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthUser.java"
+    ],
+    "context_path_patterns": [
+      "pilot/runs/f5-login/request.md",
+      "apps/time-service/AUTH_SPEC.md",
+      ".lf/worker-context/f5backend/reglas_negocio.json",
+      ".lf/worker-context/f5backend/reglas_tecnicas.json",
+      "apps/time-service/pom.xml",
+      "apps/time-service/src/main/resources/application.properties",
+      "apps/time-service/src/main/java/lf/sandbox/time/TimeConfig.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/TimeController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "apps/time-service/visible-tests/f5backend/run_visible.py"
+    ],
+    "protected_path_patterns": [
+      "apps/time-service/src/test/**",
+      "apps/time-service/visible-tests/**",
+      "apps/time-service/pom.xml",
+      "apps/time-service/*.md",
+      "apps/time-service/src/main/resources/**",
+      "apps/time-service/src/main/java/lf/sandbox/time/*.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/**",
+      ".lf/**",
+      "db/**",
+      "pilot/**",
+      ".env.example"
+    ],
+    "acceptance_commands": [
+      {
+        "name": "time-service-package",
+        "argv": [
+          "mvn",
+          "-B",
+          "-q",
+          "-f",
+          "apps/time-service/pom.xml",
+          "package"
+        ],
+        "timeout_seconds": 600,
+        "max_output_bytes": 32000
+      },
+      {
+        "name": "f5-visible-check",
+        "argv": [
+          "python3",
+          "apps/time-service/visible-tests/f5backend/run_visible.py"
+        ],
+        "timeout_seconds": 180,
+        "max_output_bytes": 16000
+      }
+    ]
+  }
+}

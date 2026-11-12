@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0083",
+  "title": "F5: base del lote Login (contrato, dependencia BCrypt, usuario por defecto, chequeo visible, examen cifrado)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12 F5 prueba final Login"
+  },
+  "reason": "Prepara la base para el lote BACKEND del Login (paquete A9, decisión OWNER_DECISION_SANDBOX): contrato de API AUTH_SPEC.md, dependencia spring-security-crypto, usuario por defecto en configuración con hash BCrypt (credenciales ficticias de desarrollo), chequeo visible y examen oculto cifrado escrito por Claude desde la pantalla ficticia (no desde el paquete).",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".env.example",
+      "apps/time-service/AUTH_SPEC.md",
+      "apps/time-service/pom.xml",
+      "apps/time-service/src/main/resources/application.properties",
+      "apps/time-service/visible-tests/f5backend/run_visible.py",
+      "pilot/holdouts/f5backend.oracle.json.age",
+      "pilot/runs/f5-login/claude_meta/f5backend.json",
+      "pilot/runs/f5-login/templates/f5backend.task.json",
+      "standards/changes/CHG-0083.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}

@@ -83,3 +83,4 @@
 | CHG-0080 | EDITORIAL | F3 Análisis: A7 cobertura de frentes y A8 parada material |  | paulozterra |  |
 | CHG-0081 | EDITORIAL | F4 Análisis: A9 paquete simulado compatible con intake real |  | paulozterra |  |
 | CHG-0082 | EDITORIAL | F5.1: entrada A9 por intake y puente PG04 fail-closed |  | paulozterra |  |
+| CHG-0083 | EDITORIAL | F5: base del lote Login (contrato, dependencia BCrypt, usuario por defecto, chequeo visible, examen cifrado) |  | paulozterra |  |
