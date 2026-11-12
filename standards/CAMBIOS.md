@@ -69,4 +69,4 @@
 | CHG-0066 | EDITORIAL | CP3.5: stderr seguro y reanudación por árbol idéntico |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/108 |
 | CHG-0067 | EDITORIAL | CP3.6: plan P4 prioridad DATA→BACKEND y prueba de activación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/111 |
 | CHG-0068 | EDITORIAL | CP3.6: C9 vacío, códigos de bloqueo y recuperación por integration_pr |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/112 |
-| CHG-0070 | ADDITIVE | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0070 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
