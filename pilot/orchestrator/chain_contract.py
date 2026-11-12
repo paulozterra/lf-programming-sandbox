@@ -60,8 +60,8 @@ def validate_plan(plan: dict, lots: dict, request: str) -> dict[str, dict]:
         }
         # Bind both paths to one canonical layout. No mixing layouts or paths
         # outside the owner-selected request and task are accepted.
-        if not (all(row[key] == layout[key] for key in legacy)
-                or all(row[key] == layout[key] for key in request_paths)):
+        if not (all(row[key] == legacy[key] for key in legacy)
+                or all(row[key] == request_paths[key] for key in request_paths)):
             deny("BINDING_PATH_INVALID")
         tasks.add(task)
         found[lot] = row

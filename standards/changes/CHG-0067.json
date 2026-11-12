@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0067",
   "title": "CP3.6: plan P4 prioridad DATA→BACKEND y prueba de activación",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo: registrar encadenamiento p4-prioridad antes de fusionar PR #110"
