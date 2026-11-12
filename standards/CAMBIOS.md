@@ -71,3 +71,4 @@
 | CHG-0068 | EDITORIAL | CP3.6: C9 vacío, códigos de bloqueo y recuperación por integration_pr |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/112 |
 | CHG-0069 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/113 |
 | CHG-0071 | EDITORIAL | CP3.6: pruebas de cadena p4-prioridad herméticas |  | paulozterra |  |
+| CHG-0072 | ADDITIVE | C9: CAMBIOS derivado por Train sin conflictos entre PRs |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/116 |

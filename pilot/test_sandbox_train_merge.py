@@ -133,6 +133,46 @@ else:
             merge.prepare_merge(self.root, main, head)
         self.assertEqual(run(self.root, "rev-parse", "HEAD"), head)
 
+    def test_two_parallel_prs_have_disjoint_chg_files_and_train_renders(self):
+        """Both PRs omit CAMBIOS; Train alone refreshes the derived view."""
+        run(self.root, "checkout", "-b", "pr-a")
+        (self.root / "standards/changes/CHG-0002.json").write_text(
+            '{"change_id":"CHG-0002"}')
+        a = self.commit("PR A CHG only")
+        run(self.root, "checkout", "main")
+        run(self.root, "checkout", "-b", "pr-b")
+        (self.root / "standards/changes/CHG-0003.json").write_text(
+            '{"change_id":"CHG-0003"}')
+        b = self.commit("PR B CHG only")
+        run(self.root, "checkout", "main")
+        self.assertEqual(run(self.root, "diff", "--name-only", self.initial, a),
+                         "standards/changes/CHG-0002.json")
+        self.assertEqual(run(self.root, "diff", "--name-only", self.initial, b),
+                         "standards/changes/CHG-0003.json")
+        # PR A is merged to main without any PR-authored CAMBIOS change.
+        run(self.root, "merge", "--no-ff", "-m", "Merge PR A", "pr-a")
+        after_a = run(self.root, "rev-parse", "HEAD")
+        run(self.root, "checkout", "pr-b")
+        merged = merge.prepare_merge(self.root, after_a, b)
+        self.assertEqual(merged, run(self.root, "rev-parse", "HEAD"))
+        self.assertEqual((self.root / "standards/CAMBIOS.md").read_text(),
+                         "CHG-0001\nCHG-0002\nCHG-0003\n")
+        self.assertFalse(merge.check_conflicts(self.root))
+
+    def test_train_renders_when_main_already_ancestor(self):
+        run(self.root, "checkout", "-b", "pr-a")
+        (self.root / "standards/changes/CHG-0002.json").write_text(
+            '{"change_id":"CHG-0002"}')
+        head = self.commit("Add CHG without derived view")
+        merged = merge.prepare_merge(self.root, self.initial, head)
+        self.assertNotEqual(merged, head)
+        self.assertEqual((self.root / "standards/CAMBIOS.md").read_text(),
+                         "CHG-0001\nCHG-0002\n")
+        self.assertEqual(len(run(self.root, "rev-list", "--parents",
+                                 "-n", "1", "HEAD").split()), 2)
+        self.assertEqual(merge.prepare_merge(self.root, self.initial, merged),
+                         merged)
+
     def test_clean_merge_no_regeneration(self):
         head, main = self.diverge()
         merged = merge.prepare_merge(self.root, main, head)
