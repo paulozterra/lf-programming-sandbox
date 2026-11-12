@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0088",
+  "title": "La ruta inyecta el protocolo del constructor (modo continuo) en el contexto de cada tarea",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12: el modo continuo debe vivir en la ruta"
+  },
+  "reason": "El modo continuo deja de depender de instrucciones externas: register_task_context.py agrega .lf/worker-context/<tarea>/protocolo.md (copia de pilot/orchestrator/MODO_CONTINUO.md) al contexto protegido de cada tarea y registra su SHA en el recibo. El constructor lo recibe dentro del paquete al programar.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/register_task_context.py",
+      "pilot/worker_v08/test_register_task_context.py",
+      "standards/changes/CHG-0088.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}

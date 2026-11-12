@@ -332,7 +332,16 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         block("HISTORICAL_TASK_IMMUTABLE")
     output = copy.deepcopy(task)
     dest = output["task_spec"] if "task_spec" in output else output
-    paths = [f".lf/worker-context/{task_name}/{x}" for x in ("profile.md", "skills.md", "receipt.json")]
+    paths = [f".lf/worker-context/{task_name}/{x}"
+             for x in ("profile.md", "skills.md", "protocolo.md", "receipt.json")]
+    # The route itself tells the builder how to work (continuous mode by
+    # default): the protocol travels inside every task's context pack.
+    protocol_src = Path(__file__).resolve().parents[2] / "pilot" / "orchestrator" / "MODO_CONTINUO.md"
+    if not protocol_src.is_file() or protocol_src.is_symlink():
+        block("BUILDER_PROTOCOL_MISSING")
+    protocol = (b"<!-- Protocolo del constructor inyectado por la ruta "
+                b"(pilot/orchestrator/MODO_CONTINUO.md). No editar aqui. -->\n"
+                + protocol_src.read_bytes())
     context = list(dest.get("context_path_patterns", []))
     # Existing task context is retained; derived sources are selected without
     # hand-editing context_path_patterns.
@@ -378,11 +387,14 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
             (json.dumps(derived, sort_keys=True, ensure_ascii=False,
                         separators=(",", ":")) + "\n").encode("utf-8")),
         "context_paths": paths,
-        "context_sha256": {"profile.md": digest(profile), "skills.md": digest(skills)},
+        "context_sha256": {"profile.md": digest(profile), "skills.md": digest(skills),
+                           "protocolo.md": digest(protocol)},
+        "builder_protocol": {"source": "pilot/orchestrator/MODO_CONTINUO.md",
+                             "sha256": digest(protocol_src.read_bytes()), "mode": "CONTINUOUS_DEFAULT"},
         "production_authority": False,
     }
     receipt_raw = canonical(receipt)
-    artifacts = dict(zip(paths, (profile, skills, receipt_raw)))
+    artifacts = dict(zip(paths, (profile, skills, protocol, receipt_raw)))
     cap = min(budget, dest.get("max_context_bytes", budget))
     if existing + sum(map(len, artifacts.values())) > cap:
         block("CONTEXT_BUDGET_EXCEEDED")
