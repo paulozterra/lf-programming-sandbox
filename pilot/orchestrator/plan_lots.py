@@ -434,10 +434,23 @@ def _produce_lots(package, fixture, rows, outputs, dsn):
             blocked("SELECTOR_REQUIERE_ENTORNO")
         request=request_wrap["request"]
         if fixture["schema_version"]=="T1_ATOMIZED_INPUTS_V1":
+            # Selector input comes from versioned, source-pinned project policy;
+            # SQL PG05 validates candidate eligibility and finalizes selection.
+            policy_path = ROOT / "pilot/orchestrator/atomize_rules_v1.json"
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            selector_policy = policy.get("profile_resolution", {})
+            source = ROOT / selector_policy.get("source_ref", "")
+            if (policy.get("schema_version") != "T1_ATOMIZE_RULES_V1"
+                    or selector_policy.get("project_ref") != fixture["project_ref"]
+                    or not source.is_file()):
+                blocked("SELECTOR_T1_POLICY_INVALID")
+            preference = selector_policy.get("area_to_profile", {}).get(area)
+            if (not isinstance(preference, str) or
+                    preference not in source.read_text(encoding="utf-8")):
+                blocked("SELECTOR_T1_POLICY_INVALID")
             candidates = request["candidate_profiles"]
-            if len(candidates) != 1:
-                blocked("SELECTOR_PERFIL_AMBIGUO")
-            preference = candidates[0]["profile_code"]
+            if preference not in {x["profile_code"] for x in candidates}:
+                blocked("SELECTOR_T1_PROFILE_NOT_CANDIDATE")
         else:
             preference=fixture["profile_choices"].get(area)
             if not preference:
