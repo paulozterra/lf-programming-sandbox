@@ -54,11 +54,12 @@ class PolicyTests(unittest.TestCase):
             return {"markPullRequestReadyForReview": {
                 "pullRequest": {"id": "PR_eligible", "isDraft": False}}}
         with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox",
-                                     "TRAIN_RECEIPT": os.devnull}), \
+                                     "GH_TOKEN": "test-token", "TRAIN_RECEIPT": os.devnull}), \
              patch.object(train, "pr_data", side_effect=[draft, ready, ready, ready]) as read, \
              patch.object(train, "graphql", side_effect=fake_graphql), \
              patch.object(train, "main_sha", return_value="m" * 40), \
              patch.object(train, "await_checks", return_value={"backend": {"conclusion": "success"}}), \
+             patch.object(train, "update_branch_locally", return_value="a" * 40), \
              patch.object(train, "api") as api_mock:
             api_mock.side_effect = lambda method, path, payload=None, expected=(200,): (
                 {"behind_by": 0, "status": "ahead"} if path.startswith("/compare/") else
@@ -186,13 +187,15 @@ class PolicyTests(unittest.TestCase):
             if path == "/commits/" + "c" * 40:
                 return {"parents": [{}, {}]}
             raise AssertionError(path)
-        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox", "TRAIN_RECEIPT": os.devnull}), \
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox", "GH_TOKEN": "test-token", "TRAIN_RECEIPT": os.devnull}), \
              patch.object(train, "api", side_effect=fake_api), \
              patch.object(train, "pr_data", return_value=pr), \
              patch.object(train, "main_sha", return_value="m" * 40), \
              patch.object(train, "await_checks", return_value={"backend (Maven verify)": {"conclusion": "success"}}), \
-             patch.object(train, "update_branch_locally", side_effect=AssertionError("no update expected")):
+             patch.object(train, "update_branch_locally", return_value="a" * 40) as render:
             train.run(77)
+            train.run(77)
+            render.assert_called_once()
         self.assertFalse(any(c[1] == "/actions/workflows/ci.yml/dispatches" for c in calls))
 
     def test_ci_dispatch_is_enabled_and_restricted_to_updated_head(self):

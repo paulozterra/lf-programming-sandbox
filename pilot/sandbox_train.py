@@ -228,13 +228,15 @@ def dispatch_updated_head_ci(branch, sha):
 
 def run(number):
     dispatched_heads = set()
+    prepared_heads = set()
     for attempt in range(MAX_RESTARTS + 1):
         pr = ready_if_labeled_draft(number, pr_data(number))
         check_pr(pr)
         initial_head = pr["head"]["sha"]
         base = main_sha()
         compare = api("GET", f"/compare/{base}...{initial_head}")
-        if compare["behind_by"] > 0 or compare["status"] in ("ahead", "identical"):
+        if initial_head not in prepared_heads and (
+                compare["behind_by"] > 0 or compare["status"] in ("ahead", "identical")):
             print(json.dumps({"event": "local_merge_and_render", "pr": number, "head": initial_head, "main": base}), flush=True)
             try:
                 merged_head = update_branch_locally(
@@ -245,6 +247,7 @@ def run(number):
                     print(json.dumps({"event": "ref_moved_retry", "reason": str(exc)}), flush=True)
                     continue
                 raise TrainError(str(exc)) from exc
+            prepared_heads.add(merged_head)
             if merged_head != initial_head:
                 # A GitHub-token push does not schedule pull_request/push workflows.
                 # Verify propagated SHA, then dispatch checks for the new HEAD.
