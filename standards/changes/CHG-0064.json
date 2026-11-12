@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0064",
+  "change_class": "EDITORIAL",
+  "title": "CP3.5: inventario exacto de tres recibos de feedback y costo nativo",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "P4 DATA #105 merged; native Worker PASS run 43146245998, automatic CP3.5 integration failed 43146351774"
+  },
+  "reason": "Corrige mismatch determinista: el Worker publica status.json, feedback.json y cost.json juntos, pero la compuerta de integración esperaba un único status.json. Verifica inventario exacto, límites por archivo, modo regular y parseo JSON, mantiene rechazo a extras, duplicados y traversal. Sin repetir Worker ni abrir PR de integración manualmente.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/native_verified_integration.py",
+      "pilot/orchestrator/test_native_verified_integration.py",
+      "standards/changes/CHG-0064.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
