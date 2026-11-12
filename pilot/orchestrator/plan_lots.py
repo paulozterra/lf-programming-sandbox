@@ -159,14 +159,49 @@ def _source_inputs(package, rows, fixture, request_sha, state):
     scopes = {s["scope_id"]:s for s in package["scope_proposals"]}
     by_front = {f["front_id"]:f for f in package["material_fronts"]}
     matrix,fronts = [],[]
-    for a in rows:
-        f = by_front[a["front_id"]]
-        fronts.append({"front_id":a["front_id"],"front_kind":KIND[a["area"]],
-                       "status":f["obligation_mode"],"closure":f["closure"],
-                       "scope_refs":[a["scope_id"]]})
-        matrix.append({"scope_id":a["scope_id"],"front_id":a["front_id"],
-                       "front_status":f["obligation_mode"],"front_closure":f["closure"],
-                       "effect_on_scope":"PRESERVE" if f["closure"]=="CLOSED" else "BLOCKS"})
+    owner = fixture.get("owner_area_decision")
+    if owner is not None:
+        # F5.1: preserve the entire A7 scope-front incidence matrix under an
+        # explicit sandbox owner decision. The old synthetic fixture path
+        # below stays unchanged. This never confers PG-01 authority.
+        if (not isinstance(owner, dict) or
+                owner.get("schema_version") != "F51_OWNER_AREA_DECISION_SANDBOX_V1" or
+                owner.get("decision_type") != "OWNER_DECISION_SANDBOX" or
+                owner.get("simulation_only") is not True or
+                owner.get("production_authority") is not False or
+                owner.get("area") != "BACKEND" or
+                len(rows) != 1 or rows[0]["area"] != "BACKEND" or
+                len(scopes) != 1):
+            blocked("F51_OWNER_MAPPING_INVALID")
+        scope_id = rows[0]["scope_id"]
+        expected = sorted(scopes[scope_id]["material_front_refs"])
+        if (owner.get("scope_id") != scope_id or
+                owner.get("front_ids") != expected or
+                set(by_front) != set(expected)):
+            blocked("F51_OWNER_FRONT_COVERAGE_INVALID")
+        for fid in expected:
+            f = by_front[fid]
+            if (f.get("scope_ids") != [scope_id] or
+                    f.get("obligation_mode") not in ("REQUIRED", "REUSE_AS_IS", "NOT_APPLICABLE") or
+                    f.get("closure") not in ("CLOSED", "BLOCKED")):
+                blocked("F51_OWNER_FRONT_COVERAGE_INVALID")
+            fronts.append({"front_id":fid, "front_kind":KIND["BACKEND"],
+                           "status":f["obligation_mode"],"closure":f["closure"],
+                           "scope_refs":[scope_id]})
+            matrix.append({"scope_id":scope_id,"front_id":fid,
+                           "front_status":f["obligation_mode"],
+                           "front_closure":f["closure"],
+                           "effect_on_scope":"PRESERVE" if f["closure"]=="CLOSED"
+                           else "BLOCKS"})
+    else:
+        for a in rows:
+            f = by_front[a["front_id"]]
+            fronts.append({"front_id":a["front_id"],"front_kind":KIND[a["area"]],
+                           "status":f["obligation_mode"],"closure":f["closure"],
+                           "scope_refs":[a["scope_id"]]})
+            matrix.append({"scope_id":a["scope_id"],"front_id":a["front_id"],
+                           "front_status":f["obligation_mode"],"front_closure":f["closure"],
+                           "effect_on_scope":"PRESERVE" if f["closure"]=="CLOSED" else "BLOCKS"})
     snapshot = {"schema_version":"PROGRAMMING_CONTEXT_SNAPSHOT_V1",
         "target_granularity":{"level":package["classification"]["target_granularity"],
                               "target_ref":package["request_context"]["target_ref"]},
