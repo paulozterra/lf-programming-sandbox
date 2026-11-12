@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0065",
+  "title": "CP3.5: integración verificada nativa p4data (run 43146245998)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "CP3.5 autorizado por Paulo; PR draft automático de PASS nativo"
+  },
+  "reason": "Parche originado exclusivamente en native-verified-patch de la corrida nativa PASS 43146245998, SHA-256 e1c02fbd233e633fb7f6b373dc600b77e74d983520154de18e9c0f5a365e8771; rutas y bytes aplicados sin reconstruir propuesta, sin exámenes ni aprobación automática.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "db/migration/V1__reminders_priority.sql",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0065.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
