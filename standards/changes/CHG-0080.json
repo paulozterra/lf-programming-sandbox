@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0080",
+  "title": "F3 Análisis: A7 cobertura de frentes y A8 parada material",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12: F3 A7 + A8 sobre F2 fusionado (#123)"
+  },
+  "reason": "Agrega únicamente nuevos productores A7/A8 y runner offline de Análisis para mapear señales de A3/A4, obligaciones A6 y vacíos materiales, con tabla SANDBOX_HINT y guardas del contrato fijado. No altera productores A1–A6 ni Programación. La dependencia A4 no atestada permanece BLOCKED; A8 no inventa STOP mientras A5 siga UNRESOLVED.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/a7/",
+      "analysis/a8/",
+      "analysis/host/run_a1_a8_fixture.py",
+      "analysis/host/test_a7_a8.py",
+      "analysis/F3_README.md",
+      ".github/workflows/analysis-f0.yml",
+      "standards/changes/CHG-0080.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
