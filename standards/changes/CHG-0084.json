@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0084",
+  "title": "F5: registro nativo f5backend (Login)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12 F5 prueba final Login"
+  },
+  "reason": "Registra f5backend con prepare_native_lot.py (sin modelo) sobre la base del #127.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".lf/worker-context/f5backend/profile.md",
+      ".lf/worker-context/f5backend/receipt.json",
+      ".lf/worker-context/f5backend/skills.md",
+      "pilot/runs/f5-login/proposal_requests/f5backend.proposal-request.json",
+      "pilot/runs/f5-login/proposal_requests/f5backend.task-pack.json",
+      "pilot/worker_v08/native_tasks/f5backend.json",
+      "standards/changes/CHG-0084.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
