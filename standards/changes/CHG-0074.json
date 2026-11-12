@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0074",
+  "title": "P4: registro nativo p4be2 (lote BACKEND)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12 P4 lote BACKEND"
+  },
+  "reason": "Registra p4be2 sobre la base que ya incluye el test heredado corregido (#117) y la migración DATA (#110). Mismo examen cifrado que p4be. Generado con prepare_native_lot.py; sin modelo.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".lf/worker-context/p4be2/profile.md",
+      ".lf/worker-context/p4be2/receipt.json",
+      ".lf/worker-context/p4be2/skills.md",
+      "pilot/runs/p4-prioridad/proposal_requests/p4be2.proposal-request.json",
+      "pilot/runs/p4-prioridad/proposal_requests/p4be2.task-pack.json",
+      "pilot/worker_v08/native_tasks/p4be2.json",
+      "standards/changes/CHG-0074.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
