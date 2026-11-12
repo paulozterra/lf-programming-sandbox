@@ -16,6 +16,7 @@ from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
+import tempfile
 import zipfile
 
 REPOSITORY = "paulozterra/lf-programming-sandbox"
@@ -37,12 +38,33 @@ def block(reason: str):
     raise IntegrationBlocked("CP35_" + reason)
 
 
+def sanitized_stderr(raw: bytes) -> str:
+    """Bounded diagnostic only; never print a token, authorization header or ANSI."""
+    text = raw.decode("utf-8", errors="replace")
+    for key in ("GH_TOKEN", "GITHUB_TOKEN"):
+        secret = os.environ.get(key, "")
+        if secret:
+            text = text.replace(secret, "[REDACTED]")
+    text = re.sub(r"(?i)(authorization\\s*:\\s*(?:bearer|basic)\\s+)\\S+",
+                  r"\\1[REDACTED]", text)
+    text = re.sub(r"(?i)(https?://)[^/\\s@]+@",
+                  r"\\1[REDACTED]@", text)
+    text = re.sub(r"(?:gh[pousr]_[A-Za-z0-9_]{12,}|github_pat_[A-Za-z0-9_]{12,})",
+                  "[REDACTED]", text)
+    text = re.sub(r"\\x1b\\[[0-9;]*[A-Za-z]", "", text)
+    text = " ".join(text.split())
+    return text[:800] if text else "(stderr empty)"
+
+
 def command(args: list[str], *, cwd: Path | None = None,
             input_bytes: bytes | None = None, check: bool = True) -> bytes:
     result = subprocess.run(args, cwd=cwd, input=input_bytes, capture_output=True,
                             timeout=120)
     if check and result.returncode:
-        block("COMMAND_FAILED:" + args[0])
+        tool = Path(args[0]).name
+        if tool in ("git", "gh"):
+            block("COMMAND_FAILED:" + tool + ":" + sanitized_stderr(result.stderr))
+        block("COMMAND_FAILED:" + tool)
     return result.stdout
 
 
@@ -275,6 +297,89 @@ def confirm_class_after_commit(root: Path, chg: Path) -> None:
     block("C9_CHECK_FAILED")
 
 
+
+def existing_branch_sha(root: Path, branch: str) -> str | None:
+    """Read and fetch the precise remote branch without accepting remote code."""
+    ref = "refs/heads/" + branch
+    listing = command(["git", "ls-remote", "--heads", "origin", ref],
+                      cwd=root).decode().strip()
+    if not listing:
+        return None
+    parts = listing.split()
+    if len(parts) != 2 or parts[1] != ref or not SHA40.fullmatch(parts[0]):
+        block("BRANCH_REF_INVALID")
+    command(["git", "fetch", "--no-tags", "origin",
+             "+" + ref + ":refs/remotes/origin/" + branch], cwd=root)
+    fetched = command(["git", "rev-parse", "refs/remotes/origin/" + branch],
+                      cwd=root).decode().strip()
+    if fetched != parts[0]:
+        block("BRANCH_MOVED")
+    return fetched
+
+
+def verify_existing_branch_tree(root: Path, remote_sha: str,
+                                expected_tree: str) -> None:
+    """Tree equality, not just permitted paths or matching content digests."""
+    actual = command(["git", "rev-parse", remote_sha + "^{tree}"],
+                     cwd=root).decode().strip()
+    if actual != expected_tree:
+        block("BRANCH_EXISTS_DIFFERENT")
+
+
+def resume_prepared_branch(root: Path, branch: str, remote_sha: str, main: str,
+                           run_id: int, task: str, patch: bytes, base: str,
+                           allowed: set[str]) -> tuple[int, Path, dict[str, str]]:
+    """Rebuild the original base tree, then compare it to the existing branch.
+
+    The original base must be an ancestor of current main. A new unrelated
+    CHG on main must not make a previously prepared branch seem different.
+    """
+    original = command(["git", "merge-base", main, remote_sha],
+                       cwd=root).decode().strip()
+    command(["git", "merge-base", "--is-ancestor", base, original], cwd=root)
+    count = int(command(["git", "rev-list", "--count",
+                         original + ".." + remote_sha], cwd=root).decode())
+    if not 1 <= count <= 2:
+        block("BRANCH_EXISTS_DIFFERENT")
+    for sha in command(["git", "rev-list", "--reverse",
+                        original + ".." + remote_sha], cwd=root).decode().splitlines():
+        if len(command(["git", "rev-list", "--parents", "-n", "1", sha],
+                       cwd=root).decode().split()) != 2:
+            block("BRANCH_EXISTS_DIFFERENT")
+    if command(["git", "diff", "--name-only", original, main, "--",
+                *sorted(allowed)], cwd=root).strip():
+        block("TASK_BASE_STALE")
+    diff_paths = command(["git", "diff", "--name-only", original, remote_sha],
+                         cwd=root).decode().splitlines()
+    ids = [p for p in diff_paths
+           if re.fullmatch(r"standards/changes/CHG-\\d{4}\\.json", p)]
+    if len(ids) != 1:
+        block("BRANCH_EXISTS_DIFFERENT")
+    chg_number = int(ids[0][-9:-5])
+    with tempfile.TemporaryDirectory(prefix="cp35-rebuild-") as tmp:
+        work = Path(tmp) / "original"
+        command(["git", "worktree", "add", "--detach", str(work), original],
+                cwd=root)
+        try:
+            changed = validate_patch_against_repo(work, patch, base, allowed)
+            if set(diff_paths) != (set(changed) | set(ids) | {"standards/CAMBIOS.md"}):
+                block("BRANCH_EXISTS_DIFFERENT")
+            chg = record_change(work, chg_number, task, run_id,
+                                hashlib.sha256(patch).hexdigest(), list(changed))
+            command(["git", "add", "--", str(chg.relative_to(work)),
+                     "standards/CAMBIOS.md"], cwd=work)
+            expected_tree = command(["git", "write-tree"],
+                                    cwd=work).decode().strip()
+            verify_existing_branch_tree(root, remote_sha, expected_tree)
+        finally:
+            command(["git", "worktree", "remove", "--force", str(work)], cwd=root)
+    # Check for a branch replacement after validation, before PR creation.
+    if existing_branch_sha(root, branch) != remote_sha:
+        block("BRANCH_MOVED")
+    command(["git", "switch", "-c", branch, "--track",
+             "origin/" + branch], cwd=root)
+    return chg_number, root / ids[0], changed
+
 def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) -> dict:
     task = status["task_id"]
     reg_path = root / f"pilot/worker_v08/native_tasks/{task}.json"
@@ -289,27 +394,29 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     if main != command(["git", "rev-parse", "origin/main"], cwd=root).decode().strip():
         block("MAIN_NOT_CURRENT")
     branch = f"lf/native-integration/{task}-run-{run_id}"
-    remote = command(["git", "ls-remote", "--heads", "origin", branch], cwd=root)
-    if remote:
-        block("INTEGRATION_BRANCH_EXISTS")
-    changed = validate_patch_against_repo(root, patch, base, allowed)
+    remote = existing_branch_sha(root, branch)
     patch_hash = hashlib.sha256(patch).hexdigest()
-    num = next_chg(root)
-    chg = record_change(root, num, task, run_id, patch_hash, list(changed))
-    # Include exact per-file output digest in the PR for independent review.
-    command(["git", "add", "--", str(chg.relative_to(root)), "standards/CAMBIOS.md"], cwd=root)
-    command(["python3", "standards/tools/changes.py", "render", "--check"], cwd=root)
-    # C9 requires committed HEAD; validation happens after the first commit.
-    # Fail if main advanced while preparing this draft (no automatic rebase).
-    current_remote = command(["git", "ls-remote", "origin", "refs/heads/main"],
-                             cwd=root).decode().split()[0]
-    if current_remote != main:
-        block("MAIN_MOVED_BEFORE_PUBLICATION")
-    command(["git", "switch", "-c", branch], cwd=root)
-    command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] verified native patch {task} run {run_id}"],
-            cwd=root)
-    confirm_class_after_commit(root, chg)
-    command(["git", "push", "--set-upstream", "origin", branch], cwd=root)
+    if remote:
+        num, chg, changed = resume_prepared_branch(
+            root, branch, remote, main, run_id, task, patch, base, allowed)
+    else:
+        changed = validate_patch_against_repo(root, patch, base, allowed)
+        num = next_chg(root)
+        chg = record_change(root, num, task, run_id, patch_hash, list(changed))
+        # Include exact per-file output digest in the PR for independent review.
+        command(["git", "add", "--", str(chg.relative_to(root)), "standards/CAMBIOS.md"], cwd=root)
+        command(["python3", "standards/tools/changes.py", "render", "--check"], cwd=root)
+        # C9 requires committed HEAD; validation happens after the first commit.
+        # Fail if main advanced while preparing this draft (no automatic rebase).
+        current_remote = command(["git", "ls-remote", "origin", "refs/heads/main"],
+                                 cwd=root).decode().split()[0]
+        if current_remote != main:
+            block("MAIN_MOVED_BEFORE_PUBLICATION")
+        command(["git", "switch", "-c", branch], cwd=root)
+        command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] verified native patch {task} run {run_id}"],
+                cwd=root)
+        confirm_class_after_commit(root, chg)
+        command(["git", "push", "--set-upstream", "origin", branch], cwd=root)
     body = (f"CP3.5: PASS verificado por workflow nativo confiable.\n\n"
             f"- Task: \`{task}\` · run: {run_id} · base: \`{base}\`\n"
             f"- Native patch SHA-256: \`{patch_hash}\`\n"
