@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0057",
+  "title": "CP3.4: enlace de perfiles selector→nativo y registro/exportación por lote",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: continuar CP3.4 después de fusionar #95"
+  },
+  "reason": "Adaptador estricto para mapear perfiles seleccionados PG-05 a perfiles fijados, rechazar rutas ficticias y perfiles ajenos, y separar registro de contexto, sellado de base Git y captura de paquete mediante export_task_pack.py; pruebas visibles de DAG y traspaso simulado sin modelo ni autoridad. Las fuentes y evidencia históricas de CP3.3 permanecen intactas. La ejecución real exige proyecto/holdout cifrado independiente.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/native_lot_binding.py",
+      "pilot/orchestrator/test_native_lot_binding.py",
+      "pilot/orchestrator/native_lot_registration.py",
+      "pilot/orchestrator/test_native_lot_registration.py",
+      "pilot/orchestrator/CP3_4.md",
+      "standards/changes/CHG-0057.json",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/99"
+  }
+}

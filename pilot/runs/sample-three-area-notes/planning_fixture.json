@@ -1,0 +1,57 @@
+{
+  "schema_version": "CP33_SIMULATED_INPUTS_V1",
+  "simulation_only": true,
+  "project_ref": "lf_java",
+  "target_binding": {
+    "repo_full_name": "paulozterra/lf-programming-sandbox",
+    "base_head_sha": "b0ac566354f9b6381ce1358b951e340a06fb1aa8",
+    "target_binding_ref": "fixture://cp33/base-head"
+  },
+  "profile_choices": {
+    "BACKEND": "PERFIL-PROG-BACKEND-SPRING-EXP",
+    "FRONTEND": "PERFIL-PROG-FRONTEND-EXP",
+    "DATA": "PERFIL-PROG-DATA-EXP"
+  },
+  "atoms": [
+    {
+      "atom_id": "ATOM-DATA",
+      "scope_id": "SCOPE-DATA",
+      "front_id": "A7-FRONT-DATA",
+      "area": "DATA",
+      "paths": [
+        "db/migration/V001__reminder_notes.sql"
+      ],
+      "depends_on": [],
+      "outcome_id": "OUTCOME-DATA",
+      "business_outcome": "Migración de columna de notas"
+    },
+    {
+      "atom_id": "ATOM-BACKEND",
+      "scope_id": "SCOPE-BACKEND",
+      "front_id": "A7-FRONT-BACKEND",
+      "area": "BACKEND",
+      "paths": [
+        "src/main/java/com/lf/ReminderNoteController.java"
+      ],
+      "depends_on": [
+        "ATOM-DATA"
+      ],
+      "outcome_id": "OUTCOME-BACKEND",
+      "business_outcome": "API Spring Boot de notas"
+    },
+    {
+      "atom_id": "ATOM-FRONTEND",
+      "scope_id": "SCOPE-FRONTEND",
+      "front_id": "A7-FRONT-FRONTEND",
+      "area": "FRONTEND",
+      "paths": [
+        "web/src/app/notes/page.tsx"
+      ],
+      "depends_on": [
+        "ATOM-BACKEND"
+      ],
+      "outcome_id": "OUTCOME-FRONTEND",
+      "business_outcome": "Pantalla Next.js de notas"
+    }
+  ]
+}

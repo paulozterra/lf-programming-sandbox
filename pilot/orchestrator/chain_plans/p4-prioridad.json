@@ -1,0 +1,20 @@
+{
+  "schema_version": "CP36_CHAIN_PLAN_V1",
+  "request_id": "p4-prioridad",
+  "production_authority": false,
+  "lots_sha256": "82c5028fee4022920ae1ad91a6619777b7cec9391d7d62ee63517f484020facd",
+  "bindings": [
+    {
+      "lot_id": "SOL-002",
+      "task_name": "p4data",
+      "template_path": "pilot/runs/p4-prioridad/templates/p4data.task.json",
+      "holdout_metadata_path": "pilot/runs/p4-prioridad/claude_meta/p4data.json"
+    },
+    {
+      "lot_id": "SOL-001",
+      "task_name": "p4be",
+      "template_path": "pilot/runs/p4-prioridad/templates/p4be.task.json",
+      "holdout_metadata_path": "pilot/runs/p4-prioridad/claude_meta/p4be.json"
+    }
+  ]
+}
