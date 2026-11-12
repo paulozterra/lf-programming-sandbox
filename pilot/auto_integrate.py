@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 
@@ -174,6 +175,19 @@ def verify_trigger(trigger, repo=REPOSITORY):
         block("TRIGGER_CI_EVENT_INVALID")
     return path
 
+ 
+class SafeRedirect(urllib.request.HTTPRedirectHandler):
+    """Do not forward a GitHub token to artifact-storage redirect hosts."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if urllib.parse.urlsplit(newurl).scheme != "https":
+            block("UNSAFE_API_REDIRECT")
+        redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if redirected is not None and (urllib.parse.urlsplit(req.full_url).hostname
+                                       != urllib.parse.urlsplit(newurl).hostname):
+            redirected.remove_header("Authorization")
+        return redirected
+
 
 class GitHub:
     def __init__(self, token, repository=REPOSITORY):
@@ -194,7 +208,7 @@ class GitHub:
                      "X-GitHub-Api-Version": "2022-11-28",
                      "User-Agent": "LF-auto-integrate-policy-C"})
         try:
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.build_opener(SafeRedirect()).open(req, timeout=30) as response:
                 content = response.read(1_500_001)
                 if len(content) > 1_500_000:
                     block("API_BODY_OVERSIZE")
@@ -300,6 +314,8 @@ def evaluate_one(api, number):
     if (latest.get("head", {}).get("sha") != head
             or latest.get("state") != "open"
             or latest.get("draft") != pr.get("draft")
+            or latest.get("body") != pr.get("body")
+            or latest.get("head", {}).get("ref") != pr["head"].get("ref")
             or latest.get("base", {}).get("ref") != "main"):
         block("PR_CHANGED_BEFORE_LABEL")
     api.request("POST", f"/issues/{number}/labels", {"labels": [READY_LABEL]})

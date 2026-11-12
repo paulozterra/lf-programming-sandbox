@@ -140,6 +140,20 @@ class PolicyTests(unittest.TestCase):
         self.blocked("INTEGRATION_CHG_RUN_MISMATCH",
                      lambda: ai.native_run_reference(pr()["body"], bad))
 
+    def test_redirect_strips_token_and_disallows_http(self):
+        import urllib.request
+        req = urllib.request.Request(
+            "https://api.github.com/repos/example/repo/actions/artifacts/123/zip",
+            headers={"Authorization": "Bearer secret"})
+        handler = ai.SafeRedirect()
+        redirected = handler.redirect_request(
+            req, None, 302, "Found", {},
+            "https://pipelines.actions.githubusercontent.com/download")
+        self.assertIsNone(redirected.get_header("Authorization"))
+        self.blocked("UNSAFE_API_REDIRECT",
+                     lambda: handler.redirect_request(
+                         req, None, 302, "Found", {}, "http://example.org/downgrade"))
+
     def test_trigger_ci_cp35_and_fork(self):
         trigger = {"status": "completed", "conclusion": "success",
                    "repository": {"full_name": ai.REPOSITORY},
