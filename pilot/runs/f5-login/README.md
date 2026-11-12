@@ -29,3 +29,15 @@ No se crea ni conserva `f5data`. Ningún contexto es tarea registrada.
 **No autoriza producción, entrega ni merge.** PG-01 sigue
 `FIXTURE_UNATTESTED`. No se modifica A1–A9, intake, texto libre de P4,
 ex6, ex7, ex8 ni los exámenes. Sin etiquetas.
+
+### Evidencia de planificación
+
+La salida `lots.json` es la que calculó `plan_lots.plan()` con PG02–PG05
+fijados, selector SQL en PostgreSQL 17 desechable de loopback y el
+perfil `PERFIL-PROG-BACKEND-SPRING-EXP`; no se fabricó JSON equivalente.
+El estado cambia a `LOTS_PLANNED` con `lots_sha256`. El adaptador sólo
+activa en `plan_lots._source_inputs` la proyección integral de los 19
+frentes al PG02 cuando el fixture contiene la decisión de sandbox
+comprobada por el adaptador; la ruta previa por texto libre permanece igual.
+PG04 crea `SOL-001`, un solo átomo BACKEND, sin dependencia y con las 6
+obligaciones conservadas. Las rutas Java son solamente objetivos futuros.

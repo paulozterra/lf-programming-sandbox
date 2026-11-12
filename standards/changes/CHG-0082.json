@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo 2026-11-12 F5.1 entrada A9→PG04, separación reglas técnicas y negocio"
   },
-  "reason": "Reusa A9 real y el intake intacto; puente F5.1 detecta bloqueo material de partición sin inventar requisito de DATA, áreas UNKNOWN ni contexto de examen. PG00 y negocio permanecen físicamente distinguibles. No se registra trabajo Worker. El flujo plan_lots exige un requisito por scope, inexistente para DATA en A9 Login.",
+  "reason": "F5.1 owner decision OWNER_DECISION_SANDBOX autoriza un solo lote BACKEND del paquete A9 Login. El puente conserva 6 obligaciones, 6 reglas tipadas y 19 frentes; sin decisión retiene F51_DATA_REQUIREMENT_NOT_SOURCE_BOUND. Se usa PG02-PG05 fijado y PostgreSQL desechable con una extensión source-bound de la proyección de frentes en plan_lots; el camino P4/texto libre permanece idéntico. PG01 sin atestar, Worker no invocado; no programas Login ni registra examen.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -18,7 +18,9 @@
       ".github/workflows/f5-package.yml",
       "pilot/runs/f5-login/",
       "standards/changes/CHG-0082.json",
-      "standards/CAMBIOS.md"
+      "standards/CAMBIOS.md",
+      "pilot/orchestrator/plan_lots.py",
+      ".lf/worker-context/f5backend/"
     ]
   },
   "existing_code_impact": {
