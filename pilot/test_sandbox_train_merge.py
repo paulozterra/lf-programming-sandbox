@@ -173,6 +173,13 @@ else:
         self.assertEqual(merge.prepare_merge(self.root, self.initial, merged),
                          merged)
 
+    def test_up_to_date_merge_commit_head_is_accepted(self):
+        """Second Train pass on a PR whose HEAD is already a Train merge commit."""
+        head, main = self.diverge()
+        merged = merge.prepare_merge(self.root, main, head)
+        self.assertEqual(len(run(self.root, "rev-list", "--parents", "-n", "1", merged).split()), 3)
+        self.assertEqual(merge.prepare_merge(self.root, main, merged), merged)
+
     def test_clean_merge_no_regeneration(self):
         head, main = self.diverge()
         merged = merge.prepare_merge(self.root, main, head)

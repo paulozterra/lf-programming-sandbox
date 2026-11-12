@@ -94,7 +94,9 @@ def prepare_merge(root, base_ref, expected_head):
     parents = git(root, "rev-list", "--parents", "-n", "1", "HEAD").stdout.split()
     if has_merge and (len(parents) != 3 or parents[1] != expected_head):
         raise BranchConflict("BRANCH_CONFLICT MERGE_PARENTS_INVALID")
-    if not has_merge and (len(parents) != 2 or (dirty and parents[1] != expected_head)):
+    # Nothing merged and nothing rendered: HEAD is still the verified PR head,
+    # which may itself be a merge commit; only a new render commit is checked.
+    if not has_merge and dirty and (len(parents) != 2 or parents[1] != expected_head):
         raise BranchConflict("BRANCH_CONFLICT RENDER_PARENTS_INVALID")
     # HEAD is now a merge commit: merge-base(origin/main,HEAD) is current main,
     # so C9 sees only the PR's CHG, not the CHGs newly added on main.
