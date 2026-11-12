@@ -67,4 +67,4 @@
 | CHG-0065 | EDITORIAL | CP3.5: integración verificada nativa p4data (run 43146245998) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/110 |
 | CHG-0066 | EDITORIAL | CP3.5: stderr seguro y reanudación por árbol idéntico |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/108 |
 | CHG-0067 | EDITORIAL | CP3.6: plan P4 prioridad DATA→BACKEND y prueba de activación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/111 |
-| CHG-0068 | EDITORIAL | CP3.6: C9 vacío, códigos de bloqueo y recuperación por integration_pr |  | paulozterra |  |
+| CHG-0068 | EDITORIAL | CP3.6: C9 vacío, códigos de bloqueo y recuperación por integration_pr |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/112 |
