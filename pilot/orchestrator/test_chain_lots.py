@@ -249,7 +249,7 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
         assert len(emitted) == 1  # no successor release after 3 failures
 
 
-def test_p4_priority_chain_plan_data_merge_releases_backend_offline():
+def test_p4_priority_chain_plan_data_merge_releases_backend_offline(tmp_path):
     """Actual owner-enrolled plan: a trusted p4data merge queues p4be only."""
     plans = chain_lots.plans()
     selected = [row for row in plans if row[0] == "p4-prioridad"]
@@ -304,6 +304,9 @@ def test_p4_priority_chain_plan_data_merge_releases_backend_offline():
             patch.object(chain_lots, "failed_lots", return_value={}),
             patch.object(chain_lots, "prepare_successor",
                          side_effect=capture_prepare),
+            # Hermetic: the real repo may already contain native_tasks/p4be.json
+            # once the lot is registered; the simulation must not depend on it.
+            patch.object(chain_lots, "ROOT", tmp_path),
         ):
             stack.enter_context(manager)
         result = chain_lots.process(43238891957)
@@ -332,3 +335,86 @@ def test_p4_priority_plan_rejects_mixed_or_cross_request_binding_paths():
         mutated["bindings"][1]["template_path"] = target
         with pytest.raises(ChainBlocked, match="BINDING_PATH_INVALID"):
             validate_plan(mutated, lots, "p4-prioridad")
+
+def test_cp36_real_errors_are_printed_not_masked(monkeypatch, capsys):
+    from native_verified_integration import IntegrationBlocked
+    monkeypatch.setenv("GITHUB_REPOSITORY", chain_lots.REPO)
+    monkeypatch.setenv("GH_TOKEN", "offline-token")
+    monkeypatch.setattr(sys, "argv", ["chain_lots.py", "--source-run-id", "17"])
+    for failure in (IntegrationBlocked("CP35_C9_CHECK_FAILED"),
+                    ChainBlocked("CP36_UNTRUSTED_EVENT")):
+        with patch.object(chain_lots, "process", side_effect=failure):
+            assert chain_lots.main() == 1
+        captured = capsys.readouterr()
+        assert str(failure) in captured.err
+        assert "UNEXPECTED" not in captured.err
+
+
+def test_cp36_manual_pr_requires_train_and_ancestry():
+    sha, head = "a" * 40, "b" * 40
+    pr = {"number": 110, "merged": True, "merge_commit_sha": sha,
+          "base": {"ref": "main", "repo": {"full_name": chain_lots.REPO}},
+          "head": {"ref": "lf/native-integration/p4data-run-43146245998",
+                   "repo": {"full_name": chain_lots.REPO}}}
+    def git_sim(*args, **kwargs):
+        if args[:3] == ("git", "rev-list", "--first-parent"):
+            return head + "\n" + sha
+        if args[:3] == ("git", "log", "-1"):
+            return "Merge PR #110 via sandbox-train"
+        if args[:3] == ("git", "rev-list", "--parents"):
+            return f"{sha} {'c' * 40} {'d' * 40}"
+        raise AssertionError(repr(args))
+    with (patch.object(chain_lots, "api", return_value=pr),
+          patch.object(chain_lots, "run", side_effect=git_sim),
+          patch.object(chain_lots.subprocess, "run",
+              return_value=subprocess.CompletedProcess(["git"], 0, b"", b""))):
+        assert chain_lots.validated_manual_integration(110, head) == sha
+    with (patch.object(chain_lots, "api", return_value={**pr, "merged": False}),
+          pytest.raises(ChainBlocked, match="MANUAL_INTEGRATION_PR_UNTRUSTED")):
+        chain_lots.validated_manual_integration(110, head)
+    with (patch.object(chain_lots, "api", return_value=pr),
+          patch.object(chain_lots.subprocess, "run",
+              return_value=subprocess.CompletedProcess(["git"], 1, b"", b"")),
+          pytest.raises(ChainBlocked, match="MANUAL_INTEGRATION_NOT_ANCESTOR")):
+        chain_lots.validated_manual_integration(110, head)
+
+
+def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be(tmp_path):
+    selected = [row for row in chain_lots.plans() if row[0] == "p4-prioridad"]
+    assert len(selected) == 1
+    sha, head = "a" * 40, "b" * 40
+    pr = {"number": 110, "merged": True, "merge_commit_sha": sha,
+          "base": {"ref": "main", "repo": {"full_name": chain_lots.REPO}},
+          "head": {"ref": "lf/native-integration/p4data-run-43146245998",
+                   "repo": {"full_name": chain_lots.REPO}}}
+    changed = {"db/migration/V1__reminders_priority.sql", "standards/CAMBIOS.md",
+               "standards/changes/CHG-0065.json"}
+    recorded = []
+    def git_sim(*args, **kwargs):
+        if args[:3] == ("git", "cat-file", "-e"):
+            return ""
+        raise AssertionError(repr(args))
+    def prepare(request, binding, proofs, commit):
+        recorded.append((request, binding["task_name"], commit))
+        return {"status": "DRAFT_PREPARED"}
+    from contextlib import ExitStack
+    def simulate(pending):
+        with ExitStack() as stack:
+            for item in (
+                patch.object(chain_lots, "check_main", return_value=head),
+                patch.object(chain_lots, "validated_manual_integration", return_value=sha),
+                patch.object(chain_lots, "plans", return_value=selected),
+                patch.object(chain_lots, "first_parent_merges",
+                             return_value=[(sha, pr, changed)]),
+                patch.object(chain_lots, "failed_lots", return_value={}),
+                patch.object(chain_lots, "run", side_effect=git_sim),
+                patch.object(chain_lots, "pending_draft", return_value=pending),
+                patch.object(chain_lots, "prepare_successor", side_effect=prepare),
+                patch.object(chain_lots, "ROOT", tmp_path),  # hermetic: ignore real native_tasks
+            ):
+                stack.enter_context(item)
+            return chain_lots.process(integration_pr=110)
+    assert simulate(False)[0]["status"] == "DRAFT_PREPARED"
+    assert recorded == [("p4-prioridad", "p4be", head)]
+    assert simulate(True)[0]["status"] == "ALREADY_PREPARED"
+    assert len(recorded) == 1

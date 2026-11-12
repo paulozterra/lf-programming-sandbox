@@ -265,7 +265,6 @@ def record_change(root: Path, number: int, task: str,
         block("CHG_COLLISION")
     payload = chg_payload(number, task, run_id, patch_sha, paths)
     dest.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
-    command(["python3", "standards/tools/changes.py", "render"], cwd=root)
     return dest
 
 
@@ -283,15 +282,15 @@ def confirm_class_after_commit(root: Path, chg: Path) -> None:
             block("C9_CHECK_INVALID")
         errors = {item.get("reason_code") for item in result.get("findings", [])}
         classes = result.get("detected_class", [])
-        if (errors != {"CHANGE_CLASS_MISMATCH"} or len(classes) != 1
-                or classes[0] not in ("ADDITIVE", "EDITORIAL") or attempt):
+        if (errors != {"CHANGE_CLASS_MISMATCH"} or not isinstance(classes, list)
+                or len(classes) > 1
+                or (classes and classes[0] not in ("ADDITIVE", "EDITORIAL"))
+                or attempt):
             block("C9_CHECK_FAILED")
         payload = obj(chg.read_bytes())
-        payload["change_class"] = classes[0]
+        payload["change_class"] = classes[0] if classes else "EDITORIAL"
         chg.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
-        command(["python3", "standards/tools/changes.py", "render"], cwd=root)
-        command(["git", "add", "--", str(chg.relative_to(root)),
-                 "standards/CAMBIOS.md"], cwd=root)
+        command(["git", "add", "--", str(chg.relative_to(root))], cwd=root)
         command(["git", "commit", "-m", "CP3.5: align C9 detected change class"], cwd=root)
     block("C9_CHECK_FAILED")
 
@@ -398,9 +397,7 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
         changed = validate_patch_against_repo(root, patch, base, allowed)
         num = next_chg(root)
         chg = record_change(root, num, task, run_id, patch_hash, list(changed))
-        command(["git", "add", "--", str(chg.relative_to(root)),
-                 "standards/CAMBIOS.md"], cwd=root)
-        command(["python3", "standards/tools/changes.py", "render", "--check"], cwd=root)
+        command(["git", "add", "--", str(chg.relative_to(root))], cwd=root)
         current_remote = command(["git", "ls-remote", "origin", "refs/heads/main"],
                                  cwd=root).decode().split()[0]
         if current_remote != main:
@@ -429,9 +426,8 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     payload = obj(chg.read_bytes())
     payload["evidence"]["pr_url"] = url
     chg.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
-    command(["python3", "standards/tools/changes.py", "render"], cwd=root)
     command(["python3", "standards/tools/changes.py", "check", "--base", check_base], cwd=root)
-    command(["git", "add", "--", str(chg.relative_to(root)), "standards/CAMBIOS.md"], cwd=root)
+    command(["git", "add", "--", str(chg.relative_to(root))], cwd=root)
     command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] record PR evidence"], cwd=root)
     command(["git", "push", "origin", branch], cwd=root)
     final_head = command(["git", "rev-parse", "HEAD"], cwd=root).decode().strip()

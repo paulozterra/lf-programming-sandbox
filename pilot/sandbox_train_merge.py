@@ -69,14 +69,35 @@ def prepare_merge(root, base_ref, expected_head):
     else:
         if check_conflicts(root):
             raise BranchConflict("BRANCH_CONFLICT UNEXPECTED_UNMERGED")
+    # The derived view belongs to the Train, not to concurrent PRs.
+    # Render after combining the CHG JSON files even when Git says
+    # 'Already up to date', and stage only this generated view.
+    regenerate = subprocess.run([sys.executable, "standards/tools/changes.py", "render"],
+                                cwd=root, text=True, capture_output=True,
+                                env=no_token_env())
+    if regenerate.returncode:
+        raise BranchConflict("BRANCH_CONFLICT CAMBIOS_RENDER_FAILED " +
+                             regenerate.stderr.strip()[:200])
+    git(root, "add", "--", CAMBIOS)
+    if check_conflicts(root):
+        raise BranchConflict("BRANCH_CONFLICT UNRESOLVED")
     git(root, "diff", "--check")
     git(root, "diff", "--cached", "--check")
-    git(root, "-c", "user.name=sandbox-train[bot]",
-        "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
-        "commit", "--no-verify", "-m", "Merge main into PR branch (sandbox-train)")
+    has_merge = (root / ".git" / "MERGE_HEAD").exists()
+    dirty = git(root, "diff", "--cached", "--quiet", check=False).returncode != 0
+    if has_merge or dirty:
+        git(root, "-c", "user.name=sandbox-train[bot]",
+            "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
+            "commit", "--no-verify", "-m",
+            "Merge main into PR branch (sandbox-train)" if has_merge
+            else "Render CAMBIOS from CHG records (sandbox-train)")
     parents = git(root, "rev-list", "--parents", "-n", "1", "HEAD").stdout.split()
-    if len(parents) != 3 or parents[1] != expected_head:
+    if has_merge and (len(parents) != 3 or parents[1] != expected_head):
         raise BranchConflict("BRANCH_CONFLICT MERGE_PARENTS_INVALID")
+    # Nothing merged and nothing rendered: HEAD is still the verified PR head,
+    # which may itself be a merge commit; only a new render commit is checked.
+    if not has_merge and dirty and (len(parents) != 2 or parents[1] != expected_head):
+        raise BranchConflict("BRANCH_CONFLICT RENDER_PARENTS_INVALID")
     # HEAD is now a merge commit: merge-base(origin/main,HEAD) is current main,
     # so C9 sees only the PR's CHG, not the CHGs newly added on main.
     for command in (("render", "--check"), ("check", "--base", base_ref)):

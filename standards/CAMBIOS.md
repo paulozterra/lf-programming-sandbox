@@ -69,3 +69,13 @@
 | CHG-0065 | EDITORIAL | CP3.5: integración verificada nativa p4data (run 43146245998) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/110 |
 | CHG-0066 | EDITORIAL | CP3.5: stderr seguro y reanudación por árbol idéntico |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/108 |
 | CHG-0067 | EDITORIAL | CP3.6: plan P4 prioridad DATA→BACKEND y prueba de activación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/111 |
+| CHG-0068 | EDITORIAL | CP3.6: C9 vacío, códigos de bloqueo y recuperación por integration_pr |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/112 |
+| CHG-0069 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/113 |
+| CHG-0071 | EDITORIAL | CP3.6: pruebas de cadena p4-prioridad herméticas |  | paulozterra |  |
+| CHG-0072 | ADDITIVE | C9: CAMBIOS derivado por Train sin conflictos entre PRs |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/116 |
+| CHG-0073 | EDITORIAL | P4: el test visible heredado acepta la prioridad; insumos de la tarea p4be2 |  | paulozterra |  |
+| CHG-0074 | EDITORIAL | P4: registro nativo p4be2 (lote BACKEND) |  | paulozterra |  |
+| CHG-0075 | ADDITIVE | Train: reintentos ante fallos transitorios de GitHub y HEAD de merge ya al día |  | paulozterra |  |
+| CHG-0076 | EDITORIAL | P4: tests de controlador aislados (DirtiesContext) + insumos p4be3 |  | paulozterra |  |
+| CHG-0077 | EDITORIAL | P4: registro nativo p4be3 (lote BACKEND) |  | paulozterra |  |
+| CHG-0078 | EDITORIAL | CP3.5: integración verificada nativa p4be3 (run 43277057137) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/122 |

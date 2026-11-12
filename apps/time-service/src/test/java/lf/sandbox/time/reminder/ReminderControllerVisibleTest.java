@@ -1,5 +1,6 @@
 package lf.sandbox.time.reminder;
 
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assumptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,6 +26,8 @@ import org.springframework.test.web.servlet.MockMvc;
  * It automatically executes when ex4b supplies ReminderController.
  */
 @SpringBootTest
+// Each test starts with an empty in-memory repository: no ordering between test classes.
+@DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 @AutoConfigureMockMvc
 class ReminderControllerVisibleTest {
 
@@ -49,7 +54,8 @@ class ReminderControllerVisibleTest {
                 .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("/api/reminders/\\d+")))
                 .andExpect(jsonPath("$.text").value("take a break"))
                 .andExpect(jsonPath("$.at").value("13:20:30"))
-                .andExpect(jsonPath("$.*", hasSize(3)));
+                // P4: responses may also carry priority; accept both shapes.
+                .andExpect(jsonPath("$.*", anyOf(hasSize(3), hasSize(4))));
 
         mvc.perform(get("/api/reminders"))
                 .andExpect(status().isOk())
