@@ -81,3 +81,4 @@
 | CHG-0078 | EDITORIAL | CP3.5: integración verificada nativa p4be3 (run 43277057137) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/122 |
 | CHG-0079 | EDITORIAL | F2 Análisis: admisión simulada D-AN6(a) y A6 implementabilidad |  | paulozterra |  |
 | CHG-0080 | EDITORIAL | F3 Análisis: A7 cobertura de frentes y A8 parada material |  | paulozterra |  |
+| CHG-0081 | EDITORIAL | F4 Análisis: A9 paquete simulado compatible con intake real |  | paulozterra |  |
