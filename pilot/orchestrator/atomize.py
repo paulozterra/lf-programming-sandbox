@@ -48,7 +48,7 @@ def _next_version(root):
     numbers = []
     for base in (HERE.parents[1], Path(root)):
         for file in (base / "db/migration").glob("V*__*.sql"):
-            match = re.fullmatch(r"V([0-9]+)__[a-z0-9_]+\\.sql", file.name)
+            match = re.fullmatch(r"V([0-9]+)__[a-z0-9_]+\.sql", file.name)
             if match:
                 numbers.append(int(match.group(1)))
     return max(numbers, default=0) + 1
