@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0076",
+  "title": "P4: tests de controlador aislados (DirtiesContext) + insumos p4be3",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12 P4 lote BACKEND"
+  },
+  "reason": "ReminderControllerVisibleTest dependía del orden entre clases de test (repositorio en memoria compartido por el contexto Spring): en el Worker falló con $[0].text = UniqueEx5Needle (corrida 43273911213). Se aíslan ambos tests de controlador con @DirtiesContext antes de cada test. Se agregan insumos de p4be3 (mismo examen cifrado).",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerDeleteSearchVisibleTest.java",
+      "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java",
+      "pilot/holdouts/p4be3.oracle.json.age",
+      "pilot/runs/p4-prioridad/claude_meta/p4be3.json",
+      "pilot/runs/p4-prioridad/templates/p4be3.task.json",
+      "standards/changes/CHG-0076.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
