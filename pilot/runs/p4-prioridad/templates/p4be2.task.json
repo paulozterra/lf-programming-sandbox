@@ -1,0 +1,64 @@
+{
+  "task_spec": {
+    "schema_version": 1,
+    "base_head_sha": "<FILL_AT_PREP>",
+    "source_snapshot_sha256": "<FILL_AT_PREP>",
+    "max_attempts": 1,
+    "allow_deletions": false,
+    "max_context_bytes": 200000,
+    "max_patch_bytes": 60000,
+    "task_id": "LF-WORKER-NATIVE-P4-BACKEND-2",
+    "max_changed_files": 4,
+    "objective": "Lote BACKEND del pedido pilot/runs/p4-prioridad/request.md (requisitos REQ-PRIORITY-BE-* de analysis.json): prioridad HIGH/MEDIUM/LOW en los recordatorios (MEDIUM por defecto), al crear y editar, en todas las respuestas, filtro GET /api/reminders?priority= combinable con q, y 400 para prioridad inválida. Modifica solo Reminder.java, ReminderRepository.java, InMemoryReminderRepository.java y ReminderController.java. Todo lo anterior (REM-A a REM-F) debe seguir funcionando, incluidos los tests existentes. Sigue el perfil y skills de .lf/worker-context/<tarea>/ (STD-BE-05: mvn spotless:check). Chequeo visible: apps/time-service/visible-tests/p4be/.",
+    "write_path_patterns": [
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java"
+    ],
+    "context_path_patterns": [
+      "pilot/runs/p4-prioridad/request.md",
+      "apps/time-service/REMINDERS_SPEC.md",
+      "apps/time-service/pom.xml",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/*.java",
+      "apps/time-service/src/test/java/lf/sandbox/time/reminder/*.java",
+      "apps/time-service/visible-tests/p4be/run_visible.py"
+    ],
+    "protected_path_patterns": [
+      "apps/time-service/src/test/**",
+      "apps/time-service/visible-tests/**",
+      "apps/time-service/pom.xml",
+      "apps/time-service/REMINDERS_SPEC.md",
+      "apps/time-service/src/main/java/lf/sandbox/time/*.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStats.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsService.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderStatsController.java",
+      "db/**",
+      "pilot/**"
+    ],
+    "acceptance_commands": [
+      {
+        "name": "time-service-package",
+        "argv": [
+          "mvn",
+          "-B",
+          "-q",
+          "-f",
+          "apps/time-service/pom.xml",
+          "package"
+        ],
+        "timeout_seconds": 600,
+        "max_output_bytes": 32000
+      },
+      {
+        "name": "p4be-visible-check",
+        "argv": [
+          "python3",
+          "apps/time-service/visible-tests/p4be/run_visible.py"
+        ],
+        "timeout_seconds": 180,
+        "max_output_bytes": 16000
+      }
+    ]
+  }
+}
