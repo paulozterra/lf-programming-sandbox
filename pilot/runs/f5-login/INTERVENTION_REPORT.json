@@ -1,0 +1,470 @@
+{
+  "by_code": {
+    "MANUAL_AREA_DECISION": [
+      "pilot/runs/f5-login/owner_area_decision.json"
+    ],
+    "MANUAL_BASE_PREP": [
+      ".env.example",
+      "apps/time-service/pom.xml",
+      "apps/time-service/src/main/resources/application.properties"
+    ],
+    "MANUAL_COMMIT_OF_GENERATED": [
+      "pilot/runs/f5-login/analysis.json",
+      "pilot/runs/f5-login/lots.json",
+      "pilot/runs/f5-login/state.json"
+    ],
+    "MANUAL_CONTRACT": [
+      "apps/time-service/AUTH_SPEC.md"
+    ],
+    "MANUAL_LABEL": [
+      "PR #126",
+      "PR #127",
+      "PR #128",
+      "PR #129"
+    ],
+    "MANUAL_LOT_DIVISION": [
+      "pilot/runs/f5-login/planning_fixture.json"
+    ],
+    "MANUAL_OTHER": [
+      "pilot/runs/f5-login/README.md",
+      "pilot/runs/f5-login/assignment_assessment.json"
+    ],
+    "MANUAL_REGISTRATION": [
+      ".lf/worker-context/f5backend/profile.md",
+      ".lf/worker-context/f5backend/receipt.json",
+      ".lf/worker-context/f5backend/reglas_negocio.json",
+      ".lf/worker-context/f5backend/reglas_tecnicas.json",
+      ".lf/worker-context/f5backend/skills.md",
+      ".lf/worker-context/f5data/reglas_negocio.json",
+      ".lf/worker-context/f5data/reglas_tecnicas.json",
+      "pilot/runs/f5-login/proposal_requests/f5backend.proposal-request.json",
+      "pilot/runs/f5-login/proposal_requests/f5backend.task-pack.json",
+      "pilot/worker_v08/native_tasks/f5backend.json"
+    ],
+    "MANUAL_TASK_TEMPLATE": [
+      "pilot/runs/f5-login/templates/f5backend.task.json"
+    ]
+  },
+  "intervencion_manual": "SI",
+  "intervention_count": 33,
+  "label_events": [
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 126,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 127,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 128,
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "paulozterra",
+      "code": "MANUAL_LABEL",
+      "description": "Etiqueta ready-to-merge puesta a mano",
+      "pr": 129,
+      "verdict": "INTERVENTION"
+    }
+  ],
+  "notes": [
+    "PAULO_O_GPT: Paulo y GPT comparten identidad de GitHub; no se distinguen.",
+    "ALLOWED_HUMAN y EXAMINER_EXPECTED no cuentan como intervención."
+  ],
+  "request_id": "f5-login",
+  "revision": "5bd546acc0af90185a67c427eebb92873ff50b8f",
+  "rows": [
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "ff45d71d55da",
+      "description": "Producido por la ruta",
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+      "subject": "[CP3.5][CHG-0085] verified native patch f5backend run 43317808597",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "ff45d71d55da",
+      "description": "Producido por la ruta",
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "subject": "[CP3.5][CHG-0085] verified native patch f5backend run 43317808597",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "ff45d71d55da",
+      "description": "Producido por la ruta",
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+      "subject": "[CP3.5][CHG-0085] verified native patch f5backend run 43317808597",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "BOT",
+      "code": "ROUTE",
+      "commit": "ff45d71d55da",
+      "description": "Producido por la ruta",
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthUser.java",
+      "subject": "[CP3.5][CHG-0085] verified native patch f5backend run 43317808597",
+      "verdict": "AUTOMATIC"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "c131c9959b8b",
+      "description": "Paquete de tarea exportado a mano",
+      "path": "pilot/runs/f5-login/proposal_requests/f5backend.proposal-request.json",
+      "subject": "[F5][CHG-0084] Native registration f5backend",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "c131c9959b8b",
+      "description": "Paquete de tarea exportado a mano",
+      "path": "pilot/runs/f5-login/proposal_requests/f5backend.task-pack.json",
+      "subject": "[F5][CHG-0084] Native registration f5backend",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "814521ec8f61",
+      "description": "Registro de tarea ejecutado a mano (no por la ruta)",
+      "path": "pilot/worker_v08/native_tasks/f5backend.json",
+      "subject": "[CP3.4] seal native task base f5backend",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "e0390b81e371",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/f5backend/profile.md",
+      "subject": "[CP3.4] register native context f5backend",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "e0390b81e371",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/f5backend/receipt.json",
+      "subject": "[CP3.4] register native context f5backend",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "e0390b81e371",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/f5backend/skills.md",
+      "subject": "[CP3.4] register native context f5backend",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "e0390b81e371",
+      "description": "Registro de tarea ejecutado a mano (no por la ruta)",
+      "path": "pilot/worker_v08/native_tasks/f5backend.json",
+      "subject": "[CP3.4] register native context f5backend",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_BASE_PREP",
+      "commit": "edc9e4d794ca",
+      "description": "Configuración de ejemplo preparada a mano",
+      "path": ".env.example",
+      "subject": "[F5][CHG-0083] Login lot base: API contract, BCrypt dependency, default user config, visible check, encrypted exam",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_CONTRACT",
+      "commit": "edc9e4d794ca",
+      "description": "Contrato/especificación escrita a mano",
+      "path": "apps/time-service/AUTH_SPEC.md",
+      "subject": "[F5][CHG-0083] Login lot base: API contract, BCrypt dependency, default user config, visible check, encrypted exam",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_BASE_PREP",
+      "commit": "edc9e4d794ca",
+      "description": "Dependencias/build preparados a mano",
+      "path": "apps/time-service/pom.xml",
+      "subject": "[F5][CHG-0083] Login lot base: API contract, BCrypt dependency, default user config, visible check, encrypted exam",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_BASE_PREP",
+      "commit": "edc9e4d794ca",
+      "description": "Configuración preparada a mano",
+      "path": "apps/time-service/src/main/resources/application.properties",
+      "subject": "[F5][CHG-0083] Login lot base: API contract, BCrypt dependency, default user config, visible check, encrypted exam",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "edc9e4d794ca",
+      "description": "Material del examinador independiente",
+      "path": "apps/time-service/visible-tests/f5backend/run_visible.py",
+      "subject": "[F5][CHG-0083] Login lot base: API contract, BCrypt dependency, default user config, visible check, encrypted exam",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "edc9e4d794ca",
+      "description": "Material del examinador independiente",
+      "path": "pilot/holdouts/f5backend.oracle.json.age",
+      "subject": "[F5][CHG-0083] Login lot base: API contract, BCrypt dependency, default user config, visible check, encrypted exam",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "EXAMINER",
+      "commit": "edc9e4d794ca",
+      "description": "Material del examinador independiente",
+      "path": "pilot/runs/f5-login/claude_meta/f5backend.json",
+      "subject": "[F5][CHG-0083] Login lot base: API contract, BCrypt dependency, default user config, visible check, encrypted exam",
+      "verdict": "EXAMINER_EXPECTED"
+    },
+    {
+      "actor": "CLAUDE",
+      "code": "MANUAL_TASK_TEMPLATE",
+      "commit": "edc9e4d794ca",
+      "description": "Plantilla de tarea escrita a mano",
+      "path": "pilot/runs/f5-login/templates/f5backend.task.json",
+      "subject": "[F5][CHG-0083] Login lot base: API contract, BCrypt dependency, default user config, visible check, encrypted exam",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_OTHER",
+      "commit": "1a0ae8683c4c",
+      "description": "Otro cambio manual dentro del pedido",
+      "path": "pilot/runs/f5-login/README.md",
+      "subject": "test(f5): commit byte-exact PG02-PG05 one-backend lots and planned state",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_COMMIT_OF_GENERATED",
+      "commit": "1a0ae8683c4c",
+      "description": "Lotes comiteados a mano",
+      "path": "pilot/runs/f5-login/lots.json",
+      "subject": "test(f5): commit byte-exact PG02-PG05 one-backend lots and planned state",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_LOT_DIVISION",
+      "commit": "1a0ae8683c4c",
+      "description": "División en lotes / áreas / rutas escrita a mano (fixture simulado)",
+      "path": "pilot/runs/f5-login/planning_fixture.json",
+      "subject": "test(f5): commit byte-exact PG02-PG05 one-backend lots and planned state",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_COMMIT_OF_GENERATED",
+      "commit": "1a0ae8683c4c",
+      "description": "Estado del pedido comiteado a mano",
+      "path": "pilot/runs/f5-login/state.json",
+      "subject": "test(f5): commit byte-exact PG02-PG05 one-backend lots and planned state",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "ROUTE_TOOLING_CHANGE",
+      "commit": "ae3392004ff6",
+      "description": "Cambio de herramientas de la ruta (no cuenta para el pedido)",
+      "path": ".github/workflows/f5-package.yml",
+      "subject": "feat(f5): OWNER_DECISION_SANDBOX one backend A9 lot with real pinned PG04 planner",
+      "verdict": "TOOLING"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "ae3392004ff6",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/f5backend/reglas_negocio.json",
+      "subject": "feat(f5): OWNER_DECISION_SANDBOX one backend A9 lot with real pinned PG04 planner",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "ae3392004ff6",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/f5data/reglas_negocio.json",
+      "subject": "feat(f5): OWNER_DECISION_SANDBOX one backend A9 lot with real pinned PG04 planner",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "ae3392004ff6",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/f5data/reglas_tecnicas.json",
+      "subject": "feat(f5): OWNER_DECISION_SANDBOX one backend A9 lot with real pinned PG04 planner",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "ROUTE_TOOLING_CHANGE",
+      "commit": "ae3392004ff6",
+      "description": "Cambio de herramientas de la ruta (no cuenta para el pedido)",
+      "path": "pilot/orchestrator/package_to_lots.py",
+      "subject": "feat(f5): OWNER_DECISION_SANDBOX one backend A9 lot with real pinned PG04 planner",
+      "verdict": "TOOLING"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "ROUTE_TOOLING_CHANGE",
+      "commit": "ae3392004ff6",
+      "description": "Cambio de herramientas de la ruta (no cuenta para el pedido)",
+      "path": "pilot/orchestrator/test_package_to_lots.py",
+      "subject": "feat(f5): OWNER_DECISION_SANDBOX one backend A9 lot with real pinned PG04 planner",
+      "verdict": "TOOLING"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_OTHER",
+      "commit": "ae3392004ff6",
+      "description": "Otro cambio manual dentro del pedido",
+      "path": "pilot/runs/f5-login/README.md",
+      "subject": "feat(f5): OWNER_DECISION_SANDBOX one backend A9 lot with real pinned PG04 planner",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_AREA_DECISION",
+      "commit": "ae3392004ff6",
+      "description": "Decisión manual de área (owner)",
+      "path": "pilot/runs/f5-login/owner_area_decision.json",
+      "subject": "feat(f5): OWNER_DECISION_SANDBOX one backend A9 lot with real pinned PG04 planner",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "ROUTE_TOOLING_CHANGE",
+      "commit": "66f8ab6b485f",
+      "description": "Cambio de herramientas de la ruta (no cuenta para el pedido)",
+      "path": ".github/workflows/f5-package.yml",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "TOOLING"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "66f8ab6b485f",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/f5backend/reglas_negocio.json",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "66f8ab6b485f",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/f5backend/reglas_tecnicas.json",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "66f8ab6b485f",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/f5data/reglas_negocio.json",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_REGISTRATION",
+      "commit": "66f8ab6b485f",
+      "description": "Contexto de tarea registrado a mano",
+      "path": ".lf/worker-context/f5data/reglas_tecnicas.json",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "ROUTE_TOOLING_CHANGE",
+      "commit": "66f8ab6b485f",
+      "description": "Cambio de herramientas de la ruta (no cuenta para el pedido)",
+      "path": "pilot/orchestrator/test_package_to_lots.py",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "TOOLING"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_OTHER",
+      "commit": "66f8ab6b485f",
+      "description": "Otro cambio manual dentro del pedido",
+      "path": "pilot/runs/f5-login/README.md",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_COMMIT_OF_GENERATED",
+      "commit": "66f8ab6b485f",
+      "description": "Salida de Análisis/planificación comiteada a mano (no por la ruta)",
+      "path": "pilot/runs/f5-login/analysis.json",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_OTHER",
+      "commit": "66f8ab6b485f",
+      "description": "Otro cambio manual dentro del pedido",
+      "path": "pilot/runs/f5-login/assignment_assessment.json",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "INTERVENTION"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "REQUEST",
+      "commit": "66f8ab6b485f",
+      "description": "Texto del pedido",
+      "path": "pilot/runs/f5-login/request.md",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "ALLOWED_HUMAN"
+    },
+    {
+      "actor": "PAULO_O_GPT",
+      "code": "MANUAL_COMMIT_OF_GENERATED",
+      "commit": "66f8ab6b485f",
+      "description": "Estado del pedido comiteado a mano",
+      "path": "pilot/runs/f5-login/state.json",
+      "subject": "test(f5): pin real A9 Login intake bytes and segregated unregistered rule blocks",
+      "verdict": "INTERVENTION"
+    }
+  ],
+  "schema_version": "LF_INTERVENTION_REPORT_V1",
+  "tasks": [
+    "f5backend"
+  ]
+}

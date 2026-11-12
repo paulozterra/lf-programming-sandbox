@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0089",
+  "title": "T0: informe automático de intervenciones por pedido (INTERVENCION_MANUAL SI/NO)",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12: pruebas transparentes, T0 del plan cero intervención"
+  },
+  "reason": "Agrega pilot/orchestrator/intervention_report.py: clasifica desde git y GitHub cada cambio de un pedido (automático, pedido, examinador previsto o intervención con código) y emite INTERVENCION_MANUAL SI/NO. Se publica el informe de p4-prioridad y f5-login (ambos SI).",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/intervention_report.py",
+      "pilot/orchestrator/test_intervention_report.py",
+      "pilot/runs/f5-login/INTERVENTION_REPORT.json",
+      "pilot/runs/f5-login/INTERVENTION_REPORT.md",
+      "pilot/runs/p4-prioridad/INTERVENTION_REPORT.json",
+      "pilot/runs/p4-prioridad/INTERVENTION_REPORT.md",
+      "standards/changes/CHG-0089.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
