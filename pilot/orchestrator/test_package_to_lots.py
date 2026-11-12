@@ -23,7 +23,7 @@ def test_real_a9_intake_and_known_unassigned_rules(tmp_path):
     assert assessment["pg04_area_resolution_pending"] is True
     with pytest.raises(bridge.PackageLotsBlocked,
                        match="F51_DATA_REQUIREMENT_NOT_SOURCE_BOUND"):
-        bridge.prepare(tmp_path, "f5-login")
+        bridge.prepare(tmp_path, "f5-login", legacy=True)
     assert not (tmp_path/"pilot/runs/f5-login/lots.json").exists()
     assert json.loads((tmp_path/"pilot/runs/f5-login/state.json").read_text())["stage"] == "INTAKE_ACCEPTED"
 
@@ -76,7 +76,7 @@ def test_owner_decision_one_real_pg04_lot(tmp_path):
     for name in ("request.md", "analysis.json", "owner_area_decision.json"):
         shutil.copyfile(source / name, folder / name)
     intake.accept(tmp_path, "f5-login")
-    out = bridge.prepare(tmp_path, "f5-login", base_head_sha="d940576ffea313e2ee62060e3f289c6825f83776")
+    out = bridge.prepare(tmp_path, "f5-login", base_head_sha="d940576ffea313e2ee62060e3f289c6825f83776", legacy=True)
     assert out["schema_version"] == "CP33_LOTS_CANDIDATE_V1"
     fixture = json.loads((folder/"planning_fixture.json").read_text())
     assert fixture["owner_area_decision"]["front_ids"] == sorted(
@@ -106,7 +106,7 @@ def test_owner_decision_one_real_pg04_lot(tmp_path):
     assert rules["registration_status"] == "NOT_REGISTERED"
     assert json.loads((folder/"state.json").read_text())["stage"] == "LOTS_PLANNED"
     assert (folder/"lots.json").read_bytes() == intake.canonical(out)
-    assert bridge.prepare(tmp_path,"f5-login") == out
+    assert bridge.prepare(tmp_path,"f5-login",legacy=True) == out
 
 
 def test_owner_decision_absent_still_blocks(tmp_path):
@@ -119,7 +119,7 @@ def test_owner_decision_absent_still_blocks(tmp_path):
     intake.accept(tmp_path,"f5-login")
     with pytest.raises(bridge.PackageLotsBlocked,
                        match="F51_DATA_REQUIREMENT_NOT_SOURCE_BOUND"):
-        bridge.prepare(tmp_path,"f5-login", base_head_sha="d940576ffea313e2ee62060e3f289c6825f83776")
+        bridge.prepare(tmp_path,"f5-login", base_head_sha="d940576ffea313e2ee62060e3f289c6825f83776", legacy=True)
     assert not (folder/"lots.json").exists()
 
 
@@ -135,4 +135,4 @@ def test_owner_decision_corrupt_fails_closed(tmp_path):
     decision["requirement_ids"].pop()
     (folder/"owner_area_decision.json").write_text(json.dumps(decision))
     with pytest.raises(bridge.PackageLotsBlocked,match="F51_OWNER_DECISION_INVALID"):
-        bridge.prepare(tmp_path,"f5-login",base_head_sha="d940576ffea313e2ee62060e3f289c6825f83776")
+        bridge.prepare(tmp_path,"f5-login",base_head_sha="d940576ffea313e2ee62060e3f289c6825f83776",legacy=True)

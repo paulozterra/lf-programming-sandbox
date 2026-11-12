@@ -89,3 +89,4 @@
 | CHG-0086 | ADDITIVE | Política C: auto-integración segura de PRs bot vía checks y recibos |  | paulozterra |  |
 | CHG-0087 | EDITORIAL | Modo continuo por defecto para el constructor (A+B) |  | paulozterra |  |
 | CHG-0088 | EDITORIAL | La ruta inyecta el protocolo del constructor (modo continuo) en el contexto de cada tarea |  | paulozterra |  |
+| CHG-0090 | ADDITIVE | T1: atomizador A9 determinista y artefactos de cadena sin fixtures |  | paulozterra |  |

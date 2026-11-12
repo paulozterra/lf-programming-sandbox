@@ -399,6 +399,7 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
           python3 -m pytest -q pilot/orchestrator/test_plan_lots.py
+          python3 -m pytest -q pilot/orchestrator/test_atomize.py
           python3 -m pytest -q pilot/orchestrator/test_intake.py
       - name: P4 priority intake and real PG02-PG05 selector outputs equal committed JSON
         shell: bash

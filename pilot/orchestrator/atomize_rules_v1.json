@@ -1,0 +1,63 @@
+{
+  "schema_version": "T1_ATOMIZE_RULES_V1",
+  "order": [
+    "DATA",
+    "BACKEND",
+    "FRONTEND"
+  ],
+  "patterns": {
+    "DATA": {
+      "front_kinds": [
+        "DATA_CONTRACT",
+        "DATABASE_SCHEMA"
+      ],
+      "categories": [
+        "datos",
+        "data",
+        "database"
+      ],
+      "acceptance_regex": "(?i)\\b(migraci[oó]n|tabla|columna|sql|base de datos|check constraint)\\b"
+    },
+    "BACKEND": {
+      "front_kinds": [
+        "API_CONTRACT",
+        "PERMISSION",
+        "SECURITY_PRIVACY",
+        "OBSERVABILITY"
+      ],
+      "categories": [
+        "seguridad",
+        "security",
+        "rate_limiting",
+        "api"
+      ],
+      "acceptance_regex": "(?i)\\b(api|endpoint|bcrypt|token|contrase[nñ]a|autenticar|servidor|http)\\b"
+    },
+    "FRONTEND": {
+      "front_kinds": [
+        "UI_VISUAL",
+        "UI_INTERACTION"
+      ],
+      "categories": [
+        "interfaz",
+        "frontend",
+        "ui"
+      ],
+      "acceptance_regex": "(?i)\\b(pantalla|interfaz|next.js|visual|formulario|bot[oó]n)\\b"
+    }
+  },
+  "routes": {
+    "DATA": "db/migration/V{next}__{module}.sql",
+    "BACKEND": "apps/{service}/src/main/java/lf/sandbox/{service_java}/{module}/{class}.java",
+    "FRONTEND": [
+      "frontend/src/app/{module}/page.tsx",
+      "frontend/src/lib/{module}.ts"
+    ]
+  },
+  "service": "time-service",
+  "backend_classes": [
+    "Controller",
+    "Service"
+  ],
+  "max_paths": 6
+}

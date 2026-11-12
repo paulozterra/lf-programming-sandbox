@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0090",
+  "title": "T1: atomizador A9 determinista y artefactos de cadena sin fixtures",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T1: alcance detallado, plan-cero-intervencion-ruta-20261112.md"
+  },
+  "reason": "El camino nuevo aplica A7.execution_area con source_ref o tabla T1 versionada; ante frente sin regla bloquea ATOM_AREA_UNRESOLVED. Las rutas se generan determinísticamente, PG02-PG05 siguen fijados; plantillas y plan CP3.6 se derivan de lots.json. P4 conserva fixture solo para regresión; no se consumen owner overrides.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/atomize.py",
+      "pilot/orchestrator/atomize_rules_v1.json",
+      "pilot/orchestrator/plan_lots.py",
+      "pilot/orchestrator/package_to_lots.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/test_atomize.py",
+      "pilot/orchestrator/test_package_to_lots.py",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0090.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "agent:claude",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}

@@ -268,7 +268,7 @@ def _write_once(path, value):
             out.write(content)
 
 
-def prepare(root, slug, *, base_head_sha=None):
+def prepare_legacy(root, slug, *, base_head_sha=None):
     package, state = read_package(root, slug)
     assessment = derive(package)
     folder = Path(root) / "pilot/runs" / slug
@@ -314,14 +314,43 @@ def prepare(root, slug, *, base_head_sha=None):
     return planned
 
 
+def prepare(root, slug, *, base_head_sha=None, legacy=False):
+    """Default T1 path; old F5.1 owner fixture only via explicit regression flag."""
+    if legacy:
+        return prepare_legacy(root, slug, base_head_sha=base_head_sha)
+    if not base_head_sha:
+        blocked("ATOM_BASE_SHA_REQUIRED")
+    import atomize
+    import generate_chain
+    root = Path(root)
+    package, state = read_package(root, slug)
+    folder = root / "pilot/runs" / slug
+    # Detect pre-T1 owner intervention, but never read or grant authority to it.
+    report = {"schema_version": "T1_INTERVENTION_REPORT_V1", "request_id": slug,
+              "INTERVENCION_MANUAL": "SI" if (folder/"owner_area_decision.json").exists() else "NO",
+              "interventions": (["owner_area_decision.json"] if
+                                (folder/"owner_area_decision.json").exists() else []),
+              "production_authority": False}
+    _write_once(folder/"t1_interventions.json", report)
+    try:
+        generated = atomize.atomize(package, root, base_head_sha, run=slug)
+    except atomize.AtomBlocked as exc:
+        blocked(str(exc))
+    _write_once(folder/"atomized_inputs.json", generated)
+    planned = plan_lots.plan(root, slug)
+    generate_chain.generate(root, slug, planned)
+    return planned
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--root", type=Path, default=ROOT)
     p.add_argument("--request-id", default="f5-login")
     p.add_argument("--base-head-sha", default=None)
+    p.add_argument("--legacy", action="store_true")
     args = p.parse_args()
     try:
-        result = prepare(args.root, args.request_id, base_head_sha=args.base_head_sha)
+        result = prepare(args.root, args.request_id, base_head_sha=args.base_head_sha, legacy=args.legacy)
         print("F51_LOTS_PLANNED:" + args.request_id + ":" + str(len(result["lots"])))
     except PackageLotsBlocked as exc:
         print("F51_BLOCKED:" + str(exc), file=sys.stderr)
