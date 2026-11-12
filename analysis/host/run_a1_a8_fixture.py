@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""F3: extend the actual F2 runner with A7 front coverage and A8 stop rule."""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from analysis.host.run_a1_a5_fixture import encoded
+from analysis.host.run_a1_a6_fixture import run_f2
+from analysis.a7.front_coverage import run as run_a7
+from analysis.a8.stop_rule import run as run_a8
+
+
+def run_f3(fixtures=None, output_dir=None):
+    result = run_f2(fixtures=fixtures, output_dir=output_dir)
+    a7 = run_a7(
+        result["stages"], result["a2_signals"], result["admission_envelope"],
+        result["admission"], result["a6"])
+    a8 = run_a8(result["stages"]["A3"], result["stages"]["A5"], a7)
+    result["a7"] = a7
+    result["a8"] = a8
+    if output_dir is not None:
+        dest = Path(output_dir)
+        (dest / "a7.json").write_bytes(encoded(a7))
+        (dest / "a8.json").write_bytes(encoded(a8))
+    return result
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output-dir", type=Path, required=True)
+    args = parser.parse_args()
+    output = run_f3(output_dir=args.output_dir)
+    print(json.dumps({
+        "simulation_mode": "SIMULATED_SANDBOX_ONLY",
+        "materiality_level": output["a7"]["materiality_level"],
+        "fronts": [{
+            "front_id": row["front_id"],
+            "kind": row["front_kind"],
+            "status": row["status"],
+            "closure": row["closure"],
+            "area": row["execution_area_hint"],
+            "area_candidates": row["execution_area_candidates"],
+            "obligations": row["obligation_refs"],
+            "blockers": row["blockers"],
+        } for row in output["a7"]["material_fronts"]],
+        "all_material_fronts_accounted": output["a7"]["all_material_fronts_accounted"],
+        "a8_decision": output["a8"]["decision"],
+        "a8_reason": output["a8"]["reason"],
+        "a8_requested_material_evidence": output["a8"]["requested_material_evidence_refs"],
+        "a7_fingerprint": output["a7"]["coverage_fingerprint_sha256"],
+        "a8_fingerprint": output["a8"]["stop_rule_fingerprint_sha256"],
+    }, sort_keys=True, ensure_ascii=False))
