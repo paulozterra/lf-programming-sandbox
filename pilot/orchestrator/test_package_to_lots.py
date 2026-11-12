@@ -37,3 +37,28 @@ def test_pg00_two_rule_families_separate_from_business():
     assert all(x["domain"] in {"STD-BE", "STD-SEC"} for x in be["rules"])
     assert data["production_authority"] is False
     assert be["production_authority"] is False
+
+
+def test_committed_assessment_matches_real_a9_projection():
+    root = bridge.ROOT
+    original, state = bridge.read_package(root, "f5-login")
+    assert state["stage"] == "INTAKE_ACCEPTED"
+    recorded = json.loads((root/"pilot/runs/f5-login/assignment_assessment.json").read_text())
+    assert bridge.derive(original) == recorded
+    assert not (root/"pilot/runs/f5-login/lots.json").exists()
+
+
+def test_separate_unregistered_pg00_and_business_blocks():
+    root = bridge.ROOT
+    assessment = json.loads((root/"pilot/runs/f5-login/assignment_assessment.json").read_text())
+    for area, task in (("DATA", "f5data"), ("BACKEND", "f5backend")):
+        base = root/".lf/worker-context"/task
+        tech = json.loads((base/"reglas_tecnicas.json").read_text())
+        business = json.loads((base/"reglas_negocio.json").read_text())
+        assert tech == bridge.technical_rules(area)
+        assert tech["families"] == (["STD-DB", "STD-SEC"] if area=="DATA" else ["STD-BE", "STD-SEC"])
+        assert business["registration_status"] == "NOT_REGISTERED"
+        assert business["rules"] == assessment["business_rules_by_area"][area]
+        assert business["production_authority"] is False
+        assert {r["rule_code"] for r in business["rules"]}.isdisjoint(
+            {x["id"] for x in tech["rules"]})

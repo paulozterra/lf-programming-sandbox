@@ -26,16 +26,23 @@ jobs:
           ln -s ../analysis/programming_analysis skills/programming_analysis
       - name: A9 actual package, unchanged intake, no model or Supabase
         run: |
-          python3 -m analysis.host.run_a1_a9_fixture --root "$RUNNER_TEMP" --slug f5-login
-          python3 -m pilot.orchestrator.intake --root "$RUNNER_TEMP" --request-id f5-login
+          python3 -m analysis.host.run_a1_a9_fixture --root . --slug f5-login
+          python3 -m pilot.orchestrator.intake --root . --request-id f5-login
           python3 -m pytest -q pilot/orchestrator/test_package_to_lots.py -p no:cacheprovider
-      - name: Emit byte exact candidate for source-controlled F5 intake
+      - name: Verify candidate contexts remain separate and no lots were invented
         run: |
           python3 - <<'PY'
-          import base64,os,pathlib
-          folder=pathlib.Path(os.environ['RUNNER_TEMP'])/'pilot/runs/f5-login'
-          for name in ('request.md','analysis.json'):
-              print('F51_B64_BEGIN:'+name)
-              print(base64.b64encode((folder/name).read_bytes()).decode('ascii'))
-              print('F51_B64_END:'+name)
+          import json,pathlib
+          folder=pathlib.Path('pilot/runs/f5-login')
+          state=json.loads((folder/'state.json').read_text())
+          assert state['stage']=='INTAKE_ACCEPTED'
+          assert not (folder/'lots.json').exists()
+          for area,name in (('DATA','f5data'),('BACKEND','f5backend')):
+              root=pathlib.Path('.lf/worker-context')/name
+              tech=json.loads((root/'reglas_tecnicas.json').read_text())
+              business=json.loads((root/'reglas_negocio.json').read_text())
+              assert tech['area']==business['area']==area
+              assert 'STD-SEC' in tech['families']
+              assert business['registration_status']=='NOT_REGISTERED'
+          print('F51_CANDIDATE_BLOCKS_SEPARATED_AND_UNREGISTERED')
           PY
