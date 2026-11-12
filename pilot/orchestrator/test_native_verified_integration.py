@@ -14,7 +14,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from native_verified_integration import (
     IntegrationBlocked, extract_exact_zip, extract_exact_zip_bundle, verify_run, allowed_paths,
-    validate_patch_against_repo, chg_payload,
+    validate_patch_against_repo, chg_payload, existing_integration_branch,
+    command,
 )
 
 
@@ -135,3 +136,78 @@ def test_visible_cost_feedback_bundle_rejects_missing_and_oversized():
             archive.writestr(name, b"x" * (11 if name == "feedback.json" else 2))
     with pytest.raises(IntegrationBlocked, match="ARTIFACT_SIZE_INVALID"):
         extract_exact_zip_bundle(stream.getvalue(), required)
+
+
+def test_resume_existing_identical_branch_tree(tmp_path):
+    repo = tmp_path / "repo"
+    remote = tmp_path / "origin.git"
+    repo.mkdir()
+    git(tmp_path, "init", "--bare", str(remote))
+    git(repo, "init", "-b", "main")
+    git(repo, "config", "user.email", "offline@example.invalid")
+    git(repo, "config", "user.name", "CP35")
+    (repo / "file.txt").write_text("base\\n")
+    git(repo, "add", "file.txt")
+    git(repo, "commit", "-m", "base")
+    git(repo, "remote", "add", "origin", str(remote))
+    git(repo, "push", "-u", "origin", "main")
+    branch = "lf/native-integration/p4data-run-42"
+    git(repo, "switch", "-c", branch)
+    (repo / "file.txt").write_text("verified patch\\n")
+    git(repo, "add", "file.txt")
+    git(repo, "commit", "-m", "native patch first attempt")
+    prior_sha = git(repo, "rev-parse", "HEAD")
+    tree = git(repo, "rev-parse", "HEAD^{tree}")
+    git(repo, "push", "origin", branch)
+    # Replay with the same tree and a different commit identity.
+    git(repo, "switch", "main")
+    git(repo, "switch", "-c", "retry")
+    (repo / "file.txt").write_text("verified patch\\n")
+    git(repo, "add", "file.txt")
+    git(repo, "commit", "-m", "native patch replay")
+    assert git(repo, "rev-parse", "HEAD") != prior_sha
+    assert git(repo, "rev-parse", "HEAD^{tree}") == tree
+    assert existing_integration_branch(repo, branch, tree) == prior_sha
+
+
+def test_resume_existing_different_branch_blocks(tmp_path):
+    repo = tmp_path / "repo"
+    remote = tmp_path / "origin.git"
+    repo.mkdir()
+    git(tmp_path, "init", "--bare", str(remote))
+    git(repo, "init", "-b", "main")
+    git(repo, "config", "user.email", "offline@example.invalid")
+    git(repo, "config", "user.name", "CP35")
+    (repo / "file.txt").write_text("base\\n")
+    git(repo, "add", "file.txt")
+    git(repo, "commit", "-m", "base")
+    git(repo, "remote", "add", "origin", str(remote))
+    git(repo, "push", "-u", "origin", "main")
+    branch = "lf/native-integration/p4data-run-42"
+    git(repo, "switch", "-c", branch)
+    (repo / "file.txt").write_text("untrusted remote tree\\n")
+    git(repo, "add", "file.txt")
+    git(repo, "commit", "-m", "different")
+    git(repo, "push", "origin", branch)
+    expected = git(repo, "rev-parse", "main^{tree}")
+    with pytest.raises(IntegrationBlocked, match="CP35_BRANCH_EXISTS_DIFFERENT"):
+        existing_integration_branch(repo, branch, expected)
+
+
+def test_command_failure_stderr_is_bounded_and_redacts_tokens(monkeypatch):
+    import os
+    secret = "ghs_" + "x" * 40
+    monkeypatch.setenv("GH_TOKEN", secret)
+    completed = subprocess.CompletedProcess(
+        ["gh"], 1, b"", ("gh: " + secret + " permission denied " + "Z" * 4000).encode())
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: completed)
+    with pytest.raises(IntegrationBlocked) as error:
+        command(["gh", "pr", "create"])
+    reason = str(error.value)
+    assert "CP35_COMMAND_FAILED:gh:stderr=" in reason
+    assert secret not in reason
+    assert "[REDACTED]" in reason
+    assert len(reason) <= 1260
+    with pytest.raises(IntegrationBlocked) as git_error:
+        command(["git", "push"])
+    assert "CP35_COMMAND_FAILED:git:stderr=" in str(git_error.value)

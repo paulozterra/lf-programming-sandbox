@@ -37,12 +37,32 @@ def block(reason: str):
     raise IntegrationBlocked("CP35_" + reason)
 
 
+def _safe_command_stderr(raw: bytes) -> str:
+    """Bound diagnostics before logging; never expose GitHub credentials."""
+    message = raw.decode("utf-8", errors="replace")
+    # Eliminate exact active secrets first, then redact known GitHub token shapes.
+    for name in ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN",
+                 "GITHUB_PAT", "GITHUB_PERSONAL_ACCESS_TOKEN"):
+        secret = os.environ.get(name, "")
+        if secret:
+            message = message.replace(secret, "[REDACTED]")
+    message = re.sub(r"(?i)(?:gh[pousr]_[a-z0-9_]+|github_pat_[a-z0-9_]+)",
+                     "[REDACTED]", message)
+    message = re.sub(r"(?i)(authorization\\s*[:=]\\s*(?:bearer|basic)\\s+)\\S+",
+                     r"\\1[REDACTED]", message)
+    message = re.sub(r"(?i)(https?://)[^/\\s@]+@", r"\\1[REDACTED]@", message)
+    return message.replace("\\r", " ").replace("\\n", " ")[:1200]
+
+
 def command(args: list[str], *, cwd: Path | None = None,
             input_bytes: bytes | None = None, check: bool = True) -> bytes:
     result = subprocess.run(args, cwd=cwd, input=input_bytes, capture_output=True,
                             timeout=120)
     if check and result.returncode:
-        block("COMMAND_FAILED:" + args[0])
+        reason = "COMMAND_FAILED:" + args[0]
+        if args[0] in ("gh", "git"):
+            reason += ":stderr=" + _safe_command_stderr(result.stderr)
+        block(reason)
     return result.stdout
 
 
@@ -275,6 +295,25 @@ def confirm_class_after_commit(root: Path, chg: Path) -> None:
     block("C9_CHECK_FAILED")
 
 
+def existing_integration_branch(root: Path, branch: str, expected_tree: str) -> str | None:
+    """Resume only from a remote commit with an exactly identical full tree."""
+    if not branch.startswith("lf/native-integration/") or not SHA40.fullmatch(expected_tree):
+        block("INTEGRATION_BRANCH_INVALID")
+    raw = command(["git", "ls-remote", "--heads", "origin", "refs/heads/" + branch],
+                  cwd=root).decode("ascii").strip()
+    if not raw:
+        return None
+    parts = raw.split()
+    if len(parts) != 2 or not SHA40.fullmatch(parts[0]) or parts[1] != "refs/heads/" + branch:
+        block("INTEGRATION_BRANCH_INVALID")
+    remote_sha = parts[0]
+    command(["git", "fetch", "--no-tags", "origin", remote_sha], cwd=root)
+    remote_tree = command(["git", "rev-parse", remote_sha + "^{tree}"], cwd=root).decode().strip()
+    if remote_tree != expected_tree:
+        block("BRANCH_EXISTS_DIFFERENT")
+    return remote_sha
+
+
 def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) -> dict:
     task = status["task_id"]
     reg_path = root / f"pilot/worker_v08/native_tasks/{task}.json"
@@ -289,9 +328,6 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     if main != command(["git", "rev-parse", "origin/main"], cwd=root).decode().strip():
         block("MAIN_NOT_CURRENT")
     branch = f"lf/native-integration/{task}-run-{run_id}"
-    remote = command(["git", "ls-remote", "--heads", "origin", branch], cwd=root)
-    if remote:
-        block("INTEGRATION_BRANCH_EXISTS")
     changed = validate_patch_against_repo(root, patch, base, allowed)
     patch_hash = hashlib.sha256(patch).hexdigest()
     num = next_chg(root)
@@ -309,7 +345,14 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] verified native patch {task} run {run_id}"],
             cwd=root)
     confirm_class_after_commit(root, chg)
-    command(["git", "push", "--set-upstream", "origin", branch], cwd=root)
+    local_tree = command(["git", "rev-parse", "HEAD^{tree}"], cwd=root).decode().strip()
+    previous = existing_integration_branch(root, branch, local_tree)
+    if previous is None:
+        command(["git", "push", "--set-upstream", "origin", branch], cwd=root)
+    else:
+        # Identical content, but possibly different commit identities. Resume
+        # at the published SHA so the evidence commit stays fast-forward.
+        command(["git", "reset", "--hard", previous], cwd=root)
     body = (f"CP3.5: PASS verificado por workflow nativo confiable.\n\n"
             f"- Task: \`{task}\` · run: {run_id} · base: \`{base}\`\n"
             f"- Native patch SHA-256: \`{patch_hash}\`\n"
