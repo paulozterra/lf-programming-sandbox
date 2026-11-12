@@ -269,7 +269,6 @@ def chg(root: Path, number: int, request: str, reason: str,
     if path.exists():
         deny("CHG_EXISTS")
     path.write_text(json.dumps(payload, sort_keys=True, indent=2) + "\n", "utf-8")
-    run("python3", "standards/tools/changes.py", "render", cwd=root)
     return path
 
 
@@ -278,7 +277,7 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     # Caller has already committed the prepared native task on this branch.
     number = next_chg(root)
     entry = chg(root, number, request, reason, paths)
-    run("git", "add", "--", *paths, str(entry.relative_to(root)), "standards/CAMBIOS.md", cwd=root)
+    run("git", "add", "--", *paths, str(entry.relative_to(root)), cwd=root)
     run("git", "commit", "-m", f"[CP3.6][CHG-{number:04d}] {title}", cwd=root)
     from native_verified_integration import confirm_class_after_commit
     confirm_class_after_commit(root, entry)
@@ -296,8 +295,7 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     document = json.loads(entry.read_text("utf-8"))
     document["evidence"]["pr_url"] = url
     entry.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", "utf-8")
-    run("python3", "standards/tools/changes.py", "render", cwd=root)
-    run("git", "add", "--", str(entry.relative_to(root)), "standards/CAMBIOS.md", cwd=root)
+    run("git", "add", "--", str(entry.relative_to(root)), cwd=root)
     run("git", "commit", "-m", "[CP3.6] link reviewable draft evidence", cwd=root)
     run("python3", "standards/tools/changes.py", "check", "--base", "origin/main", cwd=root)
     run("git", "push", "origin", branch, cwd=root)
