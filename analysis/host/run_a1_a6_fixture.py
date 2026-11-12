@@ -50,9 +50,14 @@ if __name__ == "__main__":
     print(json.dumps({
         "simulation_mode": out["simulation_mode"],
         "a6_admitted": out["admission"]["a6_admitted"],
+        "materiality_level": out["admission"]["materiality_level"],
+        "reversibility_state": out["a2_signals"]["depth_signals"]["reversibility_state"],
         "lifted_codes": out["admission"]["lifted_codes"],
         "obligations": [{
             "code": x["requirement_id"], "area": x["area"],
+            "materiality_level": x["materiality_level"],
+            "requires_independent_exam": x["requires_independent_exam"],
+            "acceptance_checks": x["acceptance_signals"],
             "criterion": x["acceptance_signals"][0],
             "source_ref": x["evidence_refs"][0],
         } for x in out["a6"]["requirements"]],

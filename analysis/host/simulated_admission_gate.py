@@ -65,9 +65,9 @@ def _a2_narrow(signals, a2):
     x = signals.get("depth_signals")
     if not isinstance(x, dict):
         _blocked("F2_A2_SIGNALS_UNAVAILABLE")
-    if (x.get("materiality_level") != "LOW"
+    if (x.get("materiality_level") not in ("LOW", "MEDIUM", "HIGH")
             or x.get("scope_bounded") != "TRUE"
-            or x.get("reversibility_state") != "DEMONSTRATED"
+            or x.get("reversibility_state") not in ("DEMONSTRATED", "NOT_DEMONSTRATED")
             or x.get("authority_state") not in ("UNKNOWN", "INSUFFICIENT")
             or x.get("currentness_decision") not in ("UNKNOWN_FAIL_CLOSED", "UNRESOLVED")
             or x.get("material_contradiction") is not False
@@ -152,6 +152,7 @@ def seal_envelope(stages, signals):
         "schema_version": "SIMULATED_ADMISSION_ENVELOPE_V1",
         "attestation_mode": MODE,
         "target_ref": "SBX-AUTH-LOGIN",
+        "materiality_level": signals["depth_signals"]["materiality_level"],
         "stage_sha256": output_digests(stages),
         "a2_signals_sha256": digest(signals),
         "requested_lifts": lifts,
@@ -170,6 +171,7 @@ def admit(stages, signals, envelope):
     if (body.get("schema_version") != "SIMULATED_ADMISSION_ENVELOPE_V1"
             or body.get("attestation_mode") != MODE
             or body.get("target_ref") != "SBX-AUTH-LOGIN"
+            or body.get("materiality_level") != signals.get("depth_signals", {}).get("materiality_level")
             or body.get("authority_flags") != FALSE_FLAGS):
         _blocked("F2_ADMISSION_ENVELOPE_IDENTITY_INVALID")
     if body.get("stage_sha256") != output_digests(stages):
@@ -185,6 +187,7 @@ def admit(stages, signals, envelope):
         "attestation_mode": MODE,
         "target_ref": "SBX-AUTH-LOGIN",
         "a6_admitted": True,
+        "materiality_level": signals["depth_signals"]["materiality_level"],
         "lifted_codes": lifts,
         "stage_sha256": output_digests(stages),
         "a2_signals_sha256": digest(signals),

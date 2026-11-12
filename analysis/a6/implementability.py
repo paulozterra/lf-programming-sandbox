@@ -35,7 +35,8 @@ EXPECTED = {
     "SBX-R-LOG": ("La contraseña jamás aparece en registros de operación.",
                   "Los registros de un intento de acceso no contienen la contraseña suministrada."),
     "SBX-R-ERR": ("Los fallos no revelan existencia de usuario y la sesión expira a los treinta minutos.",
-                  "Errores de usuario inexistente y clave errónea son indistinguibles; sesión expira a los treinta minutos."),
+                  ("Errores de usuario inexistente y clave errónea producen una respuesta indistinguible.",
+                   "Una sesión deja de ser válida al cumplirse treinta minutos.")),
 }
 HOW_FORBIDDEN = (" rounds", "en clase ", "class ", "controller", "repository",
                  "framework", "endpoint ", "método interno", "usar BCrypt 12")
@@ -76,6 +77,12 @@ def validate_obligation(item, contract):
             or not all(isinstance(x, str) and x.strip()
                        for x in item["acceptance_signals"])):
         _blocked("F2_A6_ACCEPTANCE_CRITERION_REQUIRED")
+    if item.get("materiality_level") not in ("LOW", "MEDIUM", "HIGH"):
+        _blocked("F2_A6_MATERIALITY_REQUIRED")
+    if item["materiality_level"] == "HIGH" and item.get("requires_independent_exam") is not True:
+        _blocked("F2_A6_HIGH_INDEPENDENT_EXAM_REQUIRED")
+    if type(item.get("requires_independent_exam")) is not bool:
+        _blocked("F2_A6_INDEPENDENT_EXAM_FLAG_REQUIRED")
     if item.get("area") not in ("UNKNOWN", "BACKEND", "FRONTEND", "DATA"):
         _blocked("F2_A6_AREA_INVALID")
     if item["area"] != "UNKNOWN" and not item.get("area_evidence_refs"):
@@ -131,7 +138,9 @@ def run(stages, signals, envelope, admission):
             "side_effect_class": "UNKNOWN",
             "preconditions": [],
             "blockers": ["SIMULATED_SANDBOX_ONLY_NO_PRODUCTION_AUTHORITY"],
-            "acceptance_signals": [acceptance],
+            "acceptance_signals": list(acceptance) if isinstance(acceptance, tuple) else [acceptance],
+            "materiality_level": admission["materiality_level"],
+            "requires_independent_exam": admission["materiality_level"] == "HIGH",
             "area": area,
             "area_evidence_refs": [ref] if area != "UNKNOWN" else [],
             "simulation_mode": MODE,
@@ -146,6 +155,8 @@ def run(stages, signals, envelope, admission):
         "simulation_mode": MODE,
         "attestation_mode": MODE,
         "candidate_only": True,
+        "materiality_level": admission["materiality_level"],
+        "requires_independent_exam": admission["materiality_level"] == "HIGH",
         "requirements": requirements,
         "canonical_implementation_bindings": [],
         "unresolved_material_items": [{

@@ -26,6 +26,11 @@ def fails(code, fn):
 def test_real_login_positive_exact_closed_lift_set(valid):
     assert valid["admission"]["a6_admitted"] is True
     assert valid["admission"]["attestation_mode"] == MODE
+    assert valid["a2_signals"]["depth_signals"]["materiality_level"] == "HIGH"
+    assert valid["a2_signals"]["depth_signals"]["reversibility_state"] == "NOT_DEMONSTRATED"
+    assert valid["admission"]["materiality_level"] == "HIGH"
+    assert valid["admission_envelope"]["materiality_level"] == "HIGH"
+    assert valid["a6"]["materiality_level"] == "HIGH"
     assert valid["admission"]["lifted_codes"] == sorted([
         "SOURCE_READBACK_CURRENTNESS_AND_AUTHORITY_NOT_ATTESTED",
         "A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED",
@@ -117,6 +122,11 @@ def test_six_exact_a6_obligations_unknown_area_and_source_refs(valid):
     ))
     a3 = valid["stages"]["A3"]
     assert len(rows) == 6
+    assert all(x["materiality_level"] == "HIGH" and x["requires_independent_exam"] is True for x in rows)
+    err = next(x for x in rows if x["requirement_id"] == "SBX-R-ERR")
+    assert len(err["acceptance_signals"]) == 2
+    assert "indistinguible" in err["acceptance_signals"][0]
+    assert "treinta minutos" in err["acceptance_signals"][1]
     assert all(x["area"] == "UNKNOWN" and x["area_evidence_refs"] == [] for x in rows)
     assert all(x["evidence_refs"][0] in a3["source_refs"] for x in rows)
     assert all(x["acceptance_signals"][0] and x["simulation_mode"] == MODE for x in rows)
@@ -172,3 +182,33 @@ def test_stage_digests_exact(valid):
                   valid["admission_envelope"], valid["admission"])
     for name, row in valid["stages"].items():
         assert valid["admission"]["stage_sha256"][name] == digest(row)
+
+
+def test_high_requirement_without_independent_exam_rejected(valid):
+    item = deepcopy(valid["a6"]["requirements"][0])
+    item.pop("requires_independent_exam")
+    fails("F2_A6_HIGH_INDEPENDENT_EXAM_REQUIRED",
+          lambda: validate_obligation(item, _profile_reuse()))
+
+
+def test_high_requirement_with_false_independent_exam_rejected(valid):
+    item = deepcopy(valid["a6"]["requirements"][0])
+    item["requires_independent_exam"] = False
+    fails("F2_A6_HIGH_INDEPENDENT_EXAM_REQUIRED",
+          lambda: validate_obligation(item, _profile_reuse()))
+
+
+def test_unknown_reversibility_still_rejected(valid):
+    signals = deepcopy(valid["a2_signals"])
+    signals["depth_signals"]["reversibility_state"] = "UNKNOWN"
+    stages = deepcopy(valid["stages"])
+    stages["A2"]["classification"]["signals_sha256"] = digest(signals)
+    fails("F2_A2_NON_AUTHORITY_UNRESOLVED", lambda: seal_envelope(stages, signals))
+
+
+def test_materiality_tamper_envelope_rejected(valid):
+    envelope = deepcopy(valid["admission_envelope"])
+    envelope["materiality_level"] = "LOW"
+    envelope["envelope_sha256"] = digest({k:v for k,v in envelope.items() if k != "envelope_sha256"})
+    fails("F2_ADMISSION_ENVELOPE_IDENTITY_INVALID",
+          lambda: admit(valid["stages"], valid["a2_signals"], envelope))

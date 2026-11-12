@@ -17,8 +17,8 @@ La lista cerrada de levantamiento:
 - `SOURCE_READBACK_CURRENTNESS_AND_AUTHORITY_NOT_ATTESTED` (A3).
 - `A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED` (A4 reflejado en A5).
 - `A2_TYPED_EVIDENCE_CURRENTNESS_OR_SPECIALIST_PENDING`: solo cuando
-  el resto de señales tipadas son materialidad LOW, alcance TRUE,
-  reversibilidad DEMONSTRATED, sin especialista, sin contradicción,
+  el resto de señales tipadas tienen materialidad conocida LOW/MEDIUM/HIGH,
+  alcance TRUE y reversibilidad conocida DEMONSTRATED/NOT_DEMONSTRATED, sin especialista, sin contradicción,
   sin impacto cruzado ni conteos pendientes.
 - `GITHUB_CURRENT_IMPLEMENTATION_AND_AS_IS_MISSING`: únicamente
   `CREATE` con inventario vacío y destino de código inexistente.
@@ -33,7 +33,7 @@ artefacto nuevo que **no** modifica ese resultado canónico.
 La fixture `semantic_signals.json` de F1 estaba en materialidad UNKNOWN
 y reversibilidad UNKNOWN: D-AN6(a) correctamente bloquea ese estado.
 Para el ensayo positivo se cambian únicamente estos **dos campos ficticios**
-a `LOW` y `DEMONSTRATED`, y se actualiza su pin SHA-256. Los campos
+a `HIGH` y `NOT_DEMONSTRATED`, y se actualiza su pin SHA-256. Los campos
 `authority_state=UNKNOWN`, `currentness_decision=UNKNOWN_FAIL_CLOSED`
 y `source_attested=false` permanecen como evidencia no atestada.
 No se infiere LOW / DEMONSTRATED para ningún pedido real.
@@ -70,3 +70,9 @@ python3 -m analysis.host.run_a1_a6_fixture --output-dir /tmp/sbx-f2
 La corrida conserva los cinco JSON originales y genera
 `admission_envelope.json`, `admission.json`, `a6.json`
 con huellas ligadas. No usa red, Supabase ni exámenes ocultos.
+
+## Revisión Claude: seguridad HIGH
+
+Login con bloqueo, BCrypt y política de logs es HIGH, sin inferir reversibilidad demostrada.
+A2 acepta NOT_DEMONSTRATED en `analysis/programming_analysis/steps/a2/schemas/input.schema.json` líneas 92–96; `analysis/programming_analysis/steps/a2/validators/run.py` línea 243 considera sin resolver solo `UNKNOWN`. La puerta acepta LOW/MEDIUM/HIGH conocidos, y reversibilidad DEMONSTRATED/NOT_DEMONSTRATED; no rebaja riesgo.
+La admisión y A6 propagan `materiality_level=HIGH`; cada obligación exige `requires_independent_exam=true`. SBX-R-ERR conserva una obligación con dos acceptance_signals independientes (error genérico; expiración).
