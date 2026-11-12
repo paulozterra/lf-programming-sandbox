@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0086",
+  "title": "Política C: auto-integración segura de PRs bot vía checks y recibos",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Decisión C de Paulo: auto-etiquetar solamente PRs de registro/integración bot con seis checks verdes, recibo nativo válido y despacho explícito del Train"
+  },
+  "reason": "Workflow workflow_run desde main sin pull_request_target ni checkout de PR, policy offline fail-closed de identidad, ramas, rutas protegidas, checks del HEAD exacto, CHG y cuerpo vinculados a corrida nativa exitosa con intento 1/2; intento 3 exige REVISION_HUMANA_REQUERIDA. Después de etiquetar dispatch de sandbox-train.yml por GITHUB_TOKEN.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/auto-integrate.yml",
+      ".github/workflows/ci.yml",
+      "pilot/auto_integrate.py",
+      "pilot/test_auto_integrate.py",
+      "standards/changes/CHG-0086.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

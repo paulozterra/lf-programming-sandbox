@@ -1,0 +1,53 @@
+name: LF policy C auto-integrate
+
+# workflow_run uses trusted main. Never execute PR code in privileged context.
+on:
+  workflow_run:
+    workflows:
+      - "ci"
+      - "CP3.5 native verified patch to draft PR"
+    types: [completed]
+
+permissions:
+  contents: read
+  checks: read
+  actions: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: lf-auto-integrate-policy-c
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout trusted main only (never PR head)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Verify clean current main checkout
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+          test -z "$(git status --porcelain)"
+      - name: Test policy offline before GitHub write actions
+        run: python3 -m unittest discover -s pilot -p 'test_auto_integrate.py' -v
+      - name: Evaluate bot PRs and dispatch Train only on full PASS
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 pilot/auto_integrate.py
