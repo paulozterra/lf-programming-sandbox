@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0081",
+  "title": "F4 Análisis: A9 paquete simulado compatible con intake real",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-12: F4 A9 sobre F3 fusionado (#124)"
+  },
+  "reason": "Agrega productor A9 offline de paquete candidate-only con context snapshot completo y huellas, validación propia sin autoridad, runner F3 extendido y pruebas reales contra intake.validate/accept. No cambia A1–A8, Programación ni los contratos fijados. Paridad contextual es candidata y no representa recibo de persistencia/PG-01.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/a9/",
+      "analysis/host/run_a1_a9_fixture.py",
+      "analysis/host/test_a9_intake.py",
+      "analysis/F4_README.md",
+      ".github/workflows/analysis-f0.yml",
+      "standards/changes/CHG-0081.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
