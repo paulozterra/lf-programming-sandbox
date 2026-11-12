@@ -90,6 +90,84 @@ def _readiness(scopes):
     return max(scopes, key=lambda x: order[x["readiness_candidate"]])["readiness_candidate"]
 
 
+
+def _typed_rules(result, approved, requirements):
+    """Only SHA-pinned fixture rows, checked against A3, A6 and A7 identities."""
+    source = result.get("rule_sources")
+    if not isinstance(source, dict) or set(source) != {"direct", "effective", "provenance"}:
+        fail("F4_A9_RULE_PINNED_READBACK_MISSING")
+    prov = source["provenance"]
+    if not isinstance(prov, dict) or set(prov) != {"direct_rules.json", "effective_rules.json"}:
+        fail("F4_A9_RULE_PINNED_PROVENANCE_INVALID")
+    for name, ref in prov.items():
+        if not isinstance(ref, str) or not ref.startswith("fixture://sbx_auth_login/" + name + "@") or len(ref.split("@")[-1]) != 64:
+            fail("F4_A9_RULE_PINNED_PROVENANCE_INVALID")
+    direct, effective = source["direct"], source["effective"]
+    if not isinstance(direct, dict) or not isinstance(effective, dict):
+        fail("F4_A9_RULE_TYPED_READBACK_INVALID")
+    req_by_code = {r["source_requirement_id"]: r for r in requirements}
+    if len(req_by_code) != len(requirements):
+        fail("F4_A9_RULE_REQUIREMENT_COVERAGE_MISMATCH")
+    rules, seen = [], set()
+    for a3 in approved:
+        code, ref = a3.get("rule_code"), a3.get("source_ref")
+        if code in seen or code not in effective or code not in req_by_code:
+            fail("F4_A9_RULE_SOURCE_MISSING")
+        seen.add(code)
+        row = effective[code]
+        if row.get("source_ref") != ref:
+            fail("F4_A9_RULE_SOURCE_IDENTITY_MISMATCH")
+        if (row.get("status") != "VIGENTE" or row.get("pending_decision") is not False
+                or not isinstance(row.get("title"), str) or not row["title"]
+                or not isinstance(row.get("categoria"), str) or not row["categoria"]
+                or not isinstance(row.get("config"), dict)):
+            fail("F4_A9_RULE_TYPED_READBACK_INVALID")
+        binding = row.get("binding_source")
+        if binding not in ("LEGACY_EXPLICIT", "DERIVED_GLOBAL"):
+            fail("F4_A9_RULE_ORIGIN_INVALID")
+        if binding == "LEGACY_EXPLICIT":
+            d = direct.get(code)
+            if (not isinstance(d, dict) or d.get("valor_config") != row["config"]
+                    or any(d.get(k) != row.get(k)
+                           for k in ("title", "categoria", "status", "source_ref", "pending_decision"))):
+                fail("F4_A9_RULE_DIRECT_CONFIG_MISMATCH")
+        elif code in direct:
+            fail("F4_A9_RULE_GLOBAL_DIRECT_CONFLICT")
+        requirement = req_by_code[code]
+        if ref not in requirement.get("evidence_refs", []):
+            fail("F4_A9_RULE_REQUIREMENT_SOURCE_MISMATCH")
+        fronts = [f for f in result["a7"]["material_fronts"]
+                  if code in f.get("obligation_refs", [])
+                  and f.get("status") == "REQUIRED"
+                  and ref in f.get("evidence_refs", [])]
+        if len(fronts) != 1:
+            fail("F4_A9_RULE_FRONT_BINDING_INVALID")
+        rules.append({
+            "rule_code": code, "source_ref": ref, "source_status": row["status"],
+            "source_attested": False, "titulo": row["title"],
+            "categoria": row["categoria"], "valor_config": deepcopy(row["config"]),
+            "es_transversal": binding == "DERIVED_GLOBAL",
+            "origen": "DERIVED_GLOBAL" if binding == "DERIVED_GLOBAL" else "DIRECT",
+            "front_id": fronts[0]["front_id"],
+            "requirement_id": requirement["requirement_id"],
+        })
+    if seen != set(req_by_code):
+        fail("F4_A9_RULE_REQUIREMENT_COVERAGE_MISMATCH")
+    return rules
+
+
+def _guard_invariants(a3):
+    """Empty only because fixture has no sourced invariants; future data blocks."""
+    for k in ("applicable_invariants", "invariants", "invariant_bindings"):
+        if k in a3 and a3[k] not in (None, []):
+            fail("F4_A9_INVARIANTS_SOURCE_UNHANDLED")
+    material = a3.get("material_contract_readback")
+    if isinstance(material, dict):
+        sections = material.get("contract_sections")
+        if isinstance(sections, dict) and sections.get("invariants") not in (None, []):
+            fail("F4_A9_INVARIANTS_SOURCE_UNHANDLED")
+
+
 def _snapshot(result, requirements, fronts, scope, classification):
     """Material parity fields are A3-A5/A6-A8 projections, never model guesses."""
     parity, entry = _contracts()
@@ -97,19 +175,15 @@ def _snapshot(result, requirements, fronts, scope, classification):
     approved = a3.get("policy_scope_clear_rule_candidates")
     if not isinstance(approved, list):
         fail("F4_A9_RULE_BINDINGS_MISSING")
-    rules = []
-    for row in approved:
-        if not isinstance(row, dict) or not row.get("source_ref"):
-            fail("F4_A9_RULE_SOURCE_MISSING")
-        rules.append({"rule_code": row["rule_code"], "source_ref": row["source_ref"],
-                      "source_status": "VIGENTE", "source_attested": False})
+    rules = _typed_rules(result, approved, requirements)
+    _guard_invariants(a3)
     source_refs = _refs(a3.get("source_refs", []) + a4.get("evidence_refs", [])
                         + a5.get("evidence_refs", []))
     currentness_refs = _refs(a3.get("currentness_refs", []) + result["a7"].get("currentness_refs", []))
     authority_bindings = deepcopy(a3.get("authority_binding_refs", []))
     if not isinstance(authority_bindings, list):
         fail("F4_A9_AUTHORITY_BINDINGS_INVALID")
-    # No sourced invariant bindings exist in this fixture; [] is explicit.
+    # No invariants sourced in this fixture; future A3 invariants block closed.
     invariants = []
     schema_digest = digest(entry)
     source_snapshot = {
@@ -117,6 +191,8 @@ def _snapshot(result, requirements, fronts, scope, classification):
         "A6": digest(result["a6"]), "A7": digest(result["a7"]),
         "A8": digest(result["a8"]),
         "source_refs": source_refs, "currentness_refs": currentness_refs,
+        "typed_rules": deepcopy(rules),
+        "rule_fixture_provenance": deepcopy(result["rule_sources"]["provenance"]),
     }
     source_sha = digest(source_snapshot)
     authority_sha = digest({"authority_binding_refs": authority_bindings,
@@ -359,6 +435,15 @@ def validate(package, request_raw, *, result=None):
                         if scope["scope_id"] in f["scope_ids"])):
             fail("F4_A9_READY_WITH_BLOCKED_FRONT")
     if result is not None:
+        a3 = result["stages"]["A3"]
+        _guard_invariants(a3)
+        expected_rules = _typed_rules(result,
+            a3.get("policy_scope_clear_rule_candidates", []), package["requirements"])
+        if (package.get("applicable_rules") != expected_rules
+                or snapshot.get("applicable_rules") != expected_rules
+                or snapshot.get("applicable_invariants") != []
+                or package.get("applicable_invariants") != []):
+            fail("F4_A9_RULE_PARITY_MISMATCH")
         expected_trace = _stage_trace(result, {
             "schema_version": "A9_SIMULATED_PACKAGE_RECEIPT_V1",
             "simulation_mode": MODE, "source_attested": False,

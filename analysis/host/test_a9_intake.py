@@ -22,6 +22,8 @@ def upstream():
 
 @pytest.fixture(scope="module")
 def payload(upstream):
+    from analysis.host.run_a1_a9_fixture import make_rule_sources
+    upstream["rule_sources"] = make_rule_sources()
     return build(upstream, (REQUEST + "\n").encode("utf-8"))
 
 
@@ -173,3 +175,63 @@ def test_byte_exact_replay(tmp_path):
     assert original == (tmp_path / "pilot/runs/f4-login/analysis.json").read_bytes()
     assert original == canonical(a["package"]) == canonical(b["package"])
     assert a["state"] == b["state"]
+
+
+def test_typed_applicable_rules_and_links(payload):
+    rules = payload["applicable_rules"]
+    assert rules == payload["programming_context_snapshot"]["applicable_rules"]
+    assert len(rules) == 6
+    assert not {"SBX-R-PENDING", "SBX-R-CAND"} & {r["rule_code"] for r in rules}
+    lock = next(r for r in rules if r["rule_code"] == "SBX-R-LOCK")
+    assert lock == {
+        "rule_code": "SBX-R-LOCK", "source_ref": "supabase://lf_ops.reglas/3",
+        "source_status": "VIGENTE", "source_attested": False,
+        "titulo": "Bloquear tras 5 fallos durante 15 minutos",
+        "categoria": "rate_limiting",
+        "valor_config": {"failed_attempts": 5, "lock_minutes": 15},
+        "es_transversal": False, "origen": "DIRECT",
+        "front_id": "F3-e02f01fd4a14ba3a",
+        "requirement_id": "REQ-SBX-R-LOCK",
+    }
+    logged = next(r for r in rules if r["rule_code"] == "SBX-R-LOG")
+    assert logged["origen"] == "DERIVED_GLOBAL"
+    assert logged["es_transversal"] is True
+    assert logged["valor_config"] == {"log_password": False}
+    assert {r["requirement_id"] for r in rules} == {
+        r["requirement_id"] for r in payload["requirements"]}
+    assert all(r["front_id"] in {f["front_id"] for f in payload["material_fronts"]}
+               for r in rules)
+
+
+def test_numeric_a6_checks_match_typed_source_configs(payload):
+    by_code = {r["rule_code"]: r["valor_config"] for r in payload["applicable_rules"]}
+    reqs = {r["source_requirement_id"]: r for r in payload["requirements"]}
+    # A6 spells the numbers in Spanish, so assert the actual acceptance
+    # semantics and raw typed config independently, never derive one from text.
+    assert "quinto" in reqs["SBX-R-LOCK"]["acceptance_signal"]
+    assert "quince" in reqs["SBX-R-LOCK"]["acceptance_signal"]
+    assert "treinta" in reqs["SBX-R-ERR"]["acceptance_signal"]
+    assert by_code["SBX-R-LOCK"]["failed_attempts"] == 5
+    assert by_code["SBX-R-LOCK"]["lock_minutes"] == 15
+    assert by_code["SBX-R-ERR"]["session_minutes"] == 30
+    assert type(by_code["SBX-R-LOCK"]["failed_attempts"]) is int
+    assert type(by_code["SBX-R-LOCK"]["lock_minutes"]) is int
+    assert type(by_code["SBX-R-ERR"]["session_minutes"]) is int
+    assert not {"SBX-R-PENDING", "SBX-R-CAND"} & set(by_code)
+
+
+def test_future_invariants_source_blocks(upstream):
+    from analysis.a9.package import _guard_invariants
+    a3 = deepcopy(upstream["stages"]["A3"])
+    a3["applicable_invariants"] = [{"id": "INV-FUTURE"}]
+    with pytest.raises(AdmissionBlocked) as err:
+        _guard_invariants(a3)
+    assert str(err.value) == "F4_A9_INVARIANTS_SOURCE_UNHANDLED"
+
+
+def test_typed_rule_parity_tamper_rejected(payload, upstream):
+    p = deepcopy(payload)
+    p["applicable_rules"][0]["valor_config"] = {"tampered": 999}
+    with pytest.raises(AdmissionBlocked) as err:
+        validate(p, (REQUEST + "\n").encode(), result=upstream)
+    assert str(err.value) == "F4_A9_RULE_PARITY_MISMATCH"

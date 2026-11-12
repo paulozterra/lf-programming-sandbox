@@ -67,3 +67,33 @@ python3 -m pilot.orchestrator.intake --root /tmp/sbx-f4 --request-id f4-login
 Emite `pilot/runs/f4-login/request.md`, `analysis.json` y
 `state.json` en el root suministrado. Es reproducible byte a byte y no
 lee Supabase ni escribe ningún archivo de Programación en el repo.
+
+## Corrección de paridad de reglas tipadas (revisión Claude)
+
+A9 vincula **exactamente** las seis reglas vigentes aprobadas en A3 por
+`rule_code` y `source_ref` con las filas de
+`direct_rules.json` / `effective_rules.json` previamente verificadas por
+SHA-256 por el host F1. Ni A1–A8 ni las fixtures se modifican.
+
+En `applicable_rules` raíz y `programming_context_snapshot.applicable_rules`
+cada registro preserva `rule_code`, `source_ref`, `source_status`,
+`source_attested=false`, `titulo`, `categoria`, el objeto JSON
+`valor_config` intacto, `es_transversal`, `origen` DIRECT o DERIVED_GLOBAL,
+y los identificadores exactos `front_id` (A7) y `requirement_id` (A6).
+El origen proviene de `binding_source` tipado de la fuente efectiva:
+LEGACY_EXPLICIT→DIRECT; DERIVED_GLOBAL→DERIVED_GLOBAL. Se coteja el
+`valor_config` directo contra `config` efectivo; discrepancia bloquea.
+Nunca se deducen valores numéricos leyendo título, descripción o prosa.
+
+El digest `source_snapshot_sha256` incorpora los registros tipados y
+procedencia de las dos fixtures; A9 verifica de nuevo la paridad contra la
+fuente antes de aceptar el paquete. La prueba valida que las cantidades
+5, 15 y 30 representadas verbalmente en los acceptance checks de A6
+corresponden a `failed_attempts=5`, `lock_minutes=15` y
+`session_minutes=30` en los valores tipados. Las reglas excluidas
+SBX-R-PENDING y SBX-R-CAND siguen sin convertirse en requirements.
+
+`applicable_invariants=[]` significa **sin fuente en fixtures**,
+no ausencia demostrada de invariantes. Si A3 aporta una colección
+de invariantes no vacía que A9 todavía no proyecta, la puerta bloquea
+con `F4_A9_INVARIANTS_SOURCE_UNHANDLED`.
