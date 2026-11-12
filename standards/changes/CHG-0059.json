@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0059",
+  "title": "CP3.6: encadenamiento por merge Train y bloqueo a tres intentos",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: #100 fusionado, CP3.6 encadenamiento automático y 2 lotes simulados"
+  },
+  "reason": "Consumidor confiable de workflow_run del Train y Worker nativo: liga PR de integración al DAG por manifiesto explícito y merge de Git, prepara en worktree desde main nuevo con prepare_native_lot.py y PR draft/CHG gobernado; tres fallos con pruebas de intento nativas ponen pedido lógicamente BLOCKED y abren PR draft para state.json, sin escribir main directamente. Pruebas de integración simuladas dos lotes y negativos, sin modelo ni exámenes ocultos. Corrección YAML de dos workflows y política de parseo con yaml.safe_load para todos los *.yml, bloqueante en CI.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/chain_contract.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/test_chain_lots.py",
+      "pilot/orchestrator/CP3_6.md",
+      ".github/workflows/chain-lots.yml",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0059.json",
+      "standards/CAMBIOS.md",
+      ".github/workflows/native-verified-integration.yml",
+      "pilot/test_workflow_yaml_policy.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/101"
+  }
+}

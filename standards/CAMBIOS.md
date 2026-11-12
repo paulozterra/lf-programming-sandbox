@@ -55,4 +55,17 @@
 | CHG-0051 | ADDITIVE | CP3.1: productores PG-02 a PG-14 fijados desde LF |  | paulozterra |  |
 | CHG-0052 | ADDITIVE | CP3.2: entrada de pedido y análisis simulado con PG-01 fixture |  | paulozterra |  |
 | CHG-0053 | EDITORIAL | Análisis F0: contratos canónicos fijados y suites offline |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/94 |
+| CHG-0054 | ADDITIVE | CP3.3: división y asignación de lotes con productores PG02-PG05 fijados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/95 |
+| CHG-0055 | EDITORIAL | PR-only workflow concurrency sin cancelar Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/98 |
 | CHG-0056 | EDITORIAL | F1: host offline de lecturas y pantalla ficticia SBX-AUTH-LOGIN |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/97 |
+| CHG-0057 | ADDITIVE | CP3.4: enlace de perfiles selector→nativo y registro/exportación por lote |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/99 |
+| CHG-0058 | ADDITIVE | CP3.5: integrar parche nativo PASS en PR draft y automatizar preparación CP3.4 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/100 |
+| CHG-0059 | ADDITIVE | CP3.6: encadenamiento por merge Train y bloqueo a tres intentos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/101 |
+| CHG-0060 | ADDITIVE | CP3.7: evidencia PG-06 a PG-14 por lote y H_REPORT gobernado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/102 |
+| CHG-0061 | ADDITIVE | P4: entrada simulada prioridad de recordatorios y planificación DATA a BACKEND |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/103 |
+| CHG-0062 | EDITORIAL | P4: exámenes ocultos cifrados, chequeos visibles y plantillas de tarea del pedido de prioridad |  | paulozterra |  |
+| CHG-0063 | EDITORIAL | P4DATA: registro nativo SOL-002 y exportación gobernada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/105 |
+| CHG-0064 | EDITORIAL | CP3.5: inventario exacto de tres recibos de feedback y costo nativo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/106 |
+| CHG-0065 | EDITORIAL | CP3.5: integración verificada nativa p4data (run 43146245998) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/110 |
+| CHG-0066 | EDITORIAL | CP3.5: stderr seguro y reanudación por árbol idéntico |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/108 |
+| CHG-0067 | EDITORIAL | CP3.6: plan P4 prioridad DATA→BACKEND y prueba de activación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/111 |

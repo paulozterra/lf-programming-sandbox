@@ -1,0 +1,190 @@
+{
+  "schema_version": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+  "candidate_only": true,
+  "analysis_mode": "SIMULATED_ANALYSIS",
+  "request_sha256": "c13bb371781d74d57d0b6f381b7f245be398c19a0e68c2930563b8fd1c4193c7",
+  "request_context": {
+    "intent": "Crear un ejemplo ficticio de notas: SQL, API backend Spring Boot y pantalla frontend Next.js.",
+    "target_ref": "fixture://cp33/three-area-notes"
+  },
+  "classification": {
+    "target_granularity": "API",
+    "depth": "L2",
+    "authority_state": "NEW",
+    "implementation_state": "NEW"
+  },
+  "stage_trace": [
+    {
+      "stage": "A1",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    },
+    {
+      "stage": "A2",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    },
+    {
+      "stage": "A3",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    },
+    {
+      "stage": "A4",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    },
+    {
+      "stage": "A5",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    },
+    {
+      "stage": "A6",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    },
+    {
+      "stage": "A7",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    },
+    {
+      "stage": "A8",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    },
+    {
+      "stage": "A9",
+      "outcome": "SIMULATED_FIXTURE_ONLY",
+      "source_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    }
+  ],
+  "material_unknowns": [],
+  "decisions_pending": [],
+  "requirements": [
+    {
+      "requirement_id": "REQ-DATA-001",
+      "scope_id": "SCOPE-DATA",
+      "outcome": "Guardar una nota en una migración de base de datos.",
+      "acceptance_signal": "La migración crea la columna note nullable.",
+      "evidence_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    },
+    {
+      "requirement_id": "REQ-BACKEND-001",
+      "scope_id": "SCOPE-BACKEND",
+      "outcome": "Exponer las notas por API Spring Boot.",
+      "acceptance_signal": "La API guarda y devuelve una nota.",
+      "evidence_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    },
+    {
+      "requirement_id": "REQ-FRONTEND-001",
+      "scope_id": "SCOPE-FRONTEND",
+      "outcome": "Consultar y editar las notas desde Next.js.",
+      "acceptance_signal": "La pantalla permite consultar y modificar la nota.",
+      "evidence_refs": [
+        "fixture://cp33/three-area-request"
+      ]
+    }
+  ],
+  "material_fronts": [
+    {
+      "front_id": "A7-FRONT-DATA",
+      "scope_ids": [
+        "SCOPE-DATA"
+      ],
+      "obligation_mode": "REQUIRED",
+      "closure": "CLOSED",
+      "blockers": [],
+      "evidence_refs": [
+        "fixture://cp33/three-area-request"
+      ],
+      "reason": "Solo fixture de A7; cierre candidato sin atestación PG01 ni autoridad real."
+    },
+    {
+      "front_id": "A7-FRONT-BACKEND",
+      "scope_ids": [
+        "SCOPE-BACKEND"
+      ],
+      "obligation_mode": "REQUIRED",
+      "closure": "CLOSED",
+      "blockers": [],
+      "evidence_refs": [
+        "fixture://cp33/three-area-request"
+      ],
+      "reason": "Solo fixture de A7; cierre candidato sin atestación PG01 ni autoridad real."
+    },
+    {
+      "front_id": "A7-FRONT-FRONTEND",
+      "scope_ids": [
+        "SCOPE-FRONTEND"
+      ],
+      "obligation_mode": "REQUIRED",
+      "closure": "CLOSED",
+      "blockers": [],
+      "evidence_refs": [
+        "fixture://cp33/three-area-request"
+      ],
+      "reason": "Solo fixture de A7; cierre candidato sin atestación PG01 ni autoridad real."
+    }
+  ],
+  "scope_proposals": [
+    {
+      "scope_id": "SCOPE-DATA",
+      "readiness_candidate": "READY_CANDIDATE",
+      "material_front_refs": [
+        "A7-FRONT-DATA"
+      ],
+      "blockers": []
+    },
+    {
+      "scope_id": "SCOPE-BACKEND",
+      "readiness_candidate": "READY_CANDIDATE",
+      "material_front_refs": [
+        "A7-FRONT-BACKEND"
+      ],
+      "blockers": []
+    },
+    {
+      "scope_id": "SCOPE-FRONTEND",
+      "readiness_candidate": "READY_CANDIDATE",
+      "material_front_refs": [
+        "A7-FRONT-FRONTEND"
+      ],
+      "blockers": []
+    }
+  ],
+  "research_stop": {
+    "decision": "STOP",
+    "decision_stable": true,
+    "all_material_fronts_accounted": true,
+    "unresolved_decision_changing_questions": []
+  },
+  "package_readiness_candidate": "READY_CANDIDATE",
+  "production_authority": false,
+  "handoff_allowed": false,
+  "downstream_authorized": false,
+  "pg01_consumer_verified": false
+}

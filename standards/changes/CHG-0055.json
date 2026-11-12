@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0055",
+  "title": "PR-only workflow concurrency sin cancelar Train",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11: política de concurrencia PR y workflow_dispatch independiente"
+  },
+  "reason": "Solo Analysis F0: cancela ejecuciones antiguas del mismo PR, conserva workflow_dispatch por run_id; no modifica ci.yml ni ningún flujo de Programación.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/analysis-f0.yml",
+      "standards/tests/test_pr_workflow_concurrency.py",
+      "standards/changes/CHG-0055.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/98"
+  }
+}

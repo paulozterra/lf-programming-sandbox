@@ -1,0 +1,39 @@
+{
+  "task_spec": {
+    "schema_version": 1,
+    "base_head_sha": "23fc22c78d7092acc3685e5687ea80cfad8001d2",
+    "source_snapshot_sha256": "f568305f4ee14aac9ee7f5173b4fe49b5159e6a483f3b5a8bdc0cb7b7b66a97b",
+    "max_attempts": 1,
+    "allow_deletions": false,
+    "max_context_bytes": 200000,
+    "max_patch_bytes": 60000,
+    "task_id": "LF-WORKER-NATIVE-P4-DATA",
+    "max_changed_files": 1,
+    "objective": "Lote DATA del pedido pilot/runs/p4-prioridad/request.md (requisitos REQ-PRIORITY-DATA-* de analysis.json): crear la migración db/migration/V1__reminders_priority.sql con la tabla de recordatorios y su prioridad (solo HIGH, MEDIUM o LOW; MEDIUM por defecto), válida en PostgreSQL. Crear solo ese archivo. Sigue el perfil y skills de .lf/worker-context/<tarea>/. Chequeo visible: db/visible-tests/p4data/.",
+    "write_path_patterns": [
+      "db/migration/V1__reminders_priority.sql"
+    ],
+    "context_path_patterns": [
+      "pilot/runs/p4-prioridad/request.md",
+      "db/README.md",
+      "db/visible-tests/p4data/run_visible.py"
+    ],
+    "protected_path_patterns": [
+      "db/README.md",
+      "db/visible-tests/**",
+      "apps/**",
+      "pilot/**"
+    ],
+    "acceptance_commands": [
+      {
+        "name": "p4data-visible-check",
+        "argv": [
+          "python3",
+          "db/visible-tests/p4data/run_visible.py"
+        ],
+        "timeout_seconds": 120,
+        "max_output_bytes": 16000
+      }
+    ]
+  }
+}
