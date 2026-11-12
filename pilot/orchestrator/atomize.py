@@ -43,10 +43,15 @@ def _rules():
 
 
 def _next_version(root):
-    directory = Path(root) / "db/migration"
-    nums = [int(m.group(1)) for f in directory.glob("V*__*.sql")
-            if (m := re.fullmatch(r"V([0-9]+)__[a-z0-9_]+\.sql", f.name))]
-    return max(nums, default=0) + 1
+    # The staging root often contains only request artifacts. Include the
+    # checked-out repository migrations so the next version is not reset to V1.
+    numbers = []
+    for base in (HERE.parents[1], Path(root)):
+        for file in (base / "db/migration").glob("V*__*.sql"):
+            match = re.fullmatch(r"V([0-9]+)__[a-z0-9_]+\\.sql", file.name)
+            if match:
+                numbers.append(int(match.group(1)))
+    return max(numbers, default=0) + 1
 
 
 def _class(module, suffix):
@@ -130,6 +135,12 @@ def atomize(package, root, base_head_sha, *, run):
             # Old synthetic A9 samples have one front/requirement in each scope.
             if not related and len(refs) == 1 and len(reqs) == 1:
                 related = reqs
+            if not related and not (front.get("execution_area") in rules["order"]
+                                    and isinstance(front.get("source_ref"), str)
+                                    and front["source_ref"]):
+                unresolved.append({"scope_id": scope_id, "front_id": front["front_id"],
+                                   "why": {"method": "NO_RULE_OR_REQUIREMENT"}})
+                continue
             area, area_source = _area(front, related, business_rules, rules)
             if area is None:
                 unresolved.append({"scope_id": scope_id, "front_id": front["front_id"],
