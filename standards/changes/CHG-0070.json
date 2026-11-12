@@ -1,0 +1,36 @@
+{
+  "affected": {
+    "paths": [
+      "pilot/runs/p4-prioridad/H_REPORT.md",
+      "pilot/runs/p4-prioridad/evidence/SOL-002-e500862a18ed.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0070.json"
+    ],
+    "rule_ids": [],
+    "term_ids": []
+  },
+  "approved_by": "paulozterra",
+  "artifacts": [],
+  "change_class": "ADDITIVE",
+  "change_id": "CHG-0070",
+  "evidence": {
+    "pr_url": ""
+  },
+  "existing_code_impact": {
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING",
+    "mode": "NEW_OR_MODIFIED_ONLY"
+  },
+  "reason": "CP3.7 pinned source-only evidence for verified integration merges at fa3435eae529d7e14444f5ff82a55638f837662c; no production authority",
+  "requested_by": "agent:gpt",
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "security_pin_invalidation": {
+    "affected_artifacts": [],
+    "invalidates": false
+  },
+  "title": "CP3.6: encadenamiento gobernado p4-prioridad",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 CP3.6 encadenamiento autom\u00e1tico"
+  }
+}
