@@ -87,3 +87,4 @@
 | CHG-0084 | EDITORIAL | F5: registro nativo f5backend (Login) |  | paulozterra |  |
 | CHG-0085 | EDITORIAL | CP3.5: integración verificada nativa f5backend (run 43317808597) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/129 |
 | CHG-0086 | ADDITIVE | Política C: auto-integración segura de PRs bot vía checks y recibos |  | paulozterra |  |
+| CHG-0087 | EDITORIAL | Modo continuo por defecto para el constructor (A+B) |  | paulozterra |  |
