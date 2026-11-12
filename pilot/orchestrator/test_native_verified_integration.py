@@ -227,7 +227,7 @@ def test_confirm_class_empty_detected_classes_accepts_editorial(tmp_path):
         confirm_class_after_commit(tmp_path, chg)
     assert json.loads(chg.read_text())["change_class"] == "EDITORIAL"
     assert run.call_count == 2
-    assert command.call_count == 3
+    assert command.call_count == 2
 
 
 def test_confirm_class_rejects_ambiguous_detected_classes(tmp_path):

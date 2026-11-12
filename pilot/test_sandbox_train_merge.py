@@ -156,7 +156,7 @@ else:
         merged = merge.prepare_merge(self.root, after_a, b)
         self.assertEqual(merged, run(self.root, "rev-parse", "HEAD"))
         self.assertEqual((self.root / "standards/CAMBIOS.md").read_text(),
-                         "CHG-0001\\nCHG-0002\\nCHG-0003\\n")
+                         "CHG-0001\nCHG-0002\nCHG-0003\n")
         self.assertFalse(merge.check_conflicts(self.root))
 
     def test_train_renders_when_main_already_ancestor(self):
@@ -167,7 +167,7 @@ else:
         merged = merge.prepare_merge(self.root, self.initial, head)
         self.assertNotEqual(merged, head)
         self.assertEqual((self.root / "standards/CAMBIOS.md").read_text(),
-                         "CHG-0001\\nCHG-0002\\n")
+                         "CHG-0001\nCHG-0002\n")
         self.assertEqual(len(run(self.root, "rev-list", "--parents",
                                  "-n", "1", "HEAD").split()), 2)
         self.assertEqual(merge.prepare_merge(self.root, self.initial, merged),
