@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0085",
+  "title": "CP3.5: integración verificada nativa f5backend (run 43317808597)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "CP3.5 autorizado por Paulo; PR draft automático de PASS nativo"
+  },
+  "reason": "Parche originado exclusivamente en native-verified-patch de la corrida nativa PASS 43317808597, SHA-256 4528615ad0f4197429998d5b5d3229d255cda884426092fe8d170729fb3db90f; rutas y bytes aplicados sin reconstruir propuesta, sin exámenes ni aprobación automática.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+      "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthUser.java",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0085.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
