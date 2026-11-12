@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/f5backend.oracle.json.age",
+  "holdout_sha256": "bbe05bea60342b1769864d50fc2d481d83e55073660f29af166abc09f984cbac",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "analysis/fixtures/sbx_auth_login (pantalla ficticia), no del paquete A9"
+}
