@@ -64,5 +64,14 @@
     "BACKEND": "apps/time-service/src/main/java/",
     "FRONTEND": "frontend/src/",
     "DATA": "db/migration/"
+  },
+  "profile_resolution": {
+    "source_ref": "pilot/lf_producers_pinned/selector_experimental/experimental/seed_profiles_exp.sql",
+    "project_ref": "lf_java",
+    "area_to_profile": {
+      "DATA": "PERFIL-PROG-DATA-EXP",
+      "BACKEND": "PERFIL-PROG-BACKEND-SPRING-EXP",
+      "FRONTEND": "PERFIL-PROG-FRONTEND-EXP"
+    }
   }
 }
