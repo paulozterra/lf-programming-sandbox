@@ -16,6 +16,7 @@ from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
+import tempfile
 import zipfile
 
 REPOSITORY = "paulozterra/lf-programming-sandbox"
@@ -314,6 +315,69 @@ def existing_integration_branch(root: Path, branch: str, expected_tree: str) -> 
     return remote_sha
 
 
+def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
+                                base: str, allowed: set[str], task: str,
+                                run_id: int) -> tuple[int, dict[str, str], str] | None:
+    """Rebuild on the branch's original main parent, then compare full Git trees.
+
+    The trusted main may have advanced since a first integration attempt. Its
+    newer standards ledger must not manufacture a false content mismatch.
+    """
+    raw = command(["git", "ls-remote", "--heads", "origin", "refs/heads/" + branch],
+                  cwd=root).decode("ascii").strip()
+    if not raw:
+        return None
+    fields = raw.split()
+    if (len(fields) != 2 or not SHA40.fullmatch(fields[0])
+            or fields[1] != "refs/heads/" + branch):
+        block("BRANCH_EXISTS_DIFFERENT")
+    remote_sha = fields[0]
+    command(["git", "fetch", "--no-tags", "origin", remote_sha], cwd=root)
+    lineage = command(["git", "rev-list", "--parents", "-n", "1", remote_sha],
+                      cwd=root).decode().split()
+    if len(lineage) != 2 or lineage[0] != remote_sha:
+        block("BRANCH_EXISTS_DIFFERENT")
+    parent = lineage[1]
+    # The original main must remain trusted and contained in current main.
+    current_main = command(["git", "rev-parse", "origin/main"], cwd=root).decode().strip()
+    command(["git", "merge-base", "--is-ancestor", parent, current_main], cwd=root)
+    changed_names = command(["git", "diff", "--name-only", parent, remote_sha],
+                            cwd=root).decode().splitlines()
+    matches = [name for name in changed_names
+               if re.fullmatch(r"standards/changes/CHG-[0-9]{4}\\.json", name)]
+    if len(matches) != 1:
+        block("BRANCH_EXISTS_DIFFERENT")
+    chg_file = matches[0]
+    number = int(Path(chg_file).stem[4:])
+    if set(changed_names) != allowed | {chg_file, "standards/CAMBIOS.md"}:
+        block("BRANCH_EXISTS_DIFFERENT")
+    try:
+        with tempfile.TemporaryDirectory(prefix="cp35-replay-") as temporary:
+            work = Path(temporary) / "source"
+            command(["git", "worktree", "add", "--detach", str(work), parent], cwd=root)
+            try:
+                changed = validate_patch_against_repo(work, patch, base, allowed)
+                payload = chg_payload(number, task, run_id,
+                                      hashlib.sha256(patch).hexdigest(), list(changed))
+                target = work / chg_file
+                target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\\n",
+                                  encoding="utf-8")
+                command(["python3", "standards/tools/changes.py", "render"], cwd=work)
+                command(["git", "add", "--", *sorted(changed), chg_file,
+                         "standards/CAMBIOS.md"], cwd=work)
+                expected_tree = command(["git", "write-tree"], cwd=work).decode().strip()
+            finally:
+                command(["git", "worktree", "remove", "--force", str(work)], cwd=root)
+    except (OSError, ValueError):
+        block("BRANCH_EXISTS_DIFFERENT")
+    remote_tree = command(["git", "rev-parse", remote_sha + "^{tree}"],
+                          cwd=root).decode().strip()
+    if expected_tree != remote_tree:
+        block("BRANCH_EXISTS_DIFFERENT")
+    command(["git", "switch", "-c", branch, remote_sha], cwd=root)
+    return number, changed, parent
+
+
 def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) -> dict:
     task = status["task_id"]
     reg_path = root / f"pilot/worker_v08/native_tasks/{task}.json"
@@ -328,31 +392,29 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     if main != command(["git", "rev-parse", "origin/main"], cwd=root).decode().strip():
         block("MAIN_NOT_CURRENT")
     branch = f"lf/native-integration/{task}-run-{run_id}"
-    changed = validate_patch_against_repo(root, patch, base, allowed)
     patch_hash = hashlib.sha256(patch).hexdigest()
-    num = next_chg(root)
-    chg = record_change(root, num, task, run_id, patch_hash, list(changed))
-    # Include exact per-file output digest in the PR for independent review.
-    command(["git", "add", "--", str(chg.relative_to(root)), "standards/CAMBIOS.md"], cwd=root)
-    command(["python3", "standards/tools/changes.py", "render", "--check"], cwd=root)
-    # C9 requires committed HEAD; validation happens after the first commit.
-    # Fail if main advanced while preparing this draft (no automatic rebase).
-    current_remote = command(["git", "ls-remote", "origin", "refs/heads/main"],
-                             cwd=root).decode().split()[0]
-    if current_remote != main:
-        block("MAIN_MOVED_BEFORE_PUBLICATION")
-    command(["git", "switch", "-c", branch], cwd=root)
-    command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] verified native patch {task} run {run_id}"],
-            cwd=root)
-    confirm_class_after_commit(root, chg)
-    local_tree = command(["git", "rev-parse", "HEAD^{tree}"], cwd=root).decode().strip()
-    previous = existing_integration_branch(root, branch, local_tree)
-    if previous is None:
+    resumed = reconstruct_existing_branch(root, branch, patch, base, allowed, task, run_id)
+    if resumed is None:
+        changed = validate_patch_against_repo(root, patch, base, allowed)
+        num = next_chg(root)
+        chg = record_change(root, num, task, run_id, patch_hash, list(changed))
+        command(["git", "add", "--", str(chg.relative_to(root)),
+                 "standards/CAMBIOS.md"], cwd=root)
+        command(["python3", "standards/tools/changes.py", "render", "--check"], cwd=root)
+        current_remote = command(["git", "ls-remote", "origin", "refs/heads/main"],
+                                 cwd=root).decode().split()[0]
+        if current_remote != main:
+            block("MAIN_MOVED_BEFORE_PUBLICATION")
+        command(["git", "switch", "-c", branch], cwd=root)
+        command(["git", "commit", "-m",
+                 f"[CP3.5][CHG-{num:04d}] verified native patch {task} run {run_id}"],
+                cwd=root)
+        confirm_class_after_commit(root, chg)
         command(["git", "push", "--set-upstream", "origin", branch], cwd=root)
+        check_base = "origin/main"
     else:
-        # Identical content, but possibly different commit identities. Resume
-        # at the published SHA so the evidence commit stays fast-forward.
-        command(["git", "reset", "--hard", previous], cwd=root)
+        num, changed, check_base = resumed
+        chg = root / f"standards/changes/CHG-{num:04d}.json"
     body = (f"CP3.5: PASS verificado por workflow nativo confiable.\n\n"
             f"- Task: \`{task}\` · run: {run_id} · base: \`{base}\`\n"
             f"- Native patch SHA-256: \`{patch_hash}\`\n"
@@ -368,7 +430,7 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     payload["evidence"]["pr_url"] = url
     chg.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
     command(["python3", "standards/tools/changes.py", "render"], cwd=root)
-    command(["python3", "standards/tools/changes.py", "check", "--base", "origin/main"], cwd=root)
+    command(["python3", "standards/tools/changes.py", "check", "--base", check_base], cwd=root)
     command(["git", "add", "--", str(chg.relative_to(root)), "standards/CAMBIOS.md"], cwd=root)
     command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] record PR evidence"], cwd=root)
     command(["git", "push", "origin", branch], cwd=root)
