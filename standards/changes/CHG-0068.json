@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0068",
+  "title": "CP3.6: C9 vacío, códigos de bloqueo y recuperación por integration_pr",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Corrida CP3.6 43244212162 falló tras merge de #110"
+  },
+  "reason": "Alinear C9 sin clase a EDITORIAL, reportar IntegrationBlocked y ChainBlocked originales, y permitir recuperación opcional de integración #110 verificada como merge Train ancestro de main; impedir re-preparación de sucesor ya registrado o con draft pendiente.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/native_verified_integration.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/test_chain_lots.py",
+      "pilot/orchestrator/test_native_verified_integration.py",
+      ".github/workflows/chain-lots.yml",
+      "standards/changes/CHG-0068.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

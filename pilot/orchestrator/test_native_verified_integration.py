@@ -211,3 +211,34 @@ def test_command_failure_stderr_is_bounded_and_redacts_tokens(monkeypatch):
     with pytest.raises(IntegrationBlocked) as git_error:
         command(["git", "push"])
     assert "CP35_COMMAND_FAILED:git:stderr=" in str(git_error.value)
+
+def test_confirm_class_empty_detected_classes_accepts_editorial(tmp_path):
+    from unittest.mock import patch as mocked
+    from native_verified_integration import confirm_class_after_commit
+    chg = tmp_path / "standards/changes/CHG-9999.json"
+    chg.parent.mkdir(parents=True)
+    chg.write_text(json.dumps({"change_class": "ADDITIVE"}))
+    output = json.dumps({"findings": [{"reason_code": "CHANGE_CLASS_MISMATCH"}],
+                         "detected_class": []}).encode()
+    results = [subprocess.CompletedProcess(["python3"], 1, output, b""),
+               subprocess.CompletedProcess(["python3"], 0, b"{}", b"")]
+    with (mocked("native_verified_integration.subprocess.run", side_effect=results) as run,
+          mocked("native_verified_integration.command", return_value=b"") as command):
+        confirm_class_after_commit(tmp_path, chg)
+    assert json.loads(chg.read_text())["change_class"] == "EDITORIAL"
+    assert run.call_count == 2
+    assert command.call_count == 3
+
+
+def test_confirm_class_rejects_ambiguous_detected_classes(tmp_path):
+    from unittest.mock import patch as mocked
+    from native_verified_integration import confirm_class_after_commit
+    chg = tmp_path / "standards/changes/CHG-9999.json"
+    chg.parent.mkdir(parents=True)
+    chg.write_text(json.dumps({"change_class": "ADDITIVE"}))
+    output = json.dumps({"findings": [{"reason_code": "CHANGE_CLASS_MISMATCH"}],
+                         "detected_class": ["ADDITIVE", "EDITORIAL"]}).encode()
+    with mocked("native_verified_integration.subprocess.run",
+                return_value=subprocess.CompletedProcess(["python3"], 1, output, b"")):
+        with pytest.raises(IntegrationBlocked, match="CP35_C9_CHECK_FAILED"):
+            confirm_class_after_commit(tmp_path, chg)

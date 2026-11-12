@@ -10,7 +10,11 @@ on:
     inputs:
       source_run_id:
         description: "Existing trusted Train/native run ID; no arbitrary lot completion"
-        required: true
+        required: false
+        type: string
+      integration_pr:
+        description: "Optional Train-merged integration PR for recovery"
+        required: false
         type: string
 
 permissions:
@@ -40,6 +44,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
       GITHUB_REPOSITORY: ${{ github.repository }}
       SOURCE_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.source_run_id }}
+      INTEGRATION_PR: ${{ inputs.integration_pr || '' }}
     steps:
       - name: Checkout trusted main control; no proposals, no secrets
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -61,7 +66,12 @@ jobs:
       - name: Reconcile trusted merge, DAG, attempts; prepare draft successors only
         env:
           CP36_PACK_OUT: ${{ runner.temp }}/cp36-proposal-packs
-        run: python3 pilot/orchestrator/chain_lots.py --source-run-id "$SOURCE_RUN_ID"
+        run: |
+          if [ -n "$INTEGRATION_PR" ]; then
+            python3 pilot/orchestrator/chain_lots.py --integration-pr "$INTEGRATION_PR"
+          else
+            python3 pilot/orchestrator/chain_lots.py --source-run-id "$SOURCE_RUN_ID"
+          fi
       - name: Publish only safe GPT task packs, not hidden tests
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
