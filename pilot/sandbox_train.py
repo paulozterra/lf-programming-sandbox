@@ -207,6 +207,29 @@ def checks_for_head(sha):
     return found
 
 
+TRAIN_OWN_CHECKS = {"merge"}  # this workflow's own job; earlier failed Train runs must not block
+
+
+def approve_pending_runs(sha):
+    """Train-pushed commits are authored by github-actions[bot]; in a public
+    repo their pull_request runs wait in 'action_required' and leave the
+    required checks as 'expected'. The labeled PR is already owner-approved
+    (same-repo, non-fork, checked by check_pr), so approve those runs."""
+    try:
+        result = api("GET", f"/actions/runs?head_sha={sha}&status=action_required&per_page=100")
+    except Exception as exc:  # best effort: never block the Train on this helper
+        print(json.dumps({"event": "approve_pending_list_failed", "reason": str(exc)[:200]}), flush=True)
+        return
+    for run in result.get("workflow_runs", []):
+        if (run.get("head_sha") == sha and run.get("event") == "pull_request"
+                and run.get("head_repository", {}).get("full_name") == os.environ["GITHUB_REPOSITORY"]):
+            try:
+                api("POST", f"/actions/runs/{run['id']}/approve", {}, expected=(200, 201, 204))
+                print(json.dumps({"event": "approved_pending_run", "run": run["id"], "head": sha}), flush=True)
+            except TrainError as exc:
+                print(json.dumps({"event": "approve_pending_run_failed", "run": run["id"], "reason": str(exc)[:200]}), flush=True)
+
+
 def ci_workflow_runs_for_head(sha):
     """Only an actual ci.yml run on the exact commit can suppress dispatch."""
     runs = []
@@ -257,7 +280,9 @@ def await_checks(number, sha, dispatched_heads=None):
             dispatch_updated_head_ci(pr["head"]["ref"], sha)
             dispatched_heads.add(sha)
             print(json.dumps({"event": "ci_missing_fallback_dispatch", "head": sha}), flush=True)
-        found = checks_for_head(sha)
+        approve_pending_runs(sha)
+        found = {name: value for name, value in checks_for_head(sha).items()
+                 if name not in TRAIN_OWN_CHECKS}
         failed = [name for name in REQUIRED if name in found and found[name]["conclusion"] not in (None, "success")]
         if failed:
             raise TrainError("CHECK_FAILED " + json.dumps({name: found[name] for name in failed}))

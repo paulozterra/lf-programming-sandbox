@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo 2026-11-12: solución de raíz, no caso a caso"
   },
-  "reason": "Causa raíz de las fusiones fallidas recurrentes (#104, #113, #117, #118): (1) la API de GitHub corta conexiones o tarda segundos en reconocer checks ya terminados ('6 of 6 required status checks are expected') y el Train se rendía al primer error; (2) un PR ya sincronizado cuyo HEAD es un merge commit daba RENDER_PARENTS_INVALID. Se agregan reintentos acotados (GET con backoff; merge PUT releyendo el PR antes de reintentar y sin cambiar nunca de HEAD) y se corrige la verificación de padres.",
+  "reason": "Causa raíz de las fusiones fallidas recurrentes (#104, #113, #117, #118): (1) la API de GitHub corta conexiones o tarda segundos en reconocer checks ya terminados ('6 of 6 required status checks are expected') y el Train se rendía al primer error; (2) un PR ya sincronizado cuyo HEAD es un merge commit daba RENDER_PARENTS_INVALID. Se agregan reintentos acotados (GET con backoff; merge PUT releyendo el PR antes de reintentar y sin cambiar nunca de HEAD) y se corrige la verificación de padres. Además: (3) los commits que empuja el propio Train son de github-actions[bot]; en un repo público su CI pull_request queda en 'action_required' y los checks requeridos siguen 'expected' (#118): el Train ahora aprueba esas corridas (mismo repo, PR ya etiquetado por el owner). (4) Los checks 'merge' de corridas anteriores fallidas del propio Train ya no bloquean (EXTRA_CHECK_FAILED).",
   "artifacts": [],
   "affected": {
     "rule_ids": [],

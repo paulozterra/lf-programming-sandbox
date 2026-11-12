@@ -51,5 +51,23 @@ class MergeRetry(unittest.TestCase):
             self.run_with([train.TrainError("HTTP 409 PUT /pulls/118/merge: Head branch was modified")], [])
 
 
+class OwnChecksAndApproval(unittest.TestCase):
+    def test_pending_bot_runs_are_approved_and_own_merge_check_ignored(self):
+        calls = []
+
+        def api(method, path, payload=None, expected=(200,)):
+            calls.append((method, path))
+            if path.startswith("/actions/runs?head_sha="):
+                return {"workflow_runs": [{"id": 7, "head_sha": HEAD, "event": "pull_request",
+                                           "head_repository": {"full_name": "o/r"}}]}
+            return {}
+
+        with mock.patch.object(train, "api", side_effect=api), \
+                mock.patch.dict(train.os.environ, {"GITHUB_REPOSITORY": "o/r"}):
+            train.approve_pending_runs(HEAD)
+        self.assertIn(("POST", "/actions/runs/7/approve"), calls)
+        self.assertIn("merge", train.TRAIN_OWN_CHECKS)
+
+
 if __name__ == "__main__":
     unittest.main()
