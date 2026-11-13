@@ -261,8 +261,13 @@ class T7GeneratedPolicyTests(unittest.TestCase):
         self.assertEqual(api.writes, [])
 
     def test_generated_commit_is_reported_automatic(self):
-        from orchestrator.intervention_report import actor, classify, BOT_EMAIL
+        from orchestrator.intervention_report import (
+            actor, classify, scope_paths, BOT_EMAIL,
+        )
         self.assertEqual(actor(BOT_EMAIL, "github-actions[bot]"), "BOT")
+        with patch("orchestrator.intervention_report.write_paths", return_value=[]):
+            self.assertIn("pilot/registry/implemented.json",
+                          scope_paths("sample", [], rev="HEAD"))
         for path in ("pilot/runs/sample/analysis.json",
                      "pilot/runs/sample/chain_plan.json",
                      "pilot/registry/implemented.json"):
