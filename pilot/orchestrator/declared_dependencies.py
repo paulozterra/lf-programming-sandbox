@@ -45,7 +45,8 @@ def select(dependencies, requirements):
         rid, rule = req.get("requirement_id"), req.get("source_requirement_id")
         if not isinstance(rid, str) or not isinstance(rule, str):
             _fail()
-        codes.setdefault(rule, []).append(rid)
+        if not req.get("derived_from_requirement_id"):
+            codes.setdefault(rule, []).append(rid)
     known = {r["requirement_id"] for r in requirements}
     for dep in dependencies:
         if not isinstance(dep, dict):
