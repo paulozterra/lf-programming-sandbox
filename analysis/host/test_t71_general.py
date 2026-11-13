@@ -318,3 +318,39 @@ def test_registered_component_is_reuse_not_stop_word(tmp_path):
                     "effective_rules.json":{"rules":[]}})
     assert any(x["term"]=="login" and x["decision"]=="REUTILIZAR"
                and x["evidence"].startswith("CODE_INDEX:") for x in reuse)
+
+
+def test_a6_what_and_acceptance_come_from_pinned_rule_descriptions(tmp_path):
+    code,folder=prepare_description_screen(tmp_path)
+    result=launch(tmp_path,"a6-described","Implementa "+code)
+    direct=json.loads((folder/"direct_rules.json").read_text("utf-8"))
+    effective=json.loads((folder/"effective_rules.json").read_text("utf-8"))
+    source_by_code={row["code"]:row["descripcion"]
+                    for row in direct["linked_rules"] if row.get("descripcion")}
+    source_by_code.update({row["code"]:row["descripcion"]
+                           for row in effective["rules"] if row.get("descripcion")})
+    emitted=result["source"]["a6"]["requirements"]
+    assert emitted
+    for req in emitted:
+        assert req["requirement_id"] in source_by_code
+        exact=source_by_code[req["requirement_id"]].strip()
+        assert req["outcome"]==exact
+        assert req["acceptance_signals"]==[exact]
+
+
+def test_missing_description_of_inherited_rule_also_blocks(tmp_path):
+    code,folder=prepare_description_screen(tmp_path)
+    path=folder/"effective_rules.json"
+    pin=folder/"SOURCE_PIN.json"
+    rows=json.loads(path.read_text("utf-8"))
+    inherited=next(row for row in rows["rules"]
+                   if row["binding_source"]=="DERIVED_GLOBAL")
+    inherited.pop("descripcion")
+    path.write_text(json.dumps(rows,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    manifest=json.loads(pin.read_text("utf-8"))
+    next(x for x in manifest["files"] if x["file"]=="effective_rules.json")["sha256"]=hashlib.sha256(
+        path.read_bytes()).hexdigest()
+    pin.write_text(json.dumps(manifest,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    with pytest.raises(ValueError,match="REGLA_SIN_DESCRIPCION") as error:
+        launch(tmp_path,"inherited-missing","Implementa "+code)
+    assert inherited["code"] in str(error.value)
