@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0104",
   "title": "T7.2: reutilización determinada por dependencias explícitas de pantalla",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "T7.2 dependencias declaradas de lf_ops.pantallas, 13/11/2026"
@@ -14,6 +14,7 @@
     "term_ids": [],
     "paths": [
       ".github/workflows/ci.yml",
+      "analysis/a9/package.py",
       "analysis/host/fixture_normalize.py",
       "analysis/host/request_trace.py",
       "pilot/orchestrator/atomize.py",
