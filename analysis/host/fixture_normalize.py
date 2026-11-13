@@ -141,17 +141,30 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
         raise NormalizeBlocked("ANALISIS_SENALES_NO_DERIVABLES")
     policy_links = []
     policy_objects = []
-    # Only project policy fields that the single-file source actually contains.
+    # The one-file fixture supplies neither numeric provider policy IDs nor
+    # an approved policy state. Use SHA-derived *syntactic* compatibility IDs,
+    # explicitly mark the policy UNKNOWN, and retain the authentic source ref.
+    # Never promote an unknown policy to VIGENTE.
     for policy in contract.get("policies", []):
         ref = policy.get("source_ref")
-        if not isinstance(ref, str):
+        code = policy.get("policy_code")
+        if not isinstance(ref, str) or not isinstance(code, str) or not code:
             raise NormalizeBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
-        policy_links.append({"source_ref": ref, "reference_role": "fixture_policy",
-                             "policy_target_ref": ref, "status": "VIGENTE",
-                             "policy_kind": "SIMULATED"})
-        policy_objects.append({"source_ref": ref, "status": "VIGENTE",
-                               "read_origin": "SOURCE_FIXTURE_ONLY",
-                               "policy_code": policy.get("policy_code")})
+        pid = int(_sha(ref.encode("utf-8"))[:8], 16) or 1
+        table = "lf_ops.politicas_screen"
+        object_ref = f"supabase://{table}/{pid}"
+        screen_ref = "supabase://lf_ops.pantallas/" + target
+        policy_links.append({
+            "source_ref": f"supabase://lf_ops.pantallas_politicas/{pid}",
+            "reference_role": "screen_policy_id",
+            "policy_target_ref": object_ref, "status": "UNKNOWN",
+            "policy_kind": "SIMULATED_UNATTESTED"})
+        policy_objects.append({
+            "table": table, "primary_key": "screen_policy_id",
+            "policy_id": pid, "policy_code": code, "status": "UNKNOWN",
+            "parameters": {"original_fixture_ref": ref},
+            "source_ref": object_ref, "read_origin": "LF_SCREEN_CONTRACT",
+            "read_source_ref": screen_ref})
     data = {
         "screen_contract.json": {"imitates": "lf_ops.fn_screen_contract_v1",
             "schema_version": "SBX_SCREEN_CONTRACT_FIXTURE_V1",
