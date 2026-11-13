@@ -285,6 +285,12 @@ def pr_files(api, number):
     rows = api.pages(f"/pulls/{number}/files", None)
     if any(not isinstance(r, dict) or not isinstance(r.get("filename"), str) for r in rows):
         block("PR_FILES_INVALID")
+    # A rename touches both paths. GitHub's filename alone is insufficient
+    # to prove that a generated PR stayed within its closed allowlist.
+    if any(r.get("status") in ("renamed", "copied") or
+           (r.get("previous_filename") and r["previous_filename"] != r["filename"])
+           for r in rows):
+        block("PR_PATH_NOT_ALLOWED")
     return [r["filename"] for r in rows]
 
 
