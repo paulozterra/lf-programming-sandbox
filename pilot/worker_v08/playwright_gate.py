@@ -183,7 +183,7 @@ if __name__ == "__main__":
         print("NAVEGADOR_NO_DISPONIBLE", file=sys.stderr)
         raise SystemExit(1)
     try:
-        if Path(sys.executable).resolve() != PYTHON_RUNTIME.resolve():
+        if Path(sys.executable).absolute() != PYTHON_RUNTIME.absolute():
             os.execv(str(PYTHON_RUNTIME), [str(PYTHON_RUNTIME), __file__, *sys.argv[1:]])
     except OSError:
         print("NAVEGADOR_NO_DISPONIBLE", file=sys.stderr)
