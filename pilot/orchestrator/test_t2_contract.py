@@ -11,7 +11,7 @@ import sys
 
 import pytest
 
-from pilot.orchestrator import atomize, contract_validate, package_to_lots, plan_lots
+from pilot.orchestrator import atomize, contract_validate, prepare_t2, plan_lots
 from pilot.orchestrator import intake
 from analysis.host.run_a1_a9_fixture import run_f4
 from analysis.a9.test_general_second_screen import second_screen, make_package
@@ -149,8 +149,8 @@ def test_real_source_t2_chain(tmp_path,name):
         (folder/"request.md").write_bytes(raw)
         (folder/"analysis.json").write_bytes(intake.canonical(package))
         intake.accept(tmp_path,"t2-notes")
-    planned=package_to_lots.prepare(tmp_path,"t2-"+name,
-                  base_head_sha=BASE,contract_mode=True)
+    planned=prepare_t2.prepare(tmp_path,"t2-"+name,
+                  base_head_sha=BASE)
     assert [lot["area"] for lot in planned["lots"]]==["CONTRATO","BACKEND","FRONTEND"]
     cid=planned["lots"][0]["id"]
     assert cid in planned["lots"][1]["depends_on"]
