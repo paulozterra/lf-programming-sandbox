@@ -188,7 +188,8 @@ class T7GeneratedPolicyTests(unittest.TestCase):
         cases = [
             ("lf/generated-t7", ["pilot/runs/sample/analysis.json",
                                   "pilot/runs/sample/state.json",
-                                  "pilot/runs/sample/chain_plan.json"]),
+                                  "pilot/runs/sample/chain_plan.json",
+                                  "pilot/runs/sample/templates/module.skeleton.json"]),
             ("lf/implemented-registry", ["pilot/registry/implemented.json"]),
         ]
         for family, allowed in cases:
