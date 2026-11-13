@@ -92,7 +92,7 @@ def attest_merge(merge_sha: str, pr: dict, lots: dict,
     # same owner-enrolled lot in the DAG.
     matching = [lot for lot, value in bindings.items()
                 if (value["task_name"] == task
-                    or re.fullmatch(re.escape(value["task_name"]) + r"[2-9][0-9]*", task))]
+                    or re.fullmatch(re.escape(value["task_name"]) + r"(?:[2-9]|[1-9][0-9]+)", task))]
     if len(matching) != 1:
         deny("INTEGRATION_TASK_UNBOUND")
     lot_id = matching[0]
