@@ -343,6 +343,10 @@ def verify_generated_content(api, pr, paths, kind):
     if (not SHA.fullmatch(main) or not head or
             pr["head"]["ref"].rsplit("/", 1)[-1] != main[:12]):
         block("GENERATED_CONTENT_DRIFT")
+    # Invoked as a script (python3 pilot/...), so sys.path[0] is pilot/, not
+    # the repository root that owns the `pilot` and `analysis` packages.
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
     try:
         if kind == "implemented-registry":
             from pilot.orchestrator.implemented_registry import reconstruct

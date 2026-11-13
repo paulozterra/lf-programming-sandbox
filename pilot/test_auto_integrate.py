@@ -1,5 +1,7 @@
 """Offline policy C regression tests. No network or token."""
 import base64
+import sys
+from pathlib import Path
 import copy
 import json
 import unittest
@@ -306,3 +308,20 @@ class T7GeneratedPolicyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ScriptImportPathTest(unittest.TestCase):
+    """Policy C runs as `python3 pilot/...`; the trusted generators it imports
+    live in repo-root packages, so a fresh interpreter must resolve them."""
+
+    def test_generator_packages_import_from_script_entrypoint(self):
+        import subprocess as sp
+        root = Path(__file__).resolve().parents[1]
+        code = ("import runpy,sys;sys.argv=['x'];"
+                "g=runpy.run_path('pilot/auto_integrate.py');"
+                "import inspect;src=inspect.getsource(g['verify_generated_content']);"
+                "assert 'sys.path.insert' in src;"
+                "sys.path.insert(0,'.');"
+                "import pilot.orchestrator.implemented_registry")
+        r = sp.run([sys.executable, "-I", "-c", code], cwd=root, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
