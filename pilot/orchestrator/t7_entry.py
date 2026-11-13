@@ -36,9 +36,8 @@ def process(root: Path, slug: str, base_sha: str) -> dict:
     if source.resolve() != source.absolute() or source.is_symlink():
         raise EntryBlocked("PANTALLA_NO_EN_CATALOGO")
     pin = json.loads((source / "SOURCE_PIN.json").read_text("utf-8"))
-    if pin.get("schema_version") != "SBX_FIXTURE_PIN_V1":
-        # Existing catalogue also contains A9-only screens; pretending they
-        # have 13 F1 source readbacks would be fabricated A1-A5 evidence.
+    if pin.get("schema_version") not in ("SBX_FIXTURE_PIN_V1",
+                                         "SOURCE_SCREEN_PIN_V1"):
         raise EntryBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
     try:
         generated = run_f4(root, slug=slug, fixtures=source)
