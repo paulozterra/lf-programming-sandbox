@@ -473,6 +473,27 @@ def block_request(request: str, state: dict, result: dict, head: str) -> dict:
 
 
 
+def draft_implemented_registry(root: Path, branch: str, head: str) -> dict:
+    """Trusted CP3.6 publishes one generated JSON, without CHG or manual label."""
+    path = "pilot/registry/implemented.json"
+    run("git", "add", "--", path, cwd=root)
+    if not run("git", "diff", "--cached", "--name-only", cwd=root).strip() == path:
+        deny("REGISTRY_CHANGED_PATHS_INVALID")
+    run("git", "commit", "-m", "[CP3.6] generated implementation registry", cwd=root)
+    current_main = run("git", "ls-remote", "origin", "refs/heads/main", cwd=root).split()[0]
+    if current_main != head:
+        deny("MAIN_MOVED_BEFORE_DRAFT")
+    run("git", "push", "--set-upstream", "origin", branch, cwd=root)
+    url = run("gh", "pr", "create", "--repo", REPO, "--base", "main",
+              "--head", branch, "--draft",
+              "--title", "[DRAFT][CP3.6] registro generado de implementaciones",
+              "--body", "Únicamente pilot/registry/implemented.json. Política C verifica "
+              "regeneración idéntica en main y aplica etiqueta por bot; Train fusiona.",
+              cwd=root)
+    run("gh", "workflow", "run", "ci.yml", "--repo", REPO, "--ref", branch, cwd=root)
+    return {"draft_pr": url, "head_sha": run("git", "rev-parse", "HEAD", cwd=root)}
+
+
 def sync_implemented_registry(head: str) -> dict:
     """CP3.6 trusted main merge consumer is the sole registry writer.
 
@@ -491,10 +512,7 @@ def sync_implemented_registry(head: str) -> dict:
     def create(root: Path):
         if not save(root, result):
             return {"status": "REGISTRY_CURRENT"}
-        return draft(root, branch, "registry", ["pilot/registry/implemented.json"],
-                     "Historial Train CP3.5/CP3.6 y archivos con SHA verificados; "
-                     "las entradas sin evidencia quedan NO_DERIVABLE",
-                     "Actualizar registro de implementaciones verificadas")
+        return draft_implemented_registry(root, branch, head)
     return {"status": "REGISTRY_DRAFT", **worktree(head, branch, create)}
 
 
@@ -505,11 +523,14 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
     kind = "TRAIN" if manual_sha is not None else event_kind(event_run_id, head)
     if kind == "IRRELEVANT":
         return [{"status": "IGNORED_SOURCE_EVENT"}]
+    # Seed registry on first trusted Train/main-CI event, even when no
+    # previously registered chain plan exists. Never require a manual label.
+    registry_status = (sync_implemented_registry(head) if kind == "TRAIN" else None)
     all_plans = plans()
     if not all_plans:
-        return [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS"}]
+        return [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
+                 **({"registry": registry_status} if registry_status else {})}]
     history = first_parent_merges()
-    registry_status = (sync_implemented_registry(head) if kind == "TRAIN" else None)
     if manual_sha is not None and not any(sha == manual_sha for sha, _, _ in history):
         deny("MANUAL_INTEGRATION_OUTSIDE_HISTORY")
     # Historical first-parent commits are the proof. Reconcile all merged
