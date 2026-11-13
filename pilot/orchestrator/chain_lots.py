@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parents[2]
 REPO = "paulozterra/lf-programming-sandbox"
 TRAIN = ".github/workflows/sandbox-train.yml"
 NATIVE = ".github/workflows/worker-native.yml"
+CI = ".github/workflows/ci.yml"
 MERGE_MESSAGE = re.compile(r"Merge PR #([1-9][0-9]*) via sandbox-train")
 SAFE_ID = re.compile(r"[a-z][a-z0-9_-]{0,63}\Z")
 
@@ -83,6 +84,14 @@ def event_kind(event_run_id: int, head: str) -> str:
         if (event.get("event") == "workflow_dispatch"
                 and event.get("head_branch") != "main"):
             deny("TRAIN_SOURCE_BRANCH_INVALID")
+        return "TRAIN"
+    # The Train merge and main CI run concurrently. Reconcile again when
+    # exact-main CI finishes: an early BASE_NO_VERDE must not permanently
+    # strand a root lot or require a manual workflow dispatch.
+    if (path == CI and event.get("head_branch") == "main"
+            and event.get("head_sha") == head
+            and event.get("event") in ("push", "workflow_dispatch")
+            and event.get("conclusion") in ("success", "failure")):
         return "TRAIN"
     # Native Worker always checks out trusted main; fail closed on drift.
     if (path == NATIVE and event.get("conclusion") == "failure"
