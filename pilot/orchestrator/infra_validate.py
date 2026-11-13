@@ -3,11 +3,13 @@
 from __future__ import annotations
 import argparse
 from pathlib import Path
+import sys
 import json
 import re
 import xml.etree.ElementTree as ET
 
-from infra_lot import DependencyBlocked, deny, installed, policy
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from pilot.orchestrator.infra_lot import DependencyBlocked, deny, installed, policy
 
 
 def check_infra(root):
