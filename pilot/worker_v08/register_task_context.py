@@ -352,8 +352,21 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         block("HISTORICAL_TASK_IMMUTABLE")
     output = copy.deepcopy(task)
     dest = output["task_spec"] if "task_spec" in output else output
-    paths = [f".lf/worker-context/{task_name}/{x}"
-             for x in ("profile.md", "skills.md", "protocolo.md", "receipt.json")]
+    # Legacy registered exercises are immutable. New lots additionally receive
+    # all standards from the authoritative skills resolver (not pinned prose).
+    lf_rules = None
+    lf_rule_receipt = None
+    if task_name.lower() not in {"ex6", "ex7", "ex8"}:
+        from lf_rule_context import material, RuleContextBlocked
+        try:
+            lf_rules, lf_rule_receipt = material(selected)
+        except RuleContextBlocked as exc:
+            block(str(exc))
+    names = ["profile.md", "skills.md", "protocolo.md"]
+    if lf_rules is not None:
+        names.extend(["lf_rules.md", "lf_rules.receipt.json"])
+    names.append("receipt.json")
+    paths = [f".lf/worker-context/{task_name}/{x}" for x in names]
     # The route itself tells the builder how to work (continuous mode by
     # default): the protocol travels inside every task's context pack.
     protocol_src = Path(__file__).resolve().parents[2] / "pilot" / "orchestrator" / "MODO_CONTINUO.md"
@@ -408,13 +421,21 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
                         separators=(",", ":")) + "\n").encode("utf-8")),
         "context_paths": paths,
         "context_sha256": {"profile.md": digest(profile), "skills.md": digest(skills),
-                           "protocolo.md": digest(protocol)},
+                           "protocolo.md": digest(protocol),
+                           **({"lf_rules.md": digest(lf_rules),
+                               "lf_rules.receipt.json": digest(canonical(lf_rule_receipt))}
+                              if lf_rules is not None else {})},
+        **({"lf_rules": lf_rule_receipt} if lf_rule_receipt is not None else {}),
         "builder_protocol": {"source": "pilot/orchestrator/MODO_CONTINUO.md",
                              "sha256": digest(protocol_src.read_bytes()), "mode": "CONTINUOUS_DEFAULT"},
         "production_authority": False,
     }
     receipt_raw = canonical(receipt)
-    artifacts = dict(zip(paths, (profile, skills, protocol, receipt_raw)))
+    values = [profile, skills, protocol]
+    if lf_rules is not None:
+        values.extend([lf_rules, canonical(lf_rule_receipt)])
+    values.append(receipt_raw)
+    artifacts = dict(zip(paths, values))
     cap = min(budget, dest.get("max_context_bytes", budget))
     if existing + sum(map(len, artifacts.values())) > cap:
         block("CONTEXT_BUDGET_EXCEEDED")
