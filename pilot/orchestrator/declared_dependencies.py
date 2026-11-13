@@ -35,30 +35,74 @@ def _context(root, path, sha):
     return {"path": path, "sha256": sha}
 
 
+def _area(dep):
+    """Typed dependency location, never guessed from rule prose."""
+    kind = dep.get("kind")
+    if kind == "endpoint":
+        return "BACKEND"
+    if kind in ("component", "page"):
+        return "FRONTEND"
+    if kind in ("table", "migration"):
+        return "DATA"
+    _fail()
+
+
+def _req_area(row):
+    """Only accept A9's projected scope or explicit typed area."""
+    area = row.get("execution_area")
+    if area in ("BACKEND", "FRONTEND", "DATA"):
+        return area
+    scope = row.get("scope_id")
+    if isinstance(scope, str):
+        for candidate in ("BACKEND", "FRONTEND", "DATA"):
+            if scope.endswith("-" + candidate):
+                return candidate
+    return None
+
+
 def select(dependencies, requirements):
-    """Bind each declared dependency to one and only one A9 requirement."""
-    if not isinstance(dependencies, list):
+    """One typed dependency resolves to exactly one A9 area-bound requirement.
+
+    Both simulated Git attestation and implementation reuse call this function.
+    A rule_code may have a primary and derived obligations: never default to
+    the primary if its area differs from the declared component's area.
+    """
+    if not isinstance(dependencies, list) or not isinstance(requirements, list):
         _fail()
     result = {}
-    codes = {}
+    known = {}
     for req in requirements:
-        rid, rule = req.get("requirement_id"), req.get("source_requirement_id")
-        if not isinstance(rid, str) or not isinstance(rule, str):
+        if not isinstance(req, dict):
             _fail()
-        if not req.get("derived_from_requirement_id"):
-            codes.setdefault(rule, []).append(rid)
-    known = {r["requirement_id"] for r in requirements}
+        rid, rule = req.get("requirement_id"), req.get("source_requirement_id")
+        if not isinstance(rid, str) or not isinstance(rule, str) or rid in known:
+            _fail()
+        known[rid] = req
     for dep in dependencies:
         if not isinstance(dep, dict):
             _fail()
-        rid = dep.get("requirement_id")
-        code = dep.get("rule_code")
-        if (bool(rid) == bool(code)
-                or (rid is not None and (not isinstance(rid, str) or rid not in known))
-                or (code is not None and (not isinstance(code, str) or len(codes.get(code, [])) != 1))):
-            _fail()
-        rid = rid if rid else codes[code][0]
-        kind = dep.get("kind")
+        area = _area(dep)
+        rid, code = dep.get("requirement_id"), dep.get("rule_code")
+        if bool(rid) == bool(code):
+            raise DependencyBlocked("DEPENDENCIA_SIN_REQUISITO")
+        if rid:
+            row = known.get(rid)
+            if row is None:
+                raise DependencyBlocked("DEPENDENCIA_SIN_REQUISITO")
+            if _req_area(row) != area:
+                raise DependencyBlocked("DEPENDENCIA_AREA_INCOMPATIBLE")
+        else:
+            if not isinstance(code, str):
+                raise DependencyBlocked("DEPENDENCIA_SIN_REQUISITO")
+            linked = [r for r in requirements
+                      if r["source_requirement_id"] == code]
+            if not linked:
+                raise DependencyBlocked("DEPENDENCIA_SIN_REQUISITO")
+            match = [r for r in linked if _req_area(r) == area]
+            if len(match) != 1:
+                raise DependencyBlocked("DEPENDENCIA_AREA_INCOMPATIBLE")
+            rid = match[0]["requirement_id"]
+        kind = dep["kind"]
         if kind in ("endpoint", "page"):
             method = dep.get("method", "PAGE" if kind == "page" else None)
             route = dep.get("route")
@@ -72,7 +116,12 @@ def select(dependencies, requirements):
                 _fail()
             index_kind = "public_signature"
         else:
-            _fail()
+            # Future SQL index contracts must provide an exact table/migration
+            # identity; never claim availability by mention in the fiche.
+            key = dep.get("signature")
+            if not isinstance(key, str) or not key:
+                _fail()
+            index_kind = "sql_" + kind
         if not isinstance(dep.get("adds_rule"), bool):
             _fail()
         witness = dep.get("reuse_rule_code")
@@ -90,9 +139,9 @@ def select(dependencies, requirements):
         result[rid] = {"kind": index_kind, "key": key,
                        "adds_rule": dep["adds_rule"],
                        "reuse_rule_code": witness,
-                       "reuse_component_signature": signature}
+                       "reuse_component_signature": signature,
+                       "area": area}
     return result
-
 
 def resolve(index_obj, registry, root, dep):
     """Exact indexed component plus SHA-verified registry evidence where present."""
