@@ -7,7 +7,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from t4_admission import (AdmissionBlocked, require_green_base, missing_exam,
-                          public_exam_request, incremental_task, registration_variant)
+                          public_exam_request, incremental_task, registration_variant,
+                          protected_test_conflict)
 
 
 SHA = "a" * 40
@@ -108,3 +109,30 @@ def test_variant_changes_only_if_source_or_pack_changes(tmp_path):
     template.write_text(json.dumps({"task_spec": {**wanted, "objective": "Changed"}}))
     assert registration_variant(tmp_path, "sampler",
                                 str(template.relative_to(tmp_path)), changed) == "sampler3"
+
+
+def test_existing_protected_status_assertion_conflict(tmp_path):
+    """Only explicit conflicting HTTP assertions block, never edit the test."""
+    contract = tmp_path / "contracts/module.openapi.yaml"
+    contract.parent.mkdir(parents=True)
+    contract.write_text(json.dumps({"openapi": "3.1.0",
+        "paths": {"/api/module/{id}": {"get": {
+            "responses": {"200": {"description": "ok"}}}}}}))
+    test = tmp_path / "apps/time-service/src/test/java/ContractTest.java"
+    test.parent.mkdir(parents=True)
+    test.write_text('mockMvc.perform(get("/api/module/7"))'
+                    '.andExpect(status().isBadRequest());')
+    template = tmp_path / "pilot/runs/scenario/templates/case.task.json"
+    template.parent.mkdir(parents=True)
+    template.write_text(json.dumps({"task_spec": {
+        "protected_path_patterns": ["apps/time-service/src/test/**"]}}))
+    lot = {"contract_context_ref": "contracts/module.openapi.yaml"}
+    binding = {"template_path": str(template.relative_to(tmp_path))}
+    original = test.read_bytes()
+    with pytest.raises(AdmissionBlocked, match="TEST_PROTEGIDO_EN_CONFLICTO"):
+        protected_test_conflict(tmp_path, lot, binding)
+    assert test.read_bytes() == original
+    contract.write_text(json.dumps({"openapi": "3.1.0",
+        "paths": {"/api/module/{id}": {"get": {
+            "responses": {"200": {}, "400": {}}}}}}))
+    protected_test_conflict(tmp_path, lot, binding)
