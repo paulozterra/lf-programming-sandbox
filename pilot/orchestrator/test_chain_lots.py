@@ -423,3 +423,25 @@ def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be(tmp_p
     assert recorded == [("p4-prioridad", "p4be", head)]
     assert simulate(True)[0]["status"] == "ALREADY_PREPARED"
     assert len(recorded) == 1
+
+
+def test_t4_exact_main_ci_retries_admission_after_train_race():
+    """CI completion wakes a root again; PR or wrong SHA cannot forge it."""
+    head = "a" * 40
+    event = {
+        "id": 177, "path": ".github/workflows/ci.yml@refs/heads/main",
+        "status": "completed", "run_attempt": 1, "conclusion": "success",
+        "event": "push", "head_branch": "main", "head_sha": head,
+        "repository": {"full_name": chain_lots.REPO},
+    }
+    with patch.object(chain_lots, "api", return_value=event):
+        assert chain_lots.event_kind(177, head) == "TRAIN"
+    with patch.object(chain_lots, "api", return_value={
+            **event, "head_sha": "b" * 40}):
+        assert chain_lots.event_kind(177, head) == "IRRELEVANT"
+    with patch.object(chain_lots, "api", return_value={
+            **event, "event": "pull_request", "head_branch": "topic"}):
+        assert chain_lots.event_kind(177, head) == "IRRELEVANT"
+    with patch.object(chain_lots, "api", return_value={
+            **event, "conclusion": "failure"}):
+        assert chain_lots.event_kind(177, head) == "TRAIN"
