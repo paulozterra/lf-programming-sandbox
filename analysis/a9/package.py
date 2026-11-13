@@ -12,7 +12,7 @@ from pathlib import Path
 from pilot.orchestrator import intake
 from analysis.host.simulated_admission_gate import AdmissionBlocked, MODE, digest, verify
 from analysis.a7.front_coverage import validate_coverage
-from analysis.a9.front_bindings import bind as bind_front
+from analysis.a9.front_bindings import partition as partition_fronts, FrontBindingGap
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = ROOT / "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts"
@@ -149,7 +149,7 @@ def _typed_rules(result, approved, requirements):
             "categoria": row["categoria"], "valor_config": deepcopy(row["config"]),
             "es_transversal": binding == "DERIVED_GLOBAL",
             "origen": "DERIVED_GLOBAL" if binding == "DERIVED_GLOBAL" else "DIRECT",
-            "front_id": fronts[0]["front_id"],
+            "front_id": result.get("t1a_rule_area_ids", {}).get(code, fronts[0]["front_id"]),
             "requirement_id": requirement["requirement_id"],
         })
     if seen != set(req_by_code):
@@ -307,26 +307,36 @@ def build(result, request_raw):
         })
     if not reqs:
         fail("F4_A9_REQUIREMENTS_EMPTY")
-    front_rows = []
     sections = stages["A3"]["material_contract_readback"]["contract_sections"]
     effective = result["rule_sources"]["effective"]
-    for row in a7["material_fronts"]:
-        projected = {
-            "front_id": row["front_id"],
-            "candidate_ref": row["candidate_ref"],
-            "scope_ids": list(row["scope_refs"]), "obligation_mode": row["status"],
-            "closure": row["closure"], "blockers": list(row["blockers"]),
-            "evidence_refs": list(row["evidence_refs"]), "reason": row["reason"],
-            "front_kind": row["front_kind"],
-            "execution_area_hint": row["execution_area_hint"],
-            "execution_area_policy": "SANDBOX_HINT",
-            "closure_basis": row.get("closure_basis", "SOURCE_ONLY"),
-            "lifted_code": row.get("lifted_code"),
-            "materiality_level": row["materiality_level"],
-            "requires_independent_exam": row["requires_independent_exam"],
-            "simulation_mode": MODE,
-        }
-        front_rows.append(bind_front(projected, reqs, sections, effective))
+    inventory = result.get("verified_inventory", {})
+    inv = inventory.get("value", {})
+    if (not isinstance(inventory.get("source_ref"), str)
+            or not isinstance(inv, dict)):
+        fail("A9_PINNED_INVENTORY_MISSING")
+    a4 = stages["A4"]
+    empty_create = (a4.get("target_change_action") == "CREATE"
+                    and a4.get("target_code_destination") is None
+                    and all(inv.get(key) == [] for key in ("objects", "impacts", "dependencies")))
+    try:
+        front_rows, non_atomized = partition_fronts(
+            a7["material_fronts"], reqs, sections, effective,
+            scope=SCOPE, create_empty_inventory=empty_create)
+    except FrontBindingGap as exc:
+        fail(str(exc))
+    if not empty_create and any(f["candidate_ref"].startswith("A4:unresolved:")
+                                for f in a7["material_fronts"]):
+        fail("A9_A4_INVENTORY_DEPENDENCY_BLOCKED")
+    by_area = {row["execution_area"]: row["front_id"] for row in front_rows}
+    source_form_codes = {"SBX-R-" + field["field_code"].removeprefix("SBX-F-")
+                         for field in sections.get("fields", [])
+                         if isinstance(field.get("field_code"), str)
+                         and field.get("required") is True
+                         and field.get("status") == "VIGENTE"}
+    result["t1a_rule_area_ids"] = {
+        req["source_requirement_id"]: by_area[
+            "FRONTEND" if req["source_requirement_id"] in source_form_codes else "BACKEND"]
+        for req in reqs}
     front_ids = sorted(x["front_id"] for x in front_rows)
     has_blocked = any(f["closure"] == "BLOCKED" for f in front_rows)
     readiness = ("BLOCKED" if a8.get("decision") == "BLOCKED"
@@ -355,6 +365,7 @@ def build(result, request_raw):
         "classification": classification,
         "stage_trace": _stage_trace(result, receipt),
         "requirements": reqs, "material_fronts": front_rows,
+        "non_atomized_fronts": non_atomized,
         "scope_proposals": [scope],
         "research_stop": deepcopy(a8),
         "package_readiness_candidate": _readiness([scope]),
