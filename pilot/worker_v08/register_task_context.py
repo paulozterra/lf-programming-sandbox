@@ -137,7 +137,8 @@ def select_area(paths: list[str], declared: str) -> str:
         rule_path = Path(__file__).resolve().parents[1] / "orchestrator/dependency_allowlist_v1.json"
         allowlist = json.loads(rule_path.read_text(encoding="utf-8"))
         allowed = set(allowlist["database"]["config_files"]) | {
-            x["manifest"] for x in allowlist["targets"].values()}
+            x["manifest"] for x in allowlist["targets"].values()} | {
+            allowlist["targets"]["npm"]["lockfile"]}
         if (allowlist.get("schema_version") != "T3_DEPENDENCY_ALLOWLIST_V1"
                 or not set(paths).issubset(allowed)
                 or len(set(paths)) != len(paths)):
