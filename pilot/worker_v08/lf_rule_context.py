@@ -77,7 +77,7 @@ def select_stack(codes: list[str], *, standards_root: Path = STD) -> str:
 
 def material(area: str, *, skill_codes: list[str] | None = None,
              root: Path = ROOT, standards_root: Path | None = None) -> tuple[bytes, dict]:
-    standards = standards_root or root / "standards"
+    standards = standards_root or STD
     codes = skill_codes if skill_codes is not None else assigned_codes(area, root=root)
     slug = select_stack(codes, standards_root=standards)
     manifest_path = standards / "skills" / slug / "skill.json"
