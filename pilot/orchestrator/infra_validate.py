@@ -12,18 +12,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from pilot.orchestrator.infra_lot import DependencyBlocked, deny, installed, policy
 
 
-def check_infra(root):
+def check_infra(root, dependency_ids=None, database=True):
     root = Path(root)
     config = policy()
     observed = installed(root, config)
+    required = set(config["requirements_by_area"]["DATA"] if dependency_ids is None
+                   else dependency_ids)
+    all_ids = {item["id"] for spec in config["targets"].values()
+               for item in spec["dependencies"]}
+    if required - all_ids:
+        deny("DEPENDENCIA_NO_PERMITIDA:" + ",".join(sorted(required-all_ids)))
     for target, spec in config["targets"].items():
         for item in spec["dependencies"]:
-            if item["id"] not in config["requirements_by_area"]["DATA"]:
+            if item["id"] not in required:
                 continue
             key = ((target, item["group_id"], item["artifact_id"])
                    if target == "maven" else (target, item["name"]))
             if observed.get(key) != item["version"]:
                 deny("T3_DEPENDENCY_MISSING_OR_UNPINNED:" + item["id"])
+    if not database:
+        return True
     db = config["database"]
     if len(db["config_files"]) != 3:
         deny("T3_CONFIG_POLICY_INVALID")
@@ -77,11 +85,14 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument("--root",type=Path,default=Path("."))
     p.add_argument("--check-infra",action="store_true")
+    p.add_argument("--dependency-id",action="append",default=[])
+    p.add_argument("--database",action="store_true")
     p.add_argument("--check-data",nargs="*")
     args=p.parse_args()
     try:
         if args.check_infra:
-            check_infra(args.root)
+            check_infra(args.root, args.dependency_id or None,
+                        database=args.database)
         if args.check_data is not None:
             check_data(args.root,args.check_data)
     except (DependencyBlocked, OSError,ValueError) as exc:
