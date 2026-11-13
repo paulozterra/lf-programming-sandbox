@@ -311,7 +311,29 @@ def build(result, request_raw):
         })
     if not reqs:
         fail("F4_A9_REQUIREMENTS_EMPTY")
-    sections = stages["A3"]["material_contract_readback"]["contract_sections"]
+    screen = result.get("verified_screen_contract", {})
+    if (not isinstance(screen.get("source_ref"), str)
+            or not isinstance(screen.get("value"), dict)):
+        fail("A9_PINNED_SCREEN_CONTRACT_MISSING")
+    sections = screen["value"]
+    readback_sections = stages["A3"]["material_contract_readback"]["contract_sections"]
+    for section in ("fields", "errors", "visual", "rules"):
+        if readback_sections.get(section) != sections.get(section):
+            # A3 may project source sections without non-material attributes;
+            # match their exact code identities before using pinned full rows.
+            left = readback_sections.get(section)
+            right = sections.get(section)
+            if not isinstance(left, (dict, list)) or not isinstance(right, type(left)):
+                fail("A9_SCREEN_READBACK_SOURCE_MISMATCH")
+            def identities(value):
+                if isinstance(value, dict):
+                    return {k: identities(v) for k, v in value.items()}
+                if isinstance(value, list):
+                    return [identities(v) for v in value]
+                return value
+            if section != "rules" or (not isinstance(left, list)
+                    or [r.get("code") for r in left] != [r.get("code") for r in right]):
+                fail("A9_SCREEN_READBACK_SOURCE_MISMATCH")
     effective = result["rule_sources"]["effective"]
     inventory = result.get("verified_inventory", {})
     inv = inventory.get("value", {})
