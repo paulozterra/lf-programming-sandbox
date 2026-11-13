@@ -11,12 +11,17 @@ NEW_PRODUCTION = (
     "pilot/orchestrator/contract_validate.py",
     "pilot/orchestrator/generate_chain.py",
     "pilot/orchestrator/plan_lots.py",
+    "analysis/host/fixture_readback_host.py",
+    "analysis/host/run_a1_a9_fixture.py",
+    "analysis/host/request_catalog.py",
+    "pilot/orchestrator/reuse_assessment.py",
+    "pilot/worker_v08/reuse_guard.py",
 )
 CASE_ROUTE = re.compile(r"(?i)(?:/|\\b)(?:login|notes)(?:/|\\.|-|\\b)")
 
 
 def test_no_concrete_fixture_code_in_pilot_and_workflows():
-    roots = (ROOT/"pilot/orchestrator", ROOT/"pilot/worker_v08")
+    roots = (ROOT/"pilot/orchestrator", ROOT/"pilot/worker_v08", ROOT/"analysis/host")
     files = [
         p for start in roots for p in start.rglob("*.py")
         if not p.name.startswith("test_") and "tests" not in p.parts
