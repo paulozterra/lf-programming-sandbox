@@ -31,6 +31,28 @@ def _inventory(folder, dependencies):
     pinpath.write_text(json.dumps(pin,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
 
 
+def _backend_screen(folder):
+    """Keep 13 pinned sources, but constrain this test's obligations to BE."""
+    pinpath=folder/"SOURCE_PIN.json"
+    pin=json.loads(pinpath.read_text("utf-8"))
+    for name in ("screen_contract.json", "direct_rules.json", "effective_rules.json"):
+        file=folder/name
+        obj=json.loads(file.read_text("utf-8"))
+        if name=="screen_contract.json":
+            obj["contract"]["fields"]=[]
+            obj["contract"]["visual"]["variants"]=[]
+        elif name=="direct_rules.json":
+            for row in obj["linked_rules"]:
+                row["categoria"]="seguridad" if row["code"]=="SYN-R-1" else "api"
+        else:
+            for row in obj["rules"]:
+                row["categoria"]="seguridad" if row["code"]=="SYN-R-1" else "api"
+        file.write_text(json.dumps(obj,sort_keys=True,ensure_ascii=False,indent=2)+"\\n")
+        next(x for x in pin["files"] if x["file"]==name)["sha256"]=hashlib.sha256(
+            file.read_bytes()).hexdigest()
+    pinpath.write_text(json.dumps(pin,sort_keys=True,ensure_ascii=False,indent=2)+"\\n")
+
+
 def _git_main(root, files):
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=root, check=True)
     subprocess.run(["git", "add", "--", *files], cwd=root, check=True)
@@ -40,8 +62,10 @@ def _git_main(root, files):
 
 
 def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True,
-              attested=False, drift=False):
+              attested=False, drift=False, backend_only=False):
     code, folder=prepare_description_screen(tmp_path)
+    if backend_only:
+        _backend_screen(folder)
     endpoint_path=_file(tmp_path,
         "apps/time-service/src/main/java/lf/sandbox/time/catalog/ExistingItems.java",
         'public class ExistingItems {\n@GetMapping("/api/items")\n'
@@ -174,7 +198,7 @@ def test_main_sha_drift_does_not_attest(tmp_path):
     reason="Actual PG02-PG05 lot generation requires disposable selector DB")
 def test_confirmed_dependency_reaches_real_plan_lots(tmp_path):
     package, ledger, dependency, endpoint, session = _scenario(
-        tmp_path, adds_rule=True, attested=True)
+        tmp_path, adds_rule=True, attested=True, backend_only=True)
     assert package["package_readiness_candidate"] == "READY_CANDIDATE"
     report = assess(index(tmp_path), package["requirements"], registry=ledger,
                     root=tmp_path, declared_dependencies=[dependency])
