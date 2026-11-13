@@ -63,9 +63,11 @@ def test_six_rules_exclusions_parity(payload, upstream):
     assert len(next(x for x in rows if x["requirement_id"] == "REQ-SBX-R-ERR")["acceptance_checks"]) == 2
 
 
-def test_material_front_scope_exact_and_ready(payload):
-    assert payload["scope_proposals"][0]["readiness_candidate"] == "READY_CANDIDATE"
-    assert payload["package_readiness_candidate"] == "READY_CANDIDATE"
+def test_material_front_scope_is_not_ready_with_unresolved_bindings(payload):
+    assert payload["scope_proposals"][0]["readiness_candidate"] == "NEED_MORE_EVIDENCE"
+    assert payload["package_readiness_candidate"] == "NEED_MORE_EVIDENCE"
+    assert any(f["front_gaps"] for f in payload["material_fronts"])
+    assert all(f["closure"] == "BLOCKED" for f in payload["material_fronts"] if f["front_gaps"])
     assert set(payload["scope_proposals"][0]["material_front_refs"]) == {
         f["front_id"] for f in payload["material_fronts"]}
     assert all(f["scope_ids"] == ["SBX-AUTH-LOGIN"] for f in payload["material_fronts"])
@@ -110,6 +112,8 @@ def test_a9_ready_with_blocked_front(payload):
     p = deepcopy(payload)
     p["material_fronts"][0]["closure"] = "BLOCKED"
     p["material_fronts"][0]["blockers"] = ["F4_NEGATIVE"]
+    p["scope_proposals"][0]["readiness_candidate"] = "READY_CANDIDATE"
+    p["package_readiness_candidate"] = "READY_CANDIDATE"
     assert_rejected(p, (REQUEST+"\n").encode(), "F4_A9_READY_WITH_BLOCKED_FRONT", from_a9=True)
 
 
