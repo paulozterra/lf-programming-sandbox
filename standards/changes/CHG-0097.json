@@ -32,6 +32,7 @@
       "pilot/orchestrator/contract_validate.py",
       "pilot/orchestrator/generate_chain.py",
       "pilot/orchestrator/implemented_registry.py",
+      "pilot/orchestrator/intervention_report.py",
       "pilot/orchestrator/reuse_assessment.py",
       "pilot/orchestrator/t7_entry.py",
       "pilot/orchestrator/test_chain_lots.py",
