@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0091",
+  "title": "T1-A: trazabilidad A9 de obligaciones y áreas con fuente; brechas fail-closed",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T1-A paquete A9 sin decisiones manuales, 12/11/2026"
+  },
+  "reason": "Proyección A9 de relaciones frente-requisito solo con referencias verificadas; las áreas UNKNOWN y las obligaciones ausentes bloquean READY, no se convierten en decisiones automáticas. Sigue sin cerrarse el impacto A4 y los frentes de pantalla sin obligación explícita: el contrato vigente no permite demostrar un Login READY sin más evidencia.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/a9/front_bindings.py",
+      "analysis/a9/package.py",
+      "analysis/a9/test_t1a_front_bindings.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0091.json"
+    ]
+  },
+  "approved_by": "",
+  "requested_by": "owner",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
