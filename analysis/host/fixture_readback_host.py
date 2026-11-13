@@ -59,6 +59,14 @@ def load_stage(step: str):
         block("SBX_STAGE_MODULE_MISSING:" + step)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    if step == "a2":
+        # The legacy A2 adapter references the old skills/ root. Rebind its
+        # schema read to the actual pinned A1 source. No producer is changed.
+        source_schema = STAGE / "steps/a1/schemas/output.schema.json"
+        if not source_schema.is_file() or source_schema.is_symlink():
+            block("SBX_A1_SCHEMA_MISSING")
+        if not module.A1_SCHEMA.is_file():
+            module.A1_SCHEMA = source_schema
     return module
 
 
