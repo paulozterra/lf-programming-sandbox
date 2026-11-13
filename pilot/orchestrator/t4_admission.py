@@ -121,3 +121,47 @@ def incremental_task(task: str, unavailable: set[str]) -> str:
         if TASK.fullmatch(candidate) and candidate not in unavailable:
             return candidate
     raise AdmissionBlocked("TASK_SUFFIX_EXHAUSTED")
+
+
+def registration_variant(root: Path, base_task: str, template_path: str,
+                         source_sha256: str) -> str | None:
+    """Return a new task ID only when the newest registration is stale.
+
+    None means an existing registration on main is still reusable. Suffixes
+    are monotonic and tied to registration content; prior attempts are never
+    overwritten or silently resealed. No examiner artifact is inspected.
+    """
+    import hashlib
+    if not TASK.fullmatch(base_task) or not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
+        raise AdmissionBlocked("TASK_INVALID")
+    directory = root / "pilot/worker_v08/native_tasks"
+    if not directory.is_dir() or directory.is_symlink():
+        raise AdmissionBlocked("TASK_DIRECTORY_INVALID")
+    names = []
+    for path in directory.iterdir():
+        if (path.is_symlink() or not path.is_file() or path.suffix != ".json"):
+            continue
+        stem = path.stem
+        if stem == base_task or (stem.startswith(base_task)
+                and re.fullmatch(r"[2-9][0-9]*", stem[len(base_task):])):
+            names.append(stem)
+    if not names:
+        return base_task
+    def order(name):
+        return 1 if name == base_task else int(name[len(base_task):])
+    newest = max(names, key=order)
+    record = json.loads((directory / (newest + ".json")).read_text("utf-8"))
+    spec = record.get("task_spec")
+    source = root / template_path
+    if source.is_symlink() or not source.is_file() or not isinstance(spec, dict):
+        raise AdmissionBlocked("TASK_REGISTRATION_INVALID")
+    desired = json.loads(source.read_text("utf-8")).get("task_spec")
+    if not isinstance(desired, dict):
+        raise AdmissionBlocked("TASK_TEMPLATE_INVALID")
+    tracked = ("objective", "write_path_patterns", "context_path_patterns",
+               "protected_path_patterns", "acceptance_commands", "max_patch_bytes",
+               "max_changed_files")
+    same_pack = all(spec.get(k) == desired.get(k) for k in tracked)
+    if same_pack and spec.get("source_snapshot_sha256") == source_sha256:
+        return None
+    return incremental_task(base_task, set(names))
