@@ -23,7 +23,8 @@ def run_f2(fixtures=None, output_dir=None, request=None):
     stages = real["stages"]
     envelope = seal_envelope(stages, signal)
     admission = admit(stages, signal, envelope)
-    a6 = run_a6(stages, signal, envelope, admission)
+    a6 = run_a6(stages, signal, envelope, admission,
+                source_obligations=data["semantic_signals.json"].get("source_obligations"))
     result = {
         "simulation_mode": "SIMULATED_SANDBOX_ONLY",
         "authority_flags": admission["authority_flags"],
