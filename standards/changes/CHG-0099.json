@@ -16,11 +16,13 @@
       ".github/workflows/ci.yml",
       ".github/workflows/worker-native.yml",
       ".github/workflows/worker-pilot.yml",
+      "pilot/worker_v08/api_lot.py",
       "pilot/worker_v08/lf_rule_context.py",
       "pilot/worker_v08/lf_rule_gate.py",
       "pilot/worker_v08/native_run.py",
       "pilot/worker_v08/register_task_context.py",
       "pilot/worker_v08/test_register_task_context.py",
+      "pilot/worker_v08/test_t8_api_lot.py",
       "pilot/worker_v08/test_t8_lf_rules.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0099.json"
