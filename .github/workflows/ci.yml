@@ -319,6 +319,10 @@ jobs:
           python3 -m py_compile pilot/orchestrator/t4_admission.py
           python3 -m pytest -q pilot/orchestrator/test_t4_admission.py -p no:cacheprovider
 
+      - name: T7 repository index, catalogue and adversarial duplicate tests (NO MODEL)
+        run: |
+          python3 -m py_compile analysis/host/request_catalog.py pilot/orchestrator/reuse_assessment.py pilot/orchestrator/t7_entry.py pilot/worker_v08/reuse_guard.py
+          python3 -m pytest -q pilot/orchestrator/test_t7_reuse.py pilot/orchestrator/test_t2_general_guard.py -p no:cacheprovider
       - name: T5 Playwright guard and encrypted-oracle command contract (NO MODEL)
         run: |
           python3 -m py_compile pilot/worker_v08/playwright_gate.py
