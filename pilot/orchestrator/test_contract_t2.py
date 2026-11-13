@@ -31,16 +31,40 @@ DB_ONLY = pytest.mark.skipif(
 )
 
 
-def source_for(target, screen):
-    module = atomize._slug(target + "-BACKEND", atomize._rules())
-    # Test source has typed operations; production reads them, never infers them.
-    return {"schema_version": "T2_API_CONTRACT_SOURCE_V1",
-            "fields": deepcopy(screen["fields"]),
-            "errors": deepcopy(screen["errors"]),
-            "operations": [{
-                "method": "post", "path": "/api/" + module,
-                "evidence_refs": [f"fixture://t2/{target}/api-operation"],
-            }]}
+def attach_screen_readback(package, screen):
+    """Represent typed screen source in a simulated A9 package, never API operations."""
+    if "programming_context_snapshot" not in package:
+        package["programming_context_snapshot"] = {
+            "decision_context": {"material_ledger": {"source_detail": {
+                "a3_material_contract": {"contract_sections": {
+                    "fields": deepcopy(screen["fields"]),
+                    "errors": deepcopy(screen["errors"]),
+                }}
+            }}}
+        }
+    return package
+
+
+def constructor_proposal(skeleton):
+    """Fixture-only candidate: constructor chooses path/method, not Analysis."""
+    module = skeleton["functional_module"]
+    properties = {f["field_code"]: {"type": "string"} for f in skeleton["fields"]}
+    return {
+        "openapi": "3.1.0", "info": {"title": module, "version": "1.0.0"},
+        "paths": {"/api/" + module: {"post": {
+            "operationId": "propose_" + module.replace("-", "_"),
+            "x-requirement-ids": skeleton["requirement_ids"],
+            "requestBody": {"required": True, "content": {
+                "application/json": {"schema": {
+                    "type": "object", "properties": properties
+                }}}},
+            "responses": {
+                "200": {"description": "Success"},
+                "400": {"description": "Declared errors",
+                        "x-error-codes": [e["error_code"] for e in skeleton["errors"]]}
+            },
+        }}},
+    }
 
 
 def accept(root, slug, pkg, raw):
@@ -129,104 +153,155 @@ def scenario(root, kind, *, slug):
              "requirement_id":r["requirement_id"],
              "rule_code":r["source_requirement_id"],"source_ref":r["evidence_refs"][0]}
             for r in projected if not r.get("derived_from_requirement_id")]
-    pkg["api_contract_source"]=source_for(pkg["request_context"]["target_ref"],screen)
+    attach_screen_readback(pkg,screen)
     folder=accept(root,slug,pkg,raw)
     return folder,pkg
 
 
-@pytest.mark.parametrize("kind", ["first","second","synthetic"])
+@pytest.mark.parametrize("kind", ["first", "second", "synthetic"])
 @DB_ONLY
-def test_t2_contract_precedes_be_and_fe_and_validates(tmp_path,kind):
-    slug="t2-"+kind
-    folder,pkg=scenario(tmp_path,kind,slug=slug)
-    lots=package_to_lots.prepare(tmp_path,slug,base_head_sha="a"*40)
-    assert [lot["area"] for lot in lots["lots"]]==["CONTRATO","BACKEND","FRONTEND"]
-    contract,be,fe=lots["lots"]
-    assert be["depends_on"]==[contract["id"]]
-    assert set(fe["depends_on"])=={be["id"],contract["id"]}
-    assert be["contract_context_ref"]==contract["write_paths"][0]
-    assert fe["contract_context_ref"]==contract["write_paths"][0]
-    assert contract["profile_code"]==be["profile_code"]
-    assert len(contract["write_paths"])==1
-    assert contract["write_paths"][0].startswith("contracts/")
-    module=contract["contract_module"]
-    draft=folder/"contract_drafts"/(module+".openapi.yaml")
-    context=folder/"contract_context"/(module+".json")
-    assert draft.is_file() and context.is_file()
-    assert validate(draft,json.loads(context.read_text()),module)
-    plan=json.loads((tmp_path/"pilot/orchestrator/chain_plans"/(slug+".json")).read_text())
-    assert len(plan["bindings"])==3
-    templates=[json.loads((tmp_path/b["template_path"]).read_text())["task_spec"]
-               for b in plan["bindings"]]
-    assert len(templates[0]["acceptance_commands"])>=1
+def test_t2_contract_precedes_be_and_fe_and_validates(tmp_path, kind):
+    slug = "t2-" + kind
+    folder, package = scenario(tmp_path, kind, slug=slug)
+    assert "api_contract_source" not in package
+    lots = package_to_lots.prepare(tmp_path, slug, base_head_sha="a" * 40)
+    assert [lot["area"] for lot in lots["lots"]] == ["CONTRATO", "BACKEND", "FRONTEND"]
+    contract, be, fe = lots["lots"]
+    assert contract["depends_on"] == []
+    assert be["depends_on"] == [contract["id"]]
+    assert set(fe["depends_on"]) == {be["id"], contract["id"]}
+    assert be["contract_context_ref"] == contract["write_paths"][0]
+    assert fe["contract_context_ref"] == contract["write_paths"][0]
+    assert contract["profile_code"] == be["profile_code"]
+    module = contract["contract_module"]
+    skeleton_path = tmp_path / "contracts" / (module + ".skeleton.json")
+    assert skeleton_path.is_file()
+    skeleton = json.loads(skeleton_path.read_text(encoding="utf-8"))
+    assert skeleton["schema_version"] == "T2_CONTRACT_SKELETON_V1"
+    assert skeleton["functional_module"] == module
+    assert skeleton["production_authority"] is False
+    assert skeleton["fields"] and skeleton["errors"]
+    assert not any(key in skeleton for key in ("paths", "operations", "api_contract_source"))
+    assert set(skeleton["requirement_ids"]) == set(contract["requirement_ids"])
+    assert skeleton["rules"]
+    assert sorted(skeleton["fields"], key=lambda x: x["field_code"]) == sorted([
+        {"field_code": f["field_code"], "required": f["required"]}
+        for f in package["programming_context_snapshot"]["decision_context"][
+            "material_ledger"]["source_detail"]["a3_material_contract"][
+                "contract_sections"]["fields"] if f["status"] == "VIGENTE"],
+        key=lambda x: x["field_code"])
+
+    assert not (tmp_path / contract["write_paths"][0]).exists()
+    proposed = tmp_path / "candidate.openapi.yaml"
+    spec = constructor_proposal(skeleton)
+    proposed.write_text(yaml.safe_dump(spec), encoding="utf-8")
+    assert validate(proposed, skeleton, module)
+
+    plan = json.loads((tmp_path / "pilot/orchestrator/chain_plans" /
+                       (slug + ".json")).read_text())
+    assert len(plan["bindings"]) == 3
+    templates = [json.loads((tmp_path / row["template_path"]).read_text())["task_spec"]
+                 for row in plan["bindings"]]
+    assert templates[0]["write_path_patterns"] == [contract["write_paths"][0]]
+    assert "contracts/" + module + ".skeleton.json" in templates[0]["context_path_patterns"]
+    assert "contracts/*.skeleton.json" in templates[0]["protected_path_patterns"]
+    assert "--skeleton" in templates[0]["acceptance_commands"][0]["argv"]
     assert contract["write_paths"][0] in templates[1]["context_path_patterns"]
     assert contract["write_paths"][0] in templates[2]["context_path_patterns"]
-    assert any(x["name"]=="frontend-no-manual-fetch"
+    assert any(x["name"] == "backend-contract-operations"
+               for x in templates[1]["acceptance_commands"])
+    assert any(x["name"] == "frontend-no-manual-fetch"
                for x in templates[2]["acceptance_commands"])
-    assert json.loads((folder/"t1_interventions.json").read_text())["INTERVENCION_MANUAL"]=="NO"
-    assert not (folder/"owner_area_decision.json").exists()
-    assert not (folder/"planning_fixture.json").exists()
+    report = json.loads((folder / "t1_interventions.json").read_text())
+    assert report["INTERVENCION_MANUAL"] == "NO"
+    assert "MANUAL_CONTRACT" not in report["interventions"]
+    assert not (folder / "owner_area_decision.json").exists()
+    assert not (folder / "planning_fixture.json").exists()
     if os.getenv("T2_ARTIFACT_DIR"):
-        shutil.copytree(folder,Path(os.environ["T2_ARTIFACT_DIR"])/kind)
+        out = Path(os.environ["T2_ARTIFACT_DIR"]) / kind
+        shutil.copytree(folder, out)
+        (out / "contract_skeleton.json").write_bytes(skeleton_path.read_bytes())
+        (out / "constructor_example.openapi.yaml").write_bytes(proposed.read_bytes())
+
+
+def sample_skeleton():
+    return {
+        "schema_version": "T2_CONTRACT_SKELETON_V1",
+        "functional_module": "sample",
+        "production_authority": False,
+        "requirement_ids": ["REQ-RANDOM-A"],
+        "fields": [{"field_code": "SYNTH_FIELD", "required": True}],
+        "errors": [{"error_code": "SYNTH_ERROR"}],
+        "rules": [{"rule_code": "RANDOM-A", "requirement_id": "REQ-RANDOM-A",
+                   "source_ref": "fixture://random/rule"}],
+    }
 
 
 def test_contract_missing_requirement_fails(tmp_path):
-    pkg={"atoms":[{"area":"BACKEND","functional_module":"sample","requirement_ids":["REQ-RANDOM-A"]}],
-         "api_contract_source":{"errors":[]}}
-    path=tmp_path/"sample.openapi.yaml"
-    path.write_text(yaml.safe_dump({"openapi":"3.1.0",
-        "info":{"title":"sample","version":"1"},
-        "paths":{"/something":{"post":{"x-requirement-ids":["REQ-OTHER"],
-        "responses":{"200":{"description":"OK"}}}}}}))
-    with pytest.raises(ContractBlocked,match="CONTRACT_REQ_COVERAGE_MISSING"):
-        validate(path,pkg,"sample")
+    skeleton = sample_skeleton()
+    path = tmp_path / "sample.openapi.yaml"
+    spec = constructor_proposal(skeleton)
+    spec["paths"]["/api/sample"]["post"]["x-requirement-ids"] = ["REQ-OTHER"]
+    path.write_text(yaml.safe_dump(spec))
+    with pytest.raises(ContractBlocked, match="CONTRACT_REQ_COVERAGE_MISSING"):
+        validate(path, skeleton, "sample")
+
+
+def test_contract_missing_field_fails(tmp_path):
+    skeleton = sample_skeleton()
+    path = tmp_path / "sample.openapi.yaml"
+    spec = constructor_proposal(skeleton)
+    del spec["paths"]["/api/sample"]["post"]["requestBody"]["content"][
+        "application/json"]["schema"]["properties"]["SYNTH_FIELD"]
+    path.write_text(yaml.safe_dump(spec))
+    with pytest.raises(ContractBlocked, match="CONTRACT_FIELD_COVERAGE_MISSING"):
+        validate(path, skeleton, "sample")
 
 
 def test_missing_error_and_secret_examples_block(tmp_path):
-    pkg={"atoms":[{"area":"BACKEND","functional_module":"sample","requirement_ids":["REQ-RANDOM-A"]}],
-         "api_contract_source":{"errors":[{"error_code":"RANDOM_ERR","status":"VIGENTE"}]}}
-    path=tmp_path/"sample.openapi.yaml"
-    spec={"openapi":"3.1.0","info":{"title":"sample","version":"1"},
-        "paths":{"/sample":{"post":{"x-requirement-ids":["REQ-RANDOM-A"],
-        "responses":{"200":{"description":"OK"}}}}}}
+    skeleton = sample_skeleton()
+    path = tmp_path / "sample.openapi.yaml"
+    spec = constructor_proposal(skeleton)
+    spec["paths"]["/api/sample"]["post"]["responses"]["400"]["x-error-codes"] = []
     path.write_text(yaml.safe_dump(spec))
-    with pytest.raises(ContractBlocked,match="CONTRACT_ERROR_COVERAGE_MISSING"):
-        validate(path,pkg,"sample")
-    spec["paths"]["/sample"]["post"]["responses"]["default"]={
-        "description":"Error","x-error-codes":["RANDOM_ERR"]}
-    spec["paths"]["/sample"]["post"]["requestBody"]={
-        "content":{"application/json":{"schema":{"properties":{
-            "password":{"type":"string","example":"a-real-password"}}}}}}
+    with pytest.raises(ContractBlocked, match="CONTRACT_ERROR_COVERAGE_MISSING"):
+        validate(path, skeleton, "sample")
+    spec["paths"]["/api/sample"]["post"]["responses"]["400"]["x-error-codes"] = [
+        "SYNTH_ERROR"]
+    spec["paths"]["/api/sample"]["post"]["requestBody"]["content"][
+        "application/json"]["schema"]["properties"]["password"] = {
+            "type": "string", "example": "a-real-password"}
     path.write_text(yaml.safe_dump(spec))
-    with pytest.raises(ContractBlocked,match="CONTRACT_SECRET_EXAMPLE"):
-        validate(path,pkg,"sample")
+    with pytest.raises(ContractBlocked, match="CONTRACT_SECRET_EXAMPLE"):
+        validate(path, skeleton, "sample")
 
 
 def test_manual_fetch_blocks(tmp_path):
-    file=tmp_path/"frontend/src/app/page.tsx"
+    file = tmp_path / "frontend/src/app/page.tsx"
     file.parent.mkdir(parents=True)
     file.write_text('export async function call(){ return fetch("/api/internal"); }')
-    with pytest.raises(ContractBlocked,match="CONTRACT_MANUAL_FETCH_FORBIDDEN"):
+    with pytest.raises(ContractBlocked, match="CONTRACT_MANUAL_FETCH_FORBIDDEN"):
         check_frontend(tmp_path)
 
 
-def test_stale_generated_client_blocks(tmp_path,monkeypatch):
-    root=tmp_path
-    generated=root/"frontend/src/lib/api/generated/index.ts"
+def test_stale_generated_client_blocks(tmp_path, monkeypatch):
+    root = tmp_path
+    generated = root / "frontend/src/lib/api/generated/index.ts"
     generated.parent.mkdir(parents=True)
-    generated.write_text("// initial\n")
-    subprocess.run(["git","init","-q"],cwd=root,check=True)
-    subprocess.run(["git","add","frontend/src/lib/api/generated/index.ts"],cwd=root,check=True)
-    script=root/"npm"
-    script.write_text("#!/bin/sh\nprintf '// altered\\n' > frontend/src/lib/api/generated/index.ts\n")
+    generated.write_text("// initial\\n")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "add", "frontend/src/lib/api/generated/index.ts"],
+                   cwd=root, check=True)
+    script = root / "npm"
+    script.write_text("#!/bin/sh\\nprintf '// altered\\n' > frontend/src/lib/api/generated/index.ts\\n")
     script.chmod(0o755)
-    monkeypatch.setenv("PATH",str(root)+os.pathsep+os.environ["PATH"])
-    with pytest.raises(ContractBlocked,match="CONTRACT_GENERATED_CLIENT_STALE"):
+    monkeypatch.setenv("PATH", str(root) + os.pathsep + os.environ["PATH"])
+    with pytest.raises(ContractBlocked, match="CONTRACT_GENERATED_CLIENT_STALE"):
         check_generated(root)
 
 
 def test_intervention_report_distinguishes_bot_contract_from_manual_contract():
     from pilot.orchestrator.intervention_report import classify
-    path="contracts/functional-unit.openapi.yaml"
-    assert classify(path,"BOT","sample")[0]=="AUTOMATIC"
-    assert classify(path,"PAULO_O_GPT","sample")[1]=="MANUAL_CONTRACT"
+    path = "contracts/functional-unit.openapi.yaml"
+    assert classify(path, "BOT", "sample")[0] == "AUTOMATIC"
+    assert classify(path, "PAULO_O_GPT", "sample")[1] == "MANUAL_CONTRACT"
