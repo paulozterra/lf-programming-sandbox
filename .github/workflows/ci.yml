@@ -29,16 +29,16 @@ jobs:
           cache: maven
       - name: STD-BE-05 Spotless/Palantir (required for time-service)
         working-directory: .
-        run: mvn -B -q -f apps/time-service/pom.xml spotless:check
+        run: mvn -U -B -q -f apps/time-service/pom.xml spotless:check
       - run: python3 ../standards/tools/stack_checks.py run --set spring-boot --check-id spring-verify
       - name: Compile and run staged reminders visible tests (no model)
         working-directory: .
-        run: mvn -B -q -f apps/time-service/pom.xml test
+        run: mvn -U -B -q -f apps/time-service/pom.xml test
       - name: "T2: verify live springdoc operations against every contract"
         working-directory: .
         run: |
           python3 -m pip install --disable-pip-version-check PyYAML==6.0.2
-          mvn -B -q -f apps/time-service/pom.xml spring-boot:start
+          mvn -U -B -q -f apps/time-service/pom.xml spring-boot:start
           python3 pilot/orchestrator/contract_validate.py --compare-live http://127.0.0.1:8080/v3/api-docs
       - name: "T2: stop springdoc verification backend"
         if: always()
