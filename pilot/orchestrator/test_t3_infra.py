@@ -155,3 +155,38 @@ def test_native_scope_prevents_direct_other_area_config_edits(tmp_path):
         real_write_paths(tmp_path,"DATA",["apps/time-service/pom.xml"])
     with pytest.raises(Exception, match="CP34_FAKE_OR_UNSAFE_PATH"):
         real_write_paths(tmp_path,"INFRA",["apps/time-service/src/main/java/Unsafe.java"])
+
+
+def test_missing_npm_dependency_requires_both_manifest_and_lock(tmp_path):
+    pom = tmp_path / "apps/time-service/pom.xml"
+    pom.parent.mkdir(parents=True)
+    pom.write_text('<project xmlns="http://maven.apache.org/POM/4.0.0">'
+                   '<dependencies/></project>')
+    frontend = tmp_path / "frontend"
+    frontend.mkdir()
+    (frontend / "package.json").write_text('{"dependencies":{}}')
+    (frontend / "package-lock.json").write_text("{}")
+    req_id = "REQ-" + uuid.uuid4().hex[:9].upper()
+    source = "fixture://proof/" + req_id
+    package = {"requirements": [{"requirement_id":req_id,"evidence_refs":[source]}],
+               "dependency_requirements":[{"id":"frontend-openapi-fetch",
+                                           "requirement_id":req_id,
+                                           "source_ref":source}]}
+    atoms = [{"area":"FRONTEND", "front_id":"F3-ANY",
+              "requirement_ids":[req_id]}]
+    infra = infra_lot.infra_atom(package, atoms, root=tmp_path)
+    assert infra["paths"] == ["frontend/package-lock.json","frontend/package.json"]
+    assert infra["missing_dependencies"][0]["version"] == "0.17.0"
+    (frontend/"package.json").write_text(
+        '{"dependencies":{"openapi-fetch":"0.17.0"}}')
+    assert infra_lot.infra_atom(package, atoms, root=tmp_path) is None
+    assert infra_validate.check_infra(tmp_path,
+        dependency_ids=["frontend-openapi-fetch"],database=False)
+
+
+def test_allowed_dependency_without_a9_source_blocks():
+    item = {"id":"spring-jdbc","requirement_id":"REQ-X","source_ref":"fixture://false"}
+    with pytest.raises(infra_lot.DependencyBlocked, match="DEPENDENCIA_SIN_FUENTE"):
+        infra_lot.infra_atom({"dependency_requirements":[item]},
+                            [{"area":"BACKEND","front_id":"F3-X",
+                              "requirement_ids":["REQ-X"]}])
