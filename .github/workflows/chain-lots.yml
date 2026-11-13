@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows:
       - sandbox-train
+      - ci
       - "LF Worker native (trusted workflow_run or manual, no API)"
     types: [completed]
   workflow_dispatch:
