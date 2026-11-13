@@ -227,18 +227,16 @@ def atomize(package, root, base_head_sha, *, run):
     for module, areas in sorted(by_module.items()):
         if not {"BACKEND", "FRONTEND"}.issubset(areas):
             continue
-        # Versioned A9 contract readback is mandatory for T2 admission.
-        # Legacy pre-T2 packages continue through their existing T1 path.
-        contract_source = package.get("api_contract_source")
-        if contract_source is None:
+        # A9 retains sourced screen fields/errors in the material ledger.
+        # API operation paths do not exist here: the constructor supplies them.
+        # Old pre-A9 synthetic T1 fixtures retain their legacy execution path.
+        if "programming_context_snapshot" not in package:
             continue
-        if (not isinstance(contract_source, dict)
-                or contract_source.get("schema_version") != "T2_API_CONTRACT_SOURCE_V1"
-                or not isinstance(contract_source.get("fields"), list)
-                or not isinstance(contract_source.get("errors"), list)
-                or not isinstance(contract_source.get("operations"), list)
-                or not contract_source["operations"]):
-            raise AtomBlocked("T2_CONTRACT_SOURCE_UNRESOLVED")
+        import contract_generate
+        try:
+            contract_generate._contract_sections(package)
+        except contract_generate.ContractBlocked as exc:
+            raise AtomBlocked(str(exc)) from exc
         policy = rules["contract_lot"]
         if (policy.get("schema_version") != "T2_CONTRACT_LOT_POLICY_V1"
                 or policy.get("profile_area") != "BACKEND"
@@ -265,6 +263,12 @@ def atomize(package, root, base_head_sha, *, run):
         }
         if not contract["source_refs"]:
             raise AtomBlocked("T2_CONTRACT_SOURCE_REFS_MISSING")
+        # Materialize an evidence-only skeleton in the next deterministic
+        # planning stage; preflight here ensures no partial contract lot.
+        try:
+            contract_generate.generate(module, package, rows)
+        except contract_generate.ContractBlocked as exc:
+            raise AtomBlocked(str(exc)) from exc
         rows.append(contract)
         provenance[contract_id] = {
             "area": {"method": "T2_CONTRACT_POLICY_V1",
