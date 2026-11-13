@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "T2 lote CONTRATO automático + OpenAPI CP1.5 (13/11/2026)"
   },
-  "reason": "Infraestructura OpenAPI versionada y generador frontend; un lote CONTRATO previo a BACKEND/FRONTEND, insertado después de PG04/PG05 para conservar productores fijados. Validación determinista del contrato, requisitos, errores, ejemplos, cliente sincronizado y rutas Springdoc; tres casos sintéticos de prueba y dos recorridos de entrada real simulada. Sin ninguna regla de caso en código nuevo.",
+  "reason": "Infraestructura OpenAPI versionada y generador frontend; un lote CONTRATO previo a BACKEND/FRONTEND, insertado después de PG04/PG05 para conservar productores fijados. Validación determinista del contrato, requisitos, errores, ejemplos, cliente sincronizado y rutas Springdoc; tres casos sintéticos de prueba y dos recorridos de entrada real simulada. Sin ninguna regla de caso en código nuevo. Adaptación de ruta CONTRATO y perfil backend en CP3.4; validación real y generación de lock por runner. Limitación heredada: F5.1 compara A9 actual contra analysis.json inmovilizado; falla antes del planificador, fuera del ámbito permitido. T2 permanece Draft hasta la remediación gobernada de ese bloqueo.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -28,6 +28,7 @@
       "pilot/orchestrator/contract_validate.py",
       "pilot/orchestrator/generate_chain.py",
       "pilot/orchestrator/legacy_f51_source_v1.json",
+      "pilot/orchestrator/native_lot_binding.py",
       "pilot/orchestrator/package_to_lots.py",
       "pilot/orchestrator/plan_lots.py",
       "pilot/orchestrator/test_t2_contract.py",
