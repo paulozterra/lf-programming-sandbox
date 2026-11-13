@@ -63,11 +63,16 @@ def test_six_rules_exclusions_parity(payload, upstream):
     assert len(next(x for x in rows if x["requirement_id"] == "REQ-SBX-R-ERR")["acceptance_checks"]) == 2
 
 
-def test_material_front_scope_is_not_ready_with_unresolved_bindings(payload):
-    assert payload["scope_proposals"][0]["readiness_candidate"] == "NEED_MORE_EVIDENCE"
-    assert payload["package_readiness_candidate"] == "NEED_MORE_EVIDENCE"
-    assert any(f["front_gaps"] for f in payload["material_fronts"])
-    assert all(f["closure"] == "BLOCKED" for f in payload["material_fronts"] if f["front_gaps"])
+def test_material_front_scope_source_split_is_ready(payload):
+    assert payload["scope_proposals"][0]["readiness_candidate"] == "READY_CANDIDATE"
+    assert payload["package_readiness_candidate"] == "READY_CANDIDATE"
+    assert [f["execution_area"] for f in payload["material_fronts"]] == ["BACKEND", "FRONTEND"]
+    assert all(f["requirement_ids"] and f["execution_area_source_ref"]
+               for f in payload["material_fronts"])
+    assert all(f["obligation_mode"] == "NOT_APPLICABLE"
+               for f in payload["non_atomized_fronts"])
+    assert any(f["reason"] == "SOURCE_SECTION_HAS_NO_OBLIGATION"
+               for f in payload["non_atomized_fronts"])
     assert set(payload["scope_proposals"][0]["material_front_refs"]) == {
         f["front_id"] for f in payload["material_fronts"]}
     assert all(f["scope_ids"] == ["SBX-AUTH-LOGIN"] for f in payload["material_fronts"])
@@ -194,7 +199,8 @@ def test_typed_applicable_rules_and_links(payload):
         "categoria": "rate_limiting",
         "valor_config": {"failed_attempts": 5, "lock_minutes": 15},
         "es_transversal": False, "origen": "DIRECT",
-        "front_id": "F3-e02f01fd4a14ba3a",
+        "front_id": next(f["front_id"] for f in payload["material_fronts"]
+                         if f["execution_area"] == "BACKEND"),
         "requirement_id": "REQ-SBX-R-LOCK",
     }
     logged = next(r for r in rules if r["rule_code"] == "SBX-R-LOG")
