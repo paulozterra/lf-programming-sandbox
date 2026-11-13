@@ -100,11 +100,13 @@ class FixtureHost:
             return self._from_request(data, request_text)
         entries = manifest.get("files")
         target = manifest.get("fixture_id")
+        names = [x.get("file") for x in entries if isinstance(x, dict)] if isinstance(entries, list) else None
+        # semantic_signals.json is a legacy optional source, not an admission
+        # dependency for newly pinned 12-source or 13-source screens.
         if (manifest.get("schema_version") != "SBX_FIXTURE_PIN_V1"
                 or not isinstance(target, str) or not target
                 or manifest.get("simulation") is not True
-                or not isinstance(entries, list)
-                or [x.get("file") for x in entries if isinstance(x, dict)] != list(FILES)):
+                or names not in (list(FILES), list(FILES[:-1]))):
             block("SBX_SOURCE_PIN_INVALID")
         data = {}
         self.target = target
@@ -132,7 +134,11 @@ class FixtureHost:
             data[name] = obj
             self.provenance[name] = self.source_prefix + name + "@" + digest
         if request_text is not None:
-            data = self._from_request(data, request_text)
+            legacy = data.get("semantic_signals.json", {})
+            if legacy.get("request_text") != request_text:
+                data = self._from_request(data, request_text)
+        elif "semantic_signals.json" not in data:
+            block("ANALISIS_SENALES_NO_DERIVABLES")
         return data
 
     def _from_request(self, data: dict, request: str) -> dict:
