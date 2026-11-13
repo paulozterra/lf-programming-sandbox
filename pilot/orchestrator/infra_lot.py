@@ -150,7 +150,13 @@ def infra_atom(package, atoms, root=ROOT):
     db = config["database"]
     if not any(a.get("area") == db["requires_area"] for a in atoms):
         # Generic dependency-only INFRA may modify manifest, not DB config.
-        paths = sorted({config["targets"][item["target"]]["manifest"] for item in missing})
+        paths = sorted({
+            entry for item in missing
+            for entry in (
+                [config["targets"][item["target"]]["manifest"]] +
+                ([config["targets"]["npm"]["lockfile"]] if item["target"]=="npm" else [])
+            )
+        })
     else:
         paths = list(db["config_files"])
     if not paths or len(paths) > config["infra"]["max_changed_files"]:
