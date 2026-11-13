@@ -38,8 +38,13 @@ def run_f4(root, slug=SLUG, fixtures=None):
         raise ValueError("PEDIDO_RUTA_INVALIDA")
     if request.is_file():
         raw = request.read_bytes()
+        # A detached offline test workspace can have no local catalogue.
+        # In that case resolution still uses the trusted installed catalogue,
+        # never the optional fixture argument or a guessed screen default.
+        catalogue_root = (Path(root) if (Path(root)/"analysis/fixtures").is_dir()
+                          else Path(__file__).resolve().parents[2])
         try:
-            _, resolved = resolve(Path(root), raw)
+            _, resolved = resolve(catalogue_root, raw)
         except CatalogueBlocked as exc:
             raise ValueError(str(exc)) from exc
         if fixtures is not None and Path(fixtures).resolve() != resolved.resolve():
