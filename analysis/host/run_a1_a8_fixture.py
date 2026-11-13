@@ -30,10 +30,32 @@ def run_f3(fixtures=None, output_dir=None):
         },
     }
     result["category_sources"] = category_sources
+    result["verified_inventory"] = {"value": pinned["inventory.json"], "source_ref": checked_host.provenance["inventory.json"]}
     a7 = run_a7(
         result["stages"], result["a2_signals"], result["admission_envelope"],
         result["admission"], result["a6"], category_sources)
     a8 = run_a8(result["stages"]["A3"], result["stages"]["A5"], a7, result["admission"])
+    a4 = result["stages"]["A4"]
+    inv = pinned["inventory.json"]
+    empty = (a4.get("target_change_action") == "CREATE"
+             and a4.get("target_code_destination") is None
+             and all(inv.get(key) == [] for key in ("objects", "impacts", "dependencies")))
+    a8["non_blocking_gaps"] = ([{
+        "code": "A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED",
+        "classification": "NON_BLOCKING_GAP",
+        "basis": "EMPTY_PINNED_INVENTORY_CREATE",
+        "source_ref": checked_host.provenance["inventory.json"],
+    }] if empty else [])
+    if not empty and any(row["candidate_ref"].startswith("A4:unresolved:")
+                         for row in a7["material_fronts"]):
+        a8["decision"] = "CONTINUE"
+        a8["decision_stable"] = False
+        a8["reason"] = "A4 inventory non-empty: unresolved shared dependency blocks implementation"
+        a8["requested_material_evidence_refs"] = ["A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED"]
+    from analysis.host.simulated_admission_gate import digest
+    a8["stop_rule_fingerprint_sha256"] = digest({
+        key: value for key, value in a8.items()
+        if key != "stop_rule_fingerprint_sha256"})
     result["a7"] = a7
     result["a8"] = a8
     if output_dir is not None:
