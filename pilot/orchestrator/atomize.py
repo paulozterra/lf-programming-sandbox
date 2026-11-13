@@ -103,11 +103,11 @@ def _class(module, suffix):
     return name
 
 
-def _route(area, module, rules, root):
+def _route(area, module, rules, root, *, data_ordinal=0):
     service = rules["service"]
     if area == "DATA":
         return [rules["routes"]["DATA"].format(
-            service=service, next=_next_version(root), module=module.replace("-", "_"))]
+            service=service, next=_next_version(root)+data_ordinal, module=module.replace("-", "_"))]
     if area == "BACKEND":
         return [rules["routes"]["BACKEND"].format(
             service=service, service_java=service.split("-")[0],
@@ -164,6 +164,7 @@ def atomize(package, root, base_head_sha, *, run):
     fronts = package["material_fronts"]
     business_rules = package.get("applicable_rules", [])
     rows, provenance, unresolved = [], {}, []
+    data_ordinal = 0
     # One front per semantic atom. A9 fronts are individually accounted for.
     for scope_id in sorted(scopes):
         scope = scopes[scope_id]
@@ -193,7 +194,9 @@ def atomize(package, root, base_head_sha, *, run):
                 continue
             module = _slug(scope_id, rules)
             atom_id = "ATOM-" + hashlib.sha256((scope_id + "|" + front["front_id"]).encode()).hexdigest()[:12]
-            paths = _route(area, module, rules, root)
+            paths = _route(area, module, rules, root, data_ordinal=data_ordinal)
+            if area == "DATA":
+                data_ordinal += 1
             groups = [paths[i:i + rules["max_paths"]] for i in range(0, len(paths), rules["max_paths"])]
             for i, group in enumerate(groups):
                 suffix = ("-" + str(i + 1)) if len(groups) > 1 else ""
