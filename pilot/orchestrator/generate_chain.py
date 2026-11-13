@@ -23,16 +23,16 @@ def save(path, value):
         with path.open("xb") as f:
             f.write(content)
 
-def acceptance(area, paths, *, run=None, module=None, has_contract=False):
+def acceptance(area, paths, *, run=None, module=None, has_contract=False, skeleton_path=None):
     def item(name, argv, timeout=600):
         return {"name":name,"argv":argv,"timeout_seconds":timeout,"max_output_bytes":32000}
     if area=="CONTRATO":
-        if not run or not module or len(paths)!=1:
+        if not run or not module or len(paths)!=1 or not skeleton_path:
             raise ValueError("T2_CONTRACT_ACCEPTANCE_SOURCE_MISSING")
         return [item("contract-source-coverage",
             ["python3","pilot/orchestrator/contract_validate.py",
              "--contract",paths[0],"--skeleton",
-             f"contracts/{module}.skeleton.json",
+             skeleton_path,
              "--module",module])]
     if area=="BACKEND":
         result=[item("backend-package",["mvn","-B","-q","-f","apps/time-service/pom.xml","package"])]
@@ -71,18 +71,22 @@ def generate(root, run, lots):
     contract_lots=[lot for lot in lots["lots"] if lot["area"]=="CONTRATO"]
     contract_by_path={lot["write_paths"][0]:lot["contract_module"]
                       for lot in contract_lots}
+    policy=json.loads((Path(__file__).parent/"atomize_rules_v1.json").read_text())
+    skeleton_template=policy.get("contract_lot", {}).get("skeleton_path")
     if contract_lots:
         import sys
         directory=Path(__file__).parent
         if str(directory) not in sys.path:
             sys.path.insert(0,str(directory))
         import contract_generate
+        if not isinstance(skeleton_template,str) or "{module}" not in skeleton_template:
+            raise ValueError("T2_SKELETON_PATH_POLICY_INVALID")
         package=json.loads((folder/"analysis.json").read_text(encoding="utf-8"))
         atoms=json.loads((folder/"atomized_inputs.json").read_text(encoding="utf-8"))["atoms"]
         for lot in contract_lots:
             module=lot["contract_module"]
             skeleton=contract_generate.generate(module,package,atoms)
-            path=Path(root)/"contracts"/(module+".skeleton.json")
+            path=Path(root)/skeleton_template.format(module=module)
             save(path,skeleton)
     rows=[]
     output={}
@@ -111,7 +115,7 @@ def generate(root, run, lots):
         elif lot["area"]=="CONTRATO":
             protected.append("contracts/*.skeleton.json")
         context_paths=(
-            [f"contracts/{module}.skeleton.json"]
+            [skeleton_template.format(module=module)]
             if lot["area"]=="CONTRATO" else [dependency_contract] if dependency_contract else [])
         template={"task_spec":{
             "schema_version":1,"task_id":"LF-WORKER-NATIVE-"+task.upper(),
@@ -125,7 +129,9 @@ def generate(root, run, lots):
             "context_path_patterns":context_paths,
             "protected_path_patterns":protected,
             "acceptance_commands":acceptance(lot["area"],paths,run=run,module=module,
-                                             has_contract=bool(dependency_contract)),
+                                             has_contract=bool(dependency_contract),
+                                             skeleton_path=(skeleton_template.format(module=module)
+                                                            if module and skeleton_template else None)),
             "context_derivation":"pilot/worker_v08/derive_context.py",
         }}
         output[tpath]=template
