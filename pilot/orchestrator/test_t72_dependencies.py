@@ -340,7 +340,9 @@ def _same_endpoint_chain(tmp_path, *, extend=True, protect_tests=True):
     ]
     (folder/"analysis.json").write_text(json.dumps({
         "requirements": [
-            {"requirement_id": rid, "scope_id": scope}
+            {"requirement_id": rid, "scope_id": scope,
+             "outcome": ("El filtro existente de items sigue funcionando" if rid == reuse_id
+                         else "Requiere sesión")}
             for rid in (reuse_id, extend_id)]}), encoding="utf-8")
     (folder/"reuse_assessment.json").write_text(json.dumps({
         "schema_version": "T7_REUSE_ASSESSMENT_V1",
@@ -368,6 +370,7 @@ def test_same_lot_reuse_and_extend_writes_controller_and_protects_both_tests(tmp
     assert {class_test, endpoint_test} <= set(spec["protected_path_patterns"])
     assert "/api/items" in spec["objective"]
     assert "conservar el comportamiento existente" in spec["objective"]
+    assert "El filtro existente de items sigue funcionando" in spec["objective"]
     assert class_test in spec["objective"] and endpoint_test in spec["objective"]
 
 
