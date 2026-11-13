@@ -11,7 +11,7 @@ async function walk(dir) {
     if (!/\.(tsx?|jsx?)$/.test(entry.name)) continue;
     const text = await readFile(file, "utf8");
     // openapi-fetch performs its own fetch internally; app source must not.
-    if (/\b(?:globalThis\.|window\.)?fetch\s*\\(/.test(text)) bad.push(file);
+    if (/\b(?:globalThis\.|window\.)?fetch\s*\(/.test(text)) bad.push(file);
   }
 }
 await walk(root);
