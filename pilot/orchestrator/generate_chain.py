@@ -23,23 +23,78 @@ def save(path, value):
         with path.open("xb") as f:
             f.write(content)
 
-def acceptance(area, paths):
+def acceptance(area, paths, *, run=None, module=None, has_contract=False):
     def item(name, argv, timeout=600):
         return {"name":name,"argv":argv,"timeout_seconds":timeout,"max_output_bytes":32000}
+    if area=="CONTRATO":
+        if not run or not module or len(paths)!=1:
+            raise ValueError("T2_CONTRACT_ACCEPTANCE_SOURCE_MISSING")
+        return [item("contract-source-coverage",
+            ["python3","pilot/orchestrator/contract_validate.py",
+             "--contract",paths[0],"--package",
+             f"pilot/runs/{run}/contract_context/{module}.json",
+             "--module",module])]
     if area=="BACKEND":
-        return [item("backend-package",["mvn","-B","-q","-f","apps/time-service/pom.xml","package"])]
+        result=[item("backend-package",["mvn","-B","-q","-f","apps/time-service/pom.xml","package"])]
+        if has_contract:
+            result += [
+                item("backend-start-openapi",["mvn","-B","-q","-f","apps/time-service/pom.xml",
+                                              "spring-boot:start"]),
+                item("backend-contract-operations",
+                     ["python3","pilot/orchestrator/contract_validate.py",
+                      "--compare-live","http://127.0.0.1:8080/v3/api-docs"]),
+                item("backend-stop-openapi",["mvn","-B","-q","-f","apps/time-service/pom.xml",
+                                             "spring-boot:stop"]),
+            ]
+        return result
     if area=="FRONTEND":
-        return [item("frontend-install",["npm","--prefix","frontend","ci"]),
+        result=[item("frontend-install",["npm","--prefix","frontend","ci"]),
                 item("frontend-lint",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-lint"]),
                 item("frontend-types",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-typecheck"]),
                 item("frontend-build",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-build"]),
                 item("frontend-prettier",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-prettier"])]
+        if has_contract:
+            result += [
+                item("frontend-generate-api",["npm","--prefix","frontend","run","gen:api"]),
+                item("frontend-typed-client-diff",["python3","pilot/orchestrator/contract_validate.py",
+                                                "--check-client","."]),
+                item("frontend-no-manual-fetch",["python3","pilot/orchestrator/contract_validate.py",
+                                                "--check-frontend","."]),
+            ]
+        return result
     if area=="DATA":
         return [item("data-migration-visible",["psql","-X","-v","ON_ERROR_STOP=1","-f",paths[0]],180)]
     raise ValueError("T1_AREA_INVALID")
 
 def generate(root, run, lots):
     folder=Path(root)/"pilot/runs"/run
+    contract_lots=[lot for lot in lots["lots"] if lot["area"]=="CONTRATO"]
+    contract_by_path={lot["write_paths"][0]:lot["contract_module"]
+                      for lot in contract_lots}
+    if contract_lots:
+        import sys
+        directory=Path(__file__).parent
+        if str(directory) not in sys.path:
+            sys.path.insert(0,str(directory))
+        import contract_generate
+        import contract_validate
+        package=json.loads((folder/"analysis.json").read_text(encoding="utf-8"))
+        atoms=json.loads((folder/"atomized_inputs.json").read_text(encoding="utf-8"))["atoms"]
+        for lot in contract_lots:
+            module=lot["contract_module"]
+            context={"schema_version":"T2_CONTRACT_CONTEXT_V1",
+                     "api_contract_source":package.get("api_contract_source"),
+                     "atoms":atoms}
+            source_path=folder/"contract_context"/(module+".json")
+            save(source_path,context)
+            draft=contract_generate.render(module,package,atoms)
+            draft_path=folder/"contract_drafts"/(module+".openapi.yaml")
+            draft_path.parent.mkdir(parents=True,exist_ok=True)
+            if draft_path.exists() and draft_path.read_text(encoding="utf-8")!=draft:
+                raise ValueError("T2_CONTRACT_DRAFT_DRIFT")
+            if not draft_path.exists():
+                draft_path.write_text(draft,encoding="utf-8")
+            contract_validate.validate(draft_path,context,module)
     rows=[]
     output={}
     for pos,lot in enumerate(lots["lots"],1):
@@ -58,6 +113,16 @@ def generate(root, run, lots):
         if lot["area"]=="DATA":
             protected.remove("db/**")
             protected.extend(["db/**/test/**","db/**/fixtures/**"])
+        dependency_contract=lot.get("contract_context_ref")
+        if dependency_contract and dependency_contract not in contract_by_path:
+            raise ValueError("T2_CONTRACT_CONTEXT_UNBOUND")
+        module=lot.get("contract_module") or contract_by_path.get(dependency_contract)
+        if dependency_contract:
+            protected.append("contracts/**")
+        context_paths=(
+            [f"pilot/runs/{run}/contract_context/{module}.json",
+             f"pilot/runs/{run}/contract_drafts/{module}.openapi.yaml"]
+            if lot["area"]=="CONTRATO" else [dependency_contract] if dependency_contract else [])
         template={"task_spec":{
             "schema_version":1,"task_id":"LF-WORKER-NATIVE-"+task.upper(),
             "base_head_sha":"<FILL_AT_REGISTRATION>",
@@ -67,9 +132,10 @@ def generate(root, run, lots):
             "objective":"Implementar "+lot["area"]+" en "+run+"; requisitos "+", ".join(
                 lot["requirement_ids"])+"; seguir package A9 sin inferencias",
             "write_path_patterns":paths,
-            "context_path_patterns":[],
+            "context_path_patterns":context_paths,
             "protected_path_patterns":protected,
-            "acceptance_commands":acceptance(lot["area"],paths),
+            "acceptance_commands":acceptance(lot["area"],paths,run=run,module=module,
+                                             has_contract=bool(dependency_contract)),
             "context_derivation":"pilot/worker_v08/derive_context.py",
         }}
         output[tpath]=template
