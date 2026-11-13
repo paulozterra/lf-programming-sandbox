@@ -93,7 +93,7 @@ def scenario(root, kind, *, slug):
              "acceptance_signal":"Field validation", "acceptance_checks":["Field validation"],
              "scope_id":target,"materiality_level":"HIGH",
              "requires_independent_exam":True,"simulation_mode":"SIMULATED_SANDBOX_ONLY"},
-            {"requirement_id":"REQ-"+b, "source_requirement_id":b,
+            {"requirement_id":"REQ-"+b.replace("_","-"), "source_requirement_id":b,
              "evidence_refs":[source_b], "outcome":"Return a typed error",
              "acceptance_signal":"Error response", "acceptance_checks":["Error response"],
              "scope_id":target,"materiality_level":"HIGH",
