@@ -171,7 +171,8 @@ def assess(index_obj: dict, obligations: list[dict], *,
                                           else "registered_endpoint_new_rule",
                                           "key": rule if exact else endpoint,
                                           "merge_sha": source["merge_sha"]},
-                             "reuse_context": ([] if decision == "EXTEND" else context)})
+                             "reuse_context": ([] if decision == "EXTEND" else context),
+                             "reused_endpoints": sorted(source.get("endpoints", []))})
                 continue
         # The code index is a second independently checked source. Exact rule
         # markers are enough to reuse, but common names alone never are.
