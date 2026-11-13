@@ -137,6 +137,13 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
     rows = []
     for area, kind in (("BACKEND", "API_CONTRACT"), ("FRONTEND", "UI_VISUAL")):
         refs = sorted(evidence[area])
+        if area == "FRONTEND":
+            area_source = next((ref for ref in refs
+                                if "#contract/visual/variants/" in ref), refs[0])
+        else:
+            area_source = next((ref for ref in refs
+                                if "#contract/errors/" in ref or "#contract/fields/" in ref),
+                               refs[0])
         row = {
             "front_id": _new_id(scope, area), "scope_ids": [scope],
             "front_kind": kind, "obligation_mode": "REQUIRED",
@@ -148,8 +155,8 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
                 req["requirement_id"]: req["evidence_refs"]
                 for req in requirements if req["requirement_id"] in ids[area]
             },
-            "execution_area": area, "execution_area_source_ref": refs[0],
-            "source_ref": refs[0], "execution_area_policy": "SOURCE_DERIVED",
+            "execution_area": area, "execution_area_source_ref": area_source,
+            "source_ref": area_source, "execution_area_policy": "SOURCE_DERIVED",
             "materiality_level": "HIGH", "requires_independent_exam": True,
             "simulation_mode": fronts[0]["simulation_mode"],
         }
