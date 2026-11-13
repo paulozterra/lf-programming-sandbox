@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0100",
+  "title": "Política C: barrido programado para PR del bot sin evento workflow_run",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Siembra del registro (#146) sin etiqueta 2026-11-13"
+  },
+  "reason": "GitHub no emite workflow_run para corridas iniciadas con GITHUB_TOKEN, así que el ci que el bot despacha sobre su propio PR generado no dispara la política C y el PR queda sin etiqueta. Se agrega un barrido programado (cada 15 min) que evalúa los PR del bot con las mismas comprobaciones; la ruta workflow_run conserva su verificación de disparador.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/auto-integrate.yml",
+      "pilot/auto_integrate.py",
+      "pilot/test_auto_integrate.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
+  }
+}

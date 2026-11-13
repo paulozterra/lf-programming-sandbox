@@ -428,8 +428,11 @@ def evaluate_one(api, number):
     return "LABEL_AND_TRAIN_DISPATCHED"
 
 
-def run(api, trigger, *, numbers=None):
-    verify_trigger(trigger)
+def run(api, trigger, *, numbers=None, scheduled=False):
+    # A scheduled sweep has no triggering run to verify; every candidate is
+    # still re-checked by evaluate_one (bot author, branch, paths, exact-HEAD CI).
+    if not scheduled:
+        verify_trigger(trigger)
     candidates = numbers
     if candidates is None:
         pulls = api.pages("/pulls?state=open", None)
@@ -456,12 +459,14 @@ def main():
     event_path = os.environ.get("GITHUB_EVENT_PATH", "")
     if not event_path:
         block("EVENT_PATH_MISSING")
+    scheduled = os.environ.get("GITHUB_EVENT_NAME") == "schedule"
     with open(event_path, encoding="utf-8") as f:
         event = json.load(f)
-    trigger = event.get("workflow_run")
-    verify_trigger(trigger)
+    trigger = None if scheduled else event.get("workflow_run")
+    if not scheduled:
+        verify_trigger(trigger)
     api = GitHub(os.environ.get("GH_TOKEN", ""))
-    results = run(api, trigger)
+    results = run(api, trigger, scheduled=scheduled)
     print(json.dumps({"event": "AUTO_INTEGRATE_POLICY_C", "results": results},
                      sort_keys=True, ensure_ascii=False), flush=True)
     for row in results:

@@ -325,3 +325,18 @@ class ScriptImportPathTest(unittest.TestCase):
                 "import pilot.orchestrator.implemented_registry")
         r = sp.run([sys.executable, "-I", "-c", code], cwd=root, capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
+
+
+class ScheduledSweepTest(unittest.TestCase):
+    """Bot-dispatched ci emits no workflow_run, so a schedule must sweep."""
+
+    def test_scheduled_sweep_skips_trigger_and_still_evaluates(self):
+        api = FakeAPI(pr("registration"), paths(), checks())
+        with patch.object(ai, "evaluate_one", return_value="LABEL_AND_TRAIN_DISPATCHED") as ev:
+            out = ai.run(api, None, numbers=[129], scheduled=True)
+        ev.assert_called_once_with(api, 129)
+        self.assertEqual(out, [{"pr": 129, "decision": "LABEL_AND_TRAIN_DISPATCHED"}])
+
+    def test_unscheduled_without_trigger_still_blocks(self):
+        with self.assertRaises(ai.PolicyBlocked):
+            ai.run(FakeAPI(pr("registration"), paths(), checks()), None, numbers=[129])
