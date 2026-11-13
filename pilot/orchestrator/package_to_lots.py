@@ -176,7 +176,8 @@ def _decision(package, folder, slug):
             or decision.get("role") != "owner"
             or decision.get("date") != "2026-11-12"
             or decision.get("request_id") != slug
-            or decision.get("scope_id") != "SBX-AUTH-LOGIN"
+            or len(package.get("scope_proposals", [])) != 1
+            or decision.get("scope_id") != package["scope_proposals"][0]["scope_id"]
             or decision.get("area") != "BACKEND"
             or decision.get("lot_count") != 1
             or decision.get("requirement_ids") != expected_requirements
