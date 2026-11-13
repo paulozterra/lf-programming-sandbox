@@ -137,15 +137,22 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
     constraints=[str(row["title"]) for row in active
                  if isinstance(row.get("title"),str) and row["title"]]
     constraints=sorted(set(constraints))
-    depth={"materiality_level":"HIGH", "scope_bounded":"TRUE",
+    # Materiality is source-derived only when a pinned effective category
+    # expresses security/rate limiting. Otherwise UNKNOWN, never a guessed LOW.
+    risk_categories={"security", "seguridad", "rate_limiting"}
+    high_risk=any(str(row.get("categoria","")).casefold() in risk_categories
+                  for row in active)
+    known_impacts=bool(inventory.get("impacts") or inventory.get("dependencies"))
+    empty_inventory=not any(inventory.get(k) for k in
+                            ("objects","impacts","dependencies"))
+    depth={"materiality_level":"HIGH" if high_risk else "UNKNOWN",
+           "scope_bounded":("TRUE" if empty_inventory and intent=="CREATE"
+                            else "UNKNOWN"),
            "authority_state":"UNKNOWN", "reversibility_state":"NOT_DEMONSTRATED",
            "currentness_decision":"UNKNOWN_FAIL_CLOSED",
-           "material_contradiction":False,"known_cross_scope_impact":False,
+           "material_contradiction":False,
+           "known_cross_scope_impact":known_impacts,
            "unresolved_material_signal_count":0,"required_specialist_count":0}
-    # An existing implementation introduces impact uncertainty, not an
-    # invented proof of reversibility or neighboring systems.
-    if intent=="MODIFY":
-        depth["scope_bounded"]="UNKNOWN"
     ref="fixture://derived/"+target+"/semantic_signals"
     a1={"business":"LF",
         "request_identity":{"request_ref":ref,"request_kind":"USER_REQUEST"},
