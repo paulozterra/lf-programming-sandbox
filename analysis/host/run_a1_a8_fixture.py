@@ -31,6 +31,10 @@ def run_f3(fixtures=None, output_dir=None):
     }
     result["category_sources"] = category_sources
     result["verified_inventory"] = {"value": pinned["inventory.json"], "source_ref": checked_host.provenance["inventory.json"]}
+    result["verified_screen_contract"] = {
+        "value": pinned["screen_contract.json"]["contract"],
+        "source_ref": checked_host.provenance["screen_contract.json"],
+    }
     a7 = run_a7(
         result["stages"], result["a2_signals"], result["admission_envelope"],
         result["admission"], result["a6"], category_sources)
