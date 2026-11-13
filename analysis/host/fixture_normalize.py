@@ -26,6 +26,15 @@ def _bytes(value: dict) -> bytes:
                       separators=(",", ":")).encode("utf-8")
 
 
+def _normalized_code(code: str) -> str:
+    # Canonical requirement identifiers use hyphens; the one-file fixture
+    # uses underscores. This reversible lexical mapping is source-derived.
+    import re
+    if not isinstance(code, str) or not re.fullmatch(r"[A-Z][A-Z0-9_]*", code):
+        raise NormalizeBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
+    return code.replace("_", "-")
+
+
 def _source_compatible_ref(value: str, kind: str) -> str:
     """Project numeric fixture IDs, without asserting live provider identity."""
     from urllib.parse import urlsplit
@@ -87,7 +96,7 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
         if not isinstance(e, dict) or e.get("source_ref") != rule.get("source_ref"):
             raise NormalizeBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
         common = {
-            "code": code, "title": rule.get("title"), "status": rule.get("status"),
+            "code": _normalized_code(code), "title": rule.get("title"), "status": rule.get("status"),
             "pending_decision": rule.get("pending_decision", False),
             "source_ref": _source_compatible_ref(rule.get("source_ref"), "rule"),
             "categoria": e.get("categoria"),
@@ -122,6 +131,7 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
         return node
     screen_sections = projected_refs(screen_sections)
     rules_projected = [{**deepcopy(rule),
+                        "code": _normalized_code(rule["code"]),
                         "source_ref": _source_compatible_ref(rule["source_ref"], "rule"),
                         "association_ref": _source_compatible_ref(rule["association_ref"], "association")}
                        for rule in rules]
@@ -216,7 +226,10 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
         "semantic_signals.json": {"imitates": "external semantic producer for A1 / typed classification signals for A2",
             "simulation": True, "request_text": request,
             "a1_structured": a1, "a2_signals": a2,
-            "source_obligations": deepcopy(source["requirements"])},
+            "source_obligations": [
+                {**deepcopy(item),
+                 "source_requirement_id": _normalized_code(item["source_requirement_id"])}
+                for item in source["requirements"]]},
     }
     evidence = {name: f"fixture://{root.name}/{name}@{_sha(_bytes(obj))}"
                 for name, obj in sorted(data.items())}
