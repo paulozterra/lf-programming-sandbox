@@ -220,7 +220,18 @@ class PinnedSource(unittest.TestCase):
             self.assertEqual(mod.write_native_registration(
                 root, "cp14fresh", native_out, enriched, digest), raw)
             self.assertEqual(native_out.read_bytes(), raw)
-            self.assertEqual(len(artifacts), 4)
+            self.assertEqual(len(artifacts), 6)
+            prefix = ".lf/worker-context/cp14fresh/"
+            self.assertIn(prefix + "lf_rules.md", artifacts)
+            self.assertIn(prefix + "lf_rules.receipt.json", artifacts)
+            lf_receipt = json.loads(artifacts[prefix + "lf_rules.receipt.json"])
+            self.assertTrue(lf_receipt["rule_ids"])
+            self.assertEqual(hashlib.sha256(
+                artifacts[prefix + "lf_rules.md"]).hexdigest(),
+                lf_receipt["assembled_sha256"])
+            self.assertIn(prefix + "lf_rules.md", enriched["context_path_patterns"])
+            self.assertIn(prefix + "lf_rules.md", enriched["protected_path_patterns"])
+            self.assertNotIn(prefix + "lf_rules.md", enriched["write_path_patterns"])
 
     def test_native_fail_closed_paths_sha_historic_and_existing(self):
         with tempfile.TemporaryDirectory() as directory:
