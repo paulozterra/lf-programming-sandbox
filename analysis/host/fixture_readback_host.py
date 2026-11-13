@@ -97,7 +97,7 @@ class FixtureHost:
                 block("ANALISIS_FUENTE_NO_COMPATIBLE")
             self.target = target
             self.provenance = evidence
-            return data
+            return self._from_request(data, request_text)
         entries = manifest.get("files")
         target = manifest.get("fixture_id")
         if (manifest.get("schema_version") != "SBX_FIXTURE_PIN_V1"
@@ -131,6 +131,24 @@ class FixtureHost:
                 block("SBX_FIXTURE_SOURCE_IDENTITY_INVALID:" + name)
             data[name] = obj
             self.provenance[name] = self.source_prefix + name + "@" + digest
+        if request_text is not None:
+            data = self._from_request(data, request_text)
+        return data
+
+    def _from_request(self, data: dict, request: str) -> dict:
+        from analysis.host.request_trace import signals, RequestTraceBlocked
+        try:
+            derived = signals(PROJECT, self.target, request, data)
+        except RequestTraceBlocked as exc:
+            block(str(exc))
+        # Semantic evidence is derived, not a file readback pretending to
+        # have a historical SHA pin. All other readbacks remain byte-pinned.
+        raw = json.dumps(derived, sort_keys=True, ensure_ascii=False,
+                         separators=(",", ":")).encode("utf-8")
+        data["semantic_signals.json"] = derived
+        self.provenance["semantic_signals.json"] = (
+            "fixture://" + self.root.name + "/request-derived.json@"
+            + hashlib.sha256(raw).hexdigest())
         return data
 
     def source_arguments(self, data):
@@ -228,7 +246,7 @@ class FixtureHost:
         data = self.read_all(request_text)  # pin-checked or deterministic 13-source projection
         semantic = data["semantic_signals.json"]
         if semantic.get("simulation") is not True or request_text != semantic.get("request_text"):
-            block("SBX_SEMANTIC_REQUEST_NOT_PRESTRUCTURED")
+            block("ANALISIS_SENALES_NO_DERIVABLES")
         a1_input = deepcopy(semantic.get("a1_structured"))
         a2_input = deepcopy(semantic.get("a2_signals"))
         if not isinstance(a1_input, dict) or not isinstance(a2_input, dict):
