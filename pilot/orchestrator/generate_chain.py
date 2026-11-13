@@ -132,6 +132,7 @@ def generate(root, run, lots):
     reuse_rows=[]
     package_for_reuse=None
     scope_by_requirement={}
+    requirement_by_id={}
     if report_path.exists():
         if report_path.is_symlink():
             raise ValueError("REUTILIZACION_INDETERMINADA")
@@ -144,6 +145,8 @@ def generate(root, run, lots):
         package_for_reuse=json.loads((folder/"analysis.json").read_text(encoding="utf-8"))
         scope_by_requirement={r["requirement_id"]:r["scope_id"]
                               for r in package_for_reuse["requirements"]}
+        requirement_by_id={r["requirement_id"]:r
+                           for r in package_for_reuse["requirements"]}
     contract_lots=[lot for lot in lots["lots"] if lot["area"]=="CONTRATO"]
     contract_by_path={lot["write_paths"][0]:lot["contract_module"]
                       for lot in contract_lots}
@@ -268,6 +271,8 @@ def generate(root, run, lots):
                             "path":src,"endpoints":sorted(set(endpoints)),
                             "protected_tests":tests,
                             "reuse_requirement_id":obligation["requirement_id"],
+                            "existing_outcome":requirement_by_id.get(
+                                obligation["requirement_id"],{}).get("outcome"),
                             "extend_requirement_ids":sorted(
                                 row["requirement_id"] for row in matching)})
                         continue
@@ -280,6 +285,9 @@ def generate(root, run, lots):
         behavior_note = ("; conservar el comportamiento existente: "
                          + "; ".join(
                              ", ".join(row["endpoints"]) + " en " + row["path"]
+                             + ("; debe seguir funcionando: " + row["existing_outcome"]
+                                if isinstance(row["existing_outcome"],str) and row["existing_outcome"]
+                                else "")
                              + "; no modificar sus tests protegidos: "
                              + ", ".join(row["protected_tests"])
                              for row in retained_behavior)) if retained_behavior else ""
