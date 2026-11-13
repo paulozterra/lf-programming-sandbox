@@ -172,3 +172,149 @@ def test_depth_signal_unknown_when_pinned_rule_categories_do_not_prove_materiali
     derived=signals(tmp_path,code,"Implementa "+code,modified)
     assert derived["a2_signals"]["depth_signals"]["materiality_level"]=="UNKNOWN"
     assert derived["a2_signals"]["depth_signals"]["authority_state"]=="UNKNOWN"
+
+
+def prepare_description_screen(tmp_path):
+    """Generate an uncommitted, real-shape 13-source synthetic screen.
+
+    No user-provided screen fixture is copied into repository history.
+    """
+    _,previous,_=prepare(tmp_path)
+    folder=tmp_path/"analysis/fixtures/other_pinned_screen"
+    pin_path=folder/"SOURCE_PIN.json"
+    pin=json.loads(pin_path.read_text("utf-8"))
+    target="SYN-CATALOG-LIST"
+    pin["fixture_id"]=target
+    descriptions=[
+        "Un usuario con sesión iniciada ve su lista de recordatorios.",
+        "Puede filtrar la lista de recordatorios por prioridad alta, media, baja o todas.",
+        "Si la sesión expiró, la pantalla manda al login.",
+        "El servicio responde el error genérico del sistema.",
+        "Mis recordatorios sin duplicar componentes existentes.",
+        "El estado de sesión no expone datos privados.",
+        "Verificación opcional sin implementación vigente.",
+        "Recuerda la sesión si el estado lo permite.",
+    ]
+    direct_path=folder/"direct_rules.json"
+    direct=json.loads(direct_path.read_text("utf-8"))
+    for i,row in enumerate(direct["linked_rules"]):
+        row["descripcion"]=descriptions[i]
+        row["title"]=descriptions[i].rstrip(".")
+        row["code"]="SYN-R-"+str(i+1)
+    for i,row in enumerate(direct["valor_config"]):
+        row["code"]="SYN-R-"+str(i+1)
+    direct_path.write_text(json.dumps(direct,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    eff_path=folder/"effective_rules.json"
+    eff=json.loads(eff_path.read_text("utf-8"))
+    # Global effective rule has its own independently pinned description.
+    for i,row in enumerate(eff["rules"]):
+        ref=row["source_ref"]
+        corresponding=next((x for x in direct["linked_rules"]
+                            if x["source_ref"]==ref),None)
+        if corresponding:
+            row["code"]=corresponding["code"]
+            row["title"]=corresponding["title"]
+            row.pop("descripcion",None)
+        else:
+            row["code"]="SYN-R-GLOBAL"
+            row["title"]="Estado de sesión privado"
+            row["descripcion"]=descriptions[5]
+    eff_path.write_text(json.dumps(eff,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    screen_path=folder/"screen_contract.json"
+    screen=json.loads(screen_path.read_text("utf-8"))
+    screen["target_ref"]=target
+    screen["contract"]["metadata"]["screen_code"]=target
+    screen["contract"]["context"]["module_code"]="SYN-M-CATALOG"
+    for item in screen["contract"]["rules"]:
+        replacement=next((x for x in direct["linked_rules"]
+                          if x["source_ref"]==item["source_ref"]),None)
+        assert replacement is not None
+        item["code"]=replacement["code"]
+        item["title"]=replacement["title"]
+    screen["contract"]["fields"][0]["field_code"]="SYN-F-LIST"
+    screen["contract"]["fields"][1]["field_code"]="SYN-F-PRIORITY"
+    screen["contract"]["errors"][0]["error_code"]="SYN-ERR-GENERIC"
+    screen_path.write_text(json.dumps(screen,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    inventory_path=folder/"inventory.json"
+    inventory=json.loads(inventory_path.read_text("utf-8"))
+    inventory["target_ref"]=target
+    inventory_path.write_text(json.dumps(inventory,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    asof_path=folder/"decision_asof.json"
+    asof=json.loads(asof_path.read_text("utf-8"))
+    asof["subject_ref"]=target
+    asof_path.write_text(json.dumps(asof,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    # A 13th legacy signal file may exist but is never semantically trusted
+    # for a different request, and cannot override the live request text.
+    sample=json.loads((ROOT/"analysis/fixtures"/LEGACY_FIXTURES.name/
+                       "semantic_signals.json").read_text("utf-8"))
+    signal_path=folder/"semantic_signals.json"
+    signal_path.write_text(json.dumps(sample,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    if not any(x["file"]=="semantic_signals.json" for x in pin["files"]):
+        original=json.loads((ROOT/"analysis/fixtures"/LEGACY_FIXTURES.name/
+                             "SOURCE_PIN.json").read_text("utf-8"))
+        pin["files"].append(next(x for x in original["files"]
+                                 if x["file"]=="semantic_signals.json"))
+    for entry in pin["files"]:
+        entry["sha256"]=hashlib.sha256((folder/entry["file"]).read_bytes()).hexdigest()
+    assert len(pin["files"])==13
+    pin_path.write_text(json.dumps(pin,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    # A real registered page is proof of REUTILIZAR by index, not a stopword.
+    login=tmp_path/"frontend/src/app/login/page.tsx"
+    login.parent.mkdir(parents=True)
+    login.write_text("export default function Login() { return null; }\n")
+    return target,folder
+
+
+def test_three_user_request_styles_against_new_13_file_rule_descriptions(tmp_path):
+    code,folder=prepare_description_screen(tmp_path)
+    a="Implementa "+code
+    b=(f'Quiero la pantalla {code} "Mis recordatorios": un usuario con sesión '
+       'iniciada ve su lista de recordatorios y puede filtrarla por prioridad '
+       '(alta, media, baja o todas). Si no tiene sesión o la sesión expiró, '
+       'la pantalla lo manda al login y el servicio responde el error genérico '
+       'del sistema. No quiero que se dupliquen cosas que ya existen.')
+    c="Implementa "+code+" y que se pueda ordenar por fecha de vencimiento"
+    minimal=launch(tmp_path,"synthetic-minimal",a)["package"]
+    detailed=launch(tmp_path,"synthetic-detailed",b)["package"]
+    for key in ("requirements","applicable_rules","classification",
+                "material_fronts","scope_proposals"):
+        assert minimal[key]==detailed[key],key
+    with pytest.raises(ValueError,match="PEDIDO_EXCEDE_FICHA") as error:
+        launch(tmp_path,"synthetic-excess",c)
+    fragments=json.loads(str(error.value).split(":",1)[1])
+    assert fragments==["ordenar","fecha","vencimiento"]
+
+
+def test_missing_description_blocks_without_legacy_login_fallback(tmp_path):
+    code,folder=prepare_description_screen(tmp_path)
+    direct=folder/"direct_rules.json"
+    pin=folder/"SOURCE_PIN.json"
+    doc=json.loads(direct.read_text("utf-8"))
+    missing=doc["linked_rules"][0]["code"]
+    doc["linked_rules"][0].pop("descripcion")
+    direct.write_text(json.dumps(doc,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    manifest=json.loads(pin.read_text("utf-8"))
+    next(x for x in manifest["files"] if x["file"]=="direct_rules.json")["sha256"]=hashlib.sha256(
+        direct.read_bytes()).hexdigest()
+    pin.write_text(json.dumps(manifest,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    with pytest.raises(ValueError,match="REGLA_SIN_DESCRIPCION") as error:
+        launch(tmp_path,"synthetic-missing","Implementa "+code)
+    assert missing in str(error.value)
+
+
+def test_registered_component_is_reuse_not_stop_word(tmp_path):
+    code,folder=prepare_description_screen(tmp_path)
+    from analysis.host.request_trace import trace
+    data=FixtureHost(folder).read_all()
+    # The registered /login page exists, but login is deliberately absent
+    # from the synthetic rule descriptions for this isolated assertion.
+    source=data["screen_contract.json"]["contract"]
+    without_login=json.loads(json.dumps(source,ensure_ascii=False))
+    for r in without_login["rules"]:
+        r["title"]="Regla sin identidad de componente"
+    reuse=trace("Implementa "+code+" reutiliza login",code,without_login,
+                root=tmp_path,data={
+                    **data,"direct_rules.json":{"linked_rules":[]},
+                    "effective_rules.json":{"rules":[]}})
+    assert any(x["term"]=="login" and x["decision"]=="REUTILIZAR"
+               and x["evidence"].startswith("CODE_INDEX:") for x in reuse)
