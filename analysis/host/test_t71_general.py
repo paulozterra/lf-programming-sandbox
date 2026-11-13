@@ -381,3 +381,16 @@ def test_registry_sha_valid_components_trace_to_reuse_not_to_screen(tmp_path):
     file.write_text("drift",encoding="utf-8")
     with pytest.raises(RequestTraceBlocked,match="REUTILIZACION_INDETERMINADA"):
         trace(request,code,{"fields":[]},root=tmp_path)
+
+
+def test_a9_run_exposes_auditable_reuse_trace_without_claiming_authority(tmp_path):
+    code,_=prepare_description_screen(tmp_path)
+    existing=tmp_path/"frontend/src/app/archive/page.tsx"
+    existing.parent.mkdir(parents=True)
+    existing.write_text("export default function Archive() { return null; }\n")
+    result=launch(tmp_path,"reuse-audit",f"Implementa {code} reutiliza archive")
+    traces=result["source"]["request_reuse_traces"]
+    assert traces == [{"term":"archive","decision":"REUTILIZAR",
+                       "evidence":"CODE_INDEX:frontend/src/app/archive/page.tsx"}]
+    assert result["package"]["source_attested"] is False
+    assert result["package"]["production_authority"] is False
