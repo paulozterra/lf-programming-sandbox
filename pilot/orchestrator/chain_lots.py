@@ -24,7 +24,7 @@ from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_stat
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
 from native_lot_binding import next_ready
-from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request
+from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request, registration_variant
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pilot/worker_v08"))
 
@@ -377,6 +377,9 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
         from native_lot_registration import canonical
         spec = template["task_spec"]
         spec["base_head_sha"] = head
+        # Suffix attempts have an independent immutable native task identity.
+        if task != binding.get("original_task_name", task):
+            spec["task_id"] = "LF-WORKER-NATIVE-" + task.upper()
         # source snapshot is computed by prepare_native_lot before registration.
         from native_verified_integration import command
         sys.path.insert(0, str(root / "vendor/programming-agent/src"))
@@ -482,21 +485,31 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
             if not set(lot["depends_on"]).issubset(completed):
                 continue
             task = bindings[lot_id]["task_name"]
-            # Existing merged registration stays governed by its original pack.
-            registered = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
-            if registered.exists() or registered.is_symlink():
+            # Only public/source and template drift can require a new attempt.
+            # Never overwrite a registered task or reuse an old examiner SHA.
+            sys.path.insert(0, str(ROOT / "vendor/programming-agent/src"))
+            from programming_agent_runner.hashutil import source_snapshot_sha256
+            candidate = registration_variant(
+                ROOT, task, bindings[lot_id]["template_path"],
+                source_snapshot_sha256(ROOT))
+            if candidate is None:
                 continue
-            if pending_draft(f"lf/native-registration/{task}-"):
+            chosen = dict(bindings[lot_id], task_name=candidate,
+                          original_task_name=task, lot_id=lot_id)
+            if candidate != task:
+                metadata = Path(chosen["holdout_metadata_path"])
+                chosen["holdout_metadata_path"] = str(
+                    metadata.with_name(candidate + metadata.suffix))
+            if pending_draft(f"lf/native-registration/{candidate}-"):
                 outcomes.append({"request": request, "lot_id": lot_id,
                                  "status": "ALREADY_PREPARED"})
                 continue
-            admission = admit_registration(request, bindings[lot_id], lot, head)
+            admission = admit_registration(request, chosen, lot, head)
             if admission is not None:
                 outcomes.append({"request": request, "lot_id": lot_id, **admission})
                 continue
             outcomes.append({"request": request, "lot_id": lot_id,
-                             **prepare_successor(request, bindings[lot_id] | {
-                                 "lot_id": lot_id}, completed, head)})
+                             **prepare_successor(request, chosen, completed, head)})
     return outcomes or [{"status": "NO_RELEASE_OR_BLOCK"}]
 
 
