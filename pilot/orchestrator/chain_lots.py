@@ -24,6 +24,7 @@ from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_stat
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
 from native_lot_binding import next_ready
+from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request, registration_variant, protected_test_conflict
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pilot/worker_v08"))
 
@@ -31,6 +32,7 @@ ROOT = Path(__file__).resolve().parents[2]
 REPO = "paulozterra/lf-programming-sandbox"
 TRAIN = ".github/workflows/sandbox-train.yml"
 NATIVE = ".github/workflows/worker-native.yml"
+CI = ".github/workflows/ci.yml"
 MERGE_MESSAGE = re.compile(r"Merge PR #([1-9][0-9]*) via sandbox-train")
 SAFE_ID = re.compile(r"[a-z][a-z0-9_-]{0,63}\Z")
 
@@ -70,8 +72,10 @@ def event_kind(event_run_id: int, head: str) -> str:
     event = api(f"actions/runs/{event_run_id}")
     path = (event.get("path") or "").split("@")[0]
     if (event.get("id") != event_run_id or event.get("status") != "completed"
-            or event.get("run_attempt") != 1 or
-            event.get("repository", {}).get("full_name") != REPO):
+            or type(event.get("run_attempt")) is not int
+            or event["run_attempt"] < 1
+            or (path != CI and event["run_attempt"] != 1)
+            or event.get("repository", {}).get("full_name") != REPO):
         deny("SOURCE_WORKFLOW_UNTRUSTED")
     # The Train is triggered by pull_request:labeled, so the source
     # workflow's head_branch is the PR branch, NOT main. We verify the
@@ -82,6 +86,14 @@ def event_kind(event_run_id: int, head: str) -> str:
         if (event.get("event") == "workflow_dispatch"
                 and event.get("head_branch") != "main"):
             deny("TRAIN_SOURCE_BRANCH_INVALID")
+        return "TRAIN"
+    # The Train merge and main CI run concurrently. Reconcile again when
+    # exact-main CI finishes: an early BASE_NO_VERDE must not permanently
+    # strand a root lot or require a manual workflow dispatch.
+    if (path == CI and event.get("head_branch") == "main"
+            and event.get("head_sha") == head
+            and event.get("event") in ("push", "workflow_dispatch")
+            and event.get("conclusion") in ("success", "failure")):
         return "TRAIN"
     # Native Worker always checks out trusted main; fail closed on drift.
     if (path == NATIVE and event.get("conclusion") == "failure"
@@ -198,8 +210,10 @@ def completed_lots(lots: dict, bindings: dict, history: list[tuple]) -> dict:
         # Ignore other explicitly bound chains, but reject spoofed integration
         # for a task belonging to this chain.
         branch = pr.get("head", {}).get("ref", "")
-        if not any(branch.startswith("lf/native-integration/" + row["task_name"] + "-run-")
-                   for row in bindings.values()):
+        if not any(re.fullmatch(
+                r"lf/native-integration/" + re.escape(row["task_name"])
+                + r"(?:(?:[2-9]|[1-9][0-9]+))?-run-[1-9][0-9]*", branch)
+                for row in bindings.values()):
             continue
         lot_id, receipt = attest_merge(sha, pr, lots, bindings, changed)
         if lot_id in result:
@@ -326,6 +340,48 @@ def pending_draft(prefix: str) -> bool:
                for item in rows)
 
 
+def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
+    """Issue public EXAM_REQUEST once, leaving the lot fail-closed.
+
+    Never reads holdout ciphertext or examiner metadata, and never attaches
+    any GitHub label to the registration PR.
+    """
+    title, body = public_exam_request(ROOT, request, binding, lot)
+    labels = json.loads(run("gh", "label", "list", "--repo", REPO,
+                            "--search", "exam-request", "--limit", "100",
+                            "--json", "name"))
+    if not isinstance(labels, list) or len(labels) >= 100:
+        deny("EXAM_REQUEST_LABELS_UNTRUSTED")
+    if not any(isinstance(row, dict) and row.get("name") == "exam-request"
+               for row in labels):
+        run("gh", "label", "create", "exam-request", "--repo", REPO,
+            "--description", "Independent encrypted examination requested",
+            "--color", "D4C5F9")
+    existing = json.loads(run("gh", "issue", "list", "--repo", REPO,
+                              "--state", "all", "--label", "exam-request",
+                              "--limit", "100", "--json", "title,number"))
+    if not isinstance(existing, list) or len(existing) >= 100:
+        deny("EXAM_REQUEST_LIST_UNTRUSTED")
+    matches = [row for row in existing
+               if isinstance(row, dict) and row.get("title") == title]
+    if len(matches) > 1:
+        deny("EXAM_REQUEST_DUPLICATE")
+    if not matches:
+        run("gh", "issue", "create", "--repo", REPO, "--title", title,
+            "--body", body, "--label", "exam-request")
+    return {"status": "BLOCKED", "reason_code": "EXAMEN_PENDIENTE",
+            "task": binding["task_name"]}
+
+
+def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dict | None:
+    """Inspect admission before any generated commit or native preparation."""
+    require_green_base(head, api)
+    protected_test_conflict(ROOT, lot, binding)
+    if missing_exam(ROOT, binding["task_name"]):
+        return request_missing_exam(request, binding, lot)
+    return None
+
+
 def prepare_successor(request: str, binding: dict, completed: dict, head: str) -> dict:
     task = binding["task_name"]
     branch = f"lf/native-registration/{task}-{head[:12]}"
@@ -345,6 +401,9 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
         from native_lot_registration import canonical
         spec = template["task_spec"]
         spec["base_head_sha"] = head
+        # Suffix attempts have an independent immutable native task identity.
+        if task != binding.get("original_task_name", task):
+            spec["task_id"] = "LF-WORKER-NATIVE-" + task.upper()
         # source snapshot is computed by prepare_native_lot before registration.
         from native_verified_integration import command
         sys.path.insert(0, str(root / "vendor/programming-agent/src"))
@@ -447,23 +506,39 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
             continue
         for lot_id in result["ready_lot_ids"]:
             lot = next(x for x in lots["lots"] if x["id"] == lot_id)
-            if not lot["depends_on"]:
-                continue  # first/root lot is still enrolled by the owner
             if not set(lot["depends_on"]).issubset(completed):
                 continue
             task = bindings[lot_id]["task_name"]
-            # A registered task already merged on main is never prepared again.
+            # Only public/source and template drift can require a new attempt.
+            # Never overwrite a registered task or reuse an old examiner SHA.
             registered = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
             if registered.exists() or registered.is_symlink():
+                def relevant_base_diff(base_sha: str) -> set[str]:
+                    run("git", "merge-base", "--is-ancestor", base_sha, head)
+                    return set(run("git", "diff", "--name-only", base_sha, head).splitlines())
+                candidate = registration_variant(
+                    ROOT, task, bindings[lot_id]["template_path"],
+                    relevant_base_diff)
+            else:
+                candidate = task
+            if candidate is None:
                 continue
-            if manual_sha is not None and pending_draft(
-                    f"lf/native-registration/{task}-"):
+            chosen = dict(bindings[lot_id], task_name=candidate,
+                          original_task_name=task, lot_id=lot_id)
+            if candidate != task:
+                metadata = Path(chosen["holdout_metadata_path"])
+                chosen["holdout_metadata_path"] = str(
+                    metadata.with_name(candidate + metadata.suffix))
+            if pending_draft(f"lf/native-registration/{candidate}-"):
                 outcomes.append({"request": request, "lot_id": lot_id,
                                  "status": "ALREADY_PREPARED"})
                 continue
+            admission = admit_registration(request, chosen, lot, head)
+            if admission is not None:
+                outcomes.append({"request": request, "lot_id": lot_id, **admission})
+                continue
             outcomes.append({"request": request, "lot_id": lot_id,
-                             **prepare_successor(request, bindings[lot_id] | {
-                                 "lot_id": lot_id}, completed, head)})
+                             **prepare_successor(request, chosen, completed, head)})
     return outcomes or [{"status": "NO_RELEASE_OR_BLOCK"}]
 
 
@@ -481,8 +556,8 @@ def main() -> int:
                     (args.integration_pr <= 0 or args.source_run_id is not None))):
             deny("TRUSTED_RUN_ENV_REQUIRED")
         print(json.dumps(process(args.source_run_id, args.integration_pr), sort_keys=True))
-    except (ChainBlocked, IntegrationBlocked, OSError, ValueError, KeyError) as exc:
-        code = (str(exc) if isinstance(exc, (ChainBlocked, IntegrationBlocked))
+    except (ChainBlocked, IntegrationBlocked, AdmissionBlocked, OSError, ValueError, KeyError) as exc:
+        code = (str(exc) if isinstance(exc, (ChainBlocked, IntegrationBlocked, AdmissionBlocked))
                 else "CP36_UNEXPECTED_FAILURE")
         print(code, file=sys.stderr)
         return 1

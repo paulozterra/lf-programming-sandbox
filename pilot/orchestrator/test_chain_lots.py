@@ -227,6 +227,8 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
         patch.object(chain_lots, "merged_integration", return_value=(pr, {data})),
         patch.object(chain_lots, "run", side_effect=sim_run),
         patch.object(chain_lots, "prepare_successor", side_effect=ready),
+        patch.object(chain_lots, "admit_registration", return_value=None),
+        patch.object(chain_lots, "pending_draft", return_value=False),
     )
     from contextlib import ExitStack
     with ExitStack() as stack:
@@ -304,6 +306,8 @@ def test_p4_priority_chain_plan_data_merge_releases_backend_offline(tmp_path):
             patch.object(chain_lots, "failed_lots", return_value={}),
             patch.object(chain_lots, "prepare_successor",
                          side_effect=capture_prepare),
+            patch.object(chain_lots, "admit_registration", return_value=None),
+            patch.object(chain_lots, "pending_draft", return_value=False),
             # Hermetic: the real repo may already contain native_tasks/p4be.json
             # once the lot is registered; the simulation must not depend on it.
             patch.object(chain_lots, "ROOT", tmp_path),
@@ -410,6 +414,7 @@ def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be(tmp_p
                 patch.object(chain_lots, "run", side_effect=git_sim),
                 patch.object(chain_lots, "pending_draft", return_value=pending),
                 patch.object(chain_lots, "prepare_successor", side_effect=prepare),
+                patch.object(chain_lots, "admit_registration", return_value=None),
                 patch.object(chain_lots, "ROOT", tmp_path),  # hermetic: ignore real native_tasks
             ):
                 stack.enter_context(item)
@@ -418,3 +423,33 @@ def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be(tmp_p
     assert recorded == [("p4-prioridad", "p4be", head)]
     assert simulate(True)[0]["status"] == "ALREADY_PREPARED"
     assert len(recorded) == 1
+
+
+def test_t4_exact_main_ci_retries_admission_after_train_race():
+    """CI completion wakes a root again; PR or wrong SHA cannot forge it."""
+    head = "a" * 40
+    event = {
+        "id": 177, "path": ".github/workflows/ci.yml@refs/heads/main",
+        "status": "completed", "run_attempt": 1, "conclusion": "success",
+        "event": "push", "head_branch": "main", "head_sha": head,
+        "repository": {"full_name": chain_lots.REPO},
+    }
+    with patch.object(chain_lots, "api", return_value=event):
+        assert chain_lots.event_kind(177, head) == "TRAIN"
+    with patch.object(chain_lots, "api", return_value={
+            **event, "head_sha": "b" * 40}):
+        assert chain_lots.event_kind(177, head) == "IRRELEVANT"
+    with patch.object(chain_lots, "api", return_value={
+            **event, "event": "pull_request", "head_branch": "topic"}):
+        assert chain_lots.event_kind(177, head) == "IRRELEVANT"
+    with patch.object(chain_lots, "api", return_value={
+            **event, "conclusion": "failure"}):
+        assert chain_lots.event_kind(177, head) == "TRAIN"
+    with patch.object(chain_lots, "api", return_value={
+            **event, "run_attempt": 2}):
+        assert chain_lots.event_kind(177, head) == "TRAIN"
+    with patch.object(chain_lots, "api", return_value={
+            **event, "path": chain_lots.TRAIN + "@refs/heads/main",
+            "run_attempt": 2}):
+        with pytest.raises(ChainBlocked, match="SOURCE_WORKFLOW_UNTRUSTED"):
+            chain_lots.event_kind(177, head)
