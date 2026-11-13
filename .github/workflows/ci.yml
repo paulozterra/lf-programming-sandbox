@@ -30,6 +30,11 @@ jobs:
       - name: STD-BE-05 Spotless/Palantir (required for time-service)
         working-directory: .
         run: mvn -B -q -f apps/time-service/pom.xml spotless:check
+      - name: T2 backend springdoc endpoint and per-contract methods
+        working-directory: .
+        run: |
+          python3 -m pip install --disable-pip-version-check PyYAML==6.0.3
+          python3 pilot/orchestrator/check_backend_live.py
       - run: python3 ../standards/tools/stack_checks.py run --set spring-boot --check-id spring-verify
       - name: Compile and run staged reminders visible tests (no model)
         working-directory: .
@@ -48,7 +53,18 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      # Initial CP1.5 bootstrap: generate reproducible lockfile for pinned versions.
+      - name: T2 lockfile bootstrap
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - uses: actions/upload-artifact@v4
+        with:
+          name: t2-frontend-lockfile
+          path: frontend/package-lock.json
       - run: npm ci
+      - name: T2 generated API client remains in sync
+        run: |
+          npm run check:api
+          npm run check:no-manual-fetch
       - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-lint
       - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-typecheck
       - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-build
@@ -452,7 +468,7 @@ jobs:
           T1_ARTIFACT_DIR: ${{ runner.temp }}/t1
         run: |
           python3 pilot/orchestrator/selector_db.py --t1-patterns
-          python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py pilot/orchestrator/test_t2_contract.py -p no:cacheprovider
       - name: T1-A positive Login A9 to PG05 without manual fixtures
         env:
           T1A_ARTIFACT_DIR: ${{ runner.temp }}/t1a
