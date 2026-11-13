@@ -91,7 +91,7 @@ def eligible_pr(pr, paths, repo=REPOSITORY):
             r"pilot/runs/[a-z][a-z0-9_-]{0,63}/(?:"
             r"analysis[.]json|state[.]json|lots[.]json|reuse_assessment[.]json|"
             r"atomized_inputs[.]json|chain_plan[.]json|"
-            r"templates/[a-zA-Z0-9_-]+[.]task[.]json)$")
+            r"templates/[a-zA-Z0-9_-]+(?:[.]task|[.]skeleton)[.]json)$")
         if any(is_prohibited(p) or not allow.fullmatch(p) for p in paths):
             block("PR_PATH_NOT_ALLOWED")
     elif kind == "implemented-registry":
