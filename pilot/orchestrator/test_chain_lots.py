@@ -456,3 +456,17 @@ def test_t4_exact_main_ci_retries_admission_after_train_race():
             "run_attempt": 2}):
         with pytest.raises(ChainBlocked, match="SOURCE_WORKFLOW_UNTRUSTED"):
             chain_lots.event_kind(177, head)
+
+
+def test_t7_registry_first_seed_runs_even_without_chain_plans():
+    # A Train merge that introduces T7 itself must seed the ledger even if
+    # the repository has no existing CP3.6 owner chain plans yet.
+    expected = {"status": "REGISTRY_DRAFT", "draft_pr": "https://example.invalid/1"}
+    with patch.object(chain_lots, "check_main", return_value="a" * 40), \
+         patch.object(chain_lots, "event_kind", return_value="TRAIN"), \
+         patch.object(chain_lots, "sync_implemented_registry", return_value=expected) as seed, \
+         patch.object(chain_lots, "plans", return_value=[]):
+        result = chain_lots.process(event_run_id=91)
+    seed.assert_called_once_with("a" * 40)
+    assert result == [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
+                       "registry": expected}]
