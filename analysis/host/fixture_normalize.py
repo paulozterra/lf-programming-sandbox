@@ -198,7 +198,8 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
             "state": "UNKNOWN", "subject_ref": target},
         "semantic_signals.json": {"imitates": "external semantic producer for A1 / typed classification signals for A2",
             "simulation": True, "request_text": request,
-            "a1_structured": a1, "a2_signals": a2},
+            "a1_structured": a1, "a2_signals": a2,
+            "source_obligations": deepcopy(source["requirements"])},
     }
     evidence = {name: f"fixture://{root.name}/{name}@{_sha(_bytes(obj))}"
                 for name, obj in sorted(data.items())}
