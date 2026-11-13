@@ -85,7 +85,7 @@ def test_incremental_suffix_without_overwrite():
     assert incremental_task("sampler", {"sampler", "sampler2"}) == "sampler3"
 
 
-def test_variant_changes_only_if_source_or_pack_changes(tmp_path):
+def test_variant_changes_only_if_relevant_source_or_pack_changes(tmp_path):
     directory = tmp_path / "pilot/worker_v08/native_tasks"
     directory.mkdir(parents=True)
     template = tmp_path / "pilot/runs/sample/templates/sampler.task.json"
@@ -93,22 +93,24 @@ def test_variant_changes_only_if_source_or_pack_changes(tmp_path):
     wanted = {"objective": "Implement the feature",
               "write_path_patterns": ["frontend/src/demo.ts"]}
     template.write_text(json.dumps({"task_spec": wanted}))
-    assert registration_variant(tmp_path, "sampler",
-                                str(template.relative_to(tmp_path)), SOURCE) == "sampler"
+    path = str(template.relative_to(tmp_path))
+    clean = lambda _: set()
+    code_fixed = lambda _: {"frontend/src/demo.ts"}
+    only_control_changed = lambda _: {
+        "pilot/worker_v08/native_tasks/sampler.json",
+        "standards/CAMBIOS.md",
+        ".lf/worker-context/sampler/receipt.json"}
+    assert registration_variant(tmp_path, "sampler", path, clean) == "sampler"
     (directory / "sampler.json").write_text(json.dumps({
-        "task_spec": {**wanted, "source_snapshot_sha256": SOURCE}}))
-    assert registration_variant(tmp_path, "sampler",
-                                str(template.relative_to(tmp_path)), SOURCE) is None
-    changed = "c" * 64
-    assert registration_variant(tmp_path, "sampler",
-                                str(template.relative_to(tmp_path)), changed) == "sampler2"
+        "task_spec": {**wanted, "base_head_sha": "a" * 40}}))
+    assert registration_variant(tmp_path, "sampler", path, clean) is None
+    assert registration_variant(tmp_path, "sampler", path, only_control_changed) is None
+    assert registration_variant(tmp_path, "sampler", path, code_fixed) == "sampler2"
     (directory / "sampler2.json").write_text(json.dumps({
-        "task_spec": {**wanted, "source_snapshot_sha256": changed}}))
-    assert registration_variant(tmp_path, "sampler",
-                                str(template.relative_to(tmp_path)), changed) is None
+        "task_spec": {**wanted, "base_head_sha": "b" * 40}}))
+    assert registration_variant(tmp_path, "sampler", path, clean) is None
     template.write_text(json.dumps({"task_spec": {**wanted, "objective": "Changed"}}))
-    assert registration_variant(tmp_path, "sampler",
-                                str(template.relative_to(tmp_path)), changed) == "sampler3"
+    assert registration_variant(tmp_path, "sampler", path, clean) == "sampler3"
 
 
 def test_existing_protected_status_assertion_conflict(tmp_path):
