@@ -71,12 +71,38 @@
     "area_to_profile": {
       "DATA": "PERFIL-PROG-DATA-EXP",
       "BACKEND": "PERFIL-PROG-BACKEND-SPRING-EXP",
-      "FRONTEND": "PERFIL-PROG-FRONTEND-EXP"
+      "FRONTEND": "PERFIL-PROG-FRONTEND-EXP",
+      "CONTRATO": "PERFIL-PROG-BACKEND-SPRING-EXP"
     }
   },
   "scope_module_prefixes": [
     "sbx-auth-",
     "demo-",
     "scope-"
-  ]
+  ],
+  "contract_lot": {
+    "schema_version": "T2_CONTRACT_LOT_POLICY_V1",
+    "area": "CONTRATO",
+    "write_path": "contracts/{module}.openapi.yaml",
+    "profile_area": "BACKEND",
+    "depends_on": [
+      "CONTRATO"
+    ],
+    "source_fields": [
+      "fields",
+      "errors"
+    ],
+    "operation_route": "/api/{module}",
+    "operation_method_by_change_type": {
+      "CREATE": "post",
+      "UPDATE": "patch"
+    },
+    "response_success": "200",
+    "response_error": "default",
+    "semantic_scope_suffixes": [
+      "BACKEND",
+      "FRONTEND"
+    ],
+    "max_paths": 1
+  }
 }
