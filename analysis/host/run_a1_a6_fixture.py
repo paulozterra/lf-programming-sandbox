@@ -33,6 +33,10 @@ def run_f2(fixtures=None, output_dir=None, request=None):
         "admission_envelope": envelope,
         "admission": admission,
         "a6": a6,
+        # Audit-only trace from the same verified screen/reuse sources. It is
+        # not an extra A6 rule nor an A9 authority claim.
+        "request_reuse_traces": deepcopy(
+            data["semantic_signals.json"].get("reuse_traces", [])),
     }
     if output_dir is not None:
         dest = Path(output_dir)
