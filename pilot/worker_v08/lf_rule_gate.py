@@ -75,11 +75,14 @@ def evaluate(patch: str, rule_ids: list[str], *, root=ROOT):
     selected=set(rule_ids)
     violations=[]
     checked=set()
+    partial=set()
     rows=list(_added(patch))
     for rule,pattern in MACHINE.items():
         if rule not in selected:
             continue
-        checked.add(rule)
+        # A regex can reject a known-bad patch but cannot prove absence of
+        # all equivalent violations (aliases, literals, multi-line, etc.).
+        partial.add(rule)
         for path,line in rows:
             relevant = (rule=="STD-FE-04" and path.endswith((".ts",".tsx",".js",".jsx")) or
                         rule=="STD-BE-04" and path.endswith(".java") or
@@ -97,24 +100,31 @@ def evaluate(patch: str, rule_ids: list[str], *, root=ROOT):
                     continue
                 violations.append({"rule_id":rule,"code":rule.replace("-","_"),"path":path})
     result={"schema_version":"T8_RULE_CHECK_V1",
-            "machine_checked":sorted(checked),"violations":violations,
+            "machine_checked":sorted(checked),
+            "partial_checks":sorted(partial),
+            "violations":violations,
             "not_machine_verified":sorted(selected-checked),
             "status":"FAIL" if violations else "PASS"}
     return result
 
 def coverage(report, *, hidden_coverage=None):
-    hidden=set(hidden_coverage or [])
-    if not isinstance(hidden_coverage,(list,type(None))):
-        raise RuleGateBlocked("LF_HIDDEN_COVERAGE_INVALID")
-    if hidden.intersection(report["machine_checked"]):
-        hidden-=set(report["machine_checked"])
+    """Honest coverage: a partial negative-pattern scan never attests a rule.
+
+    Hidden exams can only be credited when a separately authenticated
+    examination receipt is supplied; this local projection never has one.
+    """
+    if hidden_coverage:
+        raise RuleGateBlocked("LF_HIDDEN_COVERAGE_NOT_ATTESTED")
     ids=set(report["machine_checked"])|set(report["not_machine_verified"])
-    if not hidden.issubset(ids):
-        raise RuleGateBlocked("LF_HIDDEN_COVERAGE_INVALID")
+    partial=set(report.get("partial_checks", []))
     return [{"rule_id":key,
-             "coverage":("MACHINE" if key in report["machine_checked"] else
-                         "HIDDEN_ORACLE" if key in hidden else "NOT_VERIFIED")}
+             "coverage":("MACHINE" if key in report["machine_checked"]
+                         else "NO_VERIFICADO"),
+             **({"reason":("DETECCION_PARCIAL_NO_PRUEBA_CUMPLIMIENTO" if key in partial
+                           else "SIN_VERIFICADOR_COMPLETO")}
+                if key not in report["machine_checked"] else {})}
             for key in sorted(ids)]
+
 
 def verified_visible_commands(rows: list[dict], visible: dict | None,
                               declared: list[dict]) -> list[dict]:
@@ -141,8 +151,9 @@ def verified_visible_commands(rows: list[dict], visible: dict | None,
             if marker and (name,tuple(argv)) in registered:
                 successful.add(marker.group(1).upper())
     for row in table:
-        if row["coverage"]=="NOT_VERIFIED" and row["rule_id"] in successful:
+        if row["coverage"]=="NO_VERIFICADO" and row["rule_id"] in successful:
             row["coverage"]="MACHINE"
+            row.pop("reason", None)
             row["evidence"]="PINNED_VISIBLE_ACCEPTANCE_COMMAND"
     return table
 
