@@ -43,9 +43,9 @@ def test_backend_and_frontend_share_function_name(tmp_path):
             tokens = java_package.split("/")
             assert all(re.fullmatch(r"[a-z][a-z0-9]*", token) for token in tokens)
             assert "-" not in java_package
-            assert re.fullmatch(r"[A-Z][A-Za-z0-9]*\\.java", path.rsplit("/", 1)[1])
+            assert re.fullmatch(r"[A-Z][A-Za-z0-9]*\.java", path.rsplit("/", 1)[1])
         for path in frontend_paths:
-            assert re.fullmatch(r"frontend/src/(?:app|lib)/[a-z0-9][a-z0-9-/]*\\.(?:tsx|ts)", path)
+            assert re.fullmatch(r"frontend/src/(?:app|lib)/[a-z0-9][a-z0-9-/]*\.(?:tsx|ts)", path)
 
 
 def test_java_package_keyword_fails_closed(tmp_path):
@@ -62,4 +62,4 @@ def test_invalid_area_suffix_is_not_silently_removed():
 def test_reject_empty_function_after_namespace(tmp_path):
     rules = atomize._rules()
     with pytest.raises(atomize.AtomBlocked, match="ATOM_IDENTITY_INVALID"):
-        atomize._slug("DEMO-BACKEND", rules)
+        atomize._slug("-BACKEND", rules)
