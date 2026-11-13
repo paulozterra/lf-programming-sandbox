@@ -7,11 +7,12 @@ import json
 from pathlib import Path
 from analysis.host.run_a1_a8_fixture import run_f3
 from analysis.host.fixture_readback_host import FixtureHost
-from analysis.host.run_a1_a5_fixture import REQUEST, encoded
+from analysis.host.run_a1_a5_fixture import encoded
+from analysis.host.fixture_readback_host import DEFAULT_FIXTURES
 from analysis.a9.package import build, validate
 from pilot.orchestrator import intake
 
-SLUG = "f4-login"
+SLUG = "f4-" + DEFAULT_FIXTURES.name.split("_")[-1]
 
 
 def make_rule_sources(fixtures=None):
@@ -30,12 +31,21 @@ def make_rule_sources(fixtures=None):
 
 
 def run_f4(root, slug=SLUG, fixtures=None):
-    source = run_f3(fixtures=fixtures)
+    dest = Path(root) / "pilot" / "runs" / slug
+    request = dest / "request.md"
+    if request.is_symlink():
+        raise ValueError("PEDIDO_RUTA_INVALIDA")
+    if request.is_file():
+        raw = request.read_bytes()
+    else:
+        # Compatibility only for legacy offline fixture tests: no new request
+        # is synthesized when a request.md has already been submitted.
+        checked = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
+        raw = (checked.read_all()["semantic_signals.json"]["request_text"] + "\n").encode("utf-8")
+    source = run_f3(fixtures=fixtures, request=raw.decode("utf-8").strip())
     source["rule_sources"] = make_rule_sources(fixtures)
-    raw = (REQUEST + "\n").encode("utf-8")
     package = build(source, raw)
     validate(package, raw, result=source)
-    dest = Path(root) / "pilot" / "runs" / slug
     dest.mkdir(parents=True, exist_ok=True)
     request = dest / "request.md"
     output = dest / "analysis.json"
