@@ -90,13 +90,13 @@ def public_exam_request(root: Path, request: str, binding: dict, lot: dict) -> t
     public = {key: skeleton[key] for key in ("schema_version", "functional_module",
                "fields", "errors", "rules", "requirement_ids") if key in skeleton}
     body = ("Solicitud automática de examen independiente (T4).\n\n"
-            f"- Pedido: \`{request}\`\n- Lote: \`{lot['id']}\`\n"
-            f"- Task ID: \`{task}\`\n"
-            f"- Rutas de escritura: \`{json.dumps(scope, ensure_ascii=False)}\`\n"
-            f"- REQ: \`{json.dumps(requirements, ensure_ascii=False)}\`\n"
-            "- Esqueleto público:\n\n\`\`\`json\n"
+            f"- Pedido: `{request}`\n- Lote: `{lot['id']}`\n"
+            f"- Task ID: `{task}`\n"
+            f"- Rutas de escritura: `{json.dumps(scope, ensure_ascii=False)}`\n"
+            f"- REQ: `{json.dumps(requirements, ensure_ascii=False)}`\n"
+            "- Esqueleto público:\n\n```json\n"
             + json.dumps(public, ensure_ascii=False, indent=2, sort_keys=True)
-            + "\n\`\`\`\n\n"
+            + "\n```\n\n"
             "El examinador independiente aporta el cifrado y su metadata. "
             "NO publicar claves ni resultados privados. "
             "La cadena permanece bloqueada con EXAMEN_PENDIENTE.")
