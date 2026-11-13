@@ -10,6 +10,11 @@ from urllib.request import urlopen
 
 import yaml
 
+try:
+    from openapi_spec_validator import validate_spec
+except ImportError:
+    validate_spec = None
+
 METHODS = {"get","post","put","patch","delete","head","options"}
 
 
@@ -34,6 +39,12 @@ def load(path):
             or not value["info"].get("title") or not value["info"].get("version")
             or not isinstance(value.get("paths"), dict) or not value["paths"]):
         deny("CONTRACT_OPENAPI_INVALID")
+    if validate_spec is None:
+        deny("CONTRACT_SPEC_VALIDATOR_UNAVAILABLE")
+    try:
+        validate_spec(value)
+    except Exception as exc:
+        deny("CONTRACT_OPENAPI_INVALID:" + type(exc).__name__)
     return value
 
 
