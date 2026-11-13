@@ -699,3 +699,24 @@ jobs:
       - name: Stop disposable database
         if: always()
         run: docker stop cp33-disposable-db || true
+
+  # GitHub does not emit workflow_run for a ci run started with GITHUB_TOKEN
+  # (the ci CP3.6/T7 dispatch on their own generated PR), and scheduled sweeps
+  # can be delayed for a long time. Hand off to policy C explicitly instead.
+  notify-policy-c:
+    name: Hand off generated PR to policy C
+    needs: [backend, frontend, standards-catalog, t7-generated-content, t7-registry-history, t5-browser-visible, standards-shadow, infra-local, worker-pilot-offline, native-autolaunch-policy, lf-producers-pinned, cp3-2-intake, cp3-3-planning]
+    if: >-
+      always() && github.event_name == 'workflow_dispatch' &&
+      (startsWith(github.ref_name, 'lf/implemented-registry/') ||
+       startsWith(github.ref_name, 'lf/generated-t7/')) &&
+      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch policy C sweep on trusted main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run auto-integrate.yml --repo "$GITHUB_REPOSITORY" --ref main

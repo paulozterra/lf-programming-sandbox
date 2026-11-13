@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0103",
+  "title": "Política C: el ci de un PR generado se lo entrega explícitamente",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Siembra del registro (#146) sin etiqueta 2026-11-13"
+  },
+  "reason": "El barrido programado del CHG-0100 no se disparó en más de una hora (GitHub puede demorar o no activar horarios nuevos) y el PR del registro #149 quedó sin etiqueta. El ci despachado por el bot sobre ramas lf/implemented-registry/* y lf/generated-t7/* termina con un job que despacha la política C sobre main (workflow_dispatch sí se permite con GITHUB_TOKEN). La política C acepta workflow_dispatch en modo barrido, con las mismas comprobaciones por PR. El horario queda como respaldo.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/auto-integrate.yml",
+      "pilot/auto_integrate.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
+  }
+}
