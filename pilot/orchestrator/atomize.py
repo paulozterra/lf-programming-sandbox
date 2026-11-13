@@ -150,13 +150,25 @@ def _area(front, requirements, business_rules, rules):
         "rules_ref": "pilot/orchestrator/atomize_rules_v1.json"}
 
 
-def atomize(package, root, base_head_sha, *, run):
+def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
     rules = _rules()
     if (not isinstance(package, dict) or package.get("schema_version") !=
             "ANALYSIS_IMPLEMENTATION_PACKAGE_V1" or
             not isinstance(run, str) or not SAFE.fullmatch(run) or
             not isinstance(base_head_sha, str) or not SHA40.fullmatch(base_head_sha)):
         raise AtomBlocked("ATOM_INPUT_INVALID")
+    # T7 accepts only an already verified deterministic obligation ledger.
+    # No report means the historical T1/T2/T3 flow is bit-for-bit unchanged.
+    reuse = {}
+    if reuse_assessment is not None:
+        if (reuse_assessment.get("schema_version") != "T7_REUSE_ASSESSMENT_V1"
+                or not isinstance(reuse_assessment.get("obligations"), list)):
+            raise AtomBlocked("REUTILIZACION_INDETERMINADA")
+        reuse = {row["requirement_id"]: row for row in reuse_assessment["obligations"]}
+        if len(reuse) != len(reuse_assessment["obligations"]):
+            raise AtomBlocked("REUTILIZACION_INDETERMINADA")
+        if set(reuse) != {r["requirement_id"] for r in package["requirements"]}:
+            raise AtomBlocked("REUTILIZACION_INDETERMINADA")
     scopes = {s["scope_id"]: s for s in package["scope_proposals"]}
     req_by_scope = {}
     for item in package["requirements"]:
@@ -172,10 +184,21 @@ def atomize(package, root, base_head_sha, *, run):
         selected = [f for f in fronts if f["front_id"] in refs and scope_id in f["scope_ids"]]
         if len(selected) != len(refs):
             raise AtomBlocked("ATOM_FRONT_COVERAGE_INVALID:" + scope_id)
-        reqs = req_by_scope.get(scope_id, [])
-        if not reqs:
+        original_reqs = req_by_scope.get(scope_id, [])
+        reqs = [r for r in original_reqs
+                if not reuse or reuse[r["requirement_id"]]["decision"] != "REUSE_AS_IS"]
+        if not original_reqs:
             raise AtomBlocked("ATOM_REQUIREMENT_MISSING:" + scope_id)
+        if not reqs:
+            continue
         for front in sorted(selected, key=lambda f: f["front_id"]):
+            if reuse:
+                all_bindings = [r for r in business_rules
+                                if r.get("front_id") == front["front_id"]]
+                if all_bindings and not any(
+                        r.get("requirement_id") in {item["requirement_id"] for item in reqs}
+                        for r in all_bindings):
+                    continue
             related = [r for r in reqs if any(rule.get("requirement_id") == r["requirement_id"]
                        and rule.get("front_id") == front["front_id"] for rule in business_rules)]
             # Old synthetic A9 samples have one front/requirement in each scope.
@@ -195,6 +218,20 @@ def atomize(package, root, base_head_sha, *, run):
             module = _slug(scope_id, rules)
             atom_id = "ATOM-" + hashlib.sha256((scope_id + "|" + front["front_id"]).encode()).hexdigest()[:12]
             paths = _route(area, module, rules, root, data_ordinal=data_ordinal)
+            if reuse:
+                chosen = [reuse[r["requirement_id"]] for r in related]
+                extends = [row for row in chosen if row["decision"] == "EXTEND"]
+                builds = [row for row in chosen if row["decision"] == "BUILD_NEW"]
+                if extends and builds:
+                    raise AtomBlocked("REUTILIZACION_INDETERMINADA")
+                if extends:
+                    existing = sorted({p for row in extends
+                                       for p in row.get("write_paths", [])})
+                    if not existing or any(
+                            not isinstance(p, str) or not (root / p).is_file()
+                            for p in existing):
+                        raise AtomBlocked("REUTILIZACION_INDETERMINADA")
+                    paths = existing
             if area == "DATA":
                 data_ordinal += 1
             groups = [paths[i:i + rules["max_paths"]] for i in range(0, len(paths), rules["max_paths"])]
