@@ -15,16 +15,31 @@ from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[2]
 STAGE = PROJECT / "analysis/programming_analysis"
-DEFAULT_FIXTURES = PROJECT / "analysis/fixtures/sbx_auth_login"
-TARGET = json.loads((DEFAULT_FIXTURES / "SOURCE_PIN.json").read_text(encoding="utf-8"))["fixture_id"]
+def default_fixtures() -> Path:
+    """Legacy offline tests may omit a fixture only when exactly one F1 pin exists."""
+    catalog = PROJECT / "analysis/fixtures"
+    candidates = []
+    for pin in sorted(catalog.glob("*/SOURCE_PIN.json")):
+        if pin.is_symlink() or pin.parent.is_symlink():
+            continue
+        try:
+            obj = json.loads(pin.read_text("utf-8"))
+        except (OSError, ValueError):
+            continue
+        if obj.get("schema_version") == "SBX_FIXTURE_PIN_V1":
+            candidates.append(pin.parent)
+    if len(candidates) != 1:
+        block("PEDIDO_AMBIGUO")
+    return candidates[0]
+
+
+DEFAULT_FIXTURES = default_fixtures()
 FILES = (
     "screen_contract.json", "direct_rules.json", "effective_rules.json",
     "policies.json", "elements.json", "states.json", "variants.json",
     "relations.json", "inventory.json", "ekb.json", "adr.json",
     "decision_asof.json", "semantic_signals.json",
 )
-SOURCE_PREFIX = "fixture://" + DEFAULT_FIXTURES.name + "/"
-CANONICAL_SCREEN = "supabase://lf_ops.pantallas/" + TARGET
 
 
 class FixtureBlocked(ValueError):
@@ -51,6 +66,8 @@ class FixtureHost:
     def __init__(self, root: Path = DEFAULT_FIXTURES):
         self.root = Path(root)
         self.provenance = {}
+        self.target = None
+        self.source_prefix = "fixture://" + self.root.name + "/"
 
     def read_all(self):
         pin = self.root / "SOURCE_PIN.json"
@@ -61,13 +78,15 @@ class FixtureHost:
         except (OSError, ValueError):
             block("SBX_SOURCE_PIN_INVALID")
         entries = manifest.get("files")
+        target = manifest.get("fixture_id")
         if (manifest.get("schema_version") != "SBX_FIXTURE_PIN_V1"
-                or manifest.get("fixture_id") != TARGET
+                or not isinstance(target, str) or not target
                 or manifest.get("simulation") is not True
                 or not isinstance(entries, list)
                 or [x.get("file") for x in entries if isinstance(x, dict)] != list(FILES)):
             block("SBX_SOURCE_PIN_INVALID")
         data = {}
+        self.target = target
         self.provenance = {}
         for entry in entries:
             if (not isinstance(entry, dict)
@@ -90,13 +109,13 @@ class FixtureHost:
             if not isinstance(obj, dict) or obj.get("imitates") != entry.get("imitates"):
                 block("SBX_FIXTURE_SOURCE_IDENTITY_INVALID:" + name)
             data[name] = obj
-            self.provenance[name] = SOURCE_PREFIX + name + "@" + digest
+            self.provenance[name] = self.source_prefix + name + "@" + digest
         return data
 
     def source_arguments(self, data):
         screen, direct = data["screen_contract.json"], data["direct_rules.json"]
         effective, policies = data["effective_rules.json"], data["policies.json"]
-        if screen.get("target_ref") != TARGET or screen.get("screen_status") != "VIGENTE":
+        if screen.get("target_ref") != self.target or screen.get("screen_status") != "VIGENTE":
             block("SBX_SCREEN_IDENTITY_INVALID")
         if (screen.get("schema_version") != "SBX_SCREEN_CONTRACT_FIXTURE_V1"
                 or not isinstance(screen.get("contract_version"), str)
@@ -141,7 +160,7 @@ class FixtureHost:
                 or not isinstance(policies.get("policy_objects"), list)):
             block("SBX_POLICY_BACKUP_MISSING")
         if (data["inventory.json"].get("schema_version") != "A4_EXISTING_IMPACT_CORE_READBACK_V1"
-                or data["inventory.json"].get("target_ref") != TARGET
+                or data["inventory.json"].get("target_ref") != self.target
                 or data["inventory.json"].get("source_attested") is not False
                 or not isinstance(data["inventory.json"].get("objects"), list)
                 or not isinstance(data["inventory.json"].get("impacts"), list)
@@ -161,7 +180,7 @@ class FixtureHost:
         return {
             "schema_version": "LF_SCREEN_SOURCE_READBACK_V1",
             "business": "LF", "source_function": "lf_ops.fn_screen_contract_v1",
-            "target_ref": TARGET, "screen_ref": CANONICAL_SCREEN,
+            "target_ref": self.target, "screen_ref": ("supabase://lf_ops.pantallas/" + self.target),
             "screen_status": screen["screen_status"],
             "contract_version": screen.get("contract_version", ""),
             "contract_sections": material,
@@ -169,7 +188,7 @@ class FixtureHost:
             "policy_links": deepcopy(policies["policy_links"]),
             "effective_rule_readback": {
                 "screen_id": effective["screen_id"], "business": "LF",
-                "target_ref": TARGET, "consumer": "INPUT_GOVERNANCE",
+                "target_ref": self.target, "consumer": "INPUT_GOVERNANCE",
                 "source_function": "programacion.fn_input_effective_rule_links_v1",
                 "source_ref": eff_ref, "source_attested": False,
                 "rules": deepcopy(links),
@@ -177,8 +196,8 @@ class FixtureHost:
             "policy_resolution_readback": {
                 "schema_version": "LF_SCREEN_POLICIES_READBACK_V1",
                 "source_function": "lf_ops.fn_screen_contract_v1",
-                "business": "LF", "target_ref": TARGET,
-                "source_ref": CANONICAL_SCREEN, "source_attested": False,
+                "business": "LF", "target_ref": self.target,
+                "source_ref": ("supabase://lf_ops.pantallas/" + self.target), "source_attested": False,
                 "policy_objects": policy_objects,
                 "supplemental_policy_source_refs": backup_refs,
             },
@@ -220,7 +239,7 @@ class FixtureHost:
         inventory = data["inventory.json"]
         a4 = load_stage("a4").run(a3, a2["classification"], {
             "schema_version": "A4_EXISTING_IMPACT_CORE_READBACK_V1",
-            "business": "LF", "target_ref": TARGET, "source_attested": False,
+            "business": "LF", "target_ref": self.target, "source_attested": False,
             "inventory_object": None, "identity_binding": None,
             "impact_readback": None, "dependency_readback": None,
             "synthetic_inventory_empty": not inventory["objects"],
@@ -230,7 +249,7 @@ class FixtureHost:
         policy = json.loads((STAGE / "steps/a5/contracts/deterministic_decision_sources_v1.json").read_text())
         a5_sources = {
             "schema_version": "A5_GOVERNED_DECISION_READBACK_V1",
-            "business": "LF", "target_ref": TARGET, "source_attested": False,
+            "business": "LF", "target_ref": self.target, "source_attested": False,
             "adr_trigger_review": {
                 "flags": {key: False for key in policy["material_adr_triggers"]},
                 "evidence_ref": a3["source_refs"][0],
@@ -238,7 +257,7 @@ class FixtureHost:
             },
             "asof_resolution": {
                 "schema_version": "LF_DECISION_CONTEXT_ASOF_RESOLUTION_V1",
-                "state": "UNKNOWN", "subject_ref": TARGET,
+                "state": "UNKNOWN", "subject_ref": self.target,
             },
             "material_decisions": [],
         }
@@ -254,7 +273,7 @@ class FixtureHost:
             "simulation": True, "production_authority": False,
             "source_attested": False, "currentness_attested": False,
             "business_binding": "LF_FOR_PRODUCER_COMPATIBILITY_ONLY",
-            "target_ref": TARGET, "request_text": request_text,
+            "target_ref": self.target, "request_text": request_text,
             "fixture_provenance": deepcopy(self.provenance),
             "canonical_source_identities_are_simulated": True,
             "stages": {"A1": a1, "A2": a2, "A3": a3, "A4": a4, "A5": a5},
