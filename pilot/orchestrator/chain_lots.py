@@ -149,14 +149,27 @@ def validated_manual_integration(number: int, head: str) -> str:
 
 
 def plans() -> list[tuple[str, dict, dict, dict]]:
-    base = ROOT / "pilot/orchestrator/chain_plans"
-    if not base.exists():
-        return []
+    # Legacy CP3.6 plans remain where originally written. T7 generated
+    # evidence PRs are restricted to pilot/runs/<slug>/, so they publish
+    # chain_plan.json inside their own request folder.
+    sources = {}
+    legacy = ROOT / "pilot/orchestrator/chain_plans"
+    if legacy.exists():
+        for file in sorted(legacy.glob("*.json")):
+            if file.is_symlink() or not SAFE_ID.fullmatch(file.stem):
+                deny("CHAIN_PLAN_PATH_INVALID")
+            sources[file.stem] = file
+    runs = ROOT / "pilot/runs"
+    if runs.exists():
+        for file in sorted(runs.glob("*/chain_plan.json")):
+            request = file.parent.name
+            if file.is_symlink() or file.parent.is_symlink() or not SAFE_ID.fullmatch(request):
+                deny("CHAIN_PLAN_PATH_INVALID")
+            if request in sources and sources[request].read_bytes() != file.read_bytes():
+                deny("CHAIN_PLAN_DRIFT")
+            sources.setdefault(request, file)
     rows = []
-    for file in sorted(base.glob("*.json")):
-        if file.is_symlink() or not SAFE_ID.fullmatch(file.stem):
-            deny("CHAIN_PLAN_PATH_INVALID")
-        request = file.stem
+    for request, file in sorted(sources.items()):
         folder = ROOT / "pilot/runs" / request
         if folder.is_symlink():
             deny("CHAIN_RUN_SYMLINK")
