@@ -5,7 +5,11 @@ from __future__ import annotations
 import base64
 import io
 import json
+import hashlib
 import os
+from pathlib import Path
+import subprocess
+import tempfile
 import re
 import sys
 import urllib.error
@@ -305,6 +309,70 @@ def integration_proof(api, pr, paths):
     proof = artifact_json(api, run_id, "native-attempt-proof", "attempt-proof.json")
     status = artifact_json(api, run_id, "native-visible-feedback-and-cost", "status.json")
     return validate_native_proof(run, proof, status, run_id, task)
+
+
+def _content(api, path, revision):
+    """Fetch exact GitHub blob bytes, never execute code from a PR checkout."""
+    response = api.request("GET", "/contents/" + path + "?ref=" + revision)
+    if (not isinstance(response, dict) or response.get("type") != "file"
+            or response.get("encoding") != "base64"
+            or type(response.get("size")) is not int
+            or not 0 < response["size"] <= 1_000_000):
+        block("GENERATED_CONTENT_DRIFT")
+    try:
+        raw = base64.b64decode("".join(response["content"].split()), validate=True)
+    except (ValueError, UnicodeError, KeyError):
+        block("GENERATED_CONTENT_DRIFT")
+    if len(raw) != response["size"]:
+        block("GENERATED_CONTENT_DRIFT")
+    return raw
+
+
+def verify_generated_content(api, pr, paths, kind):
+    """Regenerate with TRUSTED main tooling before policy C labels a bot PR."""
+    head = pr["head"]["sha"]
+    root = Path(__file__).resolve().parents[1]
+    main = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, text=True,
+                          capture_output=True, check=True).stdout.strip()
+    if (not SHA.fullmatch(main) or not head or
+            pr["head"]["ref"].rsplit("/", 1)[-1] != main[:12]):
+        block("GENERATED_CONTENT_DRIFT")
+    try:
+        if kind == "implemented-registry":
+            from pilot.orchestrator.implemented_registry import reconstruct
+            ledger = reconstruct(root, main, lambda n: api.request("GET", f"/pulls/{n}"))
+            expected = (json.dumps(ledger, sort_keys=True, ensure_ascii=False, indent=2)
+                        + "\n").encode("utf-8")
+            if _content(api, "pilot/registry/implemented.json", head) != expected:
+                block("GENERATED_CONTENT_DRIFT")
+            return
+        if kind != "generated-t7":
+            block("GENERATED_CONTENT_DRIFT")
+        slugs = sorted({p.split("/")[2] for p in paths})
+        from analysis.host.request_catalog import resolve
+        from analysis.host.run_a1_a9_fixture import run_f4
+        for slug in slugs:
+            path = f"pilot/runs/{slug}/analysis.json"
+            if path not in paths:
+                block("GENERATED_CONTENT_DRIFT")
+            # Read request only from current trusted main; never a PR payload.
+            original = subprocess.run(["git", "show", f"{main}:pilot/runs/{slug}/request.md"],
+                                      cwd=root, capture_output=True, check=False)
+            if original.returncode:
+                block("GENERATED_CONTENT_DRIFT")
+            _, fixture = resolve(root, original.stdout)
+            with tempfile.TemporaryDirectory(prefix="t7-content-check-") as temp:
+                staging = Path(temp) / "pilot/runs" / slug
+                staging.mkdir(parents=True)
+                (staging / "request.md").write_bytes(original.stdout)
+                run_f4(Path(temp), slug=slug, fixtures=fixture)
+                expected = (staging / "analysis.json").read_bytes()
+            if _content(api, path, head) != expected:
+                block("GENERATED_CONTENT_DRIFT")
+    except PolicyBlocked:
+        raise
+    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError):
+        block("GENERATED_CONTENT_DRIFT")
 
 
 def comment_once(api, pr_number):
