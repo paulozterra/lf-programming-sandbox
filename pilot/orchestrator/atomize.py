@@ -359,7 +359,22 @@ def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
         last = row
         provenance[row["atom_id"]]["depends_on"] = {
             "source": "T1_AREA_ORDER_T2_CONTRACT_T3_INFRA", "order": ["INFRA","CONTRATO"] + rules["order"]}
+    # A fully reused A9 scope deliberately has no write atom. Record the
+    # exact coverage and the reuse receipt hash for PG02-PG05 validation.
+    reused_scopes = []
+    if reuse:
+        for sid, items in sorted(req_by_scope.items()):
+            if all(reuse[item["requirement_id"]]["decision"] == "REUSE_AS_IS"
+                   for item in items):
+                reused_scopes.append({"scope_id": sid,
+                                      "requirement_ids": sorted(
+                                          item["requirement_id"] for item in items)})
+    reuse_digest = (hashlib.sha256(canonical(reuse_assessment)).hexdigest()
+                    if reuse_assessment is not None else None)
     return {
+        **({"reused_scopes": reused_scopes,
+            "reuse_assessment_sha256": reuse_digest}
+           if reuse_assessment is not None else {}),
         "schema_version": "T1_ATOMIZED_INPUTS_V1",
         "simulation_only": True,
         "project_ref": "lf_java",
