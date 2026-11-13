@@ -30,7 +30,44 @@ def _main_sha(root: Path) -> str:
     raise DependencyBlocked("DEPENDENCIA_DECLARADA_AUSENTE")
 
 
-def attest(fixtures: Path, inventory: dict, direct: dict, effective: dict) -> dict:
+def _project_requirements(stages, semantic, data, provenance):
+    """Use the real A6/A7/A9 partition and area projection, not a new ID guess."""
+    from analysis.host.simulated_admission_gate import seal_envelope, admit
+    from analysis.a6.implementability import run as a6_run
+    from analysis.a7.front_coverage import run as a7_run
+    from analysis.a9.front_bindings import partition
+    from analysis.a9.area_projection import project
+
+    signal = dict(semantic["a2_signals"])
+    signal["evidence_refs"] = [provenance["semantic_signals.json"]]
+    envelope = seal_envelope(stages, signal)
+    admission = admit(stages, signal, envelope)
+    a6 = a6_run(stages, signal, envelope, admission,
+                source_obligations=semantic.get("source_obligations"))
+    direct = data["direct_rules.json"]["linked_rules"]
+    effective = data["effective_rules.json"]["rules"]
+    categories = {
+        "direct": {r["code"]: {"source_ref": r["source_ref"],
+                               "categoria": r["categoria"]} for r in direct},
+        "effective": {r["code"]: {"source_ref": r["source_ref"],
+                                  "categoria": r["categoria"]} for r in effective},
+        "fixture_provenance": {n: provenance[n] for n in
+                               ("direct_rules.json", "effective_rules.json")},
+    }
+    a7 = a7_run(stages, signal, envelope, admission, a6, categories)
+    reqs = [{"requirement_id": "REQ-" + r["requirement_id"],
+             "source_requirement_id": r["requirement_id"],
+             "evidence_refs": r["evidence_refs"]} for r in a6["requirements"]]
+    scope = stages["A3"]["target_ref"]
+    fronts, _ = partition(
+        a7["material_fronts"], reqs, data["screen_contract.json"]["contract"],
+        {r["code"]: r for r in effective}, scope=scope,
+        create_empty_inventory=True)
+    projected, _, _, _ = project(scope, reqs, fronts, readiness="READY_CANDIDATE")
+    return projected
+
+
+def attest(fixtures: Path, inventory: dict, data: dict, provenance: dict, stages: dict) -> dict:
     """Return a narrow evidence ledger, or no attestation at all.
 
     A 13-file fiche lives in <root>/analysis/fixtures/<screen>. Registry
@@ -43,13 +80,11 @@ def attest(fixtures: Path, inventory: dict, direct: dict, effective: dict) -> di
         return {"status": "NOT_APPLICABLE", "simulation": True, "entries": []}
     root = fixtures.parent.parent.parent
     if fixtures.parent.name != "fixtures" or fixtures.parent.parent.name != "analysis":
-        return {"status": "UNVERIFIED", "simulation": True, "entries": []}
+        return {"status": "UNVERIFIED:DEPENDENCIA_SIN_REQUISITO", "simulation": True, "entries": []}
     try:
         main_sha = _main_sha(root)
-        rules = [r for r in effective.get("rules", [])
-                 if r.get("status") == "VIGENTE" and r.get("pending_decision") is False]
-        requirements = [{"requirement_id": "REQ-" + row["code"],
-                         "source_requirement_id": row["code"]} for row in rules]
+        requirements = _project_requirements(
+            stages, data["semantic_signals.json"], data, provenance)
         chosen = select(dependencies, requirements)
         registry_file = root / "pilot/registry/implemented.json"
         if registry_file.is_symlink():
@@ -82,6 +117,10 @@ def attest(fixtures: Path, inventory: dict, direct: dict, effective: dict) -> di
                 "main_commit_sha": main_sha, "entries": entries,
                 "production_authority": False}
     except (DependencyBlocked, OSError, subprocess.SubprocessError,
-            UnicodeError, ValueError, KeyError, TypeError):
-        return {"status": "UNVERIFIED", "simulation": True, "entries": [],
+            UnicodeError, ValueError, KeyError, TypeError) as exc:
+        reason = (str(exc).split(":", 1)[0] if isinstance(exc, DependencyBlocked)
+                  else "DEPENDENCIA_SIN_REQUISITO" if isinstance(exc, (KeyError, TypeError))
+                  else "DEPENDENCIA_DECLARADA_AUSENTE")
+        return {"status": "UNVERIFIED:" + reason, "reason": reason,
+                "simulation": True, "entries": [],
                 "production_authority": False}
