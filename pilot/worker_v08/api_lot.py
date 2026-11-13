@@ -8,6 +8,7 @@ All missing/ambiguous evidence blocks before private oracle or API access.
 from __future__ import annotations
 
 import argparse
+from decimal import Decimal
 import hashlib
 import json
 from pathlib import Path
@@ -144,6 +145,28 @@ def admit(root: Path, task: str) -> dict:
             "rule_ids": actual["rule_ids"], "task_spec": registered}
 
 
+def budget_gate(root: Path, spec, model: str):
+    """Conservative per-task input-byte bound, one attempt, pricing pinned."""
+    table = read(root, "pilot/worker_v08/cost_adapter/pricing_v1.json")
+    if (table.get("schema_version") != "LF_WORKER_PILOT_PRICE_TABLE_V1"
+            or table.get("price_unit") != "per_1_000_000_tokens"
+            or model not in ("claude-haiku-5-5", "claude-sonnet-5-5")
+            or spec.max_attempts != 1):
+        block("API_LOT_COST_POLICY_INVALID")
+    price = table.get("models", {}).get(model)
+    if not isinstance(price, dict) or price.get("provider") != "anthropic":
+        block("API_LOT_PRICE_UNAVAILABLE")
+    inp = Decimal(price["input_usd_per_million"])
+    out = Decimal(price["output_usd_per_million"])
+    if inp <= 0 or out <= 0:
+        block("API_LOT_PRICE_UNAVAILABLE")
+    worst = (Decimal(spec.max_context_bytes) * inp + Decimal(8000) * out) / Decimal(1_000_000)
+    cap = Decimal("0.03") if model == "claude-haiku-5-5" else Decimal("0.20")
+    if worst > cap:
+        block("API_LOT_PREMODEL_BUDGET_EXCEEDED")
+    return {"worst_case_usd":str(worst), "ceiling_usd":str(cap)}
+
+
 def execute(root: Path, source: Path, private: Path, task: str, model: str):
     """Live API path uses the unmodified vendored verified Worker."""
     import os
@@ -161,6 +184,8 @@ def execute(root: Path, source: Path, private: Path, task: str, model: str):
             or source_snapshot_sha256(source) != spec.source_snapshot_sha256
             or spec.max_attempts != 1):
         block("API_LOT_SOURCE_DRIFT")
+    # No paid call can occur before the same per-model conservative USD cap.
+    budget_gate(root, spec, model)
     oracle_path = private / "holdout.oracle.json"
     if oracle_path.is_symlink() or not oracle_path.is_file():
         block("API_LOT_PRIVATE_ORACLE_MISSING")
