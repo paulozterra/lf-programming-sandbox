@@ -318,6 +318,22 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
     else:
         derived,missing=derive_rule_obligations(data)
         if missing:
-            raise RequestTraceBlocked("REGLA_SIN_DESCRIPCION", sorted(set(missing)))
-        result["source_obligations"]=derived
+            # Exactly the historical F1 Login pinned corpus may use its
+            # already-reviewed WHAT; rule identities must match the original
+            # closed corpus. Never identify this fallback by screen code.
+            corpus=json.loads((Path(__file__).resolve().parents[1]/
+                               "a6/a6_what_v1.json").read_text("utf-8"))
+            approved={r["code"] for r in data["effective_rules.json"]["rules"]
+                      if r.get("status")=="VIGENTE"
+                      and r.get("pending_decision") is False}
+            historical=bool(legacy.get("a1_structured") and
+                            legacy.get("a2_signals") and
+                            legacy.get("simulation") is True and
+                            corpus.get("schema_version")=="A6_FIXED_WHAT_CORPUS_V1"
+                            and approved==set(corpus["requirements"]))
+            if not historical:
+                raise RequestTraceBlocked("REGLA_SIN_DESCRIPCION", sorted(set(missing)))
+            # Omission preserves the existing A6 legacy behaviour.
+        else:
+            result["source_obligations"]=derived
     return result
