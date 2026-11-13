@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "T7 entrada automática y reutilización de código 2026-11-13"
   },
-  "reason": "Registro reconstruible únicamente desde merges Train de integraciones nativas, normalización fuente-pin del host, evaluación determinista con SHA y guardas anti-duplicación. Evidencia incompleta se declara NO_DERIVABLE, nunca se atribuye manualmente.",
+  "reason": "Registro determinista desde merges Train para vincular requirements/rules con archivos y SHA, normalización host de los dos formatos de catálogo, reutilización con evidencia exacta y validación Worker anti-duplicación. Las lagunas históricas se conservan como NO_DERIVABLE sin fingir contratos ni autoridad productiva.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -15,6 +15,8 @@
     "paths": [
       ".github/workflows/ci.yml",
       ".github/workflows/t7-request.yml",
+      "analysis/a6/implementability.py",
+      "analysis/a7/front_coverage.py",
       "analysis/host/fixture_normalize.py",
       "analysis/host/fixture_readback_host.py",
       "analysis/host/request_catalog.py",
@@ -30,6 +32,7 @@
       "pilot/orchestrator/implemented_registry.py",
       "pilot/orchestrator/reuse_assessment.py",
       "pilot/orchestrator/t7_entry.py",
+      "pilot/orchestrator/test_chain_lots.py",
       "pilot/orchestrator/test_t2_general_guard.py",
       "pilot/orchestrator/test_t7_registry.py",
       "pilot/orchestrator/test_t7_reuse.py",
