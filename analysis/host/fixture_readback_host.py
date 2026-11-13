@@ -33,7 +33,7 @@ def default_fixtures() -> Path:
     return candidates[0]
 
 
-DEFAULT_FIXTURES = default_fixtures()
+DEFAULT_FIXTURES = None  # No eager, ambiguous catalogue resolution during import.
 FILES = (
     "screen_contract.json", "direct_rules.json", "effective_rules.json",
     "policies.json", "elements.json", "states.json", "variants.json",
@@ -71,8 +71,8 @@ def load_stage(step: str):
 
 
 class FixtureHost:
-    def __init__(self, root: Path = DEFAULT_FIXTURES):
-        self.root = Path(root)
+    def __init__(self, root: Path | None = None):
+        self.root = Path(root) if root is not None else default_fixtures()
         self.provenance = {}
         self.target = None
         self.source_prefix = "fixture://" + self.root.name + "/"
