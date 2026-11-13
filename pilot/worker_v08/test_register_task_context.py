@@ -113,6 +113,31 @@ class PinnedSource(unittest.TestCase):
         self.assertIn("STD-BE-05", artifacts[".lf/worker-context/ex8/skills.md"].decode())
         self.assertFalse(receipt["production_authority"])
 
+    def test_cp16_contract_and_infra_have_source_derived_rule_receipts(self):
+        contract_policy = json.loads(
+            (ROOT / "pilot/orchestrator/atomize_rules_v1.json").read_text())["contract_lot"]
+        contract_path = contract_policy["write_path"].format(module="generated")
+        allowlist = json.loads(
+            (ROOT / "pilot/orchestrator/dependency_allowlist_v1.json").read_text())
+        manifest_path = allowlist["targets"]["maven"]["manifest"]
+        for area, path in (("CONTRATO", contract_path), ("INFRA", manifest_path)):
+            scoped = task_spec()
+            scoped["write_path_patterns"] = [path]
+            result, artifacts = run(scoped, area=area, lot_paths=[path],
+                                    task_name="cp16" + area.lower())
+            prefix = ".lf/worker-context/cp16" + area.lower() + "/"
+            rule = json.loads(artifacts[prefix + "lf_rules.receipt.json"])
+            self.assertTrue(rule["rule_ids"])
+            self.assertEqual(
+                rule["assembled_sha256"],
+                hashlib.sha256(artifacts[prefix + "lf_rules.md"]).hexdigest())
+            self.assertEqual(result["protected_path_patterns"].count(
+                prefix + "lf_rules.md"), 1)
+            self.assertNotIn(prefix + "lf_rules.md", result["write_path_patterns"])
+        self.assertEqual(
+            json.loads(artifacts[".lf/worker-context/cp16infra/lf_rules.receipt.json"])
+            ["selected_stack"], "spring-boot")
+
     def test_modified_pinned_source_rejected_before_register(self):
         with tempfile.TemporaryDirectory() as path:
             temporary = Path(path)
@@ -220,7 +245,18 @@ class PinnedSource(unittest.TestCase):
             self.assertEqual(mod.write_native_registration(
                 root, "cp14fresh", native_out, enriched, digest), raw)
             self.assertEqual(native_out.read_bytes(), raw)
-            self.assertEqual(len(artifacts), 4)
+            self.assertEqual(len(artifacts), 6)
+            prefix = ".lf/worker-context/cp14fresh/"
+            self.assertIn(prefix + "lf_rules.md", artifacts)
+            self.assertIn(prefix + "lf_rules.receipt.json", artifacts)
+            lf_receipt = json.loads(artifacts[prefix + "lf_rules.receipt.json"])
+            self.assertTrue(lf_receipt["rule_ids"])
+            self.assertEqual(hashlib.sha256(
+                artifacts[prefix + "lf_rules.md"]).hexdigest(),
+                lf_receipt["assembled_sha256"])
+            self.assertIn(prefix + "lf_rules.md", enriched["context_path_patterns"])
+            self.assertIn(prefix + "lf_rules.md", enriched["protected_path_patterns"])
+            self.assertNotIn(prefix + "lf_rules.md", enriched["write_path_patterns"])
 
     def test_native_fail_closed_paths_sha_historic_and_existing(self):
         with tempfile.TemporaryDirectory() as directory:

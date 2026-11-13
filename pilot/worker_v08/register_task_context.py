@@ -130,10 +130,22 @@ def classify_path(value: str) -> str:
 def select_area(paths: list[str], declared: str) -> str:
     if not paths or not isinstance(declared, str):
         block("LOT_AREA_REQUIRED")
+    if declared == "CONTRATO":
+        # Derive permitted contract paths from the same T2 atomizer policy,
+        # not from case-specific route or module names.
+        policy_file = Path(__file__).resolve().parents[1] / "orchestrator/atomize_rules_v1.json"
+        policy = json.loads(policy_file.read_text("utf-8"))["contract_lot"]
+        template = policy.get("write_path")
+        if not isinstance(template, str) or template.count("{module}") != 1:
+            block("CONTRACT_POLICY_UNRESOLVED")
+        pattern = re.escape(template).replace(re.escape("{module}"), r"[a-z][a-z0-9-]*")
+        if (len(paths) != 1 or len(set(paths)) != 1
+                or not all(re.fullmatch(pattern, p) for p in paths)):
+            block("LOT_AREA_MISMATCH")
+        return "BACKEND"
     if declared == "INFRA":
         # An INFRA task is explicitly a BACKEND-profile alias, restricted
         # to allowlisted configuration files, never an arbitrary multi-area task.
-        import json
         rule_path = Path(__file__).resolve().parents[1] / "orchestrator/dependency_allowlist_v1.json"
         allowlist = json.loads(rule_path.read_text(encoding="utf-8"))
         allowed = set(allowlist["database"]["config_files"]) | {
@@ -352,6 +364,14 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         block("HISTORICAL_TASK_IMMUTABLE")
     output = copy.deepcopy(task)
     dest = output["task_spec"] if "task_spec" in output else output
+    lf_rules = None
+    lf_rule_receipt = None
+    if task_name.lower() not in {"ex6", "ex7", "ex8"}:
+        from lf_rule_context import material, RuleContextBlocked
+        try:
+            lf_rules, lf_rule_receipt = material(area, skill_codes=[r["code"] for r in identities])
+        except RuleContextBlocked as exc:
+            block(str(exc))
     reuse_markdown = None
     reuse_sha = {}
     report_refs = [p for p in spec.get("context_path_patterns", [])
@@ -400,6 +420,8 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     names = ["profile.md", "skills.md", "protocolo.md"]
     if reuse_markdown is not None:
         names.append("reutilizar.md")
+    if lf_rules is not None:
+        names.extend(["lf_rules.md", "lf_rules.receipt.json"])
     names.append("receipt.json")
     paths = [f".lf/worker-context/{task_name}/{x}" for x in names]
     # The route itself tells the builder how to work (continuous mode by
@@ -430,7 +452,7 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     commands = list(dest.get("acceptance_commands", []))
     if not isinstance(commands, list):
         block("ACCEPTANCE_COMMANDS_INVALID")
-    if selected == "BACKEND" and any("SPRINGBOOT_EXP" == r["code"] for r in identities):
+    if area != "CONTRATO" and selected == "BACKEND" and any("SPRINGBOOT_EXP" == r["code"] for r in identities):
         if FORMAT_COMMAND not in commands:
             if any(c.get("name") == FORMAT_COMMAND["name"] for c in commands if isinstance(c, dict)):
                 block("FORMAT_ACCEPTANCE_NAME_COLLISION")
@@ -458,7 +480,11 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         "context_sha256": {"profile.md": digest(profile), "skills.md": digest(skills),
                            "protocolo.md": digest(protocol),
                            **({"reutilizar.md": digest(reuse_markdown)}
-                              if reuse_markdown is not None else {})},
+                              if reuse_markdown is not None else {}),
+                           **({"lf_rules.md": digest(lf_rules),
+                               "lf_rules.receipt.json": digest(canonical(lf_rule_receipt))}
+                              if lf_rules is not None else {})},
+        **({"lf_rules": lf_rule_receipt} if lf_rule_receipt is not None else {}),
         **({"reuse_context_sha256": reuse_sha} if reuse_markdown is not None else {}),
         "builder_protocol": {"source": "pilot/orchestrator/MODO_CONTINUO.md",
                              "sha256": digest(protocol_src.read_bytes()), "mode": "CONTINUOUS_DEFAULT"},
@@ -468,6 +494,8 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     values = [profile, skills, protocol]
     if reuse_markdown is not None:
         values.append(reuse_markdown)
+    if lf_rules is not None:
+        values.extend([lf_rules, canonical(lf_rule_receipt)])
     values.append(receipt_raw)
     artifacts = dict(zip(paths, values))
     cap = min(budget, dest.get("max_context_bytes", budget))
