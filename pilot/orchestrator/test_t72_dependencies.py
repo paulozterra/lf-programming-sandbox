@@ -211,7 +211,7 @@ def test_confirmed_dependency_reaches_real_plan_lots(tmp_path):
                           run="t72-after", reuse_assessment=report)
     folder=tmp_path/"pilot/runs/t72-after"
     (folder/"reuse_assessment.json").write_text(
-        json.dumps(report, sort_keys=True, ensure_ascii=False, indent=2)+"\\n",
+        json.dumps(report, sort_keys=True, ensure_ascii=False, indent=2)+"\n",
         encoding="utf-8")
     (folder/"atomized_inputs.json").write_bytes(intake.canonical(atom))
     planned=plan_lots.plan(tmp_path,"t72-after")
