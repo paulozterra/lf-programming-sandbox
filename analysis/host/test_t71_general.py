@@ -139,3 +139,16 @@ def test_implementation_intent_uses_canonical_a9_registration_and_sha(tmp_path):
     file.write_text("drift")
     with pytest.raises(RequestTraceBlocked,match="ANALISIS_SENALES_NO_DERIVABLES"):
         implementation_state(tmp_path,code)
+
+
+def test_depth_signal_unknown_when_pinned_rule_categories_do_not_prove_materiality(tmp_path):
+    import copy
+    from analysis.host.request_trace import signals
+    code=json.loads((LEGACY_FIXTURES/"SOURCE_PIN.json").read_text())["fixture_id"]
+    data=FixtureHost(LEGACY_FIXTURES).read_all()
+    modified=copy.deepcopy(data)
+    for row in modified["effective_rules.json"]["rules"]:
+        row["categoria"]="unclassified"
+    derived=signals(tmp_path,code,"Implementa "+code,modified)
+    assert derived["a2_signals"]["depth_signals"]["materiality_level"]=="UNKNOWN"
+    assert derived["a2_signals"]["depth_signals"]["authority_state"]=="UNKNOWN"
