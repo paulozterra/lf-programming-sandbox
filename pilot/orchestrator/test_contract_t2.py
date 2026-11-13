@@ -292,10 +292,16 @@ def test_stale_generated_client_blocks(tmp_path, monkeypatch):
     subprocess.run(["git", "init", "-q"], cwd=root, check=True)
     subprocess.run(["git", "add", "frontend/src/lib/api/generated/index.ts"],
                    cwd=root, check=True)
-    script = root / "npm"
-    script.write_text("#!/bin/sh\\nprintf '// altered\\n' > frontend/src/lib/api/generated/index.ts\\n")
-    script.chmod(0o755)
-    monkeypatch.setenv("PATH", str(root) + os.pathsep + os.environ["PATH"])
+    real_run = subprocess.run
+
+    def simulated_generation(argv, **kwargs):
+        if argv[0] == "npm":
+            # Stub only the generator, not git; verify actual index drift.
+            generated.write_text("// altered generated client")
+            return subprocess.CompletedProcess(argv, 0)
+        return real_run(argv, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", simulated_generation)
     with pytest.raises(ContractBlocked, match="CONTRACT_GENERATED_CLIENT_STALE"):
         check_generated(root)
 
