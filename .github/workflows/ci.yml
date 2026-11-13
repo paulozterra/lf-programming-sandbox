@@ -43,8 +43,6 @@ jobs:
   frontend:
     name: frontend (lint, tipos, build)
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     defaults:
       run:
         working-directory: frontend
@@ -55,28 +53,6 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      # Initial CP1.5 bootstrap: generate reproducible lockfile for pinned versions.
-      - name: T2 lockfile bootstrap
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - uses: actions/upload-artifact@v4
-        with:
-          name: t2-frontend-lockfile
-          path: frontend/package-lock.json
-      - name: Bootstrap pinned npm lock to PR branch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        working-directory: .
-        run: |
-          cp frontend/package-lock.json "$RUNNER_TEMP/t2-package-lock.json"
-          git fetch --no-tags origin "refs/heads/${{ github.head_ref }}"
-          git reset --hard FETCH_HEAD
-          cp "$RUNNER_TEMP/t2-package-lock.json" frontend/package-lock.json
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/package-lock.json
-          if ! git diff --cached --quiet; then
-            git commit -m "[T2][CHG-0093] Lock pinned OpenAPI npm dependencies"
-            git push origin HEAD:refs/heads/${{ github.head_ref }}
-          fi
       - run: npm ci
       - name: T2 generated API client remains in sync
         run: |
@@ -487,14 +463,14 @@ jobs:
           python3 pilot/orchestrator/selector_db.py --t1-patterns
           python3 -m pip install --disable-pip-version-check --no-input PyYAML==6.0.3 openapi-spec-validator==0.7.2
           python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py -p no:cacheprovider
-      - name: T1-A positive Login A9 to PG05 without manual fixtures
+      - name: T1-A source A9 to PG05 without manual fixtures
         env:
           T1A_ARTIFACT_DIR: ${{ runner.temp }}/t1a
         run: |
           python3 -m pip install jsonschema
           python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py analysis/host analysis/a6 analysis/a7 analysis/a8 analysis/a9 -p no:cacheprovider
           T2_ARTIFACT_DIR="${{ runner.temp }}/t2" python3 -m pytest -q pilot/orchestrator/test_t2_contract.py -p no:cacheprovider
-      - name: Publish T2 regenerated Login and Notes lots
+      - name: Publish T2 regenerated multi-screen contract lots
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -502,15 +478,15 @@ jobs:
           path: ${{ runner.temp }}/t2/
           if-no-files-found: ignore
           retention-days: 30
-      - name: Publish T1-A generated Login lots
+      - name: Publish T1-A generated source lots
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: t1a-login-lots
+          name: t1a-source-lots
           path: ${{ runner.temp }}/t1a/
           if-no-files-found: ignore
           retention-days: 30
-      - name: Publish T1 exact generated lots and Login unresolved evidence
+      - name: Publish T1 exact generated lots and unresolved evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
