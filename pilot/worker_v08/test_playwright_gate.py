@@ -55,6 +55,10 @@ def test_no_app_files_is_failure_not_success(tmp_path):
 
 
 def test_frontend_generic_acceptance_and_exam_command_format():
+    import sys
+    orchestrator = str(Path(__file__).resolve().parents[1] / "orchestrator")
+    if orchestrator not in sys.path:
+        sys.path.insert(0, orchestrator)
     from pilot.orchestrator.generate_chain import acceptance
     commands = acceptance("FRONTEND", ["frontend/src/app/page.tsx"])
     browser = [entry for entry in commands if entry["name"] == "frontend-browser-visible"]
