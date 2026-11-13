@@ -254,6 +254,13 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     if validate_verified_worker_receipt(outcome.receipt, outcome.patch):
         raise ValueError("NATIVE_VERIFIED_RECEIPT_INVALID")
     visible = seen[0] if seen else None
+    if rule_receipts:
+        from lf_rule_gate import verified_visible_commands
+        report_file = public / "lf-rule-report.json"
+        report = strict_json_loads(report_file.read_text("utf-8"))
+        report["rules"] = verified_visible_commands(
+            report["rules"], visible, raw_task["acceptance_commands"])
+        report_file.write_bytes(canonical_json_bytes(report) + b"\n")
     (public / "feedback.json").unlink()
     feedback = _visible_feedback(visible, attempt)
     _write(public / "feedback.json", feedback)
