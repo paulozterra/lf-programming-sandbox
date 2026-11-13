@@ -286,7 +286,7 @@ def _git_head(source: Path) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("phase", choices=("preflight", "execute", "dry-run-reuse"))
+    parser.add_argument("phase", choices=("preflight", "execute", "dry-run-reuse", "dry-run-lf-rules"))
     parser.add_argument("--control", type=Path, required=True)
     parser.add_argument("--source", type=Path)
     parser.add_argument("--proposal", type=Path)
@@ -296,7 +296,34 @@ def main() -> None:
     parser.add_argument("--run-id", type=int)
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--reuse-context", type=Path)
+    parser.add_argument("--rule-receipt", type=Path)
     a = parser.parse_args()
+    if a.phase == "dry-run-lf-rules":
+        # Same trusted gate, without model, hidden oracle or paid attempt.
+        from lf_rule_gate import evaluate, coverage, RuleGateBlocked
+        try:
+            if not a.proposal or not a.rule_receipt:
+                raise RuleGateBlocked("LF_RULE_CONTEXT_MISSING")
+            proposal = strict_json_loads(a.proposal.read_text("utf-8"))
+            receipt = strict_json_loads(a.rule_receipt.read_text("utf-8"))
+            if (not isinstance(proposal, dict)
+                    or set(proposal) != {"schema_version", "summary", "patch", "changed_paths"}
+                    or proposal.get("schema_version") != 1
+                    or not isinstance(proposal.get("patch"), str)):
+                raise RuleGateBlocked("LF_PATCH_INVALID")
+            result = evaluate(proposal["patch"], receipt["rule_ids"], root=a.control)
+            print(json.dumps({"result": result, "coverage": coverage(result)},
+                             sort_keys=True))
+            if result["status"] != "PASS":
+                print("NATIVE_LF_RULE_DRY_RUN_BLOCKED:" +
+                      ",".join(sorted({v["code"] for v in result["violations"]})),
+                      file=sys.stderr)
+                raise SystemExit(1)
+            return
+        except (RuleGateBlocked, OSError, ValueError, KeyError, TypeError) as exc:
+            print("NATIVE_LF_RULE_DRY_RUN_BLOCKED:LF_RULE_CONTEXT_INVALID",
+                  file=sys.stderr)
+            raise SystemExit(1)
     if a.phase == "dry-run-reuse":
         # Explicit offline rehearsal; no vendor invocation, no model, no
         # hidden oracle, no native PASS receipt and no attempt registration.
