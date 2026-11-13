@@ -166,7 +166,7 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
     # The simulated CREATE classification above is scoped to the empty,
     # source-declared inventory. A non-empty inventory needs a typed decision.
     inv = source["inventory"]
-    if any(inv.get(k) for k in ("objects", "impacts", "dependencies")):
+    if any(inv.get(k) for k in ("objects", "impacts")):
         raise NormalizeBlocked("ANALISIS_SENALES_NO_DERIVABLES")
     policy_links = []
     policy_objects = []
@@ -218,7 +218,7 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
         "inventory.json": {"imitates": "inventory.objects + inventory.fn_impact_analysis_v1 + inventory.fn_dependencies_v1",
             "schema_version": "A4_EXISTING_IMPACT_CORE_READBACK_V1",
             "business": "LF", "target_ref": target, "source_attested": False,
-            "objects": [], "impacts": [], "dependencies": []},
+            "objects": [], "impacts": [], "dependencies": deepcopy(inv.get("dependencies", []))},
         "ekb.json": {"imitates": "EKB exact governed lookup", "entries": []},
         "adr.json": {"imitates": "programacion.fn_engineering_current_adr_assert_v1 / transversal.decision_log",
             "records": []},
