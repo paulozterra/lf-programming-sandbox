@@ -550,7 +550,7 @@ def _attach_contract_lots(lots, fixture):
     return topo(lots)
 
 
-def plan(root: Path, run: str) -> dict:
+def plan(root: Path, run: str, *, contract_mode=False) -> dict:
     from intake import SLUG, normalized_request_bytes
     if not isinstance(run,str) or not SLUG.fullmatch(run):
         blocked("LOTES_RUN_INVALIDO")
@@ -594,7 +594,8 @@ def plan(root: Path, run: str) -> dict:
         blocked("SELECTOR_REQUIERE_ENTORNO")
     try:
         lots,producer_hashes,assignments,currentness=_produce_lots(package,fixture,rows,outputs,dsn)
-        lots=_attach_contract_lots(lots,fixture)
+        if contract_mode:
+            lots=_attach_contract_lots(lots,fixture)
     except (OSError,RuntimeError):
         blocked("SELECTOR_REQUIERE_ENTORNO")
     document={"schema_version":"CP33_LOTS_CANDIDATE_V1","request_id":run,
