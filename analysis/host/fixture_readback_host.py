@@ -143,8 +143,13 @@ class FixtureHost:
 
     def _from_request(self, data: dict, request: str) -> dict:
         from analysis.host.request_trace import signals, RequestTraceBlocked
+        # A catalogue copied to an isolated workspace must use that same
+        # workspace's registry/code index; never bind a different checkout.
+        candidate = self.root.parents[2] if len(self.root.parents) >= 3 else PROJECT
+        source_root = (candidate if self.root.parent.name == "fixtures"
+                       and self.root.parent.parent.name == "analysis" else PROJECT)
         try:
-            derived = signals(PROJECT, self.target, request, data)
+            derived = signals(source_root, self.target, request, data)
         except RequestTraceBlocked as exc:
             block(str(exc))
         # Semantic evidence is derived, not a file readback pretending to
