@@ -56,7 +56,7 @@ def material(area: str) -> tuple[bytes, dict]:
         # rules directly from catalog, without pretending to select Spring
         # or Next for a contract-only lot.
         api_domains = [d["id"] for d in catalog["domains"]
-                       if "http-api" in d.get("applies_to", [])]
+                       if {"http-api", "all"}.intersection(d.get("applies_to", []))]
         rows = [r for r in catalog["rules"] if r["domain"] in api_domains]
         if not rows:
             raise RuleContextBlocked("LF_STACK_AREA_UNRESOLVED")
