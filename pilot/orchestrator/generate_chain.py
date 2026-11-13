@@ -114,6 +114,19 @@ def generate(root, run, lots):
             skeleton=contract_generate.generate(module,package,atoms)
             path=Path(root)/skeleton_template.format(module=module)
             save(path,skeleton)
+    # T7 only: a typed, evidence-backed reuse report is optional for legacy
+    # chains. No report means no claim of reuse, never an implicit BUILD_NEW.
+    report_path=folder/"reuse_assessment.json"
+    reuse_rows=[]
+    if report_path.exists():
+        if report_path.is_symlink():
+            raise ValueError("REUTILIZACION_INDETERMINADA")
+        assessment=json.loads(report_path.read_text(encoding="utf-8"))
+        if assessment.get("schema_version")!="T7_REUSE_ASSESSMENT_V1":
+            raise ValueError("REUTILIZACION_INDETERMINADA")
+        reuse_rows=assessment.get("obligations",[])
+        if not isinstance(reuse_rows,list):
+            raise ValueError("REUTILIZACION_INDETERMINADA")
     rows=[]
     output={}
     for pos,lot in enumerate(lots["lots"],1):
@@ -162,7 +175,24 @@ def generate(root, run, lots):
                 if dependency_contract else [])
         if lot.get("infra_context_ref"):
             context_paths.append(lot["infra_context_ref"])
+        if report_path.exists():
+            import hashlib as _hashlib
+            selected=[r for r in reuse_rows if r.get("requirement_id") in
+                      lot["requirement_ids"]]
+            for obligation in selected:
+                for reference in obligation.get("reuse_context",[]):
+                    src=reference.get("path")
+                    sha=reference.get("sha256")
+                    if (not isinstance(src,str) or not isinstance(sha,str)
+                            or src in paths or not (Path(root)/src).is_file()
+                            or _hashlib.sha256((Path(root)/src).read_bytes()).hexdigest()!=sha):
+                        raise ValueError("REUTILIZACION_INDETERMINADA")
+                    if src not in context_paths:
+                        context_paths.append(src)
+                    protected.append(src)
+            context_paths.append("pilot/runs/"+run+"/reuse_assessment.json")
         context_paths=sorted(set(context_paths))
+        protected=sorted(set(protected))
         template={"task_spec":{
             "schema_version":1,"task_id":"LF-WORKER-NATIVE-"+task.upper(),
             "base_head_sha":"<FILL_AT_REGISTRATION>",
