@@ -87,7 +87,7 @@ def _next_version(root):
     # checked-out repository migrations so the next version is not reset to V1.
     numbers = []
     for base in (HERE.parents[1], Path(root)):
-        for file in (base / "db/migration").glob("V*__*.sql"):
+        for file in (base / "apps/time-service/src/main/resources/db/migration").glob("V*__*.sql"):
             match = re.fullmatch(r"V([0-9]+)__[a-z0-9_]+\.sql", file.name)
             if match:
                 numbers.append(int(match.group(1)))
@@ -107,7 +107,7 @@ def _route(area, module, rules, root):
     service = rules["service"]
     if area == "DATA":
         return [rules["routes"]["DATA"].format(
-            next=_next_version(root), module=module.replace("-", "_"))]
+            service=service, next=_next_version(root), module=module.replace("-", "_"))]
     if area == "BACKEND":
         return [rules["routes"]["BACKEND"].format(
             service=service, service_java=service.split("-")[0],
@@ -283,19 +283,41 @@ def atomize(package, root, base_head_sha, *, run):
         }
         for member in members:
             member["depends_on"].append(contract_id)
+    # T3: one shared infrastructure atom from a versioned allowlist, created
+    # only if checked-out manifests/configuration lack a required dependency.
+    import infra_lot
+    try:
+        infra = infra_lot.infra_atom(package, rows)
+    except infra_lot.DependencyBlocked as exc:
+        raise AtomBlocked(str(exc)) from exc
+    if infra is not None:
+        rows.append(infra)
+        provenance[infra["atom_id"]] = {
+            "area": {"method": "T3_ALLOWLIST_V1",
+                     "rules_ref": infra["policy_ref"]},
+            "paths": {"source": infra["policy_ref"], "route": "INFRA"},
+            "depends_on": {"source": "T3_MISSING_DEPENDENCY_GUARD"},
+            "business_outcome": {"source": "A9.area_and_allowlist",
+                                 "requirement_ids": infra["requirement_ids"]},
+        }
+        consuming = {"DATA"} if any(a["area"]=="DATA" for a in rows) else {
+            a["area"] for a in rows if a["area"] in ("BACKEND", "FRONTEND")}
+        for member in rows:
+            if member["area"] in consuming and member["atom_id"] != infra["atom_id"]:
+                member["depends_on"] = sorted(set(member["depends_on"] + [infra["atom_id"]]))
     if unresolved:
         raise AtomBlocked("ATOM_AREA_UNRESOLVED:" + json.dumps(
             unresolved, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
-    order = {"CONTRATO": -1, **{a: i for i, a in enumerate(rules["order"])}}
+    order = {"INFRA": -2, "CONTRATO": -1, **{a: i for i, a in enumerate(rules["order"])}}
     # Across scopes chain all areas in stable order; no imaginary dependencies.
     rows.sort(key=lambda r: (order[r["area"]], r["scope_id"], r["atom_id"]))
     last = None
     for row in rows:
-        if last is not None and order[last["area"]] < order[row["area"]]:
+        if last is not None and row["area"] not in ("INFRA","CONTRATO") and order[last["area"]] < order[row["area"]]:
             row["depends_on"] = sorted(set(row["depends_on"] + [last["atom_id"]]))
         last = row
         provenance[row["atom_id"]]["depends_on"] = {
-            "source": "T1_AREA_ORDER_AND_T2_CONTRACT", "order": ["CONTRATO"] + rules["order"]}
+            "source": "T1_AREA_ORDER_T2_CONTRACT_T3_INFRA", "order": ["INFRA","CONTRATO"] + rules["order"]}
     return {
         "schema_version": "T1_ATOMIZED_INPUTS_V1",
         "simulation_only": True,
