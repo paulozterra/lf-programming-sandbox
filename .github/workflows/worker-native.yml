@@ -192,11 +192,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m pip install --disable-pip-version-check --no-input playwright==1.56.0
+          python3 -m venv /tmp/lf-playwright-runtime
+          /tmp/lf-playwright-runtime/bin/python -m pip install --disable-pip-version-check --no-input playwright==1.56.0
           PLAYWRIGHT_BROWSERS_PATH=/tmp/lf-playwright-browsers \
-            python3 -m playwright install --with-deps --only-shell chromium
+            /tmp/lf-playwright-runtime/bin/python -m playwright install --with-deps --only-shell chromium
           PLAYWRIGHT_BROWSERS_PATH=/tmp/lf-playwright-browsers \
-            python3 -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(headless=True); b.close(); p.stop()'
+            /tmp/lf-playwright-runtime/bin/python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(headless=True); b.close(); p.stop()'
       - name: Check vendored source integrity before execution
         run: python3 control/pilot/worker_v08/verify_vendor.py
       - name: Admit task and registered base (fail closed until Claude registers ex6)
