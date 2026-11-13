@@ -222,8 +222,9 @@ def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
                 chosen = [reuse[r["requirement_id"]] for r in related]
                 extends = [row for row in chosen if row["decision"] == "EXTEND"]
                 builds = [row for row in chosen if row["decision"] == "BUILD_NEW"]
-                if extends and builds:
-                    raise AtomBlocked("REUTILIZACION_INDETERMINADA")
+                # A screen may add a new rule to one existing endpoint while
+                # introducing separate requirements in the same material front.
+                # Preserve both sourced existing paths and policy-derived new paths.
                 if extends:
                     existing = sorted({p for row in extends
                                        for p in row.get("write_paths", [])})
@@ -231,7 +232,7 @@ def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
                             not isinstance(p, str) or not (root / p).is_file()
                             for p in existing):
                         raise AtomBlocked("REUTILIZACION_INDETERMINADA")
-                    paths = existing
+                    paths = sorted(set(existing + (paths if builds else [])))
             if area == "DATA":
                 data_ordinal += 1
             groups = [paths[i:i + rules["max_paths"]] for i in range(0, len(paths), rules["max_paths"])]
