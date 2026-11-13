@@ -470,3 +470,37 @@ def test_t7_registry_first_seed_runs_even_without_chain_plans():
     seed.assert_called_once_with("a" * 40)
     assert result == [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
                        "registry": expected}]
+
+
+def test_t7_in_run_chain_plan_is_discovered_by_cp36(tmp_path):
+    lots, plan, _, _ = fixtures(tmp_path)
+    root = tmp_path / "pilot/runs/simulated"
+    root.mkdir(parents=True)
+    (root / "lots.json").write_bytes(canonical(lots))
+    (root / "chain_plan.json").write_bytes(canonical(plan))
+    (root / "state.json").write_bytes(canonical({
+        "stage": "LOTS_PLANNED",
+        "lots_sha256": hashlib.sha256(canonical(lots)).hexdigest(),
+    }))
+    with patch.object(chain_lots, "ROOT", tmp_path):
+        results = chain_lots.plans()
+    assert len(results) == 1 and results[0][0] == "simulated"
+    assert set(results[0][3]) == {"SOL-001", "SOL-002"}
+
+
+def test_t7_conflicting_legacy_and_in_run_chain_plans_block(tmp_path):
+    lots, plan, _, _ = fixtures(tmp_path)
+    root = tmp_path / "pilot/runs/simulated"
+    root.mkdir(parents=True)
+    (root / "lots.json").write_bytes(canonical(lots))
+    (root / "chain_plan.json").write_bytes(canonical(plan))
+    (root / "state.json").write_bytes(canonical({
+        "stage": "LOTS_PLANNED",
+        "lots_sha256": hashlib.sha256(canonical(lots)).hexdigest(),
+    }))
+    old = tmp_path / "pilot/orchestrator/chain_plans"
+    old.mkdir(parents=True)
+    (old / "simulated.json").write_text("{}")
+    with patch.object(chain_lots, "ROOT", tmp_path):
+        with pytest.raises(ChainBlocked, match="CHAIN_PLAN_DRIFT"):
+            chain_lots.plans()
