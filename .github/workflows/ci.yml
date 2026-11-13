@@ -472,7 +472,7 @@ jobs:
           T1_ARTIFACT_DIR: ${{ runner.temp }}/t1
         run: |
           python3 pilot/orchestrator/selector_db.py --t1-patterns
-          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2
+          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 jsonschema==4.25.1
           python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py pilot/orchestrator/test_contract_t2.py pilot/orchestrator/test_t2_general_guard.py -p no:cacheprovider
       - name: T1-A positive Login A9 to PG05 without manual fixtures
         env:
