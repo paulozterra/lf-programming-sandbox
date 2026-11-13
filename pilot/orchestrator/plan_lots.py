@@ -549,6 +549,68 @@ def _t2_contract_lots(fixture, lots):
     return topo(out)
 
 
+def _t3_infra_lots(fixture, lots):
+    """Project the allowlist-vetted INFRA atom around untouched PG02–PG05."""
+    atoms = [a for a in fixture.get("atoms", []) if a.get("area") == "INFRA"]
+    if not atoms:
+        return lots
+    if len(atoms) != 1:
+        blocked("T3_INFRA_ATOM_DUPLICATE")
+    atom = atoms[0]
+    import infra_lot
+    allowlist = infra_lot.policy()
+    rules = json.loads((ROOT/"pilot/orchestrator/atomize_rules_v1.json").read_text())
+    if (rules.get("infra_lot", {}).get("schema_version") != "T3_INFRA_POLICY_V1"
+            or rules["infra_lot"]["profile_area"] != "BACKEND"
+            or rules["profile_resolution"]["area_to_profile"].get("INFRA") !=
+                rules["profile_resolution"]["area_to_profile"]["BACKEND"]):
+        blocked("T3_INFRA_POLICY_INVALID")
+    missing, _ = infra_lot.unresolved(
+        json.loads((ROOT/"pilot/runs"/"noop"/"analysis.json").read_text())
+        if False else {"dependency_requirements": [
+            x["id"] for x in atom["missing_dependencies"]]},
+        [a for a in fixture["atoms"] if a.get("area") in ("DATA","BACKEND","FRONTEND")])
+    if missing != atom["missing_dependencies"]:
+        blocked("T3_DEPENDENCY_DRIFT")
+    paths = atom.get("paths", [])
+    configured = allowlist["database"]["config_files"]
+    allowed = set(configured) | {
+        x["manifest"] for x in allowlist["targets"].values()}
+    if (not paths or len(paths) > allowlist["infra"]["max_changed_files"]
+            or len(paths) != len(set(paths)) or set(paths) - allowed):
+        blocked("T3_INFRA_SCOPE_INVALID")
+    out = copy.deepcopy(lots)
+    lot_id = "SOL-I" + atom["atom_id"].split("-")[-1]
+    if any(row["id"] == lot_id for row in out):
+        blocked("T3_INFRA_ID_DUPLICATE")
+    row = {
+        "id": lot_id, "area": "INFRA",
+        "profile_code": rules["profile_resolution"]["area_to_profile"]["INFRA"],
+        "write_paths": sorted(paths), "depends_on": [],
+        "requirement_ids": atom["requirement_ids"],
+        "infra_missing_dependencies": atom["missing_dependencies"],
+        "infra_policy_ref": atom["policy_ref"],
+        "production_authority": False, "handoff_allowed": False,
+        "producer_route": "T3_ORCHESTRATOR_NOT_PG04_PG05",
+        "profile_resolution_ref": "pilot/orchestrator/atomize_rules_v1.json"
+    }
+    out.append(row)
+    linked = 0
+    for member in out:
+        if member["area"] == "INFRA":
+            continue
+        source = [a for a in fixture["atoms"]
+                  if a.get("area") == member["area"] and
+                  set(a.get("paths", [])) == set(member["write_paths"])]
+        if source and atom["atom_id"] in source[0].get("depends_on", []):
+            member["depends_on"] = sorted(set(member["depends_on"] + [lot_id]))
+            member["infra_context_ref"] = atom["policy_ref"]
+            linked += 1
+    if not linked:
+        blocked("T3_INFRA_CONSUMERS_UNBOUND")
+    return topo(out)
+
+
 def plan(root: Path, run: str) -> dict:
     from intake import SLUG, normalized_request_bytes
     if not isinstance(run,str) or not SLUG.fullmatch(run):
@@ -579,13 +641,13 @@ def plan(root: Path, run: str) -> dict:
          or state.get("pg01",{}).get("status")!="FIXTURE_UNATTESTED" or
          state.get("production_authority") is not False):
         blocked("LOTES_INTAKE_NO_ACEPTADO")
-    virtual_contracts = [a for a in fixture.get("atoms", [])
-                         if a.get("area") == "CONTRATO"]
-    contract_ids = {a["atom_id"] for a in virtual_contracts}
+    virtual_atoms = [a for a in fixture.get("atoms", [])
+                     if a.get("area") in ("CONTRATO", "INFRA")]
+    virtual_ids = {a["atom_id"] for a in virtual_atoms}
     source_fixture = ({**fixture, "atoms": [
-        {**a, "depends_on": [d for d in a["depends_on"] if d not in contract_ids]}
-        for a in fixture["atoms"] if a.get("area") != "CONTRATO"]}
-        if virtual_contracts else fixture)
+        {**a, "depends_on": [d for d in a["depends_on"] if d not in virtual_ids]}
+        for a in fixture["atoms"] if a.get("area") not in ("CONTRATO", "INFRA")]}
+        if virtual_atoms else fixture)
     rows=_inputs(package,source_fixture)
     outputs=_source_chain(package,source_fixture,rows,sha,state)
     dsn=os.environ.get("SELECTOR_EXP_TEST_DSN","")
@@ -602,6 +664,7 @@ def plan(root: Path, run: str) -> dict:
         lots,producer_hashes,assignments,currentness=_produce_lots(
             package,source_fixture,rows,outputs,dsn)
         lots=_t2_contract_lots(fixture,lots)
+        lots=_t3_infra_lots(fixture,lots)
     except (OSError,RuntimeError):
         blocked("SELECTOR_REQUIERE_ENTORNO")
     document={"schema_version":"CP33_LOTS_CANDIDATE_V1","request_id":run,
