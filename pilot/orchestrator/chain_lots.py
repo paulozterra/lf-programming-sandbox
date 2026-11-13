@@ -472,6 +472,32 @@ def block_request(request: str, state: dict, result: dict, head: str) -> dict:
     return worktree(head, branch, process)
 
 
+
+def sync_implemented_registry(head: str) -> dict:
+    """CP3.6 trusted main merge consumer is the sole registry writer.
+
+    It stages the ledger in a Draft PR: Train-only main remains enforced.
+    No labels or direct main writes. Historical seed uses the same derivation.
+    """
+    from implemented_registry import reconstruct, save
+    result = reconstruct(ROOT, head, lambda number: api(f"pulls/{number}"))
+    current = ROOT / "pilot/registry/implemented.json"
+    old = json.loads(current.read_text("utf-8")) if current.exists() else None
+    if old is not None and old.get("entries") == result["entries"]:
+        return {"status": "REGISTRY_CURRENT"}
+    branch = "lf/implemented-registry/" + head[:12]
+    if pending_draft("lf/implemented-registry/"):
+        return {"status": "REGISTRY_PENDING_REVIEW"}
+    def create(root: Path):
+        if not save(root, result):
+            return {"status": "REGISTRY_CURRENT"}
+        return draft(root, branch, "registry", ["pilot/registry/implemented.json"],
+                     "Historial Train CP3.5/CP3.6 y archivos con SHA verificados; "
+                     "las entradas sin evidencia quedan NO_DERIVABLE",
+                     "Actualizar registro de implementaciones verificadas")
+    return {"status": "REGISTRY_DRAFT", **worktree(head, branch, create)}
+
+
 def process(event_run_id: int | None = None, integration_pr: int | None = None) -> list[dict]:
     head = check_main()
     manual_sha = (validated_manual_integration(integration_pr, head)
@@ -483,6 +509,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
     if not all_plans:
         return [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS"}]
     history = first_parent_merges()
+    registry_status = (sync_implemented_registry(head) if kind == "TRAIN" else None)
     if manual_sha is not None and not any(sha == manual_sha for sha, _, _ in history):
         deny("MANUAL_INTEGRATION_OUTSIDE_HISTORY")
     # Historical first-parent commits are the proof. Reconcile all merged
@@ -539,6 +566,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
                 continue
             outcomes.append({"request": request, "lot_id": lot_id,
                              **prepare_successor(request, chosen, completed, head)})
+    if registry_status is not None:
+        outcomes.append(registry_status)
     return outcomes or [{"status": "NO_RELEASE_OR_BLOCK"}]
 
 
