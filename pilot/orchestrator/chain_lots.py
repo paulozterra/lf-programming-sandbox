@@ -511,11 +511,12 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
             # Never overwrite a registered task or reuse an old examiner SHA.
             registered = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
             if registered.exists() or registered.is_symlink():
-                sys.path.insert(0, str(ROOT / "vendor/programming-agent/src"))
-                from programming_agent_runner.hashutil import source_snapshot_sha256
+                def relevant_base_diff(base_sha: str) -> set[str]:
+                    run("git", "merge-base", "--is-ancestor", base_sha, head)
+                    return set(run("git", "diff", "--name-only", base_sha, head).splitlines())
                 candidate = registration_variant(
                     ROOT, task, bindings[lot_id]["template_path"],
-                    source_snapshot_sha256(ROOT))
+                    relevant_base_diff)
             else:
                 candidate = task
             if candidate is None:
