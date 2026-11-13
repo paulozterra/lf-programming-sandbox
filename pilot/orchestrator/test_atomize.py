@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -33,8 +34,15 @@ def make_run(temp, name, *, owner=False):
 def test_real_login_unresolved_even_when_owner_decision_present(tmp_path):
     folder = make_run(tmp_path, "f5-login", owner=True)
     with pytest.raises(package_to_lots.PackageLotsBlocked,
-                       match=r"ATOM_AREA_UNRESOLVED:.*F3-"):
+                       match=r"ATOM_AREA_UNRESOLVED:.*F3-") as failure:
         package_to_lots.prepare(tmp_path, "f5-login", base_head_sha=BASE)
+    if os.environ.get("T1_ARTIFACT_DIR"):
+        target = Path(os.environ["T1_ARTIFACT_DIR"])/"login-unresolved"
+        target.mkdir(parents=True, exist_ok=True)
+        code, payload = str(failure.value).split(":", 1)
+        (target/"atomization-block.json").write_text(
+            json.dumps({"reason_code": code, "unresolved_fronts": json.loads(payload),
+                        "lots_generated": False}, indent=2, sort_keys=True) + "\n")
     assert not (folder / "lots.json").exists()
     assert not (folder / "atomized_inputs.json").exists()
     report = json.loads((folder / "t1_interventions.json").read_text())
@@ -69,6 +77,12 @@ def test_three_areas_without_fixture_uses_pg02_pg05(tmp_path):
              ("atomized_inputs.json", "lots.json", "state.json")}
     assert package_to_lots.prepare(tmp_path, "sample-three-area-notes", base_head_sha=BASE) == lots
     assert all((folder/x).read_bytes() == y for x, y in first.items())
+    if os.environ.get("T1_ARTIFACT_DIR"):
+        output = Path(os.environ["T1_ARTIFACT_DIR"])/"sample-three-area-notes"
+        shutil.copytree(folder, output)
+        dest = output/"chain_plans"
+        dest.mkdir()
+        shutil.copyfile(plan, dest/"sample-three-area-notes.json")
 
 
 def test_same_a9_same_atom_bytes(tmp_path):

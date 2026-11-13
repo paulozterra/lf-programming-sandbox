@@ -449,9 +449,18 @@ jobs:
       - name: T1 fixture-free A9 atoms, PG02-PG05 and chain on disposable selector
         env:
           ATOMIZE_T1_SELECTOR: "YES"
+          T1_ARTIFACT_DIR: ${{ runner.temp }}/t1
         run: |
           python3 pilot/orchestrator/selector_db.py --t1-patterns
           python3 -m pytest -q pilot/orchestrator/test_atomize.py -p no:cacheprovider
+      - name: Publish T1 exact generated lots and Login unresolved evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: t1-atomized-lots
+          path: ${{ runner.temp }}/t1/
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Publish exact generated lots and deterministic state from disposable DB
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
