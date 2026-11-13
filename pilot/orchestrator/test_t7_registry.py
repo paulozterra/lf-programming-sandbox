@@ -98,7 +98,7 @@ def test_native_run_dry_mode_real_proposal_envelopes(tmp_path):
             "diff --git a/apps/time-service/src/main/java/demo/New.java "
             "b/apps/time-service/src/main/java/demo/New.java\n"
             + "\n".join("+" + line for line in added.splitlines()) + "\n")
-        proposal = tmp_path / (name + ".json")
+        proposal = tmp_path / ("proposal-" + name + ".json")
         proposal.write_text(json.dumps({
             "schema_version": 1, "summary": "offline test", "patch": patch,
             "changed_paths": ["apps/time-service/src/main/java/demo/New.java"]}))
