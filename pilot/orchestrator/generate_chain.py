@@ -92,6 +92,40 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False, skelet
                 item("data-migration-visible",["psql","-X","-v","ON_ERROR_STOP=1","-f",paths[0]],180)]
     raise ValueError("T1_AREA_INVALID")
 
+def _existing_behavior_tests(root, source_path, endpoints):
+    """Discover exact existing Java/controller tests and reused endpoint tests."""
+    source = Path(source_path)
+    if (source.suffix != ".java" or not source.name
+            or not isinstance(endpoints, list) or not endpoints
+            or not all(isinstance(ep, str) and " " in ep for ep in endpoints)):
+        raise ValueError("REUTILIZACION_INDETERMINADA")
+    routes = {ep.split(" ", 1)[1] for ep in endpoints}
+    matched = []
+    for name in ("apps/time-service/src/test", "apps/time-service/visible-tests"):
+        directory = Path(root) / name
+        if directory.is_symlink():
+            raise ValueError("REUTILIZACION_INDETERMINADA")
+        if not directory.is_dir():
+            continue
+        for file in sorted(directory.rglob("*")):
+            if file.is_symlink():
+                raise ValueError("REUTILIZACION_INDETERMINADA")
+            if not file.is_file() or file.suffix not in (".java", ".py", ".ts", ".tsx"):
+                continue
+            paired = file.stem in (source.stem + "Test", source.stem + "Tests",
+                                  source.stem + "IT")
+            try:
+                route_match = any(route in file.read_text(encoding="utf-8")
+                                  for route in routes)
+            except (UnicodeError, OSError) as exc:
+                raise ValueError("REUTILIZACION_INDETERMINADA") from exc
+            if paired or route_match:
+                matched.append(file.relative_to(root).as_posix())
+    if not matched:
+        raise ValueError("REUTILIZACION_INDETERMINADA")
+    return sorted(set(matched))
+
+
 def generate(root, run, lots):
     folder=Path(root)/"pilot/runs"/run
     report_path=folder/"reuse_assessment.json"
@@ -199,26 +233,56 @@ def generate(root, run, lots):
                 if dependency_contract else [])
         if lot.get("infra_context_ref"):
             context_paths.append(lot["infra_context_ref"])
+        retained_behavior=[]
         if report_path.exists():
             import hashlib as _hashlib
             active_scopes={scope_by_requirement[r] for r in lot["requirement_ids"]
                            if r in scope_by_requirement}
             selected=[r for r in reuse_rows
                       if scope_by_requirement.get(r.get("requirement_id")) in active_scopes]
+            # An existing REUSE_AS_IS source is writable only if another
+            # obligation in THIS lot explicitly extends that exact file.
+            extended = {}
+            for row in selected:
+                if row.get("decision") == "EXTEND":
+                    for path in row.get("write_paths", []):
+                        if path in paths:
+                            extended.setdefault(path, []).append(row)
             for obligation in selected:
-                for reference in obligation.get("reuse_context",[]):
-                    src=reference.get("path")
-                    sha=reference.get("sha256")
-                    if (not isinstance(src,str) or not isinstance(sha,str)
-                            or src in paths or not (Path(root)/src).is_file()
+                for reference in obligation.get("reuse_context", []):
+                    src, sha = reference.get("path"), reference.get("sha256")
+                    if (not isinstance(src, str) or not isinstance(sha, str)
+                            or not (Path(root)/src).is_file()
                             or _hashlib.sha256((Path(root)/src).read_bytes()).hexdigest()!=sha):
                         raise ValueError("REUTILIZACION_INDETERMINADA")
+                    if src in paths:
+                        matching = [row for row in extended.get(src, [])
+                                    if row.get("path") == src
+                                    and row.get("sha256") == sha]
+                        if obligation.get("decision") != "REUSE_AS_IS" or not matching:
+                            raise ValueError("REUTILIZACION_INDETERMINADA")
+                        endpoints = obligation.get("reused_endpoints", [])
+                        tests = _existing_behavior_tests(root, src, endpoints)
+                        protected.extend(tests)
+                        retained_behavior.append({
+                            "path":src,"endpoints":sorted(set(endpoints)),
+                            "protected_tests":tests,
+                            "reuse_requirement_id":obligation["requirement_id"],
+                            "extend_requirement_ids":sorted(
+                                row["requirement_id"] for row in matching)})
+                        continue
                     if src not in context_paths:
                         context_paths.append(src)
                     protected.append(src)
             context_paths.append("pilot/runs/"+run+"/reuse_assessment.json")
         context_paths=sorted(set(context_paths))
         protected=sorted(set(protected))
+        behavior_note = ("; conservar el comportamiento existente: "
+                         + "; ".join(
+                             ", ".join(row["endpoints"]) + " en " + row["path"]
+                             + "; no modificar sus tests protegidos: "
+                             + ", ".join(row["protected_tests"])
+                             for row in retained_behavior)) if retained_behavior else ""
         template={"task_spec":{
             "schema_version":1,"task_id":"LF-WORKER-NATIVE-"+task.upper(),
             "base_head_sha":"<FILL_AT_REGISTRATION>",
@@ -228,7 +292,7 @@ def generate(root, run, lots):
             "objective":("Aplicar exclusivamente dependencias y configuración de la allowlist T3"
                          if lot["area"]=="INFRA" else
                          "Implementar "+lot["area"]+" en "+run+"; requisitos "+", ".join(
-                            lot["requirement_ids"])+"; seguir package A9 sin inferencias"),
+                            lot["requirement_ids"])+"; seguir package A9 sin inferencias"+behavior_note),
             "write_path_patterns":paths,
             "context_path_patterns":context_paths,
             "protected_path_patterns":protected,
