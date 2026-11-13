@@ -1,55 +1,54 @@
-"""T1-A source-only bindings: do not infer implementation area from A7 hints."""
-from analysis.a9.front_bindings import bind
+"""T1-A: source-bound front partition and explicit fail-closed cases."""
+import pytest
+from analysis.a9.front_bindings import partition, FrontBindingGap
+from analysis.host.run_a1_a9_fixture import make_rule_sources
+from analysis.host.run_a1_a8_fixture import run_f3
 
 
-REQ = [
-    {"requirement_id": "REQ-SBX-R-USER", "source_requirement_id": "SBX-R-USER",
-     "evidence_refs": ["supabase://lf_ops.reglas/1"]},
-    {"requirement_id": "REQ-SBX-R-ERR", "source_requirement_id": "SBX-R-ERR",
-     "evidence_refs": ["supabase://lf_ops.reglas/5"]},
-]
-SECTIONS = {
-    "fields": [{"field_code": "SBX-F-USER", "status": "VIGENTE", "required": True}],
-    "errors": [{"error_code": "SBX-E-GENERIC", "status": "VIGENTE", "generic": True}],
-}
-RULES = {"SBX-R-ERR": {"config": {"generic_error": True}}}
+def packet():
+    source = run_f3()
+    requirements = [{"source_requirement_id": r["requirement_id"],
+                     "requirement_id": "REQ-" + r["requirement_id"],
+                     "evidence_refs": r["evidence_refs"]}
+                    for r in source["a6"]["requirements"]]
+    sections = source["stages"]["A3"]["material_contract_readback"]["contract_sections"]
+    return source["a7"]["material_fronts"], requirements, sections, make_rule_sources()["effective"]
 
 
-def front(candidate, kind, evidence):
-    return {"front_id": "F3-test", "candidate_ref": candidate, "front_kind": kind,
-            "evidence_refs": evidence, "obligation_mode": "REQUIRED",
-            "blockers": [], "closure": "CLOSED", "reason": "Source readback"}
+def test_login_two_areas_have_sourced_requirements():
+    fronts, reqs, sections, rules = packet()
+    active, excluded = partition(fronts, reqs, sections, rules,
+                                 scope="SBX-AUTH-LOGIN", create_empty_inventory=True)
+    assert [f["execution_area"] for f in active] == ["BACKEND", "FRONTEND"]
+    assert len({f["front_id"] for f in active}) == 2
+    for f in active:
+        assert f["requirement_ids"] and f["source_ref"] in f["evidence_refs"]
+    by_area = {f["execution_area"]: set(f["requirement_ids"]) for f in active}
+    assert {"REQ-SBX-R-USER", "REQ-SBX-R-PASS", "REQ-SBX-R-ERR"} <= (
+        by_area["BACKEND"] & by_area["FRONTEND"])
+    assert any(x["reason"] == "NON_BLOCKING_GAP_EMPTY_INVENTORY_CREATE" for x in excluded)
+    assert any(x["reason"] == "SOURCE_SECTION_HAS_NO_OBLIGATION" for x in excluded)
 
 
-def test_rule_source_binds_exact_requirement():
-    row = bind(front("supabase://lf_ops.reglas/1", "API_CONTRACT",
-                     ["supabase://lf_ops.reglas/1"]), REQ, SECTIONS, RULES)
-    assert row["requirement_ids"] == ["REQ-SBX-R-USER"]
-    assert row["execution_area"] == "BACKEND"
-    assert row["execution_area_source_ref"] == "supabase://lf_ops.reglas/1"
-    assert row["closure"] == "CLOSED"
+def test_a4_nonempty_inventory_fails_closed():
+    fronts, reqs, sections, rules = packet()
+    with pytest.raises(FrontBindingGap, match="A9_A4_DEPENDENCY_UNRESOLVED"):
+        partition(fronts, reqs, sections, rules,
+                  scope="SBX-AUTH-LOGIN", create_empty_inventory=False)
 
 
-def test_typed_field_binds_matching_rule_but_not_other_area():
-    path = "supabase://lf_ops.pantallas/SBX-AUTH-LOGIN#contract/fields/0"
-    row = bind(front(path, "DATA_CONTRACT", [path]), REQ, SECTIONS, RULES)
-    assert row["requirement_ids"] == ["REQ-SBX-R-USER"]
-    assert row["execution_area"] == "DATA"
-    assert row["execution_area_source_ref"] == path
+def test_required_field_without_requirement_fails_closed():
+    fronts, reqs, sections, rules = packet()
+    reqs = [r for r in reqs if r["source_requirement_id"] != "SBX-R-USER"]
+    with pytest.raises(FrontBindingGap, match="A9_FIELD_REQUIREMENT_NOT_SOURCED"):
+        partition(fronts, reqs, sections, rules,
+                  scope="SBX-AUTH-LOGIN", create_empty_inventory=True)
 
 
-def test_generic_screen_error_is_not_implicitly_single_area():
-    path = "supabase://lf_ops.pantallas/SBX-AUTH-LOGIN#contract/errors/0"
-    row = bind(front(path, "STATE_ERROR", [path]), REQ, SECTIONS, RULES)
-    assert row["requirement_ids"] == ["REQ-SBX-R-ERR"]
-    assert row["execution_area"] is None
-    assert row["closure"] == "BLOCKED"
-
-
-def test_unrelated_screen_metadata_and_a4_gap_never_ready():
-    for candidate in ("supabase://lf_ops.pantallas/SBX-AUTH-LOGIN#contract/metadata",
-                      "A4:unresolved:A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED:S3_INV_OBJECT"):
-        row = bind(front(candidate, "OTHER", []), REQ, SECTIONS, RULES)
-        assert not row["requirement_ids"]
-        assert "A9_REQUIRED_FRONT_WITHOUT_REQUIREMENT" in row["blockers"]
-        assert row["closure"] == "BLOCKED"
+def test_empty_section_does_not_create_implementation():
+    fronts, reqs, sections, rules = packet()
+    active, excluded = partition(fronts, reqs, sections, rules,
+                                 scope="SBX-AUTH-LOGIN", create_empty_inventory=True)
+    excluded_ids = {f["front_id"] for f in excluded}
+    assert all(f["front_id"] not in excluded_ids for f in active)
+    assert not any(f["execution_area"] == "DATA" for f in active)
