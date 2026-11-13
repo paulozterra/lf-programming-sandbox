@@ -265,6 +265,7 @@ jobs:
 
       - name: T4 root registration admission, EXAM_REQUEST and retry suffix (NO MODEL)
         run: |
+          python3 -m pip install --disable-pip-version-check --no-input PyYAML==6.0.3
           python3 -m py_compile pilot/orchestrator/t4_admission.py
           python3 -m pytest -q pilot/orchestrator/test_t4_admission.py -p no:cacheprovider
 
