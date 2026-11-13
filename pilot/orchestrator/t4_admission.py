@@ -124,22 +124,23 @@ def incremental_task(task: str, unavailable: set[str]) -> str:
 
 
 def registration_variant(root: Path, base_task: str, template_path: str,
-                         source_sha256: str) -> str | None:
-    """Return a new task ID only when the newest registration is stale.
+                         changed_since) -> str | None:
+    """Choose an immutable retry only if the task template or relevant
+    base files changed. Ignore generated registration/CI bookkeeping.
 
-    None means an existing registration on main is still reusable. Suffixes
-    are monotonic and tied to registration content; prior attempts are never
-    overwritten or silently resealed. No examiner artifact is inspected.
+    changed_since(base_sha) must independently verify ancestry and return
+    exact git-changed paths. Comparing the vendor's full-tree snapshot on
+    current main would be incorrect: a registration merge itself changes it.
     """
-    import hashlib
-    if not TASK.fullmatch(base_task) or not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
+    from fnmatch import fnmatch
+    if not TASK.fullmatch(base_task):
         raise AdmissionBlocked("TASK_INVALID")
     directory = root / "pilot/worker_v08/native_tasks"
     if not directory.is_dir() or directory.is_symlink():
         raise AdmissionBlocked("TASK_DIRECTORY_INVALID")
     names = []
     for path in directory.iterdir():
-        if (path.is_symlink() or not path.is_file() or path.suffix != ".json"):
+        if path.is_symlink() or not path.is_file() or path.suffix != ".json":
             continue
         stem = path.stem
         if stem == base_task or (stem.startswith(base_task)
@@ -162,7 +163,23 @@ def registration_variant(root: Path, base_task: str, template_path: str,
                "protected_path_patterns", "acceptance_commands", "max_patch_bytes",
                "max_changed_files")
     same_pack = all(spec.get(k) == desired.get(k) for k in tracked)
-    if same_pack and spec.get("source_snapshot_sha256") == source_sha256:
+    base = spec.get("base_head_sha")
+    if not isinstance(base, str) or not SHA.fullmatch(base):
+        raise AdmissionBlocked("TASK_BASE_INVALID")
+    changed = changed_since(base)
+    if not isinstance(changed, set) or any(not isinstance(p, str) for p in changed):
+        raise AdmissionBlocked("TASK_CHANGED_PATHS_INVALID")
+    meaningful = set(desired.get("write_path_patterns", []))
+    meaningful.update(desired.get("context_path_patterns", []))
+    meaningful.update(p for p in desired.get("protected_path_patterns", [])
+                      if isinstance(p, str)
+                      and p.startswith(("apps/", "frontend/", "backend/", "db/",
+                                        "contracts/", "supabase/")))
+    for path in changed:
+        if any(fnmatch(path, pattern) for pattern in meaningful
+               if isinstance(pattern, str)):
+            return incremental_task(base_task, set(names))
+    if same_pack:
         return None
     return incremental_task(base_task, set(names))
 
