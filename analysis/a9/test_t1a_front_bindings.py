@@ -11,7 +11,7 @@ def packet():
                      "requirement_id": "REQ-" + r["requirement_id"],
                      "evidence_refs": r["evidence_refs"]}
                     for r in source["a6"]["requirements"]]
-    sections = source["stages"]["A3"]["material_contract_readback"]["contract_sections"]
+    sections = source["verified_screen_contract"]["value"]
     return source["a7"]["material_fronts"], requirements, sections, make_rule_sources()["effective"]
 
 
@@ -41,7 +41,7 @@ def test_a4_nonempty_inventory_fails_closed():
 
 def test_required_field_without_requirement_fails_closed():
     fronts, reqs, sections, rules = packet()
-    reqs = [r for r in reqs if r["source_requirement_id"] != "SBX-R-USER"]
+    reqs = [r for r in reqs if r["evidence_refs"] != sections["fields"][0]["rule_refs"]]
     with pytest.raises(FrontBindingGap, match="A9_FIELD_REQUIREMENT_NOT_SOURCED"):
         partition(fronts, reqs, sections, rules,
                   scope="SBX-AUTH-LOGIN", create_empty_inventory=True)
