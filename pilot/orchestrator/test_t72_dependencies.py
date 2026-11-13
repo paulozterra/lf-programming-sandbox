@@ -296,3 +296,88 @@ def test_mixed_frontend_build_and_backend_reuse_plans_without_phantom_lot(tmp_pa
     assert planned["lots"]
     assert all(backend_id not in lot["requirement_ids"] for lot in planned["lots"])
     assert any(lot["area"] == "FRONTEND" for lot in planned["lots"])
+
+def _same_endpoint_chain(tmp_path, *, extend=True, protect_tests=True):
+    """Exercise real generate_chain with two sourced obligations in one lot."""
+    import sys
+    directory = str(Path(__file__).resolve().parent)
+    if directory not in sys.path:
+        sys.path.insert(0, directory)
+    from pilot.orchestrator import generate_chain
+
+    root = tmp_path
+    run = "t72-same-endpoint"
+    folder = root/"pilot/runs"/run
+    folder.mkdir(parents=True)
+    controller = "apps/time-service/src/main/java/lf/sandbox/time/catalog/ExistingItems.java"
+    text = 'public class ExistingItems {\n@GetMapping("/api/items")\n}\n'
+    (root/controller).parent.mkdir(parents=True)
+    (root/controller).write_text(text, encoding="utf-8")
+    sha = hashlib.sha256(text.encode()).hexdigest()
+    class_test = "apps/time-service/src/test/java/lf/sandbox/time/catalog/ExistingItemsTest.java"
+    endpoint_test = "apps/time-service/visible-tests/catalog/ItemsEndpointCheck.java"
+    for path, content in (
+        (class_test, "class ExistingItemsTest { }\n"),
+        (endpoint_test, 'class ItemsEndpointCheck { String route = "/api/items"; }\n'),
+    ):
+        (root/path).parent.mkdir(parents=True, exist_ok=True)
+        (root/path).write_text(content, encoding="utf-8")
+    scope = "SYN-CATALOG-BACKEND"
+    reuse_id = "REQ-EXISTING-FILTER"
+    extend_id = "REQ-SESSION-ENFORCEMENT"
+    rows = [
+        {"requirement_id": reuse_id, "decision": "REUSE_AS_IS",
+         "path": controller, "sha256": sha, "write_paths": [],
+         "reuse_context": [{"path": controller, "sha256": sha}],
+         "reused_endpoints": ["GET /api/items"]},
+        {"requirement_id": extend_id,
+         "decision": "EXTEND" if extend else "BUILD_NEW",
+         "path": controller if extend else None,
+         "sha256": sha if extend else None,
+         "write_paths": [controller] if extend else [],
+         "reuse_context": [],
+         "reused_endpoints": ["GET /api/items"] if extend else []},
+    ]
+    (folder/"analysis.json").write_text(json.dumps({
+        "requirements": [
+            {"requirement_id": rid, "scope_id": scope}
+            for rid in (reuse_id, extend_id)]}), encoding="utf-8")
+    (folder/"reuse_assessment.json").write_text(json.dumps({
+        "schema_version": "T7_REUSE_ASSESSMENT_V1",
+        "obligations": rows}), encoding="utf-8")
+    lots = {"schema_version":"CP33_LOTS_CANDIDATE_V1",
+            "production_authority":False, "handoff_allowed":False,
+            "worker_invoked":False,
+            "lots":[{"id":"LOT-BACKEND-1","area":"BACKEND",
+                     "write_paths":[controller],"depends_on":[],
+                     "requirement_ids":[reuse_id, extend_id]}]}
+    if not protect_tests:
+        (root/class_test).unlink()
+        (root/endpoint_test).unlink()
+    return generate_chain, root, run, lots, controller, class_test, endpoint_test
+
+
+def test_same_lot_reuse_and_extend_writes_controller_and_protects_both_tests(tmp_path):
+    generate_chain, root, run, lots, controller, class_test, endpoint_test = _same_endpoint_chain(tmp_path)
+    plan = generate_chain.generate(root, run, lots)
+    assert len(plan["bindings"]) == 1
+    spec = json.loads((root/plan["bindings"][0]["template_path"]).read_text())["task_spec"]
+    assert controller in spec["write_path_patterns"]
+    assert controller not in spec["context_path_patterns"]
+    assert controller not in spec["protected_path_patterns"]
+    assert {class_test, endpoint_test} <= set(spec["protected_path_patterns"])
+    assert "/api/items" in spec["objective"]
+    assert "conservar el comportamiento existente" in spec["objective"]
+    assert class_test in spec["objective"] and endpoint_test in spec["objective"]
+
+
+def test_same_lot_without_extend_cannot_write_reuse_only_controller(tmp_path):
+    generate_chain, root, run, lots, *_ = _same_endpoint_chain(tmp_path, extend=False)
+    with pytest.raises(ValueError, match="REUTILIZACION_INDETERMINADA"):
+        generate_chain.generate(root, run, lots)
+
+
+def test_same_lot_overlap_without_existing_tests_stays_blocked(tmp_path):
+    generate_chain, root, run, lots, *_ = _same_endpoint_chain(tmp_path, protect_tests=False)
+    with pytest.raises(ValueError, match="REUTILIZACION_INDETERMINADA"):
+        generate_chain.generate(root, run, lots)
