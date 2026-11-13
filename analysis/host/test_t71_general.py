@@ -74,6 +74,53 @@ def launch(root,run,phrase):
     return run_f4(root,slug=run)
 
 
+
+def _set_synthetic_optional_field(folder, *, with_rule_refs):
+    """Change only the synthetic pinned contract; never alter LF real fiches."""
+    path=folder/"screen_contract.json"
+    doc=json.loads(path.read_text("utf-8"))
+    field=doc["contract"]["fields"][0]
+    assert field.get("rule_refs"), "Synthetic fixture must start with a linked field"
+    field["required"]=False
+    if not with_rule_refs:
+        field["rule_refs"]=[]
+    path.write_text(json.dumps(doc,ensure_ascii=False,sort_keys=True,indent=2)+"\\n")
+    manifest=folder/"SOURCE_PIN.json"
+    pin=json.loads(manifest.read_text("utf-8"))
+    next(row for row in pin["files"] if row["file"]=="screen_contract.json")["sha256"]=hashlib.sha256(
+        path.read_bytes()).hexdigest()
+    manifest.write_text(json.dumps(pin,ensure_ascii=False,sort_keys=True,indent=2)+"\\n")
+
+
+def test_optional_vigente_field_with_rule_is_bound_in_a9(tmp_path):
+    code,folder=prepare_description_screen(tmp_path)
+    _set_synthetic_optional_field(folder,with_rule_refs=True)
+    result=launch(tmp_path,"optional-with-rule","Implementa "+code)
+    assert result["state"]["stage"]=="INTAKE_ACCEPTED"
+    assert result["package"]["material_fronts"]
+    assert any("#contract/fields/0" in ref
+               for front in result["package"]["material_fronts"]
+               for ref in front["evidence_refs"])
+
+
+def test_optional_vigente_field_without_rule_ref_still_blocks(tmp_path):
+    code,folder=prepare_description_screen(tmp_path)
+    _set_synthetic_optional_field(folder,with_rule_refs=False)
+    with pytest.raises(ValueError,match="A9_SECTION_RULE_REFS_MISSING"):
+        launch(tmp_path,"optional-no-rule","Implementa "+code)
+
+
+def test_lexicon_revision_keeps_session_as_traced_domain_concept(tmp_path):
+    from analysis.host.request_trace import trace, RequestTraceBlocked, LEXICON_PATH
+    lexicon=json.loads(LEXICON_PATH.read_text("utf-8"))
+    assert lexicon["lexicon_revision"]=="2026-11-13.2"
+    assert {"iniciada","servicio"} <= set(lexicon["request_grammar"])
+    assert "sesion" not in lexicon["stop_words"]+lexicon["request_grammar"]
+    with pytest.raises(RequestTraceBlocked,match="PEDIDO_EXCEDE_FICHA") as error:
+        trace("Implementa SYN-TRACE con sesión iniciada y servicio",
+              "SYN-TRACE",{"fields":[]},root=tmp_path)
+    assert error.value.fragments==["sesion"]
+
 def test_three_screen_catalogue_including_two_13_source_fiches(tmp_path):
     original,alternate,note=prepare(tmp_path)
     for index,code in enumerate((original,alternate,note)):
