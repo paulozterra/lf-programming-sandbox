@@ -311,3 +311,18 @@ def test_intervention_report_distinguishes_bot_contract_from_manual_contract():
     path = "contracts/functional-unit.openapi.yaml"
     assert classify(path, "BOT", "sample")[0] == "AUTOMATIC"
     assert classify(path, "PAULO_O_GPT", "sample")[1] == "MANUAL_CONTRACT"
+
+
+def test_native_worker_accepts_only_bounded_contract_write(tmp_path):
+    from pilot.orchestrator.native_lot_binding import map_profile, real_write_paths
+    from pilot.worker_v08.derive_context import denial
+
+    (tmp_path / "contracts").mkdir()
+    path = "contracts/case-2030.openapi.yaml"
+    assert denial(path) is None
+    assert denial("contracts/case-2030.skeleton.json", is_spec=True) is None
+    assert denial("contracts/case-2030.skeleton.json") == "DENIED_OUTSIDE_APPS"
+    assert denial("contracts/../unsafe.openapi.yaml") is not None
+    assert real_write_paths(tmp_path, "CONTRATO", [path]) == [path]
+    mapped = map_profile("PERFIL-PROG-BACKEND-SPRING-EXP", "CONTRATO")
+    assert mapped["native_profile_code"] == "PERFIL-PROG-BACKEND-EXP"
