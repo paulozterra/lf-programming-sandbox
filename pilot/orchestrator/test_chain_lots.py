@@ -221,6 +221,7 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
         return {"status": "DRAFT_PREPARED", "merge_authorized": False}
     shared = (
         patch.object(chain_lots, "check_main", return_value=newer_main),
+        patch.object(chain_lots, "sync_implemented_registry", return_value={"status": "REGISTRY_CURRENT"}),
         patch.object(chain_lots, "plans", return_value=[
             ("simulated", lots, status, bindings)]),
         patch.object(chain_lots, "first_parent_merges", return_value=history),
@@ -298,6 +299,7 @@ def test_p4_priority_chain_plan_data_merge_releases_backend_offline(tmp_path):
     with ExitStack() as stack:
         for manager in (
             patch.object(chain_lots, "check_main", return_value=current_main),
+            patch.object(chain_lots, "sync_implemented_registry", return_value={"status": "REGISTRY_CURRENT"}),
             patch.object(chain_lots, "event_kind", return_value="TRAIN"),
             patch.object(chain_lots, "plans", return_value=selected),
             patch.object(chain_lots, "first_parent_merges",
@@ -406,6 +408,7 @@ def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be(tmp_p
         with ExitStack() as stack:
             for item in (
                 patch.object(chain_lots, "check_main", return_value=head),
+                patch.object(chain_lots, "sync_implemented_registry", return_value={"status": "REGISTRY_CURRENT"}),
                 patch.object(chain_lots, "validated_manual_integration", return_value=sha),
                 patch.object(chain_lots, "plans", return_value=selected),
                 patch.object(chain_lots, "first_parent_merges",
