@@ -1,0 +1,17 @@
+{
+  "imitates": "lf_ops.pantallas_estados",
+  "states": [
+    {
+      "code": "SBX-ST-READY",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-ST-EMPTY",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-ST-UNAUTHENTICATED",
+      "status": "VIGENTE"
+    }
+  ]
+}

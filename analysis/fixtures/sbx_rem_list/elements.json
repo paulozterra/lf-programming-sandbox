@@ -1,0 +1,13 @@
+{
+  "imitates": "lf_ops.pantalla_elementos",
+  "elements": [
+    {
+      "code": "SBX-EL-PRIORITY-FILTER",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-EL-REMINDER-LIST",
+      "status": "VIGENTE"
+    }
+  ]
+}
