@@ -15,6 +15,10 @@ on:
           - ex4b
           - ex5c
         default: exercise-1
+      lot_task:
+        description: "Optional native-registered CONTRATO/INFRA task; routes to API-lot gate"
+        required: false
+        type: string
       provider:
         description: "Pilot provider (only anthropic)"
         required: true
@@ -49,7 +53,7 @@ concurrency:
 
 jobs:
   worker-pilot:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.lot_task == ''
     runs-on: ubuntu-latest
     timeout-minutes: ${{ (inputs.task == 'exercise-3' || inputs.task == 'ex4a' || inputs.task == 'ex4b' || inputs.task == 'ex5c') && 30 || 10 }}
     permissions:
@@ -568,3 +572,135 @@ jobs:
           if-no-files-found: error
           retention-days: 3
           path: ${{ runner.temp }}/lf-worker-pilot/public/time-service.jar
+
+  api-lot:
+    name: T8 API registered CONTRATO/INFRA lot
+    if: github.event_name == 'workflow_dispatch' && inputs.lot_task != '' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pilot
+          POSTGRES_DB: pilot
+          POSTGRES_PASSWORD: pilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pilot -d pilot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      LOT_TASK: ${{ inputs.lot_task }}
+    steps:
+      - name: Checkout trusted control main, not a proposal
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          path: control
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python runtime
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Verify fixed vendored Worker before inputs and credentials
+        run: python3 control/pilot/worker_v08/verify_vendor.py --root "$GITHUB_WORKSPACE/control/vendor/programming-agent"
+      - name: Admit registered lot and recompute generate_chain acceptance (NO API)
+        id: admission
+        run: |
+          set -euo pipefail
+          python3 control/pilot/worker_v08/api_lot.py admission \
+            --control control --task "$LOT_TASK" --github-output "$GITHUB_OUTPUT"
+      - name: Checkout exact registered baseline for isolated Worker
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.admission.outputs.base_sha }}
+          path: source
+          persist-credentials: false
+      - name: Install fixed JDK and Node for generated acceptance commands
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+      - name: Expose isolated Worker tools and smoke-test disposable PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tool in java javac jar mvn node npm psql pg_isready; do
+            binary="$(readlink -f "$(command -v "$tool")")"
+            sudo ln -sfn "$binary" "/usr/local/bin/$tool"
+          done
+          test "$(env -i PATH=/usr/local/bin:/usr/bin:/bin /bin/sh -c 'command -v java')" = /usr/local/bin/java
+          pg_isready -h 127.0.0.1 -p 5432 -U pilot -d pilot
+      - name: Install pinned Playwright browser and verify headless launch
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/lf-playwright-runtime
+          /tmp/lf-playwright-runtime/bin/python -m pip install --disable-pip-version-check --no-input playwright==1.56.0
+          PLAYWRIGHT_BROWSERS_PATH=/tmp/lf-playwright-browsers \
+            /tmp/lf-playwright-runtime/bin/python -m playwright install --with-deps --only-shell chromium
+          PLAYWRIGHT_BROWSERS_PATH=/tmp/lf-playwright-browsers \
+            /tmp/lf-playwright-runtime/bin/python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(headless=True); b.close(); p.stop()'
+      - name: Install verified Worker runtime from pinned vendor
+        run: python3 -m pip install --no-input --disable-pip-version-check control/vendor/programming-agent
+      - name: Install pinned age binary with independent SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/age-v1.3.2-linux-amd64.tar.gz"
+          curl --fail --location --silent --show-error --retry 2 \
+            https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-linux-amd64.tar.gz --output "$archive"
+          printf '%s  %s\n' 'cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10' "$archive" | sha256sum --check --status
+          mkdir -p "$RUNNER_TEMP/age-extract" "$RUNNER_TEMP/age-bin"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/age-extract"
+          install -m 0755 "$RUNNER_TEMP/age-extract/age/age" "$RUNNER_TEMP/age-bin/age"
+          "$RUNNER_TEMP/age-bin/age" --version | grep -Fq 'v1.3.2'
+      - name: Verify private encrypted oracle identity before API
+        env:
+          PILOT_HOLDOUT_AGE_KEY: ${{ secrets.PILOT_HOLDOUT_AGE_KEY }}
+          HOLDOUT_REF: ${{ steps.admission.outputs.holdout_ref }}
+          EXPECTED_SHA: ${{ steps.admission.outputs.holdout_sha256 }}
+        run: |
+          set -euo pipefail
+          python3 control/pilot/worker_v08/holdout_age.py \
+            --validate-recipient control/pilot/holdouts/recipient.txt
+          python3 control/pilot/worker_v08/holdout_age.py \
+            --control control --task "$LOT_TASK" --ref "$HOLDOUT_REF" \
+            --expected-sha "$EXPECTED_SHA" \
+            --private "$RUNNER_TEMP/api-lot-private" \
+            --age-bin "$RUNNER_TEMP/age-bin/age"
+      - name: Execute vendored verified Worker with generated acceptance
+        id: worker
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LOT_MODEL: ${{ inputs.model }}
+        run: |
+          python3 control/pilot/worker_v08/api_lot.py execute \
+            --control control --source source \
+            --private "$RUNNER_TEMP/api-lot-private" \
+            --task "$LOT_TASK" --model "$LOT_MODEL"
+      - name: Publish visible LF rule coverage without hidden oracle
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: api-lot-lf-rule-coverage
+          path: ${{ runner.temp }}/api-lot-private/public/lf-rule-report.json
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Publish patch only after verified PASS
+        if: ${{ steps.worker.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: api-lot-verified-patch
+          path: ${{ runner.temp }}/api-lot-private/public/worker.patch
+          if-no-files-found: error
+          retention-days: 90
