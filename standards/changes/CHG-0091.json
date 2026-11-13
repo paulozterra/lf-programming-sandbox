@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "T1-A paquete A9 sin decisiones manuales, 12/11/2026"
   },
-  "reason": "A9 agrupa frentes source-bound por area BE/FE, conserva evidencia A7 completa, clasifica secciones sin obligaciones como NOT_APPLICABLE y marca A4 CREATE con inventario fijado vacio como NON_BLOCKING_GAP en A8. La prueba positiva Login se ejecuta contra PG04/PG05 con PostgreSQL desechable; sin privilegios productivos.",
+  "reason": "A9 produce dos scopes ejecutables source-bound BACKEND/FRONTEND con IDs de obligación de implementación únicos y parent requirement trazable, evitando DUPLICATE_OBLIGATION_OWNERSHIP de PG-04 sin editar pilot ni productores fijados. Secciones sin obligación pasan a NOT_APPLICABLE; A4 CREATE con inventario fijado vacío emite NON_BLOCKING_GAP en A8. Prueba real de Login se ejecuta en selector PostgreSQL desechable.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
