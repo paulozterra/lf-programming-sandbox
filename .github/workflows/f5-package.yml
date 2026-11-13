@@ -49,7 +49,7 @@ jobs:
       - name: Load byte-pinned SQL PG02-PG05 selector and project backend prefix
         run: |
           python3 pilot/orchestrator/selector_db.py
-          PGPASSWORD=pilot psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c "INSERT INTO public.lf_project_area_pattern_exp(project_ref,area,path_prefix) VALUES ('lf_java','BACKEND','apps/time-service/src/main/java/')"
+          PGPASSWORD=pilot psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c "INSERT INTO public.lf_project_area_pattern_exp(project_ref,area,path_prefix) VALUES ('lf_java','BACKEND','apps/time-service/src/main/java/') ON CONFLICT DO NOTHING"
       - name: A9 authentic output matches committed bytes and real intake
         run: |
           python3 -m analysis.host.run_a1_a9_fixture --root "$RUNNER_TEMP/f5" --slug f5-login
@@ -60,7 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           cp pilot/runs/f5-login/owner_area_decision.json "$RUNNER_TEMP/f5/pilot/runs/f5-login/"
-          python3 -m pilot.orchestrator.package_to_lots --root "$RUNNER_TEMP/f5" --request-id f5-login --base-head-sha d940576ffea313e2ee62060e3f289c6825f83776
+          python3 -m pilot.orchestrator.package_to_lots --root "$RUNNER_TEMP/f5" --request-id f5-login --base-head-sha d940576ffea313e2ee62060e3f289c6825f83776 --legacy
           python3 -m pytest -q pilot/orchestrator/test_package_to_lots.py -p no:cacheprovider
           python3 - <<'PY'
           import os,json,pathlib

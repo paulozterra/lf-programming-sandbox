@@ -101,16 +101,18 @@ def topo(lots):
 
 def _inputs(package, fixture):
     if (not isinstance(fixture, dict) or
-            fixture.get("schema_version") != "CP33_SIMULATED_INPUTS_V1" or
+            fixture.get("schema_version") not in ("CP33_SIMULATED_INPUTS_V1", "T1_ATOMIZED_INPUTS_V1") or
             fixture.get("simulation_only") is not True):
         blocked("LOTES_FIXTURE_INVALIDA")
     if package.get("analysis_mode") != "SIMULATED_ANALYSIS":
         blocked("LOTES_ANALYSIS_NOT_SIMULATED")
     rows = fixture.get("atoms")
     binding = fixture.get("target_binding")
+    generated = fixture.get("schema_version") == "T1_ATOMIZED_INPUTS_V1"
     prefs = fixture.get("profile_choices")
     if (not isinstance(rows, list) or not rows or not isinstance(binding, dict)
-            or not isinstance(prefs, dict) or not isinstance(fixture.get("project_ref"), str)):
+            or (not generated and not isinstance(prefs, dict))
+            or not isinstance(fixture.get("project_ref"), str)):
         blocked("LOTES_FIXTURE_INVALIDA")
     if (not SHA40.fullmatch(binding.get("base_head_sha","")) or
             not isinstance(binding.get("repo_full_name"),str) or "/" not in binding["repo_full_name"] or
@@ -144,12 +146,14 @@ def _inputs(package, fixture):
             blocked("LOTE_MULTIAREA")
         if not isinstance(a["depends_on"],list):
             blocked("LOTES_FIXTURE_INVALIDA")
-        if sid in referenced:
+        if sid in referenced and not generated:
             blocked("LOTES_SCOPE_DUPLICADO")
         referenced.add(sid)
+        if generated and len(a["paths"]) > 6:
+            blocked("ATOM_WRITE_SCOPE_EXCEEDS_SIX")
     if set(scopes)!=referenced:
         blocked("LOTES_COBERTURA_INCOMPLETA")
-    if not set(prefs).issuperset({a["area"] for a in rows}):
+    if not generated and not set(prefs).issuperset({a["area"] for a in rows}):
         blocked("SELECTOR_REQUIERE_DECISION")
     return sorted(rows,key=lambda x:x["atom_id"])
 
@@ -160,7 +164,22 @@ def _source_inputs(package, rows, fixture, request_sha, state):
     by_front = {f["front_id"]:f for f in package["material_fronts"]}
     matrix,fronts = [],[]
     owner = fixture.get("owner_area_decision")
-    if owner is not None:
+    if fixture.get("schema_version") == "T1_ATOMIZED_INPUTS_V1":
+        by_atom_front = {a["front_id"]: a for a in rows}
+        for sid, scope in sorted(scopes.items()):
+            for fid in sorted(scope["material_front_refs"]):
+                f = by_front[fid]
+                atom = by_atom_front.get(fid)
+                if atom is None or atom["scope_id"] != sid:
+                    blocked("ATOM_FRONT_COVERAGE_INVALID")
+                fronts.append({"front_id": fid, "front_kind": KIND[atom["area"]],
+                               "status": f["obligation_mode"], "closure": f["closure"],
+                               "scope_refs": [sid]})
+                matrix.append({"scope_id": sid, "front_id": fid,
+                               "front_status": f["obligation_mode"],
+                               "front_closure": f["closure"],
+                               "effect_on_scope": "PRESERVE" if f["closure"]=="CLOSED" else "BLOCKS"})
+    elif owner is not None:
         # F5.1: preserve the entire A7 scope-front incidence matrix under an
         # explicit sandbox owner decision. The old synthetic fixture path
         # below stays unchanged. This never confers PG-01 authority.
@@ -410,13 +429,32 @@ def _produce_lots(package, fixture, rows, outputs, dsn):
         lot=pg04_area_lot(pg04_exit=pg04,pg05_c2=c2,pg04_areas=area_overlay,
                           solution_id=sid,area=area,paths=paths)
         prepare,finalize=_selector(dsn,fixture["project_ref"],area,paths)
-        preference=fixture["profile_choices"].get(area)
-        if not preference:
-            blocked("SELECTOR_REQUIERE_DECISION")
         request_wrap=prepare(package["request_context"]["intent"],fixture["project_ref"],area,paths)
         if request_wrap.get("status")!="READY":
             blocked("SELECTOR_REQUIERE_ENTORNO")
         request=request_wrap["request"]
+        if fixture["schema_version"]=="T1_ATOMIZED_INPUTS_V1":
+            # Selector input comes from versioned, source-pinned project policy;
+            # SQL PG05 validates candidate eligibility and finalizes selection.
+            policy_path = ROOT / "pilot/orchestrator/atomize_rules_v1.json"
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            selector_policy = policy.get("profile_resolution", {})
+            source = ROOT / selector_policy.get("source_ref", "")
+            if (policy.get("schema_version") != "T1_ATOMIZE_RULES_V1"
+                    or selector_policy.get("project_ref") != fixture["project_ref"]
+                    or not source.is_file()):
+                blocked("SELECTOR_T1_POLICY_INVALID")
+            preference = selector_policy.get("area_to_profile", {}).get(area)
+            if (not isinstance(preference, str) or
+                    preference not in source.read_text(encoding="utf-8")):
+                blocked("SELECTOR_T1_POLICY_INVALID")
+            candidates = request["candidate_profiles"]
+            if preference not in {x["profile_code"] for x in candidates}:
+                blocked("SELECTOR_T1_PROFILE_NOT_CANDIDATE")
+        else:
+            preference=fixture["profile_choices"].get(area)
+            if not preference:
+                blocked("SELECTOR_REQUIERE_DECISION")
         matches=[p for p in request["candidate_profiles"] if p["profile_code"]==preference]
         if len(matches)!=1:
             blocked("SELECTOR_PERFIL_NO_CANDIDATO")
@@ -459,8 +497,11 @@ def plan(root: Path, run: str) -> dict:
     folder=root/"pilot/runs"/run
     if folder.is_symlink():
         blocked("LOTES_RUTA_INVALIDA")
-    inputs=[folder/name for name in ("request.md","analysis.json","state.json","planning_fixture.json")]
+    generated = (folder/"atomized_inputs.json").is_file()
+    inputs=[folder/name for name in ("request.md","analysis.json","state.json",
+                                     "atomized_inputs.json" if generated else "planning_fixture.json")]
     if any(not p.is_file() or p.is_symlink() for p in inputs):
+        blocked("LOTES_ENTRADA_FALTANTE")
         blocked("LOTES_ENTRADA_FALTANTE")
     request,analysis_raw,state_raw,fixture_raw=[p.read_bytes() for p in inputs]
     try:
@@ -497,7 +538,7 @@ def plan(root: Path, run: str) -> dict:
         blocked("SELECTOR_REQUIERE_ENTORNO")
     document={"schema_version":"CP33_LOTS_CANDIDATE_V1","request_id":run,
         "request_sha256":sha,"analysis_sha256":state["analysis_sha256"],
-        "planning_fixture_sha256":digest(fixture),
+        **({"atomized_inputs_sha256":digest(fixture)} if generated else {"planning_fixture_sha256":digest(fixture)}),
         "pg01_status":"FIXTURE_UNATTESTED",
         "producer_outputs_sha256":producer_hashes,
         "profile_assignments_sha256":assignments,
