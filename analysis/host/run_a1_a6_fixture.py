@@ -15,7 +15,7 @@ from analysis.a6.implementability import run as run_a6
 
 def run_f2(fixtures=None, output_dir=None, request=None):
     host = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
-    data = host.read_all()
+    data = host.read_all(request)
     signal = deepcopy(data["semantic_signals.json"]["a2_signals"])
     signal["evidence_refs"] = [host.provenance["semantic_signals.json"]]
     actual_request = data["semantic_signals.json"]["request_text"] if request is None else request
