@@ -54,18 +54,21 @@ def test_three_areas_without_fixture_uses_pg02_pg05(tmp_path):
     folder = make_run(tmp_path, "sample-three-area-notes")
     assert not (folder/"planning_fixture.json").exists()
     lots = package_to_lots.prepare(tmp_path, "sample-three-area-notes", base_head_sha=BASE)
-    assert [x["area"] for x in lots["lots"]] == ["DATA", "BACKEND", "FRONTEND"]
-    assert len(lots["lots"]) == 3
+    assert [x["area"] for x in lots["lots"]] == ["INFRA", "DATA", "BACKEND", "FRONTEND"]
+    assert len(lots["lots"]) == 4
     assert all(len(x["write_paths"]) <= 6 for x in lots["lots"])
     assert lots["lots"][0]["depends_on"] == []
     assert lots["lots"][1]["depends_on"] == [lots["lots"][0]["id"]]
     assert lots["lots"][2]["depends_on"] == [lots["lots"][1]["id"]]
+    assert lots["lots"][3]["depends_on"] == [lots["lots"][2]["id"]]
+    assert lots["lots"][1]["write_paths"][0].startswith(
+        "apps/time-service/src/main/resources/db/migration/")
     assert "planning_fixture_sha256" not in lots
     assert "atomized_inputs_sha256" in lots
     assert lots["worker_invoked"] is False
     plan = tmp_path / "pilot/orchestrator/chain_plans/sample-three-area-notes.json"
     assert plan.is_file()
-    assert len(json.loads(plan.read_text())["bindings"]) == 3
+    assert len(json.loads(plan.read_text())["bindings"]) == 4
     for row in json.loads(plan.read_text())["bindings"]:
         template = tmp_path / row["template_path"]
         assert template.is_file()
@@ -91,7 +94,7 @@ def test_same_a9_same_atom_bytes(tmp_path):
     b = atomize.atomize(copy.deepcopy(source), tmp_path, BASE, run="sample-three-area-notes")
     assert atomize.canonical(a) == atomize.canonical(b)
     assert "profile_choices" not in a
-    assert len(a["provenance"]) == 3
+    assert len(a["provenance"]) == 4
 
 
 def test_front_without_source_rule_blocks(tmp_path):
@@ -107,4 +110,5 @@ def test_explicit_area_must_carry_source_ref(tmp_path):
     with pytest.raises(atomize.AtomBlocked, match="ATOM_AREA_UNRESOLVED"):
         atomize.atomize(source, tmp_path, BASE, run="sample-three-area-notes")
     source["material_fronts"][0]["source_ref"] = "fixture://area/data"
-    assert atomize.atomize(source, tmp_path, BASE, run="sample-three-area-notes")["atoms"][0]["area"] == "DATA"
+    assert "DATA" in [a["area"] for a in atomize.atomize(
+        source, tmp_path, BASE, run="sample-three-area-notes")["atoms"]]
