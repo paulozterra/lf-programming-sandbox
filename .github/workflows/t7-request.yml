@@ -1,0 +1,93 @@
+name: T7 main request auto-admission (trusted, no model)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pilot/runs/*/request.md'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: t7-request-admission
+  cancel-in-progress: false
+
+jobs:
+  admit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      SELECTOR_EXP_DISPOSABLE_DB: "YES"
+      SELECTOR_EXP_TEST_DSN: postgresql://pilot:pilot@127.0.0.1:5432/selector_exp_test_cp33
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout trusted main, not an untrusted proposal
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Disposable selector on loopback
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --rm --name t7-disposable-db --network host \
+            -e POSTGRES_USER=pilot -e POSTGRES_PASSWORD=pilot \
+            -e POSTGRES_DB=selector_exp_test_cp33 \
+            -e POSTGRES_INITDB_ARGS=--locale=C \
+            postgres:17 -c listen_addresses=127.0.0.1
+          for attempt in $(seq 1 40); do
+            if pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33 >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33
+          python3 pilot/orchestrator/selector_db.py
+          python3 pilot/orchestrator/selector_db.py --t1-patterns
+          PGPASSWORD=pilot psql -X -v ON_ERROR_STOP=1 \
+            -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c \
+            "INSERT INTO public.lf_project_area_pattern_exp(project_ref,area,path_prefix) VALUES ('lf_java','BACKEND','apps/time-service/src/main/java/')"
+      - name: Resolve exactly the requests submitted in this main commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" \
+            | grep -E '^pilot/runs/[a-z][a-z0-9_-]{0,63}/request[.]md$' \
+            > "$RUNNER_TEMP/t7-requests.txt"
+          test -s "$RUNNER_TEMP/t7-requests.txt"
+          while IFS= read -r file; do
+            slug="$(basename "$(dirname "$file")")"
+            python3 pilot/orchestrator/t7_entry.py --root . \
+              --request-id "$slug" --base-head-sha "$GITHUB_SHA"
+          done < "$RUNNER_TEMP/t7-requests.txt"
+      - name: Stage generated evidence only in a governed Draft PR
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="$(printf '%s' "$GITHUB_SHA" | cut -c1-12)"
+          branch="lf/generated-t7/$short_sha"
+          git switch -c "$branch"
+          while IFS= read -r file; do
+            slug="$(basename "$(dirname "$file")")"
+            git add -- "pilot/runs/$slug"
+            if [ -f "pilot/orchestrator/chain_plans/$slug.json" ]; then
+              git add -- "pilot/orchestrator/chain_plans/$slug.json"
+            fi
+          done < "$RUNNER_TEMP/t7-requests.txt"
+          git add -- contracts
+          if git diff --cached --quiet; then
+            echo T7_NO_NEW_ARTIFACTS
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m 'T7 generated request analysis, reuse assessment and chain'
+          git push --set-upstream origin "$branch"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+            --draft --title "[DRAFT][T7] generated admission for $short_sha" \
+            --body "Trusted main request input; A1-A9 candidate, source-derived reuse, intake, planning and chain. Owner/Train governance retained. No oracle, model, labels, or direct push to main."
