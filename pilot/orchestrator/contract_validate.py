@@ -67,21 +67,32 @@ def operations(spec):
     return ops
 
 
-def _examples(obj, parents=()):
+def _examples(obj, parents=(), in_example=False):
+    """Block unredacted secret examples, including nested JSON payload values."""
+    secret_terms = ("password", "passwd", "secret", "token", "api_key",
+                    "apikey", "authorization", "private_key")
+    placeholders = ("[REDACTED]", "<redacted>", "***", None)
     if isinstance(obj, dict):
-        for key, val in obj.items():
-            if key in ("example", "examples", "default") and any(
-                    any(fragment in x.casefold() for fragment in ("password","passwd","secret","token","api_key"))
-                    for x in parents):
-                if val not in ("[REDACTED]", "<redacted>", "***", None):
+        for key, value in obj.items():
+            if not isinstance(key, str):
+                deny("CONTRACT_EXAMPLE_INVALID")
+            sensitive = any(term in key.casefold() for term in secret_terms)
+            if in_example and sensitive and value not in placeholders:
+                deny("CONTRACT_SECRET_EXAMPLE")
+            next_example = in_example or key in ("example", "examples", "default")
+            if next_example and any(
+                    any(term in piece.casefold() for term in secret_terms)
+                    for piece in parents) and key in ("example", "examples", "default"):
+                if value not in placeholders:
                     deny("CONTRACT_SECRET_EXAMPLE")
-            if key in ("example", "examples") and isinstance(val, str):
-                if "Bearer " in val or val.startswith("sk-"):
+            if next_example and isinstance(value, str):
+                lowered = value.casefold()
+                if "bearer " in lowered or value.startswith("sk-"):
                     deny("CONTRACT_SECRET_EXAMPLE")
-            _examples(val, parents + (str(key),))
-    if isinstance(obj, list):
-        for val in obj:
-            _examples(val, parents)
+            _examples(value, parents + (key,), next_example)
+    elif isinstance(obj, list):
+        for part in obj:
+            _examples(part, parents, in_example)
 
 
 def _field_names(operation):
