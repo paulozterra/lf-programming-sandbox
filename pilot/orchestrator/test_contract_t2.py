@@ -326,3 +326,16 @@ def test_native_worker_accepts_only_bounded_contract_write(tmp_path):
     assert real_write_paths(tmp_path, "CONTRATO", [path]) == [path]
     mapped = map_profile("PERFIL-PROG-BACKEND-SPRING-EXP", "CONTRATO")
     assert mapped["native_profile_code"] == "PERFIL-PROG-BACKEND-EXP"
+
+
+def test_nested_password_in_example_blocks(tmp_path):
+    skeleton = sample_skeleton()
+    spec = constructor_proposal(skeleton)
+    spec["paths"]["/api/sample"]["post"]["requestBody"]["content"][
+        "application/json"]["example"] = {
+            "SYNTH_FIELD": "value", "password": "unredacted"
+        }
+    path = tmp_path / "sample.openapi.yaml"
+    path.write_text(yaml.safe_dump(spec))
+    with pytest.raises(ContractBlocked, match="CONTRACT_SECRET_EXAMPLE"):
+        validate(path, skeleton, "sample")
