@@ -6,10 +6,12 @@ from pathlib import Path
 import subprocess
 import time
 
-from contract_validate import compare_runtime, load, ContractBlocked
+from contract_validate import compare_runtime, load, ContractBlocked, operations_for_runtime
+from urllib.request import urlopen
+import json
 
 
-def run(contract: Path, *, port: int = 18765):
+def run(contract: Path | None = None, *, port: int = 18765):
     proc = subprocess.Popen([
         "mvn", "-B", "-q", "-f", "apps/time-service/pom.xml",
         "spring-boot:run", f"-Dspring-boot.run.arguments=--server.port={port}",
@@ -19,7 +21,14 @@ def run(contract: Path, *, port: int = 18765):
             if proc.poll() is not None:
                 raise ContractBlocked("T2_BACKEND_PROCESS_EXITED")
             try:
-                return compare_runtime(load(contract), f"http://127.0.0.1:{port}")
+                with urlopen(f"http://127.0.0.1:{port}/v3/api-docs", timeout=8) as reply:
+                    runtime = json.load(reply)
+                if not isinstance(runtime, dict) or not str(runtime.get("openapi", "")).startswith("3."):
+                    raise ContractBlocked("T2_BACKEND_OPENAPI_INVALID")
+                sources = [contract] if contract else sorted(Path("contracts").glob("*.openapi.yaml"))
+                for source in sources:
+                    compare_runtime(load(source), f"http://127.0.0.1:{port}")
+                return {"status": "PASS", "contracts": len(sources)}
             except ContractBlocked as exc:
                 if "UNAVAILABLE" not in str(exc):
                     raise
@@ -36,6 +45,6 @@ def run(contract: Path, *, port: int = 18765):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--contract", type=Path, required=True)
+    parser.add_argument("--contract", type=Path)
     args = parser.parse_args()
     print(run(args.contract))
