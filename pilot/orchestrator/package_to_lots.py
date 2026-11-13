@@ -2,7 +2,7 @@
 """F5.1 candidate package-to-PG04 bridge. No model, no owner decision inference.
 
 The stock plan_lots._inputs contract permits exactly one atom per scope, each
-with a sourced requirement. The A9 Login package has ONE scope and no A6
+with a sourced requirement. A legacy A9 source package has ONE scope and no A6
 obligation explicitly bound to its DATA_CONTRACT fronts. This adapter blocks
 instead of inventing a DATA requirement or silently assigning UNKNOWN fronts.
 """
@@ -147,12 +147,10 @@ def derive(package):
 
 # Owner decision is a bounded sandbox routing authorization, not LF authority.
 # Paths are proposed future write boundaries: no Java files are created here.
-AUTH_PATHS = [
-    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
-    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
-    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthUser.java",
-    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
-]
+LEGACY = json.loads((HERE / "legacy_f51_source_v1.json").read_text(encoding="utf-8"))
+if LEGACY.get("schema_version") != "F51_LEGACY_PIN_V1":
+    raise ValueError("F51_LEGACY_PIN_INVALID")
+AUTH_PATHS = LEGACY["write_paths"]
 OWNER_FILE = "owner_area_decision.json"
 OWNER_SCHEMA = "F51_OWNER_AREA_DECISION_SANDBOX_V1"
 
@@ -176,7 +174,7 @@ def _decision(package, folder, slug):
             or decision.get("role") != "owner"
             or decision.get("date") != "2026-11-12"
             or decision.get("request_id") != slug
-            or decision.get("scope_id") != "SBX-AUTH-LOGIN"
+            or decision.get("scope_id") != LEGACY["scope_id"]
             or decision.get("area") != "BACKEND"
             or decision.get("lot_count") != 1
             or decision.get("requirement_ids") != expected_requirements
@@ -209,7 +207,7 @@ def _planning_fixture(package, decision, base_head_sha):
         "target_binding": {
             "repo_full_name": "paulozterra/lf-programming-sandbox",
             "base_head_sha": base_head_sha,
-            "target_binding_ref": "fixture://f5-login/owner-decision",
+            "target_binding_ref": LEGACY["target_binding_ref"],
         },
         "profile_choices": {"BACKEND": "PERFIL-PROG-BACKEND-SPRING-EXP"},
         "owner_area_decision": {
@@ -222,13 +220,13 @@ def _planning_fixture(package, decision, base_head_sha):
             "front_ids": list(decision["front_ids"]),
         },
         "atoms": [{
-            "atom_id": "ATOM-F5-LOGIN-BACKEND",
+            "atom_id": LEGACY["atom_id"],
             "scope_id": decision["scope_id"],
             "front_id": decision["front_ids"][0],
             "area": "BACKEND",
             "paths": list(AUTH_PATHS),
             "depends_on": [],
-            "outcome_id": "OUTCOME-F5-LOGIN-BACKEND",
+            "outcome_id": LEGACY["outcome_id"],
             "business_outcome": "\\n".join(
                 r["outcome"] for r in package["requirements"]),
         }],
@@ -248,7 +246,7 @@ def _business_context(package, decision):
         "registration_status": "NOT_REGISTERED",
         "status": "CANDIDATE_ONLY",
         "source_analysis_sha256": decision["analysis_sha256"],
-        "owner_decision_ref": "pilot/runs/f5-login/" + OWNER_FILE,
+        "owner_decision_ref": "pilot/runs/" + LEGACY["request_id"] + "/" + OWNER_FILE,
         "rules": deepcopy(rules),
         "requirements": deepcopy(package["requirements"]),
         "production_authority": False,
@@ -278,12 +276,12 @@ def prepare_legacy(root, slug, *, base_head_sha=None):
         if not assessment["business_rules_by_area"]["DATA"]:
             blocked("F51_DATA_REQUIREMENT_NOT_SOURCE_BOUND")
         blocked("F51_PG04_SCOPE_PARTITION_NOT_SOURCE_BOUND")
-    if slug != "f5-login":
+    if slug != LEGACY["request_id"]:
         blocked("F51_OWNER_DECISION_SCOPE_INVALID")
     context = _business_context(package, owner)
-    _write_once(Path(root) / ".lf/worker-context/f5backend/reglas_tecnicas.json",
+    _write_once(Path(root) / ".lf/worker-context/" + LEGACY["task_id"] + "/reglas_tecnicas.json",
                 technical_rules("BACKEND"))
-    _write_once(Path(root) / ".lf/worker-context/f5backend/reglas_negocio.json",
+    _write_once(Path(root) / ".lf/worker-context/" + LEGACY["task_id"] + "/reglas_negocio.json",
                 context)
     # For already planned runs, the fixture is immutable and the original
     # planner provides the canonical drift + state checks.
@@ -292,7 +290,7 @@ def prepare_legacy(root, slug, *, base_head_sha=None):
         fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
         if (fixture.get("schema_version") != "CP33_SIMULATED_INPUTS_V1"
                 or fixture.get("target_binding", {}).get("target_binding_ref") !=
-                "fixture://f5-login/owner-decision"):
+                LEGACY["target_binding_ref"]):
             blocked("F51_PLANNING_FIXTURE_INVALID")
     else:
         if not base_head_sha:
@@ -366,7 +364,7 @@ def prepare(root, slug, *, base_head_sha=None, legacy=False, contract_mode=False
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--root", type=Path, default=ROOT)
-    p.add_argument("--request-id", default="f5-login")
+    p.add_argument("--request-id", default=LEGACY["request_id"])
     p.add_argument("--base-head-sha", default=None)
     p.add_argument("--legacy", action="store_true")
     p.add_argument("--with-contract", action="store_true", help="CP1.5 T2 contract mode")
