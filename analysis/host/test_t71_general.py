@@ -38,6 +38,24 @@ def prepare(tmp_path):
         file.write_text(json.dumps(obj,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
         next(x for x in pin["files"] if x["file"]==name)["sha256"]=hashlib.sha256(
             file.read_bytes()).hexdigest()
+    # The new 13-file fixture carries actual LF rule descriptions in direct
+    # readback rather than relying on Login's hardcoded A6 corpus. An inherited
+    # transversal rule receives its own description in the effective readback.
+    direct_file=third/"direct_rules.json"
+    direct=json.loads(direct_file.read_text("utf-8"))
+    for row in direct["linked_rules"]:
+        row["descripcion"]=str(row["title"])+" comprobada"
+    direct_file.write_text(json.dumps(direct,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    next(x for x in pin["files"] if x["file"]=="direct_rules.json")["sha256"]=hashlib.sha256(
+        direct_file.read_bytes()).hexdigest()
+    eff_file=third/"effective_rules.json"
+    eff=json.loads(eff_file.read_text("utf-8"))
+    for row in eff["rules"]:
+        if not any(x["code"]==row["code"] for x in direct["linked_rules"]):
+            row["descripcion"]=str(row["title"])+" comprobada"
+    eff_file.write_text(json.dumps(eff,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    next(x for x in pin["files"] if x["file"]=="effective_rules.json")["sha256"]=hashlib.sha256(
+        eff_file.read_bytes()).hexdigest()
     # Pin a new 12-source fiche: semantic_signals is OPTIONAL, not canonical.
     pin["files"]=[x for x in pin["files"] if x["file"]!="semantic_signals.json"]
     (third/"semantic_signals.json").unlink()
