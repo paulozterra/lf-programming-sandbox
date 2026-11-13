@@ -78,10 +78,14 @@ jobs:
             slug="$(basename "$(dirname "$file")")"
             git add -- "pilot/runs/$slug"
             if [ -f "pilot/orchestrator/chain_plans/$slug.json" ]; then
-              git add -- "pilot/orchestrator/chain_plans/$slug.json"
+              cp -- "pilot/orchestrator/chain_plans/$slug.json" "pilot/runs/$slug/chain_plan.json"
             fi
+            git add -- "pilot/runs/$slug"
+            # The generated proposal cannot modify the submitted request itself.
+            git reset -q -- "pilot/runs/$slug/request.md"
           done < "$RUNNER_TEMP/t7-requests.txt"
-          git add -- contracts
+          # Contract skeletons outside pilot/runs are not auto-integrable:
+          # generated evidence PRs have one strictly closed path family.
           if git diff --cached --quiet; then
             echo T7_NO_NEW_ARTIFACTS
             exit 0
@@ -93,3 +97,5 @@ jobs:
           gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
             --draft --title "[DRAFT][T7] generated admission for $short_sha" \
             --body "Trusted main request input; A1-A9 candidate, source-derived reuse, intake, planning and chain. Owner/Train governance retained. No oracle, model, labels, or direct push to main."
+          # PRs created with GITHUB_TOKEN do not automatically trigger CI.
+          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
