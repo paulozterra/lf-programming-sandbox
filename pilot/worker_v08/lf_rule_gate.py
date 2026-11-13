@@ -137,6 +137,9 @@ def verified_visible_commands(rows: list[dict], visible: dict | None,
                   if isinstance(c,dict) and isinstance(c.get("argv"),list)}
     if not isinstance(visible,dict):
         return table
+    # Only the pinned full formatter can attest complete formatting.
+    # A command merely named std-XX-YY is not proof (it might run "true").
+    from register_task_context import FORMAT_COMMAND
     successful = set()
     for attempt in visible.get("attempts",[]):
         if not isinstance(attempt,dict):
@@ -148,8 +151,11 @@ def verified_visible_commands(rows: list[dict], visible: dict | None,
             if not isinstance(name,str) or not isinstance(argv,list):
                 continue
             marker=re.match(r"(std-[a-z]+-[0-9]+)(?:-|$)",name)
-            if marker and (name,tuple(argv)) in registered:
-                successful.add(marker.group(1).upper())
+            if (marker and marker.group(1).upper() == "STD-BE-05"
+                    and name == FORMAT_COMMAND["name"]
+                    and argv == FORMAT_COMMAND["argv"]
+                    and (name, tuple(argv)) in registered):
+                successful.add("STD-BE-05")
     for row in table:
         if row["coverage"]=="NO_VERIFICADO" and row["rule_id"] in successful:
             row["coverage"]="MACHINE"
