@@ -141,3 +141,15 @@ def test_format_is_machine_verified_only_with_pinned_successful_visible_command(
              "argv":["false"]}])==table
     failed={"attempts":[{"acceptance":[{**command,"status":"FAIL"}]}]}
     assert verified_visible_commands(table,failed,[command])==table
+
+
+def test_offline_api_and_native_browser_toolchain_pin_parity():
+    import re
+    api=(ROOT/".github/workflows/worker-pilot.yml").read_text("utf-8")
+    native=(ROOT/".github/workflows/worker-native.yml").read_text("utf-8")
+    for exact in ("playwright==1.56.0", "--with-deps --only-shell chromium",
+                  "/tmp/lf-playwright-browsers", "/tmp/lf-playwright-runtime"):
+        assert exact in api and exact in native
+    assert "source/pilot/worker_v08/test_t8_lf_rules.py" in api
+    assert re.search(r"node-version:\s*[\"']?22",api)
+    assert re.search(r"java-version:\s*[\"']?21",api)
