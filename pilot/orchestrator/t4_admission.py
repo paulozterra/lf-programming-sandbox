@@ -245,7 +245,7 @@ def protected_test_conflict(root: Path, lot: dict, binding: dict) -> None:
                     continue
                 method = found.group("method").lower()
                 route = found.group("route")
-                targets = [entry for pattern, methods in doc["paths"].items()
+                targets = [methods for pattern, methods in doc["paths"].items()
                            if isinstance(pattern, str)
                            and isinstance(methods, dict)
                            and _route_matches(pattern, route)
