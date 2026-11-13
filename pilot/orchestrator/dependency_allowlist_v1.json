@@ -34,7 +34,21 @@
     "npm": {
       "manifest": "frontend/package.json",
       "version_strategy": "EXACT",
-      "dependencies": []
+      "dependencies": [
+        {
+          "id": "frontend-openapi-fetch",
+          "name": "openapi-fetch",
+          "version": "0.17.0",
+          "group": "dependencies"
+        },
+        {
+          "id": "frontend-openapi-typescript",
+          "name": "openapi-typescript",
+          "version": "7.13.0",
+          "group": "devDependencies"
+        }
+      ],
+      "lockfile": "frontend/package-lock.json"
     }
   },
   "requirements_by_area": {
