@@ -30,7 +30,7 @@ def _infra_allowed_paths():
     p = infra_lot.policy()
     return set(p["database"]["config_files"]) | {
         item["manifest"] for item in p["targets"].values()
-    }
+    } | {p["targets"]["npm"]["lockfile"]}
 
 
 class NativeLotBlocked(ValueError):
@@ -76,7 +76,7 @@ def real_write_paths(root: Path, area: str, paths: list[str]) -> list[str]:
                 or not path.startswith(REAL_ROOTS[area])
                 or (area == "INFRA" and path not in _infra_allowed_paths())
                 or Path(path).suffix not in ({".yaml"} if area == "CONTRATO"
-                                             else {".xml", ".properties", ".example"} if area == "INFRA"
+                                             else {".xml", ".properties", ".example", ".json"} if area == "INFRA"
                                              else {".java", ".ts", ".tsx", ".sql"})):
             raise NativeLotBlocked("CP34_FAKE_OR_UNSAFE_PATH")
         target = root / path
