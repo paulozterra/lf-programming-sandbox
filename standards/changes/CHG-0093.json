@@ -1,0 +1,49 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0093",
+  "title": "T2 CP1.5: lote CONTRATO gobernado y OpenAPI tipado",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T2: contrato automático + OpenAPI, 2026-11-13"
+  },
+  "reason": "Infraestructura OpenAPI con dependencias fijas; lote CONTRATO determinista para funcionalidades con backend y frontend; validadores de fuente y cobertura, cliente generado y controles de CI. No modifica productores fijados ni rutas de integración.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "apps/time-service/pom.xml",
+      "frontend/package.json",
+      "frontend/package-lock.json",
+      "frontend/scripts/gen-api.mjs",
+      "frontend/src/lib/api/client.ts",
+      "frontend/src/lib/api/generated/index.ts",
+      "pilot/orchestrator/atomize.py",
+      "pilot/orchestrator/atomize_rules_v1.json",
+      "pilot/orchestrator/contract_validate.py",
+      "pilot/orchestrator/plan_lots.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/package_to_lots.py",
+      "pilot/orchestrator/native_lot_binding.py",
+      "pilot/orchestrator/test_contract_t2.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0093.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "owner",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
