@@ -25,6 +25,14 @@ REAL_ROOTS = {
 FAKE_PREFIXES = ("src/main/java/com/lf/", "web/src/app/")
 
 
+def _infra_allowed_paths():
+    from pilot.orchestrator import infra_lot
+    p = infra_lot.policy()
+    return set(p["database"]["config_files"]) | {
+        item["manifest"] for item in p["targets"].values()
+    }
+
+
 class NativeLotBlocked(ValueError):
     """Fail-closed reason visible to the owner."""
 
@@ -66,7 +74,7 @@ def real_write_paths(root: Path, area: str, paths: list[str]) -> list[str]:
                 or any(part in (".", "..") for part in PurePosixPath(path).parts)
                 or path.startswith(FAKE_PREFIXES)
                 or not path.startswith(REAL_ROOTS[area])
-                or (area == "INFRA" and path not in __import__("infra_lot").policy()["database"]["config_files"])
+                or (area == "INFRA" and path not in _infra_allowed_paths())
                 or Path(path).suffix not in ({".yaml"} if area == "CONTRATO"
                                              else {".xml", ".properties", ".example"} if area == "INFRA"
                                              else {".java", ".ts", ".tsx", ".sql"})):
