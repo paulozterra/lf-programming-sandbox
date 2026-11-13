@@ -45,8 +45,8 @@ def _slug(source, rules):
     return result
 
 
-JAVA_PACKAGE = re.compile(r"[a-z][a-z0-9]*\\Z")
-JAVA_CLASS = re.compile(r"[A-Z][A-Za-z0-9]*\\Z")
+JAVA_PACKAGE = re.compile(r"[a-z][a-z0-9]*\Z")
+JAVA_CLASS = re.compile(r"[A-Z][A-Za-z0-9]*\Z")
 JAVA_RESERVED = frozenset({
     "abstract", "assert", "boolean", "break", "byte", "case", "catch",
     "char", "class", "const", "continue", "default", "do", "double",
