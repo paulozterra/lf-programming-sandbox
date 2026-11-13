@@ -153,3 +153,33 @@ def test_offline_api_and_native_browser_toolchain_pin_parity():
     assert "source/pilot/worker_v08/test_t8_lf_rules.py" in api
     assert re.search(r"node-version:\s*[\"']?22",api)
     assert re.search(r"java-version:\s*[\"']?21",api)
+
+
+@pytest.mark.parametrize("area", ("BACKEND", "FRONTEND", "DATA"))
+def test_manifest_domains_change_context_exactly_without_manual_lists(tmp_path, area):
+    import shutil
+    from pilot.worker_v08.lf_rule_context import RuleContextBlocked, select_stack
+    initial, original = material(area)
+    stack = original["selected_stack"]
+    assert original["selected_domains"] == json.loads(
+        (ROOT/"standards/skills"/stack/"skill.json").read_text())["domains"]
+    standards = tmp_path/"standards"
+    skill_dir = standards/"skills"/stack
+    skill_dir.mkdir(parents=True)
+    shutil.copy2(ROOT/"standards/catalog.json", standards/"catalog.json")
+    (standards/"glossary").mkdir()
+    shutil.copy2(ROOT/"standards/glossary/base.json", standards/"glossary/base.json")
+    shutil.copy2(ROOT/"standards/skills"/stack/"SKILL.md", skill_dir/"SKILL.md")
+    manifest=json.loads((ROOT/"standards/skills"/stack/"skill.json").read_text())
+    # Remove a secondary, catalog-backed domain, so the resolver still
+    # has its selected stack but must regenerate different rule content.
+    candidates=[d for d in manifest["domains"] if d!="STD-GEN"]
+    assert len(candidates)<len(manifest["domains"])
+    manifest["domains"]=candidates
+    (skill_dir/"skill.json").write_text(json.dumps(manifest))
+    modified, receipt = material(area, standards_root=standards)
+    assert receipt["selected_domains"]==candidates
+    assert receipt["rule_ids"] != original["rule_ids"]
+    assert modified != initial
+    with pytest.raises(RuleContextBlocked,match="DOMINIOS_NO_RESUELTOS"):
+        material(area, skill_codes=["unmatched_stack"], standards_root=standards)
