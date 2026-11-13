@@ -78,5 +78,23 @@
     "sbx-auth-",
     "demo-",
     "scope-"
-  ]
+  ],
+  "contract_lot": {
+    "schema_version": "T2_CONTRACT_LOT_RULES_V1",
+    "area": "CONTRATO",
+    "requires_areas": [
+      "BACKEND",
+      "FRONTEND"
+    ],
+    "route": "contracts/{module}.openapi.yaml",
+    "profile_area": "BACKEND",
+    "profile_code": "PERFIL-PROG-BACKEND-SPRING-EXP",
+    "depends_on_areas": [],
+    "context_areas": [
+      "BACKEND",
+      "FRONTEND"
+    ],
+    "max_paths": 1,
+    "source": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1"
+  }
 }
