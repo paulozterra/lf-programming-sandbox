@@ -1,88 +1,148 @@
-"""T1-A: source-only A9 front/requirement binding. No guessed area or obligation.
+"""T1-A source-derived work fronts for the A9→T1 atomizer boundary.
 
-A source identifies an obligation only if it is an A6 rule ref or a
-typed screen-field/error code that matches an independently sourced rule.
-Unresolved front coverage is an explicit material gap, never READY.
+Original A7 front discovery is retained in the source snapshot. A9 exports
+one bounded, non-overlapping write scope per implementation area; each area
+front carries the exact source requirement IDs and evidence used to derive it.
+The source-only accounting ledger keeps excluded/non-atomized fronts visible.
 """
 from __future__ import annotations
 
-AREAS = {
-    "DATA_CONTRACT": "DATA",
-    "DATABASE_SCHEMA": "DATA",
-    "API_CONTRACT": "BACKEND",
-    "PERMISSION": "BACKEND",
-    "SECURITY_PRIVACY": "BACKEND",
-    "OBSERVABILITY": "BACKEND",
-    "UI_VISUAL": "FRONTEND",
-    "UI_INTERACTION": "FRONTEND",
-    "RESPONSIVE": "FRONTEND",
-    "ACCESSIBILITY": "FRONTEND",
-}
+import hashlib
 
 
-def bind(front, requirements, screen_sections, effective_rules):
-    """Returns a new front, preserving original A7 evidence and identity."""
-    row = dict(front)
-    refs = set(row.get("evidence_refs", []))
+class FrontBindingGap(ValueError):
+    pass
+
+
+def _new_id(scope, area):
+    return "F3-" + hashlib.sha256((scope + "|T1-A|" + area).encode()).hexdigest()[:16]
+
+
+def partition(fronts, requirements, sections, effective_rules, *, scope, create_empty_inventory):
     by_code = {r["source_requirement_id"]: r for r in requirements}
-    ids = {r["requirement_id"] for r in requirements if refs.intersection(r["evidence_refs"])}
-    candidate = row.get("candidate_ref", "")
-    source = None
-
-    # The typed screen field code carries the exact rule suffix; require
-    # matching source status and a real A6 obligation, not a prose guess.
-    if "#contract/fields/" in candidate:
-        try:
-            ix = int(candidate.rsplit("/", 1)[1])
-            field = screen_sections["fields"][ix]
-            code = "SBX-R-" + field["field_code"].removeprefix("SBX-F-")
-            if field.get("status") == "VIGENTE" and field.get("required") is True and code in by_code:
-                ids.add(by_code[code]["requirement_id"])
-                source = candidate
-        except (KeyError, ValueError, IndexError, TypeError):
-            pass
-    elif "#contract/errors/" in candidate:
-        try:
-            ix = int(candidate.rsplit("/", 1)[1])
-            error = screen_sections["errors"][ix]
-            matches = [code for code, item in effective_rules.items()
-                       if item.get("config", {}).get("generic_error") is True
-                       and code in by_code]
-            if error.get("status") == "VIGENTE" and error.get("generic") is True and len(matches) == 1:
-                ids.add(by_code[matches[0]]["requirement_id"])
-                source = candidate
-        except (KeyError, ValueError, IndexError, TypeError):
-            pass
-
-    # An A6 requirement front inherits its exact pinned rule source. Other
-    # screen-level context/metadata/visual evidence cannot manufacture a
-    # relationship to any one requirement.
-    obligation_refs = sorted(ids)
-    row["obligation_refs"] = obligation_refs
-    row["requirement_ids"] = obligation_refs
-    row["requirement_source_refs"] = {rid: sorted(by_code[r["source_requirement_id"]]["evidence_refs"])
-                                     for rid in obligation_refs for r in requirements
-                                     if r["requirement_id"] == rid}
-    kind = row["front_kind"]
-    area = AREAS.get(kind)
-    if kind == "STATE_ERROR":
-        # API behavior and visible error message are distinct potential areas.
-        # A7's UNKNOWN hint is not evidence of either side.
-        area = None
-    if kind == "OTHER":
-        area = None
-    row["execution_area"] = area
-    row["execution_area_source_ref"] = (source or (sorted(refs)[0] if refs else None)) if area else None
-    # Compatibility with T1 atomize._area (requires the name source_ref).
-    row["source_ref"] = row["execution_area_source_ref"]
+    by_ref = {ref: r for r in requirements for ref in r["evidence_refs"]}
+    if len(by_code) != len(requirements):
+        raise FrontBindingGap("A9_REQUIREMENT_ID_DUPLICATE")
+    evidence = {"BACKEND": set(), "FRONTEND": set()}
+    ids = {"BACKEND": set(), "FRONTEND": set()}
+    non_atomized = []
     gaps = []
-    if row["obligation_mode"] == "REQUIRED" and not obligation_refs:
-        gaps.append("A9_REQUIRED_FRONT_WITHOUT_REQUIREMENT")
-    if row["obligation_mode"] == "REQUIRED" and not area:
-        gaps.append("A9_FRONT_AREA_NOT_SOURCE_RESOLVED")
-    row["front_gaps"] = gaps
+
+    def add(area, req, ref):
+        if req not in by_code or not ref:
+            raise FrontBindingGap("A9_UNSOURCED_AREA_OR_REQUIREMENT")
+        ids[area].add(by_code[req]["requirement_id"])
+        evidence[area].add(ref)
+
+    fields = sections.get("fields", [])
+    errors = sections.get("errors", [])
+    visuals = sections.get("visual", {})
+    variants = visuals.get("variants", []) if isinstance(visuals, dict) else []
+    if not isinstance(fields, list) or not isinstance(errors, list) or not isinstance(variants, list):
+        raise FrontBindingGap("A9_SCREEN_SECTIONS_INVALID")
+
+    # The immutable screen-contract field is a form field, not a database table.
+    # REQUIRED fields have sourced server and form-validation obligations.
+    for index, field in enumerate(fields):
+        code = field.get("field_code")
+        rule = "SBX-R-" + code.removeprefix("SBX-F-") if isinstance(code, str) else None
+        ref = next((f["candidate_ref"] for f in fronts
+                    if f["candidate_ref"].endswith("#contract/fields/" + str(index))), None)
+        if field.get("required") is True and field.get("status") == "VIGENTE":
+            if rule not in by_code or not ref:
+                gaps.append("A9_FIELD_REQUIREMENT_NOT_SOURCED:" + str(code))
+            else:
+                add("BACKEND", rule, ref)
+                add("FRONTEND", rule, ref)
+    # A generic API error has two obligations: HTTP response and visible text.
+    for index, error in enumerate(errors):
+        ref = next((f["candidate_ref"] for f in fronts
+                    if f["candidate_ref"].endswith("#contract/errors/" + str(index))), None)
+        matches = [code for code, row in effective_rules.items()
+                   if row.get("config", {}).get("generic_error") is True and code in by_code]
+        if error.get("status") == "VIGENTE" and error.get("generic") is True:
+            if len(matches) != 1 or not ref:
+                gaps.append("A9_ERROR_REQUIREMENT_NOT_SOURCED:" + str(error.get("error_code")))
+            else:
+                add("BACKEND", matches[0], ref)
+                add("FRONTEND", matches[0], ref)
+    visual_refs = [f["candidate_ref"] for f in fronts
+                   if "#contract/visual/variants/" in f["candidate_ref"]]
+    if variants:
+        if len(visual_refs) != len(variants):
+            gaps.append("A9_VISUAL_VARIANT_SOURCE_MISSING")
+        elif ids["FRONTEND"]:
+            evidence["FRONTEND"].update(visual_refs)
+        else:
+            gaps.append("A9_VISUAL_WITHOUT_REQUIREMENT")
+
+    for front in fronts:
+        source = front["candidate_ref"]
+        required_codes = set(front.get("obligation_refs", []))
+        if source.startswith("A4:unresolved:"):
+            if not create_empty_inventory:
+                gaps.append("A9_A4_DEPENDENCY_UNRESOLVED:" + source)
+                continue
+            non_atomized.append({**front, "obligation_mode": "NOT_APPLICABLE",
+                "reason": "NON_BLOCKING_GAP_EMPTY_INVENTORY_CREATE",
+                "non_blocking_gap": True, "evidence_refs": sorted(set(front["evidence_refs"] + [source])),
+                "execution_area": None, "execution_area_source_ref": None})
+            continue
+        req = by_ref.get(source)
+        if req is not None:
+            code = req["source_requirement_id"]
+            kind = front["front_kind"]
+            if kind in ("SECURITY_PRIVACY", "PERMISSION", "API_CONTRACT", "OBSERVABILITY"):
+                add("BACKEND", code, source)
+            elif kind == "STATE_ERROR":
+                # Typed error-state rule + generic_error flag authorizes BE.
+                # FE presentation is sourced from errors[] + visual variants.
+                if effective_rules.get(code, {}).get("config", {}).get("generic_error") is True:
+                    add("BACKEND", code, source)
+                else:
+                    gaps.append("A9_STATE_ERROR_UNCLASSIFIED:" + source)
+            elif kind == "OTHER" and code in ("SBX-R-USER", "SBX-R-PASS"):
+                # Source category "flujo" alone is not a technical area.
+                # The typed form fields above are the only authority for both.
+                if by_code[code]["requirement_id"] not in ids["BACKEND"]:
+                    gaps.append("A9_FLOW_FIELD_BINDING_MISSING:" + source)
+            elif kind == "OTHER":
+                gaps.append("A9_RULE_AREA_UNRESOLVED:" + source)
+        if front.get("status") == "NOT_APPLICABLE":
+            non_atomized.append({**front, "obligation_mode": "NOT_APPLICABLE"})
+        elif req is None and not source.startswith("A4:unresolved:"):
+            # A screen section with no independent obligation is accounted
+            # as non-executable evidence, never turned into a fake task.
+            has_section = "#contract/" in source
+            if not has_section:
+                gaps.append("A9_UNSOURCED_REQUIRED_FRONT:" + source)
+                continue
+            non_atomized.append({**front, "obligation_mode": "NOT_APPLICABLE",
+                "reason": "SOURCE_SECTION_HAS_NO_OBLIGATION",
+                "execution_area": None, "execution_area_source_ref": None,
+                "evidence_refs": sorted(set(front["evidence_refs"] + [source]))})
     if gaps:
-        row["closure"] = "BLOCKED"
-        row["blockers"] = sorted(set(row["blockers"] + gaps))
-        row["reason"] += "; A9 source-only binding gap"
-    return row
+        raise FrontBindingGap("A9_FRONT_BINDING_GAP:" + "|".join(sorted(set(gaps))))
+    if not ids["BACKEND"] or not ids["FRONTEND"]:
+        raise FrontBindingGap("A9_MISSING_IMPLEMENTATION_AREA")
+    rows = []
+    for area, kind in (("BACKEND", "API_CONTRACT"), ("FRONTEND", "UI_VISUAL")):
+        refs = sorted(evidence[area])
+        row = {
+            "front_id": _new_id(scope, area), "scope_ids": [scope],
+            "front_kind": kind, "obligation_mode": "REQUIRED",
+            "closure": "CLOSED", "blockers": [],
+            "reason": "T1-A split by typed screen fields/errors and approved rule sources",
+            "evidence_refs": refs, "source_signal_refs": refs,
+            "obligation_refs": sorted(ids[area]), "requirement_ids": sorted(ids[area]),
+            "requirement_source_refs": {
+                req["requirement_id"]: req["evidence_refs"]
+                for req in requirements if req["requirement_id"] in ids[area]
+            },
+            "execution_area": area, "execution_area_source_ref": refs[0],
+            "source_ref": refs[0], "execution_area_policy": "SOURCE_DERIVED",
+            "materiality_level": "HIGH", "requires_independent_exam": True,
+            "simulation_mode": fronts[0]["simulation_mode"],
+        }
+        rows.append(row)
+    return rows, non_atomized
