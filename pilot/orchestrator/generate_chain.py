@@ -67,8 +67,8 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False, skelet
             raise ValueError("T3_INFRA_DEPENDENCIES_MISSING")
         argv=["python3","pilot/orchestrator/infra_validate.py",
               "--check-infra","--root","."]
-        for item in infra_dependencies:
-            argv += ["--dependency-id",item["id"]]
+        for dependency in infra_dependencies:
+            argv += ["--dependency-id",dependency["id"]]
         if "apps/time-service/src/main/resources/application.properties" in paths:
             argv += ["--database"]
         result=[item("infra-allowlist-and-env",argv)]
