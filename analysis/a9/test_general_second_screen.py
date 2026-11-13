@@ -77,7 +77,7 @@ def make_package(source, request):
         original_fronts, requirements, source["screen_contract"],
         source["effective_rules"], scope=source["target_ref"],
         create_empty_inventory=True)
-    projected, active, scopes, _ = project(
+    projected, active, scopes, rule_fronts = project(
         source["target_ref"], requirements, active, readiness="READY_CANDIDATE")
     return {
         "schema_version": "ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
@@ -99,6 +99,12 @@ def make_package(source, request):
         } for i in range(1, 10)],
         "material_unknowns": [], "decisions_pending": [],
         "requirements": projected, "material_fronts": active,
+        "applicable_rules": [{
+            "rule_code": row["source_requirement_id"],
+            "requirement_id": row["requirement_id"],
+            "front_id": rule_fronts[row["source_requirement_id"]],
+            "source_ref": row["evidence_refs"][0],
+        } for row in projected if not row.get("derived_from_requirement_id")],
         "scope_proposals": scopes,
         "non_atomized_fronts": excluded,
         "research_stop": {
