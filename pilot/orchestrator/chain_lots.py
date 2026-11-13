@@ -566,7 +566,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
                 continue
             outcomes.append({"request": request, "lot_id": lot_id,
                              **prepare_successor(request, chosen, completed, head)})
-    if registry_status is not None:
+    if registry_status is not None and registry_status.get("status") == "REGISTRY_DRAFT":
         outcomes.append(registry_status)
     return outcomes or [{"status": "NO_RELEASE_OR_BLOCK"}]
 
