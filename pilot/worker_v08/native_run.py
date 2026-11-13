@@ -150,6 +150,47 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     # No preflight, missing oracle, invalid proposal, or scope failure is charged.
     # A later Worker failure does consume this attempt.
     _write(public / "attempt-proof.json", _proof(submitted, task, attempt, run_id))
+    # T8: a failed deterministic standard is a spent, visible FAIL. The
+    # examiner's oracle is not inspected or reflected in this report.
+    rule_receipts = [p for p in raw_task.get("context_path_patterns", [])
+                     if p == f".lf/worker-context/{task}/lf_rules.receipt.json"]
+    if rule_receipts:
+        from lf_rule_gate import evaluate, coverage, RuleGateBlocked
+        try:
+            manifest_path = source / rule_receipts[0]
+            if manifest_path.is_symlink() or not manifest_path.is_file():
+                raise RuleGateBlocked("LF_RULE_CONTEXT_MISSING")
+            manifest = strict_json_loads(manifest_path.read_text("utf-8"))
+            if manifest.get("schema_version") not in (None, "T8_LF_RULE_CONTEXT_V1"):
+                raise RuleGateBlocked("LF_RULE_CONTEXT_INVALID")
+            gate = evaluate(proposal.patch, manifest["rule_ids"], root=control)
+            table = coverage(gate)
+        except (RuleGateBlocked, ValueError, KeyError, TypeError, OSError) as exc:
+            gate = {"status":"FAIL", "violations":[{
+                "rule_id":"LF_RULE_CONTEXT", "code":"LF_RULE_CONTEXT_INVALID",
+                "path":"context"}]}
+            table = []
+        _write(public / "lf-rule-report.json", {
+            "schema_version":"T8_RULE_REPORT_V1",
+            "status":gate["status"], "rules":table,
+            "violations":gate["violations"]})
+        if gate["status"] != "PASS":
+            (public / "feedback.json").unlink()
+            visible = {"attempts":[{"acceptance":[{
+                "name":v["rule_id"], "status":"FAIL", "reason":v["code"],
+                "returncode":1, "stdout_excerpt":"", "stderr_excerpt":""}
+                for v in gate["violations"]]}]}
+            feedback = _visible_feedback(visible, attempt)
+            _write(public / "feedback.json", feedback)
+            _write(public / "status.json", {
+                "schema_version":"LF_NATIVE_RESULT_SUMMARY_V1",
+                "task_id":task, "attempt":attempt,
+                "proposal_sha256":submitted["proposal_sha256"],
+                "task_pack_sha256":submitted["task_pack_sha256"],
+                "feedback_sha256":hashlib.sha256(canonical_json_bytes(feedback)).hexdigest(),
+                "status":"FAIL", "authority":"REAL_SANDBOX_UNAUTHENTICATED",
+                "production_authority":False, "receipt_authenticated":False})
+            return False
     client = NativeProposalClient(proposal_file)
     seen = []
     original = verified_module.run_worker
