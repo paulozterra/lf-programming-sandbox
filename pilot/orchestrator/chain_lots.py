@@ -201,7 +201,7 @@ def completed_lots(lots: dict, bindings: dict, history: list[tuple]) -> dict:
         branch = pr.get("head", {}).get("ref", "")
         if not any(re.fullmatch(
                 r"lf/native-integration/" + re.escape(row["task_name"])
-                + r"(?:[2-9][0-9]*)?-run-[1-9][0-9]*", branch)
+                + r"(?:(?:[2-9]|[1-9][0-9]+))?-run-[1-9][0-9]*", branch)
                 for row in bindings.values()):
             continue
         lot_id, receipt = attest_merge(sha, pr, lots, bindings, changed)
