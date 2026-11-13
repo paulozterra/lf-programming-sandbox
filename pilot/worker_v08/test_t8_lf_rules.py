@@ -81,9 +81,19 @@ def test_catalogue_cases_resolved_without_case_literals():
     catalogue=ROOT/"analysis/fixtures"
     names=sorted(p.parent for p in catalogue.glob("*/SOURCE_PIN.json"))
     assert len(names)>=2
+    from analysis.host.request_catalog import resolve
+    schema_versions = set()
     for source in names:
-        assert (source/"SOURCE_PIN.json").is_file()
-        assert material("FRONTEND")[1]["rule_ids"]
+        manifest = json.loads((source/"SOURCE_PIN.json").read_text("utf-8"))
+        schema_versions.add(manifest["schema_version"])
+        code = manifest["fixture_id"]
+        selected_code, selected_path = resolve(ROOT, ("Cambiar pantalla " + code).encode())
+        assert selected_code == code and selected_path == source
+        for area in ("BACKEND", "FRONTEND", "DATA"):
+            assert material(area)[1]["rule_ids"]
+    # Covers both the original and the second-screen fixture format, without
+    # pinning a screen's proper name, route, module or business requirement.
+    assert {"SBX_FIXTURE_PIN_V1","SOURCE_SCREEN_PIN_V1"}.issubset(schema_versions)
     # A synthetic route has no special code path or per-screen allowance.
     assert evaluate("diff --git a/frontend/src/app/new/page.tsx b/frontend/src/app/new/page.tsx\n"
                     "+export default function Page() { return null; }\n",
