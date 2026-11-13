@@ -170,5 +170,104 @@ class PolicyTests(unittest.TestCase):
         trigger["head_repository"]["full_name"] = "someone/fork"
         self.blocked("TRIGGER_NOT_TRUSTED", lambda: ai.verify_trigger(trigger))
 
+class T7GeneratedPolicyTests(unittest.TestCase):
+    """Policy C uses the same authorize/check/label/Train flow as native PRs."""
+
+    def generated(self, family, paths):
+        obj = pr("registration")
+        obj["head"]["ref"] = family + "/" + HEAD[:12]
+        obj["changed_files"] = len(paths)
+        return obj
+
+    def test_generated_prs_label_and_dispatch_without_manual_label(self):
+        cases = [
+            ("lf/generated-t7", ["pilot/runs/sample/analysis.json",
+                                  "pilot/runs/sample/state.json",
+                                  "pilot/runs/sample/chain_plan.json"]),
+            ("lf/implemented-registry", ["pilot/registry/implemented.json"]),
+        ]
+        for family, allowed in cases:
+            with self.subTest(family=family):
+                item = self.generated(family, allowed)
+                api = FakeAPI(item, allowed, checks())
+                with patch.object(ai, "verify_generated_content") as validate:
+                    self.assertEqual(ai.evaluate_one(api, 129),
+                                     "LABEL_AND_TRAIN_DISPATCHED")
+                    validate.assert_called_once()
+                self.assertEqual(api.writes[0][0], "/issues/129/labels")
+                self.assertEqual(api.writes[1][0],
+                                 "/actions/workflows/sandbox-train.yml/dispatches")
+
+    def test_extra_paths_and_human_author_block_before_label(self):
+        for family, allowed in (
+            ("lf/generated-t7", ["pilot/runs/sample/analysis.json"]),
+            ("lf/implemented-registry", ["pilot/registry/implemented.json"]),
+        ):
+            with self.subTest(family=family):
+                extra = allowed + ["pilot/orchestrator/chain_plans/sample.json"]
+                item = self.generated(family, extra)
+                with self.assertRaisesRegex(ai.PolicyBlocked, "PR_PATH_NOT_ALLOWED"):
+                    ai.eligible_pr(item, extra)
+                item = self.generated(family, allowed)
+                item["user"]["login"] = "human"
+                with self.assertRaisesRegex(ai.PolicyBlocked, "PR_AUTHOR_NOT_BOT"):
+                    ai.eligible_pr(item, allowed)
+
+    def test_tampered_registry_bytes_block_automatic_label(self):
+        registry_paths = ["pilot/registry/implemented.json"]
+        item = self.generated("lf/implemented-registry", registry_paths)
+        api = FakeAPI(item, registry_paths, checks())
+        from types import SimpleNamespace
+        with patch.object(ai.subprocess, "run", return_value=SimpleNamespace(
+                     stdout=HEAD + "\n")):
+            with patch("pilot.orchestrator.implemented_registry.reconstruct",
+                       return_value={"schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
+                                     "source_main_sha": HEAD, "entries": []}):
+                with patch.object(ai, "_content", return_value=b'{"tampered":true}\n'):
+                    with self.assertRaisesRegex(ai.PolicyBlocked, "GENERATED_CONTENT_DRIFT"):
+                        ai.evaluate_one(api, 129)
+        self.assertEqual(api.writes, [])
+
+    def test_generated_analysis_drift_blocks_without_label(self):
+        allowed = ["pilot/runs/sample/analysis.json"]
+        item = self.generated("lf/generated-t7", allowed)
+        api = FakeAPI(item, allowed, checks())
+        from types import SimpleNamespace
+        class FakeFixture:
+            def __init__(self, where):
+                self.where = where
+            def __enter__(self):
+                return self.where
+            def __exit__(self, *exc):
+                return False
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            stage = __import__("pathlib").Path(tmp)
+            outputs = iter([SimpleNamespace(stdout=HEAD + "\n", returncode=0),
+                            SimpleNamespace(stdout=b"request SCREEN-A\n", returncode=0)])
+            def run_f4(root, slug, fixtures):
+                folder = root / "pilot/runs" / slug
+                (folder / "analysis.json").write_bytes(b'{"trusted":true}\n')
+            with patch.object(ai.subprocess, "run", side_effect=lambda *a, **kw: next(outputs)):
+                with patch("analysis.host.request_catalog.resolve",
+                           return_value=("SCREEN-A", stage)):
+                    with patch("analysis.host.run_a1_a9_fixture.run_f4",
+                               side_effect=run_f4):
+                        with patch.object(ai, "_content",
+                                          return_value=b'{"tampered":true}\n'):
+                            with self.assertRaisesRegex(ai.PolicyBlocked,
+                                                        "GENERATED_CONTENT_DRIFT"):
+                                ai.evaluate_one(api, 129)
+        self.assertEqual(api.writes, [])
+
+    def test_generated_commit_is_reported_automatic(self):
+        from orchestrator.intervention_report import actor, classify, BOT_EMAIL
+        self.assertEqual(actor(BOT_EMAIL, "github-actions[bot]"), "BOT")
+        for path in ("pilot/runs/sample/analysis.json",
+                     "pilot/runs/sample/chain_plan.json",
+                     "pilot/registry/implemented.json"):
+            self.assertEqual(classify(path, "BOT", "sample")[0], "AUTOMATIC")
+
+
 if __name__ == "__main__":
     unittest.main()
