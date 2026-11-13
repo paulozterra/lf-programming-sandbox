@@ -7,17 +7,19 @@
     "kind": "OWNER",
     "reference": "T1-A paquete A9 sin decisiones manuales, 12/11/2026"
   },
-  "reason": "Proyección A9 de relaciones frente-requisito solo con referencias verificadas; las áreas UNKNOWN y las obligaciones ausentes bloquean READY, no se convierten en decisiones automáticas. Sigue sin cerrarse el impacto A4 y los frentes de pantalla sin obligación explícita: el contrato vigente no permite demostrar un Login READY sin más evidencia.",
+  "reason": "A9 agrupa frentes source-bound por area BE/FE, conserva evidencia A7 completa, clasifica secciones sin obligaciones como NOT_APPLICABLE y marca A4 CREATE con inventario fijado vacio como NON_BLOCKING_GAP en A8. La prueba positiva Login se ejecuta contra PG04/PG05 con PostgreSQL desechable; sin privilegios productivos.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/ci.yml",
       "analysis/a9/front_bindings.py",
       "analysis/a9/package.py",
+      "analysis/a9/test_t1a_front_bindings.py",
+      "analysis/host/run_a1_a8_fixture.py",
       "analysis/host/test_a9_intake.py",
       "analysis/host/test_t1a_login_gate.py",
-      "analysis/a9/test_t1a_front_bindings.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0091.json"
     ]
