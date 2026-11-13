@@ -1,0 +1,41 @@
+"""Launch isolated Spring app and compare declared methods against live springdoc."""
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+import subprocess
+import time
+
+from contract_validate import compare_runtime, load, ContractBlocked
+
+
+def run(contract: Path, *, port: int = 18765):
+    proc = subprocess.Popen([
+        "mvn", "-B", "-q", "-f", "apps/time-service/pom.xml",
+        "spring-boot:run", f"-Dspring-boot.run.arguments=--server.port={port}",
+    ], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    try:
+        for attempt in range(45):
+            if proc.poll() is not None:
+                raise ContractBlocked("T2_BACKEND_PROCESS_EXITED")
+            try:
+                return compare_runtime(load(contract), f"http://127.0.0.1:{port}")
+            except ContractBlocked as exc:
+                if "UNAVAILABLE" not in str(exc):
+                    raise
+                time.sleep(2)
+        raise ContractBlocked("T2_BACKEND_RUNTIME_TIMEOUT")
+    finally:
+        proc.terminate()
+        try:
+            proc.communicate(timeout=8)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate(timeout=8)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--contract", type=Path, required=True)
+    args = parser.parse_args()
+    print(run(args.contract))
