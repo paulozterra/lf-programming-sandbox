@@ -150,6 +150,53 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     # No preflight, missing oracle, invalid proposal, or scope failure is charged.
     # A later Worker failure does consume this attempt.
     _write(public / "attempt-proof.json", _proof(submitted, task, attempt, run_id))
+    # T7 duplicate detection is a trusted pre-acceptance gate, after the
+    # attempt proof has been emitted: a rejection is a spent FAIL, never PASS.
+    # Legacy registrations without a reuse assessment remain untouched.
+    reports = [p for p in raw_task.get("context_path_patterns", [])
+               if isinstance(p, str) and re.fullmatch(
+                   r"pilot/runs/[a-z][a-z0-9_-]{0,63}/reuse_assessment[.]json", p)]
+    if reports:
+        from reuse_guard import check as check_reuse, DuplicateComponent
+        try:
+            if len(reports) != 1:
+                raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+            source_report = source / reports[0]
+            if source_report.is_symlink() or not source_report.is_file():
+                raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+            document = strict_json_loads(source_report.read_text("utf-8"))
+            if (document.get("schema_version") != "T7_REUSE_ASSESSMENT_V1"
+                    or not isinstance(document.get("obligations"), list)):
+                raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+            reuse_context = []
+            for row in document["obligations"]:
+                if not isinstance(row, dict) or not isinstance(row.get("reuse_context"), list):
+                    raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+                for ref in row["reuse_context"]:
+                    if isinstance(ref, dict) and ref.get("path") in raw_task.get("context_path_patterns", []):
+                        reuse_context.append(ref)
+            check_reuse(source, proposal.patch, reuse_context)
+        except (DuplicateComponent, OSError, ValueError, KeyError) as exc:
+            code = str(exc).split(":", 1)[0]
+            if code not in ("DUPLICA_COMPONENTE_EXISTENTE", "REUTILIZACION_INDETERMINADA"):
+                code = "REUTILIZACION_INDETERMINADA"
+            component = str(exc)[:500] if code == "DUPLICA_COMPONENTE_EXISTENTE" else code
+            (public / "feedback.json").unlink()
+            feedback = _visible_feedback({"attempts":[{"acceptance":[{
+                "name":"reuse-component-guard", "status":"FAIL",
+                "reason":component, "returncode":1,
+                "stdout_excerpt":"", "stderr_excerpt":""}]}]}, attempt)
+            _write(public / "feedback.json", feedback)
+            _write(public / "status.json", {
+                "feedback_sha256": hashlib.sha256(canonical_json_bytes(feedback)).hexdigest(),
+                "schema_version":"LF_NATIVE_RESULT_SUMMARY_V1",
+                "task_id":task, "attempt":attempt,
+                "proposal_sha256":submitted["proposal_sha256"],
+                "task_pack_sha256":submitted["task_pack_sha256"],
+                "status":"FAIL", "authority":"REAL_SANDBOX_UNAUTHENTICATED",
+                "production_authority":False,"receipt_authenticated":False,
+            })
+            return False
     client = NativeProposalClient(proposal_file)
     seen = []
     original = verified_module.run_worker
