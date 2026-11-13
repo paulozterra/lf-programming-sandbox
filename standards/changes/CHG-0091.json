@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0091",
   "title": "T1-A: trazabilidad A9 de obligaciones y áreas con fuente; brechas fail-closed",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "T1-A paquete A9 sin decisiones manuales, 12/11/2026"
