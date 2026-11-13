@@ -84,30 +84,79 @@ def _examples(obj, parents=()):
             _examples(val, parents)
 
 
-def validate(path, package, module):
+def _field_names(operation):
+    """Only schema properties and explicit parameters count as visible API fields."""
+    names = set()
+    def walk(value):
+        if isinstance(value, dict):
+            properties = value.get("properties")
+            if isinstance(properties, dict):
+                names.update(properties)
+            for key, part in value.items():
+                if key in ("schema", "properties", "items", "allOf", "oneOf", "anyOf",
+                           "content", "requestBody", "responses"):
+                    walk(part)
+        elif isinstance(value, list):
+            for part in value:
+                walk(part)
+    for parameter in operation.get("parameters", []):
+        if isinstance(parameter, dict) and isinstance(parameter.get("name"), str):
+            names.add(parameter["name"])
+    walk(operation.get("requestBody", {}))
+    walk(operation.get("responses", {}))
+    return names
+
+
+def _check_skeleton(skeleton, module):
+    if (not isinstance(skeleton, dict)
+            or skeleton.get("schema_version") != "T2_CONTRACT_SKELETON_V1"
+            or skeleton.get("functional_module") != module
+            or skeleton.get("production_authority") is not False
+            or any(not isinstance(skeleton.get(k), list)
+                   for k in ("fields", "errors", "requirement_ids", "rules"))):
+        deny("CONTRACT_SKELETON_INVALID")
+    field_codes = set()
+    for field in skeleton["fields"]:
+        if (not isinstance(field, dict) or not isinstance(field.get("field_code"), str)
+                or not field["field_code"] or not isinstance(field.get("required"), bool)):
+            deny("CONTRACT_SKELETON_FIELD_INVALID")
+        field_codes.add(field["field_code"])
+    error_codes = set()
+    for error in skeleton["errors"]:
+        if (not isinstance(error, dict) or not isinstance(error.get("error_code"), str)
+                or not error["error_code"]):
+            deny("CONTRACT_SKELETON_ERROR_INVALID")
+        error_codes.add(error["error_code"])
+    requirements = skeleton["requirement_ids"]
+    if not requirements or not all(isinstance(r, str) and r.startswith("REQ-") for r in requirements):
+        deny("CONTRACT_SKELETON_REQUIREMENTS_INVALID")
+    if (len(field_codes) != len(skeleton["fields"])
+            or len(error_codes) != len(skeleton["errors"])
+            or len(set(requirements)) != len(requirements)):
+        deny("CONTRACT_SKELETON_DUPLICATE")
+    return field_codes, error_codes, set(requirements)
+
+
+def validate(path, skeleton, module):
     spec = load(path)
-    atoms = package.get("atoms", [])
-    required = {r for a in atoms if a.get("functional_module") == module
-                and a.get("area") in ("BACKEND","FRONTEND")
-                for r in a.get("requirement_ids", [])}
-    errors = package.get("api_contract_source", {}).get("errors")
-    if not required:
-        deny("CONTRACT_REQUIREMENTS_UNSOURCED")
-    if not isinstance(errors, list) or any(not isinstance(e, dict) for e in errors):
-        deny("CONTRACT_ERRORS_UNSOURCED")
-    wanted_errors = {e["error_code"] for e in errors if e.get("status") in ("VIGENTE","ACTIVE")
-                     and isinstance(e.get("error_code"), str)}
-    seen, seen_errors = set(), set()
-    for _, _, op in operations(spec):
-        seen.update(op["x-requirement-ids"])
-        for response in op["responses"].values():
-            if not isinstance(response, dict) or not isinstance(response.get("x-error-codes", []), list):
+    fields, errors, required = _check_skeleton(skeleton, module)
+    seen_requirements, seen_errors, seen_fields = set(), set(), set()
+    for _, _, operation in operations(spec):
+        seen_requirements.update(operation["x-requirement-ids"])
+        seen_fields.update(_field_names(operation))
+        for response in operation["responses"].values():
+            if not isinstance(response, dict):
                 deny("CONTRACT_RESPONSE_INVALID")
-            seen_errors.update(response.get("x-error-codes", []))
-    if required - seen:
-        deny("CONTRACT_REQ_COVERAGE_MISSING:" + ",".join(sorted(required - seen)))
-    if wanted_errors - seen_errors:
-        deny("CONTRACT_ERROR_COVERAGE_MISSING:" + ",".join(sorted(wanted_errors - seen_errors)))
+            codes = response.get("x-error-codes", [])
+            if not isinstance(codes, list) or any(not isinstance(code, str) for code in codes):
+                deny("CONTRACT_RESPONSE_ERROR_CODES_INVALID")
+            seen_errors.update(codes)
+    if required - seen_requirements:
+        deny("CONTRACT_REQ_COVERAGE_MISSING:" + ",".join(sorted(required - seen_requirements)))
+    if fields - seen_fields:
+        deny("CONTRACT_FIELD_COVERAGE_MISSING:" + ",".join(sorted(fields - seen_fields)))
+    if errors - seen_errors:
+        deny("CONTRACT_ERROR_COVERAGE_MISSING:" + ",".join(sorted(errors - seen_errors)))
     _examples(spec)
     return True
 
@@ -148,15 +197,15 @@ def check_generated(root):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--contract", type=Path)
-    p.add_argument("--package", type=Path)
+    p.add_argument("--skeleton", type=Path)
     p.add_argument("--module")
     p.add_argument("--compare-live")
     p.add_argument("--check-frontend",type=Path)
     p.add_argument("--check-client",type=Path)
     a=p.parse_args()
     try:
-        if a.contract and a.package and a.module:
-            validate(a.contract,json.loads(a.package.read_text()),a.module)
+        if a.contract and a.skeleton and a.module:
+            validate(a.contract,json.loads(a.skeleton.read_text()),a.module)
         if a.compare_live:
             with urlopen(a.compare_live,timeout=15) as stream:
                 live=json.load(stream)
