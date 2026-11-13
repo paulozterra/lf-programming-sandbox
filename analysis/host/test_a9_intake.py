@@ -187,6 +187,11 @@ def test_a9_stage_trace_exact_order(payload):
 
 def test_byte_exact_replay(tmp_path):
     from pilot.orchestrator.intake import canonical
+    import shutil
+    # A replay with submitted request.md resolves the screen from the same
+    # request catalogue as any production T7 call (not a host default).
+    shutil.copytree(Path(__file__).resolve().parents[2]/"analysis/fixtures",
+                    tmp_path/"analysis/fixtures")
     a = run_f4(tmp_path)
     original = (tmp_path / "pilot/runs/f4-login/analysis.json").read_bytes()
     b = run_f4(tmp_path)

@@ -8,18 +8,18 @@ import json
 from pathlib import Path
 
 from analysis.host.fixture_readback_host import FixtureHost
-from analysis.host.run_a1_a5_fixture import REQUEST, execute, encoded
+from analysis.host.run_a1_a5_fixture import REQUEST, execute, encoded, LEGACY_FIXTURES
 from analysis.host.simulated_admission_gate import seal_envelope, admit
 from analysis.a6.implementability import run as run_a6
 
 
 def run_f2(fixtures=None, output_dir=None, request=None):
-    host = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
+    host = FixtureHost(fixtures if fixtures is not None else LEGACY_FIXTURES)
     data = host.read_all(request)
     signal = deepcopy(data["semantic_signals.json"]["a2_signals"])
     signal["evidence_refs"] = [host.provenance["semantic_signals.json"]]
     actual_request = data["semantic_signals.json"]["request_text"] if request is None else request
-    real = execute(actual_request, fixtures=fixtures)
+    real = execute(actual_request, fixtures=fixtures if fixtures is not None else LEGACY_FIXTURES)
     stages = real["stages"]
     envelope = seal_envelope(stages, signal)
     admission = admit(stages, signal, envelope)
@@ -33,6 +33,10 @@ def run_f2(fixtures=None, output_dir=None, request=None):
         "admission_envelope": envelope,
         "admission": admission,
         "a6": a6,
+        # Audit-only trace from the same verified screen/reuse sources. It is
+        # not an extra A6 rule nor an A9 authority claim.
+        "request_reuse_traces": deepcopy(
+            data["semantic_signals.json"].get("reuse_traces", [])),
     }
     if output_dir is not None:
         dest = Path(output_dir)

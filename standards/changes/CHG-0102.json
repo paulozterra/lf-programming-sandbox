@@ -1,0 +1,46 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0102",
+  "title": "T7.1: catálogo de pantallas general, señales tipadas desde pedido y cobertura de ficha",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T7.1 análisis general, 13/11/2026"
+  },
+  "reason": "El análisis A1-A9 deriva obligaciones A6 desde descripcion de reglas LF y conserva el corpus fijo solo como respaldo de la ficha legacy ya fijada; no hay pantalla importada por defecto. El texto se coteja contra títulos, descripciones, campos, errores, estados y componentes verificables; el léxico español versionado evita falsos PEDIDO_EXCEDE_FICHA, mientras comportamientos no trazados y reglas sin descripción bloquean. Revisión T7.1: todo campo VIGENTE (obligatorio u opcional) vincula rule_refs en A9; ausencia de rule_refs continúa bloqueando. Revisión léxica 2026-11-13.2 incorpora calificadores genéricos iniciada/servicio sin neutralizar sesión, que exige fuente trazable.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/a9/front_bindings.py",
+      "analysis/host/fixture_normalize.py",
+      "analysis/host/fixture_readback_host.py",
+      "analysis/host/request_lexicon_v1.json",
+      "analysis/host/request_trace.py",
+      "analysis/host/run_a1_a5_fixture.py",
+      "analysis/host/run_a1_a6_fixture.py",
+      "analysis/host/run_a1_a8_fixture.py",
+      "analysis/host/run_a1_a9_fixture.py",
+      "analysis/host/test_a9_intake.py",
+      "analysis/host/test_fixture_readback_host.py",
+      "analysis/host/test_t71_general.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0102.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/150"
+  }
+}

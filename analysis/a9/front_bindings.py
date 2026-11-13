@@ -114,7 +114,7 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
                             preferred[rid] = owner
 
     consume("fields", "fields",
-            lambda row: row.get("required") is True and row.get("status") == "VIGENTE")
+            lambda row: row.get("status") == "VIGENTE")
     consume("errors", "errors",
             lambda row: row.get("status") == "VIGENTE" and row.get("generic") is True)
     consume("visual", "visual.variants",
