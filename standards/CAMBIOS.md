@@ -100,4 +100,5 @@
 | CHG-0097 | ADDITIVE | T7: admisión de pedidos desde catálogo, índice de reutilización y protección anti-duplicación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/142 |
 | CHG-0098 | EDITORIAL | T7: política C resuelve los paquetes del repo al verificar PR generados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/144 |
 | CHG-0099 | ADDITIVE | T8 CP1.6 LF reglas completas, verificación determinista en Worker y paridad offline |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/145 |
-| CHG-0100 | EDITORIAL | Ruta automática: barrido de política C, drafts obsoletos del registro y WebSocket de Playwright |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/147 |
+| CHG-0100 | EDITORIAL | Política C: barrido programado para PR del bot sin evento workflow_run |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pulls |
+| CHG-0101 | EDITORIAL | CP3.6 cierra drafts obsoletos del registro; Playwright usa connect_to_server |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pulls |

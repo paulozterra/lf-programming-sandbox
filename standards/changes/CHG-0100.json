@@ -1,13 +1,13 @@
 {
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0100",
-  "title": "Ruta automática: barrido de política C, drafts obsoletos del registro y WebSocket de Playwright",
+  "title": "Política C: barrido programado para PR del bot sin evento workflow_run",
   "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Siembra del registro (#146) sin etiqueta 2026-11-13"
   },
-  "reason": "GitHub no emite workflow_run para corridas iniciadas con GITHUB_TOKEN, así que el ci que el bot despacha sobre su propio PR generado no dispara la política C y el PR queda sin etiqueta. Se agrega un barrido programado (cada 15 min) que evalúa los PR del bot con las mismas comprobaciones; la ruta workflow_run conserva su verificación de disparador. Además: (1) CP3.6 cierra los drafts del registro generados sobre un main anterior (nunca pasan la verificación exacta y bloqueaban la regeneración); (2) playwright_gate usaba WebSocketRoute.connect(), inexistente en Playwright 1.56; se usa connect_to_server() para conexiones locales.",
+  "reason": "GitHub no emite workflow_run para corridas iniciadas con GITHUB_TOKEN, así que el ci que el bot despacha sobre su propio PR generado no dispara la política C y el PR queda sin etiqueta. Se agrega un barrido programado (cada 15 min) que evalúa los PR del bot con las mismas comprobaciones; la ruta workflow_run conserva su verificación de disparador.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -15,10 +15,7 @@
     "paths": [
       ".github/workflows/auto-integrate.yml",
       "pilot/auto_integrate.py",
-      "pilot/test_auto_integrate.py",
-      "pilot/orchestrator/chain_lots.py",
-      "pilot/orchestrator/test_chain_lots.py",
-      "pilot/worker_v08/playwright_gate.py"
+      "pilot/test_auto_integrate.py"
     ]
   },
   "existing_code_impact": {
@@ -33,6 +30,6 @@
   "requested_by": "owner",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/147"
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
   }
 }
