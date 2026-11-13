@@ -7,13 +7,15 @@
     "kind": "OWNER",
     "reference": "T7.1 análisis general, 13/11/2026"
   },
-  "reason": "La admisión A1-A9 acepta un código de pantalla resuelto por request_catalog sin resolver un default al importar; deriva señales tipadas del texto real y ficha con inventario/registro, y bloquea comportamientos no trazados conservando los pins y validaciones existentes.",
+  "reason": "El análisis A1-A9 deriva obligaciones A6 desde descripcion de reglas LF y conserva el corpus fijo solo como respaldo de la ficha legacy ya fijada; no hay pantalla importada por defecto. El texto se coteja contra títulos, descripciones, campos, errores, estados y componentes verificables; el léxico español versionado evita falsos PEDIDO_EXCEDE_FICHA, mientras comportamientos no trazados y reglas sin descripción bloquean.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      "analysis/host/fixture_normalize.py",
       "analysis/host/fixture_readback_host.py",
+      "analysis/host/request_lexicon_v1.json",
       "analysis/host/request_trace.py",
       "analysis/host/run_a1_a5_fixture.py",
       "analysis/host/run_a1_a6_fixture.py",
