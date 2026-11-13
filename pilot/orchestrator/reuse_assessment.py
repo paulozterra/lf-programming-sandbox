@@ -86,39 +86,146 @@ def _unique(entries, kind, key):
     return matches[0] if matches else None
 
 
-def assess(index_obj: dict, obligations: list[dict], *, current_paths: list[str] | None = None) -> dict:
-    if index_obj.get("schema_version") != "T7_CODE_INDEX_V1":
+def _registry_matches(ledger: dict, key: str, endpoint: str | None) -> tuple[list[dict], list[dict]]:
+    exact, related = [], []
+    for row in ledger.get("entries", []):
+        if not isinstance(row, dict):
+            raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+        rules = row.get("rule_codes", [])
+        endpoints = row.get("endpoints", [])
+        if not isinstance(rules, list) or not isinstance(endpoints, list):
+            raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+        if key in rules:
+            exact.append(row)
+        elif endpoint and endpoint in endpoints:
+            related.append(row)
+    return exact, related
+
+
+def _verified_context(root: Path, row: dict) -> list[dict]:
+    refs = row.get("files")
+    if not isinstance(refs, list) or not refs:
+        raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+    result = []
+    for item in refs:
+        if not isinstance(item, dict):
+            raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+        rel, expected = item.get("path"), item.get("sha256")
+        if (not isinstance(rel, str) or rel.startswith("/") or ".." in Path(rel).parts
+                or not isinstance(expected, str) or not SHA.fullmatch(expected)):
+            raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+        file = root / rel
+        # A stale registry is not evidence of a new component or permission
+        # to overwrite previously integrated source.
+        if (file.is_symlink() or not file.is_file()
+                or hashlib.sha256(file.read_bytes()).hexdigest() != expected):
+            raise ReuseBlocked("REUTILIZACION_INDETERMINADA:REGISTRY_SHA_DRIFT:" + rel)
+        result.append({"path": rel, "sha256": expected})
+    return result
+
+
+def _requested_endpoint(item: dict) -> str | None:
+    value = item.get("endpoint")
+    if value is None:
+        return None
+    if not isinstance(value, str) or not re.fullmatch(
+            r"(?:GET|POST|PUT|PATCH|DELETE|PAGE) /[A-Za-z0-9_/{}/.-]*", value):
+        raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+    return value
+
+
+def assess(index_obj: dict, obligations: list[dict], *,
+           current_paths: list[str] | None = None,
+           registry: dict | None = None, root: Path | None = None) -> dict:
+    if (index_obj.get("schema_version") != "T7_CODE_INDEX_V1"
+            or not isinstance(obligations, list)):
+        raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+    if registry is not None and (registry.get("schema_version") !=
+                                 "T7_IMPLEMENTED_REGISTRY_V1" or root is None):
         raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
     rows = []
     for obligation in obligations:
-        rid = obligation.get("requirement_id")
-        source = obligation.get("source_requirement_id")
-        if not isinstance(rid, str) or not isinstance(source, str):
+        rid, rule = obligation.get("requirement_id"), obligation.get("source_requirement_id")
+        if not isinstance(rid, str) or not isinstance(rule, str):
             raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
-        # Only exact existing rule markers can attest the obligation.
+        endpoint = _requested_endpoint(obligation)
+        if registry is not None:
+            exact, related = _registry_matches(registry, rule, endpoint)
+            if len(exact) > 1 or len(related) > 1 or exact and related:
+                raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+            if exact or related:
+                source = (exact or related)[0]
+                context = _verified_context(root, source)
+                if source.get("status") not in ("ATTESTED", "NO_DERIVABLE"):
+                    raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+                # Partial historical metadata can prove an *exact rule* only;
+                # absent contract endpoints never attest an endpoint match.
+                if source.get("status") == "NO_DERIVABLE" and not exact:
+                    raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+                decision = "REUSE_AS_IS" if exact else "EXTEND"
+                rows.append({"requirement_id": rid, "decision": decision,
+                             "path": context[0]["path"], "sha256": context[0]["sha256"],
+                             "write_paths": ([x["path"] for x in context]
+                                             if decision == "EXTEND" else []),
+                             "evidence": {"kind": "registered_rule" if exact
+                                          else "registered_endpoint_new_rule",
+                                          "key": rule if exact else endpoint,
+                                          "merge_sha": source["merge_sha"]},
+                             "reuse_context": ([] if decision == "EXTEND" else context)})
+                continue
+        # The code index is a second independently checked source. Exact rule
+        # markers are enough to reuse, but common names alone never are.
         matches = [_unique(index_obj["entries"], "implemented_rule", code)
-                   for code in sorted({rid, source})]
-        matches = [row for row in matches if row is not None]
-        if len({m["path"] for m in matches}) > 1:
+                   for code in sorted({rid, rule})]
+        matches = [x for x in matches if x is not None]
+        if len({x["path"] for x in matches}) > 1:
             raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
-        if not matches:
+        if matches:
+            matched = matches[0]
+            if root is not None:
+                _verified_context(root, {"files": [{"path": matched["path"],
+                                                    "sha256": matched["sha256"]}]})
+            rows.append({"requirement_id": rid, "decision": "REUSE_AS_IS",
+                         "path": matched["path"], "sha256": matched["sha256"],
+                         "write_paths": [],
+                         "evidence": {"kind": "exact_rule_reference",
+                                      "key": matched["key"]},
+                         "reuse_context": [{"path": matched["path"],
+                                            "sha256": matched["sha256"]}]})
+            continue
+        if endpoint:
+            candidates = [x for x in index_obj["entries"]
+                          if x["kind"] == "endpoint" and x["key"] == endpoint]
+            if candidates:
+                # Without a rule-to-endpoint contract, this is a partial
+                # match, not proof of an existing compatible implementation.
+                raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+        if registry is None:
+            # Legacy direct callers must not silently fabricate BUILD_NEW.
             raise ReuseBlocked("REUTILIZACION_INDETERMINADA:" + rid)
-        matched = matches[0]
-        if not SHA.fullmatch(matched["sha256"]):
-            raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
-        rows.append({"requirement_id": rid, "decision": "REUSE_AS_IS",
-                     "path": matched["path"], "sha256": matched["sha256"],
-                     "evidence": {"kind": "exact_rule_reference",
-                                  "key": matched["key"]}, "reuse_context": [{
-                                      "path": matched["path"], "sha256": matched["sha256"]}]})
+        rows.append({"requirement_id": rid, "decision": "BUILD_NEW",
+                     "path": None, "sha256": None, "write_paths": [],
+                     "evidence": {"kind": "sin coincidencias",
+                                  "index_entries_checked": len(index_obj["entries"]),
+                                  "registry_entries_checked": len(registry["entries"])},
+                     "reuse_context": []})
     return {"schema_version": "T7_REUSE_ASSESSMENT_V1", "obligations": rows}
+
 
 
 def write_assessment(root: Path, slug: str, package: dict) -> dict:
     folder = root / "pilot/runs" / slug
     if folder.is_symlink() or not folder.is_dir():
         raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
-    report = assess(index(root), package.get("requirements", []))
+    registry_path = root / "pilot/registry/implemented.json"
+    if registry_path.is_symlink() or not registry_path.is_file():
+        raise ReuseBlocked("REUTILIZACION_INDETERMINADA:REGISTRY_NOT_PUBLISHED")
+    try:
+        registry = json.loads(registry_path.read_text("utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ReuseBlocked("REUTILIZACION_INDETERMINADA") from exc
+    report = assess(index(root), package.get("requirements", []),
+                    registry=registry, root=root)
     output = folder / "reuse_assessment.json"
     raw = (json.dumps(report, sort_keys=True, ensure_ascii=False, indent=2) + "\n").encode()
     if output.is_symlink() or (output.exists() and output.read_bytes() != raw):
