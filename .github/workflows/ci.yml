@@ -50,6 +50,14 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: "T2 bootstrap: resolve pinned OpenAPI package lock"
         run: npm install --package-lock-only --ignore-scripts
+      - name: "T2 bootstrap: export resolved lock bytes"
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for line in Path("package-lock.json").read_text().splitlines():
+              print("T2LOCK|" + line)
+          print("T2LOCK_END")
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: t2-lock-bootstrap
