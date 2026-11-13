@@ -45,7 +45,7 @@ def test_backend_and_frontend_share_function_name(tmp_path):
             assert "-" not in java_package
             assert re.fullmatch(r"[A-Z][A-Za-z0-9]*\.java", path.rsplit("/", 1)[1])
         for path in frontend_paths:
-            assert re.fullmatch(r"frontend/src/(?:app|lib)/[a-z0-9][a-z0-9-/]*\.(?:tsx|ts)", path)
+            assert re.fullmatch(r"frontend/src/(?:app|lib)/[a-z0-9][a-z0-9/-]*\.(?:tsx|ts)", path)
 
 
 def test_java_package_keyword_fails_closed(tmp_path):
