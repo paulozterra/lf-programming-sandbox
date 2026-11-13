@@ -250,10 +250,10 @@ def atomize(package, root, base_head_sha, *, run):
             path = contract_policy["route"].format(module=module)
             if not re.fullmatch(r"contracts/[a-z0-9][a-z0-9-]*\.openapi\.yaml", path):
                 raise AtomBlocked("ATOM_CONTRACT_PATH_INVALID")
-            required = sorted(set(rid for area in contract_policy["requires_areas"]
-                                  for atom in groups[area]
-                                  for rid in next(f["requirement_ids"] for f in fronts
-                                  if f["front_id"] == atom["front_id"])))
+            required = sorted({req["requirement_id"] for req in package["requirements"]
+                               if req["scope_id"] in source_scopes})
+            if not required:
+                raise AtomBlocked("ATOM_CONTRACT_REQUIREMENT_SOURCE_MISSING")
             contract_atoms.append({
                 "atom_id": "ATOM-" + hashlib.sha256(("CONTRATO|" + module).encode()).hexdigest()[:12],
                 "area": "CONTRATO", "module": module, "paths": [path],
