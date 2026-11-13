@@ -1,0 +1,15 @@
+{
+  "schema_version": "F51_LEGACY_PIN_V1",
+  "scope_id": "SBX-AUTH-LOGIN",
+  "request_id": "f5-login",
+  "target_binding_ref": "fixture://f5-login/owner-decision",
+  "atom_id": "ATOM-F5-LOGIN-BACKEND",
+  "outcome_id": "OUTCOME-F5-LOGIN-BACKEND",
+  "task_id": "f5backend",
+  "write_paths": [
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthUser.java",
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java"
+  ]
+}
