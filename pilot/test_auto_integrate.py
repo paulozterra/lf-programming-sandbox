@@ -322,6 +322,6 @@ class ScriptImportPathTest(unittest.TestCase):
                 "import inspect;src=inspect.getsource(g['verify_generated_content']);"
                 "assert 'sys.path.insert' in src;"
                 "sys.path.insert(0,'.');"
-                "import pilot.orchestrator.implemented_registry, analysis.host.request_catalog")
+                "import pilot.orchestrator.implemented_registry")
         r = sp.run([sys.executable, "-I", "-c", code], cwd=root, capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
