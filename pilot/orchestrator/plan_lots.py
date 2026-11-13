@@ -557,7 +557,7 @@ def _t3_infra_lots(package, fixture, lots):
     if len(atoms) != 1:
         blocked("T3_INFRA_ATOM_DUPLICATE")
     atom = atoms[0]
-    import infra_lot
+    from pilot.orchestrator import infra_lot
     allowlist = infra_lot.policy()
     rules = json.loads((ROOT/"pilot/orchestrator/atomize_rules_v1.json").read_text())
     if (rules.get("infra_lot", {}).get("schema_version") != "T3_INFRA_POLICY_V1"
