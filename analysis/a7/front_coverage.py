@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import json
+import re
 from pathlib import Path
 
 from analysis.host.simulated_admission_gate import (
@@ -72,11 +73,21 @@ def _checked_categories(categories, a3):
     }:
         fail("F3_A7_CATEGORY_SOURCE_REQUIRED")
     proof = categories["fixture_provenance"]
-    if (not isinstance(proof, dict)
-            or any(not isinstance(proof.get(k), str)
-                   or not proof[k].startswith("fixture://sbx_auth_login/" + k + "@")
-                   or len(proof[k].split("@")[-1]) != 64
-                   for k in ("direct_rules.json", "effective_rules.json"))):
+    names = ("direct_rules.json", "effective_rules.json")
+    if not isinstance(proof, dict):
+        fail("F3_A7_CATEGORY_PROVENANCE_INVALID")
+    prefixes = set()
+    for key in names:
+        value = proof.get(key)
+        if not isinstance(value, str):
+            fail("F3_A7_CATEGORY_PROVENANCE_INVALID")
+        matched = re.fullmatch(
+            r"fixture://([a-z][a-z0-9_]*)/" + re.escape(key) + r"@([0-9a-f]{64})",
+            value)
+        if matched is None:
+            fail("F3_A7_CATEGORY_PROVENANCE_INVALID")
+        prefixes.add(matched.group(1))
+    if len(prefixes) != 1:
         fail("F3_A7_CATEGORY_PROVENANCE_INVALID")
     # The F1 host verified these source bytes and SHA256 before constructing
     # this binding. No bare provider text or user description is consulted.
