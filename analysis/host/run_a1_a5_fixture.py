@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the fixed simulated SBX natural-language request through real A1..A5.
+"""Run the fixture-provided simulated request through real A1..A5.
 
 No language model, Supabase, production authority, or PG-04 dispatch.
 """
@@ -8,11 +8,11 @@ import argparse
 import json
 from pathlib import Path
 try:
-    from .fixture_readback_host import FixtureHost, FixtureBlocked
+    from .fixture_readback_host import FixtureHost, FixtureBlocked, DEFAULT_FIXTURES
 except ImportError:
-    from fixture_readback_host import FixtureHost, FixtureBlocked
+    from fixture_readback_host import FixtureHost, FixtureBlocked, DEFAULT_FIXTURES
 
-REQUEST = "Crear la pantalla de login SBX-AUTH-LOGIN con las reglas vigentes"
+REQUEST = json.loads((DEFAULT_FIXTURES / "semantic_signals.json").read_text(encoding="utf-8"))["request_text"]
 
 
 def encoded(obj):

@@ -1,0 +1,7 @@
+{
+  "schema_version": "SOURCE_SCREEN_PIN_V1",
+  "fixture_id": "DEMO-NOTES-EDIT",
+  "source_file": "source.json",
+  "sha256": "04fce0b8766c6b71e98e5dc014c2fc15e2c509069f25bc012b129263520ce228",
+  "simulation_only": true
+}

@@ -51,7 +51,7 @@ def test_login_real_intake_validate_and_accept(tmp_path):
 
 
 def test_six_rules_exclusions_parity(payload, upstream):
-    rows = payload["requirements"]
+    rows = [r for r in payload["requirements"] if not r.get("derived_from_requirement_id")]
     assert len(rows) == 6
     assert {x["source_requirement_id"] for x in rows} == {
         x["rule_code"] for x in upstream["stages"]["A3"]["policy_scope_clear_rule_candidates"]}
@@ -63,12 +63,28 @@ def test_six_rules_exclusions_parity(payload, upstream):
     assert len(next(x for x in rows if x["requirement_id"] == "REQ-SBX-R-ERR")["acceptance_checks"]) == 2
 
 
-def test_material_front_scope_exact_and_ready(payload):
+def test_material_front_scope_source_split_is_ready(payload):
     assert payload["scope_proposals"][0]["readiness_candidate"] == "READY_CANDIDATE"
     assert payload["package_readiness_candidate"] == "READY_CANDIDATE"
-    assert set(payload["scope_proposals"][0]["material_front_refs"]) == {
+    assert [f["execution_area"] for f in payload["material_fronts"]] == ["BACKEND", "FRONTEND"]
+    assert all(f["requirement_ids"] and f["execution_area_source_ref"]
+               for f in payload["material_fronts"])
+    assert all(f["obligation_mode"] == "NOT_APPLICABLE"
+               for f in payload["non_atomized_fronts"])
+    assert any(f["reason"] == "SOURCE_SECTION_HAS_NO_OBLIGATION"
+               for f in payload["non_atomized_fronts"])
+    assert {scope["scope_id"] for scope in payload["scope_proposals"]} == {
+        "SBX-AUTH-LOGIN-BACKEND", "SBX-AUTH-LOGIN-FRONTEND"}
+    assert {fid for scope in payload["scope_proposals"]
+            for fid in scope["material_front_refs"]} == {
         f["front_id"] for f in payload["material_fronts"]}
-    assert all(f["scope_ids"] == ["SBX-AUTH-LOGIN"] for f in payload["material_fronts"])
+    assert all(f["scope_ids"] == ["SBX-AUTH-LOGIN-" + f["execution_area"]]
+               for f in payload["material_fronts"])
+    assert len({r["requirement_id"] for r in payload["requirements"]}) == len(payload["requirements"])
+    assert all(r["derived_from_requirement_id"] in {
+        source["requirement_id"] for source in payload["requirements"]
+        if "derived_from_requirement_id" not in source}
+        for r in payload["requirements"] if "derived_from_requirement_id" in r)
     assert payload["research_stop"]["decision"] == "STOP"
 
 
@@ -110,6 +126,8 @@ def test_a9_ready_with_blocked_front(payload):
     p = deepcopy(payload)
     p["material_fronts"][0]["closure"] = "BLOCKED"
     p["material_fronts"][0]["blockers"] = ["F4_NEGATIVE"]
+    p["scope_proposals"][0]["readiness_candidate"] = "READY_CANDIDATE"
+    p["package_readiness_candidate"] = "READY_CANDIDATE"
     assert_rejected(p, (REQUEST+"\n").encode(), "F4_A9_READY_WITH_BLOCKED_FRONT", from_a9=True)
 
 
@@ -190,7 +208,8 @@ def test_typed_applicable_rules_and_links(payload):
         "categoria": "rate_limiting",
         "valor_config": {"failed_attempts": 5, "lock_minutes": 15},
         "es_transversal": False, "origen": "DIRECT",
-        "front_id": "F3-e02f01fd4a14ba3a",
+        "front_id": next(f["front_id"] for f in payload["material_fronts"]
+                         if f["execution_area"] == "BACKEND"),
         "requirement_id": "REQ-SBX-R-LOCK",
     }
     logged = next(r for r in rules if r["rule_code"] == "SBX-R-LOG")
@@ -198,7 +217,8 @@ def test_typed_applicable_rules_and_links(payload):
     assert logged["es_transversal"] is True
     assert logged["valor_config"] == {"log_password": False}
     assert {r["requirement_id"] for r in rules} == {
-        r["requirement_id"] for r in payload["requirements"]}
+        r["requirement_id"] for r in payload["requirements"]
+        if not r.get("derived_from_requirement_id")}
     assert all(r["front_id"] in {f["front_id"] for f in payload["material_fronts"]}
                for r in rules)
 

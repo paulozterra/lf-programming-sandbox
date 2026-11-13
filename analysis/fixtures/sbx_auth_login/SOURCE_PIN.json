@@ -6,7 +6,7 @@
   "files": [
     {
       "file": "screen_contract.json",
-      "sha256": "2fe1a77f3c1d4aa84cfdc4c7f7455002dd0ad9fd1d49c6c96f0e0f142a76354e",
+      "sha256": "8d4de17254a9f92c04709ce880d1ac98b25cedaf968b1ef244f148d71fc80b26",
       "imitates": "lf_ops.fn_screen_contract_v1"
     },
     {

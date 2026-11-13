@@ -91,3 +91,4 @@
 | CHG-0088 | EDITORIAL | La ruta inyecta el protocolo del constructor (modo continuo) en el contexto de cada tarea |  | paulozterra |  |
 | CHG-0089 | ADDITIVE | T0: informe automático de intervenciones por pedido (INTERVENCION_MANUAL SI/NO) |  | paulozterra |  |
 | CHG-0090 | ADDITIVE | T1: atomizador A9 determinista y artefactos de cadena sin fixtures |  | paulozterra |  |
+| CHG-0091 | ADDITIVE | T1-A: trazabilidad A9 de obligaciones y áreas con fuente; brechas fail-closed |  | paulozterra |  |

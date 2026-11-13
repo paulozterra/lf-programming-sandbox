@@ -1,0 +1,32 @@
+{
+  "schema_version": "A6_FIXED_WHAT_CORPUS_V1",
+  "requirements": {
+    "SBX-R-USER": [
+      "Se exige identificar al usuario antes de autenticar.",
+      "Sin identificador de usuario, el acceso no se concede."
+    ],
+    "SBX-R-PASS": [
+      "Se exige una contraseña para autenticar.",
+      "Sin contraseña, el acceso no se concede."
+    ],
+    "SBX-R-LOCK": [
+      "Tras cinco intentos fallidos se impide el acceso durante quince minutos.",
+      "El quinto fallo activa el bloqueo; antes de quince minutos no se permite acceso."
+    ],
+    "SBX-R-HASH": [
+      "Las contraseñas almacenadas están protegidas con BCrypt.",
+      "La verificación confirma BCrypt y que no se guarda contraseña en claro."
+    ],
+    "SBX-R-LOG": [
+      "La contraseña jamás aparece en registros de operación.",
+      "Los registros de un intento de acceso no contienen la contraseña suministrada."
+    ],
+    "SBX-R-ERR": [
+      "Los fallos no revelan existencia de usuario y la sesión expira a los treinta minutos.",
+      [
+        "Errores de usuario inexistente y clave errónea producen una respuesta indistinguible.",
+        "Una sesión deja de ser válida al cumplirse treinta minutos."
+      ]
+    ]
+  }
+}

@@ -12,6 +12,8 @@ from pathlib import Path
 from pilot.orchestrator import intake
 from analysis.host.simulated_admission_gate import AdmissionBlocked, MODE, digest, verify
 from analysis.a7.front_coverage import validate_coverage
+from analysis.a9.front_bindings import partition as partition_fronts, FrontBindingGap
+from analysis.a9.area_projection import project as project_areas, AreaOwnershipGap
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = ROOT / "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts"
@@ -20,7 +22,6 @@ ENTRY = CONTRACTS / "programming_entry_contract_v1.json"
 STAGES = [f"A{i}" for i in range(1, 10)]
 AUTHORITY_FALSE = ("production_authority", "handoff_allowed", "merge_allowed",
                    "deploy_allowed", "downstream_authorized", "pg01_consumer_verified")
-SCOPE = "SBX-AUTH-LOGIN"
 
 
 def fail(code):
@@ -100,13 +101,15 @@ def _typed_rules(result, approved, requirements):
     if not isinstance(prov, dict) or set(prov) != {"direct_rules.json", "effective_rules.json"}:
         fail("F4_A9_RULE_PINNED_PROVENANCE_INVALID")
     for name, ref in prov.items():
-        if not isinstance(ref, str) or not ref.startswith("fixture://sbx_auth_login/" + name + "@") or len(ref.split("@")[-1]) != 64:
+        if not isinstance(ref, str) or not ref.startswith("fixture://") or ("/" + name + "@") not in ref or len(ref.split("@")[-1]) != 64:
             fail("F4_A9_RULE_PINNED_PROVENANCE_INVALID")
     direct, effective = source["direct"], source["effective"]
     if not isinstance(direct, dict) or not isinstance(effective, dict):
         fail("F4_A9_RULE_TYPED_READBACK_INVALID")
-    req_by_code = {r["source_requirement_id"]: r for r in requirements}
-    if len(req_by_code) != len(requirements):
+    source_requirements = [r for r in requirements
+                           if not r.get("derived_from_requirement_id")]
+    req_by_code = {r["source_requirement_id"]: r for r in source_requirements}
+    if len(req_by_code) != len(source_requirements):
         fail("F4_A9_RULE_REQUIREMENT_COVERAGE_MISMATCH")
     rules, seen = [], set()
     for a3 in approved:
@@ -148,7 +151,7 @@ def _typed_rules(result, approved, requirements):
             "categoria": row["categoria"], "valor_config": deepcopy(row["config"]),
             "es_transversal": binding == "DERIVED_GLOBAL",
             "origen": "DERIVED_GLOBAL" if binding == "DERIVED_GLOBAL" else "DIRECT",
-            "front_id": fronts[0]["front_id"],
+            "front_id": result.get("t1a_rule_area_ids", {}).get(code, fronts[0]["front_id"]),
             "requirement_id": requirement["requirement_id"],
         })
     if seen != set(req_by_code):
@@ -168,7 +171,7 @@ def _guard_invariants(a3):
             fail("F4_A9_INVARIANTS_SOURCE_UNHANDLED")
 
 
-def _snapshot(result, requirements, fronts, scope, classification):
+def _snapshot(result, requirements, fronts, scopes, classification):
     """Material parity fields are A3-A5/A6-A8 projections, never model guesses."""
     parity, entry = _contracts()
     a3, a4, a5 = (result["stages"][x] for x in ("A3", "A4", "A5"))
@@ -198,7 +201,7 @@ def _snapshot(result, requirements, fronts, scope, classification):
     authority_sha = digest({"authority_binding_refs": authority_bindings,
                             "authority_state": classification["authority_state"],
                             "source_attested": False, "currentness_refs": currentness_refs})
-    matrix = [{"scope_id": SCOPE, "front_id": row["front_id"],
+    matrix = [{"scope_id": row["scope_ids"][0], "front_id": row["front_id"],
                "front_status": row["obligation_mode"], "front_closure": row["closure"],
                "effect_on_scope": ("BLOCKS" if row["closure"] == "BLOCKED"
                                    else "NOT_APPLICABLE" if row["obligation_mode"] == "NOT_APPLICABLE"
@@ -206,20 +209,22 @@ def _snapshot(result, requirements, fronts, scope, classification):
                "evidence_refs": deepcopy(row["evidence_refs"]), "reason": row["reason"]}
               for row in fronts]
     scope_readiness = [{
-        "scope_id": SCOPE, "scope_kind": "SCREEN",
+        "scope_id": scope["scope_id"], "scope_kind": "SCREEN",
         "status": "READY" if scope["readiness_candidate"] == "READY_CANDIDATE"
                   else scope["readiness_candidate"],
         "depends_on_scope_ids": [],
         "material_front_refs": deepcopy(scope["material_front_refs"]),
         "authority_refs": [],
-        "blockers": sorted(set(b for f in fronts for b in f["blockers"])),
+        "blockers": sorted(set(b for f in fronts
+                               if scope["scope_id"] in f["scope_ids"]
+                               for b in f["blockers"])),
         "reason": "Source-only simulated readiness, not PG-01 admission",
-    }]
+    } for scope in scopes]
     snap = {
         "schema_version": "PROGRAMMING_CONTEXT_SNAPSHOT_V1",
         "simulation_mode": MODE,
         "objective": result["stages"]["A1"].get("payload", {}).get("objective", {}),
-        "target": SCOPE, "target_granularity": classification["target_granularity"],
+        "target": a3["target_ref"], "target_granularity": classification["target_granularity"],
         "authority_state": classification["authority_state"],
         "implementation_state": classification["implementation_state"],
         "requirements": deepcopy(requirements),
@@ -231,7 +236,7 @@ def _snapshot(result, requirements, fronts, scope, classification):
         "decision_context": deepcopy(a5),
         "analysis_stop_rule": deepcopy(result["a8"]),
         "scope_front_matrix": matrix, "scope_readiness": scope_readiness,
-        "package_readiness": scope["readiness_candidate"],
+        "package_readiness": _readiness(scopes),
         "unresolved_material_items": deepcopy(result["a6"].get("unresolved_material_items", [])),
         "source_refs": source_refs, "currentness_refs": currentness_refs,
         "snapshot_schema_digest_sha256": schema_digest,
@@ -282,8 +287,9 @@ def build(result, request_raw):
         fail("F4_A9_INTENT_MISSING")
     context = {"intent": intent, "target_ref": a3.get("target_ref"),
                "request_context_source": "A1", "simulation_mode": MODE}
-    if context["target_ref"] != SCOPE:
+    if not isinstance(context["target_ref"], str) or not context["target_ref"]:
         fail("F4_A9_TARGET_MISMATCH")
+    scope_id = context["target_ref"]
     reqs = []
     for row in a6.get("requirements", []):
         checks = row.get("acceptance_signals")
@@ -295,7 +301,7 @@ def build(result, request_raw):
         reqs.append({
             "requirement_id": "REQ-" + code,
             "source_requirement_id": code,
-            "scope_id": SCOPE,
+            "scope_id": scope_id,
             "outcome": row["outcome"],
             "acceptance_signal": " | ".join(checks),
             "acceptance_checks": list(checks),
@@ -306,32 +312,47 @@ def build(result, request_raw):
         })
     if not reqs:
         fail("F4_A9_REQUIREMENTS_EMPTY")
-    front_rows = []
-    for row in a7["material_fronts"]:
-        front_rows.append({
-            "front_id": row["front_id"],
-            "scope_ids": list(row["scope_refs"]), "obligation_mode": row["status"],
-            "closure": row["closure"], "blockers": list(row["blockers"]),
-            "evidence_refs": list(row["evidence_refs"]), "reason": row["reason"],
-            "front_kind": row["front_kind"],
-            "execution_area_hint": row["execution_area_hint"],
-            "execution_area_policy": "SANDBOX_HINT",
-            "closure_basis": row.get("closure_basis", "SOURCE_ONLY"),
-            "lifted_code": row.get("lifted_code"),
-            "materiality_level": row["materiality_level"],
-            "requires_independent_exam": row["requires_independent_exam"],
-            "simulation_mode": MODE,
-        })
-    front_ids = sorted(x["front_id"] for x in front_rows)
+    screen = result.get("verified_screen_contract", {})
+    if (not isinstance(screen.get("source_ref"), str)
+            or not isinstance(screen.get("value"), dict)):
+        fail("A9_PINNED_SCREEN_CONTRACT_MISSING")
+    sections = screen["value"]
+    # F1 verified the complete source fixture against SOURCE_PIN SHA256 and
+    # verified its target identity before producing A3. A3 deliberately
+    # normalizes some material fields, so raw/full-row equality is invalid.
+    if not sections.get("rules") or not stages["A3"].get("target_ref"):
+        fail("A9_SCREEN_READBACK_SOURCE_MISMATCH")
+    effective = result["rule_sources"]["effective"]
+    inventory = result.get("verified_inventory", {})
+    inv = inventory.get("value", {})
+    if (not isinstance(inventory.get("source_ref"), str)
+            or not isinstance(inv, dict)):
+        fail("A9_PINNED_INVENTORY_MISSING")
+    a4 = stages["A4"]
+    empty_create = (a4.get("target_change_action") == "CREATE"
+                    and a4.get("target_code_destination") is None
+                    and all(inv.get(key) == [] for key in ("objects", "impacts", "dependencies")))
+    try:
+        front_rows, non_atomized = partition_fronts(
+            a7["material_fronts"], reqs, sections, effective,
+            scope=scope_id, create_empty_inventory=empty_create)
+    except FrontBindingGap as exc:
+        fail(str(exc))
+    if not empty_create and any(f["candidate_ref"].startswith("A4:unresolved:")
+                                for f in a7["material_fronts"]):
+        fail("A9_A4_INVENTORY_DEPENDENCY_BLOCKED")
     has_blocked = any(f["closure"] == "BLOCKED" for f in front_rows)
     readiness = ("BLOCKED" if a8.get("decision") == "BLOCKED"
                  else "REQUIRES_DECISION" if a8.get("decision") == "REQUIRES_DECISION"
                  else "READY_CANDIDATE" if a8.get("decision") == "STOP" and not has_blocked
                  else "NEED_MORE_EVIDENCE")
-    scope = {"scope_id": SCOPE, "scope_kind": "SCREEN",
-             "material_front_refs": front_ids, "readiness_candidate": readiness,
-             "simulation_mode": MODE}
-    snapshot = _snapshot(result, reqs, front_rows, scope, classification)
+    try:
+        reqs, front_rows, scopes, rule_front_ids = project_areas(
+            scope_id, reqs, front_rows, readiness=readiness)
+    except AreaOwnershipGap as exc:
+        fail(str(exc))
+    result["t1a_rule_area_ids"] = rule_front_ids
+    snapshot = _snapshot(result, reqs, front_rows, scopes, classification)
     receipt = {
         "schema_version": "A9_SIMULATED_PACKAGE_RECEIPT_V1",
         "simulation_mode": MODE, "source_attested": False,
@@ -350,9 +371,10 @@ def build(result, request_raw):
         "classification": classification,
         "stage_trace": _stage_trace(result, receipt),
         "requirements": reqs, "material_fronts": front_rows,
-        "scope_proposals": [scope],
+        "non_atomized_fronts": non_atomized,
+        "scope_proposals": scopes,
         "research_stop": deepcopy(a8),
-        "package_readiness_candidate": _readiness([scope]),
+        "package_readiness_candidate": _readiness(scopes),
         # Still unresolved as an *authority* fact despite simulated A8 STOP.
         "material_unknowns": deepcopy(a6.get("unresolved_material_items", [])),
         "decisions_pending": deepcopy(a5.get("pending_owner_decisions", [])),

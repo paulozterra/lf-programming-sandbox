@@ -1,0 +1,41 @@
+{
+  "schema_version": "A9_AREA_SOURCE_RULES_V1",
+  "section_areas": {
+    "fields": [
+      "BACKEND"
+    ],
+    "errors": [
+      "BACKEND"
+    ],
+    "visual.variants": [
+      "FRONTEND"
+    ]
+  },
+  "rule_categories": {
+    "seguridad": [
+      "BACKEND"
+    ],
+    "security": [
+      "BACKEND"
+    ],
+    "rate_limiting": [
+      "BACKEND"
+    ],
+    "api": [
+      "BACKEND"
+    ],
+    "datos": [
+      "DATA"
+    ],
+    "error_states": [
+      "BACKEND"
+    ],
+    "analytics": []
+  },
+  "version": 1,
+  "source_policy": "EXPLICIT_RULE_REFS_ONLY",
+  "primary_owner_by_section": {
+    "fields": "FRONTEND",
+    "errors": "BACKEND"
+  }
+}

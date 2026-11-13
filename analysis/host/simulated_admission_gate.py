@@ -9,6 +9,8 @@ from copy import deepcopy
 import hashlib
 import json
 
+from analysis.host.fixture_readback_host import TARGET
+
 MODE = "SIMULATED_SANDBOX_ONLY"
 STAGES = ("A1", "A2", "A3", "A4", "A5")
 ALLOW = frozenset({
@@ -92,9 +94,9 @@ def _assess(stages, signals):
         if row.get("status") != STATUS[stage]:
             _blocked("F2_UPSTREAM_STATUS_UNEXPECTED:" + stage)
     a1, a2, a3, a4, a5 = (stages[k] for k in STAGES)
-    if (a1.get("payload", {}).get("target_hints") != ["SBX-AUTH-LOGIN"]
-            or a2.get("classification", {}).get("target_ref") != "SBX-AUTH-LOGIN"
-            or any(x.get("target_ref") != "SBX-AUTH-LOGIN" for x in (a3, a4, a5))
+    if (a1.get("payload", {}).get("target_hints") != [TARGET]
+            or a2.get("classification", {}).get("target_ref") != TARGET
+            or any(x.get("target_ref") != TARGET for x in (a3, a4, a5))
             or a3.get("source_attested") is not False
             or a4.get("source_attested") is not False
             or a5.get("source_attested") is not False
@@ -151,7 +153,7 @@ def seal_envelope(stages, signals):
     body = {
         "schema_version": "SIMULATED_ADMISSION_ENVELOPE_V1",
         "attestation_mode": MODE,
-        "target_ref": "SBX-AUTH-LOGIN",
+        "target_ref": TARGET,
         "materiality_level": signals["depth_signals"]["materiality_level"],
         "stage_sha256": output_digests(stages),
         "a2_signals_sha256": digest(signals),
@@ -170,7 +172,7 @@ def admit(stages, signals, envelope):
         _blocked("F2_ADMISSION_ENVELOPE_DIGEST_INVALID")
     if (body.get("schema_version") != "SIMULATED_ADMISSION_ENVELOPE_V1"
             or body.get("attestation_mode") != MODE
-            or body.get("target_ref") != "SBX-AUTH-LOGIN"
+            or body.get("target_ref") != TARGET
             or body.get("materiality_level") != signals.get("depth_signals", {}).get("materiality_level")
             or body.get("authority_flags") != FALSE_FLAGS):
         _blocked("F2_ADMISSION_ENVELOPE_IDENTITY_INVALID")
@@ -185,7 +187,7 @@ def admit(stages, signals, envelope):
     return {
         "schema_version": "SIMULATED_ADMISSION_V1",
         "attestation_mode": MODE,
-        "target_ref": "SBX-AUTH-LOGIN",
+        "target_ref": TARGET,
         "a6_admitted": True,
         "materiality_level": signals["depth_signals"]["materiality_level"],
         "lifted_codes": lifts,

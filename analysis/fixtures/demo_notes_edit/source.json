@@ -1,0 +1,186 @@
+{
+  "schema_version": "SECOND_SCREEN_SOURCE_V1",
+  "target_ref": "DEMO-NOTES-EDIT",
+  "screen_contract": {
+    "fields": [
+      {
+        "field_code": "TITLE_EDIT__X",
+        "status": "VIGENTE",
+        "required": true,
+        "rule_refs": [
+          "fixture://demo_notes_edit/rules/719"
+        ]
+      },
+      {
+        "field_code": "BODYNOTE__J",
+        "status": "VIGENTE",
+        "required": true,
+        "rule_refs": [
+          "fixture://demo_notes_edit/rules/842"
+        ]
+      }
+    ],
+    "errors": [
+      {
+        "error_code": "VALIDATION_FAILED_T77",
+        "status": "VIGENTE",
+        "generic": true,
+        "rule_refs": [
+          "fixture://demo_notes_edit/rules/319"
+        ]
+      }
+    ],
+    "visual": {
+      "variants": [
+        {
+          "code": "DESKTOP_NOTE_EDITOR",
+          "status": "VIGENTE",
+          "rule_refs": [
+            "fixture://demo_notes_edit/rules/719",
+            "fixture://demo_notes_edit/rules/842",
+            "fixture://demo_notes_edit/rules/319"
+          ]
+        }
+      ]
+    },
+    "context": {
+      "module_code": "NOTE_EDITOR"
+    },
+    "metadata": {
+      "screen_code": "DEMO-NOTES-EDIT"
+    },
+    "analytics": [],
+    "profiles": [],
+    "rules": [
+      {
+        "code": "NOTES_TITLE_GOVERNED",
+        "title": "Título obligatorio",
+        "status": "VIGENTE",
+        "source_ref": "fixture://demo_notes_edit/rules/719",
+        "association_ref": "fixture://demo_notes_edit/assoc/9"
+      },
+      {
+        "code": "PRIVATE_CONTENT_POLICY",
+        "title": "Notas privadas",
+        "status": "VIGENTE",
+        "source_ref": "fixture://demo_notes_edit/rules/599",
+        "association_ref": "fixture://demo_notes_edit/assoc/10"
+      },
+      {
+        "code": "ERROR_NEUTRAL_MESSAGE",
+        "title": "Respuesta genérica",
+        "status": "VIGENTE",
+        "source_ref": "fixture://demo_notes_edit/rules/319",
+        "association_ref": "fixture://demo_notes_edit/assoc/11"
+      },
+      {
+        "code": "CONTENT_MUST_BE_SET",
+        "title": "Contenido obligatorio",
+        "status": "VIGENTE",
+        "source_ref": "fixture://demo_notes_edit/rules/842",
+        "association_ref": "fixture://demo_notes_edit/assoc/12"
+      }
+    ],
+    "policies": [
+      {
+        "policy_code": "PRIVATE_NOTES_POLICY",
+        "rule_refs": [
+          "fixture://demo_notes_edit/rules/599"
+        ],
+        "source_ref": "fixture://demo_notes_edit/policies/private"
+      }
+    ]
+  },
+  "effective_rules": {
+    "NOTES_TITLE_GOVERNED": {
+      "code": "NOTES_TITLE_GOVERNED",
+      "source_ref": "fixture://demo_notes_edit/rules/719",
+      "status": "VIGENTE",
+      "binding_source": "LEGACY_EXPLICIT",
+      "categoria": "workflow",
+      "config": {}
+    },
+    "PRIVATE_CONTENT_POLICY": {
+      "code": "PRIVATE_CONTENT_POLICY",
+      "source_ref": "fixture://demo_notes_edit/rules/599",
+      "status": "VIGENTE",
+      "binding_source": "LEGACY_EXPLICIT",
+      "categoria": "security",
+      "config": {
+        "visibility": "private"
+      }
+    },
+    "ERROR_NEUTRAL_MESSAGE": {
+      "code": "ERROR_NEUTRAL_MESSAGE",
+      "source_ref": "fixture://demo_notes_edit/rules/319",
+      "status": "VIGENTE",
+      "binding_source": "LEGACY_EXPLICIT",
+      "categoria": "error_states",
+      "config": {}
+    },
+    "CONTENT_MUST_BE_SET": {
+      "code": "CONTENT_MUST_BE_SET",
+      "source_ref": "fixture://demo_notes_edit/rules/842",
+      "status": "VIGENTE",
+      "binding_source": "LEGACY_EXPLICIT",
+      "categoria": "workflow",
+      "config": {}
+    }
+  },
+  "requirements": [
+    {
+      "requirement_id": "REQ-NOTES-TITLE-GOVERNED",
+      "source_requirement_id": "NOTES_TITLE_GOVERNED",
+      "evidence_refs": [
+        "fixture://demo_notes_edit/rules/719"
+      ],
+      "outcome": "Título obligatorio",
+      "acceptance_signal": "Título obligatorio funciona",
+      "acceptance_checks": [
+        "Título obligatorio funciona"
+      ]
+    },
+    {
+      "requirement_id": "REQ-PRIVATE-CONTENT-POLICY",
+      "source_requirement_id": "PRIVATE_CONTENT_POLICY",
+      "evidence_refs": [
+        "fixture://demo_notes_edit/rules/599"
+      ],
+      "outcome": "Notas privadas",
+      "acceptance_signal": "Notas privadas funciona",
+      "acceptance_checks": [
+        "Notas privadas funciona"
+      ]
+    },
+    {
+      "requirement_id": "REQ-ERROR-NEUTRAL-MESSAGE",
+      "source_requirement_id": "ERROR_NEUTRAL_MESSAGE",
+      "evidence_refs": [
+        "fixture://demo_notes_edit/rules/319"
+      ],
+      "outcome": "Respuesta genérica",
+      "acceptance_signal": "Respuesta genérica funciona",
+      "acceptance_checks": [
+        "Respuesta genérica funciona"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CONTENT-MUST-BE-SET",
+      "source_requirement_id": "CONTENT_MUST_BE_SET",
+      "evidence_refs": [
+        "fixture://demo_notes_edit/rules/842"
+      ],
+      "outcome": "Contenido obligatorio",
+      "acceptance_signal": "Contenido obligatorio funciona",
+      "acceptance_checks": [
+        "Contenido obligatorio funciona"
+      ]
+    }
+  ],
+  "inventory": {
+    "objects": [],
+    "impacts": [],
+    "dependencies": []
+  },
+  "simulation_only": true
+}

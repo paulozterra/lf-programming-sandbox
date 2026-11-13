@@ -1,4 +1,4 @@
-"""F1: strictly offline SBX-AUTH-LOGIN readback host, with dual untrusted references.
+"""F1: strictly offline source-pinned readback host, with dual untrusted references.
 
 The supabase:// values are syntactic compatibility identifiers only; no provider
 is ever contacted, no source authority/currentness is asserted, and every
@@ -16,14 +16,14 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parents[2]
 STAGE = PROJECT / "analysis/programming_analysis"
 DEFAULT_FIXTURES = PROJECT / "analysis/fixtures/sbx_auth_login"
-TARGET = "SBX-AUTH-LOGIN"
+TARGET = json.loads((DEFAULT_FIXTURES / "SOURCE_PIN.json").read_text(encoding="utf-8"))["fixture_id"]
 FILES = (
     "screen_contract.json", "direct_rules.json", "effective_rules.json",
     "policies.json", "elements.json", "states.json", "variants.json",
     "relations.json", "inventory.json", "ekb.json", "adr.json",
     "decision_asof.json", "semantic_signals.json",
 )
-SOURCE_PREFIX = "fixture://sbx_auth_login/"
+SOURCE_PREFIX = "fixture://" + DEFAULT_FIXTURES.name + "/"
 CANONICAL_SCREEN = "supabase://lf_ops.pantallas/" + TARGET
 
 
