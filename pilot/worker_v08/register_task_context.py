@@ -146,7 +146,6 @@ def select_area(paths: list[str], declared: str) -> str:
     if declared == "INFRA":
         # An INFRA task is explicitly a BACKEND-profile alias, restricted
         # to allowlisted configuration files, never an arbitrary multi-area task.
-        import json
         rule_path = Path(__file__).resolve().parents[1] / "orchestrator/dependency_allowlist_v1.json"
         allowlist = json.loads(rule_path.read_text(encoding="utf-8"))
         allowed = set(allowlist["database"]["config_files"]) | {
