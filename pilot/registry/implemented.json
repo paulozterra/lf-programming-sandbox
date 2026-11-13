@@ -1,0 +1,112 @@
+{
+  "entries": [
+    {
+      "area": "DATA",
+      "endpoints": [],
+      "files": [
+        {
+          "path": "db/migration/V1__reminders_priority.sql",
+          "sha256": "198e8970beb8d1b4e9c37214b9489507577979526f8c2ada22625e19fe257510"
+        }
+      ],
+      "lot": "SOL-002",
+      "merge_sha": "e500862a18ed50a0cfe62b5d943dc8fcb9b9c496",
+      "reasons": [
+        "RULE_BINDING_MISSING",
+        "CONTRACT_ENDPOINTS_NOT_DERIVABLE"
+      ],
+      "request": "p4-prioridad",
+      "requirement_ids": [
+        "REQ-PRIORITY-DATA-001",
+        "REQ-PRIORITY-DATA-002"
+      ],
+      "rule_codes": [],
+      "status": "NO_DERIVABLE"
+    },
+    {
+      "area": "BACKEND",
+      "endpoints": [],
+      "files": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/InMemoryReminderRepository.java",
+          "sha256": "9be516e26db9faf8780b94b87e318838cd72138cfd6686681a39c6c6539fbaf4"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java",
+          "sha256": "2061bda816ef24b49b7f422d26e8f2c9b34d13ac3f790cf280a7c9a24e9d4962"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+          "sha256": "ceda5516f81cf56ea0366d5beeeb3cb5b5dd76096f802ed7a78f6ee465a49fd6"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderRepository.java",
+          "sha256": "d2699b62a5d36f9f02d4f4a47c64e33c099a70d11184293475c4d8494d3f6377"
+        }
+      ],
+      "lot": "SOL-001",
+      "merge_sha": "266ed23b2c0d769c20cf100d1bfd7672f09f0b20",
+      "reasons": [
+        "RULE_BINDING_MISSING",
+        "CONTRACT_ENDPOINTS_NOT_DERIVABLE"
+      ],
+      "request": "p4-prioridad",
+      "requirement_ids": [
+        "REQ-PRIORITY-BE-001",
+        "REQ-PRIORITY-BE-002",
+        "REQ-PRIORITY-BE-003",
+        "REQ-PRIORITY-BE-004",
+        "REQ-PRIORITY-BE-005"
+      ],
+      "rule_codes": [],
+      "status": "NO_DERIVABLE"
+    },
+    {
+      "area": "BACKEND",
+      "endpoints": [],
+      "files": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+          "sha256": "fb01c89a3810ecddf37d556d10ab0c41030f1f49809478a2b5275dcc9832e193"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+          "sha256": "73443eb852d7e1fbd11dcc9ddcf471c97bea7779f3eb4b4faa9c36b6c2fecb78"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+          "sha256": "402d1c7fe84c5315ee1af41ddc39c02086e6ac02a6e9e0ca876c0e8769722100"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthUser.java",
+          "sha256": "f32a673f660b8873828a7cee608f879342ee537a66b4435e45ee2574cb21d7bd"
+        }
+      ],
+      "lot": "SOL-001",
+      "merge_sha": "d78d7085a3869fa5630a188f2e6dce6f3138dfd2",
+      "reasons": [
+        "CONTRACT_ENDPOINTS_NOT_DERIVABLE"
+      ],
+      "request": "f5-login",
+      "requirement_ids": [
+        "REQ-SBX-R-ERR",
+        "REQ-SBX-R-HASH",
+        "REQ-SBX-R-LOCK",
+        "REQ-SBX-R-LOG",
+        "REQ-SBX-R-PASS",
+        "REQ-SBX-R-USER"
+      ],
+      "rule_codes": [
+        "SBX-R-ERR",
+        "SBX-R-HASH",
+        "SBX-R-LOCK",
+        "SBX-R-LOG",
+        "SBX-R-PASS",
+        "SBX-R-USER"
+      ],
+      "status": "NO_DERIVABLE"
+    }
+  ],
+  "schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
+  "source_main_sha": "b6743438702640abe4cab6e5e467ee885857c466"
+}
