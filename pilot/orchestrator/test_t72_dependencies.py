@@ -62,7 +62,7 @@ def _git_main(root, files):
 
 
 def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True,
-              attested=False, drift=False, backend_only=False):
+              attested=False, drift=False, backend_only=False, by_rule=False):
     code, folder=prepare_description_screen(tmp_path)
     if backend_only:
         _backend_screen(folder)
@@ -76,10 +76,13 @@ def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True,
         'public boolean authenticated() { return true; }\n}\n')
     pkg=launch(tmp_path,"t72-before","Implementa "+code)["package"]
     rid=next(x["requirement_id"] for x in pkg["requirements"]
-             if x["source_requirement_id"]=="SYN-R-1")
+             if x["source_requirement_id"]=="SYN-R-1"
+             and x["scope_id"].endswith("-BACKEND"))
     dependency={"kind":"endpoint", "method":"GET",
                 "route":"/api/missing" if missing else "/api/items",
-                "requirement_id":rid, "adds_rule":adds_rule}
+                **({"rule_code":"SYN-R-1"} if by_rule
+                   else {"requirement_id":rid}),
+                "adds_rule":adds_rule}
     if adds_rule:
         dependency["reuse_component_signature"]="type:ExistingSession"
     _inventory(folder,[dependency] if declared else [])
@@ -151,14 +154,16 @@ def test_existing_endpoint_contract_identity_is_source_bound(tmp_path):
 
 def test_rule_code_links_primary_requirement_even_with_derived_child():
     from pilot.orchestrator.declared_dependencies import select
-    requirements=[{"requirement_id":"REQ-SOURCE","source_requirement_id":"RULE-SOURCE"},
+    requirements=[{"requirement_id":"REQ-SOURCE","source_requirement_id":"RULE-SOURCE",
+                   "scope_id":"SYN-FRONTEND"},
                   {"requirement_id":"REQ-DERIVED","source_requirement_id":"RULE-SOURCE",
+                   "scope_id":"SYN-BACKEND",
                    "derived_from_requirement_id":"REQ-SOURCE"}]
-    deps=[{"kind":"component","signature":"export:ExistingComponent",
+    deps=[{"kind":"endpoint","method":"GET","route":"/api/items",
            "rule_code":"RULE-SOURCE","adds_rule":False}]
     selected=select(deps,requirements)
-    assert set(selected)=={"REQ-SOURCE"}
-    assert selected["REQ-SOURCE"]["key"]=="export:ExistingComponent"
+    assert set(selected)=={"REQ-DERIVED"}
+    assert selected["REQ-DERIVED"]["key"]=="GET /api/items"
 
 def test_main_attested_dependencies_make_a9_ready(tmp_path):
     package, _, dep, endpoint, session = _scenario(
