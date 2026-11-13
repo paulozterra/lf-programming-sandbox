@@ -94,6 +94,22 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False, skelet
 
 def generate(root, run, lots):
     folder=Path(root)/"pilot/runs"/run
+    report_path=folder/"reuse_assessment.json"
+    reuse_rows=[]
+    package_for_reuse=None
+    scope_by_requirement={}
+    if report_path.exists():
+        if report_path.is_symlink():
+            raise ValueError("REUTILIZACION_INDETERMINADA")
+        assessment=json.loads(report_path.read_text(encoding="utf-8"))
+        if assessment.get("schema_version")!="T7_REUSE_ASSESSMENT_V1":
+            raise ValueError("REUTILIZACION_INDETERMINADA")
+        reuse_rows=assessment.get("obligations",[])
+        if not isinstance(reuse_rows,list):
+            raise ValueError("REUTILIZACION_INDETERMINADA")
+        package_for_reuse=json.loads((folder/"analysis.json").read_text(encoding="utf-8"))
+        scope_by_requirement={r["requirement_id"]:r["scope_id"]
+                              for r in package_for_reuse["requirements"]}
     contract_lots=[lot for lot in lots["lots"] if lot["area"]=="CONTRATO"]
     contract_by_path={lot["write_paths"][0]:lot["contract_module"]
                       for lot in contract_lots}
@@ -112,21 +128,18 @@ def generate(root, run, lots):
         for lot in contract_lots:
             module=lot["contract_module"]
             skeleton=contract_generate.generate(module,package,atoms)
+            if report_path.exists():
+                source_scopes={scope_by_requirement[r] for r in lot["requirement_ids"]
+                               if r in scope_by_requirement}
+                reused=sorted({endpoint for row in reuse_rows
+                               if scope_by_requirement.get(row.get("requirement_id")) in source_scopes
+                               for endpoint in row.get("reused_endpoints",[])})
+                if reused:
+                    skeleton["reused_endpoints"]=reused
             path=Path(root)/skeleton_template.format(module=module)
             save(path,skeleton)
     # T7 only: a typed, evidence-backed reuse report is optional for legacy
     # chains. No report means no claim of reuse, never an implicit BUILD_NEW.
-    report_path=folder/"reuse_assessment.json"
-    reuse_rows=[]
-    if report_path.exists():
-        if report_path.is_symlink():
-            raise ValueError("REUTILIZACION_INDETERMINADA")
-        assessment=json.loads(report_path.read_text(encoding="utf-8"))
-        if assessment.get("schema_version")!="T7_REUSE_ASSESSMENT_V1":
-            raise ValueError("REUTILIZACION_INDETERMINADA")
-        reuse_rows=assessment.get("obligations",[])
-        if not isinstance(reuse_rows,list):
-            raise ValueError("REUTILIZACION_INDETERMINADA")
     rows=[]
     output={}
     for pos,lot in enumerate(lots["lots"],1):
@@ -177,8 +190,10 @@ def generate(root, run, lots):
             context_paths.append(lot["infra_context_ref"])
         if report_path.exists():
             import hashlib as _hashlib
-            selected=[r for r in reuse_rows if r.get("requirement_id") in
-                      lot["requirement_ids"]]
+            active_scopes={scope_by_requirement[r] for r in lot["requirement_ids"]
+                           if r in scope_by_requirement}
+            selected=[r for r in reuse_rows
+                      if scope_by_requirement.get(r.get("requirement_id")) in active_scopes]
             for obligation in selected:
                 for reference in obligation.get("reuse_context",[]):
                     src=reference.get("path")
