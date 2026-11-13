@@ -384,3 +384,11 @@ def test_same_lot_overlap_without_existing_tests_stays_blocked(tmp_path):
     generate_chain, root, run, lots, *_ = _same_endpoint_chain(tmp_path, protect_tests=False)
     with pytest.raises(ValueError, match="REUTILIZACION_INDETERMINADA"):
         generate_chain.generate(root, run, lots)
+
+def test_extension_of_same_scope_outside_this_lot_cannot_unlock_write(tmp_path):
+    generate_chain, root, run, lots, *_ = _same_endpoint_chain(tmp_path)
+    # Although the EXTEND appears in the same A9 scope, this lot only owns
+    # REUSE_AS_IS. Its write path may not be excused by the other lot's change.
+    lots["lots"][0]["requirement_ids"] = ["REQ-EXISTING-FILTER"]
+    with pytest.raises(ValueError, match="REUTILIZACION_INDETERMINADA"):
+        generate_chain.generate(root, run, lots)
