@@ -194,7 +194,7 @@ def test_main_sha_drift_does_not_attest(tmp_path):
     from analysis.host.run_a1_a8_fixture import run_f3
     stages = run_f3(fixtures=tmp_path/"analysis/fixtures/other_pinned_screen",
                     request="Implementa SYN-CATALOG-LIST")
-    assert stages["stages"]["A4"]["host_simulated_dependency_attestation"]["status"] == "UNVERIFIED"
+    assert stages["stages"]["A4"]["host_simulated_dependency_attestation"]["status"].startswith("UNVERIFIED:")
 
 
 @pytest.mark.skipif(
@@ -256,3 +256,40 @@ def test_endpoint_rule_code_without_backend_requirement_blocks():
         select(deps, requirements)
     with pytest.raises(DependencyBlocked, match="DEPENDENCIA_SIN_REQUISITO"):
         select([{**deps[0], "rule_code":"UNKNOWN"}], requirements)
+
+@pytest.mark.parametrize("by_rule", [True, False])
+@pytest.mark.skipif(
+    os.environ.get("SELECTOR_EXP_DISPOSABLE_DB") != "YES"
+    or not os.environ.get("SELECTOR_EXP_TEST_DSN"),
+    reason="PG02-PG05 requires a real disposable selector database")
+def test_mixed_frontend_build_and_backend_reuse_plans_without_phantom_lot(tmp_path, by_rule):
+    package, ledger, dep, endpoint, _ = _scenario(
+        tmp_path, attested=True, by_rule=by_rule)
+    assert package["package_readiness_candidate"] == "READY_CANDIDATE"
+    from pilot.orchestrator.declared_dependencies import select
+    backend_id = next(iter(select([dep], package["requirements"])))
+    frontend = [r["requirement_id"] for r in package["requirements"]
+                if r["source_requirement_id"] == "SYN-R-1"
+                and r["scope_id"].endswith("-FRONTEND")]
+    assert frontend and backend_id not in frontend
+    report = assess(index(tmp_path), package["requirements"], registry=ledger,
+                    root=tmp_path, declared_dependencies=[dep])
+    by_id = {row["requirement_id"]: row["decision"] for row in report["obligations"]}
+    assert by_id[backend_id] == "REUSE_AS_IS"
+    assert all(by_id[x] == "BUILD_NEW" for x in frontend)
+    folder = tmp_path/"pilot/runs/t72-after"
+    (folder/"reuse_assessment.json").write_text(
+        json.dumps(report,sort_keys=True,indent=2,ensure_ascii=False)+"\n",
+        encoding="utf-8")
+    atoms = atomize.atomize(package, tmp_path, "a"*40, run="t72-after",
+                           reuse_assessment=report)
+    assert all(backend_id not in a["requirement_ids"] for a in atoms["atoms"])
+    assert any(any(fid in a["requirement_ids"] for fid in frontend)
+               for a in atoms["atoms"])
+    assert any(x["scope_id"].endswith("-BACKEND")
+               for x in atoms["reused_scopes"])
+    (folder/"atomized_inputs.json").write_bytes(intake.canonical(atoms))
+    planned = plan_lots.plan(tmp_path, "t72-after")
+    assert planned["lots"]
+    assert all(backend_id not in lot["requirement_ids"] for lot in planned["lots"])
+    assert any(lot["area"] == "FRONTEND" for lot in planned["lots"])
