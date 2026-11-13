@@ -345,6 +345,16 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
     any GitHub label to the registration PR.
     """
     title, body = public_exam_request(ROOT, request, binding, lot)
+    labels = json.loads(run("gh", "label", "list", "--repo", REPO,
+                            "--search", "exam-request", "--limit", "100",
+                            "--json", "name"))
+    if not isinstance(labels, list) or len(labels) >= 100:
+        deny("EXAM_REQUEST_LABELS_UNTRUSTED")
+    if not any(isinstance(row, dict) and row.get("name") == "exam-request"
+               for row in labels):
+        run("gh", "label", "create", "exam-request", "--repo", REPO,
+            "--description", "Independent encrypted examination requested",
+            "--color", "D4C5F9")
     existing = json.loads(run("gh", "issue", "list", "--repo", REPO,
                               "--state", "all", "--label", "exam-request",
                               "--limit", "100", "--json", "title,number"))
