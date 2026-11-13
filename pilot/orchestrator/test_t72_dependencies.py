@@ -1,0 +1,110 @@
+"""T7.2: synthetic 13-source screen; no production catalogue copies."""
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+
+from analysis.host.test_t71_general import prepare_description_screen, launch
+from pilot.orchestrator import atomize
+from pilot.orchestrator.reuse_assessment import index, assess, ReuseBlocked
+from pilot.orchestrator.contract_validate import _check_skeleton, ContractBlocked
+
+
+def _file(root, relative, contents):
+    path=root/relative
+    path.parent.mkdir(parents=True,exist_ok=True)
+    path.write_text(contents, encoding="utf-8")
+    return relative
+
+
+def _inventory(folder, dependencies):
+    path=folder/"inventory.json"
+    doc=json.loads(path.read_text("utf-8"))
+    doc["dependencies"]=dependencies
+    path.write_text(json.dumps(doc,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+    pinpath=folder/"SOURCE_PIN.json"
+    pin=json.loads(pinpath.read_text("utf-8"))
+    next(row for row in pin["files"] if row["file"]=="inventory.json")["sha256"]=hashlib.sha256(path.read_bytes()).hexdigest()
+    pinpath.write_text(json.dumps(pin,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
+
+
+def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True):
+    code, folder=prepare_description_screen(tmp_path)
+    endpoint_path=_file(tmp_path,
+        "apps/time-service/src/main/java/demo/ExistingItems.java",
+        'public class ExistingItems {\n@GetMapping("/api/items")\n'
+        'public String list() { return "ok"; }\n}\n')
+    session_path=_file(tmp_path,
+        "apps/time-service/src/main/java/demo/ExistingSession.java",
+        'public class ExistingSession {\n// RULE-SESSION\n'
+        'public boolean authenticated() { return true; }\n}\n')
+    pkg=launch(tmp_path,"t72-before","Implementa "+code)["package"]
+    rid=next(x["requirement_id"] for x in pkg["requirements"]
+             if x["source_requirement_id"]=="SYN-R-1")
+    dependency={"kind":"endpoint", "method":"GET",
+                "route":"/api/missing" if missing else "/api/items",
+                "requirement_id":rid, "adds_rule":adds_rule}
+    if adds_rule:
+        dependency["reuse_rule_code"]="RULE-SESSION"
+    _inventory(folder,[dependency] if declared else [])
+    pkg=launch(tmp_path,"t72-after","Implementa "+code)["package"]
+    ledger={"schema_version":"T7_IMPLEMENTED_REGISTRY_V1","entries":[]}
+    return pkg, ledger, dependency, endpoint_path, session_path
+
+
+def test_declared_existing_endpoint_without_new_rule_reuses_as_is(tmp_path):
+    package,ledger,dep,endpoint,_=_scenario(tmp_path)
+    result=assess(index(tmp_path),package["requirements"],registry=ledger,root=tmp_path,
+                  declared_dependencies=[dep])
+    row=next(x for x in result["obligations"] if x["requirement_id"]==dep["requirement_id"])
+    assert row["decision"]=="REUSE_AS_IS"
+    assert row["path"]==endpoint
+    assert row["write_paths"]==[]
+    assert row["reused_endpoints"]==["GET /api/items"]
+    assert row["reuse_context"][0]["path"]==endpoint
+
+
+def test_declared_existing_endpoint_with_new_session_rule_extends(tmp_path):
+    package,ledger,dep,endpoint,session=_scenario(tmp_path,adds_rule=True)
+    result=assess(index(tmp_path),package["requirements"],registry=ledger,root=tmp_path,
+                  declared_dependencies=[dep])
+    row=next(x for x in result["obligations"] if x["requirement_id"]==dep["requirement_id"])
+    assert row["decision"]=="EXTEND"
+    assert row["write_paths"]==[endpoint]
+    assert [x["path"] for x in row["reuse_context"]]==[session]
+    assert row["reused_endpoints"]==["GET /api/items"]
+    atom=atomize.atomize(package,tmp_path,"a"*40,run="t72-after",reuse_assessment=result)
+    assert any(endpoint in a["paths"] for a in atom["atoms"])
+
+
+def test_declared_missing_endpoint_fails_closed(tmp_path):
+    package,ledger,dep,_,_=_scenario(tmp_path,missing=True)
+    with pytest.raises(ReuseBlocked,match="DEPENDENCIA_DECLARADA_AUSENTE"):
+        assess(index(tmp_path),package["requirements"],registry=ledger,root=tmp_path,
+               declared_dependencies=[dep])
+
+
+def test_no_declared_dependencies_preserves_old_assessment(tmp_path):
+    package,ledger,_,_,_=_scenario(tmp_path,declared=False)
+    idx=index(tmp_path)
+    original=assess(idx,package["requirements"],registry=ledger,root=tmp_path)
+    empty=assess(idx,package["requirements"],registry=ledger,root=tmp_path,
+                 declared_dependencies=[])
+    assert original==empty
+
+
+def test_existing_endpoint_contract_identity_is_source_bound(tmp_path):
+    package,ledger,dep,_,_=_scenario(tmp_path,adds_rule=True)
+    report=assess(index(tmp_path),package["requirements"],registry=ledger,root=tmp_path,
+                  declared_dependencies=[dep])
+    extended=[endpoint for row in report["obligations"] if row["decision"]=="EXTEND"
+              for endpoint in row["reused_endpoints"]]
+    skeleton={"schema_version":"T2_CONTRACT_SKELETON_V1","functional_module":"synthetic",
+              "production_authority":False,"fields":[{"field_code":"value","required":False}],
+              "errors":[{"error_code":"E"}],"requirement_ids":["REQ-SYN"],
+              "rules":[],"reused_endpoints":extended,"extended_endpoints":extended}
+    _check_skeleton(skeleton,"synthetic")
+    skeleton["extended_endpoints"]=["GET /api/parallel"]
+    with pytest.raises(ContractBlocked,match="REUTILIZACION_INDETERMINADA"):
+        _check_skeleton(skeleton,"synthetic")
