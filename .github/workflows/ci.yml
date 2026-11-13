@@ -179,6 +179,27 @@ jobs:
           assert all(e["merge_sha"] and e["status"] in ("ATTESTED","NO_DERIVABLE") for e in value["entries"])
           print("T7_REGISTRY_HISTORY_RECONSTRUCTED",len(value["entries"]))
           PY
+      - name: Verify rule-complete existing implementation against live main hashes
+        run: |
+          python3 - <<'PY'
+          import json,pathlib
+          from pilot.orchestrator.reuse_assessment import assess,index
+          root=pathlib.Path(".")
+          registry=json.loads((root/"pilot/registry/implemented.json").read_text())
+          available={rule for row in registry["entries"] for rule in row["rule_codes"]}
+          candidates=[]
+          for file in sorted((root/"pilot/runs").glob("*/analysis.json")):
+              package=json.loads(file.read_text())
+              refs={r.get("source_requirement_id") for r in package.get("requirements",[])
+                    if isinstance(r,dict)}
+              if refs and refs.issubset(available):
+                  candidates.append(package)
+          assert candidates, "T7_HISTORICAL_RULE_BINDING_NOT_FOUND"
+          for package in candidates:
+              report=assess(index(root),package["requirements"],registry=registry,root=root)
+              assert all(row["decision"]=="REUSE_AS_IS" for row in report["obligations"])
+          print("T7_HISTORICAL_REUSE_AS_IS_PROVEN",len(candidates))
+          PY
 
   t5-browser-visible:
     name: T5 Playwright Chromium local app (visible only)
