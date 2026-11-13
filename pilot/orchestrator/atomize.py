@@ -285,7 +285,7 @@ def atomize(package, root, base_head_sha, *, run):
             member["depends_on"].append(contract_id)
     # T3: one shared infrastructure atom from a versioned allowlist, created
     # only if checked-out manifests/configuration lack a required dependency.
-    import infra_lot
+    from pilot.orchestrator import infra_lot
     try:
         infra = infra_lot.infra_atom(package, rows)
     except infra_lot.DependencyBlocked as exc:
