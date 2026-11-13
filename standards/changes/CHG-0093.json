@@ -1,0 +1,57 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0093",
+  "title": "T2 CP1.5: lote CONTRATO gobernado y OpenAPI tipado",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T2: contrato automático + OpenAPI, 2026-11-13"
+  },
+  "reason": "T2 revisado por Claude: el lote CONTRATO se deriva automáticamente del paquete A9 real, genera únicamente contracts/<module>.skeleton.json (campos, errores, requisitos y reglas fuente) y exige que el constructor proponga el OpenAPI, sin inferir rutas ni métodos. Validador determinista cubre especificación 3.x, campos, errores, requisitos y secretos; CI incluye casos Login/Notes/aleatorio, cliente tipado, rutas springdoc y Worker YAML acotado. F5 histórico se conserva y se valida separado de A9 actual. No altera productores fijados, integración, Train ni política C.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/f5-package.yml",
+      "apps/time-service/pom.xml",
+      "contracts/.gitkeep",
+      "frontend/package-lock.json",
+      "frontend/package.json",
+      "frontend/scripts/gen-api.mjs",
+      "frontend/src/lib/api/client.ts",
+      "frontend/src/lib/api/generated/index.ts",
+      "pilot/orchestrator/atomize.py",
+      "pilot/orchestrator/atomize_rules_v1.json",
+      "pilot/orchestrator/contract_generate.py",
+      "pilot/orchestrator/contract_validate.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/intervention_report.py",
+      "pilot/orchestrator/native_lot_binding.py",
+      "pilot/orchestrator/package_to_lots.py",
+      "pilot/orchestrator/plan_lots.py",
+      "pilot/orchestrator/test_contract_t2.py",
+      "pilot/orchestrator/test_package_to_lots.py",
+      "pilot/orchestrator/test_t2_general_guard.py",
+      "pilot/worker_v08/derive_context.py",
+      "pilot/worker_v08/lot_preflight.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0093.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "owner",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/138"
+  }
+}

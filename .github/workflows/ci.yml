@@ -29,11 +29,21 @@ jobs:
           cache: maven
       - name: STD-BE-05 Spotless/Palantir (required for time-service)
         working-directory: .
-        run: mvn -B -q -f apps/time-service/pom.xml spotless:check
+        run: mvn -U -B -q -f apps/time-service/pom.xml spotless:check
       - run: python3 ../standards/tools/stack_checks.py run --set spring-boot --check-id spring-verify
       - name: Compile and run staged reminders visible tests (no model)
         working-directory: .
-        run: mvn -B -q -f apps/time-service/pom.xml test
+        run: mvn -U -B -q -f apps/time-service/pom.xml test
+      - name: "T2: verify live springdoc operations against every contract"
+        working-directory: .
+        run: |
+          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2
+          mvn -U -B -q -f apps/time-service/pom.xml spring-boot:start
+          python3 pilot/orchestrator/contract_validate.py --compare-live http://127.0.0.1:8080/v3/api-docs
+      - name: "T2: stop springdoc verification backend"
+        if: always()
+        working-directory: .
+        run: mvn -B -q -f apps/time-service/pom.xml spring-boot:stop || true
 
   frontend:
     name: frontend (lint, tipos, build)
@@ -49,6 +59,15 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - run: npm run gen:api
+      - run: git diff --exit-code -- frontend/src/lib/api/generated
+        working-directory: .
+      - name: "T2: block stale types and manual API fetch"
+        working-directory: .
+        run: |
+          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2
+          python3 pilot/orchestrator/contract_validate.py --check-client .
+          python3 pilot/orchestrator/contract_validate.py --check-frontend .
       - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-lint
       - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-typecheck
       - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-build
@@ -449,16 +468,29 @@ jobs:
       - name: T1 fixture-free A9 atoms, PG02-PG05 and chain on disposable selector
         env:
           ATOMIZE_T1_SELECTOR: "YES"
+          T2_ARTIFACT_DIR: ${{ runner.temp }}/t2
           T1_ARTIFACT_DIR: ${{ runner.temp }}/t1
         run: |
           python3 pilot/orchestrator/selector_db.py --t1-patterns
-          python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py -p no:cacheprovider
-      - name: T1-A positive Login A9 to PG05 without manual fixtures
+          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2 jsonschema==4.25.1
+          python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py pilot/orchestrator/test_contract_t2.py pilot/orchestrator/test_t2_general_guard.py -p no:cacheprovider
+      - name: A9 regression suites; T2 three-case test supersedes old two-area T1-A check
         env:
           T1A_ARTIFACT_DIR: ${{ runner.temp }}/t1a
         run: |
           python3 -m pip install jsonschema
-          python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py analysis/host analysis/a6 analysis/a7 analysis/a8 analysis/a9 -p no:cacheprovider
+          # The historical T1-A test asserts exactly two areas; T2 now
+          # requires a third CONTRATO area. Its replacement is the three-case
+          # test_contract_t2.py executed above against the real A9 Login package.
+          python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py analysis/host analysis/a6 analysis/a7 analysis/a8 analysis/a9 -p no:cacheprovider --deselect=analysis/host/test_t1a_login_gate.py::test_login_two_source_areas_without_owner_or_fixture
+      - name: "T2: publish 3-case contract lots and drafts"
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: t2-contract-lots
+          path: ${{ runner.temp }}/t2/
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Publish T1-A generated Login lots
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

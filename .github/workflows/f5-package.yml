@@ -50,11 +50,29 @@ jobs:
         run: |
           python3 pilot/orchestrator/selector_db.py
           PGPASSWORD=pilot psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c "INSERT INTO public.lf_project_area_pattern_exp(project_ref,area,path_prefix) VALUES ('lf_java','BACKEND','apps/time-service/src/main/java/') ON CONFLICT DO NOTHING"
-      - name: A9 authentic output matches committed bytes and real intake
+      - name: Current A9 output validates separately from frozen F5.1 legacy packet
         run: |
-          python3 -m analysis.host.run_a1_a9_fixture --root "$RUNNER_TEMP/f5" --slug f5-login
-          cmp "$RUNNER_TEMP/f5/pilot/runs/f5-login/request.md" pilot/runs/f5-login/request.md
-          cmp "$RUNNER_TEMP/f5/pilot/runs/f5-login/analysis.json" pilot/runs/f5-login/analysis.json
+          set -euo pipefail
+          # A9 now has source-derived BE/FE scopes, while F5.1 is an
+          # intentionally preserved ONE-scope owner-decision artifact.
+          # Validate BOTH independently; never compare different schemas by bytes.
+          python3 -m analysis.host.run_a1_a9_fixture --root "$RUNNER_TEMP/f5-current" --slug f5-login
+          cmp "$RUNNER_TEMP/f5-current/pilot/runs/f5-login/request.md" pilot/runs/f5-login/request.md
+          python3 -m pilot.orchestrator.intake --root "$RUNNER_TEMP/f5-current" --request-id f5-login
+          python3 - <<'PY'
+          import json, os, pathlib
+          root = pathlib.Path(os.environ["RUNNER_TEMP"])
+          current = json.loads((root/"f5-current/pilot/runs/f5-login/analysis.json").read_text())
+          frozen = json.loads(pathlib.Path("pilot/runs/f5-login/analysis.json").read_text())
+          assert current["request_sha256"] == frozen["request_sha256"]
+          assert current["source_attested"] is False and frozen["source_attested"] is False
+          assert {s["scope_id"] for s in current["scope_proposals"]} != {
+              s["scope_id"] for s in frozen["scope_proposals"]}
+          assert len(current["scope_proposals"]) == 2 and len(frozen["scope_proposals"]) == 1
+          print("F5_HISTORICAL_PACKET_AND_CURRENT_A9_SEPARATE_PASS")
+          PY
+          mkdir -p "$RUNNER_TEMP/f5/pilot/runs/f5-login"
+          cp pilot/runs/f5-login/request.md pilot/runs/f5-login/analysis.json "$RUNNER_TEMP/f5/pilot/runs/f5-login/"
           python3 -m pilot.orchestrator.intake --root "$RUNNER_TEMP/f5" --request-id f5-login
       - name: Owner decision and actual pinned PG04/PG05 one-lot planning
         run: |

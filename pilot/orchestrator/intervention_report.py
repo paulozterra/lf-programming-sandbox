@@ -55,6 +55,8 @@ FINDINGS = [
     ("pilot/runs/{p}/lots.json", "MANUAL_COMMIT_OF_GENERATED",
      "Lotes comiteados a mano"),
     ("*_SPEC.md", "MANUAL_CONTRACT", "Contrato/especificación escrita a mano"),
+    ("contracts/*.openapi.yaml", "MANUAL_CONTRACT",
+     "OpenAPI escrito a mano fuera de la ruta gobernada"),
     ("*/src/test/*", "MANUAL_TEST_EDIT", "Test existente modificado a mano"),
     ("*pom.xml", "MANUAL_BASE_PREP", "Dependencias/build preparados a mano"),
     ("*package.json", "MANUAL_BASE_PREP", "Dependencias/build preparados a mano"),

@@ -200,6 +200,8 @@ def atomize(package, root, base_head_sha, *, run):
                 identifier = atom_id + suffix
                 row = {"atom_id": identifier, "scope_id": scope_id,
                        "front_id": front["front_id"], "area": area,
+                       "functional_module": module,
+                       "requirement_ids": sorted(r["requirement_id"] for r in reqs),
                        "paths": group, "depends_on": [],
                        "outcome_id": "OUTCOME-" + identifier,
                        "business_outcome": " | ".join(r["outcome"] for r in sorted(
@@ -217,19 +219,83 @@ def atomize(package, root, base_head_sha, *, run):
                     "atom_id": {"source": "SHA256(scope_id|front_id)"},
                     "outcome_id": {"source": "atom_id"},
                 }
+    # Virtual contract boundary, owned by T2 orchestrator rather than PG04/05.
+    # Pair only BE/FE atoms having the exact same derived functional module.
+    by_module = {}
+    for row in rows:
+        by_module.setdefault(row["functional_module"], {}).setdefault(row["area"], []).append(row)
+    for module, areas in sorted(by_module.items()):
+        if not {"BACKEND", "FRONTEND"}.issubset(areas):
+            continue
+        # A9 retains sourced screen fields/errors in the material ledger.
+        # API operation paths do not exist here: the constructor supplies them.
+        # Old pre-A9 synthetic T1 fixtures retain their legacy execution path.
+        if "programming_context_snapshot" not in package:
+            continue
+        import contract_generate
+        try:
+            contract_generate._contract_sections(package)
+        except contract_generate.ContractBlocked as exc:
+            raise AtomBlocked(str(exc)) from exc
+        policy = rules["contract_lot"]
+        if (policy.get("schema_version") != "T2_CONTRACT_LOT_POLICY_V1"
+                or policy.get("profile_area") != "BACKEND"
+                or policy.get("area") != "CONTRATO"):
+            raise AtomBlocked("T2_CONTRACT_POLICY_INVALID")
+        members = areas["BACKEND"] + areas["FRONTEND"]
+        contract_id = "ATOM-" + hashlib.sha256(("CONTRATO|" + module).encode()).hexdigest()[:12]
+        if contract_id in {a["atom_id"] for a in rows}:
+            raise AtomBlocked("T2_CONTRACT_ID_COLLISION")
+        path = policy["write_path"].format(module=module)
+        contract = {
+            "atom_id": contract_id, "scope_id": module,
+            "front_id": "T2-CONTRACT-" + hashlib.sha256(module.encode()).hexdigest()[:12],
+            "area": "CONTRATO", "functional_module": module,
+            "requirement_ids": sorted(set(r for member in members
+                                           for r in member["requirement_ids"])),
+            "paths": [path], "depends_on": [],
+            "outcome_id": "OUTCOME-" + contract_id,
+            "business_outcome": "Formalizar el contrato de API compartido de los requisitos de origen",
+            "source_refs": sorted({
+                provenance[m["atom_id"]]["area"].get("source_ref", "")
+                for m in members
+            } - {""}),
+        }
+        if not contract["source_refs"]:
+            raise AtomBlocked("T2_CONTRACT_SOURCE_REFS_MISSING")
+        # Materialize an evidence-only skeleton in the next deterministic
+        # planning stage; preflight here ensures no partial contract lot.
+        try:
+            contract_generate.generate(module, package, rows)
+        except contract_generate.ContractBlocked as exc:
+            raise AtomBlocked(str(exc)) from exc
+        rows.append(contract)
+        provenance[contract_id] = {
+            "area": {"method": "T2_CONTRACT_POLICY_V1",
+                     "rules_ref": "pilot/orchestrator/atomize_rules_v1.json"},
+            "paths": {"source": "pilot/orchestrator/atomize_rules_v1.json",
+                      "route": "CONTRATO", "functional_module": module},
+            "business_outcome": {"source": "A9.requirements",
+                                 "requirement_ids": contract["requirement_ids"]},
+            "scope_id": {"source": "BE_FE_SHARED_MODULE", "value": module},
+            "front_id": {"source": "T2_CONTRACT_DERIVED", "value": contract["front_id"]},
+            "depends_on": {"source": "T2_CONTRACT_PRECEDENCE"},
+        }
+        for member in members:
+            member["depends_on"].append(contract_id)
     if unresolved:
         raise AtomBlocked("ATOM_AREA_UNRESOLVED:" + json.dumps(
             unresolved, sort_keys=True, separators=(",", ":"), ensure_ascii=False))
-    order = {a: i for i, a in enumerate(rules["order"])}
+    order = {"CONTRATO": -1, **{a: i for i, a in enumerate(rules["order"])}}
     # Across scopes chain all areas in stable order; no imaginary dependencies.
     rows.sort(key=lambda r: (order[r["area"]], r["scope_id"], r["atom_id"]))
     last = None
     for row in rows:
         if last is not None and order[last["area"]] < order[row["area"]]:
-            row["depends_on"] = [last["atom_id"]]
+            row["depends_on"] = sorted(set(row["depends_on"] + [last["atom_id"]]))
         last = row
         provenance[row["atom_id"]]["depends_on"] = {
-            "source": "T1_AREA_ORDER", "order": rules["order"]}
+            "source": "T1_AREA_ORDER_AND_T2_CONTRACT", "order": ["CONTRATO"] + rules["order"]}
     return {
         "schema_version": "T1_ATOMIZED_INPUTS_V1",
         "simulation_only": True,

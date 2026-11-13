@@ -181,7 +181,10 @@ def check_size(root: Path, task: dict, *, prompt: str) -> dict:
             canonical_relative_path(name)
         except TaskSpecError:
             blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
-        if not name.endswith(ALLOWED_WRITE) or denial(name):
+        contract_yaml = bool(re.fullmatch(
+            r"contracts/[a-z][a-z0-9-]*[.]openapi[.]yaml", name))
+        if (not (name.endswith(ALLOWED_WRITE) or contract_yaml)
+                or denial(name)):
             blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
         if name in entries and entries[name][0] not in ("100644", "100755"):
             blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")

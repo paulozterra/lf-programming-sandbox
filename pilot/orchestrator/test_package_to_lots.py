@@ -8,24 +8,23 @@ from pilot.orchestrator import intake
 from pilot.orchestrator import package_to_lots as bridge
 
 
-def test_real_a9_intake_and_known_unassigned_rules(tmp_path):
+def test_current_a9_be_fe_is_not_legacy_owner_packet(tmp_path):
     run = run_f4(tmp_path, slug="f5-login")
     assert run["state"]["stage"] == "INTAKE_ACCEPTED"
-    original, state = bridge.read_package(tmp_path, "f5-login")
-    assert original == run["package"]
-    assessment = bridge.derive(original)
-    assert assessment["schema_version"] == "F51_PACKAGE_TO_LOTS_ASSESSMENT_V1"
-    assert {r["rule_code"] for r in assessment["business_rules_by_area"]["BACKEND"]} == {
-        "SBX-R-LOCK", "SBX-R-HASH", "SBX-R-LOG"}
-    assert assessment["business_rules_by_area"]["DATA"] == []
-    assert {r["requirement_id"] for r in assessment["unassigned_business_rules"]} == {
-        "REQ-SBX-R-USER", "REQ-SBX-R-PASS", "REQ-SBX-R-ERR"}
-    assert assessment["pg04_area_resolution_pending"] is True
-    with pytest.raises(bridge.PackageLotsBlocked,
-                       match="F51_DATA_REQUIREMENT_NOT_SOURCE_BOUND"):
+    package, state = bridge.read_package(tmp_path, "f5-login")
+    assert package == run["package"]
+    areas = {f["execution_area"] for f in package["material_fronts"]}
+    assert areas == {"BACKEND", "FRONTEND"}
+    assert len(package["scope_proposals"]) == 2
+    # The original F5.1 adapter is intentionally single-scope; rejecting
+    # current A9 preserves the historical decision and avoids false replay.
+    with pytest.raises(bridge.PackageLotsBlocked, match="F51_SCOPE_COUNT_UNSUPPORTED"):
+        bridge.derive(package)
+    with pytest.raises(bridge.PackageLotsBlocked, match="F51_SCOPE_COUNT_UNSUPPORTED"):
         bridge.prepare(tmp_path, "f5-login", legacy=True)
-    assert not (tmp_path/"pilot/runs/f5-login/lots.json").exists()
-    assert json.loads((tmp_path/"pilot/runs/f5-login/state.json").read_text())["stage"] == "INTAKE_ACCEPTED"
+    assert not (tmp_path / "pilot/runs/f5-login/lots.json").exists()
+    assert json.loads((tmp_path / "pilot/runs/f5-login/state.json").read_text())[
+        "stage"] == "INTAKE_ACCEPTED"
 
 
 def test_pg00_two_rule_families_separate_from_business():

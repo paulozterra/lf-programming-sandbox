@@ -57,8 +57,10 @@ def denial(name: str, is_spec: bool = False) -> str | None:
         return "DENIED_KEY"
     if any(term in name.lower() for term in ("holdout", "secret", "oracle")):
         return "DENIED_SENSITIVE_NAME"
-    if not is_spec and (not parts or parts[0] not in ("apps", "frontend", "db")
-                        and not name.startswith("supabase/migrations/")):
+    contract_write = bool(re.fullmatch(r"contracts/[a-z][a-z0-9-]*[.]openapi[.]yaml", name))
+    if not is_spec and not contract_write and (
+            not parts or parts[0] not in ("apps", "frontend", "db")
+            and not name.startswith("supabase/migrations/")):
         return "DENIED_OUTSIDE_APPS"
     return None
 

@@ -7,6 +7,7 @@ CP3.3 fixtures remain immutable; paths are validated in the actual repo.
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
+import json
 
 # Explicit aliases; deliberately NO suffix-stripping or fuzzy matching.
 SELECTOR_BINDINGS = {
@@ -18,6 +19,7 @@ REAL_ROOTS = {
     "BACKEND": ("apps/time-service/src/main/java/", "backend/src/main/java/"),
     "FRONTEND": ("apps/web/", "frontend/"),
     "DATA": ("db/", "supabase/migrations/"),
+    "CONTRATO": ("contracts/",),
 }
 FAKE_PREFIXES = ("src/main/java/com/lf/", "web/src/app/")
 
@@ -31,7 +33,15 @@ def map_profile(profile_code: str, declared_area: str) -> dict[str, str]:
     if binding is None:
         raise NativeLotBlocked("CP34_PROFILE_UNKNOWN")
     area, native_code, pinned_slug = binding
-    if area != declared_area:
+    if declared_area == "CONTRATO":
+        rules = json.loads((Path(__file__).with_name("atomize_rules_v1.json")).read_text())
+        t2 = rules.get("contract_lot", {})
+        mappings = rules.get("profile_resolution", {}).get("area_to_profile", {})
+        if (t2.get("schema_version") != "T2_CONTRACT_LOT_POLICY_V1"
+                or t2.get("profile_area") != area
+                or mappings.get("CONTRATO") != profile_code):
+            raise NativeLotBlocked("CP34_CONTRACT_PROFILE_POLICY_INVALID")
+    elif area != declared_area:
         raise NativeLotBlocked("CP34_PROFILE_AREA_MISMATCH")
     return {"selector_code": profile_code, "area": area,
             "native_profile_code": native_code, "pinned_profile_slug": pinned_slug}
@@ -47,14 +57,17 @@ def real_write_paths(root: Path, area: str, paths: list[str]) -> list[str]:
                 or any(part in (".", "..") for part in PurePosixPath(path).parts)
                 or path.startswith(FAKE_PREFIXES)
                 or not path.startswith(REAL_ROOTS[area])
-                or Path(path).suffix not in {".java", ".ts", ".tsx", ".sql"}):
+                or Path(path).suffix not in ({".yaml"} if area == "CONTRATO"
+                                             else {".java", ".ts", ".tsx", ".sql"})):
             raise NativeLotBlocked("CP34_FAKE_OR_UNSAFE_PATH")
         target = root / path
         if target.is_symlink() or not target.resolve().is_relative_to(root.resolve()):
             raise NativeLotBlocked("CP34_UNSAFE_PATH")
         # A new source file is legitimate, but never invent an absent project.
         project_root = path.split("/", 2)
-        if path.startswith("apps/time-service/"):
+        if area == "CONTRATO":
+            base = root / "contracts"
+        elif path.startswith("apps/time-service/"):
             base = root / "apps/time-service"
         elif path.startswith("apps/web/"):
             base = root / "apps/web"
