@@ -113,3 +113,29 @@ def test_host_import_and_pinned_explicit_read_are_independent_of_catalogue_count
         obj=FixtureHost(resolved).read_all("Implementa "+code)
         assert obj["semantic_signals.json"]["a1_structured"]["target_hints"]==[code]
         assert obj["semantic_signals.json"]["a1_structured"]["objective"]["problem_statement"]=="Implementa "+code
+
+
+def test_implementation_intent_uses_canonical_a9_registration_and_sha(tmp_path):
+    from analysis.host.request_trace import implementation_state, RequestTraceBlocked
+    code=json.loads((LEGACY_FIXTURES/"SOURCE_PIN.json").read_text())["fixture_id"]
+    assert implementation_state(tmp_path,code)=="CREATE"
+    file=tmp_path/"generated/component.txt"
+    file.parent.mkdir(parents=True)
+    file.write_text("verified")
+    source=tmp_path/"pilot/runs/request/analysis.json"
+    source.parent.mkdir(parents=True)
+    source.write_text(json.dumps({
+        "schema_version":"ANALYSIS_IMPLEMENTATION_PACKAGE_V1",
+        "request_context":{"target_ref":code},
+        "programming_context_snapshot":{"target":code}}))
+    registry=tmp_path/"pilot/registry/implemented.json"
+    registry.parent.mkdir(parents=True)
+    registry.write_text(json.dumps({
+        "schema_version":"T7_IMPLEMENTED_REGISTRY_V1",
+        "entries":[{"request":"request","status":"ATTESTED",
+                    "files":[{"path":"generated/component.txt",
+                              "sha256":hashlib.sha256(file.read_bytes()).hexdigest()}]}]}))
+    assert implementation_state(tmp_path,code)=="MODIFY"
+    file.write_text("drift")
+    with pytest.raises(RequestTraceBlocked,match="ANALISIS_SENALES_NO_DERIVABLES"):
+        implementation_state(tmp_path,code)
