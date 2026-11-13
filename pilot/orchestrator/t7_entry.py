@@ -57,7 +57,8 @@ def process(root: Path, slug: str, base_sha: str) -> dict:
                 "obligations": len(decisions), "lots": 0}
     # Existing planning stages are reused verbatim. No fictional new area,
     # write scope, or implementation route is introduced in this adapter.
-    atom = atomize.atomize(package, root, base_sha, run=slug)
+    atom = atomize.atomize(package, root, base_sha, run=slug,
+                            reuse_assessment=reuse)
     target = folder / "atomized_inputs.json"
     content = intake.canonical(atom)
     if target.is_symlink() or (target.exists() and target.read_bytes() != content):
