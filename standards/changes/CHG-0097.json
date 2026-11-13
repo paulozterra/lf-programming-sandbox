@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "T7 entrada automática y reutilización de código 2026-11-13"
   },
-  "reason": "Agrega una ruta conservadora y determinista para consumir el texto real del pedido y comparar obligaciones contra inventario de código, con contexto de huella SHA y protección anti-duplicación. Bloquea evidencia insuficiente en vez de inferir implementación o reutilización. Mantiene el gobierno Draft/Train.",
+  "reason": "Registro reconstruible únicamente desde merges Train de integraciones nativas, normalización fuente-pin del host, evaluación determinista con SHA y guardas anti-duplicación. Evidencia incompleta se declara NO_DERIVABLE, nunca se atribuye manualmente.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -23,7 +23,9 @@
       "analysis/host/run_a1_a9_fixture.py",
       "analysis/host/simulated_admission_gate.py",
       "analysis/host/test_fixture_readback_host.py",
+      "pilot/orchestrator/atomize.py",
       "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/contract_validate.py",
       "pilot/orchestrator/generate_chain.py",
       "pilot/orchestrator/implemented_registry.py",
       "pilot/orchestrator/reuse_assessment.py",
