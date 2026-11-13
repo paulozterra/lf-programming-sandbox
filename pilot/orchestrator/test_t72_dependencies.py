@@ -1,12 +1,14 @@
 """T7.2: synthetic 13-source screen; no production catalogue copies."""
 import hashlib
 import json
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from analysis.host.test_t71_general import prepare_description_screen, launch
-from pilot.orchestrator import atomize
+from pilot.orchestrator import atomize, plan_lots, intake
 from pilot.orchestrator.reuse_assessment import index, assess, ReuseBlocked
 from pilot.orchestrator.contract_validate import _check_skeleton, ContractBlocked
 
@@ -29,7 +31,16 @@ def _inventory(folder, dependencies):
     pinpath.write_text(json.dumps(pin,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
 
 
-def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True):
+def _git_main(root, files):
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=root, check=True)
+    subprocess.run(["git", "add", "--", *files], cwd=root, check=True)
+    subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+                    "commit", "-qm", "test main source"], cwd=root, check=True)
+    return subprocess.check_output(["git", "rev-parse", "main"], cwd=root, text=True).strip()
+
+
+def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True,
+              attested=False, drift=False):
     code, folder=prepare_description_screen(tmp_path)
     endpoint_path=_file(tmp_path,
         "apps/time-service/src/main/java/demo/ExistingItems.java",
@@ -48,6 +59,11 @@ def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True):
     if adds_rule:
         dependency["reuse_component_signature"]="type:ExistingSession"
     _inventory(folder,[dependency] if declared else [])
+    if attested:
+        _git_main(tmp_path,[endpoint_path, session_path])
+        if drift:
+            file=tmp_path/endpoint_path
+            file.write_text(file.read_text(encoding="utf-8") + "// drift\\n", encoding="utf-8")
     pkg=launch(tmp_path,"t72-after","Implementa "+code)["package"]
     ledger={"schema_version":"T7_IMPLEMENTED_REGISTRY_V1","entries":[]}
     return pkg, ledger, dependency, endpoint_path, session_path
