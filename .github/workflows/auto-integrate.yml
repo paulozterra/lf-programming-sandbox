@@ -7,6 +7,10 @@ on:
       - "ci"
       - "CP3.5 native verified patch to draft PR"
     types: [completed]
+  # GitHub does not emit workflow_run for runs started with GITHUB_TOKEN (e.g. the
+  # ci a bot dispatches on its own generated PR), so a periodic sweep picks them up.
+  schedule:
+    - cron: "7,22,37,52 * * * *"
 
 permissions:
   contents: read
@@ -22,9 +26,10 @@ concurrency:
 jobs:
   evaluate:
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_repository.full_name == github.repository &&
-      github.ref == 'refs/heads/main'
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'schedule' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
