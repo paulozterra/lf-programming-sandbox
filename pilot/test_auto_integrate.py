@@ -213,6 +213,21 @@ class T7GeneratedPolicyTests(unittest.TestCase):
                 with self.assertRaisesRegex(ai.PolicyBlocked, "PR_AUTHOR_NOT_BOT"):
                     ai.eligible_pr(item, allowed)
 
+    def test_renamed_source_path_is_not_accepted_as_generated(self):
+        allowed = ["pilot/registry/implemented.json"]
+        item = self.generated("lf/implemented-registry", allowed)
+        api = FakeAPI(item, allowed, checks())
+        real_pages = api.pages
+        def renamed(path, field):
+            if path.endswith("/files"):
+                return [{"filename": allowed[0], "status": "renamed",
+                         "previous_filename": "pilot/orchestrator/config.py"}]
+            return real_pages(path, field)
+        api.pages = renamed
+        with self.assertRaisesRegex(ai.PolicyBlocked, "PR_PATH_NOT_ALLOWED"):
+            ai.evaluate_one(api, 129)
+        self.assertEqual(api.writes, [])
+
     def test_tampered_registry_bytes_block_automatic_label(self):
         registry_paths = ["pilot/registry/implemented.json"]
         item = self.generated("lf/implemented-registry", registry_paths)
