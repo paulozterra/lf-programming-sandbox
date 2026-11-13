@@ -108,3 +108,14 @@ def test_existing_endpoint_contract_identity_is_source_bound(tmp_path):
     skeleton["extended_endpoints"]=["GET /api/parallel"]
     with pytest.raises(ContractBlocked,match="REUTILIZACION_INDETERMINADA"):
         _check_skeleton(skeleton,"synthetic")
+
+def test_rule_code_links_primary_requirement_even_with_derived_child():
+    from pilot.orchestrator.declared_dependencies import select
+    requirements=[{"requirement_id":"REQ-SOURCE","source_requirement_id":"RULE-SOURCE"},
+                  {"requirement_id":"REQ-DERIVED","source_requirement_id":"RULE-SOURCE",
+                   "derived_from_requirement_id":"REQ-SOURCE"}]
+    deps=[{"kind":"component","signature":"export:ExistingComponent",
+           "rule_code":"RULE-SOURCE","adds_rule":False}]
+    selected=select(deps,requirements)
+    assert set(selected)=={"REQ-SOURCE"}
+    assert selected["REQ-SOURCE"]["key"]=="export:ExistingComponent"
