@@ -23,21 +23,16 @@ RUNTIME_VALIDATOR = PROFILE / "validators/runtime_validate.py"
 
 # Closed fictitious SOURCE-BOUND test corpus: no inferred stack design,
 # implementation class, data model, endpoint, or deployment choice.
-EXPECTED = {
-    "SBX-R-USER": ("Se exige identificar al usuario antes de autenticar.",
-                   "Sin identificador de usuario, el acceso no se concede."),
-    "SBX-R-PASS": ("Se exige una contraseña para autenticar.",
-                   "Sin contraseña, el acceso no se concede."),
-    "SBX-R-LOCK": ("Tras cinco intentos fallidos se impide el acceso durante quince minutos.",
-                   "El quinto fallo activa el bloqueo; antes de quince minutos no se permite acceso."),
-    "SBX-R-HASH": ("Las contraseñas almacenadas están protegidas con BCrypt.",
-                   "La verificación confirma BCrypt y que no se guarda contraseña en claro."),
-    "SBX-R-LOG": ("La contraseña jamás aparece en registros de operación.",
-                  "Los registros de un intento de acceso no contienen la contraseña suministrada."),
-    "SBX-R-ERR": ("Los fallos no revelan existencia de usuario y la sesión expira a los treinta minutos.",
-                  ("Errores de usuario inexistente y clave errónea producen una respuesta indistinguible.",
-                   "Una sesión deja de ser válida al cumplirse treinta minutos.")),
-}
+EXPECTED_PATH = ROOT / "analysis/a6/a6_what_v1.json"
+
+
+def _expected():
+    corpus = json.loads(EXPECTED_PATH.read_text(encoding="utf-8"))
+    if corpus.get("schema_version") != "A6_FIXED_WHAT_CORPUS_V1":
+        _blocked("F2_A6_FIXED_CORPUS_DRIFT")
+    return corpus["requirements"]
+
+
 HOW_FORBIDDEN = (" rounds", "en clase ", "class ", "controller", "repository",
                  "framework", "endpoint ", "método interno", "usar BCrypt 12")
 
@@ -103,12 +98,13 @@ def run(stages, signals, envelope, admission):
     included = sorted((p for p in profiles
                        if p.get("implementation_scope") == "APPROVED_SCOPE"),
                       key=lambda x: x["rule_code"])
-    if {p["rule_code"] for p in included} != set(EXPECTED):
+    expected = _expected()
+    if {p["rule_code"] for p in included} != set(expected):
         _blocked("F2_A6_UNEXPECTED_SOURCE_RULES")
     requirements = []
     for row in included:
         code = row["rule_code"]
-        description, acceptance = EXPECTED[code]
+        description, acceptance = expected[code]
         ref = row["rule_source_ref"]
         if (not isinstance(ref, str)
                 or ref not in a3.get("source_refs", [])
@@ -124,7 +120,7 @@ def run(stages, signals, envelope, admission):
         area = supported[0] if len(supported) == 1 else "UNKNOWN"
         req = {
             "requirement_id": code,
-            "scope_refs": ["SBX-AUTH-LOGIN"],
+            "scope_refs": [a3["target_ref"]],
             "outcome": description,
             "obligation_mode": "MUST_PRESERVE_SEMANTICS",
             "authority_refs": [],
@@ -138,7 +134,7 @@ def run(stages, signals, envelope, admission):
             "side_effect_class": "UNKNOWN",
             "preconditions": [],
             "blockers": ["SIMULATED_SANDBOX_ONLY_NO_PRODUCTION_AUTHORITY"],
-            "acceptance_signals": list(acceptance) if isinstance(acceptance, tuple) else [acceptance],
+            "acceptance_signals": list(acceptance) if isinstance(acceptance, (tuple, list)) else [acceptance],
             "materiality_level": admission["materiality_level"],
             "requires_independent_exam": admission["materiality_level"] == "HIGH",
             "area": area,
@@ -161,7 +157,7 @@ def run(stages, signals, envelope, admission):
         "canonical_implementation_bindings": [],
         "unresolved_material_items": [{
             "code": "SIMULATED_SANDBOX_ONLY_NO_PRODUCTION_AUTHORITY",
-            "source_ref": "fixture://sbx_auth_login",
+            "source_ref": "fixture://" + a3["target_ref"],
         }],
         "source_refs": sorted(set(ref for req in requirements for ref in req["evidence_refs"])),
         "currentness_refs": [],
