@@ -33,5 +33,9 @@
     "analytics": []
   },
   "version": 1,
-  "source_policy": "EXPLICIT_RULE_REFS_ONLY"
+  "source_policy": "EXPLICIT_RULE_REFS_ONLY",
+  "primary_owner_by_section": {
+    "fields": "FRONTEND",
+    "errors": "BACKEND"
+  }
 }
