@@ -1,0 +1,46 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0094",
+  "title": "T3: lote INFRA automático, dependencia allowlist y preparación JDBC/Flyway gobernada",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T3: INFRA y base de datos real en time-service, 2026-11-13"
+  },
+  "reason": "Separa la preparación de base y dependencias en un lote INFRA previo a DATA/BACKEND. Permite exclusivamente dependencias y versiones fijas de la allowlist; bloquea dependencias fuera de ella. Config y pom solo por lote INFRA; migraciones de DATA en classpath. Sin cambios directos a base productiva, productores fijados o Train.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/atomize.py",
+      "pilot/orchestrator/atomize_rules_v1.json",
+      "pilot/orchestrator/dependency_allowlist_v1.json",
+      "pilot/orchestrator/infra_lot.py",
+      "pilot/orchestrator/infra_validate.py",
+      "pilot/orchestrator/plan_lots.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/native_lot_binding.py",
+      "pilot/orchestrator/test_t3_infra.py",
+      "pilot/worker_v08/derive_context.py",
+      "pilot/worker_v08/lot_preflight.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0094.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "owner",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
