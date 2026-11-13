@@ -31,8 +31,8 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False):
             raise ValueError("T2_CONTRACT_ACCEPTANCE_SOURCE_MISSING")
         return [item("contract-source-coverage",
             ["python3","pilot/orchestrator/contract_validate.py",
-             "--contract",paths[0],"--package",
-             f"pilot/runs/{run}/contract_context/{module}.json",
+             "--contract",paths[0],"--skeleton",
+             f"contracts/{module}.skeleton.json",
              "--module",module])]
     if area=="BACKEND":
         result=[item("backend-package",["mvn","-B","-q","-f","apps/time-service/pom.xml","package"])]
@@ -77,24 +77,13 @@ def generate(root, run, lots):
         if str(directory) not in sys.path:
             sys.path.insert(0,str(directory))
         import contract_generate
-        import contract_validate
         package=json.loads((folder/"analysis.json").read_text(encoding="utf-8"))
         atoms=json.loads((folder/"atomized_inputs.json").read_text(encoding="utf-8"))["atoms"]
         for lot in contract_lots:
             module=lot["contract_module"]
-            context={"schema_version":"T2_CONTRACT_CONTEXT_V1",
-                     "api_contract_source":package.get("api_contract_source"),
-                     "atoms":atoms}
-            source_path=folder/"contract_context"/(module+".json")
-            save(source_path,context)
-            draft=contract_generate.render(module,package,atoms)
-            draft_path=folder/"contract_drafts"/(module+".openapi.yaml")
-            draft_path.parent.mkdir(parents=True,exist_ok=True)
-            if draft_path.exists() and draft_path.read_text(encoding="utf-8")!=draft:
-                raise ValueError("T2_CONTRACT_DRAFT_DRIFT")
-            if not draft_path.exists():
-                draft_path.write_text(draft,encoding="utf-8")
-            contract_validate.validate(draft_path,context,module)
+            skeleton=contract_generate.generate(module,package,atoms)
+            path=Path(root)/"contracts"/(module+".skeleton.json")
+            save(path,skeleton)
     rows=[]
     output={}
     for pos,lot in enumerate(lots["lots"],1):
@@ -119,9 +108,10 @@ def generate(root, run, lots):
         module=lot.get("contract_module") or contract_by_path.get(dependency_contract)
         if dependency_contract:
             protected.append("contracts/**")
+        elif lot["area"]=="CONTRATO":
+            protected.append("contracts/*.skeleton.json")
         context_paths=(
-            [f"pilot/runs/{run}/contract_context/{module}.json",
-             f"pilot/runs/{run}/contract_drafts/{module}.openapi.yaml"]
+            [f"contracts/{module}.skeleton.json"]
             if lot["area"]=="CONTRATO" else [dependency_contract] if dependency_contract else [])
         template={"task_spec":{
             "schema_version":1,"task_id":"LF-WORKER-NATIVE-"+task.upper(),
