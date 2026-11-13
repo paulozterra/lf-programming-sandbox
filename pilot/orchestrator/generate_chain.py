@@ -247,7 +247,8 @@ def generate(root, run, lots):
             # obligation in THIS lot explicitly extends that exact file.
             extended = {}
             for row in selected:
-                if row.get("decision") == "EXTEND":
+                if (row.get("decision") == "EXTEND"
+                        and row.get("requirement_id") in lot["requirement_ids"]):
                     for path in row.get("write_paths", []):
                         if path in paths:
                             extended.setdefault(path, []).append(row)
