@@ -52,7 +52,11 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False, skelet
                 item("frontend-lint",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-lint"]),
                 item("frontend-types",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-typecheck"]),
                 item("frontend-build",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-build"]),
-                item("frontend-prettier",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-prettier"])]
+                item("frontend-prettier",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-prettier"]),
+                # One pinned trusted browser command. Encrypted oracles run the
+                # exact same gate with examiner-selected routes/assertions.
+                item("frontend-browser-visible",["python3","pilot/worker_v08/playwright_gate.py",
+                                                 "--path","/","--selector","body"],240)]
         if has_contract:
             result += [
                 item("frontend-generate-api",["npm","--prefix","frontend","run","gen:api"]),

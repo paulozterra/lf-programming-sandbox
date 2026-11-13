@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0096",
+  "title": "T5: Playwright Chromium headless en Worker confiable para lotes FRONTEND",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T5 Playwright Worker aprobado 2026-11-13, posterior a T4 PR #140"
+  },
+  "reason": "Verificación genérica de lotes FRONTEND por Playwright fijado, navegador Chromium local sin solicitudes remotas, backend y frontend levantados en el job confiable; reutiliza comandos AcceptanceCommand visibles y oráculo cifrado sin fabricar exámenes. Los fallos de navegador o arranque bloquean sin aprobar.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/worker-native.yml",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/test_t5_pipeline.py",
+      "pilot/worker_v08/playwright_gate.py",
+      "pilot/worker_v08/test_playwright_gate.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0096.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "owner",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/141"
+  }
+}
