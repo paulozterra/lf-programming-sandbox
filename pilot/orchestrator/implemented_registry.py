@@ -83,9 +83,9 @@ def _rules(package: dict, ids: list[str]) -> list[str] | None:
 
 def _contract_endpoints(root: Path, commit: str, lot: dict) -> list[str] | None:
     """Only contract-declared operations; never reverse-engineer a contract."""
-    refs = sorted(set([lot.get("contract_context_ref"), *[
+    refs = sorted(set([ref for ref in [lot.get("contract_context_ref"), *[
         p for p in lot.get("write_paths", []) if
-        isinstance(p, str) and p.endswith((".openapi.yaml", ".openapi.yml", ".openapi.json"))]]))
+        isinstance(p, str) and p.endswith((".openapi.yaml", ".openapi.yml", ".openapi.json"))]] if isinstance(ref, str) and ref]))
     refs = [p for p in refs if isinstance(p, str) and p]
     if not refs:
         return None
