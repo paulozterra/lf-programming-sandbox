@@ -490,6 +490,65 @@ def _produce_lots(package, fixture, rows, outputs, dsn):
     return topo(lots),hashes,assignment_hashes,currentness_hashes
 
 
+def _t2_contract_lots(fixture, lots):
+    """Add source-owned contract stage *outside* pinned PG04/PG05 outputs.
+
+    These rows must never be passed to PG02–PG05: those producers do not
+    support CONTRATO as an execution area, and their receipts are immutable.
+    """
+    items = [x for x in fixture.get("atoms", [])
+             if x.get("area") == "CONTRATO"]
+    if not items:
+        return lots
+    policy_path = ROOT / "pilot/orchestrator/atomize_rules_v1.json"
+    policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    t2 = policy.get("contract_lot", {})
+    if (t2.get("schema_version") != "T2_CONTRACT_LOT_POLICY_V1"
+            or policy.get("profile_resolution", {}).get("area_to_profile", {}).get("CONTRATO")
+            != policy.get("profile_resolution", {}).get("area_to_profile", {}).get("BACKEND")):
+        blocked("T2_CONTRACT_POLICY_INVALID")
+    by_id = {x["atom_id"]: x for x in fixture["atoms"]}
+    if len(by_id) != len(fixture["atoms"]):
+        blocked("T2_CONTRACT_ATOM_DUPLICATE")
+    out = copy.deepcopy(lots)
+    for item in items:
+        if (item.get("depends_on") != []
+                or len(item.get("paths", [])) != 1
+                or item["paths"][0] != t2["write_path"].format(module=item["functional_module"])
+                or not item.get("source_refs") or not item.get("requirement_ids")):
+            blocked("T2_CONTRACT_SOURCE_INVALID")
+        members = [a for a in fixture["atoms"]
+                   if a.get("functional_module") == item["functional_module"]
+                   and a.get("area") in ("BACKEND", "FRONTEND")]
+        if {m["area"] for m in members} != {"BACKEND", "FRONTEND"}:
+            blocked("T2_CONTRACT_UNPAIRED")
+        linked = []
+        for row in out:
+            if row["area"] not in ("BACKEND", "FRONTEND"):
+                continue
+            if any(set(atom["paths"]) == set(row["write_paths"]) for atom in members):
+                linked.append(row)
+        if {x["area"] for x in linked} != {"BACKEND", "FRONTEND"}:
+            blocked("T2_CONTRACT_LOTS_UNBOUND")
+        contract_id = "SOL-C" + item["atom_id"].split("-")[-1]
+        if any(x["id"] == contract_id for x in out):
+            blocked("T2_CONTRACT_ID_DUPLICATE")
+        row = {"id": contract_id, "area": "CONTRATO",
+               "profile_code": policy["profile_resolution"]["area_to_profile"]["CONTRATO"],
+               "write_paths": item["paths"], "depends_on": [],
+               "requirement_ids": item["requirement_ids"],
+               "production_authority": False, "handoff_allowed": False,
+               "contract_module": item["functional_module"],
+               "contract_source_refs": item["source_refs"],
+               "producer_route": "T2_ORCHESTRATOR_NOT_PG04_PG05",
+               "profile_resolution_ref": "pilot/orchestrator/atomize_rules_v1.json"}
+        out.append(row)
+        for member in linked:
+            member["depends_on"] = sorted(set(member["depends_on"] + [contract_id]))
+            member["contract_context_ref"] = item["paths"][0]
+    return topo(out)
+
+
 def plan(root: Path, run: str) -> dict:
     from intake import SLUG, normalized_request_bytes
     if not isinstance(run,str) or not SLUG.fullmatch(run):
@@ -520,8 +579,13 @@ def plan(root: Path, run: str) -> dict:
          or state.get("pg01",{}).get("status")!="FIXTURE_UNATTESTED" or
          state.get("production_authority") is not False):
         blocked("LOTES_INTAKE_NO_ACEPTADO")
-    rows=_inputs(package,fixture)
-    outputs=_source_chain(package,fixture,rows,sha,state)
+    virtual_contracts = [a for a in fixture.get("atoms", [])
+                         if a.get("area") == "CONTRATO"]
+    source_fixture = ({**fixture, "atoms": [a for a in fixture["atoms"]
+                                          if a.get("area") != "CONTRATO"]}
+                      if virtual_contracts else fixture)
+    rows=_inputs(package,source_fixture)
+    outputs=_source_chain(package,source_fixture,rows,sha,state)
     dsn=os.environ.get("SELECTOR_EXP_TEST_DSN","")
     if os.environ.get("SELECTOR_EXP_DISPOSABLE_DB")!="YES" or not dsn:
         blocked("SELECTOR_REQUIERE_ENTORNO")
@@ -533,7 +597,9 @@ def plan(root: Path, run: str) -> dict:
         parsed.query or parsed.fragment):
         blocked("SELECTOR_REQUIERE_ENTORNO")
     try:
-        lots,producer_hashes,assignments,currentness=_produce_lots(package,fixture,rows,outputs,dsn)
+        lots,producer_hashes,assignments,currentness=_produce_lots(
+            package,source_fixture,rows,outputs,dsn)
+        lots=_t2_contract_lots(fixture,lots)
     except (OSError,RuntimeError):
         blocked("SELECTOR_REQUIERE_ENTORNO")
     document={"schema_version":"CP33_LOTS_CANDIDATE_V1","request_id":run,
