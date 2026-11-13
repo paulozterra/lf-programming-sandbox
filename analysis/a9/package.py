@@ -106,8 +106,10 @@ def _typed_rules(result, approved, requirements):
     direct, effective = source["direct"], source["effective"]
     if not isinstance(direct, dict) or not isinstance(effective, dict):
         fail("F4_A9_RULE_TYPED_READBACK_INVALID")
-    req_by_code = {r["source_requirement_id"]: r for r in requirements}
-    if len(req_by_code) != len(requirements):
+    source_requirements = [r for r in requirements
+                           if not r.get("derived_from_requirement_id")]
+    req_by_code = {r["source_requirement_id"]: r for r in source_requirements}
+    if len(req_by_code) != len(source_requirements):
         fail("F4_A9_RULE_REQUIREMENT_COVERAGE_MISMATCH")
     rules, seen = [], set()
     for a3 in approved:
@@ -169,7 +171,7 @@ def _guard_invariants(a3):
             fail("F4_A9_INVARIANTS_SOURCE_UNHANDLED")
 
 
-def _snapshot(result, requirements, fronts, scope, classification):
+def _snapshot(result, requirements, fronts, scopes, classification):
     """Material parity fields are A3-A5/A6-A8 projections, never model guesses."""
     parity, entry = _contracts()
     a3, a4, a5 = (result["stages"][x] for x in ("A3", "A4", "A5"))
@@ -199,7 +201,7 @@ def _snapshot(result, requirements, fronts, scope, classification):
     authority_sha = digest({"authority_binding_refs": authority_bindings,
                             "authority_state": classification["authority_state"],
                             "source_attested": False, "currentness_refs": currentness_refs})
-    matrix = [{"scope_id": SCOPE, "front_id": row["front_id"],
+    matrix = [{"scope_id": row["scope_ids"][0], "front_id": row["front_id"],
                "front_status": row["obligation_mode"], "front_closure": row["closure"],
                "effect_on_scope": ("BLOCKS" if row["closure"] == "BLOCKED"
                                    else "NOT_APPLICABLE" if row["obligation_mode"] == "NOT_APPLICABLE"
@@ -207,15 +209,17 @@ def _snapshot(result, requirements, fronts, scope, classification):
                "evidence_refs": deepcopy(row["evidence_refs"]), "reason": row["reason"]}
               for row in fronts]
     scope_readiness = [{
-        "scope_id": SCOPE, "scope_kind": "SCREEN",
+        "scope_id": scope["scope_id"], "scope_kind": "SCREEN",
         "status": "READY" if scope["readiness_candidate"] == "READY_CANDIDATE"
                   else scope["readiness_candidate"],
         "depends_on_scope_ids": [],
         "material_front_refs": deepcopy(scope["material_front_refs"]),
         "authority_refs": [],
-        "blockers": sorted(set(b for f in fronts for b in f["blockers"])),
+        "blockers": sorted(set(b for f in fronts
+                               if scope["scope_id"] in f["scope_ids"]
+                               for b in f["blockers"])),
         "reason": "Source-only simulated readiness, not PG-01 admission",
-    }]
+    } for scope in scopes]
     snap = {
         "schema_version": "PROGRAMMING_CONTEXT_SNAPSHOT_V1",
         "simulation_mode": MODE,
@@ -232,7 +236,7 @@ def _snapshot(result, requirements, fronts, scope, classification):
         "decision_context": deepcopy(a5),
         "analysis_stop_rule": deepcopy(result["a8"]),
         "scope_front_matrix": matrix, "scope_readiness": scope_readiness,
-        "package_readiness": scope["readiness_candidate"],
+        "package_readiness": _readiness(scopes),
         "unresolved_material_items": deepcopy(result["a6"].get("unresolved_material_items", [])),
         "source_refs": source_refs, "currentness_refs": currentness_refs,
         "snapshot_schema_digest_sha256": schema_digest,
@@ -337,16 +341,51 @@ def build(result, request_raw):
         req["source_requirement_id"]: by_area[
             "FRONTEND" if req["source_requirement_id"] in source_form_codes else "BACKEND"]
         for req in reqs}
-    front_ids = sorted(x["front_id"] for x in front_rows)
+    # PG04 owns each executable obligation exactly once. Shared business
+    # requirements use area-qualified implementation IDs with their parent.
+    scopes_by_area = {area: SCOPE + "-" + area for area in ("BACKEND", "FRONTEND")}
+    originals = {r["requirement_id"]: deepcopy(r) for r in reqs}
+    for req in reqs:
+        req["scope_id"] = scopes_by_area[
+            "FRONTEND" if req["source_requirement_id"] in source_form_codes
+            else "BACKEND"]
+    derived = []
+    for front in front_rows:
+        area = front["execution_area"]
+        sid = scopes_by_area[area]
+        front["scope_ids"] = [sid]
+        linked = []
+        sources = {}
+        for original_id in front["requirement_ids"]:
+            parent = originals[original_id]
+            if next(r for r in reqs if r["requirement_id"] == original_id)["scope_id"] == sid:
+                bound_id = original_id
+            else:
+                bound_id = original_id + "-" + area
+                alias = deepcopy(parent)
+                alias["requirement_id"] = bound_id
+                alias["scope_id"] = sid
+                alias["derived_from_requirement_id"] = original_id
+                alias["execution_area"] = area
+                alias["area_binding_evidence_refs"] = deepcopy(front["evidence_refs"])
+                derived.append(alias)
+            linked.append(bound_id)
+            sources[bound_id] = deepcopy(parent["evidence_refs"])
+        front["requirement_ids"] = sorted(linked)
+        front["obligation_refs"] = sorted(linked)
+        front["requirement_source_refs"] = sources
+    reqs.extend(derived)
     has_blocked = any(f["closure"] == "BLOCKED" for f in front_rows)
     readiness = ("BLOCKED" if a8.get("decision") == "BLOCKED"
                  else "REQUIRES_DECISION" if a8.get("decision") == "REQUIRES_DECISION"
                  else "READY_CANDIDATE" if a8.get("decision") == "STOP" and not has_blocked
                  else "NEED_MORE_EVIDENCE")
-    scope = {"scope_id": SCOPE, "scope_kind": "SCREEN",
-             "material_front_refs": front_ids, "readiness_candidate": readiness,
-             "simulation_mode": MODE}
-    snapshot = _snapshot(result, reqs, front_rows, scope, classification)
+    scopes = [{"scope_id": scopes_by_area[area], "scope_kind": "SCREEN",
+               "material_front_refs": [next(f["front_id"] for f in front_rows
+                                            if f["execution_area"] == area)],
+               "readiness_candidate": readiness, "simulation_mode": MODE}
+              for area in ("BACKEND", "FRONTEND")]
+    snapshot = _snapshot(result, reqs, front_rows, scopes, classification)
     receipt = {
         "schema_version": "A9_SIMULATED_PACKAGE_RECEIPT_V1",
         "simulation_mode": MODE, "source_attested": False,
@@ -366,9 +405,9 @@ def build(result, request_raw):
         "stage_trace": _stage_trace(result, receipt),
         "requirements": reqs, "material_fronts": front_rows,
         "non_atomized_fronts": non_atomized,
-        "scope_proposals": [scope],
+        "scope_proposals": scopes,
         "research_stop": deepcopy(a8),
-        "package_readiness_candidate": _readiness([scope]),
+        "package_readiness_candidate": _readiness(scopes),
         # Still unresolved as an *authority* fact despite simulated A8 STOP.
         "material_unknowns": deepcopy(a6.get("unresolved_material_items", [])),
         "decisions_pending": deepcopy(a5.get("pending_owner_decisions", [])),
