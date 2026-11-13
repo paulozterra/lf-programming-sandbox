@@ -115,9 +115,12 @@ def admit(root: Path, task: str) -> dict:
     # command, never silently remove or replace a generated acceptance.
     if commands not in (expected, expected + [FORMAT_COMMAND]):
         block("API_LOT_GENERATED_ACCEPTANCE_DRIFT")
-    for key in ("task_id", "objective", "protected_path_patterns"):
+    for key in ("task_id", "objective"):
         if registered.get(key) != template.get(key):
             block("API_LOT_TASK_CONTRACT_DRIFT")
+    if not set(template.get("protected_path_patterns", [])).issubset(
+            registered.get("protected_path_patterns", [])):
+        block("API_LOT_TASK_CONTRACT_DRIFT")
     references = [p for p in registered.get("context_path_patterns", [])
                   if p == f".lf/worker-context/{task}/lf_rules.receipt.json"]
     if len(references) != 1:
