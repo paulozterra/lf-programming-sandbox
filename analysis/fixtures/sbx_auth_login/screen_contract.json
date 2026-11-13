@@ -9,26 +9,40 @@
       {
         "field_code": "SBX-F-USER",
         "status": "VIGENTE",
-        "required": true
+        "required": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/1"
+        ]
       },
       {
         "field_code": "SBX-F-PASS",
         "status": "VIGENTE",
-        "required": true
+        "required": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/2"
+        ]
       }
     ],
     "errors": [
       {
         "error_code": "SBX-E-GENERIC",
         "status": "VIGENTE",
-        "generic": true
+        "generic": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/5"
+        ]
       }
     ],
     "visual": {
       "variants": [
         {
           "code": "SBX-V-DESKTOP",
-          "status": "VIGENTE"
+          "status": "VIGENTE",
+          "rule_refs": [
+            "supabase://lf_ops.reglas/1",
+            "supabase://lf_ops.reglas/2",
+            "supabase://lf_ops.reglas/5"
+          ]
         }
       ]
     },
