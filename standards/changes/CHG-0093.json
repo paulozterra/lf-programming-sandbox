@@ -31,6 +31,7 @@
       "pilot/orchestrator/native_lot_binding.py",
       "pilot/orchestrator/package_to_lots.py",
       "pilot/orchestrator/plan_lots.py",
+      "pilot/orchestrator/t1_ci_fixtures_v1.json",
       "pilot/orchestrator/test_t2_contract.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0093.json"
