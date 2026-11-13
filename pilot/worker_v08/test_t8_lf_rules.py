@@ -37,7 +37,8 @@ def test_new_lines_fail_by_rule_code(path,added,expected):
     result=evaluate(patch,[expected])
     assert result["status"]=="FAIL"
     assert any(r["rule_id"]==expected for r in result["violations"])
-    assert coverage(result)[0]["coverage"]=="MACHINE"
+    assert coverage(result)[0]["coverage"]=="NO_VERIFICADO"
+    assert coverage(result)[0]["reason"]=="DETECCION_PARCIAL_NO_PRUEBA_CUMPLIMIENTO"
 
 
 def test_legacy_unchanged_lines_are_not_rejected():
@@ -53,9 +54,10 @@ def test_unverifiable_rules_stay_unverified_not_hidden_by_claim():
              ("STD-GEN-03","STD-GEN-04","STD-GEN-05","STD-FE-04","STD-BE-04","STD-DB-09")]
     assert unknown
     report=evaluate("diff --git a/frontend/src/a.ts b/frontend/src/a.ts\n+const ok = true\n",unknown[:2])
-    assert all(item["coverage"]=="NOT_VERIFIED" for item in coverage(report))
-    specified=coverage(report,hidden_coverage=[unknown[0]])
-    assert specified[0]["coverage"]=="HIDDEN_ORACLE"
+    assert all(item["coverage"]=="NO_VERIFICADO" for item in coverage(report))
+    assert all(item["reason"]=="SIN_VERIFICADOR_COMPLETO" for item in coverage(report))
+    with pytest.raises(RuleGateBlocked,match="LF_HIDDEN_COVERAGE_NOT_ATTESTED"):
+        coverage(report,hidden_coverage=[unknown[0]])
 
 
 def test_invalid_domain_rule_or_patch_blocks_not_defaults():
@@ -129,7 +131,8 @@ def test_native_run_dry_lf_rule_proposal_no_model(tmp_path,area,source,addition,
 
 def test_format_is_machine_verified_only_with_pinned_successful_visible_command():
     from pilot.worker_v08.lf_rule_gate import verified_visible_commands
-    table=[{"rule_id":"STD-BE-05","coverage":"NOT_VERIFIED"}]
+    table=[{"rule_id":"STD-BE-05","coverage":"NO_VERIFICADO",
+            "reason":"SIN_VERIFICADOR_COMPLETO"}]
     command={"name":"std-be-05-spotless-check",
              "argv":["mvn","-f","apps/time-service/pom.xml","spotless:check"]}
     visible={"attempts":[{"acceptance":[{
