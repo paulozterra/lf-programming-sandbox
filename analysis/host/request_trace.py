@@ -98,7 +98,13 @@ def implementation_state(root: Path, target: str) -> str:
             data=json.loads(package.read_text("utf-8"))
         except (OSError,ValueError):
             continue
-        if data.get("target_ref")==target or data.get("target_screen_ref")==target:
+        # The canonical A9 identity lives in request_context and snapshot,
+        # not a guessed top-level target_ref alias.
+        context=data.get("request_context")
+        snapshot=data.get("programming_context_snapshot")
+        canonical=(context.get("target_ref") if isinstance(context,dict) else None)
+        shadow=(snapshot.get("target") if isinstance(snapshot,dict) else None)
+        if canonical==target and (shadow is None or shadow==target):
             matched.append(row)
     if not matched:
         return "CREATE"
