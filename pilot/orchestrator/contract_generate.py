@@ -69,11 +69,11 @@ def generate(module, package, atoms):
             continue
         if (not isinstance(rule.get("rule_code"), str)
                 or not isinstance(rule.get("source_ref"), str)
-                or not isinstance(rule.get("source_status"), str)):
+                ):
             deny("T2_RULE_SOURCE_INVALID")
         rules.append({key: deepcopy(rule[key]) for key in (
             "rule_code", "requirement_id", "source_ref", "source_status")
-            })
+            if key in rule})
     rules.sort(key=lambda row: (row["requirement_id"], row["rule_code"]))
     if not rules:
         deny("T2_RULES_UNRESOLVED")
