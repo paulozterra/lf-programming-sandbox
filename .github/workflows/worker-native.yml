@@ -334,6 +334,14 @@ jobs:
             ${{ runner.temp }}/native-private/public/status.json
           if-no-files-found: ignore
           retention-days: 90
+      - name: Publish LF rule coverage table separately from pinned PG-07 proof artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-lf-rule-coverage
+          path: ${{ runner.temp }}/native-private/public/lf-rule-report.json
+          if-no-files-found: ignore
+          retention-days: 90
       - name: Deliver patch only after verified PASS
         if: ${{ steps.worker.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

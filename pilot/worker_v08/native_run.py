@@ -197,6 +197,47 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
                 "production_authority":False,"receipt_authenticated":False,
             })
             return False
+    # T8: a failed deterministic standard is a spent, visible FAIL. The
+    # examiner's oracle is not inspected or reflected in this report.
+    rule_receipts = [p for p in raw_task.get("context_path_patterns", [])
+                     if p == f".lf/worker-context/{task}/lf_rules.receipt.json"]
+    if rule_receipts:
+        from lf_rule_gate import evaluate, coverage, RuleGateBlocked
+        try:
+            manifest_path = source / rule_receipts[0]
+            if manifest_path.is_symlink() or not manifest_path.is_file():
+                raise RuleGateBlocked("LF_RULE_CONTEXT_MISSING")
+            manifest = strict_json_loads(manifest_path.read_text("utf-8"))
+            if manifest.get("schema_version") not in (None, "T8_LF_RULE_CONTEXT_V1"):
+                raise RuleGateBlocked("LF_RULE_CONTEXT_INVALID")
+            gate = evaluate(proposal.patch, manifest["rule_ids"], root=control)
+            table = coverage(gate)
+        except (RuleGateBlocked, ValueError, KeyError, TypeError, OSError) as exc:
+            gate = {"status":"FAIL", "violations":[{
+                "rule_id":"LF_RULE_CONTEXT", "code":"LF_RULE_CONTEXT_INVALID",
+                "path":"context"}]}
+            table = []
+        _write(public / "lf-rule-report.json", {
+            "schema_version":"T8_RULE_REPORT_V1",
+            "status":gate["status"], "rules":table,
+            "violations":gate["violations"]})
+        if gate["status"] != "PASS":
+            (public / "feedback.json").unlink()
+            visible = {"attempts":[{"acceptance":[{
+                "name":v["rule_id"], "status":"FAIL", "reason":v["code"],
+                "returncode":1, "stdout_excerpt":"", "stderr_excerpt":""}
+                for v in gate["violations"]]}]}
+            feedback = _visible_feedback(visible, attempt)
+            _write(public / "feedback.json", feedback)
+            _write(public / "status.json", {
+                "schema_version":"LF_NATIVE_RESULT_SUMMARY_V1",
+                "task_id":task, "attempt":attempt,
+                "proposal_sha256":submitted["proposal_sha256"],
+                "task_pack_sha256":submitted["task_pack_sha256"],
+                "feedback_sha256":hashlib.sha256(canonical_json_bytes(feedback)).hexdigest(),
+                "status":"FAIL", "authority":"REAL_SANDBOX_UNAUTHENTICATED",
+                "production_authority":False, "receipt_authenticated":False})
+            return False
     client = NativeProposalClient(proposal_file)
     seen = []
     original = verified_module.run_worker
@@ -213,6 +254,13 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     if validate_verified_worker_receipt(outcome.receipt, outcome.patch):
         raise ValueError("NATIVE_VERIFIED_RECEIPT_INVALID")
     visible = seen[0] if seen else None
+    if rule_receipts:
+        from lf_rule_gate import verified_visible_commands
+        report_file = public / "lf-rule-report.json"
+        report = strict_json_loads(report_file.read_text("utf-8"))
+        report["rules"] = verified_visible_commands(
+            report["rules"], visible, raw_task["acceptance_commands"])
+        report_file.write_bytes(canonical_json_bytes(report) + b"\n")
     (public / "feedback.json").unlink()
     feedback = _visible_feedback(visible, attempt)
     _write(public / "feedback.json", feedback)
@@ -245,7 +293,7 @@ def _git_head(source: Path) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("phase", choices=("preflight", "execute", "dry-run-reuse"))
+    parser.add_argument("phase", choices=("preflight", "execute", "dry-run-reuse", "dry-run-lf-rules"))
     parser.add_argument("--control", type=Path, required=True)
     parser.add_argument("--source", type=Path)
     parser.add_argument("--proposal", type=Path)
@@ -255,7 +303,34 @@ def main() -> None:
     parser.add_argument("--run-id", type=int)
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--reuse-context", type=Path)
+    parser.add_argument("--rule-receipt", type=Path)
     a = parser.parse_args()
+    if a.phase == "dry-run-lf-rules":
+        # Same trusted gate, without model, hidden oracle or paid attempt.
+        from lf_rule_gate import evaluate, coverage, RuleGateBlocked
+        try:
+            if not a.proposal or not a.rule_receipt:
+                raise RuleGateBlocked("LF_RULE_CONTEXT_MISSING")
+            proposal = strict_json_loads(a.proposal.read_text("utf-8"))
+            receipt = strict_json_loads(a.rule_receipt.read_text("utf-8"))
+            if (not isinstance(proposal, dict)
+                    or set(proposal) != {"schema_version", "summary", "patch", "changed_paths"}
+                    or proposal.get("schema_version") != 1
+                    or not isinstance(proposal.get("patch"), str)):
+                raise RuleGateBlocked("LF_PATCH_INVALID")
+            result = evaluate(proposal["patch"], receipt["rule_ids"], root=a.control)
+            print(json.dumps({"result": result, "coverage": coverage(result)},
+                             sort_keys=True))
+            if result["status"] != "PASS":
+                print("NATIVE_LF_RULE_DRY_RUN_BLOCKED:" +
+                      ",".join(sorted({v["code"] for v in result["violations"]})),
+                      file=sys.stderr)
+                raise SystemExit(1)
+            return
+        except (RuleGateBlocked, OSError, ValueError, KeyError, TypeError) as exc:
+            print("NATIVE_LF_RULE_DRY_RUN_BLOCKED:LF_RULE_CONTEXT_INVALID",
+                  file=sys.stderr)
+            raise SystemExit(1)
     if a.phase == "dry-run-reuse":
         # Explicit offline rehearsal; no vendor invocation, no model, no
         # hidden oracle, no native PASS receipt and no attempt registration.
