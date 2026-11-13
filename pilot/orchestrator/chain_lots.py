@@ -24,7 +24,7 @@ from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_stat
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
 from native_lot_binding import next_ready
-from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request, registration_variant
+from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request, registration_variant, protected_test_conflict
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pilot/worker_v08"))
 
@@ -355,6 +355,7 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
 def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dict | None:
     """Inspect admission before any generated commit or native preparation."""
     require_green_base(head, api)
+    protected_test_conflict(ROOT, lot, binding)
     if missing_exam(ROOT, binding["task_name"]):
         return request_missing_exam(request, binding, lot)
     return None
