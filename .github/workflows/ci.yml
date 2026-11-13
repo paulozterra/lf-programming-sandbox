@@ -414,6 +414,7 @@ jobs:
         run: |
           python3 -m py_compile pilot/worker_v08/lf_rule_context.py pilot/worker_v08/lf_rule_gate.py
           python3 -m pytest -q pilot/worker_v08/test_t8_lf_rules.py -p no:cacheprovider
+          python3 -m pytest -q pilot/worker_v08/test_t8_api_lot.py -p no:cacheprovider
       - name: T5 Playwright guard and encrypted-oracle command contract (NO MODEL)
         run: |
           python3 -m py_compile pilot/worker_v08/playwright_gate.py
