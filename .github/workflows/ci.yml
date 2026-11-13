@@ -457,6 +457,7 @@ jobs:
         env:
           T1A_ARTIFACT_DIR: ${{ runner.temp }}/t1a
         run: |
+          python3 -m pip install jsonschema
           python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py analysis/host analysis/a6 analysis/a7 analysis/a8 analysis/a9 -p no:cacheprovider
       - name: Publish T1-A generated Login lots
         if: always()
