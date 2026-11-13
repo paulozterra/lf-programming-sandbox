@@ -100,6 +100,8 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
             "pending_decision": rule.get("pending_decision", False),
             "source_ref": _source_compatible_ref(rule.get("source_ref"), "rule"),
             "categoria": e.get("categoria"),
+            **({"descripcion": rule["descripcion"]} if isinstance(
+                rule.get("descripcion"), str) and rule["descripcion"].strip() else {}),
         }
         if not all(isinstance(common.get(k), str) and common[k]
                    for k in ("code", "title", "status", "source_ref", "categoria")):
