@@ -84,12 +84,12 @@ def _set_synthetic_optional_field(folder, *, with_rule_refs):
     field["required"]=False
     if not with_rule_refs:
         field["rule_refs"]=[]
-    path.write_text(json.dumps(doc,ensure_ascii=False,sort_keys=True,indent=2)+"\\n")
+    path.write_text(json.dumps(doc,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
     manifest=folder/"SOURCE_PIN.json"
     pin=json.loads(manifest.read_text("utf-8"))
     next(row for row in pin["files"] if row["file"]=="screen_contract.json")["sha256"]=hashlib.sha256(
         path.read_bytes()).hexdigest()
-    manifest.write_text(json.dumps(pin,ensure_ascii=False,sort_keys=True,indent=2)+"\\n")
+    manifest.write_text(json.dumps(pin,ensure_ascii=False,sort_keys=True,indent=2)+"\n")
 
 
 def test_optional_vigente_field_with_rule_is_bound_in_a9(tmp_path):
