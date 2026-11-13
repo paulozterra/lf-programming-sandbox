@@ -76,18 +76,21 @@ def select(dependencies, requirements):
         if not isinstance(dep.get("adds_rule"), bool):
             _fail()
         witness = dep.get("reuse_rule_code")
+        signature = dep.get("reuse_component_signature")
         if witness is not None and (not isinstance(witness, str)
                                     or not TOKEN.fullmatch(witness)):
             _fail()
-        if dep["adds_rule"] and not witness:
+        if signature is not None and (not isinstance(signature, str)
+                                      or not SIGNATURE.fullmatch(signature)):
             _fail()
-        if not dep["adds_rule"] and witness:
+        if dep["adds_rule"] != bool(witness or signature) or (witness and signature):
             _fail()
         if rid in result:
             _fail()
         result[rid] = {"kind": index_kind, "key": key,
                        "adds_rule": dep["adds_rule"],
-                       "reuse_rule_code": witness}
+                       "reuse_rule_code": witness,
+                       "reuse_component_signature": signature}
     return result
 
 
@@ -116,8 +119,10 @@ def resolve(index_obj, registry, root, dep):
     extra = []
     if dep["adds_rule"]:
         rule = dep["reuse_rule_code"]
+        signature = dep["reuse_component_signature"]
         rule_entries = [x for x in index_obj.get("entries", [])
-                        if x.get("kind") == "implemented_rule" and x.get("key") == rule]
+                        if x.get("kind") == ("public_signature" if signature else "implemented_rule")
+                        and x.get("key") == (signature or rule)]
         if len({x.get("path") for x in rule_entries}) > 1:
             _fail()
         if rule_entries:
@@ -126,7 +131,7 @@ def resolve(index_obj, registry, root, dep):
             from pilot.orchestrator.reuse_assessment import _verified_context
             matched = [x for x in registry.get("entries", [])
                        if isinstance(x, dict) and x.get("status") == "ATTESTED"
-                       and rule in x.get("rule_codes", [])]
+                       and rule is not None and rule in x.get("rule_codes", [])]
             if len(matched) != 1:
                 _fail()
             extra = _verified_context(root, matched[0])
