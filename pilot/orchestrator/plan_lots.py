@@ -549,7 +549,7 @@ def _t2_contract_lots(fixture, lots):
     return topo(out)
 
 
-def _t3_infra_lots(fixture, lots):
+def _t3_infra_lots(package, fixture, lots):
     """Project the allowlist-vetted INFRA atom around untouched PG02–PG05."""
     atoms = [a for a in fixture.get("atoms", []) if a.get("area") == "INFRA"]
     if not atoms:
@@ -566,9 +566,7 @@ def _t3_infra_lots(fixture, lots):
                 rules["profile_resolution"]["area_to_profile"]["BACKEND"]):
         blocked("T3_INFRA_POLICY_INVALID")
     missing, _ = infra_lot.unresolved(
-        json.loads((ROOT/"pilot/runs"/"noop"/"analysis.json").read_text())
-        if False else {"dependency_requirements": [
-            x["id"] for x in atom["missing_dependencies"]]},
+        package,
         [a for a in fixture["atoms"] if a.get("area") in ("DATA","BACKEND","FRONTEND")])
     if missing != atom["missing_dependencies"]:
         blocked("T3_DEPENDENCY_DRIFT")
@@ -664,7 +662,7 @@ def plan(root: Path, run: str) -> dict:
         lots,producer_hashes,assignments,currentness=_produce_lots(
             package,source_fixture,rows,outputs,dsn)
         lots=_t2_contract_lots(fixture,lots)
-        lots=_t3_infra_lots(fixture,lots)
+        lots=_t3_infra_lots(package,fixture,lots)
     except (OSError,RuntimeError):
         blocked("SELECTOR_REQUIERE_ENTORNO")
     document={"schema_version":"CP33_LOTS_CANDIDATE_V1","request_id":run,
