@@ -8,11 +8,23 @@ import argparse
 import json
 from pathlib import Path
 try:
-    from .fixture_readback_host import FixtureHost, FixtureBlocked, DEFAULT_FIXTURES
+    from .fixture_readback_host import FixtureHost, FixtureBlocked, PROJECT
 except ImportError:
-    from fixture_readback_host import FixtureHost, FixtureBlocked, DEFAULT_FIXTURES
+    from fixture_readback_host import FixtureHost, FixtureBlocked, PROJECT
 
-REQUEST = json.loads((DEFAULT_FIXTURES / "semantic_signals.json").read_text(encoding="utf-8"))["request_text"]
+def legacy_fixture() -> Path:
+    """Only for historic test callers; production resolves request via catalogue."""
+    pins = sorted((PROJECT/"analysis/fixtures").glob("*/SOURCE_PIN.json"))
+    roots = [p.parent for p in pins if json.loads(p.read_text("utf-8")).get(
+        "schema_version") == "SBX_FIXTURE_PIN_V1"
+        and (p.parent/"semantic_signals.json").is_file()]
+    if not roots:
+        raise ValueError("PEDIDO_AMBIGUO")
+    return roots[0]
+
+
+LEGACY_FIXTURES = legacy_fixture()
+REQUEST = json.loads((LEGACY_FIXTURES/"semantic_signals.json").read_text("utf-8"))["request_text"]
 
 
 def encoded(obj):
@@ -21,7 +33,7 @@ def encoded(obj):
 
 
 def execute(request=REQUEST, fixtures=None, output_dir=None):
-    host = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
+    host = FixtureHost(fixtures if fixtures is not None else LEGACY_FIXTURES)
     result = host.run(request)
     if output_dir is not None:
         directory = Path(output_dir)

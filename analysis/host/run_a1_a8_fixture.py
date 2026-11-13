@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from analysis.host.run_a1_a5_fixture import encoded
+from analysis.host.run_a1_a5_fixture import encoded, LEGACY_FIXTURES
 from analysis.host.run_a1_a6_fixture import run_f2
 from analysis.host.fixture_readback_host import FixtureHost
 from analysis.a7.front_coverage import run as run_a7
@@ -14,9 +14,9 @@ from analysis.a8.stop_rule import run as run_a8
 
 
 def run_f3(fixtures=None, output_dir=None, request=None):
-    result = run_f2(fixtures=fixtures, output_dir=output_dir, request=request)
+    result = run_f2(fixtures=fixtures if fixtures is not None else LEGACY_FIXTURES, output_dir=output_dir, request=request)
     # Verified by F1 host SOURCE_PIN.json before this metadata is read.
-    checked_host = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
+    checked_host = FixtureHost(fixtures if fixtures is not None else LEGACY_FIXTURES)
     pinned = checked_host.read_all(request)
     def binding(rows):
         return {row["code"]: {"source_ref": row["source_ref"],
