@@ -7,12 +7,13 @@
     "kind": "OWNER",
     "reference": "T7.1 análisis general, 13/11/2026"
   },
-  "reason": "El análisis A1-A9 deriva obligaciones A6 desde descripcion de reglas LF y conserva el corpus fijo solo como respaldo de la ficha legacy ya fijada; no hay pantalla importada por defecto. El texto se coteja contra títulos, descripciones, campos, errores, estados y componentes verificables; el léxico español versionado evita falsos PEDIDO_EXCEDE_FICHA, mientras comportamientos no trazados y reglas sin descripción bloquean.",
+  "reason": "El análisis A1-A9 deriva obligaciones A6 desde descripcion de reglas LF y conserva el corpus fijo solo como respaldo de la ficha legacy ya fijada; no hay pantalla importada por defecto. El texto se coteja contra títulos, descripciones, campos, errores, estados y componentes verificables; el léxico español versionado evita falsos PEDIDO_EXCEDE_FICHA, mientras comportamientos no trazados y reglas sin descripción bloquean. Revisión T7.1: todo campo VIGENTE (obligatorio u opcional) vincula rule_refs en A9; ausencia de rule_refs continúa bloqueando. Revisión léxica 2026-11-13.2 incorpora calificadores genéricos iniciada/servicio sin neutralizar sesión, que exige fuente trazable.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      "analysis/a9/front_bindings.py",
       "analysis/host/fixture_normalize.py",
       "analysis/host/fixture_readback_host.py",
       "analysis/host/request_lexicon_v1.json",
