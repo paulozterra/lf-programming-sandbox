@@ -228,6 +228,7 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
         patch.object(chain_lots, "run", side_effect=sim_run),
         patch.object(chain_lots, "prepare_successor", side_effect=ready),
         patch.object(chain_lots, "admit_registration", return_value=None),
+        patch.object(chain_lots, "pending_draft", return_value=False),
     )
     from contextlib import ExitStack
     with ExitStack() as stack:
@@ -306,6 +307,7 @@ def test_p4_priority_chain_plan_data_merge_releases_backend_offline(tmp_path):
             patch.object(chain_lots, "prepare_successor",
                          side_effect=capture_prepare),
             patch.object(chain_lots, "admit_registration", return_value=None),
+            patch.object(chain_lots, "pending_draft", return_value=False),
             # Hermetic: the real repo may already contain native_tasks/p4be.json
             # once the lot is registered; the simulation must not depend on it.
             patch.object(chain_lots, "ROOT", tmp_path),
