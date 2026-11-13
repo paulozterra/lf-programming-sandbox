@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0102",
   "title": "T7.1: catálogo de pantallas general, señales tipadas desde pedido y cobertura de ficha",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "T7.1 análisis general, 13/11/2026"
