@@ -110,7 +110,8 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
                 gaps.append("A9_RULE_AREA_UNRESOLVED:" + source)
         if front.get("status") == "NOT_APPLICABLE":
             non_atomized.append({**front, "obligation_mode": "NOT_APPLICABLE"})
-        elif req is None and not source.startswith("A4:unresolved:"):
+        elif (req is None and not source.startswith("A4:unresolved:")
+              and source not in evidence["BACKEND"] and source not in evidence["FRONTEND"]):
             # A screen section with no independent obligation is accounted
             # as non-executable evidence, never turned into a fake task.
             has_section = "#contract/" in source
