@@ -165,3 +165,101 @@ def registration_variant(root: Path, base_task: str, template_path: str,
     if same_pack and spec.get("source_snapshot_sha256") == source_sha256:
         return None
     return incremental_task(base_task, set(names))
+
+
+# Explicit HTTP outcome assertions from existing protected Java tests. Do not
+# interpret test names, comments, or free-form expectations as executable facts.
+_HTTP_STATUS = {
+    "Ok": 200, "Created": 201, "Accepted": 202, "NoContent": 204,
+    "BadRequest": 400, "Unauthorized": 401, "Forbidden": 403,
+    "NotFound": 404, "Conflict": 409, "UnprocessableEntity": 422,
+    "InternalServerError": 500, "ServiceUnavailable": 503,
+}
+_ENDPOINT = re.compile(
+    r"(?<![\\w])(?P<method>get|post|put|patch|delete)\\s*\\(\\s*"
+    r'["\\\'](?P<route>/[^"\\\']+)["\\\']', re.I)
+_STATUS = re.compile(r"status\\(\\)\\s*\\.\\s*is(?P<name>[A-Za-z]+)\\(\\)")
+_TEST_TYPES = {".java", ".ts", ".tsx"}
+
+
+def _route_matches(template: str, actual: str) -> bool:
+    segments = []
+    for part in template.split("/"):
+        if part.startswith("{") and part.endswith("}"):
+            segments.append(r"[^/]+")
+        else:
+            segments.append(re.escape(part))
+    return re.fullmatch("/".join(segments), actual) is not None
+
+
+def protected_test_conflict(root: Path, lot: dict, binding: dict) -> None:
+    """Block only a demonstrable HTTP-status contradiction with a signed-in
+    contract. Never rewrite an existing test; don't infer test semantics.
+
+    If the contract isn't yet produced (CONTRATO lot), no comparison is
+    possible at this stage. The native Worker still runs protected tests.
+    """
+    from fnmatch import fnmatch
+    ref = lot.get("contract_context_ref")
+    if not isinstance(ref, str) or not re.fullmatch(r"contracts/[a-z0-9_-]+[.]openapi[.]yaml", ref):
+        return
+    contract = root / ref
+    if not contract.exists():
+        return  # contract lot precedes its consumers
+    if contract.is_symlink() or not contract.is_file():
+        raise AdmissionBlocked("TEST_PROTEGIDO_EN_CONFLICTO")
+    try:
+        import yaml
+        doc = yaml.safe_load(contract.read_text("utf-8"))
+    except Exception as exc:
+        raise AdmissionBlocked("TEST_PROTEGIDO_EN_CONFLICTO") from exc
+    if not isinstance(doc, dict) or not isinstance(doc.get("paths"), dict):
+        raise AdmissionBlocked("TEST_PROTEGIDO_EN_CONFLICTO")
+    template = root / binding["template_path"]
+    if template.is_symlink() or not template.is_file():
+        raise AdmissionBlocked("TEST_PROTEGIDO_EN_CONFLICTO")
+    spec = json.loads(template.read_text("utf-8")).get("task_spec", {})
+    patterns = spec.get("protected_path_patterns", [])
+    if not isinstance(patterns, list):
+        raise AdmissionBlocked("TEST_PROTEGIDO_EN_CONFLICTO")
+    roots = (root / "apps/time-service/src/test", root / "frontend/src")
+    for folder in roots:
+        if not folder.is_dir() or folder.is_symlink():
+            continue
+        for file in sorted(folder.rglob("*")):
+            if not file.is_file() or file.suffix not in _TEST_TYPES:
+                continue
+            relative = file.relative_to(root).as_posix()
+            if not any(isinstance(p, str) and fnmatch(relative, p) for p in patterns):
+                continue
+            source = file.read_text("utf-8")
+            for found in _ENDPOINT.finditer(source):
+                # An assertion must belong to this invocation; crossing the
+                # next request would attribute an unrelated expectation.
+                tail = source[found.end():found.end() + 1200]
+                next_request = _ENDPOINT.search(tail)
+                if next_request:
+                    tail = tail[:next_request.start()]
+                statuses = list(_STATUS.finditer(tail))
+                if not statuses:
+                    continue
+                method = found.group("method").lower()
+                route = found.group("route")
+                targets = [entry for pattern, methods in doc["paths"].items()
+                           if isinstance(pattern, str)
+                           and isinstance(methods, dict)
+                           and _route_matches(pattern, route)
+                           and isinstance(methods.get(method), dict)]
+                if len(targets) != 1:
+                    continue
+                operation = targets[0][method]
+                responses = operation.get("responses", {})
+                if not isinstance(responses, dict):
+                    raise AdmissionBlocked("TEST_PROTEGIDO_EN_CONFLICTO")
+                for assertion in statuses:
+                    expected = _HTTP_STATUS.get(assertion.group("name"))
+                    if (expected is not None and str(expected) not in responses
+                            and "default" not in responses):
+                        raise AdmissionBlocked("TEST_PROTEGIDO_EN_CONFLICTO:"
+                                               + relative + ":" + method.upper()
+                                               + ":" + route + ":" + str(expected))
