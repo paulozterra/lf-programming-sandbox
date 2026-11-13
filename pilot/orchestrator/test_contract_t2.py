@@ -88,7 +88,7 @@ def scenario(root, kind, *, slug):
             b: {"source_ref":source_b,"categoria":"error_states","binding_source":"LEGACY_EXPLICIT"},
         }
         reqs = [
-            {"requirement_id":"REQ-"+a, "source_requirement_id":a,
+            {"requirement_id":"REQ-"+a.replace("_","-"), "source_requirement_id":a,
              "evidence_refs":[source_a], "outcome":"Validate a supplied field",
              "acceptance_signal":"Field validation", "acceptance_checks":["Field validation"],
              "scope_id":target,"materiality_level":"HIGH",
