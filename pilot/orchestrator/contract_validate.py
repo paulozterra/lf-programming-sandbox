@@ -92,10 +92,8 @@ def _field_names(operation):
             properties = value.get("properties")
             if isinstance(properties, dict):
                 names.update(properties)
-            for key, part in value.items():
-                if key in ("schema", "properties", "items", "allOf", "oneOf", "anyOf",
-                           "content", "requestBody", "responses"):
-                    walk(part)
+            for part in value.values():
+                walk(part)
         elif isinstance(value, list):
             for part in value:
                 walk(part)
