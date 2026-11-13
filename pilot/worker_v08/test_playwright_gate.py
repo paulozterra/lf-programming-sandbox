@@ -64,7 +64,11 @@ def test_frontend_generic_acceptance_and_exam_command_format():
     assert browser[0]["timeout_seconds"] >= 200
     # Examiner can supply distinct flags inside the encrypted oracle's normal
     # AcceptanceCommand, but its content is never created or read here.
-    from vendor.programming_agent.src.programming_agent_runner.worker_spec import _acceptance_commands
+    import sys
+    vendor = str(Path(__file__).resolve().parents[2] / "vendor/programming-agent/src")
+    if vendor not in sys.path:
+        sys.path.insert(0, vendor)
+    from programming_agent_runner.worker_spec import _acceptance_commands
     examiner = _acceptance_commands([{
         "name": "browser-exam", "argv": ["python3",
         "pilot/worker_v08/playwright_gate.py", "--path", "/different",
