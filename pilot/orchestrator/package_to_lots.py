@@ -335,7 +335,7 @@ def read_accepted_package(root, slug):
     return package, state
 
 
-def prepare(root, slug, *, base_head_sha=None, legacy=False):
+def prepare(root, slug, *, base_head_sha=None, legacy=False, contract_mode=False):
     """Default T1 path; old F5.1 owner fixture only via explicit regression flag."""
     if legacy:
         return prepare_legacy(root, slug, base_head_sha=base_head_sha)
@@ -358,7 +358,7 @@ def prepare(root, slug, *, base_head_sha=None, legacy=False):
     except atomize.AtomBlocked as exc:
         blocked(str(exc))
     _write_once(folder/"atomized_inputs.json", generated)
-    planned = plan_lots.plan(root, slug)
+    planned = plan_lots.plan(root, slug, contract_mode=contract_mode)
     generate_chain.generate(root, slug, planned)
     return planned
 
@@ -369,9 +369,11 @@ def main():
     p.add_argument("--request-id", default="f5-login")
     p.add_argument("--base-head-sha", default=None)
     p.add_argument("--legacy", action="store_true")
+    p.add_argument("--with-contract", action="store_true", help="CP1.5 T2 contract mode")
     args = p.parse_args()
     try:
-        result = prepare(args.root, args.request_id, base_head_sha=args.base_head_sha, legacy=args.legacy)
+        result = prepare(args.root, args.request_id, base_head_sha=args.base_head_sha,
+                         legacy=args.legacy, contract_mode=args.with_contract)
         print("F51_LOTS_PLANNED:" + args.request_id + ":" + str(len(result["lots"])))
     except PackageLotsBlocked as exc:
         print("F51_BLOCKED:" + str(exc), file=sys.stderr)
