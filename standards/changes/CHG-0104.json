@@ -1,0 +1,43 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0104",
+  "title": "T7.2: reutilización determinada por dependencias explícitas de pantalla",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T7.2 dependencias declaradas de lf_ops.pantallas, 13/11/2026"
+  },
+  "reason": "Consumir las dependencias SHA-pinned del inventario de la pantalla y vincularlas a requerimientos A9 por identidad tipada. Resolver endpoints por método+ruta y componentes por firma contra índice y registro con verificación de SHA. Distinguir REUSE_AS_IS de EXTEND por obligación source-declared y referenciar reglas ya implementadas como contexto protegido; rechazar dependencias ausentes. Preservar evaluación histórica al omitir dependencies y reutilizar las identidades de endpoints en el esqueleto OpenAPI sin rutas paralelas.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/host/fixture_normalize.py",
+      "analysis/host/request_trace.py",
+      "pilot/orchestrator/declared_dependencies.py",
+      "pilot/orchestrator/reuse_assessment.py",
+      "pilot/orchestrator/t7_entry.py",
+      "pilot/orchestrator/atomize.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/contract_validate.py",
+      "pilot/orchestrator/test_t72_dependencies.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0104.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/152"
+  }
+}
