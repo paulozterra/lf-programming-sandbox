@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0103",
   "title": "Política C: el ci de un PR generado se lo entrega explícitamente",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Siembra del registro (#146) sin etiqueta 2026-11-13"
