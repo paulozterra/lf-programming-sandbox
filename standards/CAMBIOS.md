@@ -94,4 +94,4 @@
 | CHG-0091 | ADDITIVE | T1-A: trazabilidad A9 de obligaciones y áreas con fuente; brechas fail-closed |  | paulozterra |  |
 | CHG-0092 | ADDITIVE | T1: módulo funcional común y rutas válidas para Java/Frontend |  | paulozterra |  |
 | CHG-0093 | ADDITIVE | T2 CP1.5: lote CONTRATO gobernado y OpenAPI tipado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/138 |
-| CHG-0094 | ADDITIVE | T3: lote INFRA, allowlist, JDBC/Flyway y migraciones classpath |  | paulozterra |  |
+| CHG-0094 | ADDITIVE | T3: lote INFRA automático, dependencia allowlist y preparación JDBC/Flyway gobernada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/139 |
