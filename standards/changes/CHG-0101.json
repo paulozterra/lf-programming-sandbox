@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0101",
+  "title": "CP3.6 cierra drafts obsoletos del registro; Playwright usa connect_to_server",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Siembra del registro (#146) sin etiqueta 2026-11-13"
+  },
+  "reason": "(1) CP3.6 cierra los drafts del registro generados sobre un main anterior: nunca pasan la verificación exacta (GENERATED_CONTENT_DRIFT) y, al seguir abiertos, impedían regenerar (caso #146). (2) playwright_gate llamaba WebSocketRoute.connect(), inexistente en Playwright 1.56, y fallaba cuando la app abre un WebSocket local; se usa connect_to_server().",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/test_chain_lots.py",
+      "pilot/worker_v08/playwright_gate.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/148"
+  }
+}

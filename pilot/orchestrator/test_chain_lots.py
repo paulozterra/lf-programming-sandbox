@@ -504,3 +504,23 @@ def test_t7_conflicting_legacy_and_in_run_chain_plans_block(tmp_path):
     with patch.object(chain_lots, "ROOT", tmp_path):
         with pytest.raises(ChainBlocked, match="CHAIN_PLAN_DRIFT"):
             chain_lots.plans()
+
+
+def test_stale_bot_registry_draft_is_closed_and_current_kept():
+    rows = [{"number": 146, "headRefName": "lf/implemented-registry/0c26560526ba",
+             "author": {"login": "app/github-actions"}},
+            {"number": 150, "headRefName": "lf/implemented-registry/aaaaaaaaaaaa",
+             "author": {"login": "app/github-actions"}},
+            {"number": 151, "headRefName": "lf/implemented-registry/bbbbbbbbbbbb",
+             "author": {"login": "someone"}}]
+    calls = []
+
+    def fake_run(*args):
+        calls.append(args)
+        return json.dumps(rows) if args[:3] == ("gh", "pr", "list") else ""
+
+    with patch.object(chain_lots, "run", side_effect=fake_run):
+        closed = chain_lots.close_stale_drafts("lf/implemented-registry/", "aaaaaaaaaaaa")
+    assert closed == [146]
+    assert any(c[:4] == ("gh", "pr", "close", "146") and "--delete-branch" in c for c in calls)
+    assert not any(c[:4] == ("gh", "pr", "close", "151") for c in calls)
