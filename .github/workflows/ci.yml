@@ -474,12 +474,15 @@ jobs:
           python3 pilot/orchestrator/selector_db.py --t1-patterns
           python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2 jsonschema==4.25.1
           python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py pilot/orchestrator/test_contract_t2.py pilot/orchestrator/test_t2_general_guard.py -p no:cacheprovider
-      - name: T1-A positive Login A9 to PG05 without manual fixtures
+      - name: A9 regression suites; T2 three-case test supersedes old two-area T1-A check
         env:
           T1A_ARTIFACT_DIR: ${{ runner.temp }}/t1a
         run: |
           python3 -m pip install jsonschema
-          python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py analysis/host analysis/a6 analysis/a7 analysis/a8 analysis/a9 -p no:cacheprovider
+          # The historical T1-A test asserts exactly two areas; T2 now
+          # requires a third CONTRATO area. Its replacement is the three-case
+          # test_contract_t2.py executed above against the real A9 Login package.
+          python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py analysis/host analysis/a6 analysis/a7 analysis/a8 analysis/a9 -p no:cacheprovider --deselect=analysis/host/test_t1a_login_gate.py::test_login_two_source_areas_without_owner_or_fixture
       - name: "T2: publish 3-case contract lots and drafts"
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
