@@ -29,7 +29,15 @@ def project(scope_id, requirements, fronts, *, readiness):
     if any(not areas for areas in source_areas.values()):
         raise AreaOwnershipGap("A9_REQUIRED_OBLIGATION_WITHOUT_AREA")
     scopes_by_area = {area: scope_id + "-" + area for area in area_order}
-    owner_area = {rid: areas[0] for rid, areas in source_areas.items()}
+    preferred = {
+        rid: f["execution_area"]
+        for f in projected for rid in f.get("preferred_owner_ids", [])
+    }
+    if any(preferred.get(rid, areas[0]) not in areas
+           for rid, areas in source_areas.items()):
+        raise AreaOwnershipGap("A9_PRIMARY_OWNER_NOT_IN_FRONT")
+    owner_area = {rid: preferred.get(rid, areas[0])
+                  for rid, areas in source_areas.items()}
     primary_front_by_code = {
         req["source_requirement_id"]:
             next(f["front_id"] for f in projected
