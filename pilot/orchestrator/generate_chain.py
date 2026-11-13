@@ -115,6 +115,11 @@ def generate(root, run, lots):
                       for lot in contract_lots}
     policy=json.loads((Path(__file__).parent/"atomize_rules_v1.json").read_text())
     skeleton_template=policy.get("contract_lot", {}).get("skeleton_path")
+    if report_path.exists() and contract_lots:
+        # T7's generated bot PR may write only under its own run directory.
+        # Keep generated skeletons beside the task templates, not under
+        # contracts/, and let T2's existing validator consume that location.
+        skeleton_template=f"pilot/runs/{run}/templates/{{module}}.skeleton.json"
     if contract_lots:
         import sys
         directory=Path(__file__).parent
