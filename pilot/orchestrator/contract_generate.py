@@ -72,11 +72,21 @@ def generate(module, package, atoms):
                 ):
             deny("T2_RULE_SOURCE_INVALID")
         rules.append({key: deepcopy(rule[key]) for key in (
-            "rule_code", "requirement_id", "source_ref", "source_status")
+            "rule_code", "requirement_id", "source_ref", "source_status",
+            "titulo", "categoria", "valor_config", "origen", "es_transversal")
             if key in rule})
     rules.sort(key=lambda row: (row["requirement_id"], row["rule_code"]))
     if not rules:
         deny("T2_RULES_UNRESOLVED")
+    requirements = [
+        {key: deepcopy(req[key]) for key in (
+            "requirement_id", "outcome", "acceptance_signal", "acceptance_checks",
+            "evidence_refs") if key in req}
+        for req in sorted(package["requirements"], key=lambda row: row["requirement_id"])
+        if req["requirement_id"] in requirement_ids
+    ]
+    if len(requirements) != len(requirement_ids):
+        deny("T2_REQUIREMENT_COVERAGE_MISMATCH")
     return {
         "schema_version": "T2_CONTRACT_SKELETON_V1",
         "functional_module": module,
@@ -84,6 +94,7 @@ def generate(module, package, atoms):
         "fields": fields,
         "errors": errors,
         "requirement_ids": requirement_ids,
+        "requirements": requirements,
         "rules": rules,
         "production_authority": False,
     }
