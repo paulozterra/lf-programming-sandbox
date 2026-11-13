@@ -15,25 +15,6 @@ from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[2]
 STAGE = PROJECT / "analysis/programming_analysis"
-def default_fixtures() -> Path:
-    """Legacy offline tests may omit a fixture only when exactly one F1 pin exists."""
-    catalog = PROJECT / "analysis/fixtures"
-    candidates = []
-    for pin in sorted(catalog.glob("*/SOURCE_PIN.json")):
-        if pin.is_symlink() or pin.parent.is_symlink():
-            continue
-        try:
-            obj = json.loads(pin.read_text("utf-8"))
-        except (OSError, ValueError):
-            continue
-        if obj.get("schema_version") == "SBX_FIXTURE_PIN_V1":
-            candidates.append(pin.parent)
-    if len(candidates) != 1:
-        raise ValueError("PEDIDO_AMBIGUO")
-    return candidates[0]
-
-
-DEFAULT_FIXTURES = default_fixtures()
 FILES = (
     "screen_contract.json", "direct_rules.json", "effective_rules.json",
     "policies.json", "elements.json", "states.json", "variants.json",
@@ -71,13 +52,23 @@ def load_stage(step: str):
 
 
 class FixtureHost:
-    def __init__(self, root: Path = DEFAULT_FIXTURES):
-        self.root = Path(root)
+    def __init__(self, root: Path | None = None):
+        self.root = Path(root) if root is not None else None
         self.provenance = {}
         self.target = None
-        self.source_prefix = "fixture://" + self.root.name + "/"
+        self.source_prefix = ("fixture://" + self.root.name + "/") if self.root else ""
 
     def read_all(self, request_text: str | None = None):
+        if self.root is None:
+            from analysis.host.request_catalog import resolve, CatalogueBlocked
+            if not isinstance(request_text, str):
+                block("PEDIDO_AMBIGUO")
+            try:
+                _, selected = resolve(PROJECT, request_text.encode("utf-8"))
+            except CatalogueBlocked as exc:
+                block(str(exc))
+            self.root = selected
+            self.source_prefix = "fixture://" + selected.name + "/"
         pin = self.root / "SOURCE_PIN.json"
         if not pin.is_file():
             block("SBX_SOURCE_PIN_MISSING")
@@ -97,14 +88,15 @@ class FixtureHost:
                 block("ANALISIS_FUENTE_NO_COMPATIBLE")
             self.target = target
             self.provenance = evidence
-            return data
+            return self._signals(data, request_text)
         entries = manifest.get("files")
         target = manifest.get("fixture_id")
         if (manifest.get("schema_version") != "SBX_FIXTURE_PIN_V1"
                 or not isinstance(target, str) or not target
                 or manifest.get("simulation") is not True
                 or not isinstance(entries, list)
-                or [x.get("file") for x in entries if isinstance(x, dict)] != list(FILES)):
+                or [x.get("file") for x in entries if isinstance(x, dict)]
+                   not in (list(FILES), list(FILES[:-1]))):
             block("SBX_SOURCE_PIN_INVALID")
         data = {}
         self.target = target
@@ -131,6 +123,23 @@ class FixtureHost:
                 block("SBX_FIXTURE_SOURCE_IDENTITY_INVALID:" + name)
             data[name] = obj
             self.provenance[name] = self.source_prefix + name + "@" + digest
+        if request_text is None:
+            legacy = data.get("semantic_signals.json")
+            if not isinstance(legacy, dict):
+                block("PEDIDO_AMBIGUO")
+            request_text = legacy.get("request_text")
+        return self._signals(data, request_text)
+
+    def _signals(self, data, request_text):
+        from analysis.host.semantic_derive import derive, SignalsBlocked
+        try:
+            semantic = derive(PROJECT, self.target, request_text, data,
+                              self.provenance, legacy=True)
+        except SignalsBlocked as exc:
+            block(str(exc))
+        data["semantic_signals.json"] = semantic
+        self.provenance.setdefault("semantic_signals.json",
+                                   self.provenance["screen_contract.json"])
         return data
 
     def source_arguments(self, data):
@@ -227,16 +236,8 @@ class FixtureHost:
     def run(self, request_text: str):
         data = self.read_all(request_text)  # pin-checked or deterministic 13-source projection
         semantic = data["semantic_signals.json"]
-        if semantic.get("simulation") is not True or request_text != semantic.get("request_text"):
-            block("SBX_SEMANTIC_REQUEST_NOT_PRESTRUCTURED")
-        a1_input = deepcopy(semantic.get("a1_structured"))
-        a2_input = deepcopy(semantic.get("a2_signals"))
-        if not isinstance(a1_input, dict) or not isinstance(a2_input, dict):
-            block("SBX_SEMANTIC_SIGNALS_INCOMPLETE")
-        if a1_input.get("objective", {}).get("problem_statement") != request_text:
-            block("SBX_SEMANTIC_REQUEST_DRIFT")
-        # Rebind all external A1/A2 fixture evidence to verified file bytes.
-        # No bare fixture path is a trusted source reference.
+        a1_input = deepcopy(semantic["a1_structured"])
+        a2_input = deepcopy(semantic["a2_signals"])
         semantic_ref = self.provenance["semantic_signals.json"]
         a1_input["request_identity"]["request_ref"] = semantic_ref
         a1_input["source_refs"] = [semantic_ref]
