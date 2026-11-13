@@ -70,25 +70,32 @@ def public_exam_request(root: Path, request: str, binding: dict, lot: dict) -> t
     scope = spec.get("write_path_patterns")
     if not isinstance(scope, list) or not scope or any(not isinstance(p, str) for p in scope):
         raise AdmissionBlocked("EXAMEN_PENDIENTE")
-    # Obtain the public skeleton from the declared context paths. No guessing
-    # module names, no scanning encrypted material or private examiner files.
+    # Use the authoritative public T2 skeleton when the lot references one.
+    # Other areas still have a public task skeleton and REQ IDs in lots.json;
+    # never guess a module or search encrypted examiner material.
     context = spec.get("context_path_patterns", [])
     skeleton_paths = [path for path in context if isinstance(path, str)
                       and re.fullmatch(r"contracts/[a-z0-9_-]+[.]skeleton[.]json", path)]
-    if len(skeleton_paths) != 1:
-        raise AdmissionBlocked("EXAMEN_PENDIENTE")
-    skeleton_file = root / skeleton_paths[0]
-    if skeleton_file.is_symlink() or not skeleton_file.is_file():
-        raise AdmissionBlocked("EXAMEN_PENDIENTE")
-    skeleton = json.loads(skeleton_file.read_text("utf-8"))
-    if skeleton.get("schema_version") != "T2_CONTRACT_SKELETON_V1":
-        raise AdmissionBlocked("EXAMEN_PENDIENTE")
-    requirements = skeleton.get("requirement_ids")
+    requirements = lot.get("requirement_ids")
     if (not isinstance(requirements, list) or not requirements
             or any(not isinstance(r, str) or not r.startswith("REQ-") for r in requirements)):
         raise AdmissionBlocked("EXAMEN_PENDIENTE")
-    public = {key: skeleton[key] for key in ("schema_version", "functional_module",
-               "fields", "errors", "rules", "requirement_ids") if key in skeleton}
+    if len(skeleton_paths) > 1:
+        raise AdmissionBlocked("EXAMEN_PENDIENTE")
+    public = {"schema_version": "T4_PUBLIC_TASK_SKELETON_V1",
+              "area": lot.get("area"), "requirement_ids": requirements,
+              "write_paths": scope}
+    if skeleton_paths:
+        skeleton_file = root / skeleton_paths[0]
+        if skeleton_file.is_symlink() or not skeleton_file.is_file():
+            raise AdmissionBlocked("EXAMEN_PENDIENTE")
+        skeleton = json.loads(skeleton_file.read_text("utf-8"))
+        if skeleton.get("schema_version") != "T2_CONTRACT_SKELETON_V1":
+            raise AdmissionBlocked("EXAMEN_PENDIENTE")
+        public = {key: skeleton[key] for key in ("schema_version", "functional_module",
+                   "fields", "errors", "rules", "requirement_ids") if key in skeleton}
+        if not set(requirements).issubset(set(public.get("requirement_ids", []))):
+            raise AdmissionBlocked("EXAMEN_PENDIENTE")
     body = ("Solicitud automática de examen independiente (T4).\n\n"
             f"- Pedido: `{request}`\n- Lote: `{lot['id']}`\n"
             f"- Task ID: `{task}`\n"
