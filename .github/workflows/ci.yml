@@ -43,6 +43,8 @@ jobs:
   frontend:
     name: frontend (lint, tipos, build)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: frontend
@@ -60,6 +62,17 @@ jobs:
         with:
           name: t2-frontend-lockfile
           path: frontend/package-lock.json
+      - name: Bootstrap pinned npm lock to PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "[T2][CHG-0093] Lock pinned OpenAPI npm dependencies"
+            git push origin HEAD:refs/heads/${{ github.head_ref }}
+          fi
       - run: npm ci
       - name: T2 generated API client remains in sync
         run: |
