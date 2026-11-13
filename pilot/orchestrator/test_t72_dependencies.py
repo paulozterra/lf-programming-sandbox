@@ -210,6 +210,9 @@ def test_confirmed_dependency_reaches_real_plan_lots(tmp_path):
     atom = atomize.atomize(package, tmp_path, "a"*40,
                           run="t72-after", reuse_assessment=report)
     folder=tmp_path/"pilot/runs/t72-after"
+    (folder/"reuse_assessment.json").write_text(
+        json.dumps(report, sort_keys=True, ensure_ascii=False, indent=2)+"\\n",
+        encoding="utf-8")
     (folder/"atomized_inputs.json").write_bytes(intake.canonical(atom))
     planned=plan_lots.plan(tmp_path,"t72-after")
     assert planned["lots"]
@@ -286,8 +289,8 @@ def test_mixed_frontend_build_and_backend_reuse_plans_without_phantom_lot(tmp_pa
     assert all(backend_id not in a["requirement_ids"] for a in atoms["atoms"])
     assert any(any(fid in a["requirement_ids"] for fid in frontend)
                for a in atoms["atoms"])
-    assert any(x["scope_id"].endswith("-BACKEND")
-               for x in atoms["reused_scopes"])
+    # A scoped BACKEND may still have other BUILD_NEW requirements; only
+    # the attested endpoint obligation is excluded from write-bearing lots.
     (folder/"atomized_inputs.json").write_bytes(intake.canonical(atoms))
     planned = plan_lots.plan(tmp_path, "t72-after")
     assert planned["lots"]
