@@ -26,6 +26,21 @@ def _bytes(value: dict) -> bytes:
                       separators=(",", ":")).encode("utf-8")
 
 
+def _source_compatible_ref(value: str, kind: str) -> str:
+    """Project numeric fixture IDs, without asserting live provider identity."""
+    from urllib.parse import urlsplit
+    import re
+    if not isinstance(value, str):
+        raise NormalizeBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
+    parsed = urlsplit(value)
+    match = re.fullmatch(r"/(?:rules|assoc)/([1-9][0-9]*)", parsed.path)
+    if parsed.scheme != "fixture" or not match:
+        raise NormalizeBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
+    prefix = ("supabase://lf_ops.reglas/" if kind == "rule"
+              else "supabase://lf_ops.reglas_pantallas/")
+    return prefix + match.group(1)
+
+
 def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
     pinpath = root / "SOURCE_PIN.json"
     if pinpath.is_symlink() or not pinpath.is_file():
@@ -74,13 +89,14 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
         common = {
             "code": code, "title": rule.get("title"), "status": rule.get("status"),
             "pending_decision": rule.get("pending_decision", False),
-            "source_ref": rule.get("source_ref"),
+            "source_ref": _source_compatible_ref(rule.get("source_ref"), "rule"),
             "categoria": e.get("categoria"),
         }
         if not all(isinstance(common.get(k), str) and common[k]
                    for k in ("code", "title", "status", "source_ref", "categoria")):
             raise NormalizeBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
-        direct.append({**common, "association_ref": rule.get("association_ref")})
+        direct.append({**common, "association_ref": _source_compatible_ref(
+            rule.get("association_ref"), "association")})
         effective_rows.append({**common, "binding_source": e.get("binding_source"),
                                "config": deepcopy(e.get("config", {}))})
         configs.append({"code": code, "valor_config": deepcopy(e.get("config", {}))})
