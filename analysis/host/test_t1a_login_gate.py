@@ -28,6 +28,12 @@ def test_login_two_source_areas_without_owner_or_fixture(tmp_path: Path):
     assert "atomized_inputs_sha256" in lots
     assert len(json.loads((folder / "atomized_inputs.json").read_text())["atoms"]) == 2
     assert (folder / "lots.json").is_file()
+    atomized = json.loads((folder / "atomized_inputs.json").read_text())
+    be = next(a for a in atomized["atoms"] if a["area"] == "BACKEND")
+    fe = next(a for a in atomized["atoms"] if a["area"] == "FRONTEND")
+    assert all("/time/login/" in p for p in be["paths"])
+    assert "frontend/src/app/login/page.tsx" in fe["paths"]
+    assert "frontend/src/lib/login.ts" in fe["paths"]
     assert not (folder / "owner_area_decision.json").exists()
     if os.getenv("T1A_ARTIFACT_DIR"):
         import shutil
