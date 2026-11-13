@@ -116,6 +116,37 @@ def coverage(report, *, hidden_coverage=None):
                          "HIDDEN_ORACLE" if key in hidden else "NOT_VERIFIED")}
             for key in sorted(ids)]
 
+def verified_visible_commands(rows: list[dict], visible: dict | None,
+                              declared: list[dict]) -> list[dict]:
+    """Attribute only an exact, successful owner-declared visible command.
+
+    Never infer what an encrypted hidden oracle covers.
+    """
+    table = [dict(row) for row in rows]
+    registered = {(c.get("name"),tuple(c.get("argv",[]))) for c in declared
+                  if isinstance(c,dict) and isinstance(c.get("argv"),list)}
+    if not isinstance(visible,dict):
+        return table
+    successful = set()
+    for attempt in visible.get("attempts",[]):
+        if not isinstance(attempt,dict):
+            continue
+        for command in attempt.get("acceptance",[]):
+            if not isinstance(command,dict) or command.get("status") != "PASS":
+                continue
+            name,argv=command.get("name"),command.get("argv")
+            if not isinstance(name,str) or not isinstance(argv,list):
+                continue
+            marker=re.match(r"(std-[a-z]+-[0-9]+)(?:-|$)",name)
+            if marker and (name,tuple(argv)) in registered:
+                successful.add(marker.group(1).upper())
+    for row in table:
+        if row["coverage"]=="NOT_VERIFIED" and row["rule_id"] in successful:
+            row["coverage"]="MACHINE"
+            row["evidence"]="PINNED_VISIBLE_ACCEPTANCE_COMMAND"
+    return table
+
+
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--patch",type=Path,required=True)
