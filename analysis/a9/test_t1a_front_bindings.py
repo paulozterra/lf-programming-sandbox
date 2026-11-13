@@ -21,6 +21,8 @@ def test_login_two_areas_have_sourced_requirements():
                                  scope="SBX-AUTH-LOGIN", create_empty_inventory=True)
     assert [f["execution_area"] for f in active] == ["BACKEND", "FRONTEND"]
     assert len({f["front_id"] for f in active}) == 2
+    assert active[0]["execution_area_source_ref"].endswith("#contract/errors/0")
+    assert "#contract/visual/variants/" in active[1]["execution_area_source_ref"]
     for f in active:
         assert f["requirement_ids"] and f["source_ref"] in f["evidence_refs"]
     by_area = {f["execution_area"]: set(f["requirement_ids"]) for f in active}
