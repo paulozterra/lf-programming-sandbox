@@ -138,6 +138,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
           PYTHONPATH=source python3 -m pytest -q source/pilot/worker_v08/test_t8_lf_rules.py -p no:cacheprovider
       - name: Validate manual inputs and verify every vendored Worker byte BEFORE install
         id: vendor
