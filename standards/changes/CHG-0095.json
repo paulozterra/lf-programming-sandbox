@@ -20,6 +20,7 @@
       "pilot/orchestrator/t4_admission.py",
       "pilot/orchestrator/test_chain_lots.py",
       "pilot/orchestrator/test_t4_admission.py",
+      "pilot/orchestrator/test_t4_pipeline.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0095.json"
     ]
