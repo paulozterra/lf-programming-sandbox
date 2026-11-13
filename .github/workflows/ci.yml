@@ -37,7 +37,7 @@ jobs:
       - name: "T2: verify live springdoc operations against every contract"
         working-directory: .
         run: |
-          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2
+          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2
           mvn -U -B -q -f apps/time-service/pom.xml spring-boot:start
           python3 pilot/orchestrator/contract_validate.py --compare-live http://127.0.0.1:8080/v3/api-docs
       - name: "T2: stop springdoc verification backend"
@@ -65,7 +65,7 @@ jobs:
       - name: "T2: block stale types and manual API fetch"
         working-directory: .
         run: |
-          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2
+          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2
           python3 pilot/orchestrator/contract_validate.py --check-client .
           python3 pilot/orchestrator/contract_validate.py --check-frontend .
       - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-lint
@@ -472,7 +472,7 @@ jobs:
           T1_ARTIFACT_DIR: ${{ runner.temp }}/t1
         run: |
           python3 pilot/orchestrator/selector_db.py --t1-patterns
-          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 jsonschema==4.25.1
+          python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2 jsonschema==4.25.1
           python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py pilot/orchestrator/test_contract_t2.py pilot/orchestrator/test_t2_general_guard.py -p no:cacheprovider
       - name: T1-A positive Login A9 to PG05 without manual fixtures
         env:
