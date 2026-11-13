@@ -106,13 +106,13 @@ def eligible_pr(pr, paths, repo=REPOSITORY):
     return kind
 
 
-def validate_checks(checks, head):
+def validate_checks(checks, head, required=REQUIRED):
     """Only latest GitHub Actions check of each required name on exact HEAD."""
     if not SHA.fullmatch(head) or not isinstance(checks, list):
         block("CHECKS_INVALID")
     found = {}
     for row in checks:
-        if not isinstance(row, dict) or row.get("name") not in REQUIRED:
+        if not isinstance(row, dict) or row.get("name") not in required:
             continue
         if (row.get("head_sha") != head
                 or row.get("app", {}).get("slug") != "github-actions"
@@ -121,12 +121,12 @@ def validate_checks(checks, head):
         name = row["name"]
         if name not in found or row["id"] > found[name]["id"]:
             found[name] = row
-    if len(found) != len(REQUIRED):
+    if len(found) != len(required):
         block("CHECKS_MISSING")
     if any(row.get("status") != "completed" or row.get("conclusion") != "success"
            for row in found.values()):
         block("CHECKS_NOT_GREEN")
-    return {name: found[name]["id"] for name in REQUIRED}
+    return {name: found[name]["id"] for name in required}
 
 
 def native_run_reference(pr_body, chg):
@@ -406,7 +406,9 @@ def evaluate_one(api, number):
                 comment_once(api, number)
             raise
     checks = api.pages(f"/commits/{head}/check-runs", "check_runs")
-    validate_checks(checks, head)
+    required = (REQUIRED + ("T7 generated content byte equality",)
+                if kind in ("generated-t7", "implemented-registry") else REQUIRED)
+    validate_checks(checks, head, required)
     latest = api.request("GET", f"/pulls/{number}")
     if (latest.get("head", {}).get("sha") != head
             or latest.get("state") != "open"
