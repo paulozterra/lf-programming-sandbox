@@ -10,9 +10,9 @@ import hashlib
 import re
 from pathlib import Path
 
-ENDPOINT = re.compile(r"(?:GET|POST|PUT|PATCH|DELETE|PAGE) /[A-Za-z0-9_/{}/.-]*\\Z")
-SIGNATURE = re.compile(r"(?:export|type|method):[A-Za-z0-9_(),.<> ?\\[\\]:-]+\\Z")
-TOKEN = re.compile(r"[A-Za-z0-9_-]+\\Z")
+ENDPOINT = re.compile(r"(?:GET|POST|PUT|PATCH|DELETE|PAGE) /[A-Za-z0-9_/{}/.-]*\Z")
+SIGNATURE = re.compile(r"(?:export|type|method):[A-Za-z0-9_(),.<> ?\[\]:-]+\Z")
+TOKEN = re.compile(r"[A-Za-z0-9_-]+\Z")
 
 
 class DependencyBlocked(ValueError):
