@@ -321,7 +321,7 @@ jobs:
       - name: T5 Playwright guard and encrypted-oracle command contract (NO MODEL)
         run: |
           python3 -m py_compile pilot/worker_v08/playwright_gate.py
-          python3 -m pytest -q pilot/worker_v08/test_playwright_gate.py -k 'not test_login_notes_and_random_frontend_tasks_include_browser' -p no:cacheprovider
+          python3 -m pytest -q pilot/worker_v08/test_playwright_gate.py -p no:cacheprovider
 
       - name: CP3.7 pinned PG06-PG14 source candidates and two-lot H_REPORT (NO MODEL)
         run: |
@@ -555,7 +555,7 @@ jobs:
         run: |
           python3 pilot/orchestrator/selector_db.py --t1-patterns
           python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2 jsonschema==4.25.1
-          python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py pilot/orchestrator/test_contract_t2.py pilot/orchestrator/test_t2_general_guard.py pilot/orchestrator/test_t3_infra.py pilot/orchestrator/test_t4_pipeline.py pilot/worker_v08/test_playwright_gate.py -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py pilot/orchestrator/test_contract_t2.py pilot/orchestrator/test_t2_general_guard.py pilot/orchestrator/test_t3_infra.py pilot/orchestrator/test_t4_pipeline.py pilot/orchestrator/test_t5_pipeline.py -p no:cacheprovider
       - name: A9 regression suites; T2 three-case test supersedes old two-area T1-A check
         env:
           T1A_ARTIFACT_DIR: ${{ runner.temp }}/t1a
