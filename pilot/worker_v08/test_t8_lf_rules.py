@@ -84,3 +84,30 @@ def test_catalogue_cases_resolved_without_case_literals():
     assert evaluate("diff --git a/frontend/src/app/new/page.tsx b/frontend/src/app/new/page.tsx\n"
                     "+export default function Page() { return null; }\n",
                     ["STD-FE-04"])["status"]=="PASS"
+
+
+@pytest.mark.parametrize("area,source,addition,should_pass",[
+    ("FRONTEND","frontend/src/app/widget.tsx",
+     "const answer = await fetch('/api/data');",False),
+    ("FRONTEND","frontend/src/app/widget.tsx",
+     "const answer = await apiClient.get();",True),
+    ("BACKEND","apps/time-service/src/main/java/lf/sandbox/time/Widget.java",
+     'logger.debug("password=" + password);',False),
+    ("BACKEND","apps/time-service/src/main/java/lf/sandbox/time/Widget.java",
+     'private String password = "hardcoded-value";',False),
+])
+def test_native_run_dry_lf_rule_proposal_no_model(tmp_path,area,source,addition,should_pass):
+    import subprocess,sys
+    receipt=material(area)[1]
+    receipt_path=tmp_path/"receipt.json"
+    receipt_path.write_text(json.dumps(receipt))
+    patch=f"diff --git a/{source} b/{source}\n+{addition}\n"
+    proposal=tmp_path/"proposal.json"
+    proposal.write_text(json.dumps({"schema_version":1,"summary":"offline",
+                                    "patch":patch,"changed_paths":[source]}))
+    cmd=[sys.executable,str(ROOT/"pilot/worker_v08/native_run.py"),
+         "dry-run-lf-rules","--control",str(ROOT),"--task","synthetic",
+         "--proposal",str(proposal),"--rule-receipt",str(receipt_path)]
+    result=subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    assert (result.returncode==0)==should_pass,(result.stdout,result.stderr)
+    assert ("NATIVE_LF_RULE_DRY_RUN_BLOCKED" in result.stderr)==(not should_pass)
