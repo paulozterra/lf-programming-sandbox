@@ -445,3 +445,11 @@ def test_t4_exact_main_ci_retries_admission_after_train_race():
     with patch.object(chain_lots, "api", return_value={
             **event, "conclusion": "failure"}):
         assert chain_lots.event_kind(177, head) == "TRAIN"
+    with patch.object(chain_lots, "api", return_value={
+            **event, "run_attempt": 2}):
+        assert chain_lots.event_kind(177, head) == "TRAIN"
+    with patch.object(chain_lots, "api", return_value={
+            **event, "path": chain_lots.TRAIN + "@refs/heads/main",
+            "run_attempt": 2}):
+        with pytest.raises(ChainBlocked, match="SOURCE_WORKFLOW_UNTRUSTED"):
+            chain_lots.event_kind(177, head)
