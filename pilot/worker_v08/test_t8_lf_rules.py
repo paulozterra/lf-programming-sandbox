@@ -115,3 +115,19 @@ def test_native_run_dry_lf_rule_proposal_no_model(tmp_path,area,source,addition,
     result=subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     assert (result.returncode==0)==should_pass,(result.stdout,result.stderr)
     assert ("NATIVE_LF_RULE_DRY_RUN_BLOCKED" in result.stderr)==(not should_pass)
+
+
+def test_format_is_machine_verified_only_with_pinned_successful_visible_command():
+    from pilot.worker_v08.lf_rule_gate import verified_visible_commands
+    table=[{"rule_id":"STD-BE-05","coverage":"NOT_VERIFIED"}]
+    command={"name":"std-be-05-spotless-check",
+             "argv":["mvn","-f","apps/time-service/pom.xml","spotless:check"]}
+    visible={"attempts":[{"acceptance":[{
+        **command,"status":"PASS","returncode":0}]}]}
+    updated=verified_visible_commands(table,visible,[command])
+    assert updated[0]["coverage"]=="MACHINE"
+    assert updated[0]["evidence"]=="PINNED_VISIBLE_ACCEPTANCE_COMMAND"
+    assert verified_visible_commands(table,visible,[{"name":command["name"],
+             "argv":["false"]}])==table
+    failed={"attempts":[{"acceptance":[{**command,"status":"FAIL"}]}]}
+    assert verified_visible_commands(table,failed,[command])==table
