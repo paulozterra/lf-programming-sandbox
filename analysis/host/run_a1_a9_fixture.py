@@ -8,16 +8,17 @@ from pathlib import Path
 from analysis.host.run_a1_a8_fixture import run_f3
 from analysis.host.fixture_readback_host import FixtureHost
 from analysis.host.run_a1_a5_fixture import encoded
-from analysis.host.fixture_readback_host import DEFAULT_FIXTURES
+from analysis.host.run_a1_a5_fixture import LEGACY_FIXTURES
+from analysis.host.request_catalog import resolve, CatalogueBlocked
 from analysis.a9.package import build, validate
 from pilot.orchestrator import intake
 
-SLUG = "f4-" + DEFAULT_FIXTURES.name.split("_")[-1]
+SLUG = "f4-" + LEGACY_FIXTURES.name.split("_")[-1]
 
 
 def make_rule_sources(fixtures=None, request=None):
     """Reuse F1 host SHA verification, never infer category/config from prose."""
-    host = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
+    host = FixtureHost(fixtures if fixtures is not None else LEGACY_FIXTURES)
     rows = host.read_all(request)
     direct = rows["direct_rules.json"]
     config = {x["code"]: x["valor_config"] for x in direct["valor_config"]}
@@ -37,10 +38,19 @@ def run_f4(root, slug=SLUG, fixtures=None):
         raise ValueError("PEDIDO_RUTA_INVALIDA")
     if request.is_file():
         raw = request.read_bytes()
+        try:
+            _, resolved = resolve(Path(root), raw)
+        except CatalogueBlocked as exc:
+            raise ValueError(str(exc)) from exc
+        if fixtures is not None and Path(fixtures).resolve() != resolved.resolve():
+            raise ValueError("PEDIDO_AMBIGUO")
+        fixtures = resolved
     else:
-        # Compatibility only for legacy offline fixture tests: no new request
-        # is synthesized when a request.md has already been submitted.
-        checked = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
+        # Legacy tests only: production submitted requests always resolve
+        # through request_catalog, never a host-level default screen.
+        if fixtures is None:
+            fixtures = LEGACY_FIXTURES
+        checked = FixtureHost(fixtures)
         raw = (checked.read_all()["semantic_signals.json"]["request_text"] + "\n").encode("utf-8")
     source = run_f3(fixtures=fixtures, request=raw.decode("utf-8").strip())
     source["rule_sources"] = make_rule_sources(fixtures, request=raw.decode("utf-8").strip())
