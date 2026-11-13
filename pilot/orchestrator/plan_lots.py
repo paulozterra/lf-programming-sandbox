@@ -573,7 +573,8 @@ def _t3_infra_lots(package, fixture, lots):
     paths = atom.get("paths", [])
     configured = allowlist["database"]["config_files"]
     allowed = set(configured) | {
-        x["manifest"] for x in allowlist["targets"].values()}
+        x["manifest"] for x in allowlist["targets"].values()} | {
+        allowlist["targets"]["npm"]["lockfile"]}
     if (not paths or len(paths) > allowlist["infra"]["max_changed_files"]
             or len(paths) != len(set(paths)) or set(paths) - allowed):
         blocked("T3_INFRA_SCOPE_INVALID")
