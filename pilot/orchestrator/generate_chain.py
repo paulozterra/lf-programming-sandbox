@@ -111,6 +111,9 @@ def generate(root, run, lots):
                    "frontend/package.json","frontend/package-lock.json",
                    "frontend/src/**/__tests__/**","db/**"]
         if lot["area"]=="INFRA":
+            for manifest in ("frontend/package.json", "frontend/package-lock.json"):
+                if manifest in paths:
+                    protected.remove(manifest)
             protected.remove("apps/time-service/pom.xml")
             protected.remove("apps/time-service/src/main/resources/**")
             protected += ["apps/time-service/src/main/resources/db/**",
