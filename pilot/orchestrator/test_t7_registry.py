@@ -130,3 +130,10 @@ def test_real_second_screen_through_existing_a1_a9(tmp_path):
     assert result["package"]["schema_version"] == "ANALYSIS_IMPLEMENTATION_PACKAGE_V1"
     assert result["state"]["stage"] == "INTAKE_ACCEPTED"
     assert result["package"]["request_context"]["intent"] == request.strip()
+    # A new independently pinned screen with no matching implemented rule
+    # cannot be attributed to the historical integrations.
+    report = assess(index(ROOT), result["package"]["requirements"],
+                    registry=ledger(), root=ROOT)
+    assert all(row["decision"] == "BUILD_NEW" for row in report["obligations"])
+    assert all(row["evidence"]["kind"] == "sin coincidencias"
+               for row in report["obligations"])
