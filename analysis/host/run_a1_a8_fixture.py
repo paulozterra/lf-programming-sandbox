@@ -2,6 +2,8 @@
 """F3: extend the actual F2 runner with A7 front coverage and A8 stop rule."""
 from __future__ import annotations
 
+from copy import deepcopy
+
 import argparse
 import json
 from pathlib import Path
@@ -41,20 +43,34 @@ def run_f3(fixtures=None, output_dir=None, request=None):
     a8 = run_a8(result["stages"]["A3"], result["stages"]["A5"], a7, result["admission"])
     a4 = result["stages"]["A4"]
     inv = pinned["inventory.json"]
+    verified = a4.get("host_simulated_dependency_attestation", {})
+    attested = (bool(inv.get("dependencies"))
+                and verified.get("status") == "CONFIRMED"
+                and verified.get("simulation") is True
+                and verified.get("production_authority") is False
+                and len(verified.get("entries", [])) == len(inv["dependencies"])
+                and all(row.get("attestation_mode") == "SIMULATED"
+                        and isinstance(row.get("evidence"), list)
+                        and row["evidence"] for row in verified["entries"]))
     empty = (a4.get("target_change_action") == "CREATE"
              and a4.get("target_code_destination") is None
-             and all(inv.get(key) == [] for key in ("objects", "impacts", "dependencies")))
+             and all(inv.get(key) == [] for key in ("objects", "impacts"))
+             and (not inv.get("dependencies") or attested))
     a8["non_blocking_gaps"] = ([{
         "code": "A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED",
         "classification": "NON_BLOCKING_GAP",
-        "basis": "EMPTY_PINNED_INVENTORY_CREATE",
+        "basis": ("SIMULATED_MAIN_GIT_DEPENDENCY_ATTESTATION" if attested
+                  else "EMPTY_PINNED_INVENTORY_CREATE"),
         "source_ref": checked_host.provenance["inventory.json"],
+        **({"evidence": deepcopy(verified["entries"]),
+            "main_commit_sha": verified["main_commit_sha"]}
+           if attested else {}),
     }] if empty else [])
     if not empty and any(row["candidate_ref"].startswith("A4:unresolved:")
                          for row in a7["material_fronts"]):
         a8["decision"] = "CONTINUE"
         a8["decision_stable"] = False
-        a8["reason"] = "A4 inventory non-empty: unresolved shared dependency blocks implementation"
+        a8["reason"] = "A4 inventory dependency not verified against main"
         a8["requested_material_evidence_refs"] = ["A4_EXISTING_SHARED_DEPENDENCIES_NOT_ATTESTED"]
     from analysis.host.simulated_admission_gate import digest
     a8["stop_rule_fingerprint_sha256"] = digest({

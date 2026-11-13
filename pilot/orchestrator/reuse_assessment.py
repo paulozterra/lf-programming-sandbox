@@ -136,19 +136,41 @@ def _requested_endpoint(item: dict) -> str | None:
 
 def assess(index_obj: dict, obligations: list[dict], *,
            current_paths: list[str] | None = None,
-           registry: dict | None = None, root: Path | None = None) -> dict:
+           registry: dict | None = None, root: Path | None = None,
+           declared_dependencies: list[dict] | None = None) -> dict:
     if (index_obj.get("schema_version") != "T7_CODE_INDEX_V1"
             or not isinstance(obligations, list)):
         raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
     if registry is not None and (registry.get("schema_version") !=
                                  "T7_IMPLEMENTED_REGISTRY_V1" or root is None):
         raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+    from pilot.orchestrator.declared_dependencies import select, resolve
+    declared = select(declared_dependencies, obligations) if declared_dependencies is not None else {}
     rows = []
     for obligation in obligations:
         rid, rule = obligation.get("requirement_id"), obligation.get("source_requirement_id")
         if not isinstance(rid, str) or not isinstance(rule, str):
             raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
         endpoint = _requested_endpoint(obligation)
+        if rid in declared:
+            if registry is None or root is None:
+                raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+            from pilot.orchestrator.declared_dependencies import DependencyBlocked
+            try:
+                dep = declared[rid]
+                current, protected = resolve(index_obj, registry, root, dep)
+            except DependencyBlocked as exc:
+                raise ReuseBlocked(str(exc)) from exc
+            decision = "EXTEND" if dep["adds_rule"] else "REUSE_AS_IS"
+            rows.append({"requirement_id": rid, "decision": decision,
+                         "path": current["path"], "sha256": current["sha256"],
+                         "write_paths": [current["path"]] if dep["adds_rule"] else [],
+                         "evidence": {"kind": "declared_screen_dependency",
+                                      "key": dep["key"],
+                                      "source": "inventory.json#dependencies"},
+                         "reuse_context": protected if dep["adds_rule"] else [current],
+                         "reused_endpoints": [dep["key"]] if dep["kind"] == "endpoint" else []})
+            continue
         if registry is not None:
             exact, related = _registry_matches(registry, rule, endpoint)
             if len(exact) > 1 or len(related) > 1 or exact and related:
@@ -214,7 +236,8 @@ def assess(index_obj: dict, obligations: list[dict], *,
 
 
 
-def write_assessment(root: Path, slug: str, package: dict) -> dict:
+def write_assessment(root: Path, slug: str, package: dict, *,
+                     declared_dependencies: list[dict] | None = None) -> dict:
     folder = root / "pilot/runs" / slug
     if folder.is_symlink() or not folder.is_dir():
         raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
@@ -226,7 +249,8 @@ def write_assessment(root: Path, slug: str, package: dict) -> dict:
     except (OSError, ValueError) as exc:
         raise ReuseBlocked("REUTILIZACION_INDETERMINADA") from exc
     report = assess(index(root), package.get("requirements", []),
-                    registry=registry, root=root)
+                    registry=registry, root=root,
+                    declared_dependencies=declared_dependencies)
     output = folder / "reuse_assessment.json"
     raw = (json.dumps(report, sort_keys=True, ensure_ascii=False, indent=2) + "\n").encode()
     if output.is_symlink() or (output.exists() and output.read_bytes() != raw):

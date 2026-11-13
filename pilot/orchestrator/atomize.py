@@ -193,14 +193,17 @@ def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
             continue
         for front in sorted(selected, key=lambda f: f["front_id"]):
             if reuse:
-                all_bindings = [r for r in business_rules
-                                if r.get("front_id") == front["front_id"]]
-                if all_bindings and not any(
-                        r.get("requirement_id") in {item["requirement_id"] for item in reqs}
-                        for r in all_bindings):
+                # A9 has already rewritten front.requirement_ids to the
+                # exact area-owned identity, including derived -BACKEND.
+                related = [r for r in reqs
+                           if r["requirement_id"] in front.get("requirement_ids", [])]
+                if not related:
                     continue
-            related = [r for r in reqs if any(rule.get("requirement_id") == r["requirement_id"]
-                       and rule.get("front_id") == front["front_id"] for rule in business_rules)]
+            else:
+                related = [r for r in reqs if any(
+                    rule.get("requirement_id") == r["requirement_id"]
+                    and rule.get("front_id") == front["front_id"]
+                    for rule in business_rules)]
             # Old synthetic A9 samples have one front/requirement in each scope.
             if not related and len(refs) == 1 and len(reqs) == 1:
                 related = reqs
@@ -222,8 +225,9 @@ def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
                 chosen = [reuse[r["requirement_id"]] for r in related]
                 extends = [row for row in chosen if row["decision"] == "EXTEND"]
                 builds = [row for row in chosen if row["decision"] == "BUILD_NEW"]
-                if extends and builds:
-                    raise AtomBlocked("REUTILIZACION_INDETERMINADA")
+                # A screen may add a new rule to one existing endpoint while
+                # introducing separate requirements in the same material front.
+                # Preserve both sourced existing paths and policy-derived new paths.
                 if extends:
                     existing = sorted({p for row in extends
                                        for p in row.get("write_paths", [])})
@@ -231,7 +235,7 @@ def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
                             not isinstance(p, str) or not (root / p).is_file()
                             for p in existing):
                         raise AtomBlocked("REUTILIZACION_INDETERMINADA")
-                    paths = existing
+                    paths = sorted(set(existing + (paths if builds else [])))
             if area == "DATA":
                 data_ordinal += 1
             groups = [paths[i:i + rules["max_paths"]] for i in range(0, len(paths), rules["max_paths"])]
@@ -241,7 +245,7 @@ def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
                 row = {"atom_id": identifier, "scope_id": scope_id,
                        "front_id": front["front_id"], "area": area,
                        "functional_module": module,
-                       "requirement_ids": sorted(r["requirement_id"] for r in reqs),
+                       "requirement_ids": sorted(r["requirement_id"] for r in (related if reuse else reqs)),
                        "paths": group, "depends_on": [],
                        "outcome_id": "OUTCOME-" + identifier,
                        "business_outcome": " | ".join(r["outcome"] for r in sorted(
@@ -358,7 +362,22 @@ def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
         last = row
         provenance[row["atom_id"]]["depends_on"] = {
             "source": "T1_AREA_ORDER_T2_CONTRACT_T3_INFRA", "order": ["INFRA","CONTRATO"] + rules["order"]}
+    # A fully reused A9 scope deliberately has no write atom. Record the
+    # exact coverage and the reuse receipt hash for PG02-PG05 validation.
+    reused_scopes = []
+    if reuse:
+        for sid, items in sorted(req_by_scope.items()):
+            if all(reuse[item["requirement_id"]]["decision"] == "REUSE_AS_IS"
+                   for item in items):
+                reused_scopes.append({"scope_id": sid,
+                                      "requirement_ids": sorted(
+                                          item["requirement_id"] for item in items)})
+    reuse_digest = (hashlib.sha256(canonical(reuse_assessment)).hexdigest()
+                    if reuse_assessment is not None else None)
     return {
+        **({"reused_scopes": reused_scopes,
+            "reuse_assessment_sha256": reuse_digest}
+           if reuse_assessment is not None else {}),
         "schema_version": "T1_ATOMIZED_INPUTS_V1",
         "simulation_only": True,
         "project_ref": "lf_java",

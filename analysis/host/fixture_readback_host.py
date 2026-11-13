@@ -317,6 +317,14 @@ class FixtureHost:
             "TARGETED_EVIDENCE_SET_V1": a3,
             "SHARED_CHANGE_IMPACT_ANALYSIS": a4,
         }, a5_sources)
+        # A4 and A5 run unchanged. Only the offline host adds a separately
+        # labeled, independently Git-verified dependency evidence ledger.
+        # Preserve their unresolved codes for the existing F2 admission gate.
+        if inventory["dependencies"]:
+            from analysis.host.dependency_attestation import attest
+            a4["host_simulated_dependency_attestation"] = attest(
+                self.root, inventory, data, self.provenance,
+                {"A1": a1, "A2": a2, "A3": a3, "A4": a4, "A5": a5})
         if a5.get("status") == "BLOCKED":
             block("SBX_A5_BLOCKED:" + ",".join(a5.get("blocking_codes", [])))
         return {

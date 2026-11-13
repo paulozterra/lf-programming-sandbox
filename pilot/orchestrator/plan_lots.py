@@ -610,6 +610,91 @@ def _t3_infra_lots(package, fixture, lots):
     return topo(out)
 
 
+def _active_after_reuse(package, fixture, folder):
+    """Exclude only fully REUSE_AS_IS A9 scopes, with exact T7 receipt proof.
+
+    The original package stays intact for intake hashes and audit. A generated
+    atom cannot claim a skipped scope, and a partial scope never disappears.
+    """
+    omitted = fixture.get("reused_scopes")
+    if omitted is None:
+        return package
+    receipt = folder / "reuse_assessment.json"
+    if (not isinstance(omitted, list)
+            or not isinstance(fixture.get("reuse_assessment_sha256"), str)
+            or receipt.is_symlink() or not receipt.is_file()):
+        blocked("LOTES_COBERTURA_INCOMPLETA")
+    try:
+        ledger = json.loads(receipt.read_text("utf-8"))
+    except (OSError, ValueError):
+        blocked("LOTES_COBERTURA_INCOMPLETA")
+    if (ledger.get("schema_version") != "T7_REUSE_ASSESSMENT_V1"
+            or hashlib.sha256(canonical(ledger)).hexdigest()
+               != fixture["reuse_assessment_sha256"]):
+        blocked("LOTES_COBERTURA_INCOMPLETA")
+    reqs = {x["requirement_id"]: x for x in package["requirements"]}
+    decisions = {x["requirement_id"]: x.get("decision") for x in ledger.get("obligations", [])}
+    if set(decisions) != set(reqs) or len(ledger["obligations"]) != len(reqs):
+        blocked("LOTES_COBERTURA_INCOMPLETA")
+    by_scope = {}
+    for row in package["requirements"]:
+        by_scope.setdefault(row["scope_id"], set()).add(row["requirement_id"])
+    skipped = set()
+    for entry in omitted:
+        if not isinstance(entry, dict) or set(entry) != {"scope_id", "requirement_ids"}:
+            blocked("LOTES_COBERTURA_INCOMPLETA")
+        sid, ids = entry["scope_id"], entry["requirement_ids"]
+        if (sid in skipped or sid not in by_scope
+                or not isinstance(ids, list)
+                or set(ids) != by_scope[sid] or len(ids) != len(set(ids))
+                or any(decisions[rid] != "REUSE_AS_IS" for rid in ids)):
+            blocked("LOTES_COBERTURA_INCOMPLETA")
+        skipped.add(sid)
+    actual_skipped = {sid for sid, ids in by_scope.items()
+                      if all(decisions[rid] == "REUSE_AS_IS" for rid in ids)}
+    if skipped != actual_skipped:
+        blocked("LOTES_COBERTURA_INCOMPLETA")
+    if any(atom.get("scope_id") in skipped for atom in fixture.get("atoms", [])):
+        blocked("LOTES_COBERTURA_INCOMPLETA")
+    reused = {rid for rid, decision in decisions.items()
+              if decision == "REUSE_AS_IS"}
+    if not reused:
+        return package
+    active = copy.deepcopy(package)
+    active["requirements"] = [x for x in active["requirements"]
+                              if x["requirement_id"] not in reused]
+    active["scope_proposals"] = [x for x in active["scope_proposals"]
+                                 if x["scope_id"] not in skipped]
+    active["applicable_rules"] = [
+        x for x in active.get("applicable_rules", [])
+        if x.get("requirement_id") not in reused]
+    remaining = {x["requirement_id"] for x in active["requirements"]}
+    fronts = []
+    for front in active["material_fronts"]:
+        if set(front.get("scope_ids", [])) <= skipped:
+            continue
+        row = copy.deepcopy(front)
+        for name in ("requirement_ids", "obligation_refs"):
+            if isinstance(row.get(name), list):
+                row[name] = [rid for rid in row[name] if rid in remaining]
+        if isinstance(row.get("requirement_source_refs"), dict):
+            row["requirement_source_refs"] = {
+                rid: value for rid, value in row["requirement_source_refs"].items()
+                if rid in remaining}
+        if row.get("requirement_ids"):
+            fronts.append(row)
+    active["material_fronts"] = fronts
+    front_ids = {x["front_id"] for x in fronts}
+    for scope in active["scope_proposals"]:
+        scope["material_front_refs"] = [
+            fid for fid in scope["material_front_refs"] if fid in front_ids]
+        if not scope["material_front_refs"]:
+            blocked("LOTES_COBERTURA_INCOMPLETA")
+    if not active["scope_proposals"] or not active["requirements"]:
+        blocked("LOTES_COBERTURA_INCOMPLETA")
+    return active
+
+
 def plan(root: Path, run: str) -> dict:
     from intake import SLUG, normalized_request_bytes
     if not isinstance(run,str) or not SLUG.fullmatch(run):
@@ -647,6 +732,9 @@ def plan(root: Path, run: str) -> dict:
         {**a, "depends_on": [d for d in a["depends_on"] if d not in virtual_ids]}
         for a in fixture["atoms"] if a.get("area") not in ("CONTRATO", "INFRA")]}
         if virtual_atoms else fixture)
+    # A complete read-only scope must not produce an empty phantom lot.
+    # Verify its exact reuse receipt before excluding it from PG02-PG05.
+    package = _active_after_reuse(package, fixture, folder) if generated else package
     rows=_inputs(package,source_fixture)
     outputs=_source_chain(package,source_fixture,rows,sha,state)
     dsn=os.environ.get("SELECTOR_EXP_TEST_DSN","")

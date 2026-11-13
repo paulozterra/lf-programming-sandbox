@@ -268,7 +268,7 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
     reuse_traces=trace(request,target,contract,root=root,data=data)
     intent=implementation_state(root,target)
     inventory=data["inventory.json"]
-    if intent=="CREATE" and any(inventory.get(k) for k in ("objects","impacts","dependencies")):
+    if intent=="CREATE" and any(inventory.get(k) for k in ("objects","impacts")):
         raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
     refs=data["effective_rules.json"]["rules"]
     active=[r for r in refs if r.get("status")=="VIGENTE" and
@@ -282,9 +282,9 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
     risk_categories={"security", "seguridad", "rate_limiting"}
     high_risk=any(str(row.get("categoria","")).casefold() in risk_categories
                   for row in active)
-    known_impacts=bool(inventory.get("impacts") or inventory.get("dependencies"))
+    known_impacts=bool(inventory.get("impacts"))
     empty_inventory=not any(inventory.get(k) for k in
-                            ("objects","impacts","dependencies"))
+                            ("objects","impacts"))
     depth={"materiality_level":"HIGH" if high_risk else "UNKNOWN",
            "scope_bounded":("TRUE" if empty_inventory and intent=="CREATE"
                             else "UNKNOWN"),

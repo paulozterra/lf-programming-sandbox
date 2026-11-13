@@ -331,7 +331,10 @@ def build(result, request_raw):
     a4 = stages["A4"]
     empty_create = (a4.get("target_change_action") == "CREATE"
                     and a4.get("target_code_destination") is None
-                    and all(inv.get(key) == [] for key in ("objects", "impacts", "dependencies")))
+                    # Declared reusable components are not evidence of an existing
+                    # target object or unresolved change impact. Their
+                    # existence is checked separately by T7.2 against main.
+                    and all(inv.get(key) == [] for key in ("objects", "impacts")))
     try:
         front_rows, non_atomized = partition_fronts(
             a7["material_fronts"], reqs, sections, effective,
