@@ -47,10 +47,10 @@ def _backend_screen(folder):
         else:
             for row in obj["rules"]:
                 row["categoria"]="seguridad" if row["code"]=="SYN-R-1" else "api"
-        file.write_text(json.dumps(obj,sort_keys=True,ensure_ascii=False,indent=2)+"\\n")
+        file.write_text(json.dumps(obj,sort_keys=True,ensure_ascii=False,indent=2)+"\n")
         next(x for x in pin["files"] if x["file"]==name)["sha256"]=hashlib.sha256(
             file.read_bytes()).hexdigest()
-    pinpath.write_text(json.dumps(pin,sort_keys=True,ensure_ascii=False,indent=2)+"\\n")
+    pinpath.write_text(json.dumps(pin,sort_keys=True,ensure_ascii=False,indent=2)+"\n")
 
 
 def _git_main(root, files):
