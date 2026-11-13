@@ -7,6 +7,8 @@ rules are explicitly unverified; regex is not presented as semantic proof.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
+import importlib.util
 import json
 from pathlib import Path
 import re
@@ -29,6 +31,28 @@ class RuleGateBlocked(ValueError):
 def catalog(root=ROOT):
     source=json.loads((root/"standards/catalog.json").read_text("utf-8"))
     return {r["id"]:r for r in source["rules"]}
+
+def _waiver_allowed(root: Path, path: str, line: str) -> bool:
+    """Delegate scope, expiry, target and ID matching to the official C8 tool."""
+    source = root / "standards/tools/waivers.py"
+    spec = importlib.util.spec_from_file_location("lf_official_waiver_checks", source)
+    if spec is None or spec.loader is None:
+        raise RuleGateBlocked("LF_WAIVER_CHECK_UNAVAILABLE")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    targets = module.parse_suppression(line)
+    ids = set(re.findall(r"WAIVER-[0-9]{4,}", line))
+    if not targets or not ids or any(not isinstance(x, dict) for x in targets):
+        return False
+    official = json.loads((root / "standards/catalog.json").read_text("utf-8"))
+    registry = json.loads((root / "standards/waivers/waivers.json").read_text("utf-8"))
+    now = dt.datetime.now(dt.timezone.utc)
+    for target in targets:
+        result, _, authorized = module.evaluate(official, registry, path, target, now)
+        if result != "AUTHORIZED" or not ids.intersection(authorized):
+            return False
+    return True
+
 
 def _added(patch):
     path=None
@@ -69,7 +93,7 @@ def evaluate(patch: str, rule_ids: list[str], *, root=ROOT):
                 if "/db/migration/" in path and not MIGRATION.fullmatch(path.rsplit("/",1)[-1]):
                     violations.append({"rule_id":rule,"code":rule.replace("-","_"),"path":path})
             elif pattern and pattern.search(line):
-                if rule=="STD-GEN-05" and re.search(r"WAIVER-[A-Z0-9-]+",line):
+                if rule=="STD-GEN-05" and _waiver_allowed(root,path,line):
                     continue
                 violations.append({"rule_id":rule,"code":rule.replace("-","_"),"path":path})
     result={"schema_version":"T8_RULE_CHECK_V1",
