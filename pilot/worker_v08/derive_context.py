@@ -41,7 +41,7 @@ def _safe_name(value: str) -> str:
 
 def denial(name: str, is_spec: bool = False) -> str | None:
     parts = PurePosixPath(name).parts
-    if any(p.startswith(".env") for p in parts):
+    if any(p.startswith(".env") for p in parts) and name != "apps/time-service/.env.example":
         return "DENIED_ENV"
     if parts and parts[0] == "vendor":
         return "DENIED_VENDOR"

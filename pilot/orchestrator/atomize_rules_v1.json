@@ -47,7 +47,7 @@
     }
   },
   "routes": {
-    "DATA": "db/migration/V{next}__{module}.sql",
+    "DATA": "apps/{service}/src/main/resources/db/migration/V{next}__{module}.sql",
     "BACKEND": "apps/{service}/src/main/java/lf/sandbox/{service_java}/{module_java}/{class}.java",
     "FRONTEND": [
       "frontend/src/app/{module}/page.tsx",
@@ -63,7 +63,7 @@
   "project_patterns": {
     "BACKEND": "apps/time-service/src/main/java/",
     "FRONTEND": "frontend/src/",
-    "DATA": "db/migration/"
+    "DATA": "apps/time-service/src/main/resources/db/migration/"
   },
   "profile_resolution": {
     "source_ref": "pilot/lf_producers_pinned/selector_experimental/experimental/seed_profiles_exp.sql",
@@ -72,7 +72,8 @@
       "DATA": "PERFIL-PROG-DATA-EXP",
       "BACKEND": "PERFIL-PROG-BACKEND-SPRING-EXP",
       "FRONTEND": "PERFIL-PROG-FRONTEND-EXP",
-      "CONTRATO": "PERFIL-PROG-BACKEND-SPRING-EXP"
+      "CONTRATO": "PERFIL-PROG-BACKEND-SPRING-EXP",
+      "INFRA": "PERFIL-PROG-BACKEND-SPRING-EXP"
     }
   },
   "scope_module_prefixes": [
@@ -98,5 +99,11 @@
     ],
     "max_paths": 1,
     "skeleton_path": "contracts/{module}.skeleton.json"
+  },
+  "infra_lot": {
+    "schema_version": "T3_INFRA_POLICY_V1",
+    "area": "INFRA",
+    "profile_area": "BACKEND",
+    "dependency_allowlist_ref": "pilot/orchestrator/dependency_allowlist_v1.json"
   }
 }

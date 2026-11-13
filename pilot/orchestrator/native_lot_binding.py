@@ -18,10 +18,19 @@ SELECTOR_BINDINGS = {
 REAL_ROOTS = {
     "BACKEND": ("apps/time-service/src/main/java/", "backend/src/main/java/"),
     "FRONTEND": ("apps/web/", "frontend/"),
-    "DATA": ("db/", "supabase/migrations/"),
+    "DATA": ("db/", "supabase/migrations/", "apps/time-service/src/main/resources/db/migration/"),
+    "INFRA": ("apps/time-service/", "frontend/"),
     "CONTRATO": ("contracts/",),
 }
 FAKE_PREFIXES = ("src/main/java/com/lf/", "web/src/app/")
+
+
+def _infra_allowed_paths():
+    from pilot.orchestrator import infra_lot
+    p = infra_lot.policy()
+    return set(p["database"]["config_files"]) | {
+        item["manifest"] for item in p["targets"].values()
+    } | {p["targets"]["npm"]["lockfile"]}
 
 
 class NativeLotBlocked(ValueError):
@@ -41,6 +50,14 @@ def map_profile(profile_code: str, declared_area: str) -> dict[str, str]:
                 or t2.get("profile_area") != area
                 or mappings.get("CONTRATO") != profile_code):
             raise NativeLotBlocked("CP34_CONTRACT_PROFILE_POLICY_INVALID")
+    elif declared_area == "INFRA":
+        rules = json.loads((Path(__file__).with_name("atomize_rules_v1.json")).read_text())
+        policy = rules.get("infra_lot", {})
+        mappings = rules.get("profile_resolution", {}).get("area_to_profile", {})
+        if (area != "BACKEND" or policy.get("schema_version") != "T3_INFRA_POLICY_V1"
+                or policy.get("profile_area") != area
+                or mappings.get("INFRA") != profile_code):
+            raise NativeLotBlocked("CP34_INFRA_PROFILE_POLICY_INVALID")
     elif area != declared_area:
         raise NativeLotBlocked("CP34_PROFILE_AREA_MISMATCH")
     return {"selector_code": profile_code, "area": area,
@@ -57,7 +74,9 @@ def real_write_paths(root: Path, area: str, paths: list[str]) -> list[str]:
                 or any(part in (".", "..") for part in PurePosixPath(path).parts)
                 or path.startswith(FAKE_PREFIXES)
                 or not path.startswith(REAL_ROOTS[area])
+                or (area == "INFRA" and path not in _infra_allowed_paths())
                 or Path(path).suffix not in ({".yaml"} if area == "CONTRATO"
+                                             else {".xml", ".properties", ".example", ".json"} if area == "INFRA"
                                              else {".java", ".ts", ".tsx", ".sql"})):
             raise NativeLotBlocked("CP34_FAKE_OR_UNSAFE_PATH")
         target = root / path

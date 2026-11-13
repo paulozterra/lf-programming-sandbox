@@ -17,6 +17,24 @@ jobs:
   backend:
     name: backend (Maven verify)
     runs-on: ubuntu-latest
+    env:
+      DB_URL: jdbc:postgresql://127.0.0.1:5432/lf_ci
+      DB_USERNAME: pilot
+      DB_PASSWORD: pilot
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: pilot
+          POSTGRES_PASSWORD: pilot
+          POSTGRES_DB: lf_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pilot -d lf_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     defaults:
       run:
         working-directory: backend
@@ -40,6 +58,10 @@ jobs:
           python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2
           mvn -U -B -q -f apps/time-service/pom.xml spring-boot:start
           python3 pilot/orchestrator/contract_validate.py --compare-live http://127.0.0.1:8080/v3/api-docs
+          if grep -q '<artifactId>spring-boot-starter-flyway</artifactId>' apps/time-service/pom.xml; then
+            PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USERNAME" -d lf_ci \
+              -X -v ON_ERROR_STOP=1 -tAc "SELECT count(*) >= 0 FROM flyway_schema_history"
+          fi
       - name: "T2: stop springdoc verification backend"
         if: always()
         working-directory: .
@@ -473,7 +495,7 @@ jobs:
         run: |
           python3 pilot/orchestrator/selector_db.py --t1-patterns
           python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2 jsonschema==4.25.1
-          python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py pilot/orchestrator/test_contract_t2.py pilot/orchestrator/test_t2_general_guard.py -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py pilot/orchestrator/test_contract_t2.py pilot/orchestrator/test_t2_general_guard.py pilot/orchestrator/test_t3_infra.py -p no:cacheprovider
       - name: A9 regression suites; T2 three-case test supersedes old two-area T1-A check
         env:
           T1A_ARTIFACT_DIR: ${{ runner.temp }}/t1a

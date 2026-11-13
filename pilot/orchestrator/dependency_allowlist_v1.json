@@ -1,0 +1,88 @@
+{
+  "schema_version": "T3_DEPENDENCY_ALLOWLIST_V1",
+  "targets": {
+    "maven": {
+      "manifest": "apps/time-service/pom.xml",
+      "version_strategy": "EXACT",
+      "dependencies": [
+        {
+          "id": "spring-jdbc",
+          "group_id": "org.springframework.boot",
+          "artifact_id": "spring-boot-starter-jdbc",
+          "version": "4.1.1"
+        },
+        {
+          "id": "spring-flyway",
+          "group_id": "org.springframework.boot",
+          "artifact_id": "spring-boot-starter-flyway",
+          "version": "4.1.1"
+        },
+        {
+          "id": "flyway-postgresql",
+          "group_id": "org.flywaydb",
+          "artifact_id": "flyway-database-postgresql",
+          "version": "12.4.0"
+        },
+        {
+          "id": "postgresql-driver",
+          "group_id": "org.postgresql",
+          "artifact_id": "postgresql",
+          "version": "42.7.13"
+        }
+      ]
+    },
+    "npm": {
+      "manifest": "frontend/package.json",
+      "version_strategy": "EXACT",
+      "dependencies": [
+        {
+          "id": "frontend-openapi-fetch",
+          "name": "openapi-fetch",
+          "version": "0.17.0",
+          "group": "dependencies"
+        },
+        {
+          "id": "frontend-openapi-typescript",
+          "name": "openapi-typescript",
+          "version": "7.13.0",
+          "group": "devDependencies"
+        }
+      ],
+      "lockfile": "frontend/package-lock.json"
+    }
+  },
+  "requirements_by_area": {
+    "DATA": [
+      "spring-jdbc",
+      "spring-flyway",
+      "flyway-postgresql",
+      "postgresql-driver"
+    ]
+  },
+  "database": {
+    "requires_area": "DATA",
+    "migration_directory": "apps/time-service/src/main/resources/db/migration/",
+    "config_files": [
+      "apps/time-service/pom.xml",
+      "apps/time-service/src/main/resources/application.properties",
+      "apps/time-service/.env.example"
+    ],
+    "env_vars": [
+      "DB_URL",
+      "DB_USERNAME",
+      "DB_PASSWORD"
+    ],
+    "properties": {
+      "spring.datasource.url": "${DB_URL}",
+      "spring.datasource.username": "${DB_USERNAME}",
+      "spring.datasource.password": "${DB_PASSWORD}",
+      "spring.flyway.enabled": "true",
+      "spring.flyway.locations": "classpath:db/migration"
+    }
+  },
+  "infra": {
+    "area": "INFRA",
+    "profile_area": "BACKEND",
+    "max_changed_files": 6
+  }
+}

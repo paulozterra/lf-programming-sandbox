@@ -110,6 +110,12 @@ def read_pins(root: Path = PINROOT) -> tuple[dict, dict[str, bytes]]:
 def classify_path(value: str) -> str:
     """Never infer from role name alone: only canonical, independently scoped paths."""
     safe_rel(value)
+    from pathlib import PurePosixPath
+    import re
+    if re.fullmatch(
+            r"apps/time-service/src/main/resources/db/migration/V[0-9]+__[a-z][a-z0-9_]*[.]sql",
+            value):
+        return "DATA"
     if (value.startswith("apps/time-service/src/main/java/") or
         value.startswith("backend/src/main/java/") or
         value.startswith("backend/")):
@@ -124,6 +130,20 @@ def classify_path(value: str) -> str:
 def select_area(paths: list[str], declared: str) -> str:
     if not paths or not isinstance(declared, str):
         block("LOT_AREA_REQUIRED")
+    if declared == "INFRA":
+        # An INFRA task is explicitly a BACKEND-profile alias, restricted
+        # to allowlisted configuration files, never an arbitrary multi-area task.
+        import json
+        rule_path = Path(__file__).resolve().parents[1] / "orchestrator/dependency_allowlist_v1.json"
+        allowlist = json.loads(rule_path.read_text(encoding="utf-8"))
+        allowed = set(allowlist["database"]["config_files"]) | {
+            x["manifest"] for x in allowlist["targets"].values()} | {
+            allowlist["targets"]["npm"]["lockfile"]}
+        if (allowlist.get("schema_version") != "T3_DEPENDENCY_ALLOWLIST_V1"
+                or not set(paths).issubset(allowed)
+                or len(set(paths)) != len(paths)):
+            block("DEPENDENCIA_NO_PERMITIDA")
+        return "BACKEND"
     areas = {classify_path(p) for p in paths}
     if len(areas) != 1:
         block("LOT_MULTI_AREA")
@@ -362,7 +382,7 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     commands = list(dest.get("acceptance_commands", []))
     if not isinstance(commands, list):
         block("ACCEPTANCE_COMMANDS_INVALID")
-    if area == "BACKEND" and any("SPRINGBOOT_EXP" == r["code"] for r in identities):
+    if selected == "BACKEND" and any("SPRINGBOOT_EXP" == r["code"] for r in identities):
         if FORMAT_COMMAND not in commands:
             if any(c.get("name") == FORMAT_COMMAND["name"] for c in commands if isinstance(c, dict)):
                 block("FORMAT_ACCEPTANCE_NAME_COLLISION")
@@ -374,9 +394,9 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         "source_repository": manifest["source_repository"],
         "source_commit_sha": LF_SHA,
         "source_pin_sha256": digest((pinned / "SOURCE_PIN.json").read_bytes()),
-        "profile": {"code": PROFILE_CODE[area], "sha256": digest(profile),
+        "profile": {"code": PROFILE_CODE[selected], "sha256": digest(profile),
                     "source_files": {k: v["sha256"] for k, v in manifest["files"].items()
-                                     if k.startswith(PROFILE[area] + "/")}},
+                                     if k.startswith(PROFILE[selected] + "/")}},
         "skills": identities,
         "catalog_sha256": catalog_sha,
         "project_ref": project,
@@ -478,7 +498,7 @@ def main() -> int:
     p.add_argument("--holdout-ref", help="Optional pilot/holdouts/<task>.oracle.json.age")
     p.add_argument("--task-name", required=True)
     p.add_argument("--project", required=True)
-    p.add_argument("--area", required=True, choices=("BACKEND", "FRONTEND", "DATA"))
+    p.add_argument("--area", required=True, choices=("BACKEND", "FRONTEND", "DATA", "INFRA"))
     p.add_argument("--lot-path", required=True, action="append")
     p.add_argument("--context-budget-bytes", required=True, type=int)
     args = p.parse_args()
