@@ -173,6 +173,11 @@ class PolicyTests(unittest.TestCase):
 class T7GeneratedPolicyTests(unittest.TestCase):
     """Policy C uses the same authorize/check/label/Train flow as native PRs."""
 
+    def generated_checks(self):
+        return checks() + [{"id": 500, "name": "T7 generated content byte equality",
+                            "head_sha": HEAD, "status": "completed",
+                            "conclusion": "success", "app": {"slug": "github-actions"}}]
+
     def generated(self, family, paths):
         obj = pr("registration")
         obj["head"]["ref"] = family + "/" + HEAD[:12]
@@ -189,7 +194,7 @@ class T7GeneratedPolicyTests(unittest.TestCase):
         for family, allowed in cases:
             with self.subTest(family=family):
                 item = self.generated(family, allowed)
-                api = FakeAPI(item, allowed, checks())
+                api = FakeAPI(item, allowed, self.generated_checks())
                 with patch.object(ai, "verify_generated_content") as validate:
                     self.assertEqual(ai.evaluate_one(api, 129),
                                      "LABEL_AND_TRAIN_DISPATCHED")
@@ -197,6 +202,15 @@ class T7GeneratedPolicyTests(unittest.TestCase):
                 self.assertEqual(api.writes[0][0], "/issues/129/labels")
                 self.assertEqual(api.writes[1][0],
                                  "/actions/workflows/sandbox-train.yml/dispatches")
+
+    def test_generated_requires_additional_exact_head_ci_check(self):
+        allowed = ["pilot/registry/implemented.json"]
+        item = self.generated("lf/implemented-registry", allowed)
+        api = FakeAPI(item, allowed, checks())
+        with patch.object(ai, "verify_generated_content"):
+            with self.assertRaisesRegex(ai.PolicyBlocked, "CHECKS_MISSING"):
+                ai.evaluate_one(api, 129)
+        self.assertEqual(api.writes, [])
 
     def test_extra_paths_and_human_author_block_before_label(self):
         for family, allowed in (
@@ -216,7 +230,7 @@ class T7GeneratedPolicyTests(unittest.TestCase):
     def test_renamed_source_path_is_not_accepted_as_generated(self):
         allowed = ["pilot/registry/implemented.json"]
         item = self.generated("lf/implemented-registry", allowed)
-        api = FakeAPI(item, allowed, checks())
+        api = FakeAPI(item, allowed, self.generated_checks())
         real_pages = api.pages
         def renamed(path, field):
             if path.endswith("/files"):
@@ -246,7 +260,7 @@ class T7GeneratedPolicyTests(unittest.TestCase):
     def test_generated_analysis_drift_blocks_without_label(self):
         allowed = ["pilot/runs/sample/analysis.json"]
         item = self.generated("lf/generated-t7", allowed)
-        api = FakeAPI(item, allowed, checks())
+        api = FakeAPI(item, allowed, self.generated_checks())
         from types import SimpleNamespace
         class FakeFixture:
             def __init__(self, where):
