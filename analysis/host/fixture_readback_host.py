@@ -29,7 +29,7 @@ def default_fixtures() -> Path:
         if obj.get("schema_version") == "SBX_FIXTURE_PIN_V1":
             candidates.append(pin.parent)
     if len(candidates) != 1:
-        block("PEDIDO_AMBIGUO")
+        raise ValueError("PEDIDO_AMBIGUO")
     return candidates[0]
 
 
