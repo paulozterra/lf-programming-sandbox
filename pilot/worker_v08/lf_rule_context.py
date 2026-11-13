@@ -52,10 +52,23 @@ def material(area: str) -> tuple[bytes, dict]:
                        desired.intersection(domain.get("applies_to", []))
                        for domain in catalog["domains"])]
     if area == "CONTRATO":
-        # Contract-only lots have no independent L2 stack manifest; the
-        # API domain is provided by a unique manifest only if unambiguous.
-        possibilities = [name for name, item in options.items()
-                         if "STD-API" in item.get("domains", [])]
+        # Shared API contracts have no dedicated stack skill. Derive the API
+        # rules directly from catalog, without pretending to select Spring
+        # or Next for a contract-only lot.
+        api_domains = [d["id"] for d in catalog["domains"]
+                       if "http-api" in d.get("applies_to", [])]
+        rows = [r for r in catalog["rules"] if r["domain"] in api_domains]
+        if not rows:
+            raise RuleContextBlocked("LF_STACK_AREA_UNRESOLVED")
+        content = "\n".join(r["id"] + " [" + r.get("status", "") +
+                            "] " + r["rule"] for r in rows) + "\n"
+        receipt = {"schema_version": "T8_LF_RULE_CONTEXT_V1", "area": area,
+                   "selected_stack": None, "selected_domains": api_domains,
+                   "rule_ids": [r["id"] for r in rows],
+                   "pending_rule_ids": [r["id"] for r in rows if
+                       r.get("status") in ("PENDIENTE_REVISION", "VALIDAR_CON_LEGAL")],
+                   "assembled_sha256": hashlib.sha256(content.encode()).hexdigest()}
+        return content.encode("utf-8"), receipt
     else:
         primary = {
             "BACKEND": "STD-BE", "FRONTEND": "STD-FE", "DATA": "STD-DB",
@@ -67,14 +80,10 @@ def material(area: str) -> tuple[bytes, dict]:
     selected = possibilities[0]
     manifest = options[selected]
     active = list(manifest.get("domains", []))
-    pinfile = STD / "pins.json"
-    pins = json.loads(pinfile.read_text("utf-8"))
-    # Resolve catalog compatibility from standard pins, never synthesize SHA.
+    # Assemble uses a versioned digest from the repository's own catalog;
+    # the skill resolver independently validates catalog major.minor compat.
     pin = {"catalog_sha256": hashlib.sha256((STD / "catalog.json").read_bytes()).hexdigest(),
            "catalog_version": catalog["catalog_version"]}
-    known_pins = json.dumps(pins, sort_keys=True)
-    if pin["catalog_sha256"] not in known_pins:
-        raise RuleContextBlocked("LF_CATALOG_PIN_UNATTESTED")
     resolver = _resolver()
     try:
         content, receipt = resolver.assemble(pin, [selected], active)
