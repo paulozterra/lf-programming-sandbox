@@ -23,17 +23,37 @@ def save(path, value):
         with path.open("xb") as f:
             f.write(content)
 
-def acceptance(area, paths):
+def acceptance(area, paths, *, run=None, contract_path=None):
     def item(name, argv, timeout=600):
         return {"name":name,"argv":argv,"timeout_seconds":timeout,"max_output_bytes":32000}
+    if area=="CONTRATO":
+        if not run or len(paths)!=1:
+            raise ValueError("T2_CONTRACT_ACCEPTANCE_INPUT_MISSING")
+        return [item("openapi-contract", ["python3",
+            "pilot/orchestrator/contract_validate.py",
+            "--contract", paths[0], "--path", paths[0],
+            "--package", f"pilot/runs/{run}/analysis.json",
+            "--lots", f"pilot/runs/{run}/lots.json"])]
     if area=="BACKEND":
-        return [item("backend-package",["mvn","-B","-q","-f","apps/time-service/pom.xml","package"])]
+        commands = [item("backend-package",
+                         ["mvn","-B","-q","-f","apps/time-service/pom.xml","package"])]
+        if contract_path:
+            commands.append(item("backend-openapi-runtime",
+                ["python3","pilot/orchestrator/check_backend_live.py",
+                 "--contract",contract_path], 300))
+        return commands
     if area=="FRONTEND":
-        return [item("frontend-install",["npm","--prefix","frontend","ci"]),
+        checks = [item("frontend-install",["npm","--prefix","frontend","ci"]),
                 item("frontend-lint",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-lint"]),
                 item("frontend-types",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-typecheck"]),
                 item("frontend-build",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-build"]),
                 item("frontend-prettier",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-prettier"])]
+        if contract_path:
+            checks.extend([
+                item("frontend-client-generate",["npm","--prefix","frontend","run","gen:api"]),
+                item("frontend-client-no-drift",["npm","--prefix","frontend","run","check:api"]),
+                item("frontend-no-manual-fetch",["npm","--prefix","frontend","run","check:no-manual-fetch"])])
+        return checks
     if area=="DATA":
         return [item("data-migration-visible",["psql","-X","-v","ON_ERROR_STOP=1","-f",paths[0]],180)]
     raise ValueError("T1_AREA_INVALID")
@@ -67,9 +87,20 @@ def generate(root, run, lots):
             "objective":"Implementar "+lot["area"]+" en "+run+"; requisitos "+", ".join(
                 lot["requirement_ids"])+"; seguir package A9 sin inferencias",
             "write_path_patterns":paths,
-            "context_path_patterns":[],
+            "context_path_patterns": (
+                [f"pilot/runs/{run}/analysis.json", f"pilot/runs/{run}/lots.json"]
+                if lot["area"]=="CONTRATO" else
+                ([lot["contract_path"], f"pilot/runs/{run}/analysis.json"]
+                 if lot.get("contract_path") else [])),
             "protected_path_patterns":protected,
-            "acceptance_commands":acceptance(lot["area"],paths),
+            "acceptance_commands":acceptance(lot["area"],paths,run=run,
+                                             contract_path=lot.get("contract_path")),
+            "contract_context_policy": ({
+                "role": "AUTHOR", "contract_path": paths[0], "read_only": False
+            } if lot["area"]=="CONTRATO" else {
+                "role": "CONSUMER", "contract_path": lot["contract_path"],
+                "read_only": True, "source": "verified_prior_lot"
+            } if lot.get("contract_path") else None),
             "context_derivation":"pilot/worker_v08/derive_context.py",
         }}
         output[tpath]=template

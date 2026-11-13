@@ -18,6 +18,7 @@ REAL_ROOTS = {
     "BACKEND": ("apps/time-service/src/main/java/", "backend/src/main/java/"),
     "FRONTEND": ("apps/web/", "frontend/"),
     "DATA": ("db/", "supabase/migrations/"),
+    "CONTRATO": ("contracts/",),
 }
 FAKE_PREFIXES = ("src/main/java/com/lf/", "web/src/app/")
 
@@ -31,9 +32,9 @@ def map_profile(profile_code: str, declared_area: str) -> dict[str, str]:
     if binding is None:
         raise NativeLotBlocked("CP34_PROFILE_UNKNOWN")
     area, native_code, pinned_slug = binding
-    if area != declared_area:
+    if area != declared_area and not (declared_area == "CONTRATO" and area == "BACKEND"):
         raise NativeLotBlocked("CP34_PROFILE_AREA_MISMATCH")
-    return {"selector_code": profile_code, "area": area,
+    return {"selector_code": profile_code, "area": declared_area,
             "native_profile_code": native_code, "pinned_profile_slug": pinned_slug}
 
 
@@ -47,14 +48,17 @@ def real_write_paths(root: Path, area: str, paths: list[str]) -> list[str]:
                 or any(part in (".", "..") for part in PurePosixPath(path).parts)
                 or path.startswith(FAKE_PREFIXES)
                 or not path.startswith(REAL_ROOTS[area])
-                or Path(path).suffix not in {".java", ".ts", ".tsx", ".sql"}):
+                or (not path.endswith(".openapi.yaml") if area == "CONTRATO"
+                    else Path(path).suffix not in {".java", ".ts", ".tsx", ".sql"})):
             raise NativeLotBlocked("CP34_FAKE_OR_UNSAFE_PATH")
         target = root / path
         if target.is_symlink() or not target.resolve().is_relative_to(root.resolve()):
             raise NativeLotBlocked("CP34_UNSAFE_PATH")
         # A new source file is legitimate, but never invent an absent project.
         project_root = path.split("/", 2)
-        if path.startswith("apps/time-service/"):
+        if path.startswith("contracts/"):
+            base = root / "contracts"
+        elif path.startswith("apps/time-service/"):
             base = root / "apps/time-service"
         elif path.startswith("apps/web/"):
             base = root / "apps/web"

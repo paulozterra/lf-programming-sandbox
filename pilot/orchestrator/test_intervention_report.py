@@ -71,6 +71,22 @@ class InterventionReport(unittest.TestCase):
                      "MANUAL_TASK_TEMPLATE", "MANUAL_REGISTRATION", "MANUAL_TEST_EDIT"):
             self.assertIn(code, rep["by_code"])
 
+    def test_handwritten_openapi_is_manual_contract(self):
+        r = Repo()
+        r.commit(PAULO, {"pilot/runs/demo/request.md": "pedido\n"})
+        r.commit(BOT, {"pilot/runs/demo/lots.json": json.dumps({
+            "lots": [{"write_paths": ["contracts/sample.openapi.yaml"]}]})})
+        r.commit(PAULO, {"contracts/sample.openapi.yaml": "openapi: 3.0.3\n"})
+        self.assertIn("MANUAL_CONTRACT", self.run_report(r)["by_code"])
+
+    def test_worker_openapi_is_not_manual_contract(self):
+        r = Repo()
+        r.commit(PAULO, {"pilot/runs/demo/request.md": "pedido\n"})
+        r.commit(BOT, {"pilot/runs/demo/lots.json": json.dumps({
+            "lots": [{"write_paths": ["contracts/sample.openapi.yaml"]}]})})
+        r.commit(BOT, {"contracts/sample.openapi.yaml": "openapi: 3.0.3\n"})
+        self.assertEqual(self.run_report(r)["intervencion_manual"], "NO")
+
     def test_history_before_request_is_ignored(self):
         r = Repo()
         r.commit(PAULO, {"apps/x/src/main/A.java": "old"})

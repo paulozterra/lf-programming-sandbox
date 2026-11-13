@@ -490,7 +490,67 @@ def _produce_lots(package, fixture, rows, outputs, dsn):
     return topo(lots),hashes,assignment_hashes,currentness_hashes
 
 
-def plan(root: Path, run: str) -> dict:
+def _attach_contract_lots(lots, fixture):
+    """Post-PG05 adjunct: pinned producers and SQL areas remain unchanged."""
+    contracts = fixture.get("contract_atoms", [])
+    if fixture.get("schema_version") != "T1_ATOMIZED_INPUTS_V1":
+        return lots
+    if not isinstance(contracts, list):
+        blocked("T2_CONTRACT_METADATA_INVALID")
+    policy = json.loads((ROOT / "pilot/orchestrator/atomize_rules_v1.json").read_text())
+    contract_policy = policy.get("contract_lot", {})
+    by_module = {}
+    for atom in fixture["atoms"]:
+        module = fixture["provenance"][atom["atom_id"]]["paths"]["functional_module"]
+        by_module.setdefault(module, set()).add(atom["area"])
+    expected = {module for module, areas in by_module.items()
+                if {"BACKEND", "FRONTEND"}.issubset(areas)}
+    if ({c.get("module") for c in contracts} != expected
+            or len(contracts) != len(expected)):
+        blocked("T2_CONTRACT_COVERAGE_INVALID")
+    for entry in contracts:
+        module = entry["module"]
+        path = contract_policy.get("route", "").format(module=module)
+        if (entry.get("area") != "CONTRATO" or entry.get("paths") != [path]
+                or entry.get("profile_code") != contract_policy.get("profile_code")
+                or entry.get("depends_on") != []
+                or not isinstance(entry.get("source_scopes"), list)
+                or len(entry["source_scopes"]) < 2):
+            blocked("T2_CONTRACT_ATOM_INVALID")
+        related = [a for a in fixture["atoms"]
+                   if fixture["provenance"][a["atom_id"]]["paths"]["functional_module"] == module]
+        mapping = {a["atom_id"]: a for a in related}
+        matching = [lot for lot in lots if set(lot["write_paths"]).intersection(
+                    path for atom in related for path in atom["paths"])]
+        if not {x["area"] for x in matching}.issuperset({"BACKEND", "FRONTEND"}):
+            blocked("T2_CONTRACT_LOT_MAPPING_INVALID")
+        requirement_ids = sorted(set(r for lot in matching
+                                     if lot["area"] in ("BACKEND", "FRONTEND")
+                                     for r in lot["requirement_ids"]))
+        if not requirement_ids:
+            blocked("T2_CONTRACT_REQUIREMENTS_EMPTY")
+        identifier = "SOL-C" + hashlib.sha256(module.encode()).hexdigest()[:10]
+        if any(lot["id"] == identifier for lot in lots):
+            blocked("T2_CONTRACT_ID_COLLISION")
+        contract_lot = {
+            "id": identifier, "area": "CONTRATO",
+            "profile_code": contract_policy["profile_code"],
+            "write_paths": [path], "depends_on": [],
+            "requirement_ids": requirement_ids,
+            "contract_source_scopes": sorted(entry["source_scopes"]),
+            "contract_rules_sha256": digest(contract_policy),
+            "production_authority": False, "handoff_allowed": False,
+        }
+        lots.append(contract_lot)
+        for lot in matching:
+            if lot["area"] in ("BACKEND", "FRONTEND"):
+                lot["depends_on"] = sorted(set(lot["depends_on"] + [identifier]))
+                lot["contract_path"] = path
+                lot["contract_requirement_ids"] = requirement_ids
+    return topo(lots)
+
+
+def plan(root: Path, run: str, *, contract_mode=False) -> dict:
     from intake import SLUG, normalized_request_bytes
     if not isinstance(run,str) or not SLUG.fullmatch(run):
         blocked("LOTES_RUN_INVALIDO")
@@ -534,6 +594,8 @@ def plan(root: Path, run: str) -> dict:
         blocked("SELECTOR_REQUIERE_ENTORNO")
     try:
         lots,producer_hashes,assignments,currentness=_produce_lots(package,fixture,rows,outputs,dsn)
+        if contract_mode:
+            lots=_attach_contract_lots(lots,fixture)
     except (OSError,RuntimeError):
         blocked("SELECTOR_REQUIERE_ENTORNO")
     document={"schema_version":"CP33_LOTS_CANDIDATE_V1","request_id":run,

@@ -230,6 +230,37 @@ def atomize(package, root, base_head_sha, *, run):
         last = row
         provenance[row["atom_id"]]["depends_on"] = {
             "source": "T1_AREA_ORDER", "order": rules["order"]}
+    contract_policy = rules.get("contract_lot", {})
+    if (contract_policy.get("schema_version") != "T2_CONTRACT_LOT_RULES_V1"
+            or contract_policy.get("area") != "CONTRATO"
+            or contract_policy.get("requires_areas") != ["BACKEND", "FRONTEND"]
+            or contract_policy.get("profile_area") != "BACKEND"
+            or contract_policy.get("profile_code") !=
+               rules["profile_resolution"]["area_to_profile"].get("BACKEND")):
+        raise AtomBlocked("ATOM_CONTRACT_POLICY_INVALID")
+    by_module = {}
+    for atom in rows:
+        mod = provenance[atom["atom_id"]]["paths"]["functional_module"]
+        by_module.setdefault(mod, {}).setdefault(atom["area"], []).append(atom)
+    contract_atoms = []
+    for module, groups in sorted(by_module.items()):
+        if all(groups.get(area) for area in contract_policy["requires_areas"]):
+            source_scopes = sorted({a["scope_id"] for area in contract_policy["requires_areas"]
+                                    for a in groups[area]})
+            path = contract_policy["route"].format(module=module)
+            if not re.fullmatch(r"contracts/[a-z0-9][a-z0-9-]*\.openapi\.yaml", path):
+                raise AtomBlocked("ATOM_CONTRACT_PATH_INVALID")
+            required = sorted({req["requirement_id"] for req in package["requirements"]
+                               if req["scope_id"] in source_scopes})
+            if not required:
+                raise AtomBlocked("ATOM_CONTRACT_REQUIREMENT_SOURCE_MISSING")
+            contract_atoms.append({
+                "atom_id": "ATOM-" + hashlib.sha256(("CONTRATO|" + module).encode()).hexdigest()[:12],
+                "area": "CONTRATO", "module": module, "paths": [path],
+                "source_scopes": source_scopes, "requirement_ids": required,
+                "depends_on": [], "profile_code": contract_policy["profile_code"],
+                "source_ref": "pilot/orchestrator/atomize_rules_v1.json",
+            })
     return {
         "schema_version": "T1_ATOMIZED_INPUTS_V1",
         "simulation_only": True,
@@ -240,6 +271,7 @@ def atomize(package, root, base_head_sha, *, run):
             "target_binding_ref": "atomize://t1/" + run,
         },
         "atoms": rows,
+        "contract_atoms": contract_atoms,
         "provenance": provenance,
         "rules_sha256": hashlib.sha256(RULES.read_bytes()).hexdigest(),
     }

@@ -1,0 +1,8 @@
+{
+  "schema_version": "T1_CI_FIXTURE_NAMES_V1",
+  "runs": [
+    "sample-three-area-notes",
+    "sample-reminder-note"
+  ],
+  "primary": "sample-three-area-notes"
+}

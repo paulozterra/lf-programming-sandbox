@@ -30,6 +30,11 @@ jobs:
       - name: STD-BE-05 Spotless/Palantir (required for time-service)
         working-directory: .
         run: mvn -B -q -f apps/time-service/pom.xml spotless:check
+      - name: T2 backend springdoc endpoint and per-contract methods
+        working-directory: .
+        run: |
+          python3 -m pip install --disable-pip-version-check PyYAML==6.0.3
+          python3 pilot/orchestrator/check_backend_live.py
       - run: python3 ../standards/tools/stack_checks.py run --set spring-boot --check-id spring-verify
       - name: Compile and run staged reminders visible tests (no model)
         working-directory: .
@@ -49,6 +54,10 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - name: T2 generated API client remains in sync
+        run: |
+          npm run check:api
+          npm run check:no-manual-fetch
       - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-lint
       - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-typecheck
       - run: python3 ../standards/tools/stack_checks.py run --set nextjs --check-id next-build
@@ -432,7 +441,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for name in sample-three-area-notes sample-reminder-note; do
+          for name in $(python3 -c 'import json; print(" ".join(json.load(open("pilot/orchestrator/t1_ci_fixtures_v1.json"))["runs"]))'); do
             mkdir -p "$RUNNER_TEMP/cp33/pilot/runs/$name"
             cp "pilot/runs/$name/request.md" "pilot/runs/$name/analysis.json" "pilot/runs/$name/planning_fixture.json" "$RUNNER_TEMP/cp33/pilot/runs/$name/"
             python3 pilot/orchestrator/intake.py --root "$RUNNER_TEMP/cp33" --request-id "$name"
@@ -440,7 +449,8 @@ jobs:
           done
           python3 - <<'PY'
           import json,os,pathlib
-          root=pathlib.Path(os.environ["RUNNER_TEMP"])/"cp33/pilot/runs/sample-three-area-notes"
+          fixture=json.loads(pathlib.Path("pilot/orchestrator/t1_ci_fixtures_v1.json").read_text())
+          root=pathlib.Path(os.environ["RUNNER_TEMP"])/"cp33/pilot/runs"/fixture["primary"]
           x=json.loads((root/"lots.json").read_text())
           print("CP33_THREE_AREA_LOTS_JSON_START")
           print(json.dumps(x,sort_keys=True,separators=(",",":"),ensure_ascii=True))
@@ -452,22 +462,32 @@ jobs:
           T1_ARTIFACT_DIR: ${{ runner.temp }}/t1
         run: |
           python3 pilot/orchestrator/selector_db.py --t1-patterns
+          python3 -m pip install --disable-pip-version-check --no-input PyYAML==6.0.3 openapi-spec-validator==0.7.2
           python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py -p no:cacheprovider
-      - name: T1-A positive Login A9 to PG05 without manual fixtures
+      - name: T1-A source A9 to PG05 without manual fixtures
         env:
           T1A_ARTIFACT_DIR: ${{ runner.temp }}/t1a
         run: |
           python3 -m pip install jsonschema
           python3 -m pytest -q analysis/programming_analysis/steps/a1 analysis/programming_analysis/steps/a2 analysis/programming_analysis/steps/a3 analysis/programming_analysis/steps/a4 analysis/programming_analysis/steps/a5 analysis/programming_analysis/adapters analysis/programming_analysis/evals analysis/test_known_inherited_failures.py analysis/host analysis/a6 analysis/a7 analysis/a8 analysis/a9 -p no:cacheprovider
-      - name: Publish T1-A generated Login lots
+          T2_ARTIFACT_DIR="${{ runner.temp }}/t2" python3 -m pytest -q pilot/orchestrator/test_t2_contract.py -p no:cacheprovider
+      - name: Publish T2 regenerated multi-screen contract lots
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: t1a-login-lots
+          name: t2-contract-lots
+          path: ${{ runner.temp }}/t2/
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Publish T1-A generated source lots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: t1a-source-lots
           path: ${{ runner.temp }}/t1a/
           if-no-files-found: ignore
           retention-days: 30
-      - name: Publish T1 exact generated lots and Login unresolved evidence
+      - name: Publish T1 exact generated lots and unresolved evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
