@@ -217,3 +217,42 @@ def test_confirmed_dependency_reaches_real_plan_lots(tmp_path):
     assert all("REQ-SYN-R-1" not in lot["requirement_ids"]
                for lot in planned["lots"] if lot["area"] == "DATA")
 
+
+@pytest.mark.parametrize("by_rule", [True, False])
+def test_endpoint_dependency_binds_backend_not_frontend(tmp_path, by_rule):
+    package, ledger, dep, endpoint, session = _scenario(
+        tmp_path, attested=True, by_rule=by_rule)
+    from pilot.orchestrator.declared_dependencies import select
+    mapping = select([dep], package["requirements"])
+    assert len(mapping) == 1
+    backend_id = next(iter(mapping))
+    assert backend_id.endswith("-BACKEND") or next(
+        r for r in package["requirements"] if r["requirement_id"] == backend_id
+    )["scope_id"].endswith("-BACKEND")
+    report = assess(index(tmp_path), package["requirements"], registry=ledger,
+                    root=tmp_path, declared_dependencies=[dep])
+    by_id = {row["requirement_id"]: row["decision"] for row in report["obligations"]}
+    assert by_id[backend_id] == "REUSE_AS_IS"
+    assert any(r["source_requirement_id"] == "SYN-R-1"
+               and r["scope_id"].endswith("-FRONTEND")
+               and by_id[r["requirement_id"]] == "BUILD_NEW"
+               for r in package["requirements"])
+    from analysis.host.run_a1_a8_fixture import run_f3
+    stage = run_f3(fixtures=tmp_path/"analysis/fixtures/other_pinned_screen",
+                   request="Implementa SYN-CATALOG-LIST")
+    attest = stage["stages"]["A4"]["host_simulated_dependency_attestation"]
+    assert attest["status"] == "CONFIRMED"
+    assert attest["entries"][0]["requirement_id"] == backend_id
+
+
+def test_endpoint_rule_code_without_backend_requirement_blocks():
+    from pilot.orchestrator.declared_dependencies import select, DependencyBlocked
+    deps = [{"kind":"endpoint","method":"GET","route":"/api/items",
+             "rule_code":"RULE-X","adds_rule":False}]
+    requirements = [{"requirement_id":"REQ-RULE-X",
+                     "source_requirement_id":"RULE-X",
+                     "scope_id":"SYN-FRONTEND"}]
+    with pytest.raises(DependencyBlocked, match="DEPENDENCIA_AREA_INCOMPATIBLE"):
+        select(deps, requirements)
+    with pytest.raises(DependencyBlocked, match="DEPENDENCIA_SIN_REQUISITO"):
+        select([{**deps[0], "rule_code":"UNKNOWN"}], requirements)
