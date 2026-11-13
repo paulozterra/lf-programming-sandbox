@@ -77,10 +77,12 @@ def test_same_covered_requirement_set_for_three_wordings(tmp_path):
               for i,text in enumerate(phrases)]
     # Cryptographic request SHA and A1-stage fingerprints MUST differ because
     # literal requests differ. Semantic, source-backed obligations do not.
-    for key in ("requirements","applicable_rules"):
-        codes=[[(v.get("source_requirement_id"),v.get("rule_code"))
-                 for v in p[key]] for p in packages]
-        assert codes[0]==codes[1]==codes[2]
+    # The whole implementation-facing source scope must be invariant to
+    # wording. Literal request identity, evidence hashes, and stage fingerprints
+    # are intentionally NOT interchangeable across distinct requests.
+    for key in ("classification","requirements","material_fronts",
+                "scope_proposals","applicable_rules"):
+        assert packages[0][key]==packages[1][key]==packages[2][key],key
     assert len({p["request_sha256"] for p in packages})==3
 
 
