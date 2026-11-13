@@ -68,8 +68,12 @@ def test_invalid_domain_rule_or_patch_blocks_not_defaults():
 def test_waiver_must_have_explicit_reference():
     path="frontend/src/app/example.tsx"
     bad=f"diff --git a/{path} b/{path}\n+// eslint-disable-next-line\n"
-    good=f"diff --git a/{path} b/{path}\n+// eslint-disable-next-line WAIVER-TICKET-12\n"
+    forged=f"diff --git a/{path} b/{path}\n+// eslint-disable-next-line no-console -- WAIVER-9999\n"
+    permitted="standards/tests/fixtures/suppressions/good.ts"
+    good=(f"diff --git a/{permitted} b/{permitted}\n"
+          "+// eslint-disable-next-line no-console -- WAIVER-0001 diagnóstico\n")
     assert evaluate(bad,["STD-GEN-05"])["status"]=="FAIL"
+    assert evaluate(forged,["STD-GEN-05"])["status"]=="FAIL"
     assert evaluate(good,["STD-GEN-05"])["status"]=="PASS"
 
 
