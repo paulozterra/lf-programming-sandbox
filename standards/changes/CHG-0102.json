@@ -19,6 +19,7 @@
       "analysis/host/run_a1_a6_fixture.py",
       "analysis/host/run_a1_a8_fixture.py",
       "analysis/host/run_a1_a9_fixture.py",
+      "analysis/host/test_a9_intake.py",
       "analysis/host/test_fixture_readback_host.py",
       "analysis/host/test_t71_general.py",
       "standards/CAMBIOS.md",
