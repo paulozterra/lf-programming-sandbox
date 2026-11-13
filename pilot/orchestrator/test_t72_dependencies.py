@@ -135,3 +135,56 @@ def test_rule_code_links_primary_requirement_even_with_derived_child():
     selected=select(deps,requirements)
     assert set(selected)=={"REQ-SOURCE"}
     assert selected["REQ-SOURCE"]["key"]=="export:ExistingComponent"
+
+def test_main_attested_dependencies_make_a9_ready(tmp_path):
+    package, _, dep, endpoint, session = _scenario(
+        tmp_path, adds_rule=True, attested=True)
+    assert package["package_readiness_candidate"] == "READY_CANDIDATE"
+    assert package["research_stop"]["decision"] == "STOP"
+    from analysis.host.run_a1_a8_fixture import run_f3
+    stages = run_f3(fixtures=tmp_path/"analysis/fixtures/other_pinned_screen",
+                    request="Implementa SYN-CATALOG-LIST")
+    evidence = stages["stages"]["A4"]["host_simulated_dependency_attestation"]
+    assert evidence["status"] == "CONFIRMED"
+    assert evidence["production_authority"] is False
+    assert evidence["entries"][0]["evidence"][0]["path"] == endpoint
+    assert all(row["attestation_mode"] == "SIMULATED"
+               and len(row["main_commit_sha"]) == 40
+               for row in evidence["entries"][0]["evidence"])
+
+
+def test_unconfirmed_main_dependency_never_becomes_ready(tmp_path):
+    package, _, _, _, _ = _scenario(tmp_path, missing=True, attested=True)
+    assert package["package_readiness_candidate"] != "READY_CANDIDATE"
+    assert package["research_stop"]["decision"] != "STOP"
+
+
+def test_main_sha_drift_does_not_attest(tmp_path):
+    package, _, _, _, _ = _scenario(tmp_path, attested=True, drift=True)
+    assert package["package_readiness_candidate"] != "READY_CANDIDATE"
+    from analysis.host.run_a1_a8_fixture import run_f3
+    stages = run_f3(fixtures=tmp_path/"analysis/fixtures/other_pinned_screen",
+                    request="Implementa SYN-CATALOG-LIST")
+    assert stages["stages"]["A4"]["host_simulated_dependency_attestation"]["status"] == "UNVERIFIED"
+
+
+@pytest.mark.skipif(
+    os.environ.get("SELECTOR_EXP_DISPOSABLE_DB") != "YES"
+    or not os.environ.get("SELECTOR_EXP_TEST_DSN"),
+    reason="Actual PG02-PG05 lot generation requires disposable selector DB")
+def test_confirmed_dependency_reaches_real_plan_lots(tmp_path):
+    package, ledger, dependency, endpoint, session = _scenario(
+        tmp_path, adds_rule=True, attested=True)
+    assert package["package_readiness_candidate"] == "READY_CANDIDATE"
+    report = assess(index(tmp_path), package["requirements"], registry=ledger,
+                    root=tmp_path, declared_dependencies=[dependency])
+    atom = atomize.atomize(package, tmp_path, "a"*40,
+                          run="t72-after", reuse_assessment=report)
+    folder=tmp_path/"pilot/runs/t72-after"
+    (folder/"atomized_inputs.json").write_bytes(intake.canonical(atom))
+    planned=plan_lots.plan(tmp_path,"t72-after")
+    assert planned["lots"]
+    assert any(endpoint in lot["write_paths"] for lot in planned["lots"])
+    assert all("REQ-SYN-R-1" not in lot["requirement_ids"]
+               for lot in planned["lots"] if lot["area"] == "DATA")
+
