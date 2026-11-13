@@ -26,6 +26,8 @@ def _policy():
                 "errors": ["BACKEND"],
                 "visual.variants": ["FRONTEND"],
             }
+            or data.get("primary_owner_by_section") != {
+                "fields": "FRONTEND", "errors": "BACKEND"}
             or not isinstance(data.get("rule_categories"), dict)):
         raise FrontBindingGap("A9_AREA_POLICY_INVALID")
     return data
@@ -53,6 +55,7 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
     ids = {}
     evidence = {}
     linked_sections = set()
+    preferred = {}
     gaps = []
     excluded = []
 
@@ -102,6 +105,13 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
                         continue
                     for area in policy["section_areas"][section_key]:
                         add(area, rule_ref, ref)
+                    if section_key in policy["primary_owner_by_section"]:
+                        owner = policy["primary_owner_by_section"][section_key]
+                        rid = by_ref.get(rule_ref, {}).get("requirement_id")
+                        if rid and rid in preferred and preferred[rid] != owner:
+                            gaps.append("A9_PRIMARY_OWNER_CONFLICT:" + rule_ref)
+                        elif rid:
+                            preferred[rid] = owner
 
     consume("fields", "fields",
             lambda row: row.get("required") is True and row.get("status") == "VIGENTE")
@@ -193,6 +203,8 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
             },
             "execution_area": area, "execution_area_source_ref": area_source,
             "source_ref": area_source, "execution_area_policy": "SOURCE_DERIVED",
+            "preferred_owner_ids": sorted(rid for rid in ids[area]
+                                          if preferred.get(rid) == area),
             "area_rule_version": policy["schema_version"],
             "materiality_level": "HIGH", "requires_independent_exam": True,
             "simulation_mode": fronts[0]["simulation_mode"],
