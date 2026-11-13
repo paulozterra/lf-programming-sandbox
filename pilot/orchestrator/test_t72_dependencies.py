@@ -43,11 +43,11 @@ def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True,
               attested=False, drift=False):
     code, folder=prepare_description_screen(tmp_path)
     endpoint_path=_file(tmp_path,
-        "apps/time-service/src/main/java/demo/ExistingItems.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/catalog/ExistingItems.java",
         'public class ExistingItems {\n@GetMapping("/api/items")\n'
         'public String list() { return "ok"; }\n}\n')
     session_path=_file(tmp_path,
-        "apps/time-service/src/main/java/demo/ExistingSession.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/catalog/ExistingSession.java",
         'public class ExistingSession {\n'
         'public boolean authenticated() { return true; }\n}\n')
     pkg=launch(tmp_path,"t72-before","Implementa "+code)["package"]
