@@ -55,6 +55,9 @@ def accept(root, slug, pkg, raw):
 
 def scenario(root, kind, *, slug):
     if kind == "first":
+        # Reuse Analysis's existing test-only compatibility symlink. A1-A5
+        # source code and its validators remain byte-exact and unmodified.
+        import analysis.conftest
         original = run_f4(root, slug=slug)
         pkg = deepcopy(original["package"])
         raw = (root/"pilot/runs"/slug/"request.md").read_bytes()
