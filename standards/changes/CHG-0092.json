@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0092",
+  "title": "T1: módulo funcional común y rutas válidas para Java/Frontend",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Arreglo general del atomizador T1 — scope sin sufijo de área; rutas seguras por lenguaje; Login y Notes regenerados"
+  },
+  "reason": "El atomizador elimina únicamente sufijos de área registrados y resuelve prefijos de namespace versionados; genera un módulo compartido entre backend y frontend y transforma separadamente paquetes Java, nombres de clases y rutas kebab-case de Next.js. Pruebas unitarias cubren scopes con mayúsculas, números y guiones, incluyendo validación de cada componente de paquete Java; pruebas reales A9→PG-04/PG-05 regeneran Login y Notes sin decisión manual.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "analysis/a9/test_general_second_screen.py",
+      "analysis/host/test_t1a_login_gate.py",
+      "pilot/orchestrator/atomize.py",
+      "pilot/orchestrator/atomize_rules_v1.json",
+      "pilot/orchestrator/test_atomize_modules.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0092.json"
+    ]
+  },
+  "approved_by": "paulozterra",
+  "requested_by": "owner",
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "evidence": {
+    "pr_url": ""
+  }
+}
