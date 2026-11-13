@@ -155,7 +155,15 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
         "target_granularity":"SCREEN","nested_parent_ref":None,
         "evidence_refs":[ref],"depth_signals":depth}
     legacy=data.get("semantic_signals.json",{})
-    return {"imitates":"deterministic typed A1/A2 candidate from pinned screen and actual request",
+    result={"imitates":"deterministic typed A1/A2 candidate from pinned screen and actual request",
             "simulation":True,"request_text":request,
-            "a1_structured":a1,"a2_signals":a2,
-            "source_obligations":deepcopy(legacy.get("source_obligations",[]))}
+            "a1_structured":a1,"a2_signals":a2}
+    # A6's source-obligation contract distinguishes absent (legacy
+    # independently pinned rules) from present (complete SOURCE_SCREEN list).
+    # An empty supplied list would be false evidence, not legacy.
+    if "source_obligations" in legacy:
+        obligations=legacy["source_obligations"]
+        if not isinstance(obligations,list) or not obligations:
+            raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
+        result["source_obligations"]=deepcopy(obligations)
+    return result
