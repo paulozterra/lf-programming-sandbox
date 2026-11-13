@@ -141,6 +141,12 @@ def generate(root, run, lots):
                                for endpoint in row.get("reused_endpoints",[])})
                 if reused:
                     skeleton["reused_endpoints"]=reused
+                    extended=sorted({endpoint for row in reuse_rows
+                                     if row.get("decision")=="EXTEND"
+                                     and scope_by_requirement.get(row.get("requirement_id")) in source_scopes
+                                     for endpoint in row.get("reused_endpoints",[])})
+                    if extended:
+                        skeleton["extended_endpoints"]=extended
             path=Path(root)/skeleton_template.format(module=module)
             save(path,skeleton)
     # T7 only: a typed, evidence-backed reuse report is optional for legacy
