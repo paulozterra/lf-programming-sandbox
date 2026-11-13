@@ -48,7 +48,15 @@ def process(root: Path, slug: str, base_sha: str) -> dict:
             raise EntryBlocked("ANALISIS_SENALES_NO_DERIVABLES") from exc
         raise
     package = generated["package"]
-    reuse = write_assessment(root, slug, package)
+    # Use the SHA-pinned screen inventory, not inferred request prose.
+    from analysis.host.fixture_readback_host import FixtureHost
+    pinned = FixtureHost(source).read_all(raw.decode("utf-8").strip())
+    inventory = pinned.get("inventory.json", {})
+    dependencies = inventory.get("dependencies")
+    if not isinstance(dependencies, list):
+        raise EntryBlocked("DEPENDENCIA_DECLARADA_AUSENTE")
+    reuse = write_assessment(root, slug, package,
+                             declared_dependencies=dependencies)
     decisions = reuse["obligations"]
     if not decisions or len(decisions) != len(package.get("requirements", [])):
         raise EntryBlocked("REUTILIZACION_INDETERMINADA")
