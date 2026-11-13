@@ -24,6 +24,7 @@ from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_stat
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
 from native_lot_binding import next_ready
+from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pilot/worker_v08"))
 
@@ -326,6 +327,37 @@ def pending_draft(prefix: str) -> bool:
                for item in rows)
 
 
+def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
+    """Issue public EXAM_REQUEST once, leaving the lot fail-closed.
+
+    Never reads holdout ciphertext or examiner metadata, and never attaches
+    any GitHub label to the registration PR.
+    """
+    title, body = public_exam_request(ROOT, request, binding, lot)
+    existing = json.loads(run("gh", "issue", "list", "--repo", REPO,
+                              "--state", "all", "--label", "exam-request",
+                              "--limit", "100", "--json", "title,number"))
+    if not isinstance(existing, list) or len(existing) >= 100:
+        deny("EXAM_REQUEST_LIST_UNTRUSTED")
+    matches = [row for row in existing
+               if isinstance(row, dict) and row.get("title") == title]
+    if len(matches) > 1:
+        deny("EXAM_REQUEST_DUPLICATE")
+    if not matches:
+        run("gh", "issue", "create", "--repo", REPO, "--title", title,
+            "--body", body, "--label", "exam-request")
+    return {"status": "BLOCKED", "reason_code": "EXAMEN_PENDIENTE",
+            "task": binding["task_name"]}
+
+
+def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dict | None:
+    """Inspect admission before any generated commit or native preparation."""
+    require_green_base(head, api)
+    if missing_exam(ROOT, binding["task_name"]):
+        return request_missing_exam(request, binding, lot)
+    return None
+
+
 def prepare_successor(request: str, binding: dict, completed: dict, head: str) -> dict:
     task = binding["task_name"]
     branch = f"lf/native-registration/{task}-{head[:12]}"
@@ -447,19 +479,20 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
             continue
         for lot_id in result["ready_lot_ids"]:
             lot = next(x for x in lots["lots"] if x["id"] == lot_id)
-            if not lot["depends_on"]:
-                continue  # first/root lot is still enrolled by the owner
             if not set(lot["depends_on"]).issubset(completed):
                 continue
             task = bindings[lot_id]["task_name"]
-            # A registered task already merged on main is never prepared again.
+            # Existing merged registration stays governed by its original pack.
             registered = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
             if registered.exists() or registered.is_symlink():
                 continue
-            if manual_sha is not None and pending_draft(
-                    f"lf/native-registration/{task}-"):
+            if pending_draft(f"lf/native-registration/{task}-"):
                 outcomes.append({"request": request, "lot_id": lot_id,
                                  "status": "ALREADY_PREPARED"})
+                continue
+            admission = admit_registration(request, bindings[lot_id], lot, head)
+            if admission is not None:
+                outcomes.append({"request": request, "lot_id": lot_id, **admission})
                 continue
             outcomes.append({"request": request, "lot_id": lot_id,
                              **prepare_successor(request, bindings[lot_id] | {
@@ -481,8 +514,8 @@ def main() -> int:
                     (args.integration_pr <= 0 or args.source_run_id is not None))):
             deny("TRUSTED_RUN_ENV_REQUIRED")
         print(json.dumps(process(args.source_run_id, args.integration_pr), sort_keys=True))
-    except (ChainBlocked, IntegrationBlocked, OSError, ValueError, KeyError) as exc:
-        code = (str(exc) if isinstance(exc, (ChainBlocked, IntegrationBlocked))
+    except (ChainBlocked, IntegrationBlocked, AdmissionBlocked, OSError, ValueError, KeyError) as exc:
+        code = (str(exc) if isinstance(exc, (ChainBlocked, IntegrationBlocked, AdmissionBlocked))
                 else "CP36_UNEXPECTED_FAILURE")
         print(code, file=sys.stderr)
         return 1
