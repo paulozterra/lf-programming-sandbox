@@ -89,16 +89,24 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
                 "execution_area": None, "execution_area_source_ref": None})
             continue
         req = by_ref.get(source)
+        if req is None and len(required_codes) == 1:
+            code = next(iter(required_codes))
+            candidate_req = by_code.get(code)
+            if (candidate_req is not None
+                    and set(front.get("evidence_refs", [])).intersection(
+                        candidate_req["evidence_refs"])):
+                req = candidate_req
         if req is not None:
             code = req["source_requirement_id"]
+            source_evidence = sorted(set(front["evidence_refs"]).intersection(req["evidence_refs"]))[0]
             kind = front["front_kind"]
             if kind in ("SECURITY_PRIVACY", "PERMISSION", "API_CONTRACT", "OBSERVABILITY"):
-                add("BACKEND", code, source)
+                add("BACKEND", code, source_evidence)
             elif kind == "STATE_ERROR":
                 # Typed error-state rule + generic_error flag authorizes BE.
                 # FE presentation is sourced from errors[] + visual variants.
                 if effective_rules.get(code, {}).get("config", {}).get("generic_error") is True:
-                    add("BACKEND", code, source)
+                    add("BACKEND", code, source_evidence)
                 else:
                     gaps.append("A9_STATE_ERROR_UNCLASSIFIED:" + source)
             elif kind == "OTHER" and code in ("SBX-R-USER", "SBX-R-PASS"):
