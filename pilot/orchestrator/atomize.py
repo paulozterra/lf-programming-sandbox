@@ -11,6 +11,7 @@ HERE = Path(__file__).resolve().parent
 RULES = HERE / "atomize_rules_v1.json"
 REPO = "paulozterra/lf-programming-sandbox"
 SAFE = re.compile(r"[a-z][a-z0-9-]{0,45}\Z")
+MODULE_SAFE = re.compile(r"[a-z0-9][a-z0-9-]{0,45}\Z")
 SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 
 
@@ -40,7 +41,7 @@ def _slug(source, rules):
         if result.startswith(prefix):
             result = result[len(prefix):]
             break
-    if not SAFE.fullmatch(result):
+    if not MODULE_SAFE.fullmatch(result):
         raise AtomBlocked("ATOM_IDENTITY_INVALID")
     return result
 
@@ -62,6 +63,8 @@ JAVA_RESERVED = frozenset({
 
 def _java_module(module):
     token = module.replace("-", "")
+    if token and token[0].isdigit():
+        token = "m" + token
     if not JAVA_PACKAGE.fullmatch(token) or token in JAVA_RESERVED:
         raise AtomBlocked("ATOM_JAVA_PACKAGE_INVALID:" + str(module))
     return token
@@ -93,6 +96,8 @@ def _next_version(root):
 
 def _class(module, suffix):
     name = "".join(part.capitalize() for part in module.split("-")) + suffix
+    if name and name[0].isdigit():
+        name = "M" + name
     if not JAVA_CLASS.fullmatch(name):
         raise AtomBlocked("ATOM_JAVA_CLASS_INVALID:" + str(module))
     return name
