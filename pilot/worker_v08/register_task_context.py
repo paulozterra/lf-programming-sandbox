@@ -352,8 +352,51 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         block("HISTORICAL_TASK_IMMUTABLE")
     output = copy.deepcopy(task)
     dest = output["task_spec"] if "task_spec" in output else output
-    paths = [f".lf/worker-context/{task_name}/{x}"
-             for x in ("profile.md", "skills.md", "protocolo.md", "receipt.json")]
+    reuse_markdown = None
+    reuse_sha = {}
+    report_refs = [p for p in spec.get("context_path_patterns", [])
+                   if isinstance(p, str) and re.fullmatch(
+                       r"pilot/runs/[a-z][a-z0-9_-]{0,63}/reuse_assessment[.]json", p)]
+    if len(report_refs) > 1:
+        block("REUTILIZACION_INDETERMINADA")
+    if report_refs:
+        report_file = root / safe_rel(report_refs[0])
+        if report_file.is_symlink() or not report_file.is_file():
+            block("REUTILIZACION_INDETERMINADA")
+        document = json.loads(report_file.read_text("utf-8"))
+        if (document.get("schema_version") != "T7_REUSE_ASSESSMENT_V1"
+                or not isinstance(document.get("obligations"), list)):
+            block("REUTILIZACION_INDETERMINADA")
+        from pilot.orchestrator.reuse_assessment import index as code_index
+        indexed = code_index(root)["entries"]
+        lines = ["# Reutilizar componentes verificados",
+                 "Usar los componentes citados sin modificarlos ni reimplementarlos.",
+                 "Las rutas de reutilización son solo contexto protegido."]
+        for obligation in document["obligations"]:
+            for entry in obligation.get("reuse_context", []):
+                if not isinstance(entry, dict):
+                    block("REUTILIZACION_INDETERMINADA")
+                rel = safe_rel(entry.get("path"))
+                sha = entry.get("sha256")
+                src = root / rel
+                if (rel in lot_paths or rel not in spec.get("context_path_patterns", [])
+                        or src.is_symlink() or not src.is_file()
+                        or not isinstance(sha, str) or digest(src.read_bytes()) != sha):
+                    block("REUTILIZACION_INDETERMINADA")
+                reuse_sha[rel] = sha
+        for rel, sha in sorted(reuse_sha.items()):
+            signatures = [r["key"] for r in indexed if r["path"] == rel
+                          and r["kind"] in ("public_signature", "endpoint")]
+            lines.append("## " + rel)
+            lines.append("SHA-256: " + sha)
+            for signature in sorted(set(signatures)):
+                lines.append("- " + signature)
+        reuse_markdown = ("\n".join(lines) + "\n").encode("utf-8")
+    names = ["profile.md", "skills.md", "protocolo.md"]
+    if reuse_markdown is not None:
+        names.append("reutilizar.md")
+    names.append("receipt.json")
+    paths = [f".lf/worker-context/{task_name}/{x}" for x in names]
     # The route itself tells the builder how to work (continuous mode by
     # default): the protocol travels inside every task's context pack.
     protocol_src = Path(__file__).resolve().parents[2] / "pilot" / "orchestrator" / "MODO_CONTINUO.md"
@@ -408,13 +451,20 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
                         separators=(",", ":")) + "\n").encode("utf-8")),
         "context_paths": paths,
         "context_sha256": {"profile.md": digest(profile), "skills.md": digest(skills),
-                           "protocolo.md": digest(protocol)},
+                           "protocolo.md": digest(protocol),
+                           **({"reutilizar.md": digest(reuse_markdown)}
+                              if reuse_markdown is not None else {})},
+        **({"reuse_context_sha256": reuse_sha} if reuse_markdown is not None else {}),
         "builder_protocol": {"source": "pilot/orchestrator/MODO_CONTINUO.md",
                              "sha256": digest(protocol_src.read_bytes()), "mode": "CONTINUOUS_DEFAULT"},
         "production_authority": False,
     }
     receipt_raw = canonical(receipt)
-    artifacts = dict(zip(paths, (profile, skills, protocol, receipt_raw)))
+    values = [profile, skills, protocol]
+    if reuse_markdown is not None:
+        values.append(reuse_markdown)
+    values.append(receipt_raw)
+    artifacts = dict(zip(paths, values))
     cap = min(budget, dest.get("max_context_bytes", budget))
     if existing + sum(map(len, artifacts.values())) > cap:
         block("CONTEXT_BUDGET_EXCEEDED")
