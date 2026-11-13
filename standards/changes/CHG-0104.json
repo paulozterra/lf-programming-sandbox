@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "T7.2 dependencias declaradas de lf_ops.pantallas, 13/11/2026"
   },
-  "reason": "Consumir las dependencias SHA-pinned del inventario de la pantalla y vincularlas a requerimientos A9 por identidad tipada. Resolver endpoints por método+ruta y componentes por firma contra índice y registro con verificación de SHA. Distinguir REUSE_AS_IS de EXTEND por obligación source-declared y referenciar reglas ya implementadas como contexto protegido; rechazar dependencias ausentes. Preservar evaluación histórica al omitir dependencies y reutilizar las identidades de endpoints en el esqueleto OpenAPI sin rutas paralelas.",
+  "reason": "Consumir las dependencias SHA-pinned del inventario de la pantalla y vincularlas a requerimientos A9 por identidad tipada. Resolver endpoints por método+ruta y componentes por firma contra índice y registro con verificación de SHA. Distinguir REUSE_AS_IS de EXTEND por obligación source-declared y referenciar reglas ya implementadas como contexto protegido; rechazar dependencias ausentes. Preservar evaluación histórica al omitir dependencies y reutilizar las identidades de endpoints en el esqueleto OpenAPI sin rutas paralelas. Revisión de Claude: F2/A4 conserva su código de incertidumbre; el host agrega evidencia SIMULATED por contenido exacto de Git main y la proyección A8 admite solo el conjunto completo de dependencias atestadas; no se promueve autoridad productiva ni se cambia A1-A5.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -15,8 +15,11 @@
     "paths": [
       ".github/workflows/ci.yml",
       "analysis/a9/package.py",
+      "analysis/host/dependency_attestation.py",
       "analysis/host/fixture_normalize.py",
+      "analysis/host/fixture_readback_host.py",
       "analysis/host/request_trace.py",
+      "analysis/host/run_a1_a8_fixture.py",
       "pilot/orchestrator/atomize.py",
       "pilot/orchestrator/contract_validate.py",
       "pilot/orchestrator/declared_dependencies.py",
