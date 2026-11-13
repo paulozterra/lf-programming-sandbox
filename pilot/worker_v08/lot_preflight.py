@@ -183,8 +183,13 @@ def check_size(root: Path, task: dict, *, prompt: str) -> dict:
             blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
         contract_yaml = bool(re.fullmatch(
             r"contracts/[a-z][a-z0-9-]*[.]openapi[.]yaml", name))
-        from pilot.orchestrator.native_lot_binding import _infra_allowed_paths
-        infra_target = name in _infra_allowed_paths()
+        allowlist = json.loads((Path(__file__).resolve().parents[1] /
+            "orchestrator/dependency_allowlist_v1.json").read_text(encoding="utf-8"))
+        if allowlist.get("schema_version") != "T3_DEPENDENCY_ALLOWLIST_V1":
+            blocked("LOTE_INFRA_POLICY_INVALIDA")
+        infra_target = name in (
+            set(allowlist["database"]["config_files"]) |
+            {x["manifest"] for x in allowlist["targets"].values()})
         if (not (name.endswith(ALLOWED_WRITE) or contract_yaml or infra_target)
                 or denial(name)):
             blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
