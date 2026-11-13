@@ -354,3 +354,30 @@ def test_missing_description_of_inherited_rule_also_blocks(tmp_path):
     with pytest.raises(ValueError,match="REGLA_SIN_DESCRIPCION") as error:
         launch(tmp_path,"inherited-missing","Implementa "+code)
     assert inherited["code"] in str(error.value)
+
+
+def test_registry_sha_valid_components_trace_to_reuse_not_to_screen(tmp_path):
+    from analysis.host.request_trace import trace, RequestTraceBlocked
+    file=tmp_path/"generated/component.txt"
+    file.parent.mkdir(parents=True)
+    file.write_text("verified",encoding="utf-8")
+    ledger=tmp_path/"pilot/registry/implemented.json"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text(json.dumps({
+        "schema_version":"T7_IMPLEMENTED_REGISTRY_V1",
+        "entries":[{"request":"previous","status":"ATTESTED",
+                    "merge_sha":"a"*40,
+                    "files":[{"path":"generated/component.txt",
+                              "sha256":hashlib.sha256(file.read_bytes()).hexdigest()}],
+                    "rule_codes":["RULE-SESION","RULE-PRIORIDAD",
+                                  "RULE-ERROR-GENERICO"],
+                    "endpoints":[]}]}))
+    code="SYN-COMPONENT-SCREEN"
+    request=f"Implementa {code} reutiliza sesión prioridad error genérico"
+    reuse=trace(request,code,{"fields":[]},root=tmp_path)
+    assert {x["term"] for x in reuse}=={"sesion","prioridad","error","generico"}
+    assert all(x["decision"]=="REUTILIZAR" and x["evidence"].startswith("REGISTRY:")
+               for x in reuse)
+    file.write_text("drift",encoding="utf-8")
+    with pytest.raises(RequestTraceBlocked,match="REUTILIZACION_INDETERMINADA"):
+        trace(request,code,{"fields":[]},root=tmp_path)
