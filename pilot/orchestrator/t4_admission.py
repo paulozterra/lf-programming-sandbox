@@ -143,7 +143,7 @@ def registration_variant(root: Path, base_task: str, template_path: str,
             continue
         stem = path.stem
         if stem == base_task or (stem.startswith(base_task)
-                and re.fullmatch(r"[2-9][0-9]*", stem[len(base_task):])):
+                and re.fullmatch(r"(?:[2-9]|[1-9][0-9]+)", stem[len(base_task):])):
             names.append(stem)
     if not names:
         return base_task
