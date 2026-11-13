@@ -61,19 +61,39 @@ def eligible_pr(pr, paths, repo=REPOSITORY):
     if (not isinstance(pr, dict) or pr.get("state") != "open"
             or pr.get("base", {}).get("ref") != "main"
             or pr.get("base", {}).get("repo", {}).get("full_name") != repo
-            or pr.get("head", {}).get("repo", {}).get("full_name") != repo
-            or pr.get("user", {}).get("login") != BOT):
+            or pr.get("head", {}).get("repo", {}).get("full_name") != repo):
         block("PR_UNTRUSTED")
     branch = pr["head"].get("ref", "")
+    generated = branch.startswith(("lf/generated-t7/", "lf/implemented-registry/"))
+    if pr.get("user", {}).get("login") != BOT:
+        block("PR_AUTHOR_NOT_BOT" if generated else "PR_UNTRUSTED")
     if branch.startswith("lf/native-registration/") and len(branch) > len("lf/native-registration/"):
         kind = "registration"
     elif branch.startswith("lf/native-integration/") and len(branch) > len("lf/native-integration/"):
         kind = "integration"
+    elif re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+        kind = "generated-t7"
+    elif re.fullmatch(r"lf/implemented-registry/[0-9a-f]{12}", branch):
+        kind = "implemented-registry"
     else:
         block("PR_BRANCH_NOT_ALLOWED")
     if not SHA.fullmatch(pr["head"].get("sha", "")):
         block("PR_HEAD_INVALID")
-    if not isinstance(paths, list) or not paths or any(is_prohibited(p) for p in paths):
+    if not isinstance(paths, list) or not paths:
+        block("PR_PATH_NOT_ALLOWED" if generated else "PR_PATH_PROHIBITED")
+    if kind == "generated-t7":
+        # Only generated per-request evidence, never request.md or code.
+        allow = re.compile(
+            r"pilot/runs/[a-z][a-z0-9_-]{0,63}/(?:"
+            r"analysis[.]json|state[.]json|lots[.]json|reuse_assessment[.]json|"
+            r"atomized_inputs[.]json|chain_plan[.]json|"
+            r"templates/[a-zA-Z0-9_-]+[.]task[.]json)$")
+        if any(is_prohibited(p) or not allow.fullmatch(p) for p in paths):
+            block("PR_PATH_NOT_ALLOWED")
+    elif kind == "implemented-registry":
+        if paths != ["pilot/registry/implemented.json"]:
+            block("PR_PATH_NOT_ALLOWED")
+    elif any(is_prohibited(p) for p in paths):
         block("PR_PATH_PROHIBITED")
     if len(set(paths)) != len(paths):
         block("PR_PATH_DUPLICATE")
@@ -302,6 +322,8 @@ def evaluate_one(api, number):
     head = pr["head"]["sha"]
     if READY_LABEL in {x.get("name") for x in pr.get("labels", [])}:
         return "ALREADY_LABELED"
+    if kind in ("generated-t7", "implemented-registry"):
+        verify_generated_content(api, pr, paths, kind)
     if kind == "integration":
         try:
             integration_proof(api, pr, paths)
@@ -336,7 +358,8 @@ def run(api, trigger, *, numbers=None):
                       and row.get("head", {}).get("repo", {}).get("full_name") == REPOSITORY
                       and row.get("user", {}).get("login") == BOT
                       and row.get("head", {}).get("ref", "").startswith(
-                          ("lf/native-registration/", "lf/native-integration/"))]
+                          ("lf/native-registration/", "lf/native-integration/",
+                           "lf/generated-t7/", "lf/implemented-registry/"))]
     output = []
     for number in candidates:
         try:
