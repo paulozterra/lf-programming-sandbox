@@ -227,6 +227,18 @@ def atomize(package, root, base_head_sha, *, run):
     for module, areas in sorted(by_module.items()):
         if not {"BACKEND", "FRONTEND"}.issubset(areas):
             continue
+        # Versioned A9 contract readback is mandatory for T2 admission.
+        # Legacy pre-T2 packages continue through their existing T1 path.
+        contract_source = package.get("api_contract_source")
+        if contract_source is None:
+            continue
+        if (not isinstance(contract_source, dict)
+                or contract_source.get("schema_version") != "T2_API_CONTRACT_SOURCE_V1"
+                or not isinstance(contract_source.get("fields"), list)
+                or not isinstance(contract_source.get("errors"), list)
+                or not isinstance(contract_source.get("operations"), list)
+                or not contract_source["operations"]):
+            raise AtomBlocked("T2_CONTRACT_SOURCE_UNRESOLVED")
         policy = rules["contract_lot"]
         if (policy.get("schema_version") != "T2_CONTRACT_LOT_POLICY_V1"
                 or policy.get("profile_area") != "BACKEND"
@@ -246,9 +258,13 @@ def atomize(package, root, base_head_sha, *, run):
             "paths": [path], "depends_on": [],
             "outcome_id": "OUTCOME-" + contract_id,
             "business_outcome": "Formalizar el contrato de API compartido de los requisitos de origen",
-            "source_refs": sorted({provenance[m["atom_id"]]["area"]["source_ref"]
-                                   for m in members}),
+            "source_refs": sorted({
+                provenance[m["atom_id"]]["area"].get("source_ref", "")
+                for m in members
+            } - {""}),
         }
+        if not contract["source_refs"]:
+            raise AtomBlocked("T2_CONTRACT_SOURCE_REFS_MISSING")
         rows.append(contract)
         provenance[contract_id] = {
             "area": {"method": "T2_CONTRACT_POLICY_V1",
