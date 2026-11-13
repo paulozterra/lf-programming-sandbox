@@ -37,7 +37,7 @@ def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True):
         'public String list() { return "ok"; }\n}\n')
     session_path=_file(tmp_path,
         "apps/time-service/src/main/java/demo/ExistingSession.java",
-        'public class ExistingSession {\n// RULE-SESSION\n'
+        'public class ExistingSession {\n'
         'public boolean authenticated() { return true; }\n}\n')
     pkg=launch(tmp_path,"t72-before","Implementa "+code)["package"]
     rid=next(x["requirement_id"] for x in pkg["requirements"]
@@ -46,7 +46,7 @@ def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True):
                 "route":"/api/missing" if missing else "/api/items",
                 "requirement_id":rid, "adds_rule":adds_rule}
     if adds_rule:
-        dependency["reuse_rule_code"]="RULE-SESSION"
+        dependency["reuse_component_signature"]="type:ExistingSession"
     _inventory(folder,[dependency] if declared else [])
     pkg=launch(tmp_path,"t72-after","Implementa "+code)["package"]
     ledger={"schema_version":"T7_IMPLEMENTED_REGISTRY_V1","entries":[]}
