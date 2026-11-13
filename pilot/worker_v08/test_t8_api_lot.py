@@ -97,3 +97,12 @@ def test_api_missing_rules_or_waiver_context_blocks(tmp_path,monkeypatch,area):
     (tmp_path/f".lf/worker-context/{task}/lf_rules.receipt.json").unlink()
     with pytest.raises(api_lot.ApiLotBlocked,match="API_LOT_EVIDENCE_MISSING"):
         api_lot.admit(tmp_path,task)
+
+
+def test_api_pre_model_cost_gate_conservative_for_registered_context():
+    from types import SimpleNamespace
+    spec = SimpleNamespace(max_attempts=1, max_context_bytes=200000)
+    quote=api_lot.budget_gate(ROOT,spec,"claude-haiku-5-5")
+    assert float(quote["worst_case_usd"]) <= float(quote["ceiling_usd"])
+    with pytest.raises(api_lot.ApiLotBlocked,match="API_LOT_PREMODEL_BUDGET_EXCEEDED"):
+        api_lot.budget_gate(ROOT,spec,"claude-sonnet-5-5")
