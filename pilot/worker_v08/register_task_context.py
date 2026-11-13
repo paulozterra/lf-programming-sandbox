@@ -369,7 +369,7 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     if task_name.lower() not in {"ex6", "ex7", "ex8"}:
         from lf_rule_context import material, RuleContextBlocked
         try:
-            lf_rules, lf_rule_receipt = material(area)
+            lf_rules, lf_rule_receipt = material(area, skill_codes=[r["code"] for r in identities])
         except RuleContextBlocked as exc:
             block(str(exc))
     reuse_markdown = None
