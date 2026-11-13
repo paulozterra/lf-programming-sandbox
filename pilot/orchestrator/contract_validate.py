@@ -14,7 +14,7 @@ except ImportError:
     yaml = None
 
 HTTP = frozenset({"get", "put", "post", "delete", "options", "head", "patch", "trace"})
-VERSION = re.compile(r"3\\.[01]\\.[0-9]+\Z")
+VERSION = re.compile(r"3\.[01]\.[0-9]+\Z")
 IDENTITY = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]*\Z")
 SENSITIVE = re.compile(r"password|passwd|secret|api[_-]?key|access[_-]?token|authorization", re.I)
 
