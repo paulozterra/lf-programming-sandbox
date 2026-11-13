@@ -323,8 +323,8 @@ class FixtureHost:
         if inventory["dependencies"]:
             from analysis.host.dependency_attestation import attest
             a4["host_simulated_dependency_attestation"] = attest(
-                self.root, inventory, data["direct_rules.json"],
-                data["effective_rules.json"])
+                self.root, inventory, data, self.provenance,
+                {"A1": a1, "A2": a2, "A3": a3, "A4": a4, "A5": a5})
         if a5.get("status") == "BLOCKED":
             block("SBX_A5_BLOCKED:" + ",".join(a5.get("blocking_codes", [])))
         return {
