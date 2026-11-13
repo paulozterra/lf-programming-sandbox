@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 # Fixed toolchain pin: installed only by trusted Worker CI, never by proposals.
 PLAYWRIGHT_VERSION = "1.56.0"
 BROWSERS_DIR = "/tmp/lf-playwright-browsers"
+PYTHON_RUNTIME = Path("/tmp/lf-playwright-runtime/bin/python")
 FRONTEND_PORT = 3000
 BACKEND_PORT = 8080
 
@@ -175,4 +176,16 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # Vendored command execution intentionally strips the runner's PATH.
+    # Re-exec in the trusted pinned Python venv, not whichever python3 is
+    # installed in /usr/local/bin or selected by a proposal.
+    if not PYTHON_RUNTIME.is_file():
+        print("NAVEGADOR_NO_DISPONIBLE", file=sys.stderr)
+        raise SystemExit(1)
+    try:
+        if Path(sys.executable).resolve() != PYTHON_RUNTIME.resolve():
+            os.execv(str(PYTHON_RUNTIME), [str(PYTHON_RUNTIME), __file__, *sys.argv[1:]])
+    except OSError:
+        print("NAVEGADOR_NO_DISPONIBLE", file=sys.stderr)
+        raise SystemExit(1)
     raise SystemExit(main())
