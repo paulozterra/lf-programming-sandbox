@@ -46,5 +46,5 @@ def test_generated_chain_roots_request_public_exam_without_hand_registration(tmp
         # The title and requested ID are derived, never hardcoded from a case.
         (tmp_path / "pilot/worker_v08/native_tasks").mkdir(parents=True, exist_ok=True)
         assert registration_variant(tmp_path, task, entry["template_path"],
-                                    "b" * 64) == task
+                                    lambda _: set()) == task
     assert all(r["id"] in by_id for r in roots)
