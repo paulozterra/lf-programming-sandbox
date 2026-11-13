@@ -146,7 +146,7 @@ def _assess(stages, signals):
     e_codes = {x.get("rule_code") for x in excluded}
     if (len(a_codes) != len(approved) or len(e_codes) != len(excluded)
             or a_codes & e_codes or set(by_code) != a_codes | e_codes
-            or len(a_codes) != 6 or len(e_codes) != 2
+            or not a_codes
             or any(by_code[c].get("implementation_scope") != "APPROVED_SCOPE"
                    or by_code[c].get("rule_source_ref") != row.get("source_ref")
                    for row in approved for c in [row.get("rule_code")])
