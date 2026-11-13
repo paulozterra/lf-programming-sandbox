@@ -93,4 +93,4 @@
 | CHG-0090 | ADDITIVE | T1: atomizador A9 determinista y artefactos de cadena sin fixtures |  | paulozterra |  |
 | CHG-0091 | ADDITIVE | T1-A: trazabilidad A9 de obligaciones y áreas con fuente; brechas fail-closed |  | paulozterra |  |
 | CHG-0092 | ADDITIVE | T1: módulo funcional común y rutas válidas para Java/Frontend |  | paulozterra |  |
-| CHG-0093 | ADDITIVE | T2: lote CONTRATO, OpenAPI y cliente tipado |  | paulozterra |  |
+| CHG-0093 | ADDITIVE | T2 CP1.5: lote CONTRATO gobernado y OpenAPI tipado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/138 |
