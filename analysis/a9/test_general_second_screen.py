@@ -159,6 +159,13 @@ def test_second_screen_produces_two_lots_without_manual_decision(tmp_path):
     assert len(lots["lots"]) == 2
     assert lots["lots"][1]["depends_on"] == [lots["lots"][0]["id"]]
     assert (folder / "lots.json").is_file()
+    atoms = json.loads((folder / "atomized_inputs.json").read_text())["atoms"]
+    be = next(a for a in atoms if a["area"] == "BACKEND")
+    fe = next(a for a in atoms if a["area"] == "FRONTEND")
+    assert "apps/time-service/src/main/java/lf/sandbox/time/notesedit/NotesEditController.java" in be["paths"]
+    assert "apps/time-service/src/main/java/lf/sandbox/time/notesedit/NotesEditService.java" in be["paths"]
+    assert "frontend/src/app/notes-edit/page.tsx" in fe["paths"]
+    assert "frontend/src/lib/notes-edit.ts" in fe["paths"]
     assert (folder / "t1_interventions.json").is_file()
     assert json.loads((folder / "t1_interventions.json").read_text())["INTERVENCION_MANUAL"] == "NO"
     if os.getenv("T1A_ARTIFACT_DIR"):
