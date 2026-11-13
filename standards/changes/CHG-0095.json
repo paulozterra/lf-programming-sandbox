@@ -13,9 +13,10 @@
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/chain-lots.yml",
       ".github/workflows/ci.yml",
-      "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/chain_contract.py",
+      "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/t4_admission.py",
       "pilot/orchestrator/test_chain_lots.py",
       "pilot/orchestrator/test_t4_admission.py",
