@@ -245,7 +245,7 @@ def _git_head(source: Path) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("phase", choices=("preflight", "execute"))
+    parser.add_argument("phase", choices=("preflight", "execute", "dry-run-reuse"))
     parser.add_argument("--control", type=Path, required=True)
     parser.add_argument("--source", type=Path)
     parser.add_argument("--proposal", type=Path)
@@ -254,7 +254,35 @@ def main() -> None:
     parser.add_argument("--attempt", type=int, default=1)
     parser.add_argument("--run-id", type=int)
     parser.add_argument("--github-output", type=Path)
+    parser.add_argument("--reuse-context", type=Path)
     a = parser.parse_args()
+    if a.phase == "dry-run-reuse":
+        # Explicit offline rehearsal; no vendor invocation, no model, no
+        # hidden oracle, no native PASS receipt and no attempt registration.
+        from reuse_guard import check as check_reuse, DuplicateComponent
+        try:
+            if not a.source or not a.proposal or not a.reuse_context:
+                raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+            candidate = strict_json_loads(a.proposal.read_text("utf-8"))
+            if (not isinstance(candidate, dict)
+                    or set(candidate) != {"schema_version", "summary", "patch", "changed_paths"}
+                    or candidate["schema_version"] != 1
+                    or not isinstance(candidate["patch"], str)
+                    or not isinstance(candidate["changed_paths"], list)):
+                raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+            context = strict_json_loads(a.reuse_context.read_text("utf-8"))
+            check_reuse(a.source, candidate["patch"], context)
+        except (DuplicateComponent, OSError, ValueError, KeyError) as exc:
+            reason = str(exc)
+            code = reason.split(":", 1)[0]
+            if code not in ("DUPLICA_COMPONENTE_EXISTENTE", "REUTILIZACION_INDETERMINADA"):
+                code = "REUTILIZACION_INDETERMINADA"
+            print("NATIVE_REUSE_DRY_RUN_BLOCKED:" + (
+                reason[:500] if code == "DUPLICA_COMPONENTE_EXISTENTE" else code),
+                file=sys.stderr)
+            raise SystemExit(1)
+        print("NATIVE_REUSE_DRY_RUN_PASS_UNAUTHENTICATED")
+        return
     try:
         if a.phase == "preflight":
             preflight(a.control, a.task, a.github_output)
