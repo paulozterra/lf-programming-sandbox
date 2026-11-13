@@ -223,3 +223,10 @@ def test_stale_generated_client_blocks(tmp_path,monkeypatch):
     monkeypatch.setenv("PATH",str(root)+os.pathsep+os.environ["PATH"])
     with pytest.raises(ContractBlocked,match="CONTRACT_GENERATED_CLIENT_STALE"):
         check_generated(root)
+
+
+def test_intervention_report_distinguishes_bot_contract_from_manual_contract():
+    from pilot.orchestrator.intervention_report import classify
+    path="contracts/functional-unit.openapi.yaml"
+    assert classify(path,"BOT","sample")[0]=="AUTOMATIC"
+    assert classify(path,"PAULO_O_GPT","sample")[1]=="MANUAL_CONTRACT"
