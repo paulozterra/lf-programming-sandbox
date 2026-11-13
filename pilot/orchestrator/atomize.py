@@ -23,21 +23,58 @@ def canonical(value):
                        ensure_ascii=False) + "\n").encode("utf-8")
 
 
-def _slug(source):
-    if not isinstance(source, str):
+def _slug(source, rules):
+    """Resolve functional module from area-free scope, with versioned prefixes."""
+    if not isinstance(source, str) or not source:
         raise AtomBlocked("ATOM_IDENTITY_INVALID")
-    result = re.sub(r"[^a-z0-9]+", "-", source.lower()).strip("-")
-    for prefix in ("sbx-auth-", "scope-"):
+    base = source.lower()
+    for area in rules["order"]:
+        suffix = "-" + area.lower()
+        if base.endswith(suffix):
+            base = base[:-len(suffix)]
+            break
+    result = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+    if not result:
+        raise AtomBlocked("ATOM_IDENTITY_INVALID")
+    for prefix in sorted(rules["scope_module_prefixes"], key=len, reverse=True):
         if result.startswith(prefix):
             result = result[len(prefix):]
+            break
     if not SAFE.fullmatch(result):
         raise AtomBlocked("ATOM_IDENTITY_INVALID")
     return result
 
 
+JAVA_PACKAGE = re.compile(r"[a-z][a-z0-9]*\\Z")
+JAVA_CLASS = re.compile(r"[A-Z][A-Za-z0-9]*\\Z")
+JAVA_RESERVED = frozenset({
+    "abstract", "assert", "boolean", "break", "byte", "case", "catch",
+    "char", "class", "const", "continue", "default", "do", "double",
+    "else", "enum", "extends", "final", "finally", "float", "for",
+    "goto", "if", "implements", "import", "instanceof", "int",
+    "interface", "long", "native", "new", "package", "private",
+    "protected", "public", "return", "short", "static", "strictfp",
+    "super", "switch", "synchronized", "this", "throw", "throws",
+    "transient", "try", "void", "volatile", "while", "true", "false",
+    "null", "record", "sealed", "permits", "var", "yield",
+})
+
+
+def _java_module(module):
+    token = module.replace("-", "")
+    if not JAVA_PACKAGE.fullmatch(token) or token in JAVA_RESERVED:
+        raise AtomBlocked("ATOM_JAVA_PACKAGE_INVALID:" + str(module))
+    return token
+
+
 def _rules():
     data = json.loads(RULES.read_text(encoding="utf-8"))
-    if data.get("schema_version") != "T1_ATOMIZE_RULES_V1":
+    if (data.get("schema_version") != "T1_ATOMIZE_RULES_V1"
+            or not isinstance(data.get("scope_module_prefixes"), list)
+            or not all(isinstance(p, str) and p.endswith("-")
+                       and re.fullmatch(r"[a-z][a-z0-9-]*-", p)
+                       for p in data["scope_module_prefixes"])
+            or len(set(data["scope_module_prefixes"])) != len(data["scope_module_prefixes"])):
         raise AtomBlocked("ATOM_RULES_INVALID")
     return data
 
@@ -55,7 +92,10 @@ def _next_version(root):
 
 
 def _class(module, suffix):
-    return "".join(part.capitalize() for part in module.split("-")) + suffix
+    name = "".join(part.capitalize() for part in module.split("-")) + suffix
+    if not JAVA_CLASS.fullmatch(name):
+        raise AtomBlocked("ATOM_JAVA_CLASS_INVALID:" + str(module))
+    return name
 
 
 def _route(area, module, rules, root):
@@ -66,7 +106,7 @@ def _route(area, module, rules, root):
     if area == "BACKEND":
         return [rules["routes"]["BACKEND"].format(
             service=service, service_java=service.split("-")[0],
-            module=module, **{"class": _class(module, suffix)})
+            module_java=_java_module(module), **{"class": _class(module, suffix)})
             for suffix in rules["backend_classes"]]
     if area == "FRONTEND":
         return [p.format(module=module) for p in rules["routes"]["FRONTEND"]]
@@ -146,7 +186,7 @@ def atomize(package, root, base_head_sha, *, run):
                 unresolved.append({"scope_id": scope_id, "front_id": front["front_id"],
                                    "why": area_source})
                 continue
-            module = _slug(scope_id)
+            module = _slug(scope_id, rules)
             atom_id = "ATOM-" + hashlib.sha256((scope_id + "|" + front["front_id"]).encode()).hexdigest()[:12]
             paths = _route(area, module, rules, root)
             groups = [paths[i:i + rules["max_paths"]] for i in range(0, len(paths), rules["max_paths"])]
@@ -165,7 +205,8 @@ def atomize(package, root, base_head_sha, *, run):
                     "front_id": {"source": "A9.material_fronts", "value": front["front_id"]},
                     "area": area_source,
                     "paths": {"source": "pilot/orchestrator/atomize_rules_v1.json",
-                              "route": area},
+                              "route": area, "functional_module": module,
+                              "java_package_token": _java_module(module) if area == "BACKEND" else None},
                     "business_outcome": {"source": "A9.requirements",
                                          "requirement_ids": [r["requirement_id"] for r in related]},
                     "atom_id": {"source": "SHA256(scope_id|front_id)"},
