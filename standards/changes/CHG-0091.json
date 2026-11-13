@@ -21,7 +21,7 @@
       "standards/changes/CHG-0091.json"
     ]
   },
-  "approved_by": "",
+  "approved_by": "paulozterra",
   "requested_by": "owner",
   "security_pin_invalidation": {
     "invalidates": false,
