@@ -452,7 +452,7 @@ jobs:
           T1_ARTIFACT_DIR: ${{ runner.temp }}/t1
         run: |
           python3 pilot/orchestrator/selector_db.py --t1-patterns
-          python3 -m pytest -q pilot/orchestrator/test_atomize.py -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py -p no:cacheprovider
       - name: T1-A positive Login A9 to PG05 without manual fixtures
         env:
           T1A_ARTIFACT_DIR: ${{ runner.temp }}/t1a
