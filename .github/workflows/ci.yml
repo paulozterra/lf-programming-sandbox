@@ -147,6 +147,39 @@ jobs:
       - run: python3 standards/tools/stack_checks.py run --set postgres-flyway --check-id db-catalog-files
       - run: python3 -m unittest discover -s standards/tests -v
 
+  t7-registry-history:
+    name: T7 registry reconstructed from exact historical Train merges
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Build read-only historical registry candidate (never modify main)
+        run: |
+          python3 -m pip install --disable-pip-version-check --no-input PyYAML==6.0.3
+          python3 -m py_compile pilot/orchestrator/implemented_registry.py
+          python3 pilot/orchestrator/implemented_registry.py --main-sha "$(git rev-parse origin/main)" --write
+          python3 - <<'PY'
+          import json,pathlib
+          p=pathlib.Path("pilot/registry/implemented.json")
+          value=json.loads(p.read_text())
+          assert value["schema_version"]=="T7_IMPLEMENTED_REGISTRY_V1"
+          assert value["entries"]
+          assert all(e["merge_sha"] and e["status"] in ("ATTESTED","NO_DERIVABLE") for e in value["entries"])
+          print("T7_REGISTRY_HISTORY_RECONSTRUCTED",len(value["entries"]))
+          PY
+
   t5-browser-visible:
     name: T5 Playwright Chromium local app (visible only)
     runs-on: ubuntu-latest
@@ -322,7 +355,7 @@ jobs:
       - name: T7 repository index, catalogue and adversarial duplicate tests (NO MODEL)
         run: |
           python3 -m py_compile analysis/host/request_catalog.py pilot/orchestrator/reuse_assessment.py pilot/orchestrator/t7_entry.py pilot/worker_v08/reuse_guard.py
-          python3 -m pytest -q pilot/orchestrator/test_t7_reuse.py pilot/orchestrator/test_t2_general_guard.py -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_t7_reuse.py pilot/orchestrator/test_t7_registry.py pilot/orchestrator/test_t2_general_guard.py -p no:cacheprovider
       - name: T5 Playwright guard and encrypted-oracle command contract (NO MODEL)
         run: |
           python3 -m py_compile pilot/worker_v08/playwright_gate.py
