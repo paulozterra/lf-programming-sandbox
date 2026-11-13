@@ -341,6 +341,25 @@ def worktree(base: str, branch: str, callback):
             run("git", "worktree", "remove", "--force", str(directory))
 
 
+def close_stale_drafts(prefix: str, current: str) -> list[int]:
+    """Close bot drafts generated for an older main; they can never pass the
+    exact-main content check, and leaving them open blocks regeneration."""
+    rows = json.loads(run("gh", "pr", "list", "--repo", REPO, "--state", "open",
+                          "--limit", "100", "--json", "number,headRefName,author"))
+    if not isinstance(rows, list):
+        deny("PENDING_DRAFT_LIST_INVALID")
+    closed = []
+    for item in rows:
+        ref = str(item.get("headRefName", "")) if isinstance(item, dict) else ""
+        login = str((item.get("author") or {}).get("login", "")) if isinstance(item, dict) else ""
+        if (ref.startswith(prefix) and ref != prefix + current
+                and login in ("app/github-actions", "github-actions[bot]", "github-actions")):
+            run("gh", "pr", "close", str(int(item["number"])), "--repo", REPO, "--delete-branch",
+                "--comment", "Superado: main avanzó a " + current + "; se regenera sobre el main actual.")
+            closed.append(int(item["number"]))
+    return closed
+
+
 def pending_draft(prefix: str) -> bool:
     """Do not create another draft for the same task/request after main moves."""
     rows = json.loads(run("gh", "pr", "list", "--repo", REPO,
@@ -520,6 +539,7 @@ def sync_implemented_registry(head: str) -> dict:
     if old is not None and old.get("entries") == result["entries"]:
         return {"status": "REGISTRY_CURRENT"}
     branch = "lf/implemented-registry/" + head[:12]
+    close_stale_drafts("lf/implemented-registry/", head[:12])
     if pending_draft("lf/implemented-registry/"):
         return {"status": "REGISTRY_PENDING_REVIEW"}
     def create(root: Path):
