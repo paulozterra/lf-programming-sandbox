@@ -7,27 +7,35 @@
     "kind": "OWNER",
     "reference": "T2: contrato automático + OpenAPI, 2026-11-13"
   },
-  "reason": "Infraestructura OpenAPI con dependencias fijas; lote CONTRATO determinista para funcionalidades con backend y frontend; validadores de fuente y cobertura, cliente generado y controles de CI. No modifica productores fijados ni rutas de integración.",
+  "reason": "T2 revisado por Claude: el lote CONTRATO se deriva automáticamente del paquete A9 real, genera únicamente contracts/<module>.skeleton.json (campos, errores, requisitos y reglas fuente) y exige que el constructor proponga el OpenAPI, sin inferir rutas ni métodos. Validador determinista cubre especificación 3.x, campos, errores, requisitos y secretos; CI incluye casos Login/Notes/aleatorio, cliente tipado, rutas springdoc y Worker YAML acotado. F5 histórico se conserva y se valida separado de A9 actual. No altera productores fijados, integración, Train ni política C.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/f5-package.yml",
       "apps/time-service/pom.xml",
-      "frontend/package.json",
+      "contracts/.gitkeep",
       "frontend/package-lock.json",
+      "frontend/package.json",
       "frontend/scripts/gen-api.mjs",
       "frontend/src/lib/api/client.ts",
       "frontend/src/lib/api/generated/index.ts",
       "pilot/orchestrator/atomize.py",
       "pilot/orchestrator/atomize_rules_v1.json",
+      "pilot/orchestrator/contract_generate.py",
       "pilot/orchestrator/contract_validate.py",
-      "pilot/orchestrator/plan_lots.py",
       "pilot/orchestrator/generate_chain.py",
-      "pilot/orchestrator/package_to_lots.py",
+      "pilot/orchestrator/intervention_report.py",
       "pilot/orchestrator/native_lot_binding.py",
+      "pilot/orchestrator/package_to_lots.py",
+      "pilot/orchestrator/plan_lots.py",
       "pilot/orchestrator/test_contract_t2.py",
-      ".github/workflows/ci.yml",
+      "pilot/orchestrator/test_package_to_lots.py",
+      "pilot/orchestrator/test_t2_general_guard.py",
+      "pilot/worker_v08/derive_context.py",
+      "pilot/worker_v08/lot_preflight.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0093.json"
     ]
@@ -44,6 +52,6 @@
     "expected_direction": "NON_INCREASING"
   },
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/138"
   }
 }
