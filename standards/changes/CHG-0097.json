@@ -1,0 +1,65 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0097",
+  "title": "T7: admisión de pedidos desde catálogo, índice de reutilización y protección anti-duplicación",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T7 entrada automática y reutilización de código 2026-11-13"
+  },
+  "reason": "Registro determinista desde merges Train para vincular requirements/rules con archivos y SHA, normalización host de los dos formatos de catálogo, reutilización con evidencia exacta y validación Worker anti-duplicación. Las lagunas históricas se conservan como NO_DERIVABLE sin fingir contratos ni autoridad productiva.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/auto-integrate.yml",
+      ".github/workflows/ci.yml",
+      ".github/workflows/t7-request.yml",
+      "analysis/a6/implementability.py",
+      "analysis/a7/front_coverage.py",
+      "analysis/host/fixture_normalize.py",
+      "analysis/host/fixture_readback_host.py",
+      "analysis/host/request_catalog.py",
+      "analysis/host/run_a1_a6_fixture.py",
+      "analysis/host/run_a1_a8_fixture.py",
+      "analysis/host/run_a1_a9_fixture.py",
+      "analysis/host/simulated_admission_gate.py",
+      "analysis/host/test_fixture_readback_host.py",
+      "pilot/auto_integrate.py",
+      "pilot/orchestrator/atomize.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/contract_validate.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/implemented_registry.py",
+      "pilot/orchestrator/intervention_report.py",
+      "pilot/orchestrator/reuse_assessment.py",
+      "pilot/orchestrator/t7_entry.py",
+      "pilot/orchestrator/test_chain_lots.py",
+      "pilot/orchestrator/test_t2_general_guard.py",
+      "pilot/orchestrator/test_t7_registry.py",
+      "pilot/orchestrator/test_t7_reuse.py",
+      "pilot/t7_generated_ci.py",
+      "pilot/test_auto_integrate.py",
+      "pilot/worker_v08/native_run.py",
+      "pilot/worker_v08/register_task_context.py",
+      "pilot/worker_v08/reuse_guard.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0097.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/142"
+  }
+}

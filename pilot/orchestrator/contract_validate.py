@@ -143,6 +143,12 @@ def _check_skeleton(skeleton, module):
             or len(error_codes) != len(skeleton["errors"])
             or len(set(requirements)) != len(requirements)):
         deny("CONTRACT_SKELETON_DUPLICATE")
+    reused = skeleton.get("reused_endpoints", [])
+    if (not isinstance(reused, list) or len(set(reused)) != len(reused)
+            or any(not isinstance(op, str) or not re.fullmatch(
+                r"(?:GET|POST|PUT|PATCH|DELETE) /[A-Za-z0-9_/{}/.-]*", op)
+                for op in reused)):
+        deny("REUTILIZACION_INDETERMINADA")
     return field_codes, error_codes, set(requirements)
 
 
@@ -150,7 +156,10 @@ def validate(path, skeleton, module):
     spec = load(path)
     fields, errors, required = _check_skeleton(skeleton, module)
     seen_requirements, seen_errors, seen_fields = set(), set(), set()
-    for _, _, operation in operations(spec):
+    reused = set(skeleton.get("reused_endpoints", []))
+    for route, method, operation in operations(spec):
+        if method.upper() + " " + route in reused:
+            deny("DUPLICA_COMPONENTE_EXISTENTE")
         seen_requirements.update(operation["x-requirement-ids"])
         seen_fields.update(_field_names(operation))
         for response in operation["responses"].values():

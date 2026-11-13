@@ -221,6 +221,7 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
         return {"status": "DRAFT_PREPARED", "merge_authorized": False}
     shared = (
         patch.object(chain_lots, "check_main", return_value=newer_main),
+        patch.object(chain_lots, "sync_implemented_registry", return_value={"status": "REGISTRY_CURRENT"}),
         patch.object(chain_lots, "plans", return_value=[
             ("simulated", lots, status, bindings)]),
         patch.object(chain_lots, "first_parent_merges", return_value=history),
@@ -298,6 +299,7 @@ def test_p4_priority_chain_plan_data_merge_releases_backend_offline(tmp_path):
     with ExitStack() as stack:
         for manager in (
             patch.object(chain_lots, "check_main", return_value=current_main),
+            patch.object(chain_lots, "sync_implemented_registry", return_value={"status": "REGISTRY_CURRENT"}),
             patch.object(chain_lots, "event_kind", return_value="TRAIN"),
             patch.object(chain_lots, "plans", return_value=selected),
             patch.object(chain_lots, "first_parent_merges",
@@ -406,6 +408,7 @@ def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be(tmp_p
         with ExitStack() as stack:
             for item in (
                 patch.object(chain_lots, "check_main", return_value=head),
+                patch.object(chain_lots, "sync_implemented_registry", return_value={"status": "REGISTRY_CURRENT"}),
                 patch.object(chain_lots, "validated_manual_integration", return_value=sha),
                 patch.object(chain_lots, "plans", return_value=selected),
                 patch.object(chain_lots, "first_parent_merges",
@@ -453,3 +456,51 @@ def test_t4_exact_main_ci_retries_admission_after_train_race():
             "run_attempt": 2}):
         with pytest.raises(ChainBlocked, match="SOURCE_WORKFLOW_UNTRUSTED"):
             chain_lots.event_kind(177, head)
+
+
+def test_t7_registry_first_seed_runs_even_without_chain_plans():
+    # A Train merge that introduces T7 itself must seed the ledger even if
+    # the repository has no existing CP3.6 owner chain plans yet.
+    expected = {"status": "REGISTRY_DRAFT", "draft_pr": "https://example.invalid/1"}
+    with patch.object(chain_lots, "check_main", return_value="a" * 40), \
+         patch.object(chain_lots, "event_kind", return_value="TRAIN"), \
+         patch.object(chain_lots, "sync_implemented_registry", return_value=expected) as seed, \
+         patch.object(chain_lots, "plans", return_value=[]):
+        result = chain_lots.process(event_run_id=91)
+    seed.assert_called_once_with("a" * 40)
+    assert result == [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
+                       "registry": expected}]
+
+
+def test_t7_in_run_chain_plan_is_discovered_by_cp36(tmp_path):
+    lots, plan, _, _ = fixtures(tmp_path)
+    root = tmp_path / "pilot/runs/simulated"
+    root.mkdir(parents=True)
+    (root / "lots.json").write_bytes(canonical(lots))
+    (root / "chain_plan.json").write_bytes(canonical(plan))
+    (root / "state.json").write_bytes(canonical({
+        "stage": "LOTS_PLANNED",
+        "lots_sha256": hashlib.sha256(canonical(lots)).hexdigest(),
+    }))
+    with patch.object(chain_lots, "ROOT", tmp_path):
+        results = chain_lots.plans()
+    assert len(results) == 1 and results[0][0] == "simulated"
+    assert set(results[0][3]) == {"SOL-001", "SOL-002"}
+
+
+def test_t7_conflicting_legacy_and_in_run_chain_plans_block(tmp_path):
+    lots, plan, _, _ = fixtures(tmp_path)
+    root = tmp_path / "pilot/runs/simulated"
+    root.mkdir(parents=True)
+    (root / "lots.json").write_bytes(canonical(lots))
+    (root / "chain_plan.json").write_bytes(canonical(plan))
+    (root / "state.json").write_bytes(canonical({
+        "stage": "LOTS_PLANNED",
+        "lots_sha256": hashlib.sha256(canonical(lots)).hexdigest(),
+    }))
+    old = tmp_path / "pilot/orchestrator/chain_plans"
+    old.mkdir(parents=True)
+    (old / "simulated.json").write_text("{}")
+    with patch.object(chain_lots, "ROOT", tmp_path):
+        with pytest.raises(ChainBlocked, match="CHAIN_PLAN_DRIFT"):
+            chain_lots.plans()

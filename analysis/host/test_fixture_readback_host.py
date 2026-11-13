@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from analysis.host.fixture_readback_host import (
-    DEFAULT_FIXTURES, FixtureBlocked, FixtureHost, TARGET,
+    DEFAULT_FIXTURES, FixtureBlocked, FixtureHost,
 )
 from analysis.host.run_a1_a5_fixture import REQUEST, encoded, execute
 

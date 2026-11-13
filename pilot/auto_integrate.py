@@ -5,7 +5,11 @@ from __future__ import annotations
 import base64
 import io
 import json
+import hashlib
 import os
+from pathlib import Path
+import subprocess
+import tempfile
 import re
 import sys
 import urllib.error
@@ -61,19 +65,39 @@ def eligible_pr(pr, paths, repo=REPOSITORY):
     if (not isinstance(pr, dict) or pr.get("state") != "open"
             or pr.get("base", {}).get("ref") != "main"
             or pr.get("base", {}).get("repo", {}).get("full_name") != repo
-            or pr.get("head", {}).get("repo", {}).get("full_name") != repo
-            or pr.get("user", {}).get("login") != BOT):
+            or pr.get("head", {}).get("repo", {}).get("full_name") != repo):
         block("PR_UNTRUSTED")
     branch = pr["head"].get("ref", "")
+    generated = branch.startswith(("lf/generated-t7/", "lf/implemented-registry/"))
+    if pr.get("user", {}).get("login") != BOT:
+        block("PR_AUTHOR_NOT_BOT" if generated else "PR_UNTRUSTED")
     if branch.startswith("lf/native-registration/") and len(branch) > len("lf/native-registration/"):
         kind = "registration"
     elif branch.startswith("lf/native-integration/") and len(branch) > len("lf/native-integration/"):
         kind = "integration"
+    elif re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+        kind = "generated-t7"
+    elif re.fullmatch(r"lf/implemented-registry/[0-9a-f]{12}", branch):
+        kind = "implemented-registry"
     else:
         block("PR_BRANCH_NOT_ALLOWED")
     if not SHA.fullmatch(pr["head"].get("sha", "")):
         block("PR_HEAD_INVALID")
-    if not isinstance(paths, list) or not paths or any(is_prohibited(p) for p in paths):
+    if not isinstance(paths, list) or not paths:
+        block("PR_PATH_NOT_ALLOWED" if generated else "PR_PATH_PROHIBITED")
+    if kind == "generated-t7":
+        # Only generated per-request evidence, never request.md or code.
+        allow = re.compile(
+            r"pilot/runs/[a-z][a-z0-9_-]{0,63}/(?:"
+            r"analysis[.]json|state[.]json|lots[.]json|reuse_assessment[.]json|"
+            r"atomized_inputs[.]json|chain_plan[.]json|"
+            r"templates/[a-zA-Z0-9_-]+(?:[.]task|[.]skeleton)[.]json)$")
+        if any(is_prohibited(p) or not allow.fullmatch(p) for p in paths):
+            block("PR_PATH_NOT_ALLOWED")
+    elif kind == "implemented-registry":
+        if paths != ["pilot/registry/implemented.json"]:
+            block("PR_PATH_NOT_ALLOWED")
+    elif any(is_prohibited(p) for p in paths):
         block("PR_PATH_PROHIBITED")
     if len(set(paths)) != len(paths):
         block("PR_PATH_DUPLICATE")
@@ -82,13 +106,13 @@ def eligible_pr(pr, paths, repo=REPOSITORY):
     return kind
 
 
-def validate_checks(checks, head):
+def validate_checks(checks, head, required=REQUIRED):
     """Only latest GitHub Actions check of each required name on exact HEAD."""
     if not SHA.fullmatch(head) or not isinstance(checks, list):
         block("CHECKS_INVALID")
     found = {}
     for row in checks:
-        if not isinstance(row, dict) or row.get("name") not in REQUIRED:
+        if not isinstance(row, dict) or row.get("name") not in required:
             continue
         if (row.get("head_sha") != head
                 or row.get("app", {}).get("slug") != "github-actions"
@@ -97,12 +121,12 @@ def validate_checks(checks, head):
         name = row["name"]
         if name not in found or row["id"] > found[name]["id"]:
             found[name] = row
-    if len(found) != len(REQUIRED):
+    if len(found) != len(required):
         block("CHECKS_MISSING")
     if any(row.get("status") != "completed" or row.get("conclusion") != "success"
            for row in found.values()):
         block("CHECKS_NOT_GREEN")
-    return {name: found[name]["id"] for name in REQUIRED}
+    return {name: found[name]["id"] for name in required}
 
 
 def native_run_reference(pr_body, chg):
@@ -261,6 +285,12 @@ def pr_files(api, number):
     rows = api.pages(f"/pulls/{number}/files", None)
     if any(not isinstance(r, dict) or not isinstance(r.get("filename"), str) for r in rows):
         block("PR_FILES_INVALID")
+    # A rename touches both paths. GitHub's filename alone is insufficient
+    # to prove that a generated PR stayed within its closed allowlist.
+    if any(r.get("status") in ("renamed", "copied") or
+           (r.get("previous_filename") and r["previous_filename"] != r["filename"])
+           for r in rows):
+        block("PR_PATH_NOT_ALLOWED")
     return [r["filename"] for r in rows]
 
 
@@ -287,6 +317,70 @@ def integration_proof(api, pr, paths):
     return validate_native_proof(run, proof, status, run_id, task)
 
 
+def _content(api, path, revision):
+    """Fetch exact GitHub blob bytes, never execute code from a PR checkout."""
+    response = api.request("GET", "/contents/" + path + "?ref=" + revision)
+    if (not isinstance(response, dict) or response.get("type") != "file"
+            or response.get("encoding") != "base64"
+            or type(response.get("size")) is not int
+            or not 0 < response["size"] <= 1_000_000):
+        block("GENERATED_CONTENT_DRIFT")
+    try:
+        raw = base64.b64decode("".join(response["content"].split()), validate=True)
+    except (ValueError, UnicodeError, KeyError):
+        block("GENERATED_CONTENT_DRIFT")
+    if len(raw) != response["size"]:
+        block("GENERATED_CONTENT_DRIFT")
+    return raw
+
+
+def verify_generated_content(api, pr, paths, kind):
+    """Regenerate with TRUSTED main tooling before policy C labels a bot PR."""
+    head = pr["head"]["sha"]
+    root = Path(__file__).resolve().parents[1]
+    main = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, text=True,
+                          capture_output=True, check=True).stdout.strip()
+    if (not SHA.fullmatch(main) or not head or
+            pr["head"]["ref"].rsplit("/", 1)[-1] != main[:12]):
+        block("GENERATED_CONTENT_DRIFT")
+    try:
+        if kind == "implemented-registry":
+            from pilot.orchestrator.implemented_registry import reconstruct
+            ledger = reconstruct(root, main, lambda n: api.request("GET", f"/pulls/{n}"))
+            expected = (json.dumps(ledger, sort_keys=True, ensure_ascii=False, indent=2)
+                        + "\n").encode("utf-8")
+            if _content(api, "pilot/registry/implemented.json", head) != expected:
+                block("GENERATED_CONTENT_DRIFT")
+            return
+        if kind != "generated-t7":
+            block("GENERATED_CONTENT_DRIFT")
+        slugs = sorted({p.split("/")[2] for p in paths})
+        from analysis.host.request_catalog import resolve
+        from analysis.host.run_a1_a9_fixture import run_f4
+        for slug in slugs:
+            path = f"pilot/runs/{slug}/analysis.json"
+            if path not in paths:
+                block("GENERATED_CONTENT_DRIFT")
+            # Read request only from current trusted main; never a PR payload.
+            original = subprocess.run(["git", "show", f"{main}:pilot/runs/{slug}/request.md"],
+                                      cwd=root, capture_output=True, check=False)
+            if original.returncode:
+                block("GENERATED_CONTENT_DRIFT")
+            _, fixture = resolve(root, original.stdout)
+            with tempfile.TemporaryDirectory(prefix="t7-content-check-") as temp:
+                staging = Path(temp) / "pilot/runs" / slug
+                staging.mkdir(parents=True)
+                (staging / "request.md").write_bytes(original.stdout)
+                run_f4(Path(temp), slug=slug, fixtures=fixture)
+                expected = (staging / "analysis.json").read_bytes()
+            if _content(api, path, head) != expected:
+                block("GENERATED_CONTENT_DRIFT")
+    except PolicyBlocked:
+        raise
+    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError):
+        block("GENERATED_CONTENT_DRIFT")
+
+
 def comment_once(api, pr_number):
     comments = api.pages(f"/issues/{pr_number}/comments", None)
     if any(isinstance(row, dict) and row.get("body") == HUMAN_COMMENT
@@ -302,6 +396,8 @@ def evaluate_one(api, number):
     head = pr["head"]["sha"]
     if READY_LABEL in {x.get("name") for x in pr.get("labels", [])}:
         return "ALREADY_LABELED"
+    if kind in ("generated-t7", "implemented-registry"):
+        verify_generated_content(api, pr, paths, kind)
     if kind == "integration":
         try:
             integration_proof(api, pr, paths)
@@ -310,7 +406,9 @@ def evaluate_one(api, number):
                 comment_once(api, number)
             raise
     checks = api.pages(f"/commits/{head}/check-runs", "check_runs")
-    validate_checks(checks, head)
+    required = (REQUIRED + ("T7 generated content byte equality",)
+                if kind in ("generated-t7", "implemented-registry") else REQUIRED)
+    validate_checks(checks, head, required)
     latest = api.request("GET", f"/pulls/{number}")
     if (latest.get("head", {}).get("sha") != head
             or latest.get("state") != "open"
@@ -336,7 +434,8 @@ def run(api, trigger, *, numbers=None):
                       and row.get("head", {}).get("repo", {}).get("full_name") == REPOSITORY
                       and row.get("user", {}).get("login") == BOT
                       and row.get("head", {}).get("ref", "").startswith(
-                          ("lf/native-registration/", "lf/native-integration/"))]
+                          ("lf/native-registration/", "lf/native-integration/",
+                           "lf/generated-t7/", "lf/implemented-registry/"))]
     output = []
     for number in candidates:
         try:

@@ -90,7 +90,7 @@ def validate_obligation(item, contract):
     return True
 
 
-def run(stages, signals, envelope, admission):
+def run(stages, signals, envelope, admission, *, source_obligations=None):
     verify(stages, signals, envelope, admission)
     contract = _profile_reuse()
     a3, a5 = stages["A3"], stages["A5"]
@@ -98,7 +98,27 @@ def run(stages, signals, envelope, admission):
     included = sorted((p for p in profiles
                        if p.get("implementation_scope") == "APPROVED_SCOPE"),
                       key=lambda x: x["rule_code"])
-    expected = _expected()
+    if source_obligations is None:
+        expected = _expected()  # unchanged legacy corpus
+    else:
+        # A one-file screen's source.json is SHA-pinned by FixtureHost.
+        # These are literal source obligations, not guessed HOW or routes.
+        if not isinstance(source_obligations, list) or not source_obligations:
+            _blocked("F2_A6_UNEXPECTED_SOURCE_RULES")
+        expected = {}
+        for item in source_obligations:
+            if not isinstance(item, dict):
+                _blocked("F2_A6_UNEXPECTED_SOURCE_RULES")
+            code = item.get("source_requirement_id")
+            outcome = item.get("outcome")
+            checks = item.get("acceptance_checks")
+            if (not isinstance(code, str) or not code
+                    or code in expected or not isinstance(outcome, str)
+                    or not outcome.strip() or not isinstance(checks, list)
+                    or not checks or any(not isinstance(v, str) or not v.strip()
+                                         for v in checks)):
+                _blocked("F2_A6_UNEXPECTED_SOURCE_RULES")
+            expected[code] = (outcome, checks)
     if {p["rule_code"] for p in included} != set(expected):
         _blocked("F2_A6_UNEXPECTED_SOURCE_RULES")
     requirements = []

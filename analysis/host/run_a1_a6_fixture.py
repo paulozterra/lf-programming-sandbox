@@ -13,16 +13,18 @@ from analysis.host.simulated_admission_gate import seal_envelope, admit
 from analysis.a6.implementability import run as run_a6
 
 
-def run_f2(fixtures=None, output_dir=None):
+def run_f2(fixtures=None, output_dir=None, request=None):
     host = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
-    data = host.read_all()
+    data = host.read_all(request)
     signal = deepcopy(data["semantic_signals.json"]["a2_signals"])
     signal["evidence_refs"] = [host.provenance["semantic_signals.json"]]
-    real = execute(REQUEST, fixtures=fixtures)
+    actual_request = data["semantic_signals.json"]["request_text"] if request is None else request
+    real = execute(actual_request, fixtures=fixtures)
     stages = real["stages"]
     envelope = seal_envelope(stages, signal)
     admission = admit(stages, signal, envelope)
-    a6 = run_a6(stages, signal, envelope, admission)
+    a6 = run_a6(stages, signal, envelope, admission,
+                source_obligations=data["semantic_signals.json"].get("source_obligations"))
     result = {
         "simulation_mode": "SIMULATED_SANDBOX_ONLY",
         "authority_flags": admission["authority_flags"],

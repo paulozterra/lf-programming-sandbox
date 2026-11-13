@@ -9,7 +9,6 @@ from copy import deepcopy
 import hashlib
 import json
 
-from analysis.host.fixture_readback_host import TARGET
 
 MODE = "SIMULATED_SANDBOX_ONLY"
 STAGES = ("A1", "A2", "A3", "A4", "A5")
@@ -83,6 +82,15 @@ def _a2_narrow(signals, a2):
         _blocked("F2_A2_BLOCKING_SET_INVALID")
 
 
+def _target(stages):
+    """Derive the target from the typed A1 payload, never a fixture constant."""
+    hints = stages.get("A1", {}).get("payload", {}).get("target_hints")
+    if (not isinstance(hints, list) or len(hints) != 1
+            or not isinstance(hints[0], str) or not hints[0]):
+        _blocked("F2_SOURCE_IDENTITY_OR_AUTHORITY_INVALID")
+    return hints[0]
+
+
 def _assess(stages, signals):
     output_digests(stages)
     for stage in STAGES:
@@ -94,9 +102,9 @@ def _assess(stages, signals):
         if row.get("status") != STATUS[stage]:
             _blocked("F2_UPSTREAM_STATUS_UNEXPECTED:" + stage)
     a1, a2, a3, a4, a5 = (stages[k] for k in STAGES)
-    if (a1.get("payload", {}).get("target_hints") != [TARGET]
-            or a2.get("classification", {}).get("target_ref") != TARGET
-            or any(x.get("target_ref") != TARGET for x in (a3, a4, a5))
+    if (a1.get("payload", {}).get("target_hints") != [_target(stages)]
+            or a2.get("classification", {}).get("target_ref") != _target(stages)
+            or any(x.get("target_ref") != _target(stages) for x in (a3, a4, a5))
             or a3.get("source_attested") is not False
             or a4.get("source_attested") is not False
             or a5.get("source_attested") is not False
@@ -138,7 +146,7 @@ def _assess(stages, signals):
     e_codes = {x.get("rule_code") for x in excluded}
     if (len(a_codes) != len(approved) or len(e_codes) != len(excluded)
             or a_codes & e_codes or set(by_code) != a_codes | e_codes
-            or len(a_codes) != 6 or len(e_codes) != 2
+            or not a_codes
             or any(by_code[c].get("implementation_scope") != "APPROVED_SCOPE"
                    or by_code[c].get("rule_source_ref") != row.get("source_ref")
                    for row in approved for c in [row.get("rule_code")])
@@ -153,7 +161,7 @@ def seal_envelope(stages, signals):
     body = {
         "schema_version": "SIMULATED_ADMISSION_ENVELOPE_V1",
         "attestation_mode": MODE,
-        "target_ref": TARGET,
+        "target_ref": _target(stages),
         "materiality_level": signals["depth_signals"]["materiality_level"],
         "stage_sha256": output_digests(stages),
         "a2_signals_sha256": digest(signals),
@@ -172,7 +180,7 @@ def admit(stages, signals, envelope):
         _blocked("F2_ADMISSION_ENVELOPE_DIGEST_INVALID")
     if (body.get("schema_version") != "SIMULATED_ADMISSION_ENVELOPE_V1"
             or body.get("attestation_mode") != MODE
-            or body.get("target_ref") != TARGET
+            or body.get("target_ref") != _target(stages)
             or body.get("materiality_level") != signals.get("depth_signals", {}).get("materiality_level")
             or body.get("authority_flags") != FALSE_FLAGS):
         _blocked("F2_ADMISSION_ENVELOPE_IDENTITY_INVALID")
@@ -187,7 +195,7 @@ def admit(stages, signals, envelope):
     return {
         "schema_version": "SIMULATED_ADMISSION_V1",
         "attestation_mode": MODE,
-        "target_ref": TARGET,
+        "target_ref": _target(stages),
         "a6_admitted": True,
         "materiality_level": signals["depth_signals"]["materiality_level"],
         "lifted_codes": lifts,

@@ -149,14 +149,27 @@ def validated_manual_integration(number: int, head: str) -> str:
 
 
 def plans() -> list[tuple[str, dict, dict, dict]]:
-    base = ROOT / "pilot/orchestrator/chain_plans"
-    if not base.exists():
-        return []
+    # Legacy CP3.6 plans remain where originally written. T7 generated
+    # evidence PRs are restricted to pilot/runs/<slug>/, so they publish
+    # chain_plan.json inside their own request folder.
+    sources = {}
+    legacy = ROOT / "pilot/orchestrator/chain_plans"
+    if legacy.exists():
+        for file in sorted(legacy.glob("*.json")):
+            if file.is_symlink() or not SAFE_ID.fullmatch(file.stem):
+                deny("CHAIN_PLAN_PATH_INVALID")
+            sources[file.stem] = file
+    runs = ROOT / "pilot/runs"
+    if runs.exists():
+        for file in sorted(runs.glob("*/chain_plan.json")):
+            request = file.parent.name
+            if file.is_symlink() or file.parent.is_symlink() or not SAFE_ID.fullmatch(request):
+                deny("CHAIN_PLAN_PATH_INVALID")
+            if request in sources and sources[request].read_bytes() != file.read_bytes():
+                deny("CHAIN_PLAN_DRIFT")
+            sources.setdefault(request, file)
     rows = []
-    for file in sorted(base.glob("*.json")):
-        if file.is_symlink() or not SAFE_ID.fullmatch(file.stem):
-            deny("CHAIN_PLAN_PATH_INVALID")
-        request = file.stem
+    for request, file in sorted(sources.items()):
         folder = ROOT / "pilot/runs" / request
         if folder.is_symlink():
             deny("CHAIN_RUN_SYMLINK")
@@ -472,6 +485,50 @@ def block_request(request: str, state: dict, result: dict, head: str) -> dict:
     return worktree(head, branch, process)
 
 
+
+def draft_implemented_registry(root: Path, branch: str, head: str) -> dict:
+    """Trusted CP3.6 publishes one generated JSON, without CHG or manual label."""
+    path = "pilot/registry/implemented.json"
+    run("git", "add", "--", path, cwd=root)
+    if not run("git", "diff", "--cached", "--name-only", cwd=root).strip() == path:
+        deny("REGISTRY_CHANGED_PATHS_INVALID")
+    run("git", "commit", "-m", "[CP3.6] generated implementation registry", cwd=root)
+    current_main = run("git", "ls-remote", "origin", "refs/heads/main", cwd=root).split()[0]
+    if current_main != head:
+        deny("MAIN_MOVED_BEFORE_DRAFT")
+    run("git", "push", "--set-upstream", "origin", branch, cwd=root)
+    url = run("gh", "pr", "create", "--repo", REPO, "--base", "main",
+              "--head", branch, "--draft",
+              "--title", "[DRAFT][CP3.6] registro generado de implementaciones",
+              "--body", "Únicamente pilot/registry/implemented.json. Política C verifica "
+              "regeneración idéntica en main y aplica etiqueta por bot; Train fusiona.",
+              cwd=root)
+    run("gh", "workflow", "run", "ci.yml", "--repo", REPO, "--ref", branch, cwd=root)
+    return {"draft_pr": url, "head_sha": run("git", "rev-parse", "HEAD", cwd=root)}
+
+
+def sync_implemented_registry(head: str) -> dict:
+    """CP3.6 trusted main merge consumer is the sole registry writer.
+
+    It stages the ledger in a Draft PR: Train-only main remains enforced.
+    No labels or direct main writes. Historical seed uses the same derivation.
+    """
+    from implemented_registry import reconstruct, save
+    result = reconstruct(ROOT, head, lambda number: api(f"pulls/{number}"))
+    current = ROOT / "pilot/registry/implemented.json"
+    old = json.loads(current.read_text("utf-8")) if current.exists() else None
+    if old is not None and old.get("entries") == result["entries"]:
+        return {"status": "REGISTRY_CURRENT"}
+    branch = "lf/implemented-registry/" + head[:12]
+    if pending_draft("lf/implemented-registry/"):
+        return {"status": "REGISTRY_PENDING_REVIEW"}
+    def create(root: Path):
+        if not save(root, result):
+            return {"status": "REGISTRY_CURRENT"}
+        return draft_implemented_registry(root, branch, head)
+    return {"status": "REGISTRY_DRAFT", **worktree(head, branch, create)}
+
+
 def process(event_run_id: int | None = None, integration_pr: int | None = None) -> list[dict]:
     head = check_main()
     manual_sha = (validated_manual_integration(integration_pr, head)
@@ -479,9 +536,13 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
     kind = "TRAIN" if manual_sha is not None else event_kind(event_run_id, head)
     if kind == "IRRELEVANT":
         return [{"status": "IGNORED_SOURCE_EVENT"}]
+    # Seed registry on first trusted Train/main-CI event, even when no
+    # previously registered chain plan exists. Never require a manual label.
+    registry_status = (sync_implemented_registry(head) if kind == "TRAIN" else None)
     all_plans = plans()
     if not all_plans:
-        return [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS"}]
+        return [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
+                 **({"registry": registry_status} if registry_status else {})}]
     history = first_parent_merges()
     if manual_sha is not None and not any(sha == manual_sha for sha, _, _ in history):
         deny("MANUAL_INTEGRATION_OUTSIDE_HISTORY")
@@ -539,6 +600,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
                 continue
             outcomes.append({"request": request, "lot_id": lot_id,
                              **prepare_successor(request, chosen, completed, head)})
+    if registry_status is not None and registry_status.get("status") == "REGISTRY_DRAFT":
+        outcomes.append(registry_status)
     return outcomes or [{"status": "NO_RELEASE_OR_BLOCK"}]
 
 
