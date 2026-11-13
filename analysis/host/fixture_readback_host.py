@@ -69,7 +69,7 @@ class FixtureHost:
         self.target = None
         self.source_prefix = "fixture://" + self.root.name + "/"
 
-    def read_all(self):
+    def read_all(self, request_text: str | None = None):
         pin = self.root / "SOURCE_PIN.json"
         if not pin.is_file():
             block("SBX_SOURCE_PIN_MISSING")
@@ -77,6 +77,19 @@ class FixtureHost:
             manifest = json.loads(pin.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             block("SBX_SOURCE_PIN_INVALID")
+        if manifest.get("schema_version") == "SOURCE_SCREEN_PIN_V1":
+            if request_text is None:
+                block("ANALISIS_SENALES_NO_DERIVABLES")
+            from analysis.host.fixture_normalize import normalize, NormalizeBlocked
+            try:
+                target, data, evidence = normalize(self.root, request_text)
+            except NormalizeBlocked as exc:
+                block(str(exc))
+            if set(data) != set(FILES):
+                block("ANALISIS_FUENTE_NO_COMPATIBLE")
+            self.target = target
+            self.provenance = evidence
+            return data
         entries = manifest.get("files")
         target = manifest.get("fixture_id")
         if (manifest.get("schema_version") != "SBX_FIXTURE_PIN_V1"
@@ -204,7 +217,7 @@ class FixtureHost:
         }
 
     def run(self, request_text: str):
-        data = self.read_all()  # all 13 required sources, without network
+        data = self.read_all(request_text)  # pin-checked or deterministic 13-source projection
         semantic = data["semantic_signals.json"]
         if semantic.get("simulation") is not True or request_text != semantic.get("request_text"):
             block("SBX_SEMANTIC_REQUEST_NOT_PRESTRUCTURED")
