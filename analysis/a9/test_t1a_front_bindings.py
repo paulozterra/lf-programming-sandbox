@@ -42,7 +42,7 @@ def test_a4_nonempty_inventory_fails_closed():
 def test_required_field_without_requirement_fails_closed():
     fronts, reqs, sections, rules = packet()
     reqs = [r for r in reqs if r["evidence_refs"] != sections["fields"][0]["rule_refs"]]
-    with pytest.raises(FrontBindingGap, match="A9_FIELD_REQUIREMENT_NOT_SOURCED"):
+    with pytest.raises(FrontBindingGap, match="A9_SECTION_RULE_WITHOUT_APPROVED_REQUIREMENT"):
         partition(fronts, reqs, sections, rules,
                   scope="SBX-AUTH-LOGIN", create_empty_inventory=True)
 
