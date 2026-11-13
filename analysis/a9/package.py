@@ -12,6 +12,7 @@ from pathlib import Path
 from pilot.orchestrator import intake
 from analysis.host.simulated_admission_gate import AdmissionBlocked, MODE, digest, verify
 from analysis.a7.front_coverage import validate_coverage
+from analysis.a9.front_bindings import bind as bind_front
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = ROOT / "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts"
@@ -307,9 +308,12 @@ def build(result, request_raw):
     if not reqs:
         fail("F4_A9_REQUIREMENTS_EMPTY")
     front_rows = []
+    sections = stages["A3"]["material_contract_readback"]["contract_sections"]
+    effective = result["rule_sources"]["effective"]
     for row in a7["material_fronts"]:
-        front_rows.append({
+        projected = {
             "front_id": row["front_id"],
+            "candidate_ref": row["candidate_ref"],
             "scope_ids": list(row["scope_refs"]), "obligation_mode": row["status"],
             "closure": row["closure"], "blockers": list(row["blockers"]),
             "evidence_refs": list(row["evidence_refs"]), "reason": row["reason"],
@@ -321,7 +325,8 @@ def build(result, request_raw):
             "materiality_level": row["materiality_level"],
             "requires_independent_exam": row["requires_independent_exam"],
             "simulation_mode": MODE,
-        })
+        }
+        front_rows.append(bind_front(projected, reqs, sections, effective))
     front_ids = sorted(x["front_id"] for x in front_rows)
     has_blocked = any(f["closure"] == "BLOCKED" for f in front_rows)
     readiness = ("BLOCKED" if a8.get("decision") == "BLOCKED"
