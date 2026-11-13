@@ -133,8 +133,8 @@ def test_format_is_machine_verified_only_with_pinned_successful_visible_command(
     from pilot.worker_v08.lf_rule_gate import verified_visible_commands
     table=[{"rule_id":"STD-BE-05","coverage":"NO_VERIFICADO",
             "reason":"SIN_VERIFICADOR_COMPLETO"}]
-    command={"name":"std-be-05-spotless-check",
-             "argv":["mvn","-f","apps/time-service/pom.xml","spotless:check"]}
+    from pilot.worker_v08.register_task_context import FORMAT_COMMAND
+    command={"name":FORMAT_COMMAND["name"],"argv":FORMAT_COMMAND["argv"]}
     visible={"attempts":[{"acceptance":[{
         **command,"status":"PASS","returncode":0}]}]}
     updated=verified_visible_commands(table,visible,[command])
@@ -186,3 +186,12 @@ def test_manifest_domains_change_context_exactly_without_manual_lists(tmp_path, 
     assert modified != initial
     with pytest.raises(RuleContextBlocked,match="DOMINIOS_NO_RESUELTOS"):
         material(area, skill_codes=["unmatched_stack"], standards_root=standards)
+
+
+def test_fake_format_command_cannot_credit_machine_coverage():
+    from pilot.worker_v08.lf_rule_gate import verified_visible_commands
+    table=[{"rule_id":"STD-BE-05","coverage":"NO_VERIFICADO",
+            "reason":"SIN_VERIFICADOR_COMPLETO"}]
+    forged={"name":"std-be-05-spotless-check","argv":["true"]}
+    visible={"attempts":[{"acceptance":[{**forged,"status":"PASS"}]}]}
+    assert verified_visible_commands(table,visible,[forged]) == table
