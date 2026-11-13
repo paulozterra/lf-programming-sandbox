@@ -13,6 +13,7 @@
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/auto-integrate.yml",
       ".github/workflows/ci.yml",
       ".github/workflows/t7-request.yml",
       "analysis/a6/implementability.py",
@@ -25,6 +26,7 @@
       "analysis/host/run_a1_a9_fixture.py",
       "analysis/host/simulated_admission_gate.py",
       "analysis/host/test_fixture_readback_host.py",
+      "pilot/auto_integrate.py",
       "pilot/orchestrator/atomize.py",
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/contract_validate.py",
@@ -36,6 +38,7 @@
       "pilot/orchestrator/test_t2_general_guard.py",
       "pilot/orchestrator/test_t7_registry.py",
       "pilot/orchestrator/test_t7_reuse.py",
+      "pilot/test_auto_integrate.py",
       "pilot/worker_v08/native_run.py",
       "pilot/worker_v08/register_task_context.py",
       "pilot/worker_v08/reuse_guard.py",
