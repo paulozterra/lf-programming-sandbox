@@ -1,7 +1,7 @@
 {
   "schema_version": "T71_REQUEST_LEXICON_V1",
   "language": "es",
-  "description": "Spanish grammatical words and instruction verbs only; domain concepts must come from SHA-pinned screen fiche or verified implementation index",
+  "description": "Spanish grammatical words, common request verbs and generic narrative qualifiers; business concepts (including session identity) require screen fiche or SHA-verified implementation evidence",
   "stop_words": [
     "a",
     "al",
@@ -166,6 +166,7 @@
     "implementa",
     "implementacion",
     "implementar",
+    "iniciada",
     "listan",
     "manda",
     "mandar",
@@ -194,6 +195,7 @@
     "reutiliza",
     "reutilizar",
     "segun",
+    "servicio",
     "si",
     "sistema",
     "solicitados",
@@ -204,5 +206,6 @@
     "vigente",
     "vigentes",
     "ya"
-  ]
+  ],
+  "lexicon_revision": "2026-11-13.2"
 }
