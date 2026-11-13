@@ -367,6 +367,8 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         if (document.get("schema_version") != "T7_REUSE_ASSESSMENT_V1"
                 or not isinstance(document.get("obligations"), list)):
             block("REUTILIZACION_INDETERMINADA")
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
         from pilot.orchestrator.reuse_assessment import index as code_index
         indexed = code_index(root)["entries"]
         lines = ["# Reutilizar componentes verificados",
