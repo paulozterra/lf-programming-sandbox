@@ -108,7 +108,24 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
     if not all(key in contract for key in
                ("fields", "errors", "visual", "context", "metadata")):
         raise NormalizeBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
-    sections = {**screen_sections, "rules": deepcopy(rules),
+    # A9's source-bound partition joins section rule_refs with effective A3
+    # rule source identities. Project the same numeric pinned fixture IDs at
+    # the host seam; the original source.json remains immutable.
+    def projected_refs(node):
+        if isinstance(node, dict):
+            return {k: ([_source_compatible_ref(v, "rule") for v in value]
+                        if k == "rule_refs" and isinstance(value, list)
+                        else projected_refs(value))
+                    for k, value in node.items()}
+        if isinstance(node, list):
+            return [projected_refs(v) for v in node]
+        return node
+    screen_sections = projected_refs(screen_sections)
+    rules_projected = [{**deepcopy(rule),
+                        "source_ref": _source_compatible_ref(rule["source_ref"], "rule"),
+                        "association_ref": _source_compatible_ref(rule["association_ref"], "association")}
+                       for rule in rules]
+    sections = {**screen_sections, "rules": rules_projected,
                 "policies": deepcopy(contract.get("policies", []))}
     # These identities are deliberately synthetic, never provider IDs.
     fixture_number = int(pin["sha256"][:8], 16) or 1
