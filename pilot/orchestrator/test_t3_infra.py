@@ -22,7 +22,10 @@ def test_a9_screen_with_explicit_dependency_produces_infra_before_backend(tmp_pa
     # Real A9 screen package, no fake HTTP endpoints or data source records.
     _, package = scenario(tmp_path, kind, slug="t3-" + kind)
     package = deepcopy(package)
-    package["dependency_requirements"] = ["spring-jdbc"]
+    source = next(r for r in package["requirements"] if r.get("evidence_refs"))
+    package["dependency_requirements"] = [{
+        "id":"spring-jdbc","requirement_id":source["requirement_id"],
+        "source_ref":source["evidence_refs"][0]}]
     result = atomize.atomize(package, tmp_path, "a" * 40, run="t3-" + kind)
     items = result["atoms"]
     assert [x["area"] for x in items] == ["INFRA", "CONTRATO", "BACKEND", "FRONTEND"]
@@ -68,11 +71,13 @@ def test_synthetic_random_data_generates_infra_and_classpath_path(tmp_path):
 
 def test_unlisted_or_malformed_dependency_blocks():
     with pytest.raises(infra_lot.DependencyBlocked, match="DEPENDENCIA_NO_PERMITIDA"):
-        infra_lot.infra_atom({"dependency_requirements": ["unapproved-library"]},
+        infra_lot.infra_atom({"dependency_requirements": [{"id":"unapproved-library","requirement_id":"REQ-RANDOM-X",
+                             "source_ref":"fixture://source"}]},
                              [{"area": "BACKEND", "front_id": "F3-X",
                                "requirement_ids": ["REQ-RANDOM-X"]}])
     with pytest.raises(infra_lot.DependencyBlocked, match="DEPENDENCIA_NO_PERMITIDA"):
-        infra_lot.infra_atom({"dependency_requirements": ["spring-jdbc:latest"]},
+        infra_lot.infra_atom({"dependency_requirements": [{"id":"spring-jdbc:latest","requirement_id":"REQ-RANDOM-X",
+                             "source_ref":"fixture://source"}]},
                              [{"area": "BACKEND", "front_id": "F3-X",
                                "requirement_ids": ["REQ-RANDOM-X"]}])
 
@@ -92,7 +97,11 @@ def test_version_mismatch_blocks_instead_of_upgrading(tmp_path):
             "requirement_ids":["REQ-RANDOM-A"]}]
     with pytest.raises(infra_lot.DependencyBlocked,
                        match="DEPENDENCIA_VERSION_NO_PERMITIDA"):
-        infra_lot.infra_atom({"dependency_requirements":["spring-jdbc"]},
+        infra_lot.infra_atom({"requirements":[{"requirement_id":"REQ-RANDOM-A",
+                                  "evidence_refs":["fixture://source"]}],
+                              "dependency_requirements":[{
+                                  "id":"spring-jdbc","requirement_id":"REQ-RANDOM-A",
+                                  "source_ref":"fixture://source"}]},
                              atoms,root=root)
 
 
