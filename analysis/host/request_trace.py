@@ -168,13 +168,15 @@ def trace(request: str, target: str, sections: dict, *,
     extraneous=[]
     reused=[]
     for word in _words(request):
-        if _covers(word,known) or word in neutral:
+        if _covers(word,known):
             continue
         matched=next((candidate for candidate in sorted(reuse)
                       if _covers(word,{candidate})),None)
         if matched is not None:
             reused.append({"term":word,"decision":"REUTILIZAR",
                            "evidence":witnesses[matched]})
+            continue
+        if word in neutral:
             continue
         if word not in extraneous:
             extraneous.append(word)
