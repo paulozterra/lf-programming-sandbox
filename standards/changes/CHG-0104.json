@@ -13,14 +13,15 @@
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/ci.yml",
       "analysis/host/fixture_normalize.py",
       "analysis/host/request_trace.py",
+      "pilot/orchestrator/atomize.py",
+      "pilot/orchestrator/contract_validate.py",
       "pilot/orchestrator/declared_dependencies.py",
+      "pilot/orchestrator/generate_chain.py",
       "pilot/orchestrator/reuse_assessment.py",
       "pilot/orchestrator/t7_entry.py",
-      "pilot/orchestrator/atomize.py",
-      "pilot/orchestrator/generate_chain.py",
-      "pilot/orchestrator/contract_validate.py",
       "pilot/orchestrator/test_t72_dependencies.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0104.json"
