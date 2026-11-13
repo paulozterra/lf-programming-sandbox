@@ -108,7 +108,7 @@ def normalize(root: Path, request: str) -> tuple[str, dict, dict]:
             rule.get("association_ref"), "association")})
         effective_rows.append({**common, "binding_source": e.get("binding_source"),
                                "config": deepcopy(e.get("config", {}))})
-        configs.append({"code": code, "valor_config": deepcopy(e.get("config", {}))})
+        configs.append({"code": _normalized_code(code), "valor_config": deepcopy(e.get("config", {}))})
     screen_sections = {key: deepcopy(contract.get(key, typ))
                        for key, typ in (("fields", []), ("errors", []),
                                         ("visual", {}), ("context", {}),
