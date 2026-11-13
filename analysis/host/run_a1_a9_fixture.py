@@ -15,10 +15,10 @@ from pilot.orchestrator import intake
 SLUG = "f4-" + DEFAULT_FIXTURES.name.split("_")[-1]
 
 
-def make_rule_sources(fixtures=None):
+def make_rule_sources(fixtures=None, request=None):
     """Reuse F1 host SHA verification, never infer category/config from prose."""
     host = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
-    rows = host.read_all()
+    rows = host.read_all(request)
     direct = rows["direct_rules.json"]
     config = {x["code"]: x["valor_config"] for x in direct["valor_config"]}
     return {
@@ -43,7 +43,7 @@ def run_f4(root, slug=SLUG, fixtures=None):
         checked = FixtureHost(fixtures) if fixtures is not None else FixtureHost()
         raw = (checked.read_all()["semantic_signals.json"]["request_text"] + "\n").encode("utf-8")
     source = run_f3(fixtures=fixtures, request=raw.decode("utf-8").strip())
-    source["rule_sources"] = make_rule_sources(fixtures)
+    source["rule_sources"] = make_rule_sources(fixtures, request=raw.decode("utf-8").strip())
     package = build(source, raw)
     validate(package, raw, result=source)
     dest.mkdir(parents=True, exist_ok=True)
