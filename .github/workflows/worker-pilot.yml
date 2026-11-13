@@ -124,6 +124,21 @@ jobs:
               'postgresql://pilot:pilot@127.0.0.1:5432/pilot' \
               -Atqc 'SELECT 1' | grep -qx 1
           echo CP1_1_ISOLATED_TOOLCHAIN_PASS
+      - name: T8 pin Playwright Chromium headless for API-mode visible acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/lf-playwright-runtime
+          /tmp/lf-playwright-runtime/bin/python -m pip install --disable-pip-version-check --no-input playwright==1.56.0
+          PLAYWRIGHT_BROWSERS_PATH=/tmp/lf-playwright-browsers \
+            /tmp/lf-playwright-runtime/bin/python -m playwright install --with-deps --only-shell chromium
+          PLAYWRIGHT_BROWSERS_PATH=/tmp/lf-playwright-browsers \
+            /tmp/lf-playwright-runtime/bin/python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(headless=True); b.close(); p.stop()'
+      - name: T8 offline LF rule gate and stack context validation (no model)
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=source python3 -m pytest -q source/pilot/worker_v08/test_t8_lf_rules.py -p no:cacheprovider
       - name: Validate manual inputs and verify every vendored Worker byte BEFORE install
         id: vendor
         shell: bash
