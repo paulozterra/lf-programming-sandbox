@@ -51,7 +51,7 @@ def test_login_real_intake_validate_and_accept(tmp_path):
 
 
 def test_six_rules_exclusions_parity(payload, upstream):
-    rows = payload["requirements"]
+    rows = [r for r in payload["requirements"] if not r.get("derived_from_requirement_id")]
     assert len(rows) == 6
     assert {x["source_requirement_id"] for x in rows} == {
         x["rule_code"] for x in upstream["stages"]["A3"]["policy_scope_clear_rule_candidates"]}
@@ -73,9 +73,18 @@ def test_material_front_scope_source_split_is_ready(payload):
                for f in payload["non_atomized_fronts"])
     assert any(f["reason"] == "SOURCE_SECTION_HAS_NO_OBLIGATION"
                for f in payload["non_atomized_fronts"])
-    assert set(payload["scope_proposals"][0]["material_front_refs"]) == {
+    assert {scope["scope_id"] for scope in payload["scope_proposals"]} == {
+        "SBX-AUTH-LOGIN-BACKEND", "SBX-AUTH-LOGIN-FRONTEND"}
+    assert {fid for scope in payload["scope_proposals"]
+            for fid in scope["material_front_refs"]} == {
         f["front_id"] for f in payload["material_fronts"]}
-    assert all(f["scope_ids"] == ["SBX-AUTH-LOGIN"] for f in payload["material_fronts"])
+    assert all(f["scope_ids"] == ["SBX-AUTH-LOGIN-" + f["execution_area"]]
+               for f in payload["material_fronts"])
+    assert len({r["requirement_id"] for r in payload["requirements"]}) == len(payload["requirements"])
+    assert all(r["derived_from_requirement_id"] in {
+        source["requirement_id"] for source in payload["requirements"]
+        if "derived_from_requirement_id" not in source}
+        for r in payload["requirements"] if "derived_from_requirement_id" in r)
     assert payload["research_stop"]["decision"] == "STOP"
 
 
