@@ -131,6 +131,9 @@ def verify(root: Path, *, path: str, selector: str, text: str | None,
                 context.route("**/*", lambda route:
                               route.continue_() if local_url(route.request.url)
                               else route.abort("blockedbyclient"))
+                context.route_web_socket("**/*", lambda ws:
+                                         ws.connect() if local_url(ws.url)
+                                         else ws.close())
                 page = context.new_page()
                 page.goto(f"http://127.0.0.1:{FRONTEND_PORT}{path}",
                           wait_until="domcontentloaded", timeout=timeout_ms)
