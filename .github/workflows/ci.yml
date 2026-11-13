@@ -453,6 +453,19 @@ jobs:
         run: |
           python3 pilot/orchestrator/selector_db.py --t1-patterns
           python3 -m pytest -q pilot/orchestrator/test_atomize.py -p no:cacheprovider
+      - name: T1-A positive Login A9 to PG05 without manual fixtures
+        env:
+          T1A_ARTIFACT_DIR: ${{ runner.temp }}/t1a
+        run: |
+          python3 -m pytest -q analysis/host/test_t1a_login_gate.py -p no:cacheprovider
+      - name: Publish T1-A generated Login lots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: t1a-login-lots
+          path: ${{ runner.temp }}/t1a/
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Publish T1 exact generated lots and Login unresolved evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
