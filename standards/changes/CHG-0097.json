@@ -39,6 +39,7 @@
       "pilot/orchestrator/test_t2_general_guard.py",
       "pilot/orchestrator/test_t7_registry.py",
       "pilot/orchestrator/test_t7_reuse.py",
+      "pilot/t7_generated_ci.py",
       "pilot/test_auto_integrate.py",
       "pilot/worker_v08/native_run.py",
       "pilot/worker_v08/register_task_context.py",
