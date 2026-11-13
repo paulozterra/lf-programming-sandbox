@@ -326,8 +326,12 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
             approved={r["code"] for r in data["effective_rules.json"]["rules"]
                       if r.get("status")=="VIGENTE"
                       and r.get("pending_decision") is False}
-            historical=bool(legacy.get("a1_structured") and
-                            legacy.get("a2_signals") and
+            structured=legacy.get("a1_structured")
+            a2_legacy=legacy.get("a2_signals")
+            historical=bool(isinstance(structured,dict) and
+                            isinstance(a2_legacy,dict) and
+                            structured.get("target_hints")==[target] and
+                            a2_legacy.get("target_ref")==target and
                             legacy.get("simulation") is True and
                             corpus.get("schema_version")=="A6_FIXED_WHAT_CORPUS_V1"
                             and approved==set(corpus["requirements"]))
