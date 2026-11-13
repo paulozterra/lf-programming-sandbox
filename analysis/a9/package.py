@@ -13,6 +13,7 @@ from pilot.orchestrator import intake
 from analysis.host.simulated_admission_gate import AdmissionBlocked, MODE, digest, verify
 from analysis.a7.front_coverage import validate_coverage
 from analysis.a9.front_bindings import partition as partition_fronts, FrontBindingGap
+from analysis.a9.area_projection import project as project_areas, AreaOwnershipGap
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = ROOT / "sandbox/lf_contract_gate_test/programming_agent_four_stage/wave1_boundary_contracts"
@@ -340,61 +341,17 @@ def build(result, request_raw):
     if not empty_create and any(f["candidate_ref"].startswith("A4:unresolved:")
                                 for f in a7["material_fronts"]):
         fail("A9_A4_INVENTORY_DEPENDENCY_BLOCKED")
-    by_area = {row["execution_area"]: row["front_id"] for row in front_rows}
-    # Screen area ownership comes exclusively from A9 front requirement refs.
-    # A single source obligation may appear in two areas, but PG04 receives
-    # unique area-level IDs with a preserved parent requirement identity.
-    source_area_ids = {
-        req["requirement_id"]: sorted(row["execution_area"] for row in front_rows
-                                     if req["requirement_id"] in row["requirement_ids"])
-        for req in reqs}
-    if any(not areas for areas in source_area_ids.values()):
-        fail("A9_REQUIRED_OBLIGATION_WITHOUT_AREA")
-    area_order = [row["execution_area"] for row in front_rows]
-    scopes_by_area = {area: scope_id + "-" + area for area in area_order}
-    original_areas = {rid: areas[0] for rid, areas in source_area_ids.items()}
-    result["t1a_rule_area_ids"] = {
-        req["source_requirement_id"]: by_area[original_areas[req["requirement_id"]]]
-        for req in reqs}
-    originals = {r["requirement_id"]: deepcopy(r) for r in reqs}
-    for req in reqs:
-        req["scope_id"] = scopes_by_area[original_areas[req["requirement_id"]]]
-    derived = []
-    for front in front_rows:
-        area = front["execution_area"]
-        sid = scopes_by_area[area]
-        front["scope_ids"] = [sid]
-        linked = []
-        sources = {}
-        for original_id in front["requirement_ids"]:
-            parent = originals[original_id]
-            if next(r for r in reqs if r["requirement_id"] == original_id)["scope_id"] == sid:
-                bound_id = original_id
-            else:
-                bound_id = original_id + "-" + area
-                alias = deepcopy(parent)
-                alias["requirement_id"] = bound_id
-                alias["scope_id"] = sid
-                alias["derived_from_requirement_id"] = original_id
-                alias["execution_area"] = area
-                alias["area_binding_evidence_refs"] = deepcopy(front["evidence_refs"])
-                derived.append(alias)
-            linked.append(bound_id)
-            sources[bound_id] = deepcopy(parent["evidence_refs"])
-        front["requirement_ids"] = sorted(linked)
-        front["obligation_refs"] = sorted(linked)
-        front["requirement_source_refs"] = sources
-    reqs.extend(derived)
     has_blocked = any(f["closure"] == "BLOCKED" for f in front_rows)
     readiness = ("BLOCKED" if a8.get("decision") == "BLOCKED"
                  else "REQUIRES_DECISION" if a8.get("decision") == "REQUIRES_DECISION"
                  else "READY_CANDIDATE" if a8.get("decision") == "STOP" and not has_blocked
                  else "NEED_MORE_EVIDENCE")
-    scopes = [{"scope_id": scopes_by_area[area], "scope_kind": "SCREEN",
-               "material_front_refs": [next(f["front_id"] for f in front_rows
-                                            if f["execution_area"] == area)],
-               "readiness_candidate": readiness, "simulation_mode": MODE}
-              for area in area_order]
+    try:
+        reqs, front_rows, scopes, rule_front_ids = project_areas(
+            scope_id, reqs, front_rows, readiness=readiness)
+    except AreaOwnershipGap as exc:
+        fail(str(exc))
+    result["t1a_rule_area_ids"] = rule_front_ids
     snapshot = _snapshot(result, reqs, front_rows, scopes, classification)
     receipt = {
         "schema_version": "A9_SIMULATED_PACKAGE_RECEIPT_V1",
