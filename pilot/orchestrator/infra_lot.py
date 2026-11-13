@@ -94,13 +94,23 @@ def requirements(atoms, package, config):
     # The only supported explicit request is typed dependency IDs from the
     # source package. Unknown IDs block; never guess a Maven/npm coordinate.
     explicit = package.get("dependency_requirements", [])
-    if not isinstance(explicit, list) or any(not isinstance(x, str) for x in explicit):
+    if not isinstance(explicit, list):
         deny("DEPENDENCIA_NO_PERMITIDA")
-    required.update(explicit)
-    all_ids = {item["id"] for spec in config["targets"].values()
-               for item in spec["dependencies"]}
-    if required - all_ids:
-        deny("DEPENDENCIA_NO_PERMITIDA:" + ",".join(sorted(required - all_ids)))
+    known = {item["id"] for spec in config["targets"].values()
+             for item in spec["dependencies"]}
+    requirements = {r["requirement_id"]:r for r in package.get("requirements", [])}
+    for entry in explicit:
+        if not isinstance(entry, dict) or entry.get("id") not in known:
+            deny("DEPENDENCIA_NO_PERMITIDA")
+        rid = entry.get("requirement_id")
+        source = entry.get("source_ref")
+        if (not isinstance(rid,str) or rid not in requirements
+                or not isinstance(source,str)
+                or source not in requirements[rid].get("evidence_refs", [])):
+            deny("DEPENDENCIA_SIN_FUENTE")
+        required.add(entry["id"])
+    if required - known:
+        deny("DEPENDENCIA_NO_PERMITIDA:" + ",".join(sorted(required-known)))
     return sorted(required)
 
 
