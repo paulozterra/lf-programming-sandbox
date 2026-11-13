@@ -23,7 +23,7 @@ def save(path, value):
         with path.open("xb") as f:
             f.write(content)
 
-def acceptance(area, paths, *, run=None, module=None, has_contract=False, skeleton_path=None):
+def acceptance(area, paths, *, run=None, module=None, has_contract=False, skeleton_path=None, infra_dependencies=None):
     def item(name, argv, timeout=600):
         return {"name":name,"argv":argv,"timeout_seconds":timeout,"max_output_bytes":32000}
     if area=="CONTRATO":
@@ -63,10 +63,25 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False, skelet
             ]
         return result
     if area=="INFRA":
-        return [item("infra-allowlist-and-env",["python3","pilot/orchestrator/infra_validate.py",
-                                              "--check-infra","--root","."]),
-                item("infra-build",["mvn","-U","-B","-q","-f",
-                                    "apps/time-service/pom.xml","package"])]
+        if not isinstance(infra_dependencies, list):
+            raise ValueError("T3_INFRA_DEPENDENCIES_MISSING")
+        argv=["python3","pilot/orchestrator/infra_validate.py",
+              "--check-infra","--root","."]
+        for item in infra_dependencies:
+            argv += ["--dependency-id",item["id"]]
+        if "apps/time-service/src/main/resources/application.properties" in paths:
+            argv += ["--database"]
+        result=[item("infra-allowlist-and-env",argv)]
+        if "apps/time-service/pom.xml" in paths:
+            result.append(item("infra-build",["mvn","-U","-B","-q","-f",
+                                              "apps/time-service/pom.xml",
+                                              "-DskipTests","package"]))
+        if "frontend/package.json" in paths:
+            result.extend([
+                item("infra-npm-ci",["npm","--prefix","frontend","ci"]),
+                item("infra-generated-client",["npm","--prefix","frontend","run","gen:api"]),
+            ])
+        return result
     if area=="DATA":
         return [item("data-classpath-migrations",["python3","pilot/orchestrator/infra_validate.py",
                                                   "--check-data",*paths]),
@@ -160,7 +175,8 @@ def generate(root, run, lots):
             "acceptance_commands":acceptance(lot["area"],paths,run=run,module=module,
                                              has_contract=bool(dependency_contract),
                                              skeleton_path=(skeleton_template.format(module=module)
-                                                            if module and skeleton_template else None)),
+                                                            if module and skeleton_template else None),
+                                             infra_dependencies=lot.get("infra_missing_dependencies")),
             "context_derivation":"pilot/worker_v08/derive_context.py",
         }}
         output[tpath]=template
