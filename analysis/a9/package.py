@@ -21,7 +21,6 @@ ENTRY = CONTRACTS / "programming_entry_contract_v1.json"
 STAGES = [f"A{i}" for i in range(1, 10)]
 AUTHORITY_FALSE = ("production_authority", "handoff_allowed", "merge_allowed",
                    "deploy_allowed", "downstream_authorized", "pg01_consumer_verified")
-SCOPE = "SBX-AUTH-LOGIN"
 
 
 def fail(code):
@@ -101,7 +100,7 @@ def _typed_rules(result, approved, requirements):
     if not isinstance(prov, dict) or set(prov) != {"direct_rules.json", "effective_rules.json"}:
         fail("F4_A9_RULE_PINNED_PROVENANCE_INVALID")
     for name, ref in prov.items():
-        if not isinstance(ref, str) or not ref.startswith("fixture://sbx_auth_login/" + name + "@") or len(ref.split("@")[-1]) != 64:
+        if not isinstance(ref, str) or not ref.startswith("fixture://") or ("/" + name + "@") not in ref or len(ref.split("@")[-1]) != 64:
             fail("F4_A9_RULE_PINNED_PROVENANCE_INVALID")
     direct, effective = source["direct"], source["effective"]
     if not isinstance(direct, dict) or not isinstance(effective, dict):
@@ -224,7 +223,7 @@ def _snapshot(result, requirements, fronts, scopes, classification):
         "schema_version": "PROGRAMMING_CONTEXT_SNAPSHOT_V1",
         "simulation_mode": MODE,
         "objective": result["stages"]["A1"].get("payload", {}).get("objective", {}),
-        "target": SCOPE, "target_granularity": classification["target_granularity"],
+        "target": a3["target_ref"], "target_granularity": classification["target_granularity"],
         "authority_state": classification["authority_state"],
         "implementation_state": classification["implementation_state"],
         "requirements": deepcopy(requirements),
@@ -287,8 +286,9 @@ def build(result, request_raw):
         fail("F4_A9_INTENT_MISSING")
     context = {"intent": intent, "target_ref": a3.get("target_ref"),
                "request_context_source": "A1", "simulation_mode": MODE}
-    if context["target_ref"] != SCOPE:
+    if not isinstance(context["target_ref"], str) or not context["target_ref"]:
         fail("F4_A9_TARGET_MISMATCH")
+    scope_id = context["target_ref"]
     reqs = []
     for row in a6.get("requirements", []):
         checks = row.get("acceptance_signals")
@@ -300,7 +300,7 @@ def build(result, request_raw):
         reqs.append({
             "requirement_id": "REQ-" + code,
             "source_requirement_id": code,
-            "scope_id": SCOPE,
+            "scope_id": scope_id,
             "outcome": row["outcome"],
             "acceptance_signal": " | ".join(checks),
             "acceptance_checks": list(checks),
@@ -325,30 +325,31 @@ def build(result, request_raw):
     try:
         front_rows, non_atomized = partition_fronts(
             a7["material_fronts"], reqs, sections, effective,
-            scope=SCOPE, create_empty_inventory=empty_create)
+            scope=scope_id, create_empty_inventory=empty_create)
     except FrontBindingGap as exc:
         fail(str(exc))
     if not empty_create and any(f["candidate_ref"].startswith("A4:unresolved:")
                                 for f in a7["material_fronts"]):
         fail("A9_A4_INVENTORY_DEPENDENCY_BLOCKED")
     by_area = {row["execution_area"]: row["front_id"] for row in front_rows}
-    source_form_codes = {"SBX-R-" + field["field_code"].removeprefix("SBX-F-")
-                         for field in sections.get("fields", [])
-                         if isinstance(field.get("field_code"), str)
-                         and field.get("required") is True
-                         and field.get("status") == "VIGENTE"}
-    result["t1a_rule_area_ids"] = {
-        req["source_requirement_id"]: by_area[
-            "FRONTEND" if req["source_requirement_id"] in source_form_codes else "BACKEND"]
+    # Screen area ownership comes exclusively from A9 front requirement refs.
+    # A single source obligation may appear in two areas, but PG04 receives
+    # unique area-level IDs with a preserved parent requirement identity.
+    source_area_ids = {
+        req["requirement_id"]: sorted(row["execution_area"] for row in front_rows
+                                     if req["requirement_id"] in row["requirement_ids"])
         for req in reqs}
-    # PG04 owns each executable obligation exactly once. Shared business
-    # requirements use area-qualified implementation IDs with their parent.
-    scopes_by_area = {area: SCOPE + "-" + area for area in ("BACKEND", "FRONTEND")}
+    if any(not areas for areas in source_area_ids.values()):
+        fail("A9_REQUIRED_OBLIGATION_WITHOUT_AREA")
+    area_order = [row["execution_area"] for row in front_rows]
+    scopes_by_area = {area: scope_id + "-" + area for area in area_order}
+    original_areas = {rid: areas[0] for rid, areas in source_area_ids.items()}
+    result["t1a_rule_area_ids"] = {
+        req["source_requirement_id"]: by_area[original_areas[req["requirement_id"]]]
+        for req in reqs}
     originals = {r["requirement_id"]: deepcopy(r) for r in reqs}
     for req in reqs:
-        req["scope_id"] = scopes_by_area[
-            "FRONTEND" if req["source_requirement_id"] in source_form_codes
-            else "BACKEND"]
+        req["scope_id"] = scopes_by_area[original_areas[req["requirement_id"]]]
     derived = []
     for front in front_rows:
         area = front["execution_area"]
@@ -384,7 +385,7 @@ def build(result, request_raw):
                "material_front_refs": [next(f["front_id"] for f in front_rows
                                             if f["execution_area"] == area)],
                "readiness_candidate": readiness, "simulation_mode": MODE}
-              for area in ("BACKEND", "FRONTEND")]
+              for area in area_order]
     snapshot = _snapshot(result, reqs, front_rows, scopes, classification)
     receipt = {
         "schema_version": "A9_SIMULATED_PACKAGE_RECEIPT_V1",
