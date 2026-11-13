@@ -38,39 +38,177 @@ def _strings(node):
         yield node
 
 
-# Fixed Spanish request grammar, not a screen-specific whitelist. Any term
-# outside the grammar or the pinned fiche stays an unattributed fragment.
-GRAMMAR = set(_words("""
-implementa implementar implementes implementen implementacion implementacion
-crea crear cree crees desarrollo desarrolla desarrollar construye construir
-quiero queremos necesito necesitamos solicito solicitamos por favor
-la el los las un una unos unas de del al para por con y e o u
-que se sea es son en esta este esto estos estas pantalla pantallas
-ficha fichas reglas regla campos campo errores error elementos elemento
-estados estado comportamientos comportamiento segun tal como definidos
-definidas definidos definido definida existentes vigente vigentes
-completa completo basado basada basado acorde incluye incluir
-ademas tiene tengan debe deben tenga el usuario usuario
-su sus mis mi nuestro nuestra sus funcionalidad funcionalidades
-codigo codigo lo mismo sin agregar nada adicional sigue seguir
-"""))
+LEXICON_PATH = Path(__file__).with_name("request_lexicon_v1.json")
 
 
-def trace(request: str, target: str, sections: dict) -> None:
-    if not isinstance(request, str) or not request.strip():
+def _lexicon() -> set[str]:
+    try:
+        doc = json.loads(LEXICON_PATH.read_text("utf-8"))
+    except (OSError, ValueError) as exc:
+        raise RequestTraceBlocked("LEXICO_NO_DISPONIBLE") from exc
+    if (doc.get("schema_version") != "T71_REQUEST_LEXICON_V1"
+            or doc.get("language") != "es"
+            or not all(isinstance(doc.get(k), list) for k in ("stop_words", "request_grammar"))):
+        raise RequestTraceBlocked("LEXICO_NO_DISPONIBLE")
+    return set(_words(" ".join(doc["stop_words"] + doc["request_grammar"])))
+
+
+def _variants(term: str) -> set[str]:
+    """Deterministic lightweight Spanish inflection / infinitive-clitic forms.
+
+    Does not translate domain concepts, infer synonyms or claim embeddings.
+    """
+    values={term}
+    if len(term)>5 and term.endswith(("es", "s")):
+        values.add(term[:-2] if term.endswith("es") else term[:-1])
+    for clitic in ("las", "los", "les", "la", "lo", "le"):
+        if len(term)>len(clitic)+4 and term.endswith(clitic):
+            stem=term[:-len(clitic)]
+            if stem.endswith(("ar","er","ir")):
+                values.add(stem)
+    if len(term)>5 and term.endswith(("ada","ado","adas","ados","ando","iendo",
+                                     "ara","aron","are","era","era","era",
+                                     "ia","io","o","a")):
+        root=re.sub(r"(adas|ados|ando|iendo|aron|ada|ado|ara|are|era|ia|io|o|a)$","",term)
+        if len(root)>=5:
+            values.add(root)
+    return values
+
+
+def _covers(term: str, known: set[str]) -> bool:
+    variants=_variants(term)
+    if variants & known:
+        return True
+    # Match morphology only when both have an independently meaningful stem.
+    return any(a==b for a in variants for k in known for b in _variants(k))
+
+
+def _verified_reuse_words(root: Path) -> tuple[set[str], dict[str, str]]:
+    """Only verified index entries and SHA-valid registry artifacts count."""
+    known=set()
+    witnesses={}
+    from pilot.orchestrator.reuse_assessment import index, ReuseBlocked
+    try:
+        ix=index(root)
+    except (OSError, ValueError, ReuseBlocked) as exc:
+        raise RequestTraceBlocked("REUTILIZACION_INDETERMINADA") from exc
+    for row in ix.get("entries", []):
+        if row.get("kind") not in ("endpoint", "public_signature",
+                                   "error_code", "implemented_rule"):
+            continue
+        for word in _words(str(row.get("key",""))):
+            known.add(word)
+            witnesses.setdefault(word, "CODE_INDEX:" + str(row.get("path","")))
+        # A route file's canonical path can name an existing component,
+        # but only for a pinned index entry with file SHA evidence.
+        if row.get("kind")=="endpoint":
+            for word in _words(Path(str(row.get("path",""))).stem):
+                known.add(word)
+                witnesses.setdefault(word,"CODE_INDEX:" + str(row.get("path","")))
+    ledger=root/"pilot/registry/implemented.json"
+    if ledger.is_symlink():
+        raise RequestTraceBlocked("REUTILIZACION_INDETERMINADA")
+    if ledger.is_file():
+        try:
+            reg=json.loads(ledger.read_text("utf-8"))
+        except (OSError, ValueError) as exc:
+            raise RequestTraceBlocked("REUTILIZACION_INDETERMINADA") from exc
+        if (reg.get("schema_version")!="T7_IMPLEMENTED_REGISTRY_V1"
+                or not isinstance(reg.get("entries"),list)):
+            raise RequestTraceBlocked("REUTILIZACION_INDETERMINADA")
+        for row in reg["entries"]:
+            if not isinstance(row,dict) or row.get("status")!="ATTESTED":
+                continue
+            files=row.get("files")
+            if not isinstance(files,list) or not files:
+                continue
+            verified=True
+            for item in files:
+                if not isinstance(item,dict):
+                    verified=False
+                    break
+                rel=item.get("path")
+                digest=item.get("sha256")
+                if (not isinstance(rel,str) or rel.startswith("/")
+                        or ".." in Path(rel).parts or not isinstance(digest,str)):
+                    verified=False
+                    break
+                file=root/rel
+                if file.is_symlink() or not file.is_file() or hashlib.sha256(
+                        file.read_bytes()).hexdigest()!=digest:
+                    verified=False
+                    break
+            if not verified:
+                raise RequestTraceBlocked("REUTILIZACION_INDETERMINADA")
+            for value in list(row.get("rule_codes",[]))+list(row.get("endpoints",[])):
+                for word in _words(str(value)):
+                    known.add(word)
+                    witnesses.setdefault(word, "REGISTRY:" + str(row.get("merge_sha","")))
+    return known,witnesses
+
+
+def trace(request: str, target: str, sections: dict, *,
+          root: Path | None = None, data: dict | None = None) -> list[dict]:
+    if not isinstance(request,str) or not request.strip():
         raise RequestTraceBlocked("PEDIDO_AMBIGUO")
-    if not isinstance(sections, dict):
+    if not isinstance(sections,dict):
         raise RequestTraceBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
+    # Pinned source fiche includes the entire contract plus typed rule
+    # descriptions, elements, errors and states; no screen-specific literals.
+    source={"sections":sections}
+    if data is not None:
+        for name in ("direct_rules.json","effective_rules.json",
+                     "elements.json","states.json","variants.json"):
+            source[name]=data.get(name,{})
     known=set(_words(target))
-    for value in _strings(sections):
+    for value in _strings(source):
         known.update(_words(value))
-    # Screen identifiers from the requested code are already resolved by
-    # request_catalog. Match only source-sheet vocabulary, never guess synonyms.
-    supplied=_words(request)
-    uncovered=[word for word in supplied if word not in known and word not in GRAMMAR]
-    if uncovered:
-        fragments=list(dict.fromkeys(uncovered))
-        raise RequestTraceBlocked("PEDIDO_EXCEDE_FICHA", fragments)
+    neutral=_lexicon()
+    reuse,witnesses=_verified_reuse_words(root or Path(__file__).resolve().parents[2])
+    extraneous=[]
+    reused=[]
+    for word in _words(request):
+        if _covers(word,known) or word in neutral:
+            continue
+        matched=next((candidate for candidate in sorted(reuse)
+                      if _covers(word,{candidate})),None)
+        if matched is not None:
+            reused.append({"term":word,"decision":"REUTILIZAR",
+                           "evidence":witnesses[matched]})
+            continue
+        if word not in extraneous:
+            extraneous.append(word)
+    if extraneous:
+        raise RequestTraceBlocked("PEDIDO_EXCEDE_FICHA", extraneous)
+    return reused
+
+
+def derive_rule_obligations(data: dict) -> list[dict] | None:
+    """A6 WHAT is the pinned LF regla.descripcion, never a fabricated HOW.
+
+    Legacy Login without descriptions keeps A6's old corpus as historical
+    compatibility. All nonlegacy 13-file screens fail on missing description.
+    """
+    linked=data["direct_rules.json"].get("linked_rules",[])
+    effective=data["effective_rules.json"].get("rules",[])
+    if not isinstance(linked,list) or not isinstance(effective,list):
+        raise RequestTraceBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
+    by_code={r.get("code"):r for r in linked if isinstance(r,dict)}
+    if len(by_code)!=len(linked):
+        raise RequestTraceBlocked("ANALISIS_FUENTE_NO_COMPATIBLE")
+    active=[r for r in effective if r.get("status")=="VIGENTE"
+            and r.get("pending_decision") is False]
+    # Distinguish the one existing pinned Login legacy corpus by exact rule
+    # coverage rather than a screen-code literal. No new fixture can opt in.
+    absent=[r.get("code") for r in active
+            if not isinstance((by_code.get(r.get("code")) or r).get("descripcion"),str)
+            or not (by_code.get(r.get("code")) or r)["descripcion"].strip()]
+    if absent:
+        return None, absent
+    return ([{"source_requirement_id":r["code"],
+              "outcome":(by_code.get(r["code"]) or r)["descripcion"].strip(),
+              "acceptance_checks":[(by_code.get(r["code"]) or r)["descripcion"].strip()]}
+             for r in active], [])
 
 
 def implementation_state(root: Path, target: str) -> str:
@@ -125,7 +263,7 @@ def implementation_state(root: Path, target: str) -> str:
 
 def signals(root: Path, target: str, request: str, data: dict) -> dict:
     contract=data["screen_contract.json"]["contract"]
-    trace(request,target,contract)
+    reuse_traces=trace(request,target,contract,root=root,data=data)
     intent=implementation_state(root,target)
     inventory=data["inventory.json"]
     if intent=="CREATE" and any(inventory.get(k) for k in ("objects","impacts","dependencies")):
@@ -171,12 +309,15 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
     result={"imitates":"deterministic typed A1/A2 candidate from pinned screen and actual request",
             "simulation":True,"request_text":request,
             "a1_structured":a1,"a2_signals":a2}
-    # A6's source-obligation contract distinguishes absent (legacy
-    # independently pinned rules) from present (complete SOURCE_SCREEN list).
-    # An empty supplied list would be false evidence, not legacy.
+    result["reuse_traces"]=reuse_traces
     if "source_obligations" in legacy:
         obligations=legacy["source_obligations"]
         if not isinstance(obligations,list) or not obligations:
             raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
         result["source_obligations"]=deepcopy(obligations)
+    else:
+        derived,missing=derive_rule_obligations(data)
+        if missing:
+            raise RequestTraceBlocked("REGLA_SIN_DESCRIPCION", sorted(set(missing)))
+        result["source_obligations"]=derived
     return result
