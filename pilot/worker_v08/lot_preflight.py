@@ -189,7 +189,8 @@ def check_size(root: Path, task: dict, *, prompt: str) -> dict:
             blocked("LOTE_INFRA_POLICY_INVALIDA")
         infra_target = name in (
             set(allowlist["database"]["config_files"]) |
-            {x["manifest"] for x in allowlist["targets"].values()})
+            {x["manifest"] for x in allowlist["targets"].values()} |
+            {allowlist["targets"]["npm"]["lockfile"]})
         if (not (name.endswith(ALLOWED_WRITE) or contract_yaml or infra_target)
                 or denial(name)):
             blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
