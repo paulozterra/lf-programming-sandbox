@@ -48,7 +48,7 @@
   },
   "routes": {
     "DATA": "db/migration/V{next}__{module}.sql",
-    "BACKEND": "apps/{service}/src/main/java/lf/sandbox/{service_java}/{module}/{class}.java",
+    "BACKEND": "apps/{service}/src/main/java/lf/sandbox/{service_java}/{module_java}/{class}.java",
     "FRONTEND": [
       "frontend/src/app/{module}/page.tsx",
       "frontend/src/lib/{module}.ts"
@@ -73,5 +73,10 @@
       "BACKEND": "PERFIL-PROG-BACKEND-SPRING-EXP",
       "FRONTEND": "PERFIL-PROG-FRONTEND-EXP"
     }
-  }
+  },
+  "scope_module_prefixes": [
+    "sbx-auth-",
+    "demo-",
+    "scope-"
+  ]
 }
