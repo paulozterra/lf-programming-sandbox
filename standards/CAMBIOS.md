@@ -95,4 +95,4 @@
 | CHG-0092 | ADDITIVE | T1: módulo funcional común y rutas válidas para Java/Frontend |  | paulozterra |  |
 | CHG-0093 | ADDITIVE | T2 CP1.5: lote CONTRATO gobernado y OpenAPI tipado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/138 |
 | CHG-0094 | ADDITIVE | T3: lote INFRA automático, dependencia allowlist y preparación JDBC/Flyway gobernada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/139 |
-| CHG-0095 | ADDITIVE | T4: admisión automática de lotes raíz, solicitud de examen y re-registro por huella |  | paulozterra |  |
+| CHG-0095 | ADDITIVE | T4: admisión automática de lotes raíz, solicitud de examen y re-registro por huella |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/140 |
