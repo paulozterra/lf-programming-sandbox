@@ -581,9 +581,11 @@ def plan(root: Path, run: str) -> dict:
         blocked("LOTES_INTAKE_NO_ACEPTADO")
     virtual_contracts = [a for a in fixture.get("atoms", [])
                          if a.get("area") == "CONTRATO"]
-    source_fixture = ({**fixture, "atoms": [a for a in fixture["atoms"]
-                                          if a.get("area") != "CONTRATO"]}
-                      if virtual_contracts else fixture)
+    contract_ids = {a["atom_id"] for a in virtual_contracts}
+    source_fixture = ({**fixture, "atoms": [
+        {**a, "depends_on": [d for d in a["depends_on"] if d not in contract_ids]}
+        for a in fixture["atoms"] if a.get("area") != "CONTRATO"]}
+        if virtual_contracts else fixture)
     rows=_inputs(package,source_fixture)
     outputs=_source_chain(package,source_fixture,rows,sha,state)
     dsn=os.environ.get("SELECTOR_EXP_TEST_DSN","")
