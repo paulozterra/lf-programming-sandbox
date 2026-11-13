@@ -656,15 +656,40 @@ def _active_after_reuse(package, fixture, folder):
         blocked("LOTES_COBERTURA_INCOMPLETA")
     if any(atom.get("scope_id") in skipped for atom in fixture.get("atoms", [])):
         blocked("LOTES_COBERTURA_INCOMPLETA")
-    if not skipped:
+    reused = {rid for rid, decision in decisions.items()
+              if decision == "REUSE_AS_IS"}
+    if not reused:
         return package
     active = copy.deepcopy(package)
+    active["requirements"] = [x for x in active["requirements"]
+                              if x["requirement_id"] not in reused]
     active["scope_proposals"] = [x for x in active["scope_proposals"]
                                  if x["scope_id"] not in skipped]
-    active["requirements"] = [x for x in active["requirements"]
-                              if x["scope_id"] not in skipped]
-    active["material_fronts"] = [x for x in active["material_fronts"]
-                                 if not set(x.get("scope_ids", [])) <= skipped]
+    active["applicable_rules"] = [
+        x for x in active.get("applicable_rules", [])
+        if x.get("requirement_id") not in reused]
+    remaining = {x["requirement_id"] for x in active["requirements"]}
+    fronts = []
+    for front in active["material_fronts"]:
+        if set(front.get("scope_ids", [])) <= skipped:
+            continue
+        row = copy.deepcopy(front)
+        for name in ("requirement_ids", "obligation_refs"):
+            if isinstance(row.get(name), list):
+                row[name] = [rid for rid in row[name] if rid in remaining]
+        if isinstance(row.get("requirement_source_refs"), dict):
+            row["requirement_source_refs"] = {
+                rid: value for rid, value in row["requirement_source_refs"].items()
+                if rid in remaining}
+        if row.get("requirement_ids"):
+            fronts.append(row)
+    active["material_fronts"] = fronts
+    front_ids = {x["front_id"] for x in fronts}
+    for scope in active["scope_proposals"]:
+        scope["material_front_refs"] = [
+            fid for fid in scope["material_front_refs"] if fid in front_ids]
+        if not scope["material_front_refs"]:
+            blocked("LOTES_COBERTURA_INCOMPLETA")
     if not active["scope_proposals"] or not active["requirements"]:
         blocked("LOTES_COBERTURA_INCOMPLETA")
     return active
