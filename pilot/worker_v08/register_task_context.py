@@ -379,8 +379,11 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
                 rel = safe_rel(entry.get("path"))
                 sha = entry.get("sha256")
                 src = root / rel
-                if (rel in lot_paths or rel not in spec.get("context_path_patterns", [])
-                        or src.is_symlink() or not src.is_file()
+                # The report spans the request; only references selected by
+                # the lot's generated context manifest belong to this task.
+                if rel not in spec.get("context_path_patterns", []):
+                    continue
+                if (rel in lot_paths or src.is_symlink() or not src.is_file()
                         or not isinstance(sha, str) or digest(src.read_bytes()) != sha):
                     block("REUTILIZACION_INDETERMINADA")
                 reuse_sha[rel] = sha
