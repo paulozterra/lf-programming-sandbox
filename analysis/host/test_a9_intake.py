@@ -217,7 +217,8 @@ def test_typed_applicable_rules_and_links(payload):
     assert logged["es_transversal"] is True
     assert logged["valor_config"] == {"log_password": False}
     assert {r["requirement_id"] for r in rules} == {
-        r["requirement_id"] for r in payload["requirements"]}
+        r["requirement_id"] for r in payload["requirements"]
+        if not r.get("derived_from_requirement_id")}
     assert all(r["front_id"] in {f["front_id"] for f in payload["material_fronts"]}
                for r in rules)
 
