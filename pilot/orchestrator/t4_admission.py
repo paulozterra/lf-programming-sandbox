@@ -176,9 +176,9 @@ _HTTP_STATUS = {
     "InternalServerError": 500, "ServiceUnavailable": 503,
 }
 _ENDPOINT = re.compile(
-    r"(?<![\\w])(?P<method>get|post|put|patch|delete)\\s*\\(\\s*"
-    r'["\\\'](?P<route>/[^"\\\']+)["\\\']', re.I)
-_STATUS = re.compile(r"status\\(\\)\\s*\\.\\s*is(?P<name>[A-Za-z]+)\\(\\)")
+    r"(?<!\w)(?P<method>get|post|put|patch|delete)\s*\(\s*"
+    r'["\x27](?P<route>/[^"\x27]+)["\x27]', re.I)
+_STATUS = re.compile(r"status\(\)\s*\.\s*is(?P<name>[A-Za-z]+)\(\)")
 _TEST_TYPES = {".java", ".ts", ".tsx"}
 
 
