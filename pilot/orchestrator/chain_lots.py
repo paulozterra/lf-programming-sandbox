@@ -199,8 +199,10 @@ def completed_lots(lots: dict, bindings: dict, history: list[tuple]) -> dict:
         # Ignore other explicitly bound chains, but reject spoofed integration
         # for a task belonging to this chain.
         branch = pr.get("head", {}).get("ref", "")
-        if not any(branch.startswith("lf/native-integration/" + row["task_name"] + "-run-")
-                   for row in bindings.values()):
+        if not any(re.fullmatch(
+                r"lf/native-integration/" + re.escape(row["task_name"])
+                + r"(?:[2-9][0-9]*)?-run-[1-9][0-9]*", branch)
+                for row in bindings.values()):
             continue
         lot_id, receipt = attest_merge(sha, pr, lots, bindings, changed)
         if lot_id in result:
