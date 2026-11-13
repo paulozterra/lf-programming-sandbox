@@ -62,8 +62,15 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False, skelet
                                                 "--check-frontend","."]),
             ]
         return result
+    if area=="INFRA":
+        return [item("infra-allowlist-and-env",["python3","pilot/orchestrator/infra_validate.py",
+                                              "--check-infra","--root","."]),
+                item("infra-build",["mvn","-U","-B","-q","-f",
+                                    "apps/time-service/pom.xml","package"])]
     if area=="DATA":
-        return [item("data-migration-visible",["psql","-X","-v","ON_ERROR_STOP=1","-f",paths[0]],180)]
+        return [item("data-classpath-migrations",["python3","pilot/orchestrator/infra_validate.py",
+                                                  "--check-data",*paths]),
+                item("data-migration-visible",["psql","-X","-v","ON_ERROR_STOP=1","-f",paths[0]],180)]
     raise ValueError("T1_AREA_INVALID")
 
 def generate(root, run, lots):
@@ -103,7 +110,15 @@ def generate(root, run, lots):
                    "apps/time-service/pom.xml","apps/time-service/src/main/resources/**",
                    "frontend/package.json","frontend/package-lock.json",
                    "frontend/src/**/__tests__/**","db/**"]
+        if lot["area"]=="INFRA":
+            protected.remove("apps/time-service/pom.xml")
+            protected.remove("apps/time-service/src/main/resources/**")
+            protected += ["apps/time-service/src/main/resources/db/**",
+                          "frontend/src/**", "apps/time-service/src/main/java/**"]
         if lot["area"]=="DATA":
+            protected.remove("apps/time-service/src/main/resources/**")
+            protected += ["apps/time-service/src/main/resources/application.properties",
+                          "apps/time-service/src/main/resources/static/**"]
             protected.remove("db/**")
             protected.extend(["db/**/test/**","db/**/fixtures/**"])
         dependency_contract=lot.get("contract_context_ref")
@@ -114,17 +129,28 @@ def generate(root, run, lots):
             protected.append("contracts/**")
         elif lot["area"]=="CONTRATO":
             protected.append("contracts/*.skeleton.json")
-        context_paths=(
-            [skeleton_template.format(module=module)]
-            if lot["area"]=="CONTRATO" else [dependency_contract] if dependency_contract else [])
+        if lot["area"]=="INFRA":
+            context_paths=["pilot/orchestrator/dependency_allowlist_v1.json",
+                           "apps/time-service/pom.xml",
+                           "apps/time-service/src/main/resources/application.properties"]
+        else:
+            context_paths=(
+                [skeleton_template.format(module=module)]
+                if lot["area"]=="CONTRATO" else [dependency_contract]
+                if dependency_contract else [])
+        if lot.get("infra_context_ref"):
+            context_paths.append(lot["infra_context_ref"])
+        context_paths=sorted(set(context_paths))
         template={"task_spec":{
             "schema_version":1,"task_id":"LF-WORKER-NATIVE-"+task.upper(),
             "base_head_sha":"<FILL_AT_REGISTRATION>",
             "source_snapshot_sha256":"<FILL_AT_REGISTRATION>",
             "max_attempts":1,"allow_deletions":False,"max_changed_files":len(paths),
             "max_context_bytes":200000,"max_patch_bytes":60000,
-            "objective":"Implementar "+lot["area"]+" en "+run+"; requisitos "+", ".join(
-                lot["requirement_ids"])+"; seguir package A9 sin inferencias",
+            "objective":("Aplicar exclusivamente dependencias y configuración de la allowlist T3"
+                         if lot["area"]=="INFRA" else
+                         "Implementar "+lot["area"]+" en "+run+"; requisitos "+", ".join(
+                            lot["requirement_ids"])+"; seguir package A9 sin inferencias"),
             "write_path_patterns":paths,
             "context_path_patterns":context_paths,
             "protected_path_patterns":protected,
