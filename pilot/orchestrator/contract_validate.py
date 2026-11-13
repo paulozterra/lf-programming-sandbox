@@ -50,6 +50,14 @@ def operations(doc):
     paths = doc.get("paths")
     if not isinstance(paths, dict) or not paths:
         block("OPENAPI_PATHS_MISSING")
+    # Validate full OpenAPI schema, not just recognizable document keys.
+    try:
+        from openapi_spec_validator import validate_spec
+        validate_spec(doc)
+    except ImportError:
+        block("OPENAPI_SCHEMA_VALIDATOR_MISSING")
+    except Exception:
+        block("OPENAPI_SCHEMA_INVALID")
     result = {}
     for path, value in paths.items():
         if not isinstance(path, str) or not path.startswith("/") or not isinstance(value, dict):
