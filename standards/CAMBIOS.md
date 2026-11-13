@@ -98,3 +98,4 @@
 | CHG-0095 | ADDITIVE | T4: admisión automática de lotes raíz, solicitud de examen y re-registro por huella |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/140 |
 | CHG-0096 | ADDITIVE | T5: Playwright Chromium headless en Worker confiable para lotes FRONTEND |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/141 |
 | CHG-0097 | ADDITIVE | T7: admisión de pedidos desde catálogo, índice de reutilización y protección anti-duplicación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/142 |
+| CHG-0098 | ADDITIVE | T8 CP1.6 LF reglas completas, verificación determinista en Worker y paridad offline |  | paulozterra |  |
