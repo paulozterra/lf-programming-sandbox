@@ -263,6 +263,11 @@ jobs:
           python3 -m py_compile pilot/orchestrator/chain_contract.py pilot/orchestrator/chain_lots.py
           python3 -m pytest -q pilot/orchestrator/test_chain_lots.py -p no:cacheprovider
 
+      - name: T4 root registration admission, EXAM_REQUEST and retry suffix (NO MODEL)
+        run: |
+          python3 -m py_compile pilot/orchestrator/t4_admission.py
+          python3 -m pytest -q pilot/orchestrator/test_t4_admission.py -p no:cacheprovider
+
       - name: CP3.7 pinned PG06-PG14 source candidates and two-lot H_REPORT (NO MODEL)
         run: |
           python3 -m py_compile pilot/orchestrator/pg37_evidence.py pilot/orchestrator/pg37_publish.py
