@@ -190,3 +190,20 @@ def test_allowed_dependency_without_a9_source_blocks():
         infra_lot.infra_atom({"dependency_requirements":[item]},
                             [{"area":"BACKEND","front_id":"F3-X",
                               "requirement_ids":["REQ-X"]}])
+
+
+def test_real_worker_area_admission_for_infra_and_data(tmp_path):
+    import sys
+    worker = str(ROOT / "pilot/worker_v08")
+    if worker not in sys.path:
+        sys.path.insert(0, worker)
+    from register_task_context import select_area
+    from programming_agent_runner.worker_spec import canonical_relative_path
+    configs = infra_lot.policy()["database"]["config_files"]
+    assert select_area(configs, "INFRA") == "BACKEND"
+    assert all(canonical_relative_path(p) == p for p in configs)
+    migration = atomize._route("DATA", "random-" + uuid.uuid4().hex[:9],
+                              atomize._rules(), tmp_path)[0]
+    assert select_area([migration], "DATA") == "DATA"
+    with pytest.raises(Exception, match="DEPENDENCIA_NO_PERMITIDA"):
+        select_area(["apps/time-service/src/main/java/Unsafe.java"], "INFRA")
