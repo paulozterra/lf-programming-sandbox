@@ -16,6 +16,7 @@
       "analysis/a9/front_bindings.py",
       "analysis/a9/package.py",
       "analysis/host/test_a9_intake.py",
+      "analysis/host/test_t1a_login_gate.py",
       "analysis/a9/test_t1a_front_bindings.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0091.json"
