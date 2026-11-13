@@ -72,8 +72,10 @@ def event_kind(event_run_id: int, head: str) -> str:
     event = api(f"actions/runs/{event_run_id}")
     path = (event.get("path") or "").split("@")[0]
     if (event.get("id") != event_run_id or event.get("status") != "completed"
-            or event.get("run_attempt") != 1 or
-            event.get("repository", {}).get("full_name") != REPO):
+            or type(event.get("run_attempt")) is not int
+            or event["run_attempt"] < 1
+            or (path != CI and event["run_attempt"] != 1)
+            or event.get("repository", {}).get("full_name") != REPO):
         deny("SOURCE_WORKFLOW_UNTRUSTED")
     # The Train is triggered by pull_request:labeled, so the source
     # workflow's head_branch is the PR branch, NOT main. We verify the
