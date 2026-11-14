@@ -68,6 +68,39 @@ jobs:
             self.assertEqual(tool.commands(path), [
                 ("wrapper", "pilot/orchestrator/t7_entry.py")])
 
+    def test_runtime_checkout_scripts_need_declared_checkout_and_import(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            local = root / "pilot/worker_v08/probe.py"
+            local.parent.mkdir(parents=True)
+            local.write_text("value = 1\n")
+            wf = make(root, "external.yml", """jobs:
+  probe:
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: source
+      - run: python3 source/pilot/worker_v08/probe.py
+""")
+            self.assertEqual(tool.scan(root), [])
+            wf.write_text("""jobs:
+  probe:
+    steps:
+      - run: python3 source/pilot/worker_v08/probe.py
+""")
+            self.assertEqual(tool.scan(root), [
+                "WORKFLOW_COMANDO_NO_EJECUTABLE:external.yml:source/pilot/worker_v08/probe.py"])
+
+    def test_wrapped_command_in_shell_substitution(self):
+        with tempfile.TemporaryDirectory() as td:
+            wf = make(Path(td), "substitution.yml", """jobs:
+  probe:
+    steps:
+      - run: result="$(python3 -m pilot.workflow_entrypoint pilot/orchestrator/issue_intake.py)"
+""")
+            self.assertEqual(tool.commands(wf), [
+                ("wrapper", "pilot/orchestrator/issue_intake.py")])
+
     def test_smoke_does_not_inherit_pythonpath(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
