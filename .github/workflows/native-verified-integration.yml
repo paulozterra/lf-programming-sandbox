@@ -46,7 +46,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Integrate PASS artifact into a draft PR with C9 and head-specific CI
-        run: python3 -m pilot.orchestrator.native_verified_integration --run-id "$NATIVE_RUN_ID"
+        run: python3 -m pilot.workflow_entrypoint pilot/orchestrator/native_verified_integration.py --run-id "$NATIVE_RUN_ID"
       - name: Never approve or label ready-to-merge automatically
         if: always()
         run: |
