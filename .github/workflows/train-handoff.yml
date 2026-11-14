@@ -55,7 +55,7 @@ jobs:
   watch:
     name: Watch next stage without cron
     needs: route
-    if: needs.route.result == 'success'
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
