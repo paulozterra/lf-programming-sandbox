@@ -1,5 +1,5 @@
 name: LF Worker native (trusted workflow_run or manual, no API)
-run-name: ${{ github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || format('lf-native-{0}-a{1}', inputs.task, inputs.attempt) }}
+run-name: ${{ github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || inputs.request_slug && format('lf-native-{0}-{1}-a{2}', inputs.request_slug, inputs.task, inputs.attempt) || format('lf-native-{0}-a{1}', inputs.task, inputs.attempt) }}
 
 on:
   workflow_run:
@@ -10,6 +10,10 @@ on:
       task:
         description: "Registered task matching pilot/native_proposals/<task>.json"
         required: true
+        type: string
+      request_slug:
+        description: Request scope to cross-check against registered task provenance
+        required: false
         type: string
       proposal_commit_sha:
         description: "Immutable 40-hex Git commit; read proposal JSON only"
