@@ -89,3 +89,8 @@ jobs:
         if: always()
         run: |
           echo "CP37_CANDIDATE_ONLY: Claude reviews; Paulo labels; Train merges."
+      - name: Wake watchdog without relying on bot-triggered workflow_run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run request-failure-watchdog.yml --repo "$GITHUB_REPOSITORY" --ref main
