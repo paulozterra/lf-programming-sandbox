@@ -166,6 +166,36 @@ def task_stage_issue(run: dict) -> int | None:
     return int(next(iter(slugs))[4:])
 
 
+def verified_pg37_issue(api, run: dict) -> int | None:
+    """Correlate CP3.7 to one bot-produced analysis PR via its source branch."""
+    if str(run.get("path") or "").split("@")[0] != ".github/workflows/pg37-evidence.yml":
+        return None
+    title = str(run.get("display_title") or "")
+    branch = title.removeprefix("CP3.7 ")
+    if not re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+        return None
+    prs = api.api("GET", f"/pulls?state=all&head=paulozterra:{branch}&per_page=100")
+    if not isinstance(prs, list) or len(prs) >= 100:
+        return None
+    accepted = [pr for pr in prs if
+                pr.get("merged") is True
+                and pr.get("head", {}).get("ref") == branch
+                and pr.get("user", {}).get("login") == "github-actions[bot]"
+                and pr.get("base", {}).get("ref") == "main"
+                and pr.get("base", {}).get("repo", {}).get("full_name") == REPO]
+    if len(accepted) != 1:
+        return None
+    pr = accepted[0]
+    files = api.api("GET", f"/pulls/{pr['number']}/files?per_page=100")
+    if not isinstance(files, list) or len(files) >= 100:
+        return None
+    slugs = {m.group(1) for item in files if isinstance(item, dict)
+             and (m := re.fullmatch(
+                 r"pilot/runs/(req-[1-9][0-9]*)/(?:analysis|state|lots|chain_plan)[.]json",
+                 str(item.get("filename") or "")))}
+    return int(next(iter(slugs))[4:]) if len(slugs) == 1 else None
+
+
 def resolve_issue(run: dict) -> int | None:
     """Only system-derived issue references; never mine arbitrary PR titles."""
     candidates = set()
@@ -291,6 +321,11 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
     elif path in (".github/workflows/worker-native.yml",
                     ".github/workflows/native-verified-integration.yml"):
         linked = task_stage_issue(run)
+        if linked is None:
+            return "RUTA_NO_ISSUE_ASSOCIATION"
+        run = dict(run, head_branch=f"lf/request/req-{linked}")
+    elif path == ".github/workflows/pg37-evidence.yml":
+        linked = verified_pg37_issue(api, run)
         if linked is None:
             return "RUTA_NO_ISSUE_ASSOCIATION"
         run = dict(run, head_branch=f"lf/request/req-{linked}")
