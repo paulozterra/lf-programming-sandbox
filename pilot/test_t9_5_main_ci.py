@@ -170,6 +170,60 @@ class Tests(unittest.TestCase):
         self.assertEqual(result["inputs"]["request_slug"],"req-175")
         self.assertEqual(result["inputs"]["base_sha"],SHA)
 
+    def test_failed_exact_ci_never_dispatches_cp36(self):
+        api = API([None, ci_run(conclusion="failure")])
+        with patch.object(handoff, "git", return_value=SHA), \
+             patch.object(handoff, "validate_train_run"), \
+             patch.object(handoff, "merged_request_slug", return_value="req-175"):
+            with self.assertRaisesRegex(handoff.HandoffBlocked,
+                                        "BASE_NO_VERDE:.*actions/runs/189"):
+                handoff.dispatch(api, 177, SHA, 42, MAPPING)
+        dispatched = [path for method, path, _ in api.calls if method == "POST"]
+        self.assertEqual(dispatched, ["/actions/workflows/ci.yml/dispatches"])
+
+    def test_main_moved_blocks_before_ci_dispatch(self):
+        class Moved(API):
+            def call(self, method, path, body=None):
+                if path == "/git/ref/heads/main":
+                    return {"object": {"sha": "e" * 40}}
+                return super().call(method, path, body)
+        api = Moved()
+        with self.assertRaisesRegex(handoff.HandoffBlocked,
+                                    "BASE_NO_VERDE:MAIN_MOVED"):
+            handoff.ensure_main_ci(api, SHA, required=True)
+        self.assertFalse(any(method == "POST" for method, _, _ in api.calls))
+
+    def test_worker_and_integration_titles_use_registered_task_scope(self):
+        worker = {"path": ".github/workflows/worker-native.yml",
+                  "display_title": "lf-native-req175backend2-a1"}
+        integration = {"path": ".github/workflows/native-verified-integration.yml",
+                       "display_title": "CP3.5 lf-native-req175backend2-a1"}
+        with patch.object(notify, "request_for_task", return_value={"req-175"}):
+            self.assertEqual(notify.task_stage_issue(worker), 175)
+            self.assertEqual(notify.task_stage_issue(integration), 175)
+        with patch.object(notify, "request_for_task", return_value={"req-175", "req-176"}):
+            self.assertIsNone(notify.task_stage_issue(worker))
+
+    def test_pg37_resolves_from_verified_bot_pr_and_files(self):
+        class Source:
+            def api(self, method, path, body=None):
+                self_url = "lf/generated-t7/dacf5a8db725"
+                if path.startswith("/pulls?state=all&head="):
+                    return [{"number": 177, "head": {"ref": self_url},
+                             "user": {"login": "github-actions[bot]"}}]
+                if path == "/pulls/177":
+                    return {"number":177, "merged": True,
+                            "head":{"ref":self_url,"repo":{"full_name":REPO}},
+                            "base":{"ref":"main","repo":{"full_name":REPO}},
+                            "user":{"login":"github-actions[bot]"}}
+                if path == "/pulls/177/files?per_page=100":
+                    return [{"filename":"pilot/runs/req-175/analysis.json"},
+                            {"filename":"pilot/runs/req-175/state.json"}]
+                raise AssertionError((method,path))
+        run = {"path": ".github/workflows/pg37-evidence.yml",
+               "display_title": "CP3.7 lf/generated-t7/dacf5a8db725"}
+        self.assertEqual(notify.verified_pg37_issue(Source(), run), 175)
+
     def test_real_cp36_pr177_notifies_issue175_and_is_idempotent(self):
         api=NotificationAPI()
         self.assertEqual(notify.check_run(api,dict(REAL_CP36)),"RUTA_NOTIFIED")
