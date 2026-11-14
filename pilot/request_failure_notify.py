@@ -147,7 +147,7 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
             api.api("POST", f"/issues/{number}/labels",
                     {"labels": ["lf-request-blocked"]})
         except urllib.error.HTTPError as error:
-            if error.code != 422:
+            if error.code not in (404, 422):
                 raise
             # On first use bootstrap the repository label, then retry.
             try:
