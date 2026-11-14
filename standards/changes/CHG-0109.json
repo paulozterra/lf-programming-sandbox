@@ -1,0 +1,46 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0109",
+  "title": "T9.1: validar permisos de workflows y avisar fallos de la ruta al solicitante",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T9.1 blindaje: issue #160, PR #161, corrección fusionada #162 (2026-11-14)"
+  },
+  "reason": "Generaliza la corrección CHG-0108 con mapeos de permisos versionados, compuerta offline sobre todos los workflows y detector independiente de fallas y de solicitudes sin CI. El vigilante avisa al Issue correspondiente con código de error, corrida y etiqueta, sin duplicados y sin atribuir una corrida a un Issue ambiguo. Verifica que opened+labeled converge a un solo PR y despacho.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/workflow_permission_map_v1.json",
+      "pilot/test_workflow_permissions.py",
+      "pilot/test_workflow_permissions_cases.py",
+      "pilot/test_issue_intake_duplicate.py",
+      "pilot/test_request_failure_notify.py",
+      "pilot/request_failure_notify.py",
+      ".github/workflows/request-failure-watchdog.yml",
+      ".github/workflows/request-intake.yml",
+      ".github/workflows/chain-lots.yml",
+      ".github/workflows/auto-integrate.yml",
+      ".github/workflows/request-finalize.yml",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0109.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
+  }
+}
