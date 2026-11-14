@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "T9: entrada de pedidos por Issue (2026-11-14)"
   },
-  "reason": "Entrada gobernada desde Issues: la plantilla preserva el texto solicitado, solo colaboradores autorizados generan PR bot de rutas cerradas, CI y política C verifican bytes y procedencia contra GitHub, y el informe reconoce al solicitante sin intervención manual.",
+  "reason": "Entrada gobernada desde Issues: la plantilla preserva el texto solicitado, solo colaboradores autorizados generan PR bot de rutas cerradas, CI y política C verifican bytes y procedencia contra GitHub, y el informe reconoce al solicitante sin intervención manual. Claude: el job notify-policy-c también entrega a la política C los PR lf/request/* (sin esto el PR del pedido quedaba esperando el barrido programado).",
   "artifacts": [],
   "affected": {
     "rule_ids": [],

@@ -742,11 +742,12 @@ jobs:
   # can be delayed for a long time. Hand off to policy C explicitly instead.
   notify-policy-c:
     name: Hand off generated PR to policy C
-    needs: [backend, frontend, standards-catalog, t7-generated-content, t7-registry-history, t5-browser-visible, standards-shadow, infra-local, worker-pilot-offline, native-autolaunch-policy, lf-producers-pinned, cp3-2-intake, cp3-3-planning]
+    needs: [t9-request-equality, backend, frontend, standards-catalog, t7-generated-content, t7-registry-history, t5-browser-visible, standards-shadow, infra-local, worker-pilot-offline, native-autolaunch-policy, lf-producers-pinned, cp3-2-intake, cp3-3-planning]
     if: >-
       always() && github.event_name == 'workflow_dispatch' &&
       (startsWith(github.ref_name, 'lf/implemented-registry/') ||
-       startsWith(github.ref_name, 'lf/generated-t7/')) &&
+       startsWith(github.ref_name, 'lf/generated-t7/') ||
+       startsWith(github.ref_name, 'lf/request/')) &&
       !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     timeout-minutes: 3
