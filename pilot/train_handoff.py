@@ -289,8 +289,47 @@ def main():
     print(json.dumps(result, sort_keys=True))
 
 
+def alert_exact_base_block(exc: Exception, number: int | None, sha: str | None):
+    """Report a CI-gate block before the handoff workflow itself completes.
+
+    No untrusted PR body is used: notifier verifies this Train PR's merge
+    commit and changed request files, then checks the original bot request.
+    """
+    reason = str(exc)
+    if not reason.startswith("BASE_NO_VERDE:"):
+        return
+    if (type(number) is not int or number < 1 or not isinstance(sha, str)
+            or not SHA.fullmatch(sha)):
+        return
+    run_id = os.environ.get("GITHUB_RUN_ID", "")
+    if not run_id.isdecimal() or os.environ.get("GITHUB_REPOSITORY") != REPO:
+        return
+    from request_failure_notify import Github as NotifyGithub, emit
+    ci_url = reason.split(":", 1)[1]
+    run = {"id": int(run_id), "name": f"Train handoff PR {number}",
+           "display_title": f"Train handoff PR {number}",
+           "path": ".github/workflows/train-handoff.yml",
+           "event": "workflow_dispatch", "head_branch": "main",
+           "head_sha": sha, "conclusion": "failure",
+           "failure_code": "BASE_NO_VERDE",
+           "repository": {"full_name": REPO},
+           "html_url": f"https://github.com/{REPO}/actions/runs/{run_id}"}
+    if ci_url.startswith(f"https://github.com/{REPO}/actions/runs/"):
+        run["main_ci_url"] = ci_url
+    print("HANDOFF_BASE_ALERT:" + emit(
+        NotifyGithub(os.environ.get("GH_TOKEN", "")), run, []))
+
+
 if __name__ == "__main__":
     try:
         main()
     except (HandoffBlocked, ValueError, KeyError, subprocess.CalledProcessError) as exc:
+        try:
+            parser = argparse.ArgumentParser(add_help=False)
+            parser.add_argument("--pr", type=int)
+            parser.add_argument("--merge-sha")
+            data, _ = parser.parse_known_args()
+            alert_exact_base_block(exc, data.pr, data.merge_sha)
+        except Exception as notify_exc:
+            print("HANDOFF_BASE_ALERT_FAILED:" + str(notify_exc))
         raise SystemExit("HANDOFF_BLOCKED:" + str(exc)) from exc
