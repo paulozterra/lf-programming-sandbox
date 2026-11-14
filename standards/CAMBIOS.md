@@ -108,3 +108,4 @@
 | CHG-0105 | EDITORIAL | Catálogo: ficha ficticia de la pantalla SBX-REM-LIST (Mis recordatorios) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/155 |
 | CHG-0106 | EDITORIAL | Train: espera propia cuando un check requerido sigue en curso al fusionar |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/158 |
 | CHG-0107 | ADDITIVE | T9: entrada de pedidos por Issue con verificación de bytes y procedencia |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/159 |
+| CHG-0108 | EDITORIAL | T9: la entrada por issue puede lanzar el ci del PR del pedido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/162 |

@@ -6,6 +6,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  actions: write
 concurrency:
   group: lf-request-issue-${{ github.event.issue.number }}
   cancel-in-progress: false
@@ -24,13 +25,22 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
       - name: Validate collaborator and publish bot PR
+        id: intake
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PYTHONDONTWRITEBYTECODE: "1"
-        run: python3 pilot/orchestrator/issue_intake.py
+        run: |
+          result="$(python3 pilot/orchestrator/issue_intake.py)"
+          printf '%s\n' "$result"
+          # opened + labeled both fire; only the run that created the PR dispatches ci.
+          if [ "$result" = "PEDIDO_YA_REGISTRADO" ]; then
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run CI for bot-created request PR
-        if: success()
+        if: success() && steps.intake.outputs.created == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

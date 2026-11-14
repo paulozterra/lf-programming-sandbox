@@ -1,0 +1,33 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0108",
+  "title": "T9: la entrada por issue puede lanzar el ci del PR del pedido",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Primer pedido real #160: ci no lanzado (HTTP 403) 2026-11-14"
+  },
+  "reason": "request-intake.yml no tenía permiso actions: write, así que el despacho del ci del PR del pedido falló con HTTP 403 y la política C no podía evaluarlo. Se agrega el permiso. Además, como opened y labeled disparan el workflow dos veces, solo la corrida que crea el PR lanza el ci; la duplicada (PEDIDO_YA_REGISTRADO) termina en verde sin repetirlo.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/request-intake.yml"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/162"
+  }
+}
