@@ -147,7 +147,7 @@ def main_ci_run(api: Github, sha: str, config: dict) -> dict | None:
         raise HandoffBlocked("BASE_NO_VERDE:CI_HISTORY_INVALID")
     eligible = [r for r in rows if
                 r.get("head_sha") == sha and r.get("head_branch") == config["required_branch"]
-                and r.get("event") == config["required_event"]
+                and r.get("event") in ("push", config["required_event"])
                 and (r.get("path") or "").split("@")[0] == ".github/workflows/ci.yml"
                 and r.get("repository", {}).get("full_name") == REPO
                 and type(r.get("run_attempt")) is int]
