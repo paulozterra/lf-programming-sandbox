@@ -80,32 +80,59 @@ def api(method, path, payload=None, expected=(200,)):
 
 CHECKS_LAG_RETRIES = 12
 CHECKS_LAG_SECONDS = 10
+# A second run of a required check on the same HEAD (e.g. the pull_request ci
+# next to a dispatched ci) can still be running when the merge is attempted.
+# GitHub then answers 405 "... is in progress". That is real work, not lag:
+# wait for it with its own, longer budget instead of failing after ~2 min.
+IN_PROGRESS_WAIT_SECONDS = 1200
+IN_PROGRESS_POLL_SECONDS = 20
 
 
-def merge_with_retry(number, head, payload):
+def merge_with_retry(number, head, payload, *, clock=None, sleep=None):
     """GitHub may still report required checks as 'expected' a few seconds
-    after they completed, and a merge PUT can lose its connection. Re-read the
-    PR before every retry; never merge a different HEAD."""
-    for attempt in range(CHECKS_LAG_RETRIES):
+    after they completed, a required check may still be running on the same
+    HEAD, and a merge PUT can lose its connection. Re-read the PR before every
+    retry; never merge a different HEAD."""
+    clock = clock or time.monotonic
+    sleep = sleep or time.sleep
+    lag_attempts = 0
+    in_progress_deadline = None
+    while True:
         try:
             return api("PUT", f"/pulls/{number}/merge", payload)
         except TrainError as exc:
             text = str(exc)
-            lag = "HTTP 405" in text and "required status check" in text
+            lowered = text.lower()
+            # GitHub capitalises "Required status check ..."; match case-insensitively.
+            required = "HTTP 405" in text and "required status check" in lowered
+            running = required and "in progress" in lowered
             server = any(f"HTTP {c} " in text for c in TRANSIENT_HTTP) or text.startswith("NETWORK ")
-            if not (lag or server) or attempt == CHECKS_LAG_RETRIES - 1:
+            if running:
+                if in_progress_deadline is None:
+                    in_progress_deadline = clock() + IN_PROGRESS_WAIT_SECONDS
+                if clock() >= in_progress_deadline:
+                    raise TrainError("REQUIRED_CHECK_STILL_IN_PROGRESS")
+                delay = IN_PROGRESS_POLL_SECONDS
+            elif required or server:
+                lag_attempts += 1
+                if lag_attempts >= CHECKS_LAG_RETRIES:
+                    raise
+                delay = CHECKS_LAG_SECONDS
+            else:
                 raise
         except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError, OSError):
-            if attempt == CHECKS_LAG_RETRIES - 1:
+            lag_attempts += 1
+            if lag_attempts >= CHECKS_LAG_RETRIES:
                 raise TrainError("NETWORK PUT merge")
+            delay = CHECKS_LAG_SECONDS
         current = api("GET", f"/pulls/{number}")
         if current.get("merged") and current.get("merge_commit_sha"):
             return {"merged": True, "sha": current["merge_commit_sha"]}
         if current["head"]["sha"] != head:
             raise TrainError("HEAD_CHANGED_DURING_MERGE_RETRY")
-        print(json.dumps({"event": "merge_retry", "attempt": attempt + 1}), flush=True)
-        time.sleep(CHECKS_LAG_SECONDS)
-    raise TrainError("MERGE_RETRY_EXHAUSTED")
+        print(json.dumps({"event": "merge_retry", "lag_attempts": lag_attempts,
+                          "waiting_in_progress": in_progress_deadline is not None}), flush=True)
+        sleep(delay)
 
 
 def graphql(query: str, variables: dict) -> dict:

@@ -71,3 +71,40 @@ class OwnChecksAndApproval(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class InProgressWaitTest(unittest.TestCase):
+    """A required check still running on the same HEAD gets its own budget."""
+
+    def _run(self, responses, clock_values):
+        calls = {"put": 0}
+        clock = iter(clock_values)
+
+        def api(method, path, payload=None):
+            if method == "PUT":
+                calls["put"] += 1
+                r = responses.pop(0)
+                if isinstance(r, Exception):
+                    raise r
+                return r
+            if path.startswith("/pulls/"):
+                return {"merged": False, "head": {"sha": HEAD}}
+            return {"workflow_runs": []}
+
+        with mock.patch.object(train, "api", side_effect=api):
+            result = train.merge_with_retry(118, HEAD, {"sha": HEAD},
+                                            clock=lambda: next(clock), sleep=lambda s: None)
+        return result, calls["put"]
+
+    def test_in_progress_waits_beyond_lag_budget_then_merges(self):
+        busy = train.TrainError('HTTP 405 PUT: Required status check "backend (Maven verify)" is in progress.')
+        n = train.CHECKS_LAG_RETRIES + 5
+        result, puts = self._run([busy] * n + [{"merged": True, "sha": "m"}],
+                                 [0] + [10 * i for i in range(1, n + 2)])
+        self.assertEqual(result["sha"], "m")
+        self.assertEqual(puts, n + 1)
+
+    def test_in_progress_past_deadline_blocks(self):
+        busy = train.TrainError('HTTP 405 PUT: Required status check "x" is in progress.')
+        with self.assertRaisesRegex(train.TrainError, "REQUIRED_CHECK_STILL_IN_PROGRESS"):
+            self._run([busy, busy], [0, train.IN_PROGRESS_WAIT_SECONDS + 1])
