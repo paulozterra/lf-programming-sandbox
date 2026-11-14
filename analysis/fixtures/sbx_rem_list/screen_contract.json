@@ -1,0 +1,79 @@
+{
+  "imitates": "lf_ops.fn_screen_contract_v1",
+  "schema_version": "SBX_SCREEN_CONTRACT_FIXTURE_V1",
+  "target_ref": "SBX-REM-LIST",
+  "screen_status": "VIGENTE",
+  "contract_version": "SBX-v1",
+  "contract": {
+    "fields": [
+      {
+        "field_code": "SBX-F-PRIORITY-FILTER",
+        "status": "VIGENTE",
+        "required": false,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/202"
+        ]
+      }
+    ],
+    "errors": [
+      {
+        "error_code": "SBX-E-GENERIC",
+        "status": "VIGENTE",
+        "generic": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/5",
+          "supabase://lf_ops.reglas/201"
+        ]
+      }
+    ],
+    "visual": {
+      "variants": [
+        {
+          "code": "SBX-V-DESKTOP",
+          "status": "VIGENTE",
+          "rule_refs": [
+            "supabase://lf_ops.reglas/201",
+            "supabase://lf_ops.reglas/202",
+            "supabase://lf_ops.reglas/5"
+          ]
+        }
+      ]
+    },
+    "context": {
+      "module_code": "SBX-M-REMINDERS"
+    },
+    "metadata": {
+      "screen_code": "SBX-REM-LIST"
+    },
+    "profiles": [],
+    "analytics": [],
+    "evidence": [],
+    "rules": [
+      {
+        "code": "SBX-R-SESSION-REQUIRED",
+        "title": "Sin sesión válida no se listan recordatorios",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/201",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/31"
+      },
+      {
+        "code": "SBX-R-PRIORITY-FILTER",
+        "title": "Filtro de prioridad HIGH, MEDIUM o LOW",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/202",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/32"
+      },
+      {
+        "code": "SBX-R-ERR",
+        "title": "Error genérico y sesión de 30 minutos",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/5",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/33"
+      }
+    ],
+    "policies": []
+  }
+}

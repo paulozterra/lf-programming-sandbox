@@ -1,0 +1,9 @@
+{
+  "imitates": "lf_ops.pantalla_variantes",
+  "variants": [
+    {
+      "code": "SBX-V-DESKTOP",
+      "status": "VIGENTE"
+    }
+  ]
+}

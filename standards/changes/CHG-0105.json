@@ -1,0 +1,34 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0105",
+  "title": "Catálogo: ficha ficticia de la pantalla SBX-REM-LIST (Mis recordatorios)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Prueba T6 de reutilización 2026-11-13"
+  },
+  "reason": "Ficha de catálogo en el formato de 13 archivos (imita lf_ops.pantallas, reglas, reglas_pantallas e inventory.fn_dependencies_v1), con datos ficticios. Comparte con SBX-AUTH-LOGIN las reglas SBX-R-ERR y SBX-R-LOG y declara dependencias sobre GET /api/reminders y AuthService para probar la reutilización. Existe antes del pedido, como en LF. Se corrige además una prueba legacy que construía FixtureHost() sin pantalla explícita y fallaba con PEDIDO_AMBIGUO al haber más de una ficha de 13 archivos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/fixtures/sbx_rem_list/",
+      "analysis/host/test_fixture_readback_host.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/155"
+  }
+}

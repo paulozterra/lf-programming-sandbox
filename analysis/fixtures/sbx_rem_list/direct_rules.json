@@ -1,0 +1,64 @@
+{
+  "imitates": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas",
+  "schema_version": "SBX_DIRECT_RULES_READBACK_V1",
+  "linked_rules": [
+    {
+      "code": "SBX-R-SESSION-REQUIRED",
+      "title": "Sin sesión válida no se listan recordatorios",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/201",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/31",
+      "categoria": "seguridad",
+      "descripcion": "Solo un usuario con sesión válida puede ver su lista de recordatorios; sin sesión se responde 401 con el error genérico y la pantalla redirige al login."
+    },
+    {
+      "code": "SBX-R-PRIORITY-FILTER",
+      "title": "Filtro de prioridad HIGH, MEDIUM o LOW",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/202",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/32",
+      "categoria": "api",
+      "descripcion": "La lista de recordatorios se puede filtrar por prioridad alta, media o baja (HIGH, MEDIUM, LOW) o mostrar todas; un valor distinto responde 400."
+    },
+    {
+      "code": "SBX-R-ERR",
+      "title": "Error genérico y sesión de 30 minutos",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/5",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/33",
+      "categoria": "error_states",
+      "descripcion": "Los fallos responden un error genérico indistinguible y la sesión expira a los treinta minutos."
+    }
+  ],
+  "valor_config": [
+    {
+      "code": "SBX-R-SESSION-REQUIRED",
+      "valor_config": {
+        "unauthenticated_status": 401,
+        "generic_error": true
+      }
+    },
+    {
+      "code": "SBX-R-PRIORITY-FILTER",
+      "valor_config": {
+        "allowed": [
+          "HIGH",
+          "MEDIUM",
+          "LOW"
+        ],
+        "invalid_status": 400
+      }
+    },
+    {
+      "code": "SBX-R-ERR",
+      "valor_config": {
+        "generic_error": true,
+        "session_minutes": 30,
+        "security_policy_id": 71
+      }
+    }
+  ]
+}

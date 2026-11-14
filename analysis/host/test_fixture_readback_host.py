@@ -152,7 +152,7 @@ def test_pin_inventory_exact_13_and_source_ref_binding():
     assert [x["file"] for x in entries] == list(FILES)
     refs = FixtureHost(LEGACY_FIXTURES).read_all()
     assert len(refs) == 13
-    host = FixtureHost()
+    host = FixtureHost(LEGACY_FIXTURES)
     host.read_all()
     for entry in entries:
         name = entry["file"]
