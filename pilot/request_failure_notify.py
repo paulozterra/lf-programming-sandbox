@@ -177,15 +177,22 @@ def verified_pg37_issue(api, run: dict) -> int | None:
     prs = api.api("GET", f"/pulls?state=all&head=paulozterra:{branch}&per_page=100")
     if not isinstance(prs, list) or len(prs) >= 100:
         return None
-    accepted = [pr for pr in prs if
-                pr.get("merged") is True
-                and pr.get("head", {}).get("ref") == branch
-                and pr.get("user", {}).get("login") == "github-actions[bot]"
-                and pr.get("base", {}).get("ref") == "main"
-                and pr.get("base", {}).get("repo", {}).get("full_name") == REPO]
-    if len(accepted) != 1:
+    # The PR *list* endpoint does not guarantee a 'merged' boolean.
+    # Fetch the exact PR detail before trusting its Train provenance.
+    candidates = [row for row in prs if
+                  row.get("head", {}).get("ref") == branch
+                  and row.get("user", {}).get("login") == "github-actions[bot]"
+                  and type(row.get("number")) is int]
+    if len(candidates) != 1:
         return None
-    pr = accepted[0]
+    pr = api.api("GET", f"/pulls/{candidates[0]['number']}")
+    if (pr.get("merged") is not True
+            or pr.get("head", {}).get("ref") != branch
+            or pr.get("user", {}).get("login") != "github-actions[bot]"
+            or pr.get("base", {}).get("ref") != "main"
+            or pr.get("base", {}).get("repo", {}).get("full_name") != REPO
+            or pr.get("head", {}).get("repo", {}).get("full_name") != REPO):
+        return None
     files = api.api("GET", f"/pulls/{pr['number']}/files?per_page=100")
     if not isinstance(files, list) or len(files) >= 100:
         return None
