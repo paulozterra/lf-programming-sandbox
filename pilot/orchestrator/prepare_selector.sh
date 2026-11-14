@@ -3,7 +3,7 @@
 set -euo pipefail
 # F5's frozen historical packet uses the original pinned selector without T1
 # extension. That legacy mode is explicit and remains in this ONE setup script.
-if [[ "${1:-}" != "" && "${1:-}" != "--legacy" ]] || [[ $# -gt 1 ]]; then
+if [[ "${1:-}" != "" && "${1:-}" != "--legacy" && "${1:-}" != "--enable-t1" ]] || [[ $# -gt 1 ]]; then
   echo SELECTOR_PREPARACION_MODO_INVALIDO >&2
   exit 2
 fi
@@ -20,6 +20,14 @@ if [[ -n "${GITHUB_ENV:-}" ]]; then
     printf 'ATOMIZE_T1_SELECTOR=YES\n'
     printf 'PGPASSWORD=pilot\n'
   } >> "$GITHUB_ENV"
+fi
+# Upgrade an existing shared legacy selector ONLY after frozen regressions.
+# Same recipe owns the environment, bootstrap and pattern transition.
+if [[ "${1:-}" == "--enable-t1" ]]; then
+  pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33
+  python3 pilot/orchestrator/selector_db.py --t1-patterns
+  echo SELECTOR_SHARED_T1_READY
+  exit 0
 fi
 docker run --detach --rm --name selector-disposable-db --network host \
   -e POSTGRES_USER=pilot -e POSTGRES_PASSWORD=pilot \
