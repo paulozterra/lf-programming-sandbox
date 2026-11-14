@@ -32,7 +32,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
-          result="$(python3 -m pilot.orchestrator.issue_intake)"
+          result="$(python3 -m pilot.workflow_entrypoint pilot/orchestrator/issue_intake.py)"
           printf '%s\n' "$result"
           # opened + labeled both fire; only the run that created the PR dispatches ci.
           if [ "$result" = "PEDIDO_YA_REGISTRADO" ]; then
