@@ -1,4 +1,5 @@
 name: CP3.6 chain after Train merge or spent native failure
+run-name: CP3.6 ${{ github.event.workflow_run.head_branch || github.event.head_commit.message || inputs.integration_pr || inputs.source_run_id || github.run_id }}
 
 on:
   workflow_run:
