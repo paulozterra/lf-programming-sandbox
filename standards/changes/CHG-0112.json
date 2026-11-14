@@ -28,6 +28,7 @@
       ".github/workflows/train-handoff.yml",
       "pilot/orchestrator/prepare_selector.sh",
       "pilot/orchestrator/test_t9_3_e2e.py",
+      "pilot/test_t9_3_selector_notify.py",
       "pilot/test_workflow_permissions.py",
       "pilot/test_workflow_python_commands.py",
       "pilot/workflow_entrypoint.py",
