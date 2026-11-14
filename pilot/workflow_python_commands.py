@@ -39,7 +39,16 @@ def commands(path: Path) -> list[tuple[str, str]]:
         for m in PYTHON.finditer(run):
             module, script = m.groups()
             if module:
-                if module.split(".")[0] in LOCAL:
+                if module == "pilot.workflow_entrypoint":
+                    # The wrapper is a module entrypoint, but its next literal
+                    # argument is the real script being executed by Actions.
+                    tail = run[m.end():]
+                    bound = re.match(r"\s+((?:pilot|analysis/host)/[A-Za-z0-9_./-]+\.py)(?=\s|$)", tail)
+                    if bound is None:
+                        found.append(("wrapper", "<missing-target>"))
+                    else:
+                        found.append(("wrapper", bound.group(1)))
+                elif module.split(".")[0] in LOCAL:
                     found.append(("module", module))
             elif script:
                 found.append(("script", script))
@@ -65,6 +74,18 @@ def smoke(root: Path, kind: str, value: str, timeout: int = 20) -> tuple[bool, s
         script = target(root, kind, value)
     except ValueError as exc:
         return False, str(exc)
+    if kind == "wrapper":
+        env = os.environ.copy()
+        for key in ("PYTHONPATH", "PYTHONHOME", "PYTHONSTARTUP"):
+            env.pop(key, None)
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+        try:
+            result = subprocess.run([sys.executable, "-m", "pilot.workflow_entrypoint",
+                                     "--smoke", value], cwd=root, env=env,
+                                    text=True, capture_output=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return False, "IMPORT_TIMEOUT"
+        return (result.returncode == 0, (result.stderr or result.stdout).strip()[-1400:])
     if kind == "module":
         python = "import importlib; importlib.import_module(" + repr(value) + ")"
     else:
