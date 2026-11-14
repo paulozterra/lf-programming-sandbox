@@ -111,4 +111,4 @@
 | CHG-0108 | EDITORIAL | T9: la entrada por issue puede lanzar el ci del PR del pedido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/162 |
 | CHG-0109 | ADDITIVE | T9.1: validar permisos de workflows y avisar fallos de la ruta al solicitante |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/163 |
 | CHG-0110 | ADDITIVE | T9.2: handoff explícito de Train y detección de etapas sin siguiente corrida |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/166 |
-| CHG-0111 | ADDITIVE | T9.3: preparación compartida del selector y notificación de fallos T7 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/169 |
+| CHG-0111 | ADDITIVE | T9.3: preparación de selector compartida y atribución segura de fallos T7 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/169 |
