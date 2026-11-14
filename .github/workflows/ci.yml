@@ -162,6 +162,10 @@ jobs:
           python3 pilot/test_workflow_triggers.py
           python3 -m unittest discover -s pilot -p 'test_t9_2_handoff.py' -v
           python3 -m unittest discover -s pilot -p 'test_t9_2_stages.py' -v
+      - name: T9.3 selector init, workflow policy and original T7 failure notification
+        run: |
+          python3 pilot/test_selector_environment.py
+          python3 -m unittest discover -s pilot -p 'test_t9_3_selector_notify.py' -v
       - name: Policy C offline auto-integrate admission tests (no token)
         run: |
           python3 -m py_compile pilot/auto_integrate.py
@@ -677,6 +681,7 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check PyYAML==6.0.2 openapi-spec-validator==0.7.2 jsonschema==4.25.1
           python3 -m pytest -q pilot/orchestrator/test_t72_dependencies.py -k 'test_confirmed_dependency_reaches_real_plan_lots or test_mixed_frontend_build_and_backend_reuse_plans_without_phantom_lot' -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_t9_3_e2e.py -p no:cacheprovider
           python3 -m pytest -q pilot/orchestrator/test_atomize.py pilot/orchestrator/test_atomize_modules.py pilot/orchestrator/test_contract_t2.py pilot/orchestrator/test_t2_general_guard.py pilot/orchestrator/test_t3_infra.py pilot/orchestrator/test_t4_pipeline.py pilot/orchestrator/test_t5_pipeline.py -p no:cacheprovider
       - name: A9 regression suites; T2 three-case test supersedes old two-area T1-A check
         env:
