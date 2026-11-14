@@ -49,3 +49,16 @@ jobs:
       - name: Publish merge receipt (no custom secrets)
         if: success()
         run: cat "$TRAIN_RECEIPT" >> "$GITHUB_STEP_SUMMARY"
+      - name: Dispatch next stage explicitly after authenticated merge
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          test "$(jq -r '.event' "$TRAIN_RECEIPT")" = "MERGED"
+          test "$(jq -r '.pr' "$TRAIN_RECEIPT")" = "$TRAIN_PR"
+          merge_sha="$(jq -er '.merge_sha | select(test("^[a-f0-9]{40}$"))' "$TRAIN_RECEIPT")"
+          gh workflow run train-handoff.yml --repo "$GITHUB_REPOSITORY" --ref main \
+            -f pr_number="$TRAIN_PR" -f merge_sha="$merge_sha" \
+            -f train_run_id="$GITHUB_RUN_ID"

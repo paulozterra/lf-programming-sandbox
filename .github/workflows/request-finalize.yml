@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: write
 concurrency:
   group: t9-request-finalize
   cancel-in-progress: false
@@ -46,3 +47,8 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           PYTHONDONTWRITEBYTECODE: '1'
         run: python3 pilot/orchestrator/request_finalize.py --out "$RUNNER_TEMP/t9-reports" --close
+      - name: Wake watchdog without relying on bot-triggered workflow_run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run request-failure-watchdog.yml --repo "$GITHUB_REPOSITORY" --ref main

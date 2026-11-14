@@ -1,0 +1,12 @@
+{
+  "schema_version": "LF_BOT_TRIGGER_POLICY_V1",
+  "bot_written_examples": [
+    "pilot/runs/req-987654/request.md",
+    "pilot/runs/req-987654/analysis.json",
+    "pilot/runs/req-987654/state.json",
+    "pilot/runs/req-987654/lots.json",
+    "pilot/runs/req-987654/H_REPORT.md",
+    "pilot/runs/req-987654/templates/example.task.json",
+    "pilot/registry/implemented.json"
+  ]
+}

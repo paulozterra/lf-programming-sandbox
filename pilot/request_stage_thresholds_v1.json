@@ -1,0 +1,23 @@
+{
+  "schema_version": "LF_REQUEST_STAGE_THRESHOLDS_V1",
+  "stages": [
+    {
+      "stage": "REQUEST_MERGED",
+      "minutes": 30,
+      "expected_workflow": "T7 main request auto-admission (trusted, no model)",
+      "missing_code": "PEDIDO_ESTANCADO:REQUEST_MERGED"
+    },
+    {
+      "stage": "ANALYSIS_MERGED",
+      "minutes": 35,
+      "expected_workflow": "CP3.6 chain after Train merge or spent native failure",
+      "missing_code": "PEDIDO_ESTANCADO:ANALYSIS_MERGED"
+    },
+    {
+      "stage": "INTEGRATION_MERGED",
+      "minutes": 35,
+      "expected_workflow": "CP3.6 chain after Train merge or spent native failure",
+      "missing_code": "PEDIDO_ESTANCADO:INTEGRATION_MERGED"
+    }
+  ]
+}
