@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("workflow_permissions", HERE / "test_workflow_permissions.py")
@@ -75,6 +76,41 @@ jobs:
           gh api -X POST repos/o/r/issues/160/comments
 """, ["WORKFLOW_PERMISO_FALTANTE:synthetic.yml:actions",
       "WORKFLOW_PERMISO_FALTANTE:synthetic.yml:issues"])
+
+    def test_github_script_api_write_needs_permission(self):
+        self.verify("""permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.issues.createComment({issue_number: 160})
+            await github.rest.actions.createWorkflowDispatch({workflow_id: 'ci.yml'})
+""", ["WORKFLOW_PERMISO_FALTANTE:synthetic.yml:actions",
+      "WORKFLOW_PERMISO_FALTANTE:synthetic.yml:issues"])
+
+    def test_literal_delegated_python_api_requires_permission(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            path = root / ".github/workflows/synthetic.yml"
+            path.parent.mkdir(parents=True)
+            path.write_text("""permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: python3 pilot/workflow_entry.py
+""")
+            delegate = root / "pilot/workflow_entry.py"
+            delegate.parent.mkdir(parents=True)
+            delegate.write_text('api.call("POST", "/actions/workflows/ci.yml/dispatches")')
+            with patch.object(policy, "ROOT", root):
+                self.assertEqual(policy.check_workflow(path, MAPPING),
+                                 ["WORKFLOW_PERMISO_FALTANTE:synthetic.yml:actions"])
 
     def test_repo_workflows(self):
         self.assertEqual(policy.scan(HERE.parent, MAPPING), [])
