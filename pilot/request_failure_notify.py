@@ -79,6 +79,9 @@ def notification(run: dict, jobs: list[dict]) -> tuple[int, str, str] | None:
         return None
     if run.get("repository", {}).get("full_name") != REPO:
         return None
+    head_repo = run.get("head_repository") or {}
+    if (isinstance(head_repo, dict) and head_repo.get("full_name") not in (None, REPO)):
+        return None
     issue = resolve_issue(run)
     if issue is None:
         return None
@@ -130,6 +133,15 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
     if hit is None:
         return "RUTA_NO_ISSUE_ASSOCIATION"
     number, code, url = hit
+    if run.get("name") != "T9 issue request intake":
+        # Branch-title strings alone are insufficient: verify the original
+        # lf/request/ PR was created by the trusted bot, including after merge.
+        prs = api.api("GET", f"/pulls?state=all&head=paulozterra:lf/request/req-{number}&per_page=100")
+        if not isinstance(prs, list) or not any(
+                isinstance(pr, dict) and pr.get("user", {}).get("login") == "github-actions[bot]"
+                and pr.get("head", {}).get("ref") == f"lf/request/req-{number}"
+                for pr in prs):
+            return "RUTA_PR_ORIGEN_NO_CONFIABLE"
     issue = api.api("GET", f"/issues/{number}")
     if issue.get("pull_request") or issue.get("state") != "open":
         return "RUTA_ISSUE_NOT_OPEN"
