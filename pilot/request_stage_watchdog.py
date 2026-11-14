@@ -69,7 +69,7 @@ def request_slugs(pr: dict, merge_sha: str) -> tuple[str, list[str]] | None:
 
 
 def expected_title(stage: str, number: int, slug: str) -> str:
-    return f"T7 {slug}" if stage == "REQUEST_MERGED" else f"CP3.6 PR {number}"
+    return f"T7 {slug}" if stage == "REQUEST_MERGED" else f"CP3.6 {slug} PR {number}"
 
 
 def next_run_seen(api: Github, stage: str, number: int,
@@ -78,7 +78,10 @@ def next_run_seen(api: Github, stage: str, number: int,
     file = "t7-request.yml" if stage == "REQUEST_MERGED" else "chain-lots.yml"
     result = api.api("GET", f"/actions/workflows/{file}/runs?per_page=100")
     title = expected_title(stage, number, slug)
-    return any(row.get("name") == expected and row.get("display_title") == title
+    historical = f"CP3.6 PR {number}"
+    return any(row.get("name") == expected
+               and row.get("display_title") in
+                   ((title, historical) if stage != "REQUEST_MERGED" else (title,))
                and row.get("created_at", "") >= merged_at
                for row in result.get("workflow_runs", []))
 
