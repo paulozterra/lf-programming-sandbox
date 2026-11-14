@@ -1,0 +1,13 @@
+name: Nuevo pedido
+description: Enviar un pedido a la ruta automática de LF
+title: "[Pedido] "
+labels: ["lf-request"]
+body:
+  - type: textarea
+    id: pedido
+    attributes:
+      label: Pedido
+      description: Escribe literalmente lo que quieres implementar.
+      placeholder: Implementa SBX-REM-LIST...
+    validations:
+      required: true
