@@ -166,6 +166,10 @@ jobs:
         run: |
           python3 -m pilot.test_selector_environment
           python3 -m unittest discover -s pilot -p 'test_t9_3_selector_notify.py' -v
+      - name: T9.4 extract every Python workflow command and smoke in clean interpreters
+        run: |
+          python3 -m unittest discover -s pilot -p 'test_workflow_python_commands.py' -v
+          python3 -m pilot.workflow_python_commands
       - name: Policy C offline auto-integrate admission tests (no token)
         run: |
           python3 -m py_compile pilot/auto_integrate.py
