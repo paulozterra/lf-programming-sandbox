@@ -137,7 +137,8 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
         validate_request_paths(slug, sha)
         inputs = {"slug": slug, "merge_sha": sha}
     elif item["input_kind"] == "train_run_id":
-        inputs = {"source_run_id": str(train_run_id)}
+        inputs = {"source_run_id": str(train_run_id),
+                  "merge_pr": str(number)}
     elif item["input_kind"] == "integration_pr":
         inputs = {"integration_pr": str(number)}
     else:
@@ -153,13 +154,12 @@ def verify_t7_dispatch(slug: str, sha: str):
         raise HandoffBlocked("HANDOFF_REQUEST_INPUT_INVALID")
     if sha not in git("rev-list", "--first-parent", "HEAD").splitlines():
         raise HandoffBlocked("HANDOFF_REQUEST_NOT_ON_MAIN")
-    if git("log", "-1", "--format=%s", sha) != (
-            f"Merge PR #{int(slug[4:])} via sandbox-train"):
-        # The PR number normally differs from its corresponding Issue number.
-        # Independently check the merged commit's path and two parents instead.
-        parents = git("rev-list", "--parents", "-n", "1", sha).split()
-        if len(parents) != 3:
-            raise HandoffBlocked("HANDOFF_REQUEST_MERGE_INVALID")
+    if not re.fullmatch(r"Merge PR #[1-9][0-9]* via sandbox-train",
+                        git("log", "-1", "--format=%s", sha)):
+        raise HandoffBlocked("HANDOFF_REQUEST_MERGE_INVALID")
+    parents = git("rev-list", "--parents", "-n", "1", sha).split()
+    if len(parents) != 3:
+        raise HandoffBlocked("HANDOFF_REQUEST_MERGE_INVALID")
     validate_request_paths(slug, sha)
     if not Path(f"pilot/runs/{slug}/request.md").is_file():
         raise HandoffBlocked("HANDOFF_REQUEST_NOT_IN_MAIN")
