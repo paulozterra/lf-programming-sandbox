@@ -21,7 +21,8 @@
       "pilot/test_t9_3_selector_notify.py",
       "pilot/orchestrator/test_t9_3_e2e.py",
       "standards/changes/CHG-0111.json",
-      "standards/CAMBIOS.md"
+      "standards/CAMBIOS.md",
+      ".github/workflows/f5-package.yml"
     ]
   },
   "existing_code_impact": {
