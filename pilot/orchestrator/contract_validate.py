@@ -149,6 +149,10 @@ def _check_skeleton(skeleton, module):
                 r"(?:GET|POST|PUT|PATCH|DELETE) /[A-Za-z0-9_/{}/.-]*", op)
                 for op in reused)):
         deny("REUTILIZACION_INDETERMINADA")
+    extended = skeleton.get("extended_endpoints", [])
+    if (not isinstance(extended, list) or len(set(extended)) != len(extended)
+            or not set(extended).issubset(set(reused))):
+        deny("REUTILIZACION_INDETERMINADA")
     return field_codes, error_codes, set(requirements)
 
 
@@ -157,9 +161,14 @@ def validate(path, skeleton, module):
     fields, errors, required = _check_skeleton(skeleton, module)
     seen_requirements, seen_errors, seen_fields = set(), set(), set()
     reused = set(skeleton.get("reused_endpoints", []))
+    extended = set(skeleton.get("extended_endpoints", []))
+    seen_extensions = set()
     for route, method, operation in operations(spec):
-        if method.upper() + " " + route in reused:
+        identity = method.upper() + " " + route
+        if identity in reused and identity not in extended:
             deny("DUPLICA_COMPONENTE_EXISTENTE")
+        if identity in extended:
+            seen_extensions.add(identity)
         seen_requirements.update(operation["x-requirement-ids"])
         seen_fields.update(_field_names(operation))
         for response in operation["responses"].values():
@@ -169,6 +178,8 @@ def validate(path, skeleton, module):
             if not isinstance(codes, list) or any(not isinstance(code, str) for code in codes):
                 deny("CONTRACT_RESPONSE_ERROR_CODES_INVALID")
             seen_errors.update(codes)
+    if extended - seen_extensions:
+        deny("CONTRACT_DECLARED_ENDPOINT_MISSING:" + ",".join(sorted(extended - seen_extensions)))
     if required - seen_requirements:
         deny("CONTRACT_REQ_COVERAGE_MISSING:" + ",".join(sorted(required - seen_requirements)))
     if fields - seen_fields:
