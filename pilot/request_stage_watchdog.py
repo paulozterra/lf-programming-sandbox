@@ -79,11 +79,13 @@ def next_run_seen(api: Github, stage: str, number: int,
     result = api.api("GET", f"/actions/workflows/{file}/runs?per_page=100")
     title = expected_title(stage, number, slug)
     historical = f"CP3.6 PR {number}"
-    return any(row.get("name") == expected
-               and row.get("display_title") in
-                   ((title, historical) if stage != "REQUEST_MERGED" else (title,))
-               and row.get("created_at", "") >= merged_at
-               for row in result.get("workflow_runs", []))
+    return any(
+        ((str(row.get("path") or "").split("@")[0] == ".github/workflows/" + file)
+         or (not row.get("path") and row.get("name") == expected))
+        and row.get("display_title") in
+            ((title, historical) if stage != "REQUEST_MERGED" else (title,))
+        and row.get("created_at", "") >= merged_at
+        for row in result.get("workflow_runs", []))
 
 
 def evaluate(api: Github, number: int, sha: str, train_run_id: int,
