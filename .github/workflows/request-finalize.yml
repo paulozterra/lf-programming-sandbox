@@ -32,7 +32,7 @@ jobs:
       - name: Generate reports for terminal request states only
         env:
           PYTHONDONTWRITEBYTECODE: '1'
-        run: python3 pilot/orchestrator/request_finalize.py --out "$RUNNER_TEMP/t9-reports"
+        run: python3 -m pilot.workflow_entrypoint pilot/orchestrator/request_finalize.py --out "$RUNNER_TEMP/t9-reports"
       - name: Publish intervention reports before closing any issue
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -46,7 +46,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           PYTHONDONTWRITEBYTECODE: '1'
-        run: python3 pilot/orchestrator/request_finalize.py --out "$RUNNER_TEMP/t9-reports" --close
+        run: python3 -m pilot.workflow_entrypoint pilot/orchestrator/request_finalize.py --out "$RUNNER_TEMP/t9-reports" --close
       - name: Wake watchdog without relying on bot-triggered workflow_run
         if: always()
         env:

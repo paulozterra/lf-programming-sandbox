@@ -49,7 +49,7 @@ jobs:
         run: bash pilot/orchestrator/prepare_selector.sh
       - name: Validate explicit Train dispatch against trusted main
         if: github.event_name == 'workflow_dispatch'
-        run: python3 pilot/train_handoff.py --verify-t7 --slug "${{ inputs.slug }}" --merge-sha "${{ inputs.merge_sha }}"
+        run: python3 -m pilot.workflow_entrypoint pilot/train_handoff.py --verify-t7 --slug "${{ inputs.slug }}" --merge-sha "${{ inputs.merge_sha }}"
       - name: Resolve exactly the requests submitted in this main commit
         shell: bash
         run: |
@@ -64,7 +64,7 @@ jobs:
           test -s "$RUNNER_TEMP/t7-requests.txt"
           while IFS= read -r file; do
             slug="$(basename "$(dirname "$file")")"
-            python3 pilot/orchestrator/t7_entry.py --root . \
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/t7_entry.py --root . \
               --request-id "$slug" --base-head-sha "$GITHUB_SHA"
           done < "$RUNNER_TEMP/t7-requests.txt"
       - name: Stage generated evidence only in a governed Draft PR

@@ -60,7 +60,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: python3 pilot/auto_integrate.py
+        run: python3 -m pilot.workflow_entrypoint pilot/auto_integrate.py
       - name: Wake watchdog without relying on bot-triggered workflow_run
         if: always()
         env:

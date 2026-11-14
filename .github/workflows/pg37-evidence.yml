@@ -58,7 +58,7 @@ jobs:
         with:
           node-version: "22"
       - name: Verify all original LF producer file pins
-        run: python3 pilot/lf_producers_pinned/verify_source_pin.py
+        run: python3 -m pilot.workflow_entrypoint pilot/lf_producers_pinned/verify_source_pin.py
       - name: Create disposable local PostgreSQL 17 (never Supabase)
         shell: bash
         run: |
@@ -81,7 +81,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Original PG producers and per-request draft H_REPORT
-        run: python3 pilot/orchestrator/pg37_publish.py --source-run-id "$SOURCE_RUN_ID"
+        run: python3 -m pilot.workflow_entrypoint pilot/orchestrator/pg37_publish.py --source-run-id "$SOURCE_RUN_ID"
       - name: Stop local PostgreSQL
         if: always()
         run: docker stop cp37-disposable-db || true

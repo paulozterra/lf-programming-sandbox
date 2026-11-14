@@ -117,7 +117,7 @@ jobs:
         self.assertIn("bash pilot/orchestrator/prepare_selector.sh", t7)
         setup = (HERE / "orchestrator/prepare_selector.sh").read_text()
         self.assertIn("ATOMIZE_T1_SELECTOR=YES", setup)
-        self.assertIn("selector_db.py --t1-patterns", setup)
+        self.assertIn("python3 -m pilot.orchestrator.selector_db --t1-patterns", setup)
 
 
 if __name__ == "__main__":

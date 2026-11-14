@@ -43,6 +43,6 @@ jobs:
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
           if [ -n "$SOURCE_RUN_ID" ]; then
-            python3 pilot/request_failure_notify.py --run-id "$SOURCE_RUN_ID"
+            python3 -m pilot.workflow_entrypoint pilot/request_failure_notify.py --run-id "$SOURCE_RUN_ID"
           fi
-          python3 pilot/request_failure_notify.py --sweep
+          python3 -m pilot.workflow_entrypoint pilot/request_failure_notify.py --sweep
