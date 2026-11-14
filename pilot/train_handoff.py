@@ -166,6 +166,11 @@ def ensure_main_ci(api: Github, sha: str, *, required: bool,
     config = config or main_ci_gate_config()
     if not SHA.fullmatch(sha):
         raise HandoffBlocked("BASE_NO_VERDE:SHA_INVALID")
+    # A workflow_dispatch on ref main is not pinned by input; never let a
+    # concurrently advancing main count as validation of a different commit.
+    tip = api.call("GET", "/git/ref/heads/main")
+    if tip.get("object", {}).get("sha") != sha:
+        raise HandoffBlocked("BASE_NO_VERDE:MAIN_MOVED")
     api.call("POST", "/actions/workflows/ci.yml/dispatches", {"ref": "main"})
     if not required:
         return {"status": "MAIN_CI_DISPATCHED", "sha": sha}
