@@ -1,0 +1,9 @@
+{
+  "schema_version": "LF_TRAIN_MAIN_CI_GATE_V1",
+  "workflow": "ci.yml",
+  "dispatch_ref": "main",
+  "wait_seconds": 900,
+  "poll_seconds": 15,
+  "required_event": "workflow_dispatch",
+  "required_branch": "main"
+}

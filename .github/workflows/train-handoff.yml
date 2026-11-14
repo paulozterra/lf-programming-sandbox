@@ -19,6 +19,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  issues: write
   actions: write
 
 concurrency:
@@ -29,7 +30,7 @@ jobs:
   route:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 25
     steps:
       - name: Checkout trusted main, never PR code
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -37,7 +38,8 @@ jobs:
           ref: refs/heads/main
           fetch-depth: 0
           persist-credentials: false
-      - name: Validate merged Train PR and dispatch next stage
+      - name: Validate Train merger, dispatch ci.yml on exact main, gate next stage
+        # The gate waits for completed main CI; a failed CI blocks CP3.6.
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}

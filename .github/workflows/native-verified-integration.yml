@@ -1,4 +1,5 @@
 name: CP3.5 native verified patch to draft PR
+run-name: CP3.5 ${{ github.event.workflow_run.display_title || github.run_id }}
 
 on:
   workflow_run:
@@ -51,3 +52,8 @@ jobs:
         if: always()
         run: |
           echo "CP35_OWNER_GATE_RETAINED: Claude reviews, Paulo labels, Train merges."
+      - name: Wake request watchdog even for bot-created integration PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run request-failure-watchdog.yml --repo "$GITHUB_REPOSITORY" --ref main

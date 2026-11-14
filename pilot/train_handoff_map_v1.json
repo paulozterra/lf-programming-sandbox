@@ -4,17 +4,23 @@
     {
       "branch_regex": "^lf/request/(req-[1-9][0-9]*)$",
       "workflow": "t7-request.yml",
-      "input_kind": "slug"
+      "input_kind": "slug",
+      "requires_green_base": false,
+      "correlate_request_slug": false
     },
     {
       "branch_regex": "^lf/generated-t7/[0-9a-f]{12}$",
       "workflow": "chain-lots.yml",
-      "input_kind": "train_run_id"
+      "input_kind": "train_run_id",
+      "requires_green_base": true,
+      "correlate_request_slug": true
     },
     {
       "branch_regex": "^lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-[1-9][0-9]*$",
       "workflow": "chain-lots.yml",
-      "input_kind": "integration_pr"
+      "input_kind": "integration_pr",
+      "requires_green_base": true,
+      "correlate_request_slug": true
     }
   ]
 }

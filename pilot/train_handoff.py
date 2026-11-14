@@ -12,11 +12,13 @@ from pathlib import Path
 import re
 import subprocess
 import time
+from datetime import datetime, timezone
 import urllib.error
 import urllib.request
 
 REPO = "paulozterra/lf-programming-sandbox"
 MAP = Path(__file__).with_name("train_handoff_map_v1.json")
+CI_GATE = Path(__file__).with_name("train_main_ci_gate_v1.json")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 
 
@@ -122,31 +124,139 @@ def validate_train_run(api: Github, number: int, train_run_id: int):
     raise HandoffBlocked("HANDOFF_TRAIN_WAIT_TIMEOUT")
 
 
+def main_ci_gate_config(path: Path = CI_GATE) -> dict:
+    config = json.loads(path.read_text(encoding="utf-8"))
+    if (config.get("schema_version") != "LF_TRAIN_MAIN_CI_GATE_V1"
+            or config.get("workflow") != "ci.yml"
+            or config.get("dispatch_ref") != "main"
+            or config.get("required_event") != "workflow_dispatch"
+            or config.get("required_branch") != "main"
+            or type(config.get("wait_seconds")) is not int
+            or not 60 <= config["wait_seconds"] <= 1800
+            or type(config.get("poll_seconds")) is not int
+            or not 1 <= config["poll_seconds"] <= 60):
+        raise HandoffBlocked("MAIN_CI_GATE_CONFIG_INVALID")
+    return config
+
+
+def main_ci_run(api: Github, sha: str, config: dict) -> dict | None:
+    result = api.call("GET", f"/actions/workflows/ci.yml/runs?head_sha={sha}&per_page=100")
+    rows = result.get("workflow_runs", [])
+    if (not isinstance(rows, list) or type(result.get("total_count")) is not int
+            or result["total_count"] > 100):
+        raise HandoffBlocked("BASE_NO_VERDE:CI_HISTORY_INVALID")
+    eligible = [r for r in rows if
+                r.get("head_sha") == sha and r.get("head_branch") == config["required_branch"]
+                and r.get("event") in ("push", config["required_event"])
+                and (r.get("path") or "").split("@")[0] == ".github/workflows/ci.yml"
+                and r.get("repository", {}).get("full_name") == REPO
+                and type(r.get("run_attempt")) is int]
+    return max(eligible, key=lambda r: (r.get("created_at") or "", r.get("id") or 0),
+               default=None)
+
+
+def ensure_main_ci(api: Github, sha: str, *, required: bool,
+                   config: dict | None = None, sleep=time.sleep) -> dict:
+    """Dispatch CI via workflow_dispatch; never count a different main SHA.
+
+    A gated successor is forbidden until the exact SHA's latest verified
+    workflow_dispatch CI has completed successfully. A failure is terminal
+    and contains its own GitHub Actions URL.
+    """
+    config = config or main_ci_gate_config()
+    if not SHA.fullmatch(sha):
+        raise HandoffBlocked("BASE_NO_VERDE:SHA_INVALID")
+    # A workflow_dispatch on ref main is not pinned by input; never let a
+    # concurrently advancing main count as validation of a different commit.
+    tip = api.call("GET", "/git/ref/heads/main")
+    if tip.get("object", {}).get("sha") != sha:
+        raise HandoffBlocked("BASE_NO_VERDE:MAIN_MOVED")
+    # Record the previous run before dispatch. Never treat an older success
+    # (or failure) as the outcome of the CI that this handoff just launched.
+    previous = main_ci_run(api, sha, config)
+    previous_id = previous.get("id", 0) if previous else 0
+    api.call("POST", "/actions/workflows/ci.yml/dispatches", {"ref": "main"})
+    if not required:
+        return {"status": "MAIN_CI_DISPATCHED", "sha": sha}
+    attempts = (config["wait_seconds"] + config["poll_seconds"] - 1) // config["poll_seconds"]
+    last = None
+    for attempt in range(attempts):
+        run = main_ci_run(api, sha, config)
+        if run is not None and type(run.get("id")) is int and run["id"] > previous_id:
+            last = run
+            if run.get("status") == "completed":
+                if run.get("conclusion") == "success":
+                    return {"status": "MAIN_CI_GREEN", "sha": sha,
+                            "run_id": run["id"], "url": run["html_url"]}
+                raise HandoffBlocked("BASE_NO_VERDE:" + str(run.get("html_url") or "CI_NO_URL"))
+        if attempt + 1 < attempts:
+            sleep(config["poll_seconds"])
+    # A completed old run cannot stand in for a missing new dispatch.
+    raise HandoffBlocked("BASE_NO_VERDE:" + str(last.get("html_url") if last else "CI_NO_RUN"))
+
+
+def merged_request_slug(pr: dict, sha: str) -> str:
+    """Attribute verified Train merger to one request via its Git delta only."""
+    branch = pr["head"]["ref"]
+    if re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+        changed = git("diff", "--name-only", sha + "^1", sha).splitlines()
+        slugs = {m.group(1) for path in changed
+                 if (m := re.fullmatch(r"pilot/runs/(req-[1-9][0-9]*)/(?:analysis|state|lots|chain_plan)[.]json", path))}
+    else:
+        match = re.fullmatch(r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*", branch)
+        if not match:
+            raise HandoffBlocked("HANDOFF_REQUEST_SCOPE_INVALID")
+        task = match.group(1)
+        slugs = set()
+        for plan in Path("pilot/runs").glob("req-*/chain_plan.json"):
+            if plan.is_symlink() or plan.parent.is_symlink():
+                continue
+            data = json.loads(plan.read_text(encoding="utf-8"))
+            if any(isinstance(row, dict) and
+                   (row.get("task_name") == task or
+                    (isinstance(row.get("task_name"), str) and
+                     re.fullmatch(re.escape(row["task_name"]) + r"(?:[2-9]|[1-9][0-9]+)", task)))
+                   for row in data.get("bindings", [])):
+                slugs.add(plan.parent.name)
+    if len(slugs) != 1:
+        raise HandoffBlocked("HANDOFF_REQUEST_SCOPE_AMBIGUOUS")
+    return slugs.pop()
+
+
 def dispatch(api: Github, number: int, sha: str, train_run_id: int,
              mapping: dict):
     pr = api.call("GET", f"/pulls/{number}")
     commit = api.call("GET", f"/commits/{sha}")
     branch = verify_merge(pr, commit, number, sha)
     selected = route(branch, mapping)
-    if selected is None:
-        return {"status": "NO_HANDOFF", "branch": branch}
     validate_train_run(api, number, train_run_id)
+    if selected is None:
+        ensure_main_ci(api, sha, required=False)
+        return {"status": "NO_HANDOFF", "branch": branch}
     item, match = selected
+    if type(item.get("requires_green_base")) is not bool:
+        raise HandoffBlocked("HANDOFF_MAP_GATE_UNDEFINED")
+    slug_for_stage = (merged_request_slug(pr, sha)
+                      if item.get("correlate_request_slug") else None)
+    # All Train merges get their own CI. The gate is closed BEFORE CP3.6.
+    ci = ensure_main_ci(api, sha, required=item["requires_green_base"])
     if item["input_kind"] == "slug":
         slug = match.group(1)
         validate_request_paths(slug, sha)
         inputs = {"slug": slug, "merge_sha": sha}
     elif item["input_kind"] == "train_run_id":
         inputs = {"source_run_id": str(train_run_id),
-                  "merge_pr": str(number)}
+                  "merge_pr": str(number), "request_slug": slug_for_stage,
+                  "base_sha": sha}
     elif item["input_kind"] == "integration_pr":
-        inputs = {"integration_pr": str(number)}
+        inputs = {"integration_pr": str(number), "request_slug": slug_for_stage,
+                  "base_sha": sha}
     else:
         raise HandoffBlocked("HANDOFF_INPUT_KIND_INVALID")
     api.call("POST", f"/actions/workflows/{item['workflow']}/dispatches",
              {"ref": "main", "inputs": inputs})
     return {"status": "DISPATCHED", "branch": branch,
-            "workflow": item["workflow"], "inputs": inputs}
+            "workflow": item["workflow"], "inputs": inputs, "main_ci": ci}
 
 
 def verify_t7_dispatch(slug: str, sha: str):
@@ -184,8 +294,47 @@ def main():
     print(json.dumps(result, sort_keys=True))
 
 
+def alert_exact_base_block(exc: Exception, number: int | None, sha: str | None):
+    """Report a CI-gate block before the handoff workflow itself completes.
+
+    No untrusted PR body is used: notifier verifies this Train PR's merge
+    commit and changed request files, then checks the original bot request.
+    """
+    reason = str(exc)
+    if not reason.startswith("BASE_NO_VERDE:"):
+        return
+    if (type(number) is not int or number < 1 or not isinstance(sha, str)
+            or not SHA.fullmatch(sha)):
+        return
+    run_id = os.environ.get("GITHUB_RUN_ID", "")
+    if not run_id.isdecimal() or os.environ.get("GITHUB_REPOSITORY") != REPO:
+        return
+    from request_failure_notify import Github as NotifyGithub, emit
+    ci_url = reason.split(":", 1)[1]
+    run = {"id": int(run_id), "name": f"Train handoff PR {number}",
+           "display_title": f"Train handoff PR {number}",
+           "path": ".github/workflows/train-handoff.yml",
+           "event": "workflow_dispatch", "head_branch": "main",
+           "head_sha": sha, "conclusion": "failure",
+           "failure_code": "BASE_NO_VERDE",
+           "repository": {"full_name": REPO},
+           "html_url": f"https://github.com/{REPO}/actions/runs/{run_id}"}
+    if ci_url.startswith(f"https://github.com/{REPO}/actions/runs/"):
+        run["main_ci_url"] = ci_url
+    print("HANDOFF_BASE_ALERT:" + emit(
+        NotifyGithub(os.environ.get("GH_TOKEN", "")), run, []))
+
+
 if __name__ == "__main__":
     try:
         main()
     except (HandoffBlocked, ValueError, KeyError, subprocess.CalledProcessError) as exc:
+        try:
+            parser = argparse.ArgumentParser(add_help=False)
+            parser.add_argument("--pr", type=int)
+            parser.add_argument("--merge-sha")
+            data, _ = parser.parse_known_args()
+            alert_exact_base_block(exc, data.pr, data.merge_sha)
+        except Exception as notify_exc:
+            print("HANDOFF_BASE_ALERT_FAILED:" + str(notify_exc))
         raise SystemExit("HANDOFF_BLOCKED:" + str(exc)) from exc

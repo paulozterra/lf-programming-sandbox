@@ -1,5 +1,5 @@
 name: CP3.6 chain after Train merge or spent native failure
-run-name: CP3.6 ${{ inputs.merge_pr && format('PR {0}', inputs.merge_pr) || inputs.integration_pr && format('PR {0}', inputs.integration_pr) || github.event.workflow_run.head_branch || inputs.source_run_id || github.run_id }}
+run-name: CP3.6 ${{ inputs.request_slug && format('{0} PR {1}', inputs.request_slug, inputs.merge_pr || inputs.integration_pr) || inputs.merge_pr && format('PR {0}', inputs.merge_pr) || inputs.integration_pr && format('PR {0}', inputs.integration_pr) || github.event.workflow_run.head_branch || inputs.source_run_id || github.run_id }}
 
 on:
   workflow_run:
@@ -20,6 +20,14 @@ on:
         type: string
       integration_pr:
         description: "Optional Train-merged integration PR for recovery"
+        required: false
+        type: string
+      request_slug:
+        description: Request slug derived from the verified Train PR merge delta
+        required: false
+        type: string
+      base_sha:
+        description: Exact Train merge commit with verified main CI
         required: false
         type: string
 
@@ -72,6 +80,17 @@ jobs:
           test -z "$(git status --porcelain)"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Verify exact CI-verified main merge SHA when Train gated
+        if: ${{ inputs.base_sha != '' }}
+        env:
+          EXPECTED_BASE: ${{ inputs.base_sha }}
+          REQUEST_SLUG: ${{ inputs.request_slug }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_BASE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$REQUEST_SLUG" =~ ^req-[1-9][0-9]*$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE"
+          # CP3.6 retains its internal require_green_base call.
       - name: Reconcile trusted merge, DAG, attempts; prepare draft successors only
         env:
           CP36_PACK_OUT: ${{ runner.temp }}/cp36-proposal-packs

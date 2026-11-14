@@ -113,3 +113,4 @@
 | CHG-0110 | ADDITIVE | T9.2: handoff explícito de Train y detección de etapas sin siguiente corrida |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/166 |
 | CHG-0111 | ADDITIVE | T9.3: preparación de selector compartida y atribución segura de fallos T7 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/169 |
 | CHG-0112 | ADDITIVE | T9.4: entradas Python en workflows ejecutables como módulos y humo limpio |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/172 |
+| CHG-0113 | ADDITIVE | T9.5: CI de main por SHA exacto antes de CP3.6 y correlación de etapas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/178 |
