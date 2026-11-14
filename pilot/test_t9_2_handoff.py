@@ -49,7 +49,9 @@ class HandoffTests(unittest.TestCase):
         api = API(branch)
         with patch.object(handoff, "git", return_value=SHA), \
              patch.object(handoff, "validate_train_run"), \
-             patch.object(handoff, "validate_request_paths"):
+             patch.object(handoff, "validate_request_paths"), \
+             patch.object(handoff, "ensure_main_ci", return_value={"status":"MAIN_CI_GREEN"}), \
+             patch.object(handoff, "merged_request_slug", return_value="req-987"):
             result = handoff.dispatch(api, PR, SHA, 12345, ROUTES)
         return result, api.writes
 
@@ -64,10 +66,12 @@ class HandoffTests(unittest.TestCase):
         generated, gw = self.dispatch("lf/generated-t7/" + "d" * 12)
         self.assertEqual(generated["workflow"], "chain-lots.yml")
         self.assertEqual(gw[0][1]["inputs"],
-                         {"source_run_id": "12345", "merge_pr": "777"})
+                         {"source_run_id": "12345", "merge_pr": "777",
+                          "request_slug": "req-987", "base_sha": SHA})
         integration, iw = self.dispatch("lf/native-integration/demo-run-123")
         self.assertEqual(integration["workflow"], "chain-lots.yml")
-        self.assertEqual(iw[0][1]["inputs"], {"integration_pr": "777"})
+        self.assertEqual(iw[0][1]["inputs"], {"integration_pr": "777", "request_slug": "req-987",
+                                                     "base_sha": SHA})
 
     def test_unmapped_branch_is_not_dispatched(self):
         result, writes = self.dispatch("feat/manual")
