@@ -2,12 +2,14 @@
 import json
 import os
 import subprocess
+import sys
+import re
 from pathlib import Path
 
 import pytest
 
 from pilot.orchestrator.test_t72_dependencies import _scenario
-from pilot.orchestrator import t7_entry
+from pilot.workflow_python_commands import commands
 from pilot import train_handoff
 
 @pytest.mark.skipif(
@@ -38,7 +40,27 @@ def test_synthetic_trusted_handoff_to_t7_lots_planned(tmp_path):
 
     base = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=tmp_path,
                                    text=True).strip()
-    output = t7_entry.process(tmp_path, slug, base)
+    # Extract the executable form from the REAL T7 YAML, not a parallel
+    # function call. Substituting only temporary fixture values preserves the
+    # exact interpreter/module/argument contract.
+    repo = Path(__file__).resolve().parents[2]
+    workflow = repo / ".github/workflows/t7-request.yml"
+    scripts = commands(workflow)
+    assert ("module", "pilot.orchestrator.t7_entry") in scripts
+    source = workflow.read_text(encoding="utf-8")
+    assert re.search(
+        r"python3 -m pilot[.]orchestrator[.]t7_entry --root [.] \\\\",
+        source)
+    argv = [sys.executable, "-m", "pilot.orchestrator.t7_entry",
+            "--root", str(tmp_path), "--request-id", slug,
+            "--base-head-sha", base]
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+    completed = subprocess.run(argv, cwd=repo, env=env, text=True,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               timeout=120)
+    assert completed.returncode == 0, completed.stderr
+    output = json.loads(completed.stdout.strip().splitlines()[-1])
     assert output["status"] == "LOTS_PLANNED", output
     state = json.loads((folder / "state.json").read_text(encoding="utf-8"))
     lots = json.loads((folder / "lots.json").read_text(encoding="utf-8"))
