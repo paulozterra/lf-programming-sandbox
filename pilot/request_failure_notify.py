@@ -116,8 +116,23 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
            if c.get("user", {}).get("login") == "github-actions[bot]"):
         return "RUTA_ALREADY_NOTIFIED"
     if "lf-request-blocked" not in labels:
-        api.api("POST", f"/issues/{number}/labels",
-                {"labels": ["lf-request-blocked"]})
+        try:
+            api.api("POST", f"/issues/{number}/labels",
+                    {"labels": ["lf-request-blocked"]})
+        except urllib.error.HTTPError as error:
+            if error.code != 422:
+                raise
+            # On first use bootstrap the repository label, then retry.
+            try:
+                api.api("POST", "/labels", {
+                    "name": "lf-request-blocked",
+                    "color": "B60205",
+                    "description": "La ruta del pedido requiere intervención"})
+            except urllib.error.HTTPError as race:
+                if race.code != 422:
+                    raise
+            api.api("POST", f"/issues/{number}/labels",
+                    {"labels": ["lf-request-blocked"]})
     api.api("POST", f"/issues/{number}/comments",
             {"body": f"{marker}\nRuta bloqueada: \`{code}\`.\nCorrida: {url}\n"
                      "El pedido permanece abierto para revisión."})
