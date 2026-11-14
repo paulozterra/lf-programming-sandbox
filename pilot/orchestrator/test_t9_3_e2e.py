@@ -46,12 +46,12 @@ def test_synthetic_trusted_handoff_to_t7_lots_planned(tmp_path):
     repo = Path(__file__).resolve().parents[2]
     workflow = repo / ".github/workflows/t7-request.yml"
     scripts = commands(workflow)
-    assert ("module", "pilot.orchestrator.t7_entry") in scripts
+    assert ("wrapper", "pilot/orchestrator/t7_entry.py") in scripts
     source = workflow.read_text(encoding="utf-8")
-    assert re.search(
-        r"python3 -m pilot[.]orchestrator[.]t7_entry --root [.] \\\\",
-        source)
-    argv = [sys.executable, "-m", "pilot.orchestrator.t7_entry",
+    assert "python3 -m pilot.workflow_entrypoint pilot/orchestrator/t7_entry.py --root ." in source
+    # Exact workflow executable + script. Only fixture arguments are replaced.
+    argv = [sys.executable, "-m", "pilot.workflow_entrypoint",
+            "pilot/orchestrator/t7_entry.py",
             "--root", str(tmp_path), "--request-id", slug,
             "--base-head-sha", base]
     env = os.environ.copy()
