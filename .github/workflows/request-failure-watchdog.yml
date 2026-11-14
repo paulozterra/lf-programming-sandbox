@@ -2,6 +2,10 @@ name: T9.1 request route failure watchdog
 on:
   workflow_run:
     workflows:
+      - 'sandbox-train'
+      - 'T9.2 trusted Train handoff dispatch'
+      - 'T7 main request auto-admission (trusted, no model)'
+      - 'CP3.7 pinned PG06-PG14 evidence and H_REPORT'
       - 'T9 issue request intake'
       - 'ci'
       - 'CP3.6 chain after Train merge or spent native failure'
@@ -22,8 +26,7 @@ jobs:
   notify:
     if: >-
       github.event_name != 'workflow_run' ||
-      (github.event.workflow_run.conclusion == 'failure' ||
-       github.event.workflow_run.conclusion == 'timed_out')
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -41,6 +44,5 @@ jobs:
         run: |
           if [ -n "$SOURCE_RUN_ID" ]; then
             python3 pilot/request_failure_notify.py --run-id "$SOURCE_RUN_ID"
-          else
-            python3 pilot/request_failure_notify.py --sweep
           fi
+          python3 pilot/request_failure_notify.py --sweep
