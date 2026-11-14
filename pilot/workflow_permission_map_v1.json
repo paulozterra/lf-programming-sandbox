@@ -7,7 +7,8 @@
         "\\bgh\\s+workflow\\s+run\\b",
         "\\bgh\\s+api\\b[^\\n]*(?:/actions/workflows/|/dispatches\\b)",
         "\\bcurl\\b[^\\n]*(?:/actions/workflows/|/dispatches\\b)",
-        "(?:\\bPOST\\b|\\bpost\\b)[^\\n]*?/actions/workflows/"
+        "(?:\\bPOST\\b|\\bpost\\b)[^\\n]*?/actions/workflows/",
+        "\\b(?:github|octokit)\\.rest\\.actions\\.createWorkflowDispatch\\s*\\("
       ]
     },
     {
@@ -16,7 +17,8 @@
         "\\bgh\\s+pr\\s+create\\b",
         "\\bgh\\s+api\\b[^\\n]*\\s(?:repos/[^\\s]+/)?pulls\\b",
         "\\bcurl\\b[^\\n]*/pulls\\b",
-        "(?:\\bPOST\\b|\\bpost\\b)[^\\n]*?[\"']/pulls(?:[?\"']|\\b)"
+        "(?:\\bPOST\\b|\\bpost\\b)[^\\n]*?[\"']/pulls(?:[?\"']|\\b)",
+        "\\b(?:github|octokit)\\.rest\\.pulls\\.(?:create|update|merge)\\s*\\("
       ]
     },
     {
@@ -26,7 +28,8 @@
         "\\bgh\\s+issue\\s+(?:comment|edit|create|close)\\b",
         "\\bgh\\s+api\\b[^\\n]*(?:/issues/[^\\s]+/(?:comments|labels)|/issues/\\d+\\b)",
         "\\bcurl\\b[^\\n]*/issues/[^\\s]+/(?:comments|labels)",
-        "(?:\\bPOST\\b|\\bPATCH\\b|\\bpost\\b|\\bpatch\\b)[^\\n]*?/issues/[^\\s\"']+/(?:comments|labels)"
+        "(?:\\bPOST\\b|\\bPATCH\\b|\\bpost\\b|\\bpatch\\b)[^\\n]*?/issues/[^\\s\"']+/(?:comments|labels)",
+        "\\b(?:github|octokit)\\.rest\\.issues\\.(?:createComment|addLabels|update|create)\\s*\\("
       ]
     }
   ]
