@@ -79,6 +79,8 @@ def eligible_pr(pr, paths, repo=REPOSITORY):
         kind = "generated-t7"
     elif re.fullmatch(r"lf/implemented-registry/[0-9a-f]{12}", branch):
         kind = "implemented-registry"
+    elif re.fullmatch(r"lf/request/req-[1-9][0-9]*", branch):
+        kind = "request"
     else:
         block("PR_BRANCH_NOT_ALLOWED")
     if not SHA.fullmatch(pr["head"].get("sha", "")):
@@ -96,6 +98,12 @@ def eligible_pr(pr, paths, repo=REPOSITORY):
             block("PR_PATH_NOT_ALLOWED")
     elif kind == "implemented-registry":
         if paths != ["pilot/registry/implemented.json"]:
+            block("PR_PATH_NOT_ALLOWED")
+    elif kind == "request":
+        slug = branch.split("/")[-1]
+        if sorted(paths) != sorted([
+                f"pilot/runs/{slug}/request.md",
+                f"pilot/runs/{slug}/request_meta.json"]):
             block("PR_PATH_NOT_ALLOWED")
     elif any(is_prohibited(p) for p in paths):
         block("PR_PATH_PROHIBITED")
@@ -385,6 +393,29 @@ def verify_generated_content(api, pr, paths, kind):
         block("GENERATED_CONTENT_DRIFT")
 
 
+def verify_issue_request(api, pr, paths):
+    """Independent main-side API read; exact SHA bytes are not trusted from CI."""
+    from orchestrator.issue_intake import expected_files, allowed_permission
+    slug = pr["head"]["ref"].split("/")[-1]
+    number = int(slug[4:])
+    issue = api.request("GET", f"/issues/{number}")
+    author = issue.get("user", {}).get("login", "")
+    if not re.fullmatch(r"[A-Za-z0-9-]{1,39}", author):
+        block("PEDIDO_AUTOR_NO_AUTORIZADO")
+    permission = api.request("GET", f"/collaborators/{author}/permission")
+    if not allowed_permission(permission.get("permission", "")):
+        block("PEDIDO_AUTOR_NO_AUTORIZADO")
+    try:
+        expected = expected_files(issue)
+    except ValueError:
+        block("PEDIDO_ISSUE_INVALIDO")
+    if sorted(paths) != sorted(expected):
+        block("PR_PATH_NOT_ALLOWED")
+    for path, raw in expected.items():
+        if _content(api, path, pr["head"]["sha"]) != raw:
+            block("PEDIDO_CONTENIDO_MODIFICADO")
+
+
 def comment_once(api, pr_number):
     comments = api.pages(f"/issues/{pr_number}/comments", None)
     if any(isinstance(row, dict) and row.get("body") == HUMAN_COMMENT
@@ -398,6 +429,8 @@ def evaluate_one(api, number):
     paths = pr_files(api, number)
     kind = eligible_pr(pr, paths)
     head = pr["head"]["sha"]
+    if kind == "request":
+        verify_issue_request(api, pr, paths)
     if READY_LABEL in {x.get("name") for x in pr.get("labels", [])}:
         return "ALREADY_LABELED"
     if kind in ("generated-t7", "implemented-registry"):
@@ -411,7 +444,9 @@ def evaluate_one(api, number):
             raise
     checks = api.pages(f"/commits/{head}/check-runs", "check_runs")
     required = (REQUIRED + ("T7 generated content byte equality",)
-                if kind in ("generated-t7", "implemented-registry") else REQUIRED)
+                if kind in ("generated-t7", "implemented-registry") else
+                REQUIRED + ("T9 request content byte equality",) if kind == "request"
+                else REQUIRED)
     validate_checks(checks, head, required)
     latest = api.request("GET", f"/pulls/{number}")
     if (latest.get("head", {}).get("sha") != head
@@ -442,7 +477,8 @@ def run(api, trigger, *, numbers=None, scheduled=False):
                       and row.get("user", {}).get("login") == BOT
                       and row.get("head", {}).get("ref", "").startswith(
                           ("lf/native-registration/", "lf/native-integration/",
-                           "lf/generated-t7/", "lf/implemented-registry/"))]
+                           "lf/generated-t7/", "lf/implemented-registry/",
+                            "lf/request/"))]
     output = []
     for number in candidates:
         try:
