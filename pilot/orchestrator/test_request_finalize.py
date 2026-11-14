@@ -1,0 +1,47 @@
+"""T9 terminal-only close test: candidates and provisional reports do not close."""
+import importlib.util
+import json
+import tempfile
+from pathlib import Path
+import unittest
+from unittest.mock import patch
+
+HERE = Path(__file__).resolve().parent
+
+
+def load():
+    spec = importlib.util.spec_from_file_location("request_finalize_t9",
+                                                  HERE / "request_finalize.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class FinalizeTests(unittest.TestCase):
+    def test_candidate_h_report_does_not_close(self):
+        mod = load()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "pilot/runs/req-17"
+            folder.mkdir(parents=True)
+            (folder / "request_meta.json").write_text(
+                json.dumps({"issue": 17, "author": "owner",
+                            "date": "2026-11-14T15:00:00Z"}))
+            (folder / "state.json").write_text(
+                json.dumps({"stage": "LOTS_PLANNED"}))
+            (folder / "H_REPORT.md").write_text("# candidate")
+            with patch.object(mod, "ROOT", root):
+                self.assertEqual(list(mod.terminal_requests()), [])
+                (folder / "state.json").write_text(
+                    json.dumps({"stage": "COMPLETED"}))
+                self.assertEqual(list(mod.terminal_requests())[0][2], "COMPLETED")
+
+    def test_only_explicit_terminal_states(self):
+        mod = load()
+        self.assertNotIn("LOTS_PLANNED", mod.TERMINAL)
+        self.assertNotIn("BLOCKED", mod.TERMINAL)
+        self.assertNotIn("INTEGRATION_PENDING", mod.TERMINAL)
+
+
+if __name__ == "__main__":
+    unittest.main()
