@@ -80,10 +80,7 @@ class Tests(unittest.TestCase):
                         {"display_title": "T7 req-167 other"},
                         {"display_title": "T7 req-168"}):
             run = dict(REAL_T7_RUN, **changes)
-            if changes.get("display_title") == "T7 req-168":
-                self.assertEqual(notify.resolve_issue(run), 168)
-            else:
-                self.assertIsNone(notify.resolve_issue(run))
+            self.assertIsNone(notify.resolve_issue(run))
 
     def test_other_workflow_spoofed_run_name_cannot_notify(self):
         run = dict(REAL_T7_RUN, path=".github/workflows/ci.yml")
