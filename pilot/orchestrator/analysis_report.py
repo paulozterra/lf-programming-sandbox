@@ -110,7 +110,13 @@ def render(package: dict, reuse: dict, lots: dict | None, meta: dict,
 
 def read_rules(fixtures: Path, request: bytes) -> dict:
     from analysis.host.fixture_readback_host import FixtureHost
-    return FixtureHost(fixtures).read_all(request.decode("utf-8").strip())["direct_rules.json"]
+    data = FixtureHost(fixtures).read_all(request.decode("utf-8").strip())
+    # Effective rules include inherited/global obligations absent from the
+    # direct-rule list; every description must be sourced, never guessed.
+    effective = {row["code"]: row for row in data["effective_rules.json"]["rules"]}
+    direct = {row["code"]: row for row in data["direct_rules.json"]["linked_rules"]}
+    return {"linked_rules": [direct.get(code, row)
+                             for code, row in sorted(effective.items())]}
 
 
 def write(root: Path, slug: str, fixtures: Path) -> bytes:
