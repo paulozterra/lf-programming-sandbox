@@ -2,6 +2,15 @@ name: ci
 
 on:
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Bot request PR number for independent verification"
+        required: false
+        type: string
+      pr_sha:
+        description: "Exact bot request PR HEAD"
+        required: false
+        type: string
   pull_request:
   push:
     branches: [main]
@@ -25,8 +34,8 @@ jobs:
       issues: read
     env:
       GH_TOKEN: ${{ github.token }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      PR_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+      PR_SHA: ${{ github.event.pull_request.head.sha || inputs.pr_sha }}
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Read trusted main code, never execute request PR files
