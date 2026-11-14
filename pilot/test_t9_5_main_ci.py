@@ -175,7 +175,8 @@ class Tests(unittest.TestCase):
         api = API([None, ci_run(conclusion="failure")])
         with patch.object(handoff, "git", return_value=SHA), \
              patch.object(handoff, "validate_train_run"), \
-             patch.object(handoff, "merged_request_slug", return_value="req-175"):
+             patch.object(handoff, "merged_request_slug", return_value="req-175"), \
+             patch.object(handoff, "comment_analysis_report"):
             with self.assertRaisesRegex(handoff.HandoffBlocked,
                                         "BASE_NO_VERDE:.*actions/runs/189"):
                 handoff.dispatch(api, 177, SHA, 42, MAPPING)
