@@ -2,6 +2,15 @@ name: ci
 
 on:
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Bot request PR number for independent verification"
+        required: false
+        type: string
+      pr_sha:
+        description: "Exact bot request PR HEAD"
+        required: false
+        type: string
   pull_request:
   push:
     branches: [main]
@@ -14,6 +23,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  t9-request-equality:
+    name: T9 request content byte equality
+    if: startsWith(github.head_ref || github.ref_name, 'lf/request/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+      PR_SHA: ${{ github.event.pull_request.head.sha || inputs.pr_sha }}
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Read trusted main code, never execute request PR files
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - name: Independently compare issue field to exact candidate blobs
+        run: python3 pilot/orchestrator/check_issue_request.py
+
   backend:
     name: backend (Maven verify)
     runs-on: ubuntu-latest
@@ -123,6 +155,10 @@ jobs:
         run: |
           python3 -m py_compile pilot/auto_integrate.py
           python3 -m unittest discover -s pilot -p 'test_auto_integrate.py' -v
+      - name: T9 issue request intake and provenance tests (offline)
+        run: |
+          python3 -m unittest discover -s pilot/orchestrator -p 'test_issue_intake.py' -v
+          python3 -m unittest discover -s pilot/orchestrator -p 'test_request_finalize.py' -v
       - name: Sandbox Train policy and local Git conflict tests (offline, no token)
         run: |
           python3 -m unittest discover -s pilot -p 'test_sandbox_train_policy.py' -v
@@ -706,11 +742,12 @@ jobs:
   # can be delayed for a long time. Hand off to policy C explicitly instead.
   notify-policy-c:
     name: Hand off generated PR to policy C
-    needs: [backend, frontend, standards-catalog, t7-generated-content, t7-registry-history, t5-browser-visible, standards-shadow, infra-local, worker-pilot-offline, native-autolaunch-policy, lf-producers-pinned, cp3-2-intake, cp3-3-planning]
+    needs: [t9-request-equality, backend, frontend, standards-catalog, t7-generated-content, t7-registry-history, t5-browser-visible, standards-shadow, infra-local, worker-pilot-offline, native-autolaunch-policy, lf-producers-pinned, cp3-2-intake, cp3-3-planning]
     if: >-
       always() && github.event_name == 'workflow_dispatch' &&
       (startsWith(github.ref_name, 'lf/implemented-registry/') ||
-       startsWith(github.ref_name, 'lf/generated-t7/')) &&
+       startsWith(github.ref_name, 'lf/generated-t7/') ||
+       startsWith(github.ref_name, 'lf/request/')) &&
       !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
     timeout-minutes: 3

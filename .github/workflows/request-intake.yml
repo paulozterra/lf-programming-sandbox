@@ -1,0 +1,43 @@
+name: T9 issue request intake
+on:
+  issues:
+    types: [opened, labeled]
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+concurrency:
+  group: lf-request-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+jobs:
+  intake:
+    if: >-
+      github.event.action == 'opened' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'lf-request')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout trusted main only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Validate collaborator and publish bot PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 pilot/orchestrator/issue_intake.py
+      - name: Run CI for bot-created request PR
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="lf/request/req-${{ github.event.issue.number }}"
+          if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null; then
+            number="$(gh pr view "$branch" --repo "$GITHUB_REPOSITORY" --json number --jq '.number')"
+            head_sha="$(gh pr view "$branch" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq '.headRefOid')"
+            gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$branch" \
+              -f pr_number="$number" -f pr_sha="$head_sha"
+          fi

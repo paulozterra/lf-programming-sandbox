@@ -83,6 +83,41 @@ class PolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(ai.PolicyBlocked, reason):
             fn()
 
+    def test_t9_bot_request_closed_paths(self):
+        item = pr()
+        item["head"]["ref"] = "lf/request/req-159"
+        allowed = ["pilot/runs/req-159/request.md",
+                   "pilot/runs/req-159/request_meta.json"]
+        self.assertEqual(ai.eligible_pr(item, allowed), "request")
+        self.blocked("PR_PATH_NOT_ALLOWED",
+                     lambda: ai.eligible_pr(item, allowed + ["pilot/runs/req-159/state.json"]))
+        self.blocked("PR_PATH_NOT_ALLOWED",
+                     lambda: ai.eligible_pr(item, [allowed[0], "pilot/runs/req-160/request_meta.json"]))
+        item["user"]["login"] = "human"
+        self.blocked("PR_UNTRUSTED", lambda: ai.eligible_pr(item, allowed))
+
+    def test_t9_modified_request_blocks_before_label(self):
+        item = pr()
+        item["head"]["ref"] = "lf/request/req-159"
+        files = ["pilot/runs/req-159/request.md",
+                 "pilot/runs/req-159/request_meta.json"]
+        class Tampered(FakeAPI):
+            def request(self, method, path, data=None):
+                if method == "GET" and path == "/issues/159":
+                    return {"number": 159, "user": {"login": "paulozterra"},
+                            "created_at": "2026-11-14T15:00:00Z",
+                            "body": "### Pedido\n\nOriginal"}
+                if method == "GET" and path == "/collaborators/paulozterra/permission":
+                    return {"permission": "admin"}
+                if method == "GET" and path.startswith("/contents/"):
+                    raw = b"tampered"
+                    return {"type": "file", "size": len(raw), "encoding": "base64",
+                            "content": base64.b64encode(raw).decode("ascii")}
+                return super().request(method, path, data)
+        fake = Tampered(item, files, checks())
+        self.blocked("PEDIDO_CONTENIDO_MODIFICADO", lambda: ai.evaluate_one(fake, 159))
+        self.assertFalse(fake.writes)
+
     def test_foreign_branch(self):
         item = pr()
         item["head"]["ref"] = "feature/manual"

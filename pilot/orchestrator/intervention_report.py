@@ -140,6 +140,8 @@ def classify(path: str, who: str, p: str) -> tuple[str, str, str]:
         return "IGNORED", "", ""
     if path == f"pilot/runs/{p}/request.md":
         return "ALLOWED_HUMAN", "REQUEST", "Texto del pedido"
+    if path == f"pilot/runs/{p}/request_meta.json" and who == "BOT":
+        return "AUTOMATIC", "REQUEST_PROVENANCE", "Procedencia del issue registrada por el bot"
     if any(fnmatch.fnmatch(path, pat(x)) for x in EXAMINER) and who in ("CLAUDE", "BOT"):
         return "EXAMINER_EXPECTED", "EXAMINER", "Material del examinador independiente"
     if who == "BOT":
@@ -170,6 +172,14 @@ def collect(p: str, rev: str) -> dict:
         sha, name, email, subject = head.split("\x1f", 3)
         commits.append((sha, name, email, subject))
     rows = []
+    requester = None
+    try:
+        meta = json.loads(git("show", f"{rev}:pilot/runs/{p}/request_meta.json"))
+        if (p == f"req-{meta['issue']}" and
+                isinstance(meta["author"], str) and meta["author"]):
+            requester = meta["author"]
+    except (subprocess.CalledProcessError, ValueError, KeyError, TypeError):
+        pass
     for sha, name, email, subject in commits:
         who = actor(email, name)
         # every file of an in-scope commit counts (base prep, tests, contracts...)
@@ -177,8 +187,11 @@ def collect(p: str, rev: str) -> dict:
             verdict, code, desc = classify(path, who, p)
             if verdict == "IGNORED":
                 continue
-            rows.append({"commit": sha[:12], "actor": who, "subject": subject[:120], "path": path,
-                         "verdict": verdict, "code": code, "description": desc})
+            row = {"commit": sha[:12], "actor": who, "subject": subject[:120], "path": path,
+                   "verdict": verdict, "code": code, "description": desc}
+            if path == f"pilot/runs/{p}/request.md" and who == "BOT" and requester:
+                row["requester"] = requester
+            rows.append(row)
     return {"tasks": tasks, "scope_roots": roots, "rows": rows,
             "commits": [c[0] for c in commits]}
 

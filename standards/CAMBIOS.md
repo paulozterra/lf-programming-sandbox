@@ -107,3 +107,4 @@
 | CHG-0104 | ADDITIVE | T7.2: reutilización determinada por dependencias explícitas de pantalla |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/153 |
 | CHG-0105 | EDITORIAL | Catálogo: ficha ficticia de la pantalla SBX-REM-LIST (Mis recordatorios) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/155 |
 | CHG-0106 | EDITORIAL | Train: espera propia cuando un check requerido sigue en curso al fusionar |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/158 |
+| CHG-0107 | ADDITIVE | T9: entrada de pedidos por Issue con verificación de bytes y procedencia |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/159 |
