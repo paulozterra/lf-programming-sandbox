@@ -108,7 +108,11 @@ class API:
     def permission(self, author: str) -> str:
         if not re.fullmatch(r"[A-Za-z0-9-]{1,39}", author):
             raise Blocked(ERROR)
-        result = self.call("GET", f"/collaborators/{author}/permission")
+        try:
+            result = self.call("GET", f"/collaborators/{author}/permission")
+        except Blocked:
+            # Unknown and external accounts cannot obtain a collaborator privilege.
+            return ""
         return result.get("permission", "")
 
     def content_bytes(self, path: str, sha: str) -> bytes:
