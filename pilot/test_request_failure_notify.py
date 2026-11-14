@@ -59,6 +59,20 @@ class Tests(unittest.TestCase):
                          "RUTA_NO_ISSUE_ASSOCIATION")
         self.assertEqual(api.writes, [])
 
+    def test_non_bot_request_branch_cannot_notify(self):
+        class Untrusted(Fake):
+            def api(self, method, path, body=None):
+                if method == "GET" and path.startswith("/pulls?state=all"):
+                    return [{"user": {"login": "human"},
+                             "head": {"ref": "lf/request/req-160"}}]
+                return super().api(method, path, body)
+        api = Untrusted()
+        run = self.run_obj(title="untrusted")
+        run["name"] = "ci"
+        run["head_branch"] = "lf/request/req-160"
+        self.assertEqual(notify.emit(api, run, []), "RUTA_PR_ORIGEN_NO_CONFIABLE")
+        self.assertEqual(api.writes, [])
+
     def test_untrusted_ci_title_cannot_claim_another_issue(self):
         run = self.run_obj(title="PR malicious req-160")
         run["name"] = "ci"
@@ -80,7 +94,8 @@ class Tests(unittest.TestCase):
                     return [{"number": 160, "state": "open",
                              "created_at": "2026-11-14T15:00:00Z"}]
                 if method == "GET" and path.startswith("/pulls?state=all"):
-                    return [{"number": 161}]
+                    return [{"number": 161, "user": {"login": "github-actions[bot]"},
+                             "head": {"ref": "lf/request/req-160"}}]
                 if method == "GET" and path.startswith("/actions/workflows/ci.yml/runs"):
                     return {"workflow_runs": [{"id": 7}] if self.existing_ci else []}
                 return super().api(method, path, body)
