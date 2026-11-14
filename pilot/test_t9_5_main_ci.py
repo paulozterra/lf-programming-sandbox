@@ -270,6 +270,14 @@ class Tests(unittest.TestCase):
             mapping.write_text(json.dumps(doc))
             self.assertIn("WORKFLOW_BASE_SIN_CI:chain-lots.yml",
                           static.check(root))
+            mapping.write_text(json.dumps(json.loads(
+                (HERE / "train_handoff_map_v1.json").read_text())))
+            ci_file = root / ".github/workflows/ci.yml"
+            text = ci_file.read_text()
+            self.assertIn("github.sha", text)
+            ci_file.write_text(text.replace("github.sha", "github.ref"))
+            self.assertIn("WORKFLOW_BASE_SIN_CI:TRAIN_HANDOFF",
+                          static.check(root))
 
 
 if __name__=="__main__":
