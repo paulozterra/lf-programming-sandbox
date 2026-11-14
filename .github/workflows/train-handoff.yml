@@ -1,0 +1,54 @@
+name: T9.2 trusted Train handoff dispatch
+run-name: Train handoff PR ${{ inputs.pr_number }}
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Merged Train PR number
+        required: true
+        type: string
+      merge_sha:
+        description: Exact verified merge SHA
+        required: true
+        type: string
+      train_run_id:
+        description: Successful sandbox-train run ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: write
+
+concurrency:
+  group: train-handoff-${{ inputs.merge_sha }}
+  cancel-in-progress: false
+
+jobs:
+  route:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout trusted main, never PR code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate merged Train PR and dispatch next stage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 pilot/train_handoff.py \
+            --pr "${{ inputs.pr_number }}" \
+            --merge-sha "${{ inputs.merge_sha }}" \
+            --train-run-id "${{ inputs.train_run_id }}"
+      - name: Wake watchdog without relying on workflow_run or cron
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run request-failure-watchdog.yml --repo "$GITHUB_REPOSITORY" --ref main
