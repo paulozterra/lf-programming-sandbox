@@ -9,6 +9,7 @@ on:
     types: [completed]
   # GitHub does not emit workflow_run for runs started with GITHUB_TOKEN (e.g. the
   # ci a bot dispatches on its own generated PR), so a periodic sweep picks them up.
+  workflow_dispatch:
   schedule:
     - cron: "7,22,37,52 * * * *"
 
@@ -27,7 +28,7 @@ jobs:
   evaluate:
     if: >-
       github.ref == 'refs/heads/main' &&
-      (github.event_name == 'schedule' ||
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest

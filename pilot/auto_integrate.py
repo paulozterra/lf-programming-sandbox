@@ -459,7 +459,7 @@ def main():
     event_path = os.environ.get("GITHUB_EVENT_PATH", "")
     if not event_path:
         block("EVENT_PATH_MISSING")
-    scheduled = os.environ.get("GITHUB_EVENT_NAME") == "schedule"
+    scheduled = os.environ.get("GITHUB_EVENT_NAME") in ("schedule", "workflow_dispatch")
     with open(event_path, encoding="utf-8") as f:
         event = json.load(f)
     trigger = None if scheduled else event.get("workflow_run")
