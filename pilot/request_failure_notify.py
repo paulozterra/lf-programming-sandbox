@@ -163,7 +163,7 @@ def audit_undispatched_requests(api: Github, all_runs: list[dict], now: datetime
                 issue["created_at"].replace("Z", "+00:00"))
         except (KeyError, ValueError, TypeError):
             continue
-        if age < timedelta(minutes=25):
+        if age < timedelta(minutes=25) or age > timedelta(hours=24):
             continue
         slug = f"req-{n}"
         branch = f"lf/request/{slug}"
