@@ -176,6 +176,7 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
           python3 -m pytest -q pilot/orchestrator/test_t10_reuse_report.py -p no:cacheprovider
+          python3 -m unittest discover -s pilot -p 'test_t10_comment.py' -v
       - name: T9.5 exact-main CI handoff, prerequisite and stage correlation
         run: |
           python3 -m pilot.test_workflow_base_ci
