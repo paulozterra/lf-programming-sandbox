@@ -77,9 +77,9 @@ jobs:
           CP36_PACK_OUT: ${{ runner.temp }}/cp36-proposal-packs
         run: |
           if [ -n "$INTEGRATION_PR" ]; then
-            python3 -m pilot.orchestrator.chain_lots --integration-pr "$INTEGRATION_PR"
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --integration-pr "$INTEGRATION_PR"
           else
-            python3 -m pilot.orchestrator.chain_lots --source-run-id "$SOURCE_RUN_ID"
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --source-run-id "$SOURCE_RUN_ID"
           fi
       - name: Publish only safe GPT task packs, not hidden tests
         if: always()
