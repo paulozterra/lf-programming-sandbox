@@ -24,7 +24,14 @@ def check(root: Path = ROOT) -> list[str]:
     except (OSError, ValueError, yaml.YAMLError):
         return ["WORKFLOW_BASE_SIN_CI:CONFIG"]
     trigger = ci.get("on", ci.get(True, {})) if isinstance(ci, dict) else {}
-    if (not isinstance(trigger, dict) or "workflow_dispatch" not in trigger
+    concurrency = ci.get("concurrency", {}) if isinstance(ci, dict) else {}
+    # Main commits have immutable CI groups. A later Train merge must never
+    # cancel a previous exact-SHA main CI (PR revisions may still cancel).
+    main_isolated = (isinstance(concurrency, dict)
+                     and "github.sha" in str(concurrency.get("group", ""))
+                     and "github.ref != 'refs/heads/main'" in
+                         str(concurrency.get("cancel-in-progress", "")))
+    if (not main_isolated or not isinstance(trigger, dict) or "workflow_dispatch" not in trigger
             or policy.get("schema_version") != "LF_TRAIN_MAIN_CI_GATE_V1"
             or policy.get("workflow") != "ci.yml"
             or "ensure_main_ci(api, sha, required=item" not in handoff
