@@ -157,6 +157,11 @@ jobs:
           python3 -m unittest discover -s pilot -p 'test_workflow_permissions_cases.py' -v
           python3 -m unittest discover -s pilot -p 'test_request_failure_notify.py' -v
           python3 -m unittest discover -s pilot -p 'test_issue_intake_duplicate.py' -v
+      - name: T9.2 no bot-only push and Train handoff stage regression tests
+        run: |
+          python3 pilot/test_workflow_triggers.py
+          python3 -m unittest discover -s pilot -p 'test_t9_2_handoff.py' -v
+          python3 -m unittest discover -s pilot -p 'test_t9_2_stages.py' -v
       - name: Policy C offline auto-integrate admission tests (no token)
         run: |
           python3 -m py_compile pilot/auto_integrate.py
