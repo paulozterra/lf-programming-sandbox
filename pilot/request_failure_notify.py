@@ -135,7 +135,7 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
             api.api("POST", f"/issues/{number}/labels",
                     {"labels": ["lf-request-blocked"]})
     api.api("POST", f"/issues/{number}/comments",
-            {"body": f"{marker}\nRuta bloqueada: \`{code}\`.\nCorrida: {url}\n"
+            {"body": f"{marker}\nRuta bloqueada: `{code}`.\nCorrida: {url}\n"
                      "El pedido permanece abierto para revisión."})
     return "RUTA_NOTIFIED"
 
@@ -172,6 +172,10 @@ def audit_undispatched_requests(api: Github, all_runs: list[dict], now: datetime
             continue  # without an admitted PR, no CI dispatch is expected yet
         if any(r.get("name") == "ci" and r.get("head_branch") == branch
                for r in all_runs):
+            continue
+        # Do not infer absence from the globally truncated run list.
+        branch_runs = api.api("GET", f"/actions/workflows/ci.yml/runs?branch={branch}&per_page=5")
+        if branch_runs.get("workflow_runs"):
             continue
         intake = [r for r in all_runs if r.get("name") == "T9 issue request intake"
                   and resolve_issue(r) == n]
