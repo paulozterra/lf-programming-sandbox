@@ -24,13 +24,13 @@ static = module("test_workflow_base_ci")
 MAPPING = json.loads((HERE / "train_handoff_map_v1.json").read_text())
 
 
-def ci_run(conclusion="success", status="completed", sha=SHA):
-    return {"id": 188, "head_sha": sha, "head_branch": "main",
+def ci_run(conclusion="success", status="completed", sha=SHA, run_id=189):
+    return {"id": run_id, "head_sha": sha, "head_branch": "main",
             "event": "workflow_dispatch", "run_attempt": 1,
             "path": ".github/workflows/ci.yml",
             "repository": {"full_name": REPO}, "status": status,
             "conclusion": conclusion, "created_at": "2026-11-14T20:00:00Z",
-            "html_url": f"https://github.com/{REPO}/actions/runs/188"}
+            "html_url": f"https://github.com/{REPO}/actions/runs/{run_id}"}
 
 
 class API:
@@ -43,7 +43,8 @@ class API:
         if method == "GET" and path == "/git/ref/heads/main":
             return {"object": {"sha": SHA}}
         if method == "GET" and path.startswith("/actions/workflows/ci.yml/runs?"):
-            rows = [self.rows.pop(0)] if len(self.rows) > 1 else self.rows
+            state = self.rows.pop(0) if len(self.rows) > 1 else (self.rows[0] if self.rows else None)
+            rows = [state] if state is not None else []
             return {"workflow_runs": rows, "total_count": len(rows)}
         if method == "POST":
             return {}
@@ -111,27 +112,44 @@ class NotificationAPI:
 
 class Tests(unittest.TestCase):
     def test_main_ci_green_required_before_next_stage(self):
-        api = API([ci_run(status="in_progress", conclusion=None),ci_run()])
+        api = API([None, ci_run(status="in_progress", conclusion=None), ci_run()])
         cfg = handoff.main_ci_gate_config()
         with patch.object(handoff, "git", return_value=SHA), \
              patch.object(handoff, "validate_train_run"):
             outcome = handoff.ensure_main_ci(api, SHA, required=True,
                                              config=cfg, sleep=lambda _:None)
         self.assertEqual(outcome["status"], "MAIN_CI_GREEN")
-        self.assertEqual(api.calls[1], ("POST", "/actions/workflows/ci.yml/dispatches",
+        self.assertEqual(api.calls[2], ("POST", "/actions/workflows/ci.yml/dispatches",
                                         {"ref":"main"}))
-        self.assertEqual(outcome["run_id"], 188)
+        self.assertEqual(outcome["run_id"], 189)
 
     def test_failed_ci_blocks_with_real_url(self):
-        api = API([ci_run(conclusion="failure")])
-        with self.assertRaisesRegex(handoff.HandoffBlocked, "BASE_NO_VERDE:.*actions/runs/188"):
+        api = API([None, ci_run(conclusion="failure")])
+        with self.assertRaisesRegex(handoff.HandoffBlocked, "BASE_NO_VERDE:.*actions/runs/189"):
             handoff.ensure_main_ci(api,SHA,required=True,sleep=lambda _:None)
 
     def test_wrong_sha_never_unblocks(self):
-        api = API([ci_run(sha="d"*40)])
+        api = API([None, ci_run(sha="d"*40)])
         cfg={**handoff.main_ci_gate_config(),"wait_seconds":60,"poll_seconds":60}
         with self.assertRaisesRegex(handoff.HandoffBlocked, "BASE_NO_VERDE"):
             handoff.ensure_main_ci(api,SHA,required=True,config=cfg,sleep=lambda _:None)
+
+    def test_old_green_ci_cannot_release_newly_dispatched_pending_ci(self):
+        old = ci_run(run_id=188)
+        pending = ci_run(status="in_progress", conclusion=None, run_id=189)
+        new = ci_run(run_id=189)
+        api = API([old, pending, new])
+        result = handoff.ensure_main_ci(
+            api, SHA, required=True, sleep=lambda _: None)
+        self.assertEqual(result["run_id"], 189)
+        self.assertEqual(result["status"], "MAIN_CI_GREEN")
+
+    def test_old_failed_ci_does_not_block_new_green_attempt(self):
+        old = ci_run(conclusion="failure", run_id=188)
+        new = ci_run(run_id=189)
+        api = API([old, new])
+        self.assertEqual(handoff.ensure_main_ci(
+            api, SHA, required=True, sleep=lambda _: None)["run_id"], 189)
 
     def test_non_gated_request_still_dispatches_ci(self):
         api=API()
@@ -141,7 +159,7 @@ class Tests(unittest.TestCase):
                             for method,path,_ in api.calls if method=="POST"))
 
     def test_train_route_releases_cp36_only_after_green(self):
-        api=API([ci_run()])
+        api=API([None, ci_run()])
         with patch.object(handoff, "git", return_value=SHA), \
              patch.object(handoff, "validate_train_run"), \
              patch.object(handoff, "merged_request_slug", return_value="req-175"):
