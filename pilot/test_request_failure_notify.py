@@ -85,6 +85,20 @@ class Tests(unittest.TestCase):
         api.existing_ci = True
         self.assertEqual(notify.audit_undispatched_requests(api, [intake], now), [])
 
+    def test_stalled_workflow_is_notified_only_after_timeout(self):
+        api = Fake()
+        run = self.run_obj()
+        run["status"] = "in_progress"
+        run["conclusion"] = None
+        run["created_at"] = "2026-11-14T15:00:00Z"
+        early = datetime(2026, 11, 14, 15, 10, tzinfo=timezone.utc)
+        late = datetime(2026, 11, 14, 15, 30, tzinfo=timezone.utc)
+        self.assertIsNone(notify.stalled_run(run, early))
+        stalled = notify.stalled_run(run, late)
+        self.assertEqual(stalled["failure_code"], "PEDIDO_WORKFLOW_SIN_AVANCE")
+        self.assertEqual(notify.emit(api, stalled, []), "RUTA_NOTIFIED")
+        self.assertIn("PEDIDO_WORKFLOW_SIN_AVANCE", api.comments[0]["body"])
+
     def test_timeout_code(self):
         run = self.run_obj()
         self.assertEqual(notify.error_code(run, [{"conclusion": "timed_out"}]),
