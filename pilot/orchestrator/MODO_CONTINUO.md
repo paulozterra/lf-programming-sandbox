@@ -5,6 +5,14 @@ Fuente de verdad para cualquier agente constructor (GPT u otro). Las instruccion
 ## Regla
 Cuando te pidan un pedido (`pilot/runs/<pedido>/`) o un lote, **llévalo hasta el final sin pedir permiso entre pasos**. Para pausar, el usuario escribe **"modo paso a paso"**.
 
+## Entrada normal desde el chat (T9)
+
+Cuando una persona pida implementar una pantalla o describa un pedido, GPT usa la conexión a GitHub para crear un **Issue** con la plantilla **Nuevo pedido** del repositorio `paulozterra/lf-programming-sandbox`. El campo **Pedido** contiene **literalmente** el texto de la persona: sin resumen, paráfrasis ni edición. GPT devuelve el enlace al Issue. No escribe `request.md`, no abre el PR y **no agrega etiquetas**: la plantilla y el workflow confiable del bot son responsables de ello.
+
+Si la conexión no permite crear el Issue, GPT comunica el impedimento y entrega el texto exacto para pegarlo en el campo **Pedido** de **Nuevo pedido**, sin simular que se ha admitido la solicitud.
+
+El bot `request-intake.yml` valida la autoría colaboradora, crea `lf/request/req-<issue>` y un PR normal con únicamente `pilot/runs/req-<issue>/request.md` y `request_meta.json`. Política C vuelve a leer el Issue y comprueba cada byte antes del Train. Después de la fusión, T7 recibe el pedido desde `main`; las restantes etapas siguen el modo continuo. El Issue se cierra únicamente cuando la ruta acredita estado terminal y un informe de intervención consultable. No confundir un H_REPORT candidato con finalización.
+
 ## Bucle por lote
 1. Toma el siguiente lote listo: su PR `lf/native-registration/*` está fusionado y existe `pilot/runs/<pedido>/proposal_requests/<tarea>.task-pack.json`.
 2. Programa la propuesta solo con ese paquete. Antes de enviar:
