@@ -16,6 +16,27 @@ TERMINAL = {"COMPLETED", "COMPLETE", "FINISHED", "FAILED_FINAL", "BLOCKED_FINAL"
 BOT = "github-actions[bot]"
 
 
+def verified_chain_complete(folder: Path) -> bool:
+    """Every planned lot must be in the merged historical registry and H_REPORT on main."""
+    if not (folder / "H_REPORT.md").is_file():
+        return False
+    try:
+        lots = json.loads((folder / "lots.json").read_text(encoding="utf-8"))["lots"]
+        ledger = json.loads((ROOT / "pilot/registry/implemented.json").read_text(
+            encoding="utf-8"))["entries"]
+    except (OSError, ValueError, TypeError, KeyError):
+        return False
+    if not isinstance(lots, list) or not lots:
+        return False
+    planned = {x.get("id", x.get("lot_id")) for x in lots if isinstance(x, dict)}
+    if len(planned) != len(lots) or not all(isinstance(x, str) and x for x in planned):
+        return False
+    merged = {x.get("lot") for x in ledger if isinstance(x, dict) and
+              x.get("request") == folder.name and x.get("merge_sha") and
+              x.get("status") in ("ATTESTED", "NO_DERIVABLE")}
+    return planned.issubset(merged)
+
+
 def terminal_requests():
     for folder in sorted((ROOT / "pilot/runs").glob("req-*")):
         if not re.fullmatch(r"req-[1-9][0-9]*", folder.name):
@@ -33,6 +54,8 @@ def terminal_requests():
         stage = state.get("stage")
         if stage in TERMINAL:
             yield folder.name, meta, stage
+        elif stage == "LOTS_PLANNED" and verified_chain_complete(folder):
+            yield folder.name, meta, "CHAIN_COMPLETE_VERIFIED"
 
 
 def prepare(out: Path):
