@@ -289,10 +289,10 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
             api.api("POST", f"/issues/{number}/labels",
                     {"labels": ["lf-request-blocked"]})
     ci_link = run.get("main_ci_url")
-    extra = (f"CI exacto de main: {ci_link}\\n" if isinstance(ci_link, str)
+    extra = (f"CI exacto de main: {ci_link}\n" if isinstance(ci_link, str)
              and ci_link.startswith("https://github.com/" + REPO + "/actions/runs/") else "")
     api.api("POST", f"/issues/{number}/comments",
-            {"body": f"{marker}\\nRuta bloqueada: `{code}`.\\nCorrida: {url}\\n"
+            {"body": f"{marker}\nRuta bloqueada: `{code}`.\nCorrida: {url}\n"
                      + extra + "El pedido permanece abierto para revisión."})
     return "RUTA_NOTIFIED"
 
