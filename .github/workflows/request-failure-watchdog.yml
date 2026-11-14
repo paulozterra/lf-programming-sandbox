@@ -9,6 +9,8 @@ on:
       - 'T9 issue request intake'
       - 'ci'
       - 'CP3.6 chain after Train merge or spent native failure'
+      - 'LF Worker native (trusted workflow_run or manual, no API)'
+      - 'CP3.5 native verified patch to draft PR'
       - 'LF policy C auto-integrate'
       - 'T9 request terminal status and intervention report'
     types: [completed]
