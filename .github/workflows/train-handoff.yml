@@ -43,7 +43,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
-          python3 -m pilot.train_handoff \
+          python3 -m pilot.workflow_entrypoint pilot/train_handoff.py \
             --pr "${{ inputs.pr_number }}" \
             --merge-sha "${{ inputs.merge_sha }}" \
             --train-run-id "${{ inputs.train_run_id }}"
@@ -76,7 +76,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
-          python3 -m pilot.request_stage_watchdog --watch \
+          python3 -m pilot.workflow_entrypoint pilot/request_stage_watchdog.py --watch \
             --pr "${{ inputs.pr_number }}" \
             --merge-sha "${{ inputs.merge_sha }}" \
             --train-run-id "${{ inputs.train_run_id }}"
