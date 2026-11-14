@@ -1,4 +1,5 @@
 name: CP3.7 pinned PG06-PG14 evidence and H_REPORT
+run-name: CP3.7 ${{ inputs.request_slug || github.event.workflow_run.head_branch || github.run_id }}
 on:
   workflow_run:
     workflows: [sandbox-train]
@@ -8,6 +9,10 @@ on:
       source_run_id:
         description: "Existing trusted sandbox-train run"
         required: true
+        type: string
+      request_slug:
+        description: Request scope proven by the source Train merge
+        required: false
         type: string
 
 permissions:
