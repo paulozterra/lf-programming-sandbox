@@ -24,6 +24,13 @@ def test_synthetic_trusted_handoff_to_t7_lots_planned(tmp_path):
     slug = "t72-after"
     folder = tmp_path / "pilot/runs" / slug
     assert (folder / "request.md").exists()
+    # Same published registry contract as T7, empty for this isolated synthetic
+    # repository. Never import any historical real request or user registry.
+    registry = tmp_path / "pilot/registry/implemented.json"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    registry.write_text(json.dumps({
+        "schema_version": "T7_IMPLEMENTED_REGISTRY_V1", "entries": []
+    }), encoding="utf-8")
 
     # Route decision uses the same versioned map that Train uses.
     mapping = json.loads(train_handoff.MAP.read_text(encoding="utf-8"))
