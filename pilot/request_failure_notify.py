@@ -21,6 +21,7 @@ ROUTES = {
     "CP3.7 pinned PG06-PG14 evidence and H_REPORT": "PEDIDO_EVIDENCIA_FALLIDA",
     "LF Worker native (trusted workflow_run or manual, no API)": "PEDIDO_WORKER_FALLIDO",
     "CP3.5 native verified patch to draft PR": "PEDIDO_INTEGRACION_FALLIDA",
+    "T9.2 trusted Train handoff dispatch": "PEDIDO_RELEVO_FALLIDO",
 }
 TIMEOUT_MINUTES = {
     "T7 main request auto-admission (trusted, no model)": 30,
@@ -32,6 +33,7 @@ TIMEOUT_MINUTES = {
     "CP3.7 pinned PG06-PG14 evidence and H_REPORT": 40,
     "LF Worker native (trusted workflow_run or manual, no API)": 40,
     "CP3.5 native verified patch to draft PR": 30,
+    "T9.2 trusted Train handoff dispatch": 25,
 }
 SLUG = re.compile(r"(?:req-|lf/request/req-)([1-9][0-9]*)\b")
 
@@ -43,6 +45,8 @@ def route_name(run: dict) -> str:
             and run.get("event") in ("workflow_dispatch", "push")):
         return "T7 main request auto-admission (trusted, no model)"
     mapping = {
+        ".github/workflows/train-handoff.yml":
+            "T9.2 trusted Train handoff dispatch",
         ".github/workflows/chain-lots.yml":
             "CP3.6 chain after Train merge or spent native failure",
         ".github/workflows/pg37-evidence.yml":
@@ -63,15 +67,24 @@ def verified_stage_issue(api, run: dict) -> int | None:
     Never parse arbitrary PR text or a user's suggested issue number. In
     particular CP3.6 PR 177 resolves to req-175 through the verified diff.
     """
-    if (str(run.get("path") or "").split("@")[0] !=
-            ".github/workflows/chain-lots.yml"
-            or run.get("event") != "workflow_dispatch"):
+    path = str(run.get("path") or "").split("@")[0]
+    if path not in (".github/workflows/chain-lots.yml",
+                    ".github/workflows/train-handoff.yml"):
+        return None
+    if run.get("event") != "workflow_dispatch":
         return None
     title = str(run.get("display_title") or "")
-    match = re.fullmatch(r"CP3[.]6 (?:req-([1-9][0-9]*) )?PR ([1-9][0-9]*)", title)
-    if match is None:
-        return None
-    claimed, number = match.group(1), int(match.group(2))
+    if path == ".github/workflows/train-handoff.yml":
+        match = re.fullmatch(r"Train handoff PR ([1-9][0-9]*)", title)
+        if match:
+            number, claimed = int(match.group(1)), None
+        else:
+            return None
+    else:
+        match = re.fullmatch(r"CP3[.]6 (?:req-([1-9][0-9]*) )?PR ([1-9][0-9]*)", title)
+        if match is None:
+            return None
+        claimed, number = match.group(1), int(match.group(2))
     pr = api.api("GET", f"/pulls/{number}")
     if (pr.get("number") != number or pr.get("merged") is not True
             or pr.get("merge_commit_sha") != run.get("head_sha")
@@ -124,6 +137,33 @@ def request_for_task(task: str) -> set[str]:
                     re.fullmatch(re.escape(registered) + r"(?:[2-9]|[1-9][0-9]+)", task)):
                 slugs.add(plan.parent.name)
     return slugs
+
+
+def task_stage_issue(run: dict) -> int | None:
+    """Bind worker and integration run titles to committed chain-plan tasks.
+
+    The task is not a user-written PR title: it is the workflow's versioned
+    run-name expression, and the matching plan must be unique.
+    """
+    path = str(run.get("path") or "").split("@")[0]
+    title = str(run.get("display_title") or "")
+    if path == ".github/workflows/native-verified-integration.yml":
+        if not title.startswith("CP3.5 "):
+            return None
+        title = title[6:]
+    elif path != ".github/workflows/worker-native.yml":
+        return None
+    task = None
+    if (m := re.fullmatch(r"lf-native-(?:req-[1-9][0-9]*-)?([a-z][a-z0-9_-]{0,31})-a[123]", title)):
+        task = m.group(1)
+    elif (m := re.fullmatch(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-[0-9a-f]{40}", title)):
+        task = m.group(1)
+    if task is None:
+        return None
+    slugs = request_for_task(task)
+    if len(slugs) != 1:
+        return None
+    return int(next(iter(slugs))[4:])
 
 
 def resolve_issue(run: dict) -> int | None:
@@ -239,10 +279,21 @@ class Github:
 def emit(api: Github, run: dict, jobs: list[dict]) -> str:
     # For post-Train stages, the run's branch is main; use the real merged
     # PR's files instead of pretending main is an lf/request/ branch.
-    if route_name(run) == "CP3.6 chain after Train merge or spent native failure":
+    stage = route_name(run)
+    path = str(run.get("path") or "").split("@")[0]
+    if (path in (".github/workflows/chain-lots.yml",
+                 ".github/workflows/train-handoff.yml")
+            and run.get("event") == "workflow_dispatch"):
         linked = verified_stage_issue(api, run)
-        if linked is not None:
-            run = dict(run, head_branch=f"lf/request/req-{linked}")
+        if linked is None:
+            return "RUTA_NO_ISSUE_ASSOCIATION"
+        run = dict(run, head_branch=f"lf/request/req-{linked}")
+    elif path in (".github/workflows/worker-native.yml",
+                    ".github/workflows/native-verified-integration.yml"):
+        linked = task_stage_issue(run)
+        if linked is None:
+            return "RUTA_NO_ISSUE_ASSOCIATION"
+        run = dict(run, head_branch=f"lf/request/req-{linked}")
     hit = notification(run, jobs)
     if hit is None:
         return "RUTA_NO_ISSUE_ASSOCIATION"
@@ -299,7 +350,8 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
 
 def check_run(api: Github, run: dict) -> str:
     jobs_obj = api.api("GET", f"/actions/runs/{run['id']}/jobs?per_page=100")
-    if (route_name(run) == "CP3.6 chain after Train merge or spent native failure"
+    if (route_name(run) in ("CP3.6 chain after Train merge or spent native failure",
+                                "T9.2 trusted Train handoff dispatch")
             and run.get("conclusion") == "failure"
             and re.fullmatch(r"[0-9a-f]{40}", str(run.get("head_sha") or ""))):
         # Mirror t4_admission's exact-SHA requirement. Absence/failed CI
