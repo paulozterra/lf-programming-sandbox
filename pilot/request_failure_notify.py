@@ -29,19 +29,38 @@ SLUG = re.compile(r"(?:req-|lf/request/req-)([1-9][0-9]*)\b")
 
 
 def resolve_issue(run: dict) -> int | None:
-    """Fail closed: never send a failure to an unrelated issue."""
+    """Only system-derived issue references; never mine arbitrary PR titles."""
     candidates = set()
-    for key in ("display_title", "head_branch"):
-        candidates.update(int(v) for v in SLUG.findall(str(run.get(key) or "")))
+    branch = re.fullmatch(r"lf/request/req-([1-9][0-9]*)",
+                          str(run.get("head_branch") or ""))
+    if branch:
+        candidates.add(int(branch.group(1)))
     for pr in run.get("pull_requests") or []:
-        if isinstance(pr, dict):
-            for section in ("head",):
-                obj = pr.get(section) or {}
-                if isinstance(obj, dict):
-                    candidates.update(int(v) for v in SLUG.findall(str(obj.get("ref") or "")))
-    if len(candidates) != 1:
-        return None
-    return next(iter(candidates))
+        if not isinstance(pr, dict):
+            continue
+        head = pr.get("head") or {}
+        if not isinstance(head, dict):
+            continue
+        remote = head.get("repo") or {}
+        if isinstance(remote, dict) and remote.get("full_name") not in (None, REPO):
+            continue
+        match = re.fullmatch(r"lf/request/req-([1-9][0-9]*)",
+                             str(head.get("ref") or ""))
+        if match:
+            candidates.add(int(match.group(1)))
+    title = str(run.get("display_title") or "")
+    # The intake's run-name comes directly from github.event.issue.number.
+    if run.get("name") == "T9 issue request intake":
+        match = re.fullmatch(r"T9 intake req-([1-9][0-9]*)", title)
+    elif run.get("name") == "CP3.6 chain after Train merge or spent native failure":
+        match = re.fullmatch(r"CP3[.]6 lf/request/req-([1-9][0-9]*)", title)
+    elif run.get("name") == "LF policy C auto-integrate":
+        match = re.fullmatch(r"Policy C lf/request/req-([1-9][0-9]*)", title)
+    else:
+        match = None
+    if match:
+        candidates.add(int(match.group(1)))
+    return next(iter(candidates)) if len(candidates) == 1 else None
 
 
 def error_code(run: dict, jobs: list[dict]) -> str:
