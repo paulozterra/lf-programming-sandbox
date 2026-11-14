@@ -1,0 +1,32 @@
+{
+  "schema_version": "T10_ANALYSIS_STAGE_MEANINGS_V1",
+  "stages": {
+    "A1": {
+      "VALID_OUTPUT": "La entrada del pedido produjo una salida estructurada válida"
+    },
+    "A2": {
+      "NEED_MORE_EVIDENCE": "Falta evidencia suficiente para considerar acreditada la información"
+    },
+    "A3": {
+      "SOURCE_READBACK_PROCESSED_UNATTESTED": "Se procesó la ficha fuente, sin acreditar autoridad de producción"
+    },
+    "A4": {
+      "PLANNED_BUILD_IMPACT_UNATTESTED": "Se identificó impacto de implementación, pendiente de acreditación"
+    },
+    "A5": {
+      "UNRESOLVED": "Las decisiones de gobierno o autoridad siguen sin resolverse"
+    },
+    "A6": {
+      "CANDIDATE_ONLY": "Las obligaciones WHAT son candidatas, no aprobaciones productivas"
+    },
+    "A7": {
+      "CANDIDATE_ONLY": "Los frentes y su alcance son candidatos, no autorizaciones"
+    },
+    "A8": {
+      "CANDIDATE_ONLY": "La comprobación de cobertura permanece en estado candidato"
+    },
+    "A9": {
+      "SIMULATED_PACKAGE_CANDIDATE": "Se produjo un paquete de implementación simulado"
+    }
+  }
+}
