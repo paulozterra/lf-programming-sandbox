@@ -59,6 +59,14 @@ class Tests(unittest.TestCase):
                          "RUTA_NO_ISSUE_ASSOCIATION")
         self.assertEqual(api.writes, [])
 
+    def test_untrusted_ci_title_cannot_claim_another_issue(self):
+        run = self.run_obj(title="PR malicious req-160")
+        run["name"] = "ci"
+        run["head_branch"] = "feature/unrelated"
+        self.assertIsNone(notify.resolve_issue(run))
+        run["head_branch"] = "lf/request/req-161"
+        self.assertEqual(notify.resolve_issue(run), 161)
+
     def test_conflicting_issue_numbers_fail_closed(self):
         run = self.run_obj(title="T9 intake req-160")
         run["head_branch"] = "lf/request/req-161"
