@@ -34,7 +34,7 @@ fi
 # Same recipe owns the environment, bootstrap and pattern transition.
 if [[ "${1:-}" == "--enable-t1" ]]; then
   pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33
-  python3 pilot/orchestrator/selector_db.py --t1-patterns
+  python3 -m pilot.orchestrator.selector_db --t1-patterns
   echo SELECTOR_SHARED_T1_READY
   exit 0
 fi
@@ -48,9 +48,9 @@ for attempt in $(seq 1 40); do
   sleep 1
 done
 pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33
-python3 pilot/orchestrator/selector_db.py
+python3 -m pilot.orchestrator.selector_db
 if [[ "$legacy" == "NO" && "${1:-}" != "--bootstrap-only" ]]; then
-  python3 pilot/orchestrator/selector_db.py --t1-patterns
+  python3 -m pilot.orchestrator.selector_db --t1-patterns
 fi
 if [[ "${1:-}" != "--bootstrap-only" ]]; then
   psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c \
