@@ -92,7 +92,7 @@ def eligible_pr(pr, paths, repo=REPOSITORY):
         allow = re.compile(
             r"pilot/runs/[a-z][a-z0-9_-]{0,63}/(?:"
             r"analysis[.]json|state[.]json|lots[.]json|reuse_assessment[.]json|"
-            r"atomized_inputs[.]json|chain_plan[.]json|"
+            r"atomized_inputs[.]json|chain_plan[.]json|ANALYSIS_REPORT[.]md|"
             r"templates/[a-zA-Z0-9_-]+(?:[.]task|[.]skeleton)[.]json)$")
         if any(is_prohibited(p) or not allow.fullmatch(p) for p in paths):
             block("PR_PATH_NOT_ALLOWED")
@@ -369,6 +369,7 @@ def verify_generated_content(api, pr, paths, kind):
         slugs = sorted({p.split("/")[2] for p in paths})
         from analysis.host.request_catalog import resolve
         from analysis.host.run_a1_a9_fixture import run_f4
+        from pilot.orchestrator.analysis_report import render, read_rules
         for slug in slugs:
             path = f"pilot/runs/{slug}/analysis.json"
             if path not in paths:
@@ -386,6 +387,28 @@ def verify_generated_content(api, pr, paths, kind):
                 run_f4(Path(temp), slug=slug, fixtures=fixture)
                 expected = (staging / "analysis.json").read_bytes()
             if _content(api, path, head) != expected:
+                block("GENERATED_CONTENT_DRIFT")
+            report_path = f"pilot/runs/{slug}/ANALYSIS_REPORT.md"
+            reuse_path = f"pilot/runs/{slug}/reuse_assessment.json"
+            lot_path = f"pilot/runs/{slug}/lots.json"
+            if report_path not in paths or reuse_path not in paths:
+                block("GENERATED_CONTENT_DRIFT")
+            # A9's JSON was independently regenerated above. The report must
+            # be the exact pure projection of JSON blobs in this candidate and
+            # metadata committed in trusted main, never textual interpretation
+            # from the candidate's Markdown or a model.
+            package = json.loads(expected)
+            reuse = json.loads(_content(api, reuse_path, head))
+            lots = json.loads(_content(api, lot_path, head)) if lot_path in paths else None
+            meta_raw = subprocess.run(
+                ["git", "show", f"{main}:pilot/runs/{slug}/request_meta.json"],
+                cwd=root, capture_output=True, check=False)
+            if meta_raw.returncode:
+                block("GENERATED_CONTENT_DRIFT")
+            meta = json.loads(meta_raw.stdout)
+            regenerated = render(package, reuse, lots, meta, original.stdout,
+                                 read_rules(fixture, original.stdout))
+            if _content(api, report_path, head) != regenerated:
                 block("GENERATED_CONTENT_DRIFT")
     except PolicyBlocked:
         raise
