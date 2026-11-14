@@ -1,0 +1,168 @@
+{
+  "obligations": [
+    {
+      "decision": "REUSE_AS_IS",
+      "evidence": {
+        "key": "SBX-R-ERR",
+        "kind": "registered_rule",
+        "merge_sha": "d78d7085a3869fa5630a188f2e6dce6f3138dfd2"
+      },
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+      "requirement_id": "REQ-SBX-R-ERR",
+      "reuse_context": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+          "sha256": "fb01c89a3810ecddf37d556d10ab0c41030f1f49809478a2b5275dcc9832e193"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+          "sha256": "73443eb852d7e1fbd11dcc9ddcf471c97bea7779f3eb4b4faa9c36b6c2fecb78"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+          "sha256": "402d1c7fe84c5315ee1af41ddc39c02086e6ac02a6e9e0ca876c0e8769722100"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthUser.java",
+          "sha256": "f32a673f660b8873828a7cee608f879342ee537a66b4435e45ee2574cb21d7bd"
+        }
+      ],
+      "reused_endpoints": [],
+      "sha256": "fb01c89a3810ecddf37d556d10ab0c41030f1f49809478a2b5275dcc9832e193",
+      "write_paths": []
+    },
+    {
+      "decision": "REUSE_AS_IS",
+      "evidence": {
+        "key": "SBX-R-LOG",
+        "kind": "registered_rule",
+        "merge_sha": "d78d7085a3869fa5630a188f2e6dce6f3138dfd2"
+      },
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+      "requirement_id": "REQ-SBX-R-LOG",
+      "reuse_context": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+          "sha256": "fb01c89a3810ecddf37d556d10ab0c41030f1f49809478a2b5275dcc9832e193"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+          "sha256": "73443eb852d7e1fbd11dcc9ddcf471c97bea7779f3eb4b4faa9c36b6c2fecb78"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+          "sha256": "402d1c7fe84c5315ee1af41ddc39c02086e6ac02a6e9e0ca876c0e8769722100"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthUser.java",
+          "sha256": "f32a673f660b8873828a7cee608f879342ee537a66b4435e45ee2574cb21d7bd"
+        }
+      ],
+      "reused_endpoints": [],
+      "sha256": "fb01c89a3810ecddf37d556d10ab0c41030f1f49809478a2b5275dcc9832e193",
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 74,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 3
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-R-PRIORITY-FILTER",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "EXTEND",
+      "evidence": {
+        "key": "GET /api/reminders",
+        "kind": "declared_screen_dependency",
+        "source": "inventory.json#dependencies"
+      },
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "requirement_id": "REQ-SBX-R-SESSION-REQUIRED",
+      "reuse_context": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+          "sha256": "402d1c7fe84c5315ee1af41ddc39c02086e6ac02a6e9e0ca876c0e8769722100"
+        }
+      ],
+      "reused_endpoints": [
+        "GET /api/reminders"
+      ],
+      "sha256": "ceda5516f81cf56ea0366d5beeeb3cb5b5dd76096f802ed7a78f6ee465a49fd6",
+      "write_paths": [
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+      ]
+    },
+    {
+      "decision": "REUSE_AS_IS",
+      "evidence": {
+        "key": "GET /api/reminders",
+        "kind": "declared_screen_dependency",
+        "source": "inventory.json#dependencies"
+      },
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "requirement_id": "REQ-SBX-R-PRIORITY-FILTER-BACKEND",
+      "reuse_context": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+          "sha256": "ceda5516f81cf56ea0366d5beeeb3cb5b5dd76096f802ed7a78f6ee465a49fd6"
+        }
+      ],
+      "reused_endpoints": [
+        "GET /api/reminders"
+      ],
+      "sha256": "ceda5516f81cf56ea0366d5beeeb3cb5b5dd76096f802ed7a78f6ee465a49fd6",
+      "write_paths": []
+    },
+    {
+      "decision": "REUSE_AS_IS",
+      "evidence": {
+        "key": "SBX-R-ERR",
+        "kind": "registered_rule",
+        "merge_sha": "d78d7085a3869fa5630a188f2e6dce6f3138dfd2"
+      },
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+      "requirement_id": "REQ-SBX-R-ERR-FRONTEND",
+      "reuse_context": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthConfiguration.java",
+          "sha256": "fb01c89a3810ecddf37d556d10ab0c41030f1f49809478a2b5275dcc9832e193"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+          "sha256": "73443eb852d7e1fbd11dcc9ddcf471c97bea7779f3eb4b4faa9c36b6c2fecb78"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+          "sha256": "402d1c7fe84c5315ee1af41ddc39c02086e6ac02a6e9e0ca876c0e8769722100"
+        },
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthUser.java",
+          "sha256": "f32a673f660b8873828a7cee608f879342ee537a66b4435e45ee2574cb21d7bd"
+        }
+      ],
+      "reused_endpoints": [],
+      "sha256": "fb01c89a3810ecddf37d556d10ab0c41030f1f49809478a2b5275dcc9832e193",
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 74,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 3
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-R-SESSION-REQUIRED-FRONTEND",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    }
+  ],
+  "schema_version": "T7_REUSE_ASSESSMENT_V1"
+}
