@@ -43,7 +43,7 @@ def commands(path: Path) -> list[tuple[str, str]]:
                     # The wrapper is a module entrypoint, but its next literal
                     # argument is the real script being executed by Actions.
                     tail = run[m.end():]
-                    bound = re.match(r"\s+((?:pilot|analysis/host)/[A-Za-z0-9_./-]+\.py)(?=\s|$)", tail)
+                    bound = re.match(r"\s+((?:pilot|analysis/host)/[A-Za-z0-9_./-]+\.py)(?=\s|$|[);|&])", tail)
                     if bound is None:
                         found.append(("wrapper", "<missing-target>"))
                     else:
@@ -53,6 +53,17 @@ def commands(path: Path) -> list[tuple[str, str]]:
             elif script:
                 found.append(("script", script))
     return sorted(set(found))
+
+
+CHECKOUT_ROOTS = ("control", "source", "evidence_tools")
+
+
+def checkout_prefixes(path: Path) -> set[str]:
+    """Only a real checkout step can authorize a script under that subroot."""
+    return {str((step.get("with") or {}).get("path"))
+            for step in steps(path)
+            if str(step.get("uses") or "").startswith("actions/checkout@")
+            and str((step.get("with") or {}).get("path")) in CHECKOUT_ROOTS}
 
 
 def target(root: Path, kind: str, value: str) -> Path:
@@ -114,16 +125,28 @@ def scan(root: Path = ROOT, *, runner=smoke) -> list[str]:
     findings = []
     cached: dict[tuple[str, str], tuple[bool, str]] = {}
     for workflow in sorted((root / ".github/workflows").glob("*.yml")):
+        available = checkout_prefixes(workflow)
         for kind, value in commands(workflow):
             if kind == "script" and SCRIPT.match(value):
                 findings.append(f"WORKFLOW_COMANDO_NO_EJECUTABLE:{workflow.name}:{value}")
                 continue
-            if (kind, value) not in cached:
-                cached[kind, value] = runner(root, kind, value)
-            passed, _ = cached[kind, value]
+            actual_kind, actual_path = kind, value
+            if kind == "script":
+                parts = value.split("/", 1)
+                if len(parts) == 2 and parts[0] in CHECKOUT_ROOTS:
+                    if parts[0] not in available:
+                        findings.append(f"WORKFLOW_COMANDO_NO_EJECUTABLE:{workflow.name}:{value}")
+                        continue
+                    # These workspaces are materialized by checkout at runtime;
+                    # import the same repository-relative script from this
+                    # commit. An absent local counterpart fails closed.
+                    actual_path = parts[1]
+            if (actual_kind, actual_path) not in cached:
+                cached[actual_kind, actual_path] = runner(root, actual_kind, actual_path)
+            passed, reason = cached[actual_kind, actual_path]
             if not passed:
                 findings.append(f"WORKFLOW_COMANDO_NO_EJECUTABLE:{workflow.name}:{value}")
-                print(f"WORKFLOW_COMMAND_DIAGNOSTIC:{workflow.name}:{value}:{cached[kind,value][1]}", file=sys.stderr)
+                print(f"WORKFLOW_COMMAND_DIAGNOSTIC:{workflow.name}:{value}:{reason}", file=sys.stderr)
     return sorted(set(findings))
 
 
