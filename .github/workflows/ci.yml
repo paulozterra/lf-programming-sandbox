@@ -19,8 +19,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Each Train merge SHA must complete its own main CI; later merges must not
+  # cancel it. PR revisions retain cancellation to limit redundant usage.
+  group: ci-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   t9-request-equality:
