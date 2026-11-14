@@ -46,7 +46,7 @@ def request_slugs(pr: dict, merge_sha: str) -> tuple[str, list[str]] | None:
     paths = git("diff", "--name-only", merge_sha + "^1", merge_sha).splitlines()
     if re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
         slugs = sorted({m.group(1) for p in paths
-                        if (m := re.fullmatch(r"pilot/runs/(req-[1-9][0-9]*)/state[.]json", p))})
+                        if (m := re.fullmatch(r"pilot/runs/(req-[1-9][0-9]*)/(?:state[.]json|analysis[.]json|lots[.]json|chain_plan[.]json)", p))})
         return ("ANALYSIS_MERGED", slugs) if slugs else None
     m = re.fullmatch(r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*", branch)
     if not m:
@@ -59,7 +59,10 @@ def request_slugs(pr: dict, merge_sha: str) -> tuple[str, list[str]] | None:
         if not re.fullmatch(r"req-[1-9][0-9]*", plan.parent.name):
             continue
         data = json.loads(plan.read_text(encoding="utf-8"))
-        if any(isinstance(x, dict) and (x.get("task_name") == task)
+        if any(isinstance(x, dict) and (
+                   x.get("task_name") == task or
+                   (isinstance(x.get("task_name"), str) and
+                    re.fullmatch(re.escape(x["task_name"]) + r"(?:[2-9]|[1-9][0-9]+)", task)))
                for x in data.get("bindings", [])):
             slugs.append(plan.parent.name)
     return ("INTEGRATION_MERGED", sorted(set(slugs))) if slugs else None
