@@ -1,0 +1,51 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0112",
+  "title": "T9.4: entradas Python en workflows ejecutables como módulos y humo limpio",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T9.4: pedido #170 (T7 falla por ModuleNotFoundError: analysis)"
+  },
+  "reason": "Los scripts pilot/** y analysis/host/** llamados como archivos no recibían raíz de repo en sys.path. Todos los entrypoints de workflows usan python3 -m, incluido T7. Un test de ejecución extrae comandos YAML y verifica import real con subprocesos Python nuevos sin PYTHONPATH; bloquea invocaciones directas o imports fallidos con WORKFLOW_COMANDO_NO_EJECUTABLE. La prueba T7 sintética ejecuta exactamente el entrypoint del workflow como subproceso en vez de importarlo. Se preserva #170 como evidencia descartada.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/analysis-f0.yml",
+      ".github/workflows/anthropic-diagnostic.yml",
+      ".github/workflows/auto-integrate.yml",
+      ".github/workflows/chain-lots.yml",
+      ".github/workflows/ci.yml",
+      ".github/workflows/native-verified-integration.yml",
+      ".github/workflows/pg37-evidence.yml",
+      ".github/workflows/request-failure-watchdog.yml",
+      ".github/workflows/request-finalize.yml",
+      ".github/workflows/request-intake.yml",
+      ".github/workflows/sandbox-train.yml",
+      ".github/workflows/t7-request.yml",
+      ".github/workflows/train-handoff.yml",
+      "pilot/orchestrator/prepare_selector.sh",
+      "pilot/orchestrator/test_t9_3_e2e.py",
+      "pilot/workflow_python_commands.py",
+      "pilot/test_workflow_python_commands.py",
+      "standards/changes/CHG-0112.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
+  }
+}
