@@ -18,8 +18,6 @@ jobs:
     timeout-minutes: 20
     env:
       PYTHONDONTWRITEBYTECODE: "1"
-      SELECTOR_EXP_DISPOSABLE_DB: "YES"
-      SELECTOR_EXP_TEST_DSN: postgresql://pilot:pilot@127.0.0.1:5432/selector_exp_test_cp33
     steps:
       - uses: actions/checkout@v5
         with:
@@ -32,24 +30,8 @@ jobs:
         run: |
           mkdir -p skills
           ln -s ../analysis/programming_analysis skills/programming_analysis
-      - name: Start PostgreSQL 17 disposable on loopback
-        shell: bash
-        run: |
-          set -euo pipefail
-          docker run --detach --rm --name f51-disposable-db --network host \
-            -e POSTGRES_USER=pilot -e POSTGRES_PASSWORD=pilot \
-            -e POSTGRES_DB=selector_exp_test_cp33 \
-            -e POSTGRES_INITDB_ARGS=--locale=C \
-            postgres:17 -c listen_addresses=127.0.0.1
-          for attempt in $(seq 1 40); do
-            if pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33 >/dev/null 2>&1; then break; fi
-            sleep 1
-          done
-          pg_isready -h 127.0.0.1 -p 5432 -U pilot -d selector_exp_test_cp33
-      - name: Load byte-pinned SQL PG02-PG05 selector and project backend prefix
-        run: |
-          python3 pilot/orchestrator/selector_db.py
-          PGPASSWORD=pilot psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U pilot -d selector_exp_test_cp33 -c "INSERT INTO public.lf_project_area_pattern_exp(project_ref,area,path_prefix) VALUES ('lf_java','BACKEND','apps/time-service/src/main/java/') ON CONFLICT DO NOTHING"
+      - name: Prepare original selector with shared disposable bootstrap
+        run: bash pilot/orchestrator/prepare_selector.sh
       - name: Current A9 output validates separately from frozen F5.1 legacy packet
         run: |
           set -euo pipefail
@@ -105,4 +87,4 @@ jobs:
             fi
           done
       - if: always()
-        run: docker rm -f f51-disposable-db || true
+        run: docker rm -f selector-disposable-db || true
