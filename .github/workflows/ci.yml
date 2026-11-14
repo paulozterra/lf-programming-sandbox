@@ -170,6 +170,10 @@ jobs:
         run: |
           python3 -m unittest discover -s pilot -p 'test_workflow_python_commands.py' -v
           python3 -m pilot.workflow_python_commands
+      - name: T9.5 exact-main CI handoff, prerequisite and stage correlation
+        run: |
+          python3 -m pilot.test_workflow_base_ci
+          python3 -m unittest discover -s pilot -p 'test_t9_5_main_ci.py' -v
       - name: Policy C offline auto-integrate admission tests (no token)
         run: |
           python3 -m py_compile pilot/auto_integrate.py
