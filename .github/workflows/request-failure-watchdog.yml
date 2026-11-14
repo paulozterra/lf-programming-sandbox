@@ -1,0 +1,46 @@
+name: T9.1 request route failure watchdog
+on:
+  workflow_run:
+    workflows:
+      - 'T9 issue request intake'
+      - 'ci'
+      - 'CP3.6 chain after Train merge or spent native failure'
+      - 'LF policy C auto-integrate'
+      - 'T9 request terminal status and intervention report'
+    types: [completed]
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  issues: write
+concurrency:
+  group: t9-route-failure-notify
+  cancel-in-progress: false
+jobs:
+  notify:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'failure' ||
+       github.event.workflow_run.conclusion == 'timed_out')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trusted main checkout only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - name: Notify request submitter from failed run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          if [ -n "$SOURCE_RUN_ID" ]; then
+            python3 pilot/request_failure_notify.py --run-id "$SOURCE_RUN_ID"
+          else
+            python3 pilot/request_failure_notify.py --sweep
+          fi

@@ -1,4 +1,5 @@
 name: LF policy C auto-integrate
+run-name: Policy C ${{ github.event.workflow_run.head_branch || github.event.workflow_run.display_title || github.run_id }}
 
 # workflow_run uses trusted main. Never execute PR code in privileged context.
 on:

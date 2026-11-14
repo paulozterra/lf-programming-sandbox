@@ -1,4 +1,5 @@
 name: T9 issue request intake
+run-name: T9 intake req-${{ github.event.issue.number }}
 on:
   issues:
     types: [opened, labeled]
