@@ -106,7 +106,7 @@ class PolicyTests(unittest.TestCase):
                 if method == "GET" and path == "/issues/159":
                     return {"number": 159, "user": {"login": "paulozterra"},
                             "created_at": "2026-11-14T15:00:00Z",
-                            "body": "### Pedido\\n\\nOriginal"}
+                            "body": "### Pedido\n\nOriginal"}
                 if method == "GET" and path == "/collaborators/paulozterra/permission":
                     return {"permission": "admin"}
                 if method == "GET" and path.startswith("/contents/"):
