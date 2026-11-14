@@ -2,6 +2,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from datetime import datetime, timezone
 
 HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("request_failure_notify", HERE / "request_failure_notify.py")
@@ -62,6 +63,27 @@ class Tests(unittest.TestCase):
         run = self.run_obj(title="T9 intake req-160")
         run["head_branch"] = "lf/request/req-161"
         self.assertIsNone(notify.resolve_issue(run))
+
+    def test_missing_ci_dispatched_is_reported_but_existing_ci_is_not(self):
+        class Survey(Fake):
+            existing_ci = False
+            def api(self, method, path, body=None):
+                if method == "GET" and path.startswith("/issues?state=open"):
+                    return [{"number": 160, "state": "open",
+                             "created_at": "2026-11-14T15:00:00Z"}]
+                if method == "GET" and path.startswith("/pulls?state=all"):
+                    return [{"number": 161}]
+                if method == "GET" and path.startswith("/actions/workflows/ci.yml/runs"):
+                    return {"workflow_runs": [{"id": 7}] if self.existing_ci else []}
+                return super().api(method, path, body)
+        api = Survey()
+        now = datetime(2026, 11, 14, 16, 0, tzinfo=timezone.utc)
+        intake = self.run_obj(conclusion="success")
+        self.assertEqual(notify.audit_undispatched_requests(api, [intake], now),
+                         ["160:RUTA_NOTIFIED"])
+        self.assertIn("PEDIDO_CI_NO_DISPARADO", api.comments[0]["body"])
+        api.existing_ci = True
+        self.assertEqual(notify.audit_undispatched_requests(api, [intake], now), [])
 
     def test_timeout_code(self):
         run = self.run_obj()
