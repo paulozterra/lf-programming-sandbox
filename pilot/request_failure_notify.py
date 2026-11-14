@@ -18,6 +18,9 @@ ROUTES = {
     "CP3.6 chain after Train merge or spent native failure": "PEDIDO_CADENA_FALLIDA",
     "LF policy C auto-integrate": "PEDIDO_POLITICA_C_FALLIDA",
     "T9 request terminal status and intervention report": "PEDIDO_FINALIZE_FALLIDO",
+    "CP3.7 pinned PG06-PG14 evidence and H_REPORT": "PEDIDO_EVIDENCIA_FALLIDA",
+    "LF Worker native (trusted workflow_run or manual, no API)": "PEDIDO_WORKER_FALLIDO",
+    "CP3.5 native verified patch to draft PR": "PEDIDO_INTEGRACION_FALLIDA",
 }
 TIMEOUT_MINUTES = {
     "T7 main request auto-admission (trusted, no model)": 30,
@@ -26,6 +29,9 @@ TIMEOUT_MINUTES = {
     "LF policy C auto-integrate": 27,
     "T9 request terminal status and intervention report": 27,
     "ci": 60,
+    "CP3.7 pinned PG06-PG14 evidence and H_REPORT": 40,
+    "LF Worker native (trusted workflow_run or manual, no API)": 40,
+    "CP3.5 native verified patch to draft PR": 30,
 }
 SLUG = re.compile(r"(?:req-|lf/request/req-)([1-9][0-9]*)\b")
 
@@ -36,7 +42,88 @@ def route_name(run: dict) -> str:
     if (path == ".github/workflows/t7-request.yml"
             and run.get("event") in ("workflow_dispatch", "push")):
         return "T7 main request auto-admission (trusted, no model)"
+    mapping = {
+        ".github/workflows/chain-lots.yml":
+            "CP3.6 chain after Train merge or spent native failure",
+        ".github/workflows/pg37-evidence.yml":
+            "CP3.7 pinned PG06-PG14 evidence and H_REPORT",
+        ".github/workflows/worker-native.yml":
+            "LF Worker native (trusted workflow_run or manual, no API)",
+        ".github/workflows/native-verified-integration.yml":
+            "CP3.5 native verified patch to draft PR",
+    }
+    if path in mapping:
+        return mapping[path]
     return str(run.get("name") or "")
+
+
+def verified_stage_issue(api, run: dict) -> int | None:
+    """Bind stage titles to a trusted merged PR's actual changed paths.
+
+    Never parse arbitrary PR text or a user's suggested issue number. In
+    particular CP3.6 PR 177 resolves to req-175 through the verified diff.
+    """
+    if (str(run.get("path") or "").split("@")[0] !=
+            ".github/workflows/chain-lots.yml"
+            or run.get("event") != "workflow_dispatch"):
+        return None
+    title = str(run.get("display_title") or "")
+    match = re.fullmatch(r"CP3[.]6 (?:req-([1-9][0-9]*) )?PR ([1-9][0-9]*)", title)
+    if match is None:
+        return None
+    claimed, number = match.group(1), int(match.group(2))
+    pr = api.api("GET", f"/pulls/{number}")
+    if (pr.get("number") != number or pr.get("merged") is not True
+            or pr.get("merge_commit_sha") != run.get("head_sha")
+            or pr.get("base", {}).get("ref") != "main"
+            or pr.get("base", {}).get("repo", {}).get("full_name") != REPO
+            or pr.get("head", {}).get("repo", {}).get("full_name") != REPO
+            or pr.get("user", {}).get("login") != "github-actions[bot]"):
+        return None
+    branch = str(pr.get("head", {}).get("ref") or "")
+    if not (re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch)
+            or re.fullmatch(r"lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-[1-9][0-9]*", branch)):
+        return None
+    files = api.api("GET", f"/pulls/{number}/files?per_page=100")
+    if not isinstance(files, list) or len(files) >= 100:
+        return None
+    slugs = {m.group(1) for item in files if isinstance(item, dict)
+             and (m := re.fullmatch(
+                 r"pilot/runs/(req-[1-9][0-9]*)/(?:analysis|state|lots|chain_plan)[.]json",
+                 str(item.get("filename") or "")))}
+    # An integration PR can change application code only. The task -> slug
+    # mapping is independently derived from a pinned plan on main.
+    if not slugs and branch.startswith("lf/native-integration/"):
+        task = branch[len("lf/native-integration/"):].rsplit("-run-", 1)[0]
+        slugs = request_for_task(task)
+    if len(slugs) != 1:
+        return None
+    slug = next(iter(slugs))
+    if claimed and slug != f"req-{claimed}":
+        return None
+    return int(slug[4:])
+
+
+def request_for_task(task: str) -> set[str]:
+    """Resolve a registered task only through committed request plans."""
+    from pathlib import Path
+    if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task):
+        return set()
+    root = Path(__file__).resolve().parents[1]
+    slugs = set()
+    for plan in (root / "pilot/runs").glob("req-*/chain_plan.json"):
+        if plan.is_symlink() or plan.parent.is_symlink():
+            continue
+        try:
+            records = json.loads(plan.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            continue
+        for row in records.get("bindings", []):
+            registered = row.get("task_name") if isinstance(row, dict) else None
+            if isinstance(registered, str) and (registered == task or
+                    re.fullmatch(re.escape(registered) + r"(?:[2-9]|[1-9][0-9]+)", task)):
+                slugs.add(plan.parent.name)
+    return slugs
 
 
 def resolve_issue(run: dict) -> int | None:
@@ -73,8 +160,8 @@ def resolve_issue(run: dict) -> int | None:
         match = (re.fullmatch(r"T7 req-([1-9][0-9]*)", title)
                  if run.get("event") == "workflow_dispatch" and trusted_path
                  and consistent else None)
-    elif run.get("name") == "CP3.6 chain after Train merge or spent native failure":
-        match = re.fullmatch(r"CP3[.]6 lf/request/req-([1-9][0-9]*)", title)
+    elif route_name(run) == "CP3.6 chain after Train merge or spent native failure":
+        match = re.fullmatch(r"CP3[.]6 req-([1-9][0-9]*) PR [1-9][0-9]*", title)
     elif run.get("name") == "LF policy C auto-integrate":
         match = re.fullmatch(r"Policy C lf/request/req-([1-9][0-9]*)", title)
     else:
@@ -150,6 +237,12 @@ class Github:
 
 
 def emit(api: Github, run: dict, jobs: list[dict]) -> str:
+    # For post-Train stages, the run's branch is main; use the real merged
+    # PR's files instead of pretending main is an lf/request/ branch.
+    if route_name(run) == "CP3.6 chain after Train merge or spent native failure":
+        linked = verified_stage_issue(api, run)
+        if linked is not None:
+            run = dict(run, head_branch=f"lf/request/req-{linked}")
     hit = notification(run, jobs)
     if hit is None:
         return "RUTA_NO_ISSUE_ASSOCIATION"
@@ -195,14 +288,33 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
                     raise
             api.api("POST", f"/issues/{number}/labels",
                     {"labels": ["lf-request-blocked"]})
+    ci_link = run.get("main_ci_url")
+    extra = (f"CI exacto de main: {ci_link}\\n" if isinstance(ci_link, str)
+             and ci_link.startswith("https://github.com/" + REPO + "/actions/runs/") else "")
     api.api("POST", f"/issues/{number}/comments",
-            {"body": f"{marker}\nRuta bloqueada: `{code}`.\nCorrida: {url}\n"
-                     "El pedido permanece abierto para revisión."})
+            {"body": f"{marker}\\nRuta bloqueada: `{code}`.\\nCorrida: {url}\\n"
+                     + extra + "El pedido permanece abierto para revisión."})
     return "RUTA_NOTIFIED"
 
 
 def check_run(api: Github, run: dict) -> str:
     jobs_obj = api.api("GET", f"/actions/runs/{run['id']}/jobs?per_page=100")
+    if (route_name(run) == "CP3.6 chain after Train merge or spent native failure"
+            and run.get("conclusion") == "failure"
+            and re.fullmatch(r"[0-9a-f]{40}", str(run.get("head_sha") or ""))):
+        # Mirror t4_admission's exact-SHA requirement. Absence/failed CI
+        # is a real BASE_NO_VERDE prerequisite; never invent green status.
+        sha = run["head_sha"]
+        base = api.api("GET", f"/actions/workflows/ci.yml/runs?head_sha={sha}&per_page=100")
+        rows = base.get("workflow_runs", [])
+        eligible = [row for row in rows if isinstance(row, dict)
+                    and row.get("head_sha") == sha
+                    and row.get("head_branch") == "main"
+                    and row.get("event") in ("push", "workflow_dispatch")]
+        if not eligible or max(eligible, key=lambda r: (r.get("created_at", ""), r.get("id", 0))).get("conclusion") != "success":
+            latest = max(eligible, key=lambda r: (r.get("created_at", ""), r.get("id", 0)), default=None)
+            run = dict(run, failure_code="BASE_NO_VERDE",
+                       main_ci_url=(latest or {}).get("html_url"))
     return emit(api, run, jobs_obj.get("jobs", []))
 
 
