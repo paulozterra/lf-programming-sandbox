@@ -106,3 +106,4 @@
 | CHG-0103 | ADDITIVE | Política C: el ci de un PR generado se lo entrega explícitamente |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/151 |
 | CHG-0104 | ADDITIVE | T7.2: reutilización determinada por dependencias explícitas de pantalla |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/153 |
 | CHG-0105 | EDITORIAL | Catálogo: ficha ficticia de la pantalla SBX-REM-LIST (Mis recordatorios) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/155 |
+| CHG-0106 | EDITORIAL | Train: espera propia cuando un check requerido sigue en curso al fusionar |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pulls |

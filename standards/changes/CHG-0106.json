@@ -1,0 +1,34 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0106",
+  "title": "Train: espera propia cuando un check requerido sigue en curso al fusionar",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Fusión del registro #154/#157 rechazada con 405 in progress 2026-11-13"
+  },
+  "reason": "Al fusionar, GitHub respondía 405 'Required status check ... is in progress' porque una segunda corrida del ci sobre el mismo HEAD seguía en curso. El reintento existente buscaba 'required status check' en minúsculas (el mensaje real viene capitalizado), así que no reintentaba, y su presupuesto era ~2 min. Ahora la comparación ignora mayúsculas y el caso 'in progress' espera con su propio presupuesto (20 min, sondeo cada 20 s), releyendo el PR y sin fusionar jamás otro HEAD.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/sandbox_train.py",
+      "pilot/test_sandbox_train_retry.py"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
+  }
+}
