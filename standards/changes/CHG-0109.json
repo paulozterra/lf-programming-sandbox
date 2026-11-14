@@ -26,7 +26,8 @@
       ".github/workflows/request-finalize.yml",
       ".github/workflows/ci.yml",
       "standards/changes/CHG-0109.json",
-      "standards/CAMBIOS.md"
+      "standards/CAMBIOS.md",
+      ".github/workflows/t7-request.yml"
     ]
   },
   "existing_code_impact": {
