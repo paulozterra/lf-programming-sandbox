@@ -79,7 +79,10 @@ jobs:
             printf 'pilot/runs/%s/request.md\n' "${{ inputs.slug }}" > "$RUNNER_TEMP/t7-requests.txt"
           else
             git diff "$GITHUB_SHA^1" "$GITHUB_SHA" --name-only \
-              | grep -E '^pilot/runs/[a-z][a-z0-9_-]{0,63}/request[.]md
+              | grep -E '^pilot/runs/[a-z][a-z0-9_-]{0,63}/request[.]md$' \
+              > "$RUNNER_TEMP/t7-requests.txt"
+          fi
+          test -s "$RUNNER_TEMP/t7-requests.txt"
           while IFS= read -r file; do
             slug="$(basename "$(dirname "$file")")"
             python3 pilot/orchestrator/t7_entry.py --root . \
