@@ -36,5 +36,8 @@ jobs:
         run: |
           branch="lf/request/req-${{ github.event.issue.number }}"
           if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null; then
-            gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
+            number="$(gh pr view "$branch" --repo "$GITHUB_REPOSITORY" --json number --jq '.number')"
+            head_sha="$(gh pr view "$branch" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq '.headRefOid')"
+            gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$branch" \
+              -f pr_number="$number" -f pr_sha="$head_sha"
           fi
