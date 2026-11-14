@@ -138,8 +138,10 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
         # lf/request/ PR was created by the trusted bot, including after merge.
         prs = api.api("GET", f"/pulls?state=all&head=paulozterra:lf/request/req-{number}&per_page=100")
         if not isinstance(prs, list) or not any(
-                isinstance(pr, dict) and pr.get("user", {}).get("login") == "github-actions[bot]"
-                and pr.get("head", {}).get("ref") == f"lf/request/req-{number}"
+                isinstance(pr, dict) and isinstance(pr.get("user"), dict)
+                and pr["user"].get("login") == "github-actions[bot]"
+                and isinstance(pr.get("head"), dict)
+                and pr["head"].get("ref") == f"lf/request/req-{number}"
                 for pr in prs):
             return "RUTA_PR_ORIGEN_NO_CONFIABLE"
     issue = api.api("GET", f"/issues/{number}")
@@ -206,8 +208,13 @@ def audit_undispatched_requests(api: Github, all_runs: list[dict], now: datetime
         slug = f"req-{n}"
         branch = f"lf/request/{slug}"
         prs = api.api("GET", f"/pulls?state=all&head=paulozterra:{branch}&per_page=100")
-        if not isinstance(prs, list) or not prs:
-            continue  # without an admitted PR, no CI dispatch is expected yet
+        if not isinstance(prs, list) or not any(
+                isinstance(pr, dict) and isinstance(pr.get("user"), dict)
+                and pr["user"].get("login") == "github-actions[bot]"
+                and isinstance(pr.get("head"), dict)
+                and pr["head"].get("ref") == branch
+                for pr in prs):
+            continue  # never infer an admitted request from an arbitrary PR
         if any(r.get("name") == "ci" and r.get("head_branch") == branch
                for r in all_runs):
             continue
