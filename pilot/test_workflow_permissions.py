@@ -47,11 +47,11 @@ def check_workflow(path: Path, mapping: dict) -> list[str]:
             for s in steps if isinstance(s, dict))
         # Resolve only literal, in-repository Python entrypoints called by a
         # step. Never read user-controlled paths or import/execute these files.
-        delegates = re.findall(r"\\bpython(?:3(?:\\.\\d+)?)?\\s+(pilot/[a-zA-Z0-9_./-]+[.]py)\\b",
+        delegates = re.findall(r"\bpython(?:3(?:\.\d+)?)?\s+(pilot/[a-zA-Z0-9_./-]+[.]py)\b",
                                scripts)
         delegates += re.findall(
-            r"\\bpython(?:3(?:\\.\\d+)?)?\\s+-m\\s+pilot[.]workflow_entrypoint\\s+"
-            r"(pilot/[a-zA-Z0-9_./-]+[.]py)\\b", scripts)
+            r"\bpython(?:3(?:\.\d+)?)?\s+-m\s+pilot[.]workflow_entrypoint\s+"
+            r"(pilot/[a-zA-Z0-9_./-]+[.]py)\b", scripts)
         for relative in delegates:
             target = ROOT / relative
             if (target.is_file() and target.resolve().is_relative_to(ROOT.resolve())
