@@ -171,6 +171,10 @@ def ensure_main_ci(api: Github, sha: str, *, required: bool,
     tip = api.call("GET", "/git/ref/heads/main")
     if tip.get("object", {}).get("sha") != sha:
         raise HandoffBlocked("BASE_NO_VERDE:MAIN_MOVED")
+    # Record the previous run before dispatch. Never treat an older success
+    # (or failure) as the outcome of the CI that this handoff just launched.
+    previous = main_ci_run(api, sha, config)
+    previous_id = previous.get("id", 0) if previous else 0
     api.call("POST", "/actions/workflows/ci.yml/dispatches", {"ref": "main"})
     if not required:
         return {"status": "MAIN_CI_DISPATCHED", "sha": sha}
@@ -178,7 +182,7 @@ def ensure_main_ci(api: Github, sha: str, *, required: bool,
     last = None
     for attempt in range(attempts):
         run = main_ci_run(api, sha, config)
-        if run is not None:
+        if run is not None and type(run.get("id")) is int and run["id"] > previous_id:
             last = run
             if run.get("status") == "completed":
                 if run.get("conclusion") == "success":
@@ -187,6 +191,7 @@ def ensure_main_ci(api: Github, sha: str, *, required: bool,
                 raise HandoffBlocked("BASE_NO_VERDE:" + str(run.get("html_url") or "CI_NO_URL"))
         if attempt + 1 < attempts:
             sleep(config["poll_seconds"])
+    # A completed old run cannot stand in for a missing new dispatch.
     raise HandoffBlocked("BASE_NO_VERDE:" + str(last.get("html_url") if last else "CI_NO_RUN"))
 
 
