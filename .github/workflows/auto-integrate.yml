@@ -61,3 +61,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: python3 pilot/auto_integrate.py
+      - name: Wake watchdog without relying on bot-triggered workflow_run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run request-failure-watchdog.yml --repo "$GITHUB_REPOSITORY" --ref main
