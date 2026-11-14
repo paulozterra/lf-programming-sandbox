@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 REPO = "paulozterra/lf-programming-sandbox"
 ROUTES = {
     "T9 issue request intake": "PEDIDO_INTAKE_FALLIDO",
+    "ci": "PEDIDO_CI_FALLIDO",
     "CP3.6 chain after Train merge or spent native failure": "PEDIDO_CADENA_FALLIDA",
     "LF policy C auto-integrate": "PEDIDO_POLITICA_C_FALLIDA",
     "T9 request terminal status and intervention report": "PEDIDO_FINALIZE_FALLIDO",
@@ -38,7 +39,7 @@ def resolve_issue(run: dict) -> int | None:
 
 def error_code(run: dict, jobs: list[dict]) -> str:
     name = run.get("name")
-    base = ROUTES.get(name, "PEDIDO_RUTA_FALLIDA")
+    base = run.get("failure_code") or ROUTES.get(name, "PEDIDO_RUTA_FALLIDA")
     # Conservatively stable codes: job outcomes are evidence, not guessed HTTP codes.
     if any(job.get("conclusion") == "timed_out" for job in jobs):
         return "PEDIDO_WORKFLOW_TIMEOUT"
@@ -144,6 +145,46 @@ def check_run(api: Github, run: dict) -> str:
     return emit(api, run, jobs_obj.get("jobs", []))
 
 
+def audit_undispatched_requests(api: Github, all_runs: list[dict], now: datetime) -> list[str]:
+    """Identify issues with a bot PR but no CI after a bounded intake interval.
+
+    No alerts on existing successful/pending CI or an issue still awaiting approval.
+    """
+    results = []
+    issues = api.api("GET", "/issues?state=open&labels=lf-request&per_page=100")
+    for issue in issues:
+        if issue.get("pull_request") or issue.get("state") != "open":
+            continue
+        n = issue.get("number")
+        if type(n) is not int or n < 1:
+            continue
+        try:
+            age = now - datetime.fromisoformat(
+                issue["created_at"].replace("Z", "+00:00"))
+        except (KeyError, ValueError, TypeError):
+            continue
+        if age < timedelta(minutes=25):
+            continue
+        slug = f"req-{n}"
+        branch = f"lf/request/{slug}"
+        prs = api.api("GET", f"/pulls?state=all&head=paulozterra:{branch}&per_page=100")
+        if not isinstance(prs, list) or not prs:
+            continue  # without an admitted PR, no CI dispatch is expected yet
+        if any(r.get("name") == "ci" and r.get("head_branch") == branch
+               for r in all_runs):
+            continue
+        intake = [r for r in all_runs if r.get("name") == "T9 issue request intake"
+                  and resolve_issue(r) == n]
+        if not intake:
+            continue
+        last = max(intake, key=lambda r: r.get("id", 0))
+        # Failure messages use the exact preceding intake run URL.
+        run = dict(last, conclusion="failure",
+                   failure_code="PEDIDO_CI_NO_DISPARADO")
+        results.append(f"{n}:{emit(api, run, [])}")
+    return results
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-id", type=int)
@@ -167,6 +208,8 @@ def main():
         all_runs.extend(items)
         if len(items) < 100:
             break
+    for state in audit_undispatched_requests(api, all_runs, datetime.now(timezone.utc)):
+        print(state)
     for run in all_runs:
         if run.get("name") not in ROUTES or run.get("conclusion") not in ("failure", "timed_out"):
             continue
