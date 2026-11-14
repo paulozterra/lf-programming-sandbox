@@ -58,6 +58,16 @@ jobs:
             self.assertEqual(tool.scan(root),
                              ["WORKFLOW_COMANDO_NO_EJECUTABLE:missing.yml:pilot.definitely_nonexistent"])
 
+    def test_wrapper_command_extraction(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = make(Path(td), "wrapped.yml", """jobs:
+  route:
+    steps:
+      - run: python3 -m pilot.workflow_entrypoint pilot/orchestrator/t7_entry.py --root .
+""")
+            self.assertEqual(tool.commands(path), [
+                ("wrapper", "pilot/orchestrator/t7_entry.py")])
+
     def test_smoke_does_not_inherit_pythonpath(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -69,9 +79,9 @@ jobs:
             with patch.dict("os.environ", {"PYTHONPATH": "/tmp/fake-injected-path"}):
                 self.assertEqual(tool.smoke(root, "module", "pilot.probe")[0], True)
 
-    def test_real_t7_command_is_module(self):
+    def test_real_t7_command_is_shared_launcher(self):
         path = ROOT / ".github/workflows/t7-request.yml"
-        self.assertIn(("module", "pilot.orchestrator.t7_entry"), tool.commands(path))
+        self.assertIn(("wrapper", "pilot/orchestrator/t7_entry.py"), tool.commands(path))
         self.assertNotIn(("script", "pilot/orchestrator/t7_entry.py"), tool.commands(path))
 
 
