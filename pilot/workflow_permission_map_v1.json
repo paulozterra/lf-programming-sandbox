@@ -1,0 +1,33 @@
+{
+  "schema_version": "LF_WORKFLOW_PERMISSION_MAP_V1",
+  "rules": [
+    {
+      "permission": "actions",
+      "patterns": [
+        "\\bgh\\s+workflow\\s+run\\b",
+        "\\bgh\\s+api\\b[^\\n]*(?:/actions/workflows/|/dispatches\\b)",
+        "\\bcurl\\b[^\\n]*(?:/actions/workflows/|/dispatches\\b)",
+        "(?:\\bPOST\\b|\\bpost\\b)[^\\n]*?/actions/workflows/"
+      ]
+    },
+    {
+      "permission": "pull-requests",
+      "patterns": [
+        "\\bgh\\s+pr\\s+create\\b",
+        "\\bgh\\s+api\\b[^\\n]*\\s(?:repos/[^\\s]+/)?pulls\\b",
+        "\\bcurl\\b[^\\n]*/pulls\\b",
+        "(?:\\bPOST\\b|\\bpost\\b)[^\\n]*?[\"']/pulls(?:[?\"']|\\b)"
+      ]
+    },
+    {
+      "permission": "issues",
+      "patterns": [
+        "\\bgh\\s+pr\\s+edit\\b[^\\n]*--add-label\\b",
+        "\\bgh\\s+issue\\s+(?:comment|edit|create|close)\\b",
+        "\\bgh\\s+api\\b[^\\n]*(?:/issues/[^\\s]+/(?:comments|labels)|/issues/\\d+\\b)",
+        "\\bcurl\\b[^\\n]*/issues/[^\\s]+/(?:comments|labels)",
+        "(?:\\bPOST\\b|\\bPATCH\\b|\\bpost\\b|\\bpatch\\b)[^\\n]*?/issues/[^\\s\"']+/(?:comments|labels)"
+      ]
+    }
+  ]
+}
