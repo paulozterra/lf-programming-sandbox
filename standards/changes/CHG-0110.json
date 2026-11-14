@@ -1,0 +1,51 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0110",
+  "title": "T9.2: handoff explícito de Train y detección de etapas sin siguiente corrida",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T9.2: petición #164 PR #165 fusionado por Train sin ejecución T7 2026-11-14"
+  },
+  "reason": "Los merges del bot no provocan eventos push secundarios. Train envía un workflow_dispatch autenticado al handoff, que verifica SHA, primer padre y procedencia antes de enrutar por mapa versionado; T7 admite slug y merge SHA sin quitar respaldo humano. Auditoría de disparos inalcanzables y seguimiento acotado por merge independiente del cron notifican el Issue abierto con código PEDIDO_ESTANCADO y última corrida. Nunca reproduce ni modifica el pedido descartado #164.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/sandbox-train.yml",
+      ".github/workflows/train-handoff.yml",
+      ".github/workflows/t7-request.yml",
+      ".github/workflows/chain-lots.yml",
+      ".github/workflows/request-failure-watchdog.yml",
+      ".github/workflows/auto-integrate.yml",
+      ".github/workflows/request-finalize.yml",
+      ".github/workflows/pg37-evidence.yml",
+      ".github/workflows/ci.yml",
+      "pilot/train_handoff_map_v1.json",
+      "pilot/train_handoff.py",
+      "pilot/request_stage_thresholds_v1.json",
+      "pilot/request_stage_watchdog.py",
+      "pilot/workflow_trigger_policy_v1.json",
+      "pilot/test_workflow_triggers.py",
+      "pilot/test_t9_2_handoff.py",
+      "pilot/test_t9_2_stages.py",
+      "standards/changes/CHG-0110.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
+  }
+}
