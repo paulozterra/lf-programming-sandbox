@@ -623,13 +623,15 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.12"
-      - name: Prepare shared disposable selector without changing frozen PG02-PG05 fixtures
-        run: bash pilot/orchestrator/prepare_selector.sh --legacy
+      - name: Bootstrap shared selector before frozen PG02-PG05 regressions
+        run: bash pilot/orchestrator/prepare_selector.sh --bootstrap-only
       - name: Run CP3.3 offline integration tests and adversarial gates
         run: |
           python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2
           python3 -m pytest -q pilot/orchestrator/test_plan_lots.py
           python3 -m pytest -q pilot/orchestrator/test_intake.py
+      - name: Enable backend prefix after historical selector tests via shared script
+        run: bash pilot/orchestrator/prepare_selector.sh --backend
       - name: P4 priority intake and real PG02-PG05 selector outputs equal committed JSON
         shell: bash
         run: |
