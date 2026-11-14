@@ -2,6 +2,8 @@
 import importlib.util
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import tempfile
+import json
 import unittest
 from unittest.mock import patch
 
@@ -80,6 +82,23 @@ class Stages(unittest.TestCase):
             self.assertEqual(result[0], "STAGE_STALLED_NOTIFIED")
             self.assertEqual(notify.call_args.args[1]["failure_code"],
                              "PEDIDO_ESTANCADO:ANALYSIS_MERGED")
+
+    def test_native_integration_retry_maps_to_existing_chain(self):
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td) / "pilot/runs/req-987"
+            folder.mkdir(parents=True)
+            (folder / "chain_plan.json").write_text(
+                json.dumps({"bindings": [{"task_name": "demo"}]}), encoding="utf-8")
+            api = API(branch="lf/native-integration/demo2-run-123")
+            with patch.object(mod, "SRC", Path(td)), \
+                 patch.object(mod, "git", return_value="apps/time-service/Reminder.java"), \
+                 patch.object(mod, "emit", return_value="RUTA_NOTIFIED") as notify:
+                result = mod.evaluate(
+                    api, 777, MERGE_SHA, 12345,
+                    datetime(2026, 11, 14, 17, tzinfo=timezone.utc), CONFIG)
+                self.assertEqual(result[0], "STAGE_STALLED_NOTIFIED")
+                self.assertEqual(notify.call_args.args[1]["failure_code"],
+                                 "PEDIDO_ESTANCADO:INTEGRATION_MERGED")
 
     def test_wait_exits_when_next_run_exists(self):
         result = mod.watch(API(seen=True), 777, MERGE_SHA, 12345, CONFIG,
