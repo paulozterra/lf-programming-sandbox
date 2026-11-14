@@ -1,0 +1,20 @@
+{
+  "schema_version": "LF_TRAIN_HANDOFF_MAP_V1",
+  "routes": [
+    {
+      "branch_regex": "^lf/request/(req-[1-9][0-9]*)$",
+      "workflow": "t7-request.yml",
+      "input_kind": "slug"
+    },
+    {
+      "branch_regex": "^lf/generated-t7/[0-9a-f]{12}$",
+      "workflow": "chain-lots.yml",
+      "input_kind": "train_run_id"
+    },
+    {
+      "branch_regex": "^lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-[1-9][0-9]*$",
+      "workflow": "chain-lots.yml",
+      "input_kind": "integration_pr"
+    }
+  ]
+}
