@@ -41,7 +41,18 @@ def check_workflow(path: Path, mapping: dict) -> list[str]:
         if not isinstance(steps, list):
             continue
         # Never count mentions in comments, descriptions or job names as executions.
-        scripts = "\n".join(str(s.get("run", "")) for s in steps if isinstance(s, dict))
+        scripts = "\n".join(
+            str(s.get("run", "")) + "\n" +
+            str((s.get("with") or {}).get("script", ""))
+            for s in steps if isinstance(s, dict))
+        # Resolve only literal, in-repository Python entrypoints called by a
+        # step. Never read user-controlled paths or import/execute these files.
+        for relative in re.findall(r"\bpython(?:3(?:\.\d+)?)?\s+(pilot/[a-zA-Z0-9_./-]+[.]py)\b",
+                                   scripts):
+            target = ROOT / relative
+            if (target.is_file() and target.resolve().is_relative_to(ROOT.resolve())
+                    and not target.name.startswith("test_")):
+                scripts += "\n" + target.read_text(encoding="utf-8")
         scripts = "\n".join(line for line in scripts.splitlines()
                             if not line.lstrip().startswith("#"))
         for rule in mapping["rules"]:
