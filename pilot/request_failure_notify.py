@@ -18,6 +18,13 @@ ROUTES = {
     "LF policy C auto-integrate": "PEDIDO_POLITICA_C_FALLIDA",
     "T9 request terminal status and intervention report": "PEDIDO_FINALIZE_FALLIDO",
 }
+TIMEOUT_MINUTES = {
+    "T9 issue request intake": 25,
+    "CP3.6 chain after Train merge or spent native failure": 40,
+    "LF policy C auto-integrate": 27,
+    "T9 request terminal status and intervention report": 27,
+    "ci": 60,
+}
 SLUG = re.compile(r"(?:req-|lf/request/req-)([1-9][0-9]*)\b")
 
 
@@ -189,6 +196,21 @@ def audit_undispatched_requests(api: Github, all_runs: list[dict], now: datetime
     return results
 
 
+def stalled_run(run: dict, now: datetime) -> dict | None:
+    name = run.get("name")
+    if name not in TIMEOUT_MINUTES or run.get("status") not in (
+            "queued", "in_progress", "waiting", "requested", "pending"):
+        return None
+    try:
+        created = datetime.fromisoformat(run["created_at"].replace("Z", "+00:00"))
+    except (KeyError, AttributeError, ValueError, TypeError):
+        return None
+    if now - created < timedelta(minutes=TIMEOUT_MINUTES[name]):
+        return None
+    return dict(run, conclusion="failure",
+                failure_code="PEDIDO_WORKFLOW_SIN_AVANCE")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-id", type=int)
@@ -214,6 +236,11 @@ def main():
             break
     for state in audit_undispatched_requests(api, all_runs, datetime.now(timezone.utc)):
         print(state)
+    now = datetime.now(timezone.utc)
+    for run in all_runs:
+        stalled = stalled_run(run, now)
+        if stalled is not None:
+            print(run["id"], check_run(api, stalled))
     for run in all_runs:
         if run.get("name") not in ROUTES or run.get("conclusion") not in ("failure", "timed_out"):
             continue
