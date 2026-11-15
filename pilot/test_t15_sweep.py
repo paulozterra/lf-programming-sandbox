@@ -31,11 +31,12 @@ class SweepTests(unittest.TestCase):
              patch.object(chain_lots, "plans", return_value=[]), \
              patch.object(chain_lots, "first_parent_merges", return_value=[]), \
              patch.object(chain_lots, "sync_implemented_registry") as registry, \
-             patch.object(chain_lots, "run") as command:
+             patch.object(chain_lots, "run", return_value="[]") as command:
             result = chain_lots.process(sweep=True, base_sha=HEAD)
         self.assertEqual(result, [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS"}])
         registry.assert_not_called()
-        command.assert_not_called()
+        command.assert_called_once()
+        self.assertEqual(command.call_args.args[:3], ("gh", "pr", "list"))
 
     def test_exam_on_main_registers_ready_task(self):
         lots = {"schema_version": "CP33_LOTS_CANDIDATE_V1",
@@ -69,8 +70,9 @@ class SweepTests(unittest.TestCase):
         prepare.assert_called_once()
         # The T17 sweep must share the same mocked GitHub boundary as CP3.6,
         # not run a real gh command from the offline T15 fixture.
-        github_commands.assert_called_once()
-        self.assertEqual(github_commands.call_args.args[:3], ("gh", "pr", "list"))
+        self.assertGreaterEqual(github_commands.call_count, 2)
+        self.assertTrue(all(call.args[:3] == ("gh", "pr", "list")
+                            for call in github_commands.call_args_list))
         github_api.assert_not_called()
 
     def test_closed_discarded_request_ignored(self):
@@ -87,6 +89,7 @@ class SweepTests(unittest.TestCase):
              patch.object(chain_lots, "first_parent_merges", return_value=[]), \
              patch.object(chain_lots, "sweep_request_enabled", return_value=False), \
              patch.object(chain_lots, "request_all_lot_exams") as request, \
+             patch.object(chain_lots, "retire_conflicted_generated", return_value=[]), \
              patch.object(chain_lots, "prepare_successor") as prepare:
             self.assertEqual(chain_lots.process(sweep=True, base_sha=HEAD),
                              [{"status": "NO_RELEASE_OR_BLOCK"}])

@@ -24,6 +24,7 @@ from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_stat
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
 from generated_branch_standards import synchronize
+from generated_conflict_recovery import retire_conflicted_generated
 from pilot.generated_ci_selection import last_executed_ci_run
 from native_lot_binding import next_ready
 from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request, registration_variant, protected_test_conflict
@@ -465,6 +466,107 @@ def close_failed_old_registration_drafts(task: str, head: str) -> list[int]:
     return retired
 
 
+def conflicted_request(row: dict, all_plans: list) -> str | None:
+    """Find original request only from immutable main plans or a verified T7 diff."""
+    branch = row["branch"]
+    if row["kind"] == "generated-t7":
+        files = json.loads(run("gh", "api",
+                               f"repos/{REPO}/pulls/{row['number']}/files?per_page=100"))
+        if not isinstance(files, list) or len(files) >= 100:
+            deny("CONFLICT_T7_FILES_INVALID")
+        slugs = {match.group(1) for file in files if isinstance(file, dict)
+                 if (match := re.fullmatch(
+                     r"pilot/runs/(req-[1-9][0-9]*)/"
+                     r"(?:analysis|state|lots|chain_plan)[.]json",
+                     str(file.get("filename", ""))))}
+        return next(iter(slugs)) if len(slugs) == 1 else None
+    if row["kind"] in ("registration", "integration"):
+        task = (branch.removeprefix("lf/native-registration/").rsplit("-", 1)[0]
+                if row["kind"] == "registration" else
+                re.sub(r"-run-[1-9][0-9]*$", "",
+                       branch.removeprefix("lf/native-integration/")))
+        matches = {request for request, _lots, _state, bindings in all_plans
+                   if any(binding.get("task_name") == task
+                          for binding in bindings.values())}
+        return next(iter(matches)) if len(matches) == 1 else None
+    return None
+
+
+def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> None:
+    """Watchdog-style issue notice, with no labels and no inferred issue ID."""
+    request = conflicted_request(row, all_plans)
+    if not request or not re.fullmatch(r"req-[1-9][0-9]*", request):
+        return
+    number = int(request[4:])
+    issue = api(f"issues/{number}")
+    if (issue.get("number") != number or issue.get("pull_request")
+            or issue.get("state") != "open"
+            or "lf-request" not in {x.get("name") for x in issue.get("labels", [])}):
+        return
+    marker = f"<!-- LF_CONFLICT_RECOVERY:{row['number']}:{row['sha']} -->"
+    comments = json.loads(run("gh", "api",
+                              f"repos/{REPO}/issues/{number}/comments?per_page=100"))
+    if not isinstance(comments, list) or len(comments) >= 100:
+        deny("CONFLICT_RECOVERY_COMMENTS_INVALID")
+    if any(marker in str(comment.get("body", ""))
+           for comment in comments if isinstance(comment, dict)
+           and (comment.get("user") or {}).get("login") == "github-actions[bot]"):
+        return
+    run("gh", "issue", "comment", str(number), "--repo", REPO, "--body",
+        marker + "\nT17.4 watchdog: PR generado #" + str(row["number"])
+        + " retirado por conflicto con main. Regeneración no automática ("
+        + reason + "); requiere revisión del pedido. Sin etiquetas.")
+
+
+def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
+    """Recreate from trusted main only; never execute or reuse old PR code."""
+    kind, branch = row["kind"], row["branch"]
+    if kind == "registration":
+        # The existing ready-lot loop regenerates this branch *after* retirement
+        # in the current sweep, using next_chg from current main.
+        return {"status": "CONFLICT_REGISTRATION_RETIRED"}
+    if kind == "implemented-registry":
+        return {"status": "CONFLICT_REGISTRY_REBUILT",
+                "registry": sync_implemented_registry(head)}
+    if kind == "generated-t7":
+        request = conflicted_request(row, all_plans)
+        if request is None:
+            comment_unrecoverable_conflict(row, all_plans, "T7_REQUEST_AMBIGUOUS")
+            return {"status": "CONFLICT_REGEN_BLOCKED", "reason": "T7_REQUEST_AMBIGUOUS"}
+        from pilot.auto_integrate import original_request_merge
+        source = original_request_merge(request, ROOT)
+        run("gh", "workflow", "run", "t7-request.yml", "--repo", REPO,
+            "--ref", "main", "-f", "slug=" + request,
+            "-f", "merge_sha=" + source, "-f", "rerun=true")
+        return {"status": "CONFLICT_T7_REDISPATCHED", "request": request}
+    if kind == "integration":
+        found = re.fullmatch(
+            r"lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-([1-9][0-9]*)",
+            branch)
+        if not found:
+            comment_unrecoverable_conflict(row, all_plans, "INTEGRATION_PROVENANCE_UNKNOWN")
+            return {"status": "CONFLICT_REGEN_BLOCKED", "reason": "INTEGRATION_PROVENANCE_UNKNOWN"}
+        # CP3.5 re-verifies the original successful native run, its artifact and
+        # its patch before minting the next CHG on current main. Use an isolated
+        # worktree so CP3.6's trusted main checkout is never switched.
+        with tempfile.TemporaryDirectory(prefix="cp36-conflict-") as dirname:
+            directory = Path(dirname)
+            run("git", "worktree", "add", "--detach", str(directory), head)
+            try:
+                raw = run("python3", "pilot/orchestrator/native_verified_integration.py",
+                          "--run-id", found.group(1), "--root", str(directory),
+                          cwd=directory)
+            finally:
+                run("git", "worktree", "remove", "--force", str(directory))
+        result = json.loads(raw)
+        if result.get("run_id") != int(found.group(1)) or result.get("merge_authorized") is not False:
+            deny("CONFLICT_INTEGRATION_REGEN_UNVERIFIED")
+        return {"status": "CONFLICT_INTEGRATION_REBUILT",
+                "draft_pr": result.get("pr_url"), "head_sha": result.get("head_sha")}
+    comment_unrecoverable_conflict(row, all_plans, "NO_TRUSTED_REGENERATOR")
+    return {"status": "CONFLICT_REGEN_BLOCKED", "reason": "NO_TRUSTED_REGENERATOR"}
+
+
 def pending_draft(prefix: str) -> bool:
     """Do not create another draft for the same task/request after main moves."""
     rows = json.loads(run("gh", "pr", "list", "--repo", REPO,
@@ -817,12 +919,20 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     if kind == "TRAIN" and (sweep or require_ci):
         if main_ci_decision(head) == "WAITING_MAIN_CI":
             return [{"status": "WAITING_MAIN_CI", "head_sha": head}]
+    # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
+    # can hide a Train failure, including when no owner plans are active.
+    retired = (retire_conflicted_generated(head, run, api, REPO) if sweep else [])
     # A sweep must not create unrelated registry drafts when idle.
     registry_status = (sync_implemented_registry(head)
                        if kind == "TRAIN" and not sweep else None)
     all_plans = plans()
+    conflict_outcomes = []
+    for stale in retired:
+        outcome = regenerate_conflicted(stale, head, all_plans)
+        conflict_outcomes.append({"pr": stale["number"], "branch": stale["branch"],
+                                  "kind": stale["kind"], **outcome})
     if not all_plans:
-        return [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
+        return conflict_outcomes or [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
                  **({"registry": registry_status} if registry_status else {})}]
     history = first_parent_merges()
     if manual_sha is not None and not any(sha == manual_sha for sha, _, _ in history):
@@ -837,7 +947,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         if not any(request == new_plan_request and state.get("stage") == "LOTS_PLANNED"
                    for request, lots, state, bindings in all_plans):
             deny("EXAM_PLAN_NOT_READY")
-    outcomes = []
+    outcomes = list(conflict_outcomes)
     for request, lots, state, bindings in all_plans:
         if sweep and not sweep_request_enabled(request):
             continue
