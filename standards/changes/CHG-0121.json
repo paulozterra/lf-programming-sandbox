@@ -19,6 +19,7 @@
       "pilot/orchestrator/generated_branch_standards.py",
       "pilot/orchestrator/issue_intake.py",
       "pilot/orchestrator/native_verified_integration.py",
+      "pilot/orchestrator/test_issue_intake.py",
       "pilot/orchestrator/test_native_verified_integration.py",
       "pilot/orchestrator/test_t17_generated_standards.py",
       "pilot/orchestrator/test_t17_recovery_watchdog.py",
