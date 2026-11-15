@@ -27,6 +27,7 @@ from generated_branch_standards import synchronize
 from pilot.orchestrator.task_pack_publication import verify_published_pair, legacy_artifact_reference, regenerate_pack_from_registered_base, TaskPackBlocked
 from pilot.orchestrator.native_submission_contract import enrich_request, is_current
 from generated_conflict_recovery import retire_conflicted_generated
+from pilot.orchestrator.bot_ci_retry import retry_failed_bot_prs
 from pilot.generated_ci_selection import last_executed_ci_run
 from native_lot_binding import next_ready
 from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request, registration_variant, protected_test_conflict
@@ -1098,7 +1099,12 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     registry_status = (sync_implemented_registry(head)
                        if kind == "TRAIN" and not sweep else None)
     all_plans = plans()
-    repair_outcomes = []
+    # T20: per-HEAD CI retry belongs to the sweep, not to a particular
+    # active plan. A bot PR can be blocked by transient CI even when its
+    # originating request has already completed planning.
+    retry_outcomes = (retry_failed_bot_prs(head, run, api, REPO, all_plans,
+                                          route_request_metadata) if sweep else [])
+    repair_outcomes = list(retry_outcomes)
     if sweep:
         for request, _lots, _state, bindings in all_plans:
             if not route_request_metadata(request):
