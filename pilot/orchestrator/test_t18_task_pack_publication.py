@@ -17,6 +17,14 @@ from pilot.orchestrator import task_pack_publication as pack
 REQ, TASK = "req-901", "t18synthetic"
 
 
+@pytest.fixture(autouse=True)
+def isolate_t20_retry_in_historical_task_pack_tests():
+    # T18 validates deterministic repair; T20 exercises the independent
+    # GitHub CI retry boundary against authenticated synthetic PRs.
+    with patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]):
+        yield
+
+
 def fixture(root: Path, *, base="a" * 40):
     pack_rel, meta_rel = pack.paths_for(REQ, TASK)
     raw = b'{"messages":[],"schema_version":"T18_SYNTHETIC"}\n'

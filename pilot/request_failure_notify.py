@@ -511,7 +511,104 @@ def notify_global_cp36_sweep(api: Github, run: dict) -> str:
     return "RUTA_GLOBAL_CP36_NOTIFIED"
 
 
+def notify_t20_retry_exhaustion(api: Github, run: dict) -> str:
+    """Report a failed second CI from an authenticated one-HEAD bot retry.
+
+    The first failed run is not exhaustion. The HEAD and latest *executed*
+    CI are independently matched, and labels are never changed.
+    """
+    if ((str(run.get("path") or "").split("@")[0] != ".github/workflows/ci.yml")
+            or run.get("event") != "workflow_dispatch"
+            or run.get("status") != "completed"
+            or run.get("conclusion") not in ("failure", "timed_out")
+            or type(run.get("id")) is not int
+            or not re.fullmatch(r"[0-9a-f]{40}", str(run.get("head_sha") or ""))):
+        return "T20_NOT_RETRY_EXHAUSTION"
+    sha, branch = run["head_sha"], str(run.get("head_branch") or "")
+    if not branch.startswith("lf/"):
+        return "T20_NOT_RETRY_EXHAUSTION"
+    prs = api.api("GET", "/pulls?state=open&head=paulozterra:" + branch + "&per_page=100")
+    if not isinstance(prs, list) or len(prs) >= 100:
+        return "T20_RETRY_PR_NOT_VERIFIED"
+    matched = [p for p in prs if isinstance(p, dict)
+               and (p.get("user") or {}).get("login") == "github-actions[bot]"
+               and (p.get("head") or {}).get("sha") == sha
+               and (p.get("head") or {}).get("ref") == branch
+               and (p.get("head") or {}).get("repo", {}).get("full_name") == REPO
+               and (p.get("base") or {}).get("ref") == "main"
+               and type(p.get("number")) is int]
+    if len(matched) != 1:
+        return "T20_NOT_RETRY_EXHAUSTION"
+    pr = matched[0]["number"]
+    # Only a bot-authored retry marker can authorize an exhaustion alert.
+    comments = api.pages(f"/issues/{pr}/comments")
+    marker = re.compile(
+        r"<!-- LF_T20_CI_RETRY:" + str(pr) + ":" + sha +
+        r":([1-9][0-9]*) -->")
+    origins = [int(m.group(1)) for row in comments if isinstance(row, dict)
+               and (row.get("user") or {}).get("login") == "github-actions[bot]"
+               for m in marker.finditer(str(row.get("body") or ""))]
+    if len(set(origins)) != 1 or run["id"] <= origins[0]:
+        return "T20_NOT_RETRY_EXHAUSTION"
+    runs = api.api("GET", f"/actions/workflows/ci.yml/runs?head_sha={sha}&per_page=100")
+    rows = runs.get("workflow_runs")
+    if (not isinstance(rows, list) or type(runs.get("total_count")) is not int
+            or runs["total_count"] >= 100):
+        return "T20_RETRY_RUNS_UNVERIFIED"
+    latest = last_executed_ci_run([
+        row for row in rows if isinstance(row, dict)
+        and row.get("head_sha") == sha and row.get("head_branch") == branch
+        and row.get("event") in ("workflow_dispatch", "pull_request", "push")
+        and (row.get("path") or "").split("@")[0] == ".github/workflows/ci.yml"])
+    if latest is None or latest.get("id") != run["id"]:
+        return "T20_RETRY_SUPERSEDED"
+    # Match the issue from the bot PR's changed filenames, never from its
+    # title, body, or a caller-controlled issue number.
+    files = api.api("GET", f"/pulls/{pr}/files?per_page=100")
+    if not isinstance(files, list) or len(files) >= 100:
+        return "T20_RETRY_ISSUE_UNMAPPED"
+    slugs = {m.group(1) for item in files if isinstance(item, dict)
+             and (m := re.fullmatch(
+                 r"pilot/runs/(req-[1-9][0-9]*)/.*",
+                 str(item.get("filename") or "")))}
+    if len(slugs) != 1:
+        return "T20_RETRY_ISSUE_UNMAPPED"
+    slug = next(iter(slugs))
+    number = int(slug[4:])
+    import base64
+    try:
+        metadata = api.api("GET", f"/contents/pilot/runs/{slug}/request_meta.json?ref=main")
+        raw = base64.b64decode(metadata["content"], validate=False)
+        source = json.loads(raw)
+    except (KeyError, TypeError, ValueError, urllib.error.HTTPError):
+        return "T20_RETRY_ISSUE_UNVERIFIED"
+    if not isinstance(source, dict) or source.get("issue") != number:
+        return "T20_RETRY_ISSUE_UNVERIFIED"
+    issue = api.api("GET", f"/issues/{number}")
+    if (issue.get("number") != number or issue.get("state") != "open"
+            or issue.get("pull_request")
+            or "lf-request" not in {l.get("name") for l in issue.get("labels", [])}):
+        return "T20_RETRY_ISSUE_UNVERIFIED"
+    done = f"<!-- LF_T20_CI_RETRY_EXHAUSTED:{pr}:{sha} -->"
+    if any(done in str(row.get("body") or "")
+           for row in api.pages(f"/issues/{number}/comments")
+           if isinstance(row, dict)
+           and (row.get("user") or {}).get("login") == "github-actions[bot]"):
+        return "T20_RETRY_EXHAUSTION_ALREADY_NOTIFIED"
+    body = (done + "\nCI_RETRY_EXHAUSTED: CI del PR del bot #" + str(pr) +
+            " volvió a fallar tras el único reintento por HEAD " + sha +
+            ". Corrida fallida: https://github.com/" + REPO +
+            "/actions/runs/" + str(run["id"]) +
+            ". No se volverá a despachar para ese HEAD. "
+            "Revisar infraestructura/Playwright; no se agregaron etiquetas.")
+    api.api("POST", f"/issues/{number}/comments", {"body": body})
+    return "T20_RETRY_EXHAUSTION_NOTIFIED"
+
+
 def check_run(api: Github, run: dict) -> str:
+    exhausted = notify_t20_retry_exhaustion(api, run)
+    if exhausted not in ("T20_NOT_RETRY_EXHAUSTION", "T20_RETRY_SUPERSEDED"):
+        return exhausted
     # A webhook/scheduled sweep may see a later unexecuted action_required
     # event on the same generated PR SHA. Notify from the latest *executed*
     # CI only; never mark a newer successful PR as failed.

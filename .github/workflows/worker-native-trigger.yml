@@ -13,7 +13,7 @@ permissions:
 jobs:
   verify-native-proposal:
     name: Validate single registered proposal (no secrets)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Checkout trusted main for validation code

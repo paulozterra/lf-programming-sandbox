@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   ex6-two-snapshot-evidence:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - name: Checkout merged evidence tools from sandbox main
