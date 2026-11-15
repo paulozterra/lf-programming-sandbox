@@ -130,6 +130,14 @@ jobs:
         if: always()
         run: |
           echo "CP36_OWNER_GATE: Claude reviews, Paulo labels ready-to-merge, Train merges."
+      # A bot PR may have passed CI before this version of CP3.6 was merged.
+      # Always wake the trusted-main Policy C sweep after a main sweep, even
+      # when CP3.6 has no new work; Policy C is idempotent with zero candidates.
+      - name: Wake policy C after every trusted-main CP3.6 sweep
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.sweep == true && github.ref == 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run auto-integrate.yml --repo "$GITHUB_REPOSITORY" --ref main
       - name: Wake stalled-request watchdog even on failure
         if: always()
         env:
