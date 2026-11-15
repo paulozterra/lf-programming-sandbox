@@ -144,7 +144,7 @@ def test_existing_endpoint_contract_identity_is_source_bound(tmp_path):
     extended=[endpoint for row in report["obligations"] if row["decision"]=="EXTEND"
               for endpoint in row["reused_endpoints"]]
     skeleton={"schema_version":"T2_CONTRACT_SKELETON_V1","functional_module":"synthetic",
-              "production_authority":False,"fields":[{"field_code":"value","required":False}],
+              "production_authority":False,"fields":[{"field_code":"value","api_name":"value","tipo_dato":"string","required":False}],
               "errors":[{"error_code":"E"}],"requirement_ids":["REQ-SYN"],
               "rules":[],"reused_endpoints":extended,"extended_endpoints":extended}
     _check_skeleton(skeleton,"synthetic")
