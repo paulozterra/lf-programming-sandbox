@@ -128,3 +128,4 @@
 | CHG-0125 | ADDITIVE | T17.4: recuperación general de PR generados con conflictos contra main |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/208 |
 | CHG-0126 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/209 |
 | CHG-0127 | ADDITIVE | T18: publicar paquetes Worker en registro y reparar registros históricos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/211 |
+| CHG-0128 | ADDITIVE | T18.1: aislamiento por pedido en sweep CP3.6 y watchdog global |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/PENDING |
