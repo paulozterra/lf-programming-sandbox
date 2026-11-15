@@ -98,14 +98,20 @@ def test_generated_branch_matches_real_diff_and_official_checks(tmp_path, kind):
             assert url in (checkout / "standards/CAMBIOS.md").read_text()
             assert check(checkout, "render", "--check").returncode == 0
             assert json.loads((checkout / chg_file).read_text())["affected"]["paths"] == sorted(real)
-        # The exact official command would reject a stale derived view.
+        # CHG-bearing branches must REPAIR a stale derived view with the
+        # official renderer; CHG-free branches cannot justify rewriting it.
         (checkout / "standards/CAMBIOS.md").write_text("stale derived\n")
-        failed = subprocess.run(
+        execution = subprocess.run(
             [sys.executable, str(ROOT / "pilot/orchestrator/generated_branch_standards.py"),
              "--kind", kind, "--root", str(checkout)],
             capture_output=True, text=True)
-        assert failed.returncode != 0
-        assert "GENERATED_BRANCH_STANDARDS_INVALID:" + kind in failed.stderr
+        if chg_file:
+            assert execution.returncode == 0, execution.stderr
+            assert check(checkout, "render", "--check").returncode == 0
+            assert "stale derived" not in (checkout / "standards/CAMBIOS.md").read_text()
+        else:
+            assert execution.returncode != 0
+            assert "GENERATED_BRANCH_STANDARDS_INVALID:" + kind in execution.stderr
     finally:
         git(ROOT, "worktree", "remove", "--force", str(checkout))
 
