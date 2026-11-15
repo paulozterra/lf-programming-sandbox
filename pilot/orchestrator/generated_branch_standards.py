@@ -47,6 +47,13 @@ def synchronize(root: Path, kind: str, *,
     if kind not in KINDS:
         raise BranchStandardsError("INVALID_BRANCH_KIND")
     root = root.resolve()
+    if chg_file is None:
+        # A generated branch may acquire a CHG in a later route revision.
+        # Detect it from the actual staged/tracked Git diff, not its branch name.
+        candidates = [p for p in changed_paths(root, base) if CHANGE.fullmatch(p)]
+        if len(candidates) > 1:
+            raise BranchStandardsError("AMBIGUOUS_GENERATED_CHANGE")
+        chg_file = candidates[0] if candidates else None
     if chg_file is not None:
         if not CHANGE.fullmatch(chg_file) or not (root / chg_file).is_file():
             raise BranchStandardsError("INVALID_CHANGE_PATH")
