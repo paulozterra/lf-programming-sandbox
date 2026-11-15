@@ -233,7 +233,8 @@ class T7GeneratedPolicyTests(unittest.TestCase):
             with self.subTest(family=family):
                 item = self.generated(family, allowed)
                 api = FakeAPI(item, allowed, self.generated_checks())
-                with patch.object(ai, "verify_generated_content") as validate:
+                with patch.object(ai, "verify_generated_content") as validate, \
+                     patch.object(ai, "recover_stale_generated", return_value=None):
                     self.assertEqual(ai.evaluate_one(api, 129),
                                      "LABEL_AND_TRAIN_DISPATCHED")
                     validate.assert_called_once()
@@ -322,8 +323,9 @@ class T7GeneratedPolicyTests(unittest.TestCase):
                                side_effect=run_f4):
                         with patch.object(ai, "_content",
                                           return_value=b'{"tampered":true}\n'):
-                            with self.assertRaisesRegex(ai.PolicyBlocked,
-                                                        "GENERATED_CONTENT_DRIFT"):
+                            with patch.object(ai, "recover_stale_generated", return_value=None), \
+                                 self.assertRaisesRegex(ai.PolicyBlocked,
+                                                       "GENERATED_CONTENT_DRIFT"):
                                 ai.evaluate_one(api, 129)
         self.assertEqual(api.writes, [])
 
