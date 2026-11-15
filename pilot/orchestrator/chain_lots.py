@@ -23,6 +23,7 @@ from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_stat
                             progress, validate_plan, verified_failures, deny)
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
+from generated_branch_standards import synchronize
 from native_lot_binding import next_ready
 from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request, registration_variant, protected_test_conflict
 
@@ -349,6 +350,8 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     number = next_chg(root)
     entry = chg(root, number, request, reason, paths)
     run("git", "add", "--", *paths, str(entry.relative_to(root)), cwd=root)
+    kind = "registration" if branch.startswith("lf/native-registration/") else "registry"
+    synchronize(root, kind, chg_file=entry.relative_to(root).as_posix())
     run("git", "commit", "-m", f"[CP3.6][CHG-{number:04d}] {title}", cwd=root)
     from native_verified_integration import confirm_class_after_commit
     confirm_class_after_commit(root, entry)
@@ -366,7 +369,7 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     document = json.loads(entry.read_text("utf-8"))
     document["evidence"]["pr_url"] = url
     entry.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", "utf-8")
-    run("git", "add", "--", str(entry.relative_to(root)), cwd=root)
+    synchronize(root, kind, chg_file=entry.relative_to(root).as_posix())
     run("git", "commit", "-m", "[CP3.6] link reviewable draft evidence", cwd=root)
     run("python3", "standards/tools/changes.py", "check", "--base", "origin/main", cwd=root)
     run("git", "push", "origin", branch, cwd=root)
@@ -402,6 +405,65 @@ def close_stale_drafts(prefix: str, current: str) -> list[int]:
                 "--comment", "Superado: main avanzó a " + current + "; se regenera sobre el main actual.")
             closed.append(int(item["number"]))
     return closed
+
+
+def close_failed_old_registration_drafts(task: str, head: str) -> list[int]:
+    """T17 sweep: retire only bot Drafts broken by the old CHG renderer.
+
+    A red CI alone is insufficient: the PR must have a CHG but omit the
+    derived CAMBIOS view. A failing unrelated test must remain reviewable.
+    No proposed source branch is executed or checked out.
+    """
+    prefix = f"lf/native-registration/{task}-"
+    rows = json.loads(run("gh", "pr", "list", "--repo", REPO,
+                          "--state", "open", "--limit", "100",
+                          "--json", "number,headRefName,headRefOid,author,isDraft"))
+    if not isinstance(rows, list):
+        deny("PENDING_DRAFT_LIST_INVALID")
+    retired = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        branch, sha = row.get("headRefName"), row.get("headRefOid")
+        if (not isinstance(branch, str) or not branch.startswith(prefix)
+                or not re.fullmatch(re.escape(prefix) + r"[0-9a-f]{12}", branch)
+                or not isinstance(sha, str)
+                or not re.fullmatch(r"[0-9a-f]{40}", sha)
+                or row.get("isDraft") is not True
+                or (row.get("author") or {}).get("login") not in
+                   ("github-actions[bot]", "app/github-actions", "github-actions")):
+            continue
+        number = row.get("number")
+        if type(number) is not int or number < 1:
+            deny("PENDING_DRAFT_ID_INVALID")
+        ci = api("actions/workflows/ci.yml/runs?head_sha=" + sha + "&per_page=100")
+        runs = ci.get("workflow_runs")
+        if not isinstance(runs, list) or ci.get("total_count", 101) > 100:
+            deny("PENDING_DRAFT_CI_INVALID")
+        eligible = [r for r in runs if isinstance(r, dict)
+                    and r.get("head_sha") == sha and r.get("head_branch") == branch
+                    and r.get("event") in ("pull_request", "workflow_dispatch", "push")]
+        if not eligible:
+            continue
+        latest = max(eligible, key=lambda r: (r.get("created_at", ""), r.get("id", 0)))
+        if latest.get("status") != "completed" or latest.get("conclusion") != "failure":
+            continue
+        files = json.loads(run("gh", "api",
+                               f"repos/{REPO}/pulls/{number}/files?per_page=100"))
+        if not isinstance(files, list) or len(files) >= 100:
+            deny("PENDING_DRAFT_FILES_UNVERIFIED")
+        names = {x.get("filename") for x in files if isinstance(x, dict)}
+        # Old-generator fingerprint: a real CHG with no matching derived view.
+        if (not any(isinstance(p, str) and
+                    re.fullmatch(r"standards/changes/CHG-[0-9]{4}[.]json", p)
+                    for p in names)
+                or "standards/CAMBIOS.md" in names):
+            continue
+        run("gh", "pr", "close", str(number), "--repo", REPO, "--delete-branch",
+            "--comment", "T17: CI rojo y CHG sin vista CAMBIOS; borrador obsoleto. "
+            "La cadena regenera el registro sobre main verificado " + head[:12] + ".")
+        retired.append(number)
+    return retired
 
 
 def pending_draft(prefix: str) -> bool:
@@ -637,9 +699,12 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
                 if not file.is_file() or file.is_symlink():
                     deny("EXPORTED_PACK_MISSING")
                 shutil.copyfile(file, destination / file.name)
-        paths = [f".lf/worker-context/{task}/{n}" for n in
-                 ("profile.md", "skills.md", "receipt.json")]
-        paths += [f"pilot/worker_v08/native_tasks/{task}.json"]
+        # CP3.5 commits every generated context file; derive scope from Git
+        # rather than a historical three-file list.
+        paths = sorted(set(run("git", "diff", "--name-only", "origin/main", "HEAD",
+                               cwd=root).splitlines()))
+        if not paths or f"pilot/worker_v08/native_tasks/{task}.json" not in paths:
+            deny("PREPARED_TASK_DIFF_INVALID")
         review = draft(root, branch, request, paths,
                        f"Registration from main {head} for lot {binding['lot_id']}; "
                        f"task {task}; base {prepared['base_head_sha']}; "
@@ -671,6 +736,7 @@ def draft_implemented_registry(root: Path, branch: str, head: str) -> dict:
     """Trusted CP3.6 publishes one generated JSON, without CHG or manual label."""
     path = "pilot/registry/implemented.json"
     run("git", "add", "--", path, cwd=root)
+    synchronize(root, "registry")
     if not run("git", "diff", "--cached", "--name-only", cwd=root).strip() == path:
         deny("REGISTRY_CHANGED_PATHS_INVALID")
     run("git", "commit", "-m", "[CP3.6] generated implementation registry", cwd=root)
@@ -825,6 +891,12 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                 metadata = Path(chosen["holdout_metadata_path"])
                 chosen["holdout_metadata_path"] = str(
                     metadata.with_name(candidate + metadata.suffix))
+            if sweep:
+                retired = close_failed_old_registration_drafts(candidate, head)
+                if retired:
+                    outcomes.append({"request": request, "lot_id": lot_id,
+                                     "status": "STALE_REGISTRATION_RETIRED",
+                                     "closed_prs": retired})
             if pending_draft(f"lf/native-registration/{candidate}-"):
                 outcomes.append({"request": request, "lot_id": lot_id,
                                  "status": "ALREADY_PREPARED"})

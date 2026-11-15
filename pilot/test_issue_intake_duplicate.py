@@ -47,7 +47,8 @@ class DuplicateTests(unittest.TestCase):
                  "created_at": "2026-11-14T16:00:00Z",
                  "body": "### Pedido\n\nImplementa SBX-REM-LIST\n"}
         api = Fake(issue)
-        with tempfile.TemporaryDirectory() as tmp, patch.object(intake, "git"):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(intake, "git"), \
+             patch("pilot.orchestrator.generated_branch_standards.synchronize") as sync:
             old = Path.cwd()
             try:
                 os.chdir(tmp)
@@ -55,6 +56,8 @@ class DuplicateTests(unittest.TestCase):
                 second = intake.intake(api, {"issue": issue, "action": "labeled"})
             finally:
                 os.chdir(old)
+        sync.assert_called_once()
+        self.assertEqual(sync.call_args.args[1], "request")
         self.assertIn("/pull/170", first)
         self.assertEqual(second, "PEDIDO_YA_REGISTRADO")
         self.assertEqual(api.created, 1)

@@ -248,6 +248,56 @@ def resolve_issue(run: dict) -> int | None:
     return next(iter(candidates)) if len(candidates) == 1 else None
 
 
+def generated_ci_issue(api, run: dict) -> int | None:
+    """Bind failed CI from a generated branch to the original request.
+
+    Bot authorship, branch, and exact run SHA are independently checked
+    against the GitHub PR API. Never infer identity from a PR title/body.
+    """
+    if (str(run.get("path") or "").split("@")[0] != ".github/workflows/ci.yml"
+            or run.get("conclusion") not in ("failure", "timed_out")):
+        return None
+    branch = run.get("head_branch")
+    sha = run.get("head_sha")
+    if not isinstance(branch, str) or not isinstance(sha, str) or not re.fullmatch(
+            r"[0-9a-f]{40}", sha):
+        return None
+    task = None
+    direct = re.fullmatch(r"lf/request/req-([1-9][0-9]*)", branch)
+    register = re.fullmatch(
+        r"lf/native-registration/([a-z][a-z0-9_-]{0,31})-[0-9a-f]{12}", branch)
+    integration = re.fullmatch(
+        r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*", branch)
+    t7 = re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch)
+    if not any((direct, register, integration, t7)):
+        return None
+    prs = api.api("GET", f"/pulls?state=all&head=paulozterra:{branch}&per_page=100")
+    if not isinstance(prs, list) or len(prs) >= 100:
+        return None
+    matches = [pr for pr in prs if isinstance(pr, dict)
+               and (pr.get("user") or {}).get("login") == "github-actions[bot]"
+               and (pr.get("head") or {}).get("ref") == branch
+               and (pr.get("head") or {}).get("sha") == sha
+               and (pr.get("head") or {}).get("repo", {}).get("full_name") == REPO
+               and type(pr.get("number")) is int]
+    if len(matches) != 1:
+        return None
+    if direct:
+        return int(direct.group(1))
+    if register or integration:
+        task = (register or integration).group(1)
+        slugs = request_for_task(task)
+        return int(next(iter(slugs))[4:]) if len(slugs) == 1 else None
+    files = api.api("GET", f"/pulls/{matches[0]['number']}/files?per_page=100")
+    if not isinstance(files, list) or len(files) >= 100:
+        return None
+    slugs = {m.group(1) for row in files if isinstance(row, dict)
+             and (m := re.fullmatch(r"pilot/runs/(req-[1-9][0-9]*)/"
+                                     r"(?:analysis|state|lots|chain_plan)[.]json",
+                                     str(row.get("filename") or "")))}
+    return int(next(iter(slugs))[4:]) if len(slugs) == 1 else None
+
+
 def error_code(run: dict, jobs: list[dict]) -> str:
     name = route_name(run)
     base = run.get("failure_code") or ROUTES.get(name, "PEDIDO_RUTA_FALLIDA")
@@ -314,6 +364,11 @@ class Github:
 
 
 def emit(api: Github, run: dict, jobs: list[dict]) -> str:
+    # CI for a generated branch can have no issue in its run-name. Resolve
+    # its bot PR and committed task/plan before using the standard notifier.
+    linked_ci = generated_ci_issue(api, run)
+    if linked_ci is not None:
+        run = dict(run, head_branch=f"lf/request/req-{linked_ci}")
     # For post-Train stages, the run's branch is main; use the real merged
     # PR's files instead of pretending main is an lf/request/ branch.
     stage = route_name(run)
@@ -363,7 +418,8 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
     if any(marker in str(c.get("body", "")) for c in comments
            if c.get("user", {}).get("login") == "github-actions[bot]"):
         return "RUTA_ALREADY_NOTIFIED"
-    if "lf-request-blocked" not in labels:
+    # T17 only comments on generated PR CI failures; it must not add labels.
+    if "lf-request-blocked" not in labels and linked_ci is None:
         try:
             api.api("POST", f"/issues/{number}/labels",
                     {"labels": ["lf-request-blocked"]})

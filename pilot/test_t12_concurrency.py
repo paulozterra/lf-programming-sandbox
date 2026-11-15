@@ -87,7 +87,8 @@ class Tests(unittest.TestCase):
         api=IssueAPI([older,current])
         with patch.object(dup,"screen",return_value="SBX-REM-LIST"), \
              tempfile.TemporaryDirectory() as temp, \
-             patch.object(issue_intake,"git"):
+             patch.object(issue_intake,"git"), \
+             patch("pilot.orchestrator.generated_branch_standards.synchronize") as standards:
             from os import getcwd,chdir
             old=getcwd()
             try:
@@ -97,6 +98,8 @@ class Tests(unittest.TestCase):
                     "issue":current})
             finally:
                 chdir(old)
+        standards.assert_called_once()
+        self.assertEqual(standards.call_args.args[1], "request")
         self.assertIn("/pull/222",result)
         self.assertFalse(api.writes and any(x[1]=="/issues/188/labels" for x in api.writes))
 
