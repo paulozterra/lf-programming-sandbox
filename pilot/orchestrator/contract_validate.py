@@ -125,10 +125,15 @@ def _check_skeleton(skeleton, module):
                    for k in ("fields", "errors", "requirement_ids", "rules"))):
         deny("CONTRACT_SKELETON_INVALID")
     field_codes = set()
+    api_names = set()
     for field in skeleton["fields"]:
         if (not isinstance(field, dict) or not isinstance(field.get("field_code"), str)
                 or not field["field_code"] or not isinstance(field.get("required"), bool)):
             deny("CONTRACT_SKELETON_FIELD_INVALID")
+        if (not isinstance(field.get("api_name"), str) or not field["api_name"].strip()
+                or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", field["api_name"])):
+            deny("CAMPO_SIN_NOMBRE_API")
+        api_names.add(field["api_name"])
         field_codes.add(field["field_code"])
     error_codes = set()
     for error in skeleton["errors"]:
@@ -139,7 +144,8 @@ def _check_skeleton(skeleton, module):
     requirements = skeleton["requirement_ids"]
     if not requirements or not all(isinstance(r, str) and r.startswith("REQ-") for r in requirements):
         deny("CONTRACT_SKELETON_REQUIREMENTS_INVALID")
-    if (len(field_codes) != len(skeleton["fields"])
+    if (len(api_names) != len(skeleton["fields"])
+            or len(field_codes) != len(skeleton["fields"])
             or len(error_codes) != len(skeleton["errors"])
             or len(set(requirements)) != len(requirements)):
         deny("CONTRACT_SKELETON_DUPLICATE")
@@ -153,7 +159,7 @@ def _check_skeleton(skeleton, module):
     if (not isinstance(extended, list) or len(set(extended)) != len(extended)
             or not set(extended).issubset(set(reused))):
         deny("REUTILIZACION_INDETERMINADA")
-    return field_codes, error_codes, set(requirements)
+    return api_names, error_codes, set(requirements)
 
 
 def validate(path, skeleton, module):
