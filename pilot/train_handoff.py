@@ -214,12 +214,12 @@ def merged_request_slug(pr: dict, sha: str) -> str:
             if len(changed) != 2:
                 raise HandoffBlocked("HANDOFF_EXAM_PATH_DRIFT")
             metadata = [p for p in changed if re.fullmatch(
-                r"pilot/runs/req-[1-9][0-9]*/claude_meta/"
+                r"pilot/runs/[a-z][a-z0-9_-]{0,63}/claude_meta/"
                 + re.escape(task) + r"[.]json", p)]
             if len(metadata) != 1 or set(changed) != exact | {metadata[0]}:
                 raise HandoffBlocked("HANDOFF_EXAM_PATH_DRIFT")
         slugs = set()
-        for plan in Path("pilot/runs").glob("req-*/chain_plan.json"):
+        for plan in Path("pilot/runs").glob("*/chain_plan.json"):
             if plan.is_symlink() or plan.parent.is_symlink():
                 continue
             data = json.loads(plan.read_text(encoding="utf-8"))
