@@ -20,6 +20,8 @@
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/issue_intake.py",
       "pilot/request_duplicate.py",
+      "pilot/request_failure_notify.py",
+      "pilot/request_stage_watchdog.py",
       "pilot/test_issue_intake_duplicate.py",
       "pilot/test_t12_concurrency.py",
       "pilot/train_handoff.py",
