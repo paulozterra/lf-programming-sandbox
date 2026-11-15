@@ -66,7 +66,9 @@ class T9(unittest.TestCase):
             def comment(self, number, body):
                 calls.append(("COMMENT", number, body))
         self_data = self.issue
-        with tempfile.TemporaryDirectory() as tmp, patch.object(self.mod, "git") as fake_git:
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.object(self.mod, "git") as fake_git, \
+             patch("pilot.orchestrator.generated_branch_standards.synchronize") as sync:
             from os import chdir, getcwd
             old = getcwd()
             try:
@@ -76,6 +78,8 @@ class T9(unittest.TestCase):
                                  files["pilot/runs/req-159/request.md"])
             finally:
                 chdir(old)
+        sync.assert_called_once()
+        self.assertEqual(sync.call_args.args[1], "request")
         self.assertIn(("switch", "-c", "lf/request/req-159", "origin/main"),
                       [call.args for call in fake_git.call_args_list])
         self.assertTrue(any(x[0] == "POST" and x[1] == "/pulls" and
