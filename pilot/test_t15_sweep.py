@@ -60,11 +60,18 @@ class SweepTests(unittest.TestCase):
                  patch.object(chain_lots, "completed_lots", return_value={}), \
                  patch.object(chain_lots, "failed_lots", return_value={}), \
                  patch.object(chain_lots, "pending_draft", return_value=False), \
+                 patch.object(chain_lots, "run", return_value="[]") as github_commands, \
+                 patch.object(chain_lots, "api") as github_api, \
                  patch.object(chain_lots, "admit_registration", return_value=None), \
                  patch.object(chain_lots, "prepare_successor", return_value={"status": "DRAFT_PREPARED"}) as prepare:
                 result = chain_lots.process(sweep=True, base_sha=HEAD)
         self.assertTrue(any(item.get("status") == "DRAFT_PREPARED" for item in result))
         prepare.assert_called_once()
+        # The T17 sweep must share the same mocked GitHub boundary as CP3.6,
+        # not run a real gh command from the offline T15 fixture.
+        github_commands.assert_called_once()
+        self.assertEqual(github_commands.call_args.args[:3], ("gh", "pr", "list"))
+        github_api.assert_not_called()
 
     def test_closed_discarded_request_ignored(self):
         rows = {"req-901": {"number": 901, "state": "closed", "state_reason": "not_planned"},
