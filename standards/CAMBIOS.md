@@ -131,3 +131,4 @@
 | CHG-0128 | ADDITIVE | T18.1: aislamiento por pedido en sweep CP3.6 y watchdog global |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/212 |
 | CHG-0129 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/213 |
 | CHG-0130 | ADDITIVE | T19: contrato nativo de propuesta autoexplicativo y guard sin filtro de rutas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/214 |
+| CHG-0131 | ADDITIVE | T20: fijar runner Ubuntu 24.04 y reintentar CI rojo del bot una vez por HEAD |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/PENDING |
