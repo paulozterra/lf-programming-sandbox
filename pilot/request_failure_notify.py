@@ -94,7 +94,7 @@ def verified_stage_issue(api, run: dict) -> int | None:
             or pr.get("user", {}).get("login") != "github-actions[bot]"):
         return None
     branch = str(pr.get("head", {}).get("ref") or "")
-    if not (re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch)
+    if not (re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch)
             or re.fullmatch(r"lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-[1-9][0-9]*", branch)):
         return None
     files = api.api("GET", f"/pulls/{number}/files?per_page=100")
@@ -172,7 +172,7 @@ def verified_pg37_issue(api, run: dict) -> int | None:
         return None
     title = str(run.get("display_title") or "")
     branch = title.removeprefix("CP3.7 ")
-    if not re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+    if not re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch):
         return None
     prs = api.api("GET", f"/pulls?state=all&head=paulozterra:{branch}&per_page=100")
     if not isinstance(prs, list) or len(prs) >= 100:
