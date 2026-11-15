@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0127",
+  "title": "T18: publicar paquetes Worker en registro y reparar registros históricos",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T18: #209 registrado sin task pack en main; artifact CP3.6 corrida 43750320423 no disponible al constructor"
+  },
+  "reason": "Incluir task-pack y proposal-request con huella SHA-256 verificable en el mismo PR de registro. Publicar paquetes faltantes de registros antiguos con regeneración desde base sellada y contraste del artifact auténtico, bloqueando mismatch sin re-registro. Auditar bot vs publicación manual.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/task_pack_publication.py",
+      "pilot/orchestrator/test_intervention_report.py",
+      "pilot/orchestrator/test_t18_task_pack_publication.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0127.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/211"
+  }
+}

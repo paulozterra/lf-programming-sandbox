@@ -24,6 +24,7 @@ from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_stat
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
 from generated_branch_standards import synchronize
+from pilot.orchestrator.task_pack_publication import verify_published_pair, legacy_artifact_reference, regenerate_pack_from_registered_base, TaskPackBlocked
 from generated_conflict_recovery import retire_conflicted_generated
 from pilot.generated_ci_selection import last_executed_ci_run
 from native_lot_binding import next_ready
@@ -800,10 +801,14 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
                 if not file.is_file() or file.is_symlink():
                     deny("EXPORTED_PACK_MISSING")
                 shutil.copyfile(file, destination / file.name)
-        # CP3.5 commits every generated context file; derive scope from Git
-        # rather than a historical three-file list.
+        # T18: commit both deterministic Worker artifacts alongside the
+        # registration, rather than publishing them only as an Actions artifact.
+        pack_paths = verify_published_pair(root, request, task,
+                                           prepared["task_pack_sha256"])
+        # CP3.5 commits registered context on this branch; the two export
+        # files are still untracked until draft() stages the exact allowlist.
         paths = sorted(set(run("git", "diff", "--name-only", "origin/main", "HEAD",
-                               cwd=root).splitlines()))
+                               cwd=root).splitlines()) | set(pack_paths))
         if not paths or f"pilot/worker_v08/native_tasks/{task}.json" not in paths:
             deny("PREPARED_TASK_DIFF_INVALID")
         review = draft(root, branch, request, paths,
@@ -814,6 +819,75 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
         return {"status": "DRAFT_PREPARED", "task": task, **review,
                 "task_pack_sha256": prepared["task_pack_sha256"]}
     return worktree(head, branch, process)
+
+
+def publish_missing_registered_pack(request: str, task: str, head: str) -> dict | None:
+    """T18: legacy registrations are repaired, never registered a second time.
+
+    The historical CP3.6 artifact is authenticated against the immutable
+    registration and exact-base re-export before any PR is published.
+    """
+    if (not re.fullmatch(r"req-[1-9][0-9]*", request)
+            or not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task)):
+        deny("TASK_PACK_SCOPE_INVALID")
+    record = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+    if record.is_symlink() or not record.is_file():
+        return None
+    pack_dir = ROOT / "pilot/runs" / request / "proposal_requests"
+    paths = [f"pilot/runs/{request}/proposal_requests/{task}{suffix}"
+             for suffix in (".task-pack.json", ".proposal-request.json")]
+    existing = [(ROOT / path).exists() or (ROOT / path).is_symlink()
+                for path in paths]
+    if all(existing):
+        return None
+    if any(existing):
+        deny("TASK_PACK_PARTIAL_PUBLICATION")
+    prefix = f"lf/native-registration/pack-{task}-"
+    if pending_draft(prefix):
+        return {"status": "TASK_PACK_REPAIR_PENDING", "task": task}
+    branch = prefix + head[:12]
+    if run("git", "ls-remote", "--heads", "origin", branch):
+        return {"status": "TASK_PACK_REPAIR_PENDING", "task": task}
+    try:
+        reference = legacy_artifact_reference(ROOT, request, task, record, run, REPO)
+        def create(root: Path):
+            published = regenerate_pack_from_registered_base(
+                root, request, task, reference)
+            review = draft(root, branch, request, published,
+                           "T18 repair exact registered Worker package from the pinned base; "
+                           "the original native registration remains unchanged.",
+                           f"repair task pack {task}")
+            return {"status": "TASK_PACK_REPAIR_DRAFT", "task": task,
+                    "task_pack_sha256": reference["task_pack_sha256"], **review}
+        return worktree(head, branch, create)
+    except TaskPackBlocked as exc:
+        reason = str(exc)
+        if reason == "TASK_PACK_HASH_MISMATCH":
+            comment_task_pack_mismatch(request, task)
+        deny(reason)
+
+
+def comment_task_pack_mismatch(request: str, task: str) -> None:
+    """Fail-closed, idempotent, comment only on verified original LF issue."""
+    issue_number = int(request[4:])
+    issue = api(f"issues/{issue_number}")
+    if (issue.get("number") != issue_number or issue.get("state") != "open"
+            or issue.get("pull_request")
+            or "lf-request" not in {label.get("name") for label in issue.get("labels", [])}):
+        return
+    marker = "<!-- LF_TASK_PACK_HASH_MISMATCH:" + task + " -->"
+    comments = json.loads(run("gh", "api",
+                              f"repos/{REPO}/issues/{issue_number}/comments?per_page=100"))
+    if not isinstance(comments, list) or len(comments) >= 100:
+        deny("TASK_PACK_ISSUE_COMMENTS_INVALID")
+    if any(marker in str(row.get("body", "")) for row in comments
+           if isinstance(row, dict) and
+           (row.get("user") or {}).get("login") == "github-actions[bot]"):
+        return
+    run("gh", "issue", "comment", str(issue_number), "--repo", REPO,
+        "--body", marker + "\nTASK_PACK_HASH_MISMATCH: no se publica el paquete de "
+        + task + ". La regeneración desde la base registrada no coincide "
+        + "con el paquete original; requiere revisión. Sin re-registro ni etiquetas.")
 
 
 def block_request(request: str, state: dict, result: dict, head: str) -> dict:
@@ -926,7 +1000,18 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     registry_status = (sync_implemented_registry(head)
                        if kind == "TRAIN" and not sweep else None)
     all_plans = plans()
-    conflict_outcomes = []
+    repair_outcomes = []
+    if sweep:
+        for request, _lots, _state, bindings in all_plans:
+            # Repair independently of ready_lot_ids: the registration is
+            # already in main, so no normal predecessor can reopen it.
+            for task in sorted({item.get("task_name") for item in bindings.values()
+                                if isinstance(item, dict) and
+                                isinstance(item.get("task_name"), str)}):
+                fixed = publish_missing_registered_pack(request, task, head)
+                if fixed is not None:
+                    repair_outcomes.append({"request": request, **fixed})
+    conflict_outcomes = list(repair_outcomes)
     for stale in retired:
         outcome = regenerate_conflicted(stale, head, all_plans)
         conflict_outcomes.append({"pr": stale["number"], "branch": stale["branch"],

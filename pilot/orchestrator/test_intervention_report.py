@@ -71,6 +71,33 @@ class InterventionReport(unittest.TestCase):
                      "MANUAL_TASK_TEMPLATE", "MANUAL_REGISTRATION", "MANUAL_TEST_EDIT"):
             self.assertIn(code, rep["by_code"])
 
+    def test_bot_registration_publishes_pack_without_manual_intervention(self):
+        r = Repo()
+        r.commit(PAULO, {"pilot/runs/demo/request.md": "pedido\\n"})
+        r.commit(BOT, {
+            "pilot/runs/demo/proposal_requests/t1.task-pack.json": '{"version":1}',
+            "pilot/runs/demo/proposal_requests/t1.proposal-request.json": '{"task_name":"t1"}',
+            "pilot/worker_v08/native_tasks/t1.json": "{}",
+        })
+        rep = self.run_report(r)
+        self.assertEqual(rep["intervencion_manual"], "NO", rep["by_code"])
+        pack_rows = [row for row in rep["rows"] if
+                     "/proposal_requests/" in row["path"]]
+        self.assertEqual(len(pack_rows), 2)
+        self.assertTrue(all(row["actor"] == "BOT" and
+                            row["verdict"] == "AUTOMATIC" for row in pack_rows))
+
+    def test_person_publishing_pack_remains_manual_registration(self):
+        r = Repo()
+        r.commit(PAULO, {"pilot/runs/demo/request.md": "pedido\\n"})
+        r.commit(PAULO, {
+            "pilot/runs/demo/proposal_requests/t1.task-pack.json": "{}",
+            "pilot/runs/demo/proposal_requests/t1.proposal-request.json": "{}",
+        })
+        rep = self.run_report(r)
+        self.assertIn("MANUAL_REGISTRATION", rep["by_code"])
+        self.assertEqual(rep["intervencion_manual"], "SI")
+
     def test_history_before_request_is_ignored(self):
         r = Repo()
         r.commit(PAULO, {"apps/x/src/main/A.java": "old"})
