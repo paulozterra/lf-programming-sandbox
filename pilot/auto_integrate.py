@@ -45,6 +45,26 @@ RUN_IN_BODY = re.compile(r"\brun:\s*\\?`?(\d{1,18})\\?`?", re.IGNORECASE)
 TASK_IN_BODY = re.compile(r"\bTask:\s*\\?`?([a-z][a-z0-9_-]{0,31})\\?`?", re.IGNORECASE)
 MAX_PAGES = 10
 
+# Authoritative accepted branch families shared by Policy C, sweep and CI.
+BRANCH_RULES = (
+    ("registration", "lf/native-registration/", r"lf/native-registration/.+"),
+    ("integration", "lf/native-integration/", r"lf/native-integration/.+"),
+    ("exam", "lf/exam/", r"lf/exam/[a-z][a-z0-9_-]{0,31}"),
+    ("generated-t7", "lf/generated-t7/", r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?"),
+    ("implemented-registry", "lf/implemented-registry/", r"lf/implemented-registry/[0-9a-f]{12}"),
+    ("request", "lf/request/", r"lf/request/req-[1-9][0-9]*"),
+)
+BOT_BRANCH_PREFIXES = tuple(item[1] for item in BRANCH_RULES)
+
+
+def accepted_branch_kind(branch: str) -> str | None:
+    if not isinstance(branch, str):
+        return None
+    for kind, _prefix, pattern in BRANCH_RULES:
+        if re.fullmatch(pattern, branch):
+            return kind
+    return None
+
 
 class PolicyBlocked(ValueError):
     pass
@@ -74,22 +94,11 @@ def eligible_pr(pr, paths, repo=REPOSITORY, api=None):
         block("PR_UNTRUSTED")
     branch = pr["head"].get("ref", "")
     generated = branch.startswith(("lf/generated-t7/", "lf/implemented-registry/"))
-    examiner = re.fullmatch(r"lf/exam/[a-z][a-z0-9_-]{0,31}", branch) is not None
+    kind = accepted_branch_kind(branch)
+    examiner = kind == "exam"
     if pr.get("user", {}).get("login") != BOT and not examiner:
         block("PR_AUTHOR_NOT_BOT" if generated else "PR_UNTRUSTED")
-    if branch.startswith("lf/native-registration/") and len(branch) > len("lf/native-registration/"):
-        kind = "registration"
-    elif branch.startswith("lf/native-integration/") and len(branch) > len("lf/native-integration/"):
-        kind = "integration"
-    elif examiner:
-        kind = "exam"
-    elif re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch):
-        kind = "generated-t7"
-    elif re.fullmatch(r"lf/implemented-registry/[0-9a-f]{12}", branch):
-        kind = "implemented-registry"
-    elif re.fullmatch(r"lf/request/req-[1-9][0-9]*", branch):
-        kind = "request"
-    else:
+    if kind is None:
         block("PR_BRANCH_NOT_ALLOWED")
     if not SHA.fullmatch(pr["head"].get("sha", "")):
         block("PR_HEAD_INVALID")
@@ -570,10 +579,8 @@ def run(api, trigger, *, numbers=None, scheduled=False):
                       and row.get("head", {}).get("repo", {}).get("full_name") == REPOSITORY
                       and (row.get("user", {}).get("login") == BOT
                            or row.get("head", {}).get("ref", "").startswith("lf/exam/"))
-                      and row.get("head", {}).get("ref", "").startswith(
-                          ("lf/native-registration/", "lf/native-integration/",
-                           "lf/generated-t7/", "lf/implemented-registry/",
-                            "lf/request/", "lf/exam/"))]
+                      and accepted_branch_kind(
+                          row.get("head", {}).get("ref", "")) is not None]
     output = []
     for number in candidates:
         try:
