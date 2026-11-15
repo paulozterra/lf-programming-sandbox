@@ -169,11 +169,9 @@ class API:
         raise AssertionError((method, path))
 
     def pages(self, path):
-        if path == "/issues/901/comments" and self.comments:
-            return self.comments
         if path == "/issues/901/comments":
             return [{"user": {"login": BOT},
-                     "body": f"<!-- LF_T20_CI_RETRY:901:{SHA}:200 -->"}]
+                     "body": f"<!-- LF_T20_CI_RETRY:901:{SHA}:200 -->"}, *self.comments]
         raise AssertionError(path)
 
 
