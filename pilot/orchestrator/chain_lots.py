@@ -24,7 +24,7 @@ from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_stat
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
 from generated_branch_standards import synchronize
-from task_pack_publication import verify_published_pair, legacy_artifact_reference, regenerate_pack_from_registered_base, TaskPackBlocked
+from pilot.orchestrator.task_pack_publication import verify_published_pair, legacy_artifact_reference, regenerate_pack_from_registered_base, TaskPackBlocked
 from generated_conflict_recovery import retire_conflicted_generated
 from pilot.generated_ci_selection import last_executed_ci_run
 from native_lot_binding import next_ready
