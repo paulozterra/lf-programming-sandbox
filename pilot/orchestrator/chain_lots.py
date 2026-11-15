@@ -736,6 +736,7 @@ def draft_implemented_registry(root: Path, branch: str, head: str) -> dict:
     """Trusted CP3.6 publishes one generated JSON, without CHG or manual label."""
     path = "pilot/registry/implemented.json"
     run("git", "add", "--", path, cwd=root)
+    synchronize(root, "registry")
     if not run("git", "diff", "--cached", "--name-only", cwd=root).strip() == path:
         deny("REGISTRY_CHANGED_PATHS_INVALID")
     run("git", "commit", "-m", "[CP3.6] generated implementation registry", cwd=root)
