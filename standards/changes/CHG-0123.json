@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0123",
+  "title": "T17.2: cobertura de aviso inmediato a política C para ramas admitidas",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T17.2 - CI exitoso del registro #205 sin aviso a política C"
+  },
+  "reason": "Fuente única de familias de rama permitidas en policy C, clasificación determinista y salida de job en CI para avisar al terminar las ejecuciones de las ramas admitidas, con prueba estática de cobertura y bloqueos POLICY_C_SIN_DISPARO.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/auto_integrate.py",
+      "pilot/policy_c_handoff.py",
+      "pilot/test_policy_c_handoff.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0123.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/206"
+  }
+}

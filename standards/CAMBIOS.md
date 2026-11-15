@@ -123,3 +123,4 @@
 | CHG-0120 | ADDITIVE | T16: contratos de plantillas y entradas Worker con diagnóstico seguro |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/201 |
 | CHG-0121 | ADDITIVE | T17: estándares y recuperación automática de ramas generadas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/203 |
 | CHG-0122 | ADDITIVE | T17.1: seleccionar última ejecución real de CI para PR generados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/204 |
+| CHG-0123 | ADDITIVE | T17.2: cobertura de aviso inmediato a política C para ramas admitidas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/206 |
