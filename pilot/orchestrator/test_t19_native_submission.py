@@ -56,7 +56,11 @@ def setup_repo(tmp_path):
     source.write_bytes(canonical({"task_spec": spec}))
     request = {"schema_version": "CP34_NATIVE_PROPOSAL_REQUEST_V1",
                "task_name": TASK, "branch": "lf/native-proposal/" + TASK,
-               "task_pack_sha256": "a" * 64}
+               "task_pack_sha256": "a" * 64,
+               "task_spec_path": "pilot/worker_v08/native_tasks/" + TASK + ".json",
+               "task_pack_path": f"pilot/runs/{REQUEST}/proposal_requests/{TASK}.task-pack.json",
+               "production_authority": False, "model_invoked": False,
+               "merge_authorized": False}
     published = enrich_request(request, spec)
     proposal_request = request_folder / "proposal_requests" / (TASK + ".proposal-request.json")
     proposal_request.parent.mkdir()
