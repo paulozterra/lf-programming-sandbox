@@ -35,14 +35,13 @@ def close_registered(api, sha: str, branch: str, git, root: Path) -> str:
     task = registration_task(branch)
     if task is None:
         return "NO_EXAM_REGISTRATION"
-    from pilot.train_handoff import merged_request_slug
     # Verify trusted first-parent merger delta; no issue may be closed merely
     # because a branch was named native-registration.
     changes = set(git("diff", "--name-only", sha + "^1", sha).splitlines())
     registered = f"pilot/worker_v08/native_tasks/{task}.json"
     if registered not in changes:
         raise LifecycleBlocked("EXAM_REGISTRATION_NOT_MERGED")
-    paths = list((root / "pilot/runs").glob("req-*/chain_plan.json"))
+    paths = list((root / "pilot/runs").glob("*/chain_plan.json"))
     scopes = []
     for plan in paths:
         if plan.is_symlink() or plan.parent.is_symlink():
@@ -53,6 +52,8 @@ def close_registered(api, sha: str, branch: str, git, root: Path) -> str:
     if len(scopes) != 1:
         raise LifecycleBlocked("EXAM_REQUEST_SCOPE_UNRESOLVED")
     slug = scopes[0]
+    if not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", slug):
+        raise LifecycleBlocked("EXAM_REQUEST_SCOPE_UNRESOLVED")
     issue = issue_for(api, task, slug)
     if issue is None:
         return "EXAM_ISSUE_ALREADY_CLOSED_OR_ABSENT"
