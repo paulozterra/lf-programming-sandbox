@@ -38,7 +38,10 @@ class SweepTests(unittest.TestCase):
         command.assert_not_called()
 
     def test_exam_on_main_registers_ready_task(self):
-        lots = {"lots": [{"id": "SOL-1", "depends_on": [], "area": "CONTRATO"}]}
+        lots = {"schema_version": "CP33_LOTS_CANDIDATE_V1",
+                "production_authority": False, "handoff_allowed": False,
+                "worker_invoked": False,
+                "lots": [{"id": "SOL-1", "depends_on": [], "area": "CONTRATO"}]}
         binding = {"SOL-1": {"task_name": "sample1", "lot_id": "SOL-1",
                              "template_path": "task.json",
                              "holdout_metadata_path": "sample1.json"}}
