@@ -150,9 +150,20 @@ def test_offline_api_and_native_browser_toolchain_pin_parity():
     import re
     api=(ROOT/".github/workflows/worker-pilot.yml").read_text("utf-8")
     native=(ROOT/".github/workflows/worker-native.yml").read_text("utf-8")
-    for exact in ("playwright==1.56.0", "--with-deps --only-shell chromium",
-                  "/tmp/lf-playwright-browsers", "/tmp/lf-playwright-runtime"):
-        assert exact in api and exact in native
+    requirements_path = "pilot/worker_v08/python_runtime_requirements.txt"
+    requirements = (ROOT / requirements_path).read_text("utf-8")
+    assert "playwright==1.56.0" in {
+        line.strip() for line in requirements.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    for workflow in (api, native):
+        assert "-r control/" + requirements_path in workflow
+        assert "python3 -m venv /tmp/lf-python-runtime" in workflow
+        assert "/tmp/lf-python-runtime/bin/python -m pip install" in workflow
+        assert "/tmp/lf-python-runtime/bin/python -m playwright install --with-deps --only-shell chromium" in workflow
+        assert "/tmp/lf-playwright-browsers" in workflow
+        assert "sudo ln -sfn /tmp/lf-python-runtime/bin/python /usr/local/bin/lf-python" in workflow
+        assert 'env -i PATH="$isolated_path" lf-python -c' in workflow
     assert "source/pilot/worker_v08/test_t8_lf_rules.py" in api
     assert re.search(r"node-version:\s*[\"']?22",api)
     assert re.search(r"java-version:\s*[\"']?21",api)

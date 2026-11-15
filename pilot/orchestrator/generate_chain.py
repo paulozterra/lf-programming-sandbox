@@ -25,6 +25,8 @@ def save(path, value):
 
 def acceptance(area, paths, *, run=None, module=None, has_contract=False, skeleton_path=None, infra_dependencies=None):
     def item(name, argv, timeout=600):
+        if argv and argv[0] == "python3":
+            argv = ["lf-python", *argv[1:]]
         return {"name":name,"argv":argv,"timeout_seconds":timeout,"max_output_bytes":32000}
     if area=="CONTRATO":
         if not run or not module or len(paths)!=1 or not skeleton_path:
