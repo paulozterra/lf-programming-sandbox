@@ -424,20 +424,20 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
     # Use the complete current API issue state, including body. GitHub issues
     # have unique numbers but NOT unique titles, so a title-only lookup is
     # insufficient for correctness and closed-success idempotency.
-    existing = json.loads(run("gh", "issue", "list", "--repo", REPO,
-                              "--state", "all", "--label", "exam-request",
-                              "--limit", "100", "--json",
-                              "title,number,body,state,stateReason"))
+    existing = json.loads(run("gh", "api",
+                              f"repos/{REPO}/issues?state=all&labels=exam-request&per_page=100"))
     matches = exam_request_matches(existing, task, request)
     if matches:
         found = matches[0]
         state = found.get("state")
-        if state == "OPEN":
+        if state in ("OPEN", "open"):
             return {"status": "BLOCKED", "reason_code": "EXAMEN_PENDIENTE",
                     "task": task, "exam_issue": found.get("number")}
         # A completed registration on current main is needed to regard a
         # closed issue as terminal. Closure alone cannot skip an exam.
-        if (state == "CLOSED" and found.get("stateReason") == "COMPLETED"
+        if (state in ("CLOSED", "closed")
+                and (found.get("state_reason") == "completed"
+                     or found.get("stateReason") == "COMPLETED")
                 and (ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")).is_file()):
             return {"status": "EXAM_ALREADY_REGISTERED",
                     "task": task, "exam_issue": found.get("number")}
