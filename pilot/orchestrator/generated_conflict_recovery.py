@@ -13,8 +13,8 @@ from pilot.auto_integrate import BOT, accepted_branch_kind
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 SAFE_BOT = {BOT, "app/github-actions", "github-actions"}
 GENERATED = {"registration", "integration", "implemented-registry", "generated-t7"}
-TRAIN_CONFLICT = re.compile(r"TRAIN_BLOCKED BRANCH_CONFLICT(?:\\s|$)")
-TRAIN_LINK = re.compile(r'\\{[^\\n]{0,700}"event":\\s*"local_merge_and_render"[^\\n]{0,700}\\}')
+TRAIN_CONFLICT = re.compile(r"TRAIN_BLOCKED BRANCH_CONFLICT(?:\s|$)")
+TRAIN_LINK = re.compile(r'\{[^\n]{0,700}"event":\s*"local_merge_and_render"[^\n]{0,700}\}')
 
 
 def _train_conflict(log: str, number: int, sha: str) -> bool:
