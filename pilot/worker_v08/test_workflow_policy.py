@@ -195,11 +195,14 @@ for required in ("proposal_commit_sha:", "attempt:", "task:",
                  "cancel-in-progress: false"):
     if required not in native:
         raise AssertionError("NATIVE_EXECUTOR_MISSING:"+required)
-for required in ("lf/native-proposal/**","pilot/native_proposals/*.json",
-                 "native_proposal_push_guard.py", "refs/heads/main",
-                 "permissions:\n  contents: read"):
+for required in ("lf/native-proposal/**", "native_proposal_push_guard.py",
+                 "native_push_failure_notify.py", "refs/heads/main",
+                 "permissions:\n  contents: read", "  issues: write"):
     if required not in trigger:
         raise AssertionError("NATIVE_TRIGGER_MISSING:"+required)
+# Wrong-path pushes must reach the guard. A paths filter would hide them.
+if re.search(r"^    paths(?:-ignore)?:", trigger, re.M):
+    raise AssertionError("NATIVE_TRIGGER_PATH_FILTER_FORBIDDEN")
 for guard_required in ("merge-base", "--is-ancestor", "diff", "--name-status",
                        "pilot/native_proposals/", "native_tasks/", "100644",
                        "NATIVE_PUSH_SCOPE_INVALID", "NATIVE_TASK_UNREGISTERED"):

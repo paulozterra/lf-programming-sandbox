@@ -175,5 +175,6 @@ def regenerate_pack_from_registered_base(root: Path, request: str, task: str,
             git("worktree", "remove", "--force", str(source))
     if produced != expected:
         block("TASK_PACK_HASH_MISMATCH")
-    companion.write_bytes(canonical(meta))
+    from native_submission_contract import enrich_request
+    companion.write_bytes(canonical(enrich_request(meta, spec)))
     return verify_published_pair(root, request, task, expected)

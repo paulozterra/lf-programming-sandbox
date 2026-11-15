@@ -5,11 +5,10 @@ on:
   push:
     branches:
       - 'lf/native-proposal/**'
-    paths:
-      - 'pilot/native_proposals/*.json'
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   verify-native-proposal:
@@ -29,9 +28,35 @@ jobs:
         env:
           PROPOSAL_SHA: ${{ github.sha }}
           PROPOSAL_BRANCH: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           [[ "$PROPOSAL_BRANCH" == lf/native-proposal/* ]]
-          git -C control fetch --no-tags origin "$PROPOSAL_SHA"
-          python3 control/pilot/worker_v08/native_proposal_push_guard.py \
-            --control control --sha "$PROPOSAL_SHA" --branch "$PROPOSAL_BRANCH"
+          # Checkout and validation code come exclusively from trusted main.
+          # No code from the pushed commit is ever executed or checked out.
+          if ! git -C control fetch --no-tags origin "$PROPOSAL_SHA"; then
+            code=NATIVE_PUSH_SHA_UNAVAILABLE
+            printf '%s\\n' "$code" >&2
+          else
+            set +e
+            python3 control/pilot/worker_v08/native_proposal_push_guard.py \
+              --control control --sha "$PROPOSAL_SHA" --branch "$PROPOSAL_BRANCH" \
+              > /tmp/native-guard.out 2> /tmp/native-guard.err
+            result=$?
+            set -e
+            if [ "$result" -eq 0 ]; then
+              cat /tmp/native-guard.out
+              exit 0
+            fi
+            code="$(head -n 1 /tmp/native-guard.err)"
+            if [[ ! "$code" =~ ^NATIVE_[A-Z0-9_]+$ ]]; then
+              code=NATIVE_PUSH_GUARD_FAILED
+            fi
+            printf '%s\\n' "$code" >&2
+          fi
+          # Only a verified, issue-backed task gets a comment. Notification
+          # failure does not suppress the exact guard error or greenlight push.
+          python3 control/pilot/worker_v08/native_push_failure_notify.py \
+            --control control --sha "$PROPOSAL_SHA" \
+            --branch "$PROPOSAL_BRANCH" --code "$code" || :
+          exit 1

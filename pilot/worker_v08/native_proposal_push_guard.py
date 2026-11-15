@@ -8,6 +8,7 @@ import argparse
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 TASK_RE = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
@@ -93,4 +94,9 @@ def main() -> None:
     print(json.dumps(result, sort_keys=True))
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ProposalPushBlocked as exc:
+        # Exact machine code, no traceback or untrusted data from the proposal.
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1)

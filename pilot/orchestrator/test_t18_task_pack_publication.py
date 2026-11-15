@@ -21,7 +21,10 @@ def fixture(root: Path, *, base="a" * 40):
     pack_rel, meta_rel = pack.paths_for(REQ, TASK)
     raw = b'{"messages":[],"schema_version":"T18_SYNTHETIC"}\n'
     sha = hashlib.sha256(raw).hexdigest()
-    spec = {"schema_version": 1, "base_head_sha": base}
+    spec = {"schema_version": 1, "base_head_sha": base,
+            "write_path_patterns": ["contracts/t18synthetic.openapi.yaml"],
+            "max_changed_files": 1, "max_patch_bytes": 60000,
+            "protected_path_patterns": ["pilot/**"]}
     record = root / f"pilot/worker_v08/native_tasks/{TASK}.json"
     record.parent.mkdir(parents=True, exist_ok=True)
     record.write_text(json.dumps({"task_spec": spec}), encoding="utf-8")
