@@ -22,6 +22,8 @@ class API:
         self.open_issue = open_issue
         self.author = author
         self.writes = []
+    def call(self, method, path, data=None):
+        return self.request(method, path, data)
     def pages(self, path, field):
         if path == "/issues?state=open&labels=exam-request":
             return ([{"number": 212, "title": "EXAM_REQUEST: tasktest",
@@ -94,7 +96,7 @@ class Tests(TestCase):
         self.assertEqual(result["fields"][0]["api_name"],"priority")
         self.assertEqual(result["fields"][0]["tipo_dato"],"string")
         del package["programming_context_snapshot"]["decision_context"]["material_ledger"]["source_detail"]["a3_material_contract"]["contract_sections"]["fields"][0]["nombre"]
-        with self.assertRaisesRegex(ContractBlocked,"CAMPO_SIN_NOMBRE_API"):
+        with self.assertRaisesRegex(ValueError,"CAMPO_SIN_NOMBRE_API"):
             generate("reminders",package,atoms)
 
     def test_exam_closed_path_and_open_issue(self):
