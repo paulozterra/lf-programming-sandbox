@@ -132,3 +132,4 @@
 | CHG-0129 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/213 |
 | CHG-0130 | ADDITIVE | T19: contrato nativo de propuesta autoexplicativo y guard sin filtro de rutas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/214 |
 | CHG-0131 | ADDITIVE | T20: fijar runner Ubuntu 24.04 y reintentar CI rojo del bot una vez por HEAD |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/216 |
+| CHG-0133 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
