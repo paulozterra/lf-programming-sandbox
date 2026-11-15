@@ -598,6 +598,11 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
         sys.path.insert(0, str(root / "vendor/programming-agent/src"))
         from programming_agent_runner.hashutil import source_snapshot_sha256
         spec["source_snapshot_sha256"] = source_snapshot_sha256(root)
+        # Pending templates from before T16 may contain the one unsupported
+        # tracing field. Normalize only that exact historical value and
+        # re-validate against the real Worker parser before invoking CP3.5.
+        from worker_template_contract import normalize_legacy_registration_template
+        template = normalize_legacy_registration_template(template, binding["area"])
         template_json = Path(tempfile.mkdtemp(prefix="cp36-template-")) / "task.json"
         try:
             template_json.write_bytes(canonical(template))
@@ -814,7 +819,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             if candidate is None:
                 continue
             chosen = dict(bindings[lot_id], task_name=candidate,
-                          original_task_name=task, lot_id=lot_id)
+                          original_task_name=task, lot_id=lot_id,
+                          area=lot["area"])
             if candidate != task:
                 metadata = Path(chosen["holdout_metadata_path"])
                 chosen["holdout_metadata_path"] = str(
