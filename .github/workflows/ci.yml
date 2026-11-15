@@ -201,6 +201,8 @@ jobs:
         run: |
           python3 -m pytest -q pilot/test_policy_c_handoff.py -p no:cacheprovider
           python3 -m pilot.workflow_entrypoint pilot/test_policy_c_handoff.py
+      - name: T18.1 isolated CP3.6 sweep and global failure alert (offline)
+        run: python3 -m pytest -q pilot/orchestrator/test_t18_1_sweep_isolation.py -p no:cacheprovider
       - name: T18 native task package published and deterministic legacy repair (offline)
         run: |
           python3 -m pytest -q pilot/orchestrator/test_t18_task_pack_publication.py -p no:cacheprovider

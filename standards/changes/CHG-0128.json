@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0128",
+  "title": "T18.1: aislamiento por pedido en sweep CP3.6 y watchdog global",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T18.1: CP3.6 run 43753081791 bloqueado por f5-login histórico con CP36_TASK_PACK_SCOPE_INVALID"
+  },
+  "reason": "Restringir reparación de task-pack a req-N con request_meta del bot; registrar BLOCKED por pedido sin abortar otros, conservar invariantes globales, avisar fallos globales en issues LF abiertos o único issue de alerta sin etiquetas.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/test_t18_1_sweep_isolation.py",
+      "pilot/orchestrator/test_t18_task_pack_publication.py",
+      "pilot/request_failure_notify.py",
+      "pilot/test_t15_sweep.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0128.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/212"
+  }
+}

@@ -451,6 +451,66 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
     return "RUTA_NOTIFIED"
 
 
+def notify_global_cp36_sweep(api: Github, run: dict) -> str:
+    """Report a failed trusted-main CP3.6 sweep even without one source PR.
+
+    Notification is comment-only; a single reusable route-alert issue is used
+    when there are no verifiably affected open LF requests.
+    """
+    if (route_name(run) != "CP3.6 chain after Train merge or spent native failure"
+            or run.get("event") != "workflow_dispatch"
+            or run.get("conclusion") not in ("failure", "timed_out")
+            or run.get("head_branch") != "main"
+            or not re.fullmatch(r"CP3[.]6 [1-9][0-9]*",
+                                str(run.get("display_title") or ""))
+            or type(run.get("id")) is not int):
+        return "RUTA_NOT_GLOBAL_CP36_SWEEP"
+    marker = f"<!-- LF_CP36_GLOBAL_SWEEP:{run['id']} -->"
+    link = (run.get("html_url") if isinstance(run.get("html_url"), str)
+            and run["html_url"].startswith("https://github.com/" + REPO + "/actions/runs/")
+            else "https://github.com/" + REPO + "/actions/runs/" + str(run["id"]))
+    targets = []
+    for issue in api.pages("/issues?state=open&labels=lf-request"):
+        if not isinstance(issue, dict) or issue.get("pull_request") or issue.get("state") != "open":
+            continue
+        number = issue.get("number")
+        if type(number) is not int or number <= 0:
+            continue
+        # A real route request must already be present on trusted main.
+        try:
+            source = api.api("GET", f"/contents/pilot/runs/req-{number}/request_meta.json?ref=main")
+            import base64
+            raw = base64.b64decode(source["content"], validate=False)
+            meta = json.loads(raw)
+        except (KeyError, TypeError, ValueError, urllib.error.HTTPError):
+            continue
+        if isinstance(meta, dict) and meta.get("issue") == number:
+            targets.append(number)
+    if not targets:
+        title = "[LF ROUTE ALERT] CP3.6 global sweep"
+        alerts = api.pages("/issues?state=open")
+        matches = [x for x in alerts if isinstance(x, dict)
+                   and x.get("title") == title and not x.get("pull_request")]
+        if matches:
+            targets = [matches[0]["number"]]
+        else:
+            created = api.api("POST", "/issues", {
+                "title": title,
+                "body": "Alerta única de la ruta LF para fallos globales de CP3.6. "
+                        "No contiene datos sensibles ni crea etiquetas."})
+            targets = [created["number"]]
+    for number in sorted(set(targets)):
+        comments = api.pages(f"/issues/{number}/comments")
+        if any(marker in str(item.get("body", "")) for item in comments
+               if isinstance(item, dict)):
+            continue
+        api.api("POST", f"/issues/{number}/comments", {
+            "body": marker + "\nCP3.6: fallo global del barrido; ningún pedido "
+                    "debe quedar sin alerta. Corrida: " + link
+                    + "\nSin etiquetas nuevas. Revisar integridad del main y el workflow."})
+    return "RUTA_GLOBAL_CP36_NOTIFIED"
+
+
 def check_run(api: Github, run: dict) -> str:
     # A webhook/scheduled sweep may see a later unexecuted action_required
     # event on the same generated PR SHA. Notify from the latest *executed*
@@ -493,7 +553,12 @@ def check_run(api: Github, run: dict) -> str:
             latest = max(eligible, key=lambda r: (r.get("created_at", ""), r.get("id", 0)), default=None)
             run = dict(run, failure_code="BASE_NO_VERDE",
                        main_ci_url=(latest or {}).get("html_url"))
-    return emit(api, run, jobs_obj.get("jobs", []))
+    outcome = emit(api, run, jobs_obj.get("jobs", []))
+    if outcome == "RUTA_NO_ISSUE_ASSOCIATION":
+        fallback = notify_global_cp36_sweep(api, run)
+        if fallback != "RUTA_NOT_GLOBAL_CP36_SWEEP":
+            return fallback
+    return outcome
 
 
 def audit_undispatched_requests(api: Github, all_runs: list[dict], now: datetime) -> list[str]:
