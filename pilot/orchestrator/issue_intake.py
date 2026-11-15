@@ -163,6 +163,9 @@ def intake(api: API, event: dict):
     existing = api.call("GET", f"/pulls?state=all&head=paulozterra:{branch}&per_page=100")
     if existing:
         return "PEDIDO_YA_REGISTRADO"
+    if any(isinstance(label, dict) and label.get("name") == "lf-request-duplicate"
+           for label in issue.get("labels", [])):
+        return "PEDIDO_POSIBLE_DUPLICADO"  # already marked; no second comment
     # Only a deliberate unlabeled event removing the duplicate marker can
     # override this decision. An ordinary opened/labeled event cannot.
     force = (event.get("action") == "unlabeled" and
