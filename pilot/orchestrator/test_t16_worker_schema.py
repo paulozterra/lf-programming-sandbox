@@ -107,3 +107,24 @@ def test_native_registration_and_prepare_use_same_worker_contract():
     assert "validate_template_worker" in sealed
     assert "register_lot(" in inspect.getsource(prepare_native_lot.run)
     assert "seal_lot(" in inspect.getsource(prepare_native_lot.run)
+
+
+@pytest.mark.parametrize("area", sorted(AREAS))
+def test_existing_pending_pre_t16_template_can_register_without_tampering(area):
+    from pilot.orchestrator.worker_template_contract import (
+        normalize_legacy_registration_template,
+    )
+    legacy = synthetic_template(area)
+    spec = legacy["task_spec"]
+    spec["base_head_sha"] = "a" * 40
+    spec["source_snapshot_sha256"] = "b" * 64
+    spec["context_derivation"] = "pilot/worker_v08/derive_context.py"
+    normalized = normalize_legacy_registration_template(legacy, area)
+    assert "context_derivation" not in normalized["task_spec"]
+    assert "context_derivation" in legacy["task_spec"]
+    assert parse_worker_task(normalized["task_spec"]).to_dict() == normalized["task_spec"]
+    for forbidden in ("wrong/derive.py", None):
+        corrupt = json.loads(json.dumps(legacy))
+        corrupt["task_spec"]["context_derivation"] = forbidden
+        with pytest.raises(ValueError, match="TEMPLATE_WORKER_SCHEMA_INVALID:" + area):
+            normalize_legacy_registration_template(corrupt, area)
