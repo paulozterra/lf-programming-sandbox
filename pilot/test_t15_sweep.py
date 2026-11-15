@@ -92,7 +92,8 @@ class SweepTests(unittest.TestCase):
              patch.object(chain_lots, "retire_conflicted_generated", return_value=[]), \
              patch.object(chain_lots, "prepare_successor") as prepare:
             self.assertEqual(chain_lots.process(sweep=True, base_sha=HEAD),
-                             [{"status": "NO_RELEASE_OR_BLOCK"}])
+                             [{"request": "req-901", "status": "SKIPPED_NOT_ROUTE_REQUEST"},
+                               {"request": "req-902", "status": "SKIPPED_NOT_ROUTE_REQUEST"}])
             request.assert_not_called()
             prepare.assert_not_called()
 
