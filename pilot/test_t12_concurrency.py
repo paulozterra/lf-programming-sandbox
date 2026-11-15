@@ -51,7 +51,7 @@ class ExamGit:
         self.calls.append(args)
         if args[:3] == ("gh", "label", "list"):
             return json.dumps([{"name":"exam-request"}])
-        if args[:3] == ("gh", "issue", "list"):
+        if args[:2] == ("gh", "api") and args[2].startswith("repos/"):
             return json.dumps(self.existing)
         if args[:3] == ("gh", "issue", "create"):
             self.created += 1
