@@ -6,6 +6,13 @@ unrecognized patterns fail closed rather than being smuggled into context.
 """
 from __future__ import annotations
 
+from pathlib import Path
+import sys
+
+VENDOR = Path(__file__).resolve().parents[2] / "vendor/programming-agent/src"
+if str(VENDOR) not in sys.path:
+    sys.path.insert(0, str(VENDOR))
+
 from programming_agent_runner.worker_secrets import (
     _SECRET_PATTERNS, secret_text_reason,
 )
