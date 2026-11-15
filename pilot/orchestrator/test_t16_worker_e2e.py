@@ -36,6 +36,7 @@ def canonical(obj):
 def test_real_prepare_native_lot_accepts_generated_data_task_in_temp_branch(tmp_path):
     working = tmp_path / "checkout"
     temp_branch = "t16-offline-" + uuid4().hex[:16]
+    original_main = git(REPO_ROOT, "rev-parse", "refs/remotes/origin/main")
     git(REPO_ROOT, "worktree", "add", "-b", temp_branch, str(working), "HEAD")
     try:
         git(working, "config", "user.name", "T16 offline test")
@@ -82,6 +83,10 @@ def test_real_prepare_native_lot_accepts_generated_data_task_in_temp_branch(tmp_
         git(working, "add", "--", "pilot/runs/" + run_id,
             "pilot/orchestrator/chain_plans/" + run_id + ".json")
         git(working, "commit", "-m", "T16 synthetic offline planning")
+        # The real preflight only accepts a base already on origin/main.
+        # Simulate that trusted merge in local Git metadata, never push it.
+        git(working, "update-ref", "refs/remotes/origin/main",
+            git(working, "rev-parse", "HEAD"))
         assert not git(working, "status", "--porcelain")
 
         from programming_agent_runner.hashutil import source_snapshot_sha256
@@ -107,5 +112,6 @@ def test_real_prepare_native_lot_accepts_generated_data_task_in_temp_branch(tmp_
         assert not git(working, "status", "--porcelain",
                        "--untracked-files=no")  # exported pack is untracked only
     finally:
+        git(REPO_ROOT, "update-ref", "refs/remotes/origin/main", original_main)
         git(REPO_ROOT, "worktree", "remove", "--force", str(working))
         git(REPO_ROOT, "branch", "-D", temp_branch)
