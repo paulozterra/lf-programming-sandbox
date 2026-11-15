@@ -34,7 +34,12 @@ def check(root: Path = ROOT) -> list[str]:
     if (not main_isolated or not isinstance(trigger, dict) or "workflow_dispatch" not in trigger
             or policy.get("schema_version") != "LF_TRAIN_MAIN_CI_GATE_V1"
             or policy.get("workflow") != "ci.yml"
-            or "ensure_main_ci(api, sha, required=item" not in handoff
+            or "ci = ensure_main_ci(api, sha, required=True)" not in handoff
+            or "sweep = dispatch_chain_sweep(api, sha)" not in handoff
+            or '"sweep": "true", "base_sha": sha' not in handoff
+            or '"/actions/workflows/chain-lots.yml/dispatches"' not in handoff
+            or "if kind == \"TRAIN\" and (sweep or require_ci):" not in
+               (root / "pilot/orchestrator/chain_lots.py").read_text()
             or '/actions/workflows/ci.yml/dispatches' not in handoff
             or 'main_ci_run(api, sha, config)' not in handoff
             or "pilot/train_handoff.py" not in train

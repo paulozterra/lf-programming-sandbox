@@ -34,6 +34,11 @@ on:
         description: Exact Train merge commit with verified main CI
         required: false
         type: string
+      sweep:
+        description: Resume all active requests after exact-main green CI
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -94,14 +99,18 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$EXPECTED_BASE" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$REQUEST_SLUG" =~ ^req-[1-9][0-9]*$ ]]
+          if [ "${{ inputs.sweep }}" != "true" ]; then
+            [[ "$REQUEST_SLUG" =~ ^req-[1-9][0-9]*$ ]]
+          fi
           test "$(git rev-parse HEAD)" = "$EXPECTED_BASE"
           # CP3.6 retains its internal require_green_base call.
       - name: Reconcile trusted merge, DAG, attempts; prepare draft successors only
         env:
           CP36_PACK_OUT: ${{ runner.temp }}/cp36-proposal-packs
         run: |
-          if [ -n "$INTEGRATION_PR" ]; then
+          if [ "${{ inputs.sweep }}" = "true" ]; then
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --sweep --base-sha "${{ inputs.base_sha }}"
+          elif [ -n "$INTEGRATION_PR" ]; then
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --integration-pr "$INTEGRATION_PR"
           elif [ -n "$NEW_PLAN_REQUEST" ]; then
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --source-run-id "$SOURCE_RUN_ID" \

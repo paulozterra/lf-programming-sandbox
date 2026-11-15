@@ -52,7 +52,8 @@ class HandoffTests(unittest.TestCase):
              patch.object(handoff, "validate_request_paths"), \
              patch.object(handoff, "ensure_main_ci", return_value={"status":"MAIN_CI_GREEN"}), \
              patch.object(handoff, "merged_request_slug", return_value="req-987"), \
-             patch.object(handoff, "comment_analysis_report"):
+             patch.object(handoff, "comment_analysis_report"), \
+             patch("pilot.exam_issue_lifecycle.close_registered", return_value=None):
             result = handoff.dispatch(api, PR, SHA, 12345, ROUTES)
         return result, api.writes
 
@@ -61,7 +62,9 @@ class HandoffTests(unittest.TestCase):
         self.assertEqual(result["workflow"], "t7-request.yml")
         self.assertEqual(writes, [("/actions/workflows/t7-request.yml/dispatches",
                                    {"ref": "main",
-                                    "inputs": {"slug": "req-987", "merge_sha": SHA}})])
+                                    "inputs": {"slug": "req-987", "merge_sha": SHA}}),
+                                  ("/actions/workflows/chain-lots.yml/dispatches",
+                                   {"ref": "main", "inputs": {"sweep": "true", "base_sha": SHA}})])
 
     def test_generated_chain_and_integration(self):
         generated, gw = self.dispatch("lf/generated-t7/" + "d" * 12)
@@ -70,15 +73,18 @@ class HandoffTests(unittest.TestCase):
                          {"source_run_id": "12345", "merge_pr": "777",
                           "request_slug": "req-987", "base_sha": SHA,
                                                      "new_plan_request": "req-987"})
+        self.assertEqual(gw[1][1]["inputs"], {"sweep": "true", "base_sha": SHA})
         integration, iw = self.dispatch("lf/native-integration/demo-run-123")
         self.assertEqual(integration["workflow"], "chain-lots.yml")
         self.assertEqual(iw[0][1]["inputs"], {"integration_pr": "777", "request_slug": "req-987",
                                                      "base_sha": SHA})
+        self.assertEqual(iw[1][1]["inputs"], {"sweep": "true", "base_sha": SHA})
 
-    def test_unmapped_branch_is_not_dispatched(self):
+    def test_unmapped_feat_branch_still_sweeps(self):
         result, writes = self.dispatch("feat/manual")
-        self.assertEqual(result["status"], "NO_HANDOFF")
-        self.assertFalse(writes)
+        self.assertEqual(result["status"], "SWEEP_DISPATCHED")
+        self.assertEqual(writes, [("/actions/workflows/chain-lots.yml/dispatches",
+                                   {"ref": "main", "inputs": {"sweep": "true", "base_sha": SHA}})])
 
     def test_forged_merge_is_rejected(self):
         api = API("lf/request/req-987")

@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0119",
+  "title": "T15: sweep de pedidos tras CI verde de toda fusión Train",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T15 owner request; feat/* merge left CP3.6 idle after main CI"
+  },
+  "reason": "Handoff verificado desde cualquier rama después de CI de main exacto; sweep de LOTS_PLANNED que descarta issues cerrados, registro idempotente y estado neutral hasta CI; suite offline.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/chain-lots.yml",
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/test_t15_sweep.py",
+      "pilot/test_t9_2_handoff.py",
+      "pilot/test_t9_5_main_ci.py",
+      "pilot/test_workflow_base_ci.py",
+      "pilot/train_handoff.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0119.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/200"
+  }
+}
