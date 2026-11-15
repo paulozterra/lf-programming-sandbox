@@ -24,6 +24,7 @@ def test_login_notes_and_random_frontend_tasks_include_browser(tmp_path, kind):
     assert len(bindings) == 1
     template = json.loads((tmp_path / bindings[0]["template_path"]).read_text())
     commands = template["task_spec"]["acceptance_commands"]
-    assert any(c["argv"][:2] == ["python3", "pilot/worker_v08/playwright_gate.py"]
+    assert any(c["argv"][:2] == ["lf-python", "pilot/worker_v08/playwright_gate.py"]
                for c in commands)
+    assert all(c["argv"][0] != "python3" for c in commands)
     assert all(not c["name"].startswith("hidden") for c in commands)
