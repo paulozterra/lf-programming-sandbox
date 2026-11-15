@@ -23,6 +23,7 @@
       "pilot/orchestrator/worker_template_contract.py",
       "pilot/worker_v08/export_task_pack.py",
       "pilot/worker_v08/register_task_context.py",
+      "pilot/worker_v08/test_register_task_context.py",
       "pilot/worker_v08/test_worker_context_safety.py",
       "pilot/worker_v08/worker_context_safety.py",
       "standards/CAMBIOS.md",
