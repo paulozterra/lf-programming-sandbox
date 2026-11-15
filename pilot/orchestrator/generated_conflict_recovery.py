@@ -60,10 +60,14 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
                 or (detail.get("head") or {}).get("repo", {}).get("full_name") != repo
                 or (detail.get("base") or {}).get("ref") != "main"):
             continue
-        eligible.append((number, branch, sha, kind, detail.get("mergeable_state") == "dirty"))
+        labeled = any(isinstance(label, dict) and label.get("name") == "ready-to-merge"
+                      for label in detail.get("labels", []))
+        eligible.append((number, branch, sha, kind,
+                         detail.get("mergeable_state") == "dirty", labeled))
 
     # Only consult Train runs if the PR isn't already provably dirty.
-    unknown = [(n, b, sha, k) for n, b, sha, k, dirty in eligible if not dirty]
+    unknown = [(n, b, sha, k) for n, b, sha, k, dirty, labeled in eligible
+               if not dirty and labeled]
     failures = []
     if unknown:
         response = api("actions/workflows/sandbox-train.yml/runs?per_page=100")
@@ -85,7 +89,7 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
                 evidence[(number, sha)] = f["id"]
 
     retired = []
-    for number, branch, sha, kind, dirty in eligible:
+    for number, branch, sha, kind, dirty, _labeled in eligible:
         if not dirty and (number, sha) not in evidence:
             continue
         reason = ("GitHub mergeable_state=dirty" if dirty else
