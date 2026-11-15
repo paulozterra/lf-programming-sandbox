@@ -35,7 +35,7 @@ def export(repo: Path, spec_path: Path, output_path: Path) -> str:
         # never copy model data, stderr, arbitrary text or potential secrets.
         import re
         reason = result.receipt.get("reason")
-        prefix = (re.match(r"^([A-Z][A-Z0-9_]{0,79})(?::|\\s|$)", reason)
+        prefix = (re.match(r"^([A-Z][A-Z0-9_]{0,79})(?::|[ ]|$)", reason)
                   if isinstance(reason, str) else None)
         safe = prefix.group(1) if prefix else "UNCLASSIFIED"
         raise RuntimeError("NATIVE_CAPTURE_FAILED_OR_PREFLIGHT_BLOCKED:" + safe)
