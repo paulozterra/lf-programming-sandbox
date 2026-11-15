@@ -17,7 +17,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-from pilot.generated_ci_selection import latest_executed_checks
+from generated_ci_selection import latest_executed_checks
 
 REPOSITORY = "paulozterra/lf-programming-sandbox"
 BOT = "github-actions[bot]"
