@@ -413,8 +413,8 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
         num, changed, check_base = resumed
         chg = root / f"standards/changes/CHG-{num:04d}.json"
     body = (f"CP3.5: PASS verificado por workflow nativo confiable.\n\n"
-            f"- Task: \`{task}\` · run: {run_id} · base: \`{base}\`\n"
-            f"- Native patch SHA-256: \`{patch_hash}\`\n"
+            f"- Task: `{task}` · run: {run_id} · base: `{base}`\n"
+            f"- Native patch SHA-256: `{patch_hash}`\n"
             f"- Source files SHA-256 after exact application: "
             + json.dumps(changed, sort_keys=True) + "\n"
             f"- CHG-{num:04d}; sin etiquetado ni merge automático. "

@@ -396,9 +396,67 @@ def exam_request_matches(rows: list, task: str, request: str) -> list:
                 or (marker not in body and "Solicitud automática de examen independiente (T4)." not in body)):
             deny("EXAM_REQUEST_IDENTITY_CONFLICT")
         matches.append(row)
-    if len(matches) > 1:
-        deny("EXAM_REQUEST_DUPLICATE")
     return matches
+
+
+def exam_issue_state(row: dict) -> tuple[str, str]:
+    """Normalize both REST and GraphQL state/reason fields."""
+    return (str(row.get("state", "")).lower(),
+            str(row.get("state_reason") or row.get("stateReason") or "").lower())
+
+
+def choose_exam_issue(matches: list, registered: bool) -> tuple[str, dict | None]:
+    """Prefer verified completion, then the open issue; ignore closed duplicates."""
+    if registered:
+        completed = [row for row in matches if exam_issue_state(row) == ("closed", "completed")]
+        if completed:
+            return "EXAM_ALREADY_REGISTERED", min(completed, key=lambda row: row["number"])
+    opened = [row for row in matches if exam_issue_state(row)[0] == "open"]
+    if opened:
+        return "EXAMEN_PENDIENTE", min(opened, key=lambda row: row["number"])
+    if any(state != "closed" or reason not in ("not_planned", "duplicate")
+           for state, reason in (exam_issue_state(row) for row in matches)):
+        deny("EXAM_REQUEST_CLOSED_UNVERIFIED")
+    return "CREATE_EXAM_REQUEST", None
+
+
+def listed_exam_requests() -> list:
+    rows = json.loads(run("gh", "api",
+                          f"repos/{REPO}/issues?state=all&labels=exam-request&per_page=100"))
+    if not isinstance(rows, list) or len(rows) >= 100:
+        deny("EXAM_REQUEST_LIST_UNTRUSTED")
+    return rows
+
+
+def complete_registered_exam_requests(request: str, bindings: dict) -> list[int]:
+    """Reconcile only after the actual registration is in trusted main.
+
+    Ciphertext is never read. A draft registration is insufficient to close
+    an open request; only an existing native_tasks record on main qualifies.
+    """
+    registered = []
+    for binding in bindings.values():
+        task = binding["task_name"]
+        record = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+        if record.is_symlink():
+            deny("EXAM_REGISTRATION_SYMLINK")
+        if record.is_file() and not missing_exam(ROOT, task):
+            registered.append(task)
+    if not registered:
+        return []
+    issues = listed_exam_requests()
+    closed = []
+    for task in sorted(set(registered)):
+        for row in exam_request_matches(issues, task, request):
+            if exam_issue_state(row)[0] != "open":
+                continue
+            number = row.get("number")
+            if type(number) is not int or number <= 0:
+                deny("EXAM_REQUEST_LIST_UNTRUSTED")
+            run("gh", "issue", "close", str(number), "--repo", REPO,
+                "--reason", "completed")
+            closed.append(number)
+    return closed
 
 
 def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
@@ -424,24 +482,16 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
     # Use the complete current API issue state, including body. GitHub issues
     # have unique numbers but NOT unique titles, so a title-only lookup is
     # insufficient for correctness and closed-success idempotency.
-    existing = json.loads(run("gh", "api",
-                              f"repos/{REPO}/issues?state=all&labels=exam-request&per_page=100"))
-    matches = exam_request_matches(existing, task, request)
-    if matches:
-        found = matches[0]
-        state = found.get("state")
-        if state in ("OPEN", "open"):
-            return {"status": "BLOCKED", "reason_code": "EXAMEN_PENDIENTE",
-                    "task": task, "exam_issue": found.get("number")}
-        # A completed registration on current main is needed to regard a
-        # closed issue as terminal. Closure alone cannot skip an exam.
-        if (state in ("CLOSED", "closed")
-                and (found.get("state_reason") == "completed"
-                     or found.get("stateReason") == "COMPLETED")
-                and (ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")).is_file()):
-            return {"status": "EXAM_ALREADY_REGISTERED",
-                    "task": task, "exam_issue": found.get("number")}
-        deny("EXAM_REQUEST_CLOSED_UNVERIFIED")
+    matches = exam_request_matches(listed_exam_requests(), task, request)
+    registration = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+    if registration.is_symlink():
+        deny("EXAM_REGISTRATION_SYMLINK")
+    outcome, found = choose_exam_issue(matches, registration.is_file())
+    if outcome == "EXAM_ALREADY_REGISTERED":
+        return {"status": outcome, "task": task, "exam_issue": found["number"]}
+    if outcome == "EXAMEN_PENDIENTE":
+        return {"status": "BLOCKED", "reason_code": outcome,
+                "task": task, "exam_issue": found["number"]}
     run("gh", "issue", "create", "--repo", REPO, "--title", title,
         "--body", body, "--label", "exam-request")
     return {"status": "BLOCKED", "reason_code": "EXAMEN_PENDIENTE",
@@ -668,6 +718,13 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         if state.get("stage") == "BLOCKED":
             outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
             continue
+        # Only the Train-merged native registration can complete its exam
+        # issue. A ciphertext already on main permits draft preparation first.
+        if kind == "TRAIN":
+            closed = complete_registered_exam_requests(request, bindings)
+            if closed:
+                outcomes.append({"request": request, "status": "EXAM_ALREADY_REGISTERED",
+                                 "closed_exam_issues": closed})
         if request == new_plan_request:
             outcomes.extend(request_all_lot_exams(request, lots, bindings))
         completed = completed_lots(lots, bindings, history)
