@@ -10,7 +10,7 @@ permissions:
 jobs:
   ex6-n1-exact-aosp-class-equivalence:
     if: ${{ startsWith(github.head_ref, 'lf/ex6-aosp-format-n1-') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 22
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
