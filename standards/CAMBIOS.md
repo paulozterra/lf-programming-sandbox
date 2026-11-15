@@ -115,4 +115,4 @@
 | CHG-0112 | ADDITIVE | T9.4: entradas Python en workflows ejecutables como módulos y humo limpio |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/172 |
 | CHG-0113 | ADDITIVE | T9.5: CI de main por SHA exacto antes de CP3.6 y correlación de etapas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/178 |
 | CHG-0114 | ADDITIVE | T10: reutilización limitada por área y reporte A1-A9 determinista |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/179 |
-| CHG-0115 | ADDITIVE | T11: nombres API de campos y exámenes integrados sin intervención |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/181 |
+| CHG-0115 | ADDITIVE | T11: nombres API de campos y exámenes integrados sin intervención |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/185 |
