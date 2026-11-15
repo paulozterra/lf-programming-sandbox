@@ -94,9 +94,26 @@ def test_real_prepare_native_lot_accepts_generated_data_task_in_temp_branch(tmp_
         template["task_spec"]["source_snapshot_sha256"] = source_snapshot_sha256(working)
         worker_template_contract.validate_template_worker(template, "DATA")
 
+        # Diagnostic wrapper invokes the actual vendored Worker unmodified.
+        # The test reports only a bounded, secret-checked preflight reason.
+        import export_task_pack
+        from programming_agent_runner.worker_secrets import secret_text_reason
+        original_run_worker = export_task_pack.run_worker
+
+        def assert_worker_capture(*args, **kwargs):
+            output = original_run_worker(*args, **kwargs)
+            reason = output.receipt.get("reason")
+            if reason != "NATIVE_CAPTURE_ONLY":
+                detail = str(reason)
+                if secret_text_reason(detail):
+                    detail = "REDACTED"
+                raise AssertionError("T16_WORKER_CAPTURE_REASON:" + detail[:100])
+            return output
+
         with (patch.object(prepare_native_lot, "ROOT", working),
               patch.object(registration, "ROOT", working),
-              patch.object(registration, "WORKER", working / "pilot/worker_v08")):
+              patch.object(registration, "WORKER", working / "pilot/worker_v08"),
+              patch.object(export_task_pack, "run_worker", side_effect=assert_worker_capture)):
             result = prepare_native_lot.run(
                 working, run_id, "SOL-001", task_name, template, holdout, [])
 
