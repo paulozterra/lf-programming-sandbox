@@ -128,9 +128,17 @@ class PinnedSource(unittest.TestCase):
             prefix = ".lf/worker-context/cp16" + area.lower() + "/"
             rule = json.loads(artifacts[prefix + "lf_rules.receipt.json"])
             self.assertTrue(rule["rule_ids"])
-            self.assertEqual(
-                rule["assembled_sha256"],
+            # The authoritative assembly hash is immutable; only the
+            # Worker-facing copy may redact vendor-detected example literals.
+            meta = json.loads(artifacts[prefix + "receipt.json"])[
+                "lf_rules_worker_safety"]
+            self.assertEqual(rule["assembled_sha256"], meta["source_sha256"])
+            self.assertEqual(meta["worker_sha256"],
                 hashlib.sha256(artifacts[prefix + "lf_rules.md"]).hexdigest())
+            self.assertTrue(meta["vendor_secret_scanner_passed"])
+            from programming_agent_runner.worker_secrets import secret_text_reason
+            self.assertIsNone(secret_text_reason(
+                artifacts[prefix + "lf_rules.md"].decode("utf-8")))
             self.assertEqual(result["protected_path_patterns"].count(
                 prefix + "lf_rules.md"), 1)
             self.assertNotIn(prefix + "lf_rules.md", result["write_path_patterns"])
@@ -251,9 +259,16 @@ class PinnedSource(unittest.TestCase):
             self.assertIn(prefix + "lf_rules.receipt.json", artifacts)
             lf_receipt = json.loads(artifacts[prefix + "lf_rules.receipt.json"])
             self.assertTrue(lf_receipt["rule_ids"])
+            rule_safety = json.loads(artifacts[prefix + "receipt.json"])[
+                "lf_rules_worker_safety"]
+            self.assertEqual(lf_receipt["assembled_sha256"],
+                             rule_safety["source_sha256"])
             self.assertEqual(hashlib.sha256(
                 artifacts[prefix + "lf_rules.md"]).hexdigest(),
-                lf_receipt["assembled_sha256"])
+                rule_safety["worker_sha256"])
+            from programming_agent_runner.worker_secrets import secret_text_reason
+            self.assertIsNone(secret_text_reason(
+                artifacts[prefix + "lf_rules.md"].decode("utf-8")))
             self.assertIn(prefix + "lf_rules.md", enriched["context_path_patterns"])
             self.assertIn(prefix + "lf_rules.md", enriched["protected_path_patterns"])
             self.assertNotIn(prefix + "lf_rules.md", enriched["write_path_patterns"])
