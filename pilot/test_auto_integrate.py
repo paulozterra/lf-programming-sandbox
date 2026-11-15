@@ -147,6 +147,19 @@ class PolicyTests(unittest.TestCase):
         newer = checks() + [{**checks()[0], "id": 400, "conclusion": "failure"}]
         self.blocked("CHECKS_NOT_GREEN", lambda: ai.validate_checks(newer, HEAD))
 
+    def test_policy_c_ignores_unexecuted_newer_checks_but_not_executed_failure(self):
+        green = checks()
+        ghosts = [{**green[0], "id": 999, "conclusion": "action_required"},
+                  {**green[1], "id": 998, "conclusion": "skipped"},
+                  {**green[2], "id": 997, "conclusion": "neutral"},
+                  {**green[3], "id": 996, "conclusion": "cancelled"}]
+        result = ai.validate_checks(green + ghosts, HEAD)
+        self.assertEqual(result[green[0]["name"]], green[0]["id"])
+        self.assertEqual(result[green[3]["name"]], green[3]["id"])
+        red = [{**green[0], "id": 1000, "conclusion": "failure"}]
+        self.blocked("CHECKS_NOT_GREEN",
+                     lambda: ai.validate_checks(green + ghosts + red, HEAD))
+
     def test_attempt_three_comment_and_no_label(self):
         api = FakeAPI(pr(), paths(), checks())
         with patch.object(ai, "artifact_json", side_effect=[proof(3), status(3)]):
