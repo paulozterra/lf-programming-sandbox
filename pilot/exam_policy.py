@@ -41,6 +41,7 @@ def verify_issue(api, branch, paths, author):
         raise ExamBlocked("EXAM_REQUEST_UNVERIFIED")
     selected = [x for x in issues if isinstance(x, dict)
                 and x.get("state") == "open"
+                and x.get("user", {}).get("login") == "github-actions[bot]"
                 and x.get("title") == f"EXAM_REQUEST: {task}"
                 and any(label.get("name") == "exam-request"
                         for label in x.get("labels", []))
