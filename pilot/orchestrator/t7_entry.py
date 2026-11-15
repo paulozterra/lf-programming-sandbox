@@ -16,6 +16,7 @@ from analysis.host.request_catalog import resolve, CatalogueBlocked
 from analysis.host.run_a1_a9_fixture import run_f4
 from pilot.orchestrator import atomize, plan_lots, generate_chain, intake
 from pilot.orchestrator.reuse_assessment import write_assessment, ReuseBlocked
+from pilot.orchestrator.analysis_report import write as write_analysis_report, ReportBlocked
 
 SAFE = re.compile(r"[a-z][a-z0-9_-]{0,63}\Z")
 
@@ -61,6 +62,7 @@ def process(root: Path, slug: str, base_sha: str) -> dict:
     if not decisions or len(decisions) != len(package.get("requirements", [])):
         raise EntryBlocked("REUTILIZACION_INDETERMINADA")
     if all(row["decision"] == "REUSE_AS_IS" for row in decisions):
+        write_analysis_report(root, slug, source)
         return {"request": slug, "screen": code, "status": "REUSE_AS_IS",
                 "obligations": len(decisions), "lots": 0}
     # Existing planning stages are reused verbatim. No fictional new area,
@@ -75,6 +77,7 @@ def process(root: Path, slug: str, base_sha: str) -> dict:
         target.write_bytes(content)
     lots = plan_lots.plan(root, slug)
     chain = generate_chain.generate(root, slug, lots)
+    write_analysis_report(root, slug, source)
     return {"request": slug, "screen": code, "status": "LOTS_PLANNED",
             "lots": len(lots["lots"]), "tasks": len(chain["bindings"])}
 
@@ -87,7 +90,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         value = process(args.root.resolve(), args.request_id, args.base_head_sha)
-    except (EntryBlocked, CatalogueBlocked, ReuseBlocked, ValueError,
+    except (EntryBlocked, CatalogueBlocked, ReuseBlocked, ReportBlocked, ValueError,
             KeyError, TypeError, OSError) as exc:
         text = str(exc).split(":", 1)[0]
         print("T7_BLOCKED:" + text, file=sys.stderr)

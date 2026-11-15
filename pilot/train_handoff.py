@@ -223,6 +223,11 @@ def merged_request_slug(pr: dict, sha: str) -> str:
     return slugs.pop()
 
 
+def comment_analysis_report(api: Github, sha: str, slug: str) -> str:
+    from pilot.analysis_report_notification import comment
+    return comment(api, sha, slug, git)
+
+
 def dispatch(api: Github, number: int, sha: str, train_run_id: int,
              mapping: dict):
     pr = api.call("GET", f"/pulls/{number}")
@@ -239,6 +244,9 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
     slug_for_stage = (merged_request_slug(pr, sha)
                       if item.get("correlate_request_slug") else None)
     # All Train merges get their own CI. The gate is closed BEFORE CP3.6.
+    if item["workflow"] == "chain-lots.yml" and re.fullmatch(
+            r"lf/generated-t7/[0-9a-f]{12}", branch):
+        comment_analysis_report(api, sha, slug_for_stage)
     ci = ensure_main_ci(api, sha, required=item["requires_green_base"])
     if item["input_kind"] == "slug":
         slug = match.group(1)

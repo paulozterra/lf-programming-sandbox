@@ -162,7 +162,8 @@ class Tests(unittest.TestCase):
         api=API([None, ci_run()])
         with patch.object(handoff, "git", return_value=SHA), \
              patch.object(handoff, "validate_train_run"), \
-             patch.object(handoff, "merged_request_slug", return_value="req-175"):
+             patch.object(handoff, "merged_request_slug", return_value="req-175"), \
+             patch.object(handoff, "comment_analysis_report"):
             result=handoff.dispatch(api,177,SHA,42,MAPPING)
         paths=[p for method,p,_ in api.calls if method=="POST"]
         self.assertEqual(paths,["/actions/workflows/ci.yml/dispatches",
@@ -174,7 +175,8 @@ class Tests(unittest.TestCase):
         api = API([None, ci_run(conclusion="failure")])
         with patch.object(handoff, "git", return_value=SHA), \
              patch.object(handoff, "validate_train_run"), \
-             patch.object(handoff, "merged_request_slug", return_value="req-175"):
+             patch.object(handoff, "merged_request_slug", return_value="req-175"), \
+             patch.object(handoff, "comment_analysis_report"):
             with self.assertRaisesRegex(handoff.HandoffBlocked,
                                         "BASE_NO_VERDE:.*actions/runs/189"):
                 handoff.dispatch(api, 177, SHA, 42, MAPPING)

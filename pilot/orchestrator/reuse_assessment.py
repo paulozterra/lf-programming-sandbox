@@ -134,6 +134,85 @@ def _requested_endpoint(item: dict) -> str | None:
     return value
 
 
+def _project_patterns() -> dict:
+    """The same versioned path prefixes consumed by the T1/selector bridge."""
+    from pilot.orchestrator.atomize import _rules
+    mapping = _rules().get("project_patterns")
+    if not isinstance(mapping, dict) or set(mapping) != {"BACKEND", "FRONTEND", "DATA"}:
+        raise ReuseBlocked("REUTILIZACION_AREA_NO_DERIVABLE")
+    if any(not isinstance(prefix, str) or not prefix for prefix in mapping.values()):
+        raise ReuseBlocked("REUTILIZACION_AREA_NO_DERIVABLE")
+    return mapping
+
+
+def _path_area(path: str, mapping: dict) -> str:
+    matched = [area for area, prefix in mapping.items()
+               if isinstance(path, str) and path.startswith(prefix)]
+    if len(matched) != 1:
+        raise ReuseBlocked("REUTILIZACION_AREA_NO_DERIVABLE:" + str(path))
+    return matched[0]
+
+
+def _scope_area(obligation: dict) -> str | None:
+    from pilot.orchestrator.declared_dependencies import _req_area
+    return _req_area(obligation)
+
+
+def _restrict_area(row: dict, requirement: dict, patterns: dict) -> dict:
+    """Cross-area evidence is a dependency, NEVER implementation ownership."""
+    area = _scope_area(requirement)
+    if area is None:
+        # Legacy pre-A9 callers have no typed area. Do not infer one from a
+        # filename, but preserve their existing directly tested semantics.
+        return row
+    if area not in patterns:
+        raise ReuseBlocked("REUTILIZACION_AREA_NO_DERIVABLE")
+    ref = ({ "path": row["path"], "sha256": row["sha256"]}
+           if isinstance(row.get("path"), str) and row.get("sha256") else None)
+    sources = [*row.get("reuse_context", []), *([ref] if ref else [])]
+    found = {}
+    for item in sources:
+        if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+            raise ReuseBlocked("REUTILIZACION_INDETERMINADA")
+        found[item["path"]] = {"path": item["path"], "sha256": item.get("sha256")}
+    local, foreign = [], []
+    for item in (found[k] for k in sorted(found)):
+        component_area = _path_area(item["path"], patterns)
+        if component_area == area:
+            local.append(item)
+        else:
+            foreign.append({**item, "role": "DEPENDENCIA",
+                            "component_area": component_area})
+    # Always show the source's other area, even when an area-local extension
+    # exists. These are read-only dependencies, not satisfied requirements.
+    if foreign:
+        reason = "REUSE_AREA_DISTINTA:" + ",".join(sorted({
+            item["component_area"] for item in foreign}))
+        row["reason"] = reason
+        row["evidence"] = {**row["evidence"], "reason": reason}
+    if not local and row["decision"] in ("REUSE_AS_IS", "EXTEND"):
+        row.update(decision="BUILD_NEW", path=None, sha256=None,
+                   write_paths=[], reuse_context=foreign)
+        return row
+    if local:
+        paths = {x["path"] for x in local}
+        if row["decision"] == "EXTEND":
+            writable = sorted(set(row.get("write_paths", [])) & paths)
+            if not writable:
+                # A foreign-only writable component cannot count as EXTEND.
+                row.update(decision="BUILD_NEW", path=None, sha256=None,
+                           write_paths=[], reuse_context=local + foreign)
+                return row
+            row["write_paths"] = writable
+            row["reuse_context"] = [
+                x for x in local if x["path"] not in writable] + foreign
+        else:
+            row["reuse_context"] = local + foreign
+        owner = next((x for x in local if x["path"] == row.get("path")), local[0])
+        row["path"], row["sha256"] = owner["path"], owner["sha256"]
+    return row
+
+
 def assess(index_obj: dict, obligations: list[dict], *,
            current_paths: list[str] | None = None,
            registry: dict | None = None, root: Path | None = None,
@@ -232,6 +311,9 @@ def assess(index_obj: dict, obligations: list[dict], *,
                                   "index_entries_checked": len(index_obj["entries"]),
                                   "registry_entries_checked": len(registry["entries"])},
                      "reuse_context": []})
+    patterns = _project_patterns()
+    rows = [_restrict_area(row, obligation, patterns)
+            for row, obligation in zip(rows, obligations, strict=True)]
     return {"schema_version": "T7_REUSE_ASSESSMENT_V1", "obligations": rows}
 
 

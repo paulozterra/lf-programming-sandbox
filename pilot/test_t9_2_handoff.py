@@ -51,7 +51,8 @@ class HandoffTests(unittest.TestCase):
              patch.object(handoff, "validate_train_run"), \
              patch.object(handoff, "validate_request_paths"), \
              patch.object(handoff, "ensure_main_ci", return_value={"status":"MAIN_CI_GREEN"}), \
-             patch.object(handoff, "merged_request_slug", return_value="req-987"):
+             patch.object(handoff, "merged_request_slug", return_value="req-987"), \
+             patch.object(handoff, "comment_analysis_report"):
             result = handoff.dispatch(api, PR, SHA, 12345, ROUTES)
         return result, api.writes
 

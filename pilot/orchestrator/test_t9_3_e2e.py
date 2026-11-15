@@ -26,6 +26,13 @@ def test_synthetic_trusted_handoff_to_t7_lots_planned(tmp_path):
     slug = "t72-after"
     folder = tmp_path / "pilot/runs" / slug
     assert (folder / "request.md").exists()
+    # T10 report renders provenance from the request's actual metadata, not
+    # inferred author/issue/date. The temporary fixture supplies it explicitly.
+    (folder / "request_meta.json").write_text(json.dumps({
+        "author": "synthetic-bot", "issue": 987654,
+        "date": "2026-11-14T00:00:00Z"
+    }), encoding="utf-8")
+
     # Same published registry contract as T7, empty for this isolated synthetic
     # repository. Never import any historical real request or user registry.
     registry = tmp_path / "pilot/registry/implemented.json"
@@ -62,6 +69,7 @@ def test_synthetic_trusted_handoff_to_t7_lots_planned(tmp_path):
     assert completed.returncode == 0, completed.stderr
     output = json.loads(completed.stdout.strip().splitlines()[-1])
     assert output["status"] == "LOTS_PLANNED", output
+    assert (folder / "ANALYSIS_REPORT.md").is_file()
     state = json.loads((folder / "state.json").read_text(encoding="utf-8"))
     lots = json.loads((folder / "lots.json").read_text(encoding="utf-8"))
     assert state["stage"] == "LOTS_PLANNED"
