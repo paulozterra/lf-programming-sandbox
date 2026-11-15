@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0118",
+  "title": "T14: selección y cierre de exam-request por evidencia de registro",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T14 owner request; CP3.6 EXAM_REQUEST_CLOSED_UNVERIFIED with multiple issues"
+  },
+  "reason": "Elegir solicitud de examen por estado verificado, priorizar abierta sobre duplicados cerrados, reabrir nueva si solo hay duplicados, y completar issue solamente después del registro en main; pruebas adversariales offline y corrección SyntaxWarning.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/native_verified_integration.py",
+      "pilot/test_t14_exam_requests.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0118.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/199"
+  }
+}
