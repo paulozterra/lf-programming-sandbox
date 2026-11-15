@@ -19,6 +19,7 @@
       "pilot/test_t15_sweep.py",
       "pilot/test_t9_2_handoff.py",
       "pilot/test_t9_5_main_ci.py",
+      "pilot/test_workflow_base_ci.py",
       "pilot/train_handoff.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0119.json"
