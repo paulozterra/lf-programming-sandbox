@@ -270,6 +270,8 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
         inputs = {"source_run_id": str(train_run_id),
                   "merge_pr": str(number), "request_slug": slug_for_stage,
                   "base_sha": sha}
+        if re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+            inputs["new_plan_request"] = slug_for_stage
     elif item["input_kind"] == "integration_pr":
         inputs = {"integration_pr": str(number), "request_slug": slug_for_stage,
                   "base_sha": sha}
