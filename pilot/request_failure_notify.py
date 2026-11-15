@@ -9,7 +9,7 @@ import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
-from pilot.generated_ci_selection import last_executed_ci_run
+from generated_ci_selection import last_executed_ci_run
 
 REPO = "paulozterra/lf-programming-sandbox"
 ROUTES = {
