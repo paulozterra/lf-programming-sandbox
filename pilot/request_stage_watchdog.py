@@ -44,7 +44,7 @@ def request_slugs(pr: dict, merge_sha: str) -> tuple[str, list[str]] | None:
     if m := re.fullmatch(r"lf/request/(req-[1-9][0-9]*)", branch):
         return "REQUEST_MERGED", [m.group(1)]
     paths = git("diff", "--name-only", merge_sha + "^1", merge_sha).splitlines()
-    if re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+    if re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch):
         slugs = sorted({m.group(1) for p in paths
                         if (m := re.fullmatch(r"pilot/runs/(req-[1-9][0-9]*)/(?:state[.]json|analysis[.]json|lots[.]json|chain_plan[.]json)", p))})
         return ("ANALYSIS_MERGED", slugs) if slugs else None
