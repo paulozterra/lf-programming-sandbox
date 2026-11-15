@@ -70,8 +70,9 @@ class SweepTests(unittest.TestCase):
         prepare.assert_called_once()
         # The T17 sweep must share the same mocked GitHub boundary as CP3.6,
         # not run a real gh command from the offline T15 fixture.
-        github_commands.assert_called_once()
-        self.assertEqual(github_commands.call_args.args[:3], ("gh", "pr", "list"))
+        self.assertGreaterEqual(github_commands.call_count, 2)
+        self.assertTrue(all(call.args[:3] == ("gh", "pr", "list")
+                            for call in github_commands.call_args_list))
         github_api.assert_not_called()
 
     def test_closed_discarded_request_ignored(self):
