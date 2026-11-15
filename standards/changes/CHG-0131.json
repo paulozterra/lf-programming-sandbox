@@ -38,6 +38,8 @@
       "pilot/orchestrator/bot_ci_retry.py",
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/test_t17_recovery_watchdog.py",
+      "pilot/orchestrator/test_t18_1_sweep_isolation.py",
+      "pilot/orchestrator/test_t18_task_pack_publication.py",
       "pilot/orchestrator/test_t20_bot_ci_retry.py",
       "pilot/request_failure_notify.py",
       "pilot/test_t15_sweep.py",
