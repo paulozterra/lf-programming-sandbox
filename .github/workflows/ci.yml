@@ -28,7 +28,7 @@ jobs:
   t9-request-equality:
     name: T9 request content byte equality
     if: startsWith(github.head_ref || github.ref_name, 'lf/request/')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -50,7 +50,7 @@ jobs:
 
   backend:
     name: backend (Maven verify)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       DB_URL: jdbc:postgresql://127.0.0.1:5432/lf_ci
       DB_USERNAME: pilot
@@ -103,7 +103,7 @@ jobs:
 
   frontend:
     name: frontend (lint, tipos, build)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -130,7 +130,7 @@ jobs:
 
   standards-catalog:
     name: estándares (catálogo y checks)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       policy_c_notify: ${{ steps.policy_c_branch.outputs.accepted }}
     steps:
@@ -260,7 +260,7 @@ jobs:
     if: >-
       startsWith(github.head_ref || github.ref_name, 'lf/generated-t7/') ||
       startsWith(github.head_ref || github.ref_name, 'lf/implemented-registry/')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -289,7 +289,7 @@ jobs:
 
   t7-registry-history:
     name: T7 registry reconstructed from exact historical Train merges
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -343,7 +343,7 @@ jobs:
 
   t5-browser-visible:
     name: T5 Playwright Chromium local app (visible only)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       DB_URL: jdbc:postgresql://127.0.0.1:5432/pilot
@@ -394,7 +394,7 @@ jobs:
   standards-shadow:
     # D11: modo sombra. Cada paso reporta violaciones pero no bloquea el PR.
     name: estándares (modo sombra)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -425,7 +425,7 @@ jobs:
 
   infra-local:
     name: infra local (docker compose)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       POSTGRES_PASSWORD: ci-only
       KIT_PSQL_MODE: docker
@@ -464,7 +464,7 @@ jobs:
 
   worker-pilot-offline:
     name: Worker pilot (offline budget, policy, vendor integrity)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -573,7 +573,7 @@ jobs:
 
   native-autolaunch-policy:
     name: native push policy (offline only)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -593,7 +593,7 @@ jobs:
 
   lf-producers-pinned:
     name: LF pinned producer integrity and offline suites (no Supabase)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -640,7 +640,7 @@ jobs:
 
   cp3-2-intake:
     name: CP3.2 intake simulated A9 and PG-01 fixture (offline)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -666,7 +666,7 @@ jobs:
   
   cp3-3-planning:
     name: CP3.3 pinned PG02-PG05 and real disposable SQL selector
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -799,7 +799,7 @@ jobs:
       always() && github.event_name == 'workflow_dispatch' &&
       needs.standards-catalog.outputs.policy_c_notify == 'true' &&
       !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     permissions:
       actions: write
