@@ -170,6 +170,7 @@ def test_next_sweep_repairs_registered_task_without_reregistering(tmp_path):
          patch.object(chain_lots, "retire_conflicted_generated", return_value=[]), \
          patch.object(chain_lots, "plans", return_value=[
              (REQ, lots, {"stage": "BLOCKED"}, binding)]), \
+         patch.object(chain_lots, "route_request_metadata", return_value=True), \
          patch.object(chain_lots, "pending_draft", return_value=False), \
          patch.object(chain_lots, "run", return_value=""), \
          patch.object(chain_lots, "legacy_artifact_reference",
