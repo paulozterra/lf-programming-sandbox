@@ -160,6 +160,45 @@ class Tests(unittest.TestCase):
             self.assertEqual(chain_lots.exam_request_matches(
                 state.existing,"task202","req-901")[0]["number"],2001)
 
+    def test_two_concurrent_exam_workers_under_workflow_lock_open_one(self):
+        # Reproduce two jobs arriving concurrently. The shared lock models
+        # the workflow's repository-global concurrency group.
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Lock, Barrier
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            (root/"task.json").write_text(json.dumps({"task_spec":{
+                "write_path_patterns":["contracts/sample.openapi.yaml"],
+                "context_path_patterns":[]}}))
+            git=ExamGit()
+            mutex=Lock()
+            barrier=Barrier(2)
+            binding={"task_name":"task202","template_path":"task.json"}
+            lot={"id":"SOL-1","area":"CONTRATO","requirement_ids":["REQ-ONE"]}
+            def worker():
+                barrier.wait()
+                with mutex:
+                    return chain_lots.request_missing_exam("req-901",binding,lot)
+            with patch.object(chain_lots,"ROOT",root), \
+                 patch.object(chain_lots,"run",side_effect=git):
+                with ThreadPoolExecutor(max_workers=2) as pool:
+                    results=list(pool.map(lambda _:worker(),range(2)))
+            self.assertEqual(git.created,1)
+            self.assertEqual(len(results),2)
+            self.assertTrue(all(x["reason_code"]=="EXAMEN_PENDIENTE" for x in results))
+
+    def test_duplicate_second_intake_event_is_noop(self):
+        first=request(186,"2026-11-15T02:00:00Z")
+        again=request(188,"2026-11-15T02:03:00Z",labels=[
+            {"name":"lf-request"},{"name":"lf-request-duplicate"}])
+        api=IssueAPI([first,again])
+        with patch.object(issue_intake,"git") as git:
+            self.assertEqual(issue_intake.intake(api,{"action":"labeled",
+                 "label":{"name":"lf-request"},"issue":again}),
+                 "PEDIDO_POSIBLE_DUPLICADO")
+            git.assert_not_called()
+        self.assertFalse(api.writes)
+
     def test_exam_closed_only_if_registration_exists(self):
         row={"number":80,"title":"EXAM_REQUEST: task202",
              "body":"- Pedido: `req-901`\n- Task ID: `task202`\n"
