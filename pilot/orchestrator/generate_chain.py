@@ -284,6 +284,9 @@ def generate(root, run, lots):
                         context_paths.append(src)
                     protected.append(src)
             context_paths.append("pilot/runs/"+run+"/reuse_assessment.json")
+        # Every generated task needs an existing public source anchor: the
+        # real Worker rejects empty context_path_patterns.
+        context_paths.append("pilot/runs/" + run + "/analysis.json")
         context_paths=sorted(set(context_paths))
         protected=sorted(set(protected))
         behavior_note = ("; conservar el comportamiento existente: "
