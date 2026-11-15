@@ -62,7 +62,7 @@ class RunnerPins(unittest.TestCase):
         from unittest.mock import patch
         with TemporaryDirectory() as tmp:
             file = Path(tmp) / "sandbox-train.yml"
-            file.write_text("jobs:\\n  merge:\\n    runs-on: ubuntu-latest\\n")
+            file.write_text("jobs:\n  merge:\n    runs-on: ubuntu-latest\n")
             self.assertEqual(verify_runner_pins(Path(tmp)), [
                 "WORKFLOW_RUNNER_FLOTANTE:sandbox-train.yml:merge"])
         with patch(__name__ + "._train_exception_allowed", return_value=False):
