@@ -513,7 +513,7 @@ def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> N
            and (comment.get("user") or {}).get("login") == "github-actions[bot]"):
         return
     run("gh", "issue", "comment", str(number), "--repo", REPO, "--body",
-        marker + "\\nT17.4 watchdog: PR generado #" + str(row["number"])
+        marker + "\nT17.4 watchdog: PR generado #" + str(row["number"])
         + " retirado por conflicto con main. Regeneración no automática ("
         + reason + "); requiere revisión del pedido. Sin etiquetas.")
 
