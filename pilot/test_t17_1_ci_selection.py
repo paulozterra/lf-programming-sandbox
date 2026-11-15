@@ -76,7 +76,9 @@ def test_watchdog_ignores_superseded_failure_by_successful_executed_ci():
         def api(self, method, path):
             assert path.startswith("/actions/workflows/ci.yml/runs?")
             return {"total_count": 2, "workflow_runs": [old, new]}
-    with patch.object(notify, "emit") as emit:
+    with patch.object(notify, "notify_t20_retry_exhaustion",
+                      return_value="T20_NOT_RETRY_EXHAUSTION"), \
+         patch.object(notify, "emit") as emit:
         assert notify.check_run(API(), old) == "RUTA_CI_SUPERADA_O_NO_EJECUTADA"
         emit.assert_not_called()
 
@@ -94,6 +96,8 @@ def test_watchdog_failure_still_reports_when_only_newer_action_required():
             if path.endswith("/jobs?per_page=100"):
                 return {"jobs": []}
             raise AssertionError(path)
-    with patch.object(notify, "emit", return_value="RUTA_NOTIFIED") as emit:
+    with patch.object(notify, "notify_t20_retry_exhaustion",
+                      return_value="T20_NOT_RETRY_EXHAUSTION"), \
+         patch.object(notify, "emit", return_value="RUTA_NOTIFIED") as emit:
         assert notify.check_run(API(), old) == "RUTA_NOTIFIED"
         emit.assert_called_once()
