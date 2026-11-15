@@ -186,6 +186,9 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt pytest==8.4.2
           python3 -m pytest -q pilot/orchestrator/test_t16_worker_schema.py pilot/orchestrator/test_t16_worker_errors.py pilot/orchestrator/test_t16_worker_e2e.py pilot/worker_v08/test_worker_context_safety.py -p no:cacheprovider
+      - name: T17 standards contract for five generated branch types and CI recovery (offline)
+        run: |
+          python3 -m pytest -q pilot/orchestrator/test_t17_generated_standards.py pilot/orchestrator/test_t17_recovery_watchdog.py -p no:cacheprovider
       - name: T13 generated acceptance Python dependency coverage (all areas)
         run: |
           python3 -m pilot.orchestrator.worker_python_dependencies
