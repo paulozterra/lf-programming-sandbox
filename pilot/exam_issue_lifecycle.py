@@ -21,6 +21,7 @@ def issue_for(api, task: str, slug: str) -> dict | None:
         raise LifecycleBlocked("EXAM_REQUEST_UNVERIFIED")
     matches = [issue for issue in issues if isinstance(issue, dict)
                and issue.get("state") == "open"
+               and issue.get("user", {}).get("login") == "github-actions[bot]"
                and issue.get("title") == f"EXAM_REQUEST: {task}"
                and any(row.get("name") == "exam-request"
                        for row in issue.get("labels", []))
