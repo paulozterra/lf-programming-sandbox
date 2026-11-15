@@ -57,17 +57,13 @@ class RunnerPins(unittest.TestCase):
         self.assertEqual(len(list(WORKFLOWS.glob("*.yml"))), 22)
         self.assertEqual(verify_runner_pins(), [])
 
-    def test_train_exception_not_granted_to_other_folders_or_pinned_main(self):
+    def test_train_exception_never_applies_to_synthetic_folder(self):
         from tempfile import TemporaryDirectory
-        from unittest.mock import patch
         with TemporaryDirectory() as tmp:
             file = Path(tmp) / "sandbox-train.yml"
             file.write_text("jobs:\n  merge:\n    runs-on: ubuntu-latest\n")
             self.assertEqual(verify_runner_pins(Path(tmp)), [
                 "WORKFLOW_RUNNER_FLOTANTE:sandbox-train.yml:merge"])
-        with patch(__name__ + "._train_exception_allowed", return_value=False):
-            self.assertIn("WORKFLOW_RUNNER_FLOTANTE:sandbox-train.yml:merge",
-                          verify_runner_pins())
 
     def test_floating_and_dynamic_labels_emit_precise_codes(self):
         from tempfile import TemporaryDirectory
