@@ -38,3 +38,25 @@ def validate_template_worker(template: dict, area: str, *, pending_shas: bool = 
             raise TaskSpecError("Worker roundtrip drift")
     except (TaskSpecError, ValueError, TypeError, KeyError) as exc:
         raise ValueError("TEMPLATE_WORKER_SCHEMA_INVALID:" + area) from exc
+
+
+def normalize_legacy_registration_template(template: dict, area: str) -> dict:
+    """Accept only the known pre-T16 trace outside the Worker task contract.
+
+    Needed for already-approved pending plans generated before T16. The
+    original committed templates remain untouched; this normalization occurs
+    solely in the disposable preparation worktree before registration. A
+    different extra field or an altered trace cannot be silently discarded.
+    """
+    from copy import deepcopy
+
+    normalized = deepcopy(template)
+    spec = normalized.get("task_spec") if isinstance(normalized, dict) else None
+    if not isinstance(spec, dict):
+        raise ValueError("TEMPLATE_WORKER_SCHEMA_INVALID:" + str(area))
+    if "context_derivation" in spec:
+        trace = spec.pop("context_derivation")
+        if trace != "pilot/worker_v08/derive_context.py":
+            raise ValueError("TEMPLATE_WORKER_SCHEMA_INVALID:" + str(area))
+    validate_template_worker(normalized, area)
+    return normalized
