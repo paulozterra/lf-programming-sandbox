@@ -163,6 +163,22 @@ def intake(api: API, event: dict):
     existing = api.call("GET", f"/pulls?state=all&head=paulozterra:{branch}&per_page=100")
     if existing:
         return "PEDIDO_YA_REGISTRADO"
+    # Only a deliberate unlabeled event removing the duplicate marker can
+    # override this decision. An ordinary opened/labeled event cannot.
+    force = (event.get("action") == "unlabeled" and
+             event.get("label", {}).get("name") == "lf-request-duplicate" and
+             not any(row.get("name") == "lf-request-duplicate"
+                     for row in issue.get("labels", [])))
+    if not force:
+        from pilot.request_duplicate import candidate, mark, DuplicateBlocked
+        try:
+            original = candidate(api, issue, request_text(issue.get("body")),
+                                 root=Path(__file__).resolve().parents[2])
+        except DuplicateBlocked as exc:
+            raise Blocked(str(exc)) from exc
+        if original is not None:
+            mark(api, info["issue"], original)
+            return "PEDIDO_POSIBLE_DUPLICADO"
     git("fetch", "--no-tags", "origin", "main")
     git("switch", "-c", branch, "origin/main")
     for path, raw in files.items():
@@ -192,9 +208,10 @@ def main():
         raise Blocked("PEDIDO_REPOSITORIO_INVALIDO")
     event = json.loads(Path(args.event).read_text(encoding="utf-8"))
     action = event.get("action")
-    if action not in ("opened", "labeled"):
+    if action not in ("opened", "labeled", "unlabeled"):
         raise Blocked("PEDIDO_EVENTO_INVALIDO")
-    if action == "labeled" and event.get("label", {}).get("name") != "lf-request":
+    if action in ("labeled", "unlabeled") and event.get("label", {}).get("name") != (
+            "lf-request" if action == "labeled" else "lf-request-duplicate"):
         return
     print(intake(API(os.environ.get("GH_TOKEN", "")), event))
 
