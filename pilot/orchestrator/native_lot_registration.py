@@ -276,7 +276,8 @@ def export_lot(root: Path, folder: Path, lot: dict, mapped: dict,
     target = pack_dir / (task_name + ".proposal-request.json")
     if target.exists() or target.is_symlink():
         blocked("CP34_REQUEST_EXISTS")
-    target.write_bytes(canonical(request))
+    from native_submission_contract import enrich_request
+    target.write_bytes(canonical(enrich_request(request, spec)))
     return request
 
 
