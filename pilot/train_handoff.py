@@ -198,7 +198,7 @@ def ensure_main_ci(api: Github, sha: str, *, required: bool,
 def merged_request_slug(pr: dict, sha: str) -> str:
     """Attribute verified Train merger to one request via its Git delta only."""
     branch = pr["head"]["ref"]
-    if re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+    if re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch):
         changed = git("diff", "--name-only", sha + "^1", sha).splitlines()
         slugs = {m.group(1) for path in changed
                  if (m := re.fullmatch(r"pilot/runs/(req-[1-9][0-9]*)/(?:analysis|state|lots|chain_plan)[.]json", path))}
@@ -259,7 +259,7 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
                       if item.get("correlate_request_slug") else None)
     # All Train merges get their own CI. The gate is closed BEFORE CP3.6.
     if item["workflow"] == "chain-lots.yml" and re.fullmatch(
-            r"lf/generated-t7/[0-9a-f]{12}", branch):
+            r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch):
         comment_analysis_report(api, sha, slug_for_stage)
     ci = ensure_main_ci(api, sha, required=item["requires_green_base"])
     if item["input_kind"] == "slug":
@@ -270,7 +270,7 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
         inputs = {"source_run_id": str(train_run_id),
                   "merge_pr": str(number), "request_slug": slug_for_stage,
                   "base_sha": sha}
-        if re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+        if re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch):
             inputs["new_plan_request"] = slug_for_stage
     elif item["input_kind"] == "integration_pr":
         inputs = {"integration_pr": str(number), "request_slug": slug_for_stage,
