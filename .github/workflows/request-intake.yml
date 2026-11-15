@@ -2,20 +2,21 @@ name: T9 issue request intake
 run-name: T9 intake req-${{ github.event.issue.number }}
 on:
   issues:
-    types: [opened, labeled]
+    types: [opened, labeled, unlabeled]
 permissions:
   contents: write
   pull-requests: write
   issues: write
   actions: write
 concurrency:
-  group: lf-request-issue-${{ github.event.issue.number }}
+  group: lf-request-intake-global
   cancel-in-progress: false
 jobs:
   intake:
     if: >-
       github.event.action == 'opened' ||
-      (github.event.action == 'labeled' && github.event.label.name == 'lf-request')
+      (github.event.action == 'labeled' && github.event.label.name == 'lf-request') ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'lf-request-duplicate')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -35,7 +36,7 @@ jobs:
           result="$(python3 -m pilot.workflow_entrypoint pilot/orchestrator/issue_intake.py)"
           printf '%s\n' "$result"
           # opened + labeled both fire; only the run that created the PR dispatches ci.
-          if [ "$result" = "PEDIDO_YA_REGISTRADO" ]; then
+          if [ "$result" = "PEDIDO_YA_REGISTRADO" ] || [ "$result" = "PEDIDO_POSIBLE_DUPLICADO" ]; then
             echo "created=false" >> "$GITHUB_OUTPUT"
           else
             echo "created=true" >> "$GITHUB_OUTPUT"

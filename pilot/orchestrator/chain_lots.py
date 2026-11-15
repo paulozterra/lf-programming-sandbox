@@ -372,13 +372,45 @@ def pending_draft(prefix: str) -> bool:
                for item in rows)
 
 
-def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
-    """Issue public EXAM_REQUEST once, leaving the lot fail-closed.
+def exam_issue_marker(task: str) -> str:
+    if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task):
+        deny("EXAM_REQUEST_TASK_INVALID")
+    return f"<!-- LF_EXAM_REQUEST_TASK:{task} -->"
 
-    Never reads holdout ciphertext or examiner metadata, and never attaches
-    any GitHub label to the registration PR.
+
+def exam_request_matches(rows: list, task: str, request: str) -> list:
+    marker = exam_issue_marker(task)
+    title = "EXAM_REQUEST: " + task
+    if not isinstance(rows, list) or len(rows) >= 100:
+        deny("EXAM_REQUEST_LIST_UNTRUSTED")
+    matches = []
+    for row in rows:
+        if not isinstance(row, dict):
+            deny("EXAM_REQUEST_LIST_UNTRUSTED")
+        if row.get("title") != title and marker not in str(row.get("body", "")):
+            continue
+        body = row.get("body")
+        if (row.get("title") != title or not isinstance(body, str)
+                or f"- Task ID: `{task}`" not in body
+                or f"- Pedido: `{request}`" not in body
+                or (marker not in body and "Solicitud automática de examen independiente (T4)." not in body)):
+            deny("EXAM_REQUEST_IDENTITY_CONFLICT")
+        matches.append(row)
+    if len(matches) > 1:
+        deny("EXAM_REQUEST_DUPLICATE")
+    return matches
+
+
+def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
+    """Serialized CP3.6 stage: one exam issue per exact task identity.
+
+    CP3.6's global concurrency group is stronger than a per-request lock:
+    two requests never execute this check+create concurrently. Never read
+    ciphertext; published marker and public task skeleton only.
     """
     title, body = public_exam_request(ROOT, request, binding, lot)
+    task = binding["task_name"]
+    body += "\n\n" + exam_issue_marker(task) + "\n"
     labels = json.loads(run("gh", "label", "list", "--repo", REPO,
                             "--search", "exam-request", "--limit", "100",
                             "--json", "name"))
@@ -389,20 +421,31 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
         run("gh", "label", "create", "exam-request", "--repo", REPO,
             "--description", "Independent encrypted examination requested",
             "--color", "D4C5F9")
-    existing = json.loads(run("gh", "issue", "list", "--repo", REPO,
-                              "--state", "all", "--label", "exam-request",
-                              "--limit", "100", "--json", "title,number"))
-    if not isinstance(existing, list) or len(existing) >= 100:
-        deny("EXAM_REQUEST_LIST_UNTRUSTED")
-    matches = [row for row in existing
-               if isinstance(row, dict) and row.get("title") == title]
-    if len(matches) > 1:
-        deny("EXAM_REQUEST_DUPLICATE")
-    if not matches:
-        run("gh", "issue", "create", "--repo", REPO, "--title", title,
-            "--body", body, "--label", "exam-request")
+    # Use the complete current API issue state, including body. GitHub issues
+    # have unique numbers but NOT unique titles, so a title-only lookup is
+    # insufficient for correctness and closed-success idempotency.
+    existing = json.loads(run("gh", "api",
+                              f"repos/{REPO}/issues?state=all&labels=exam-request&per_page=100"))
+    matches = exam_request_matches(existing, task, request)
+    if matches:
+        found = matches[0]
+        state = found.get("state")
+        if state in ("OPEN", "open"):
+            return {"status": "BLOCKED", "reason_code": "EXAMEN_PENDIENTE",
+                    "task": task, "exam_issue": found.get("number")}
+        # A completed registration on current main is needed to regard a
+        # closed issue as terminal. Closure alone cannot skip an exam.
+        if (state in ("CLOSED", "closed")
+                and (found.get("state_reason") == "completed"
+                     or found.get("stateReason") == "COMPLETED")
+                and (ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")).is_file()):
+            return {"status": "EXAM_ALREADY_REGISTERED",
+                    "task": task, "exam_issue": found.get("number")}
+        deny("EXAM_REQUEST_CLOSED_UNVERIFIED")
+    run("gh", "issue", "create", "--repo", REPO, "--title", title,
+        "--body", body, "--label", "exam-request")
     return {"status": "BLOCKED", "reason_code": "EXAMEN_PENDIENTE",
-            "task": binding["task_name"]}
+            "task": task}
 
 
 def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict]:

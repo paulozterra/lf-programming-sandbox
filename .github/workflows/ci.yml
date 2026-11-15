@@ -172,6 +172,10 @@ jobs:
         run: |
           python3 -m unittest discover -s pilot -p 'test_workflow_python_commands.py' -v
           python3 -m pilot.workflow_python_commands
+      - name: T12 concurrent request recovery and exam issue idempotence
+        run: |
+          python3 -m pip install --disable-pip-version-check --no-input PyYAML==6.0.3
+          python3 -m unittest discover -s pilot -p 'test_t12_concurrency.py' -v
       - name: T11 API field naming and independent exam orchestration (offline)
         run: |
           python3 -m pip install --disable-pip-version-check --no-input pytest==8.4.2 jsonschema==4.25.1 openapi-spec-validator==0.7.2 PyYAML==6.0.3

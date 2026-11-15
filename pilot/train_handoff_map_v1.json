@@ -9,7 +9,7 @@
       "correlate_request_slug": false
     },
     {
-      "branch_regex": "^lf/generated-t7/[0-9a-f]{12}$",
+      "branch_regex": "^lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?$",
       "workflow": "chain-lots.yml",
       "input_kind": "train_run_id",
       "requires_green_base": true,

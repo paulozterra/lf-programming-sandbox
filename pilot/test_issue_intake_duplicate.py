@@ -29,6 +29,8 @@ class Fake:
     def call(self, method, path, payload=None):
         if method == "GET" and path.startswith("/pulls?state=all"):
             return [self.pr] if self.pr is not None else []
+        if method == "GET" and path.startswith("/issues?state=open&labels=lf-request&"):
+            return []  # no competing open request in this legacy single-issue case
         if method == "POST" and path == "/pulls":
             self.created += 1
             self.pr = {"html_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/170"}

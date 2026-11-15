@@ -78,7 +78,7 @@ def eligible_pr(pr, paths, repo=REPOSITORY, api=None):
         kind = "integration"
     elif examiner:
         kind = "exam"
-    elif re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+    elif re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch):
         kind = "generated-t7"
     elif re.fullmatch(r"lf/implemented-registry/[0-9a-f]{12}", branch):
         kind = "implemented-registry"
@@ -360,7 +360,8 @@ def verify_generated_content(api, pr, paths, kind):
     main = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, text=True,
                           capture_output=True, check=True).stdout.strip()
     if (not SHA.fullmatch(main) or not head or
-            pr["head"]["ref"].rsplit("/", 1)[-1] != main[:12]):
+            not re.fullmatch(re.escape(main[:12]) + r"(?:-req-[1-9][0-9]*)?",
+                             pr["head"]["ref"].rsplit("/", 1)[-1])):
         block("GENERATED_CONTENT_DRIFT")
     # Invoked as a script (python3 pilot/...), so sys.path[0] is pilot/, not
     # the repository root that owns the `pilot` and `analysis` packages.
@@ -458,6 +459,66 @@ def comment_once(api, pr_number):
     api.request("POST", f"/issues/{pr_number}/comments", {"body": HUMAN_COMMENT})
 
 
+def stale_generated_origin(branch: str, main: str) -> bool:
+    match = re.fullmatch(r"lf/generated-t7/([0-9a-f]{12})(?:-req-[1-9][0-9]*)?",
+                         branch)
+    if not match or not SHA.fullmatch(main):
+        block("GENERATED_CONTENT_DRIFT")
+    return match.group(1) != main[:12]
+
+
+def original_request_merge(slug: str, root: Path) -> str:
+    # The immutable request.md was introduced by an earlier Train merge.
+    # Re-check that introduction and its first-parent history before dispatch.
+    if not re.fullmatch(r"req-[1-9][0-9]*", slug):
+        block("GENERATED_REQUEST_SCOPE_INVALID")
+    history = subprocess.run(
+        ["git", "log", "--first-parent", "--format=%H", "--",
+         f"pilot/runs/{slug}/request.md"], cwd=root,
+        capture_output=True, text=True, check=True).stdout.splitlines()
+    if len(history) != 1 or not SHA.fullmatch(history[0]):
+        block("GENERATED_REQUEST_MERGE_UNVERIFIED")
+    sha = history[0]
+    summary = subprocess.run(["git", "show", "-s", "--format=%s", sha],
+                             cwd=root, capture_output=True, text=True, check=True).stdout.strip()
+    if not re.fullmatch(r"Merge PR #[1-9][0-9]* via sandbox-train", summary):
+        block("GENERATED_REQUEST_MERGE_UNVERIFIED")
+    return sha
+
+
+def recover_stale_generated(api, pr, paths):
+    # Old generated content may be correct for its own base. The current main
+    # changes its meaning; never label or merge that old content unchanged.
+    root = Path(__file__).resolve().parents[1]
+    main = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, text=True,
+                          capture_output=True, check=True).stdout.strip()
+    branch = pr["head"]["ref"]
+    if not stale_generated_origin(branch, main):
+        return None
+    ref = api.request("GET", "/git/ref/heads/main").get("object", {}).get("sha")
+    if ref != main:
+        block("MAIN_DRIFT")
+    slugs = sorted({p.split("/")[2] for p in paths})
+    if len(slugs) != 1 or not re.fullmatch(r"req-[1-9][0-9]*", slugs[0]):
+        block("GENERATED_REQUEST_SCOPE_INVALID")
+    slug = slugs[0]
+    if branch.endswith("-req-" + slug[4:]) is False and re.search(r"-req-[1-9][0-9]*$", branch):
+        block("GENERATED_REQUEST_SCOPE_INVALID")
+    source = original_request_merge(slug, root)
+    number = pr["number"]
+    # The open PR is closed before a fresh rerun. The action is audit-visible,
+    # and the workflow dispatch uses only trusted main and original source.
+    api.request("PATCH", f"/pulls/{number}", {"state": "closed"})
+    api.request("POST", f"/issues/{number}/comments",
+                {"body": f"T12: Análisis obsoleto tras avance de main a `{main}`. "
+                         f"Se cierra este candidato y se vuelve a ejecutar T7 "
+                         f"para `{slug}` desde el pedido original `{source}`."})
+    api.request("POST", "/actions/workflows/t7-request.yml/dispatches",
+                {"ref": "main", "inputs": {"slug": slug, "merge_sha": source,
+                                            "rerun": "true"}})
+    return "STALE_CLOSED_T7_REDISPATCHED"
+
+
 def evaluate_one(api, number):
     pr = api.request("GET", f"/pulls/{number}")
     paths = pr_files(api, number)
@@ -465,6 +526,10 @@ def evaluate_one(api, number):
     head = pr["head"]["sha"]
     if kind == "request":
         verify_issue_request(api, pr, paths)
+    if kind == "generated-t7":
+        recovery = recover_stale_generated(api, pr, paths)
+        if recovery:
+            return recovery
     if READY_LABEL in {x.get("name") for x in pr.get("labels", [])}:
         return "ALREADY_LABELED"
     if kind in ("generated-t7", "implemented-registry"):
