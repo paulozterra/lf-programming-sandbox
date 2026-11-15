@@ -518,6 +518,7 @@ def notify_t20_retry_exhaustion(api: Github, run: dict) -> str:
     CI are independently matched, and labels are never changed.
     """
     if ((str(run.get("path") or "").split("@")[0] != ".github/workflows/ci.yml")
+            or run.get("event") != "workflow_dispatch"
             or run.get("status") != "completed"
             or run.get("conclusion") not in ("failure", "timed_out")
             or type(run.get("id")) is not int
