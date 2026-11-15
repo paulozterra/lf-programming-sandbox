@@ -17,7 +17,14 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-from generated_ci_selection import latest_executed_checks
+try:
+    from pilot.generated_ci_selection import latest_executed_checks
+except ModuleNotFoundError as exc:
+    # A standalone script has pilot/ on sys.path but may not have repo root.
+    # Re-raise unrelated module errors; do not hide a broken selector.
+    if exc.name != "pilot":
+        raise
+    from generated_ci_selection import latest_executed_checks
 
 REPOSITORY = "paulozterra/lf-programming-sandbox"
 BOT = "github-actions[bot]"
