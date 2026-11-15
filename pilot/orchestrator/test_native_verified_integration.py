@@ -223,9 +223,12 @@ def test_confirm_class_empty_detected_classes_accepts_editorial(tmp_path):
     results = [subprocess.CompletedProcess(["python3"], 1, output, b""),
                subprocess.CompletedProcess(["python3"], 0, b"{}", b"")]
     with (mocked("native_verified_integration.subprocess.run", side_effect=results) as run,
-          mocked("native_verified_integration.command", return_value=b"") as command):
+          mocked("native_verified_integration.command", return_value=b"") as command,
+          mocked("native_verified_integration.synchronize") as sync):
         confirm_class_after_commit(tmp_path, chg)
     assert json.loads(chg.read_text())["change_class"] == "EDITORIAL"
+    sync.assert_called_once()
+    assert sync.call_args.args[1] == "registry"
     assert run.call_count == 2
     assert command.call_count == 2
 
