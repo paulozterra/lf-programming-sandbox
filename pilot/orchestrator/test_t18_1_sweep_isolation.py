@@ -14,6 +14,14 @@ from pilot import request_failure_notify as notifier
 HEAD = "a" * 40
 
 
+@pytest.fixture(autouse=True)
+def isolate_t20_retry_in_historical_sweep_tests():
+    # The T18.1 tests exercise request-level recovery, while T20 tests own
+    # real/authenticated GitHub CI retry behaviour in a separate suite.
+    with patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]):
+        yield
+
+
 def test_route_requires_valid_issue_metadata_and_original_bot_commit(tmp_path):
     path = tmp_path / "pilot/runs/req-901/request_meta.json"
     path.parent.mkdir(parents=True)
