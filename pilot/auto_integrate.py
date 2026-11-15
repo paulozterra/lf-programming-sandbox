@@ -508,7 +508,8 @@ def run(api, trigger, *, numbers=None, scheduled=False):
         candidates = [row["number"] for row in pulls
                       if isinstance(row, dict) and type(row.get("number")) is int
                       and row.get("head", {}).get("repo", {}).get("full_name") == REPOSITORY
-                      and row.get("user", {}).get("login") == BOT
+                      and (row.get("user", {}).get("login") == BOT
+                           or row.get("head", {}).get("ref", "").startswith("lf/exam/"))
                       and row.get("head", {}).get("ref", "").startswith(
                           ("lf/native-registration/", "lf/native-integration/",
                            "lf/generated-t7/", "lf/implemented-registry/",
