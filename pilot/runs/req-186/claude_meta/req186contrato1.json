@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/req186contrato1.oracle.json.age",
+  "holdout_sha256": "1f793bec4d1d9eb5f9972700e207d10553a6b6e6b07ac89b0ccd577f72280dc8",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "analysis/fixtures/sbx_rem_list (ficha ficticia) y esqueleto público del lote; no del código ni de la propuesta"
+}
