@@ -17,6 +17,8 @@ import urllib.parse
 import urllib.request
 import zipfile
 
+from pilot.generated_ci_selection import latest_executed_checks
+
 REPOSITORY = "paulozterra/lf-programming-sandbox"
 BOT = "github-actions[bot]"
 READY_LABEL = "ready-to-merge"
@@ -129,17 +131,7 @@ def validate_checks(checks, head, required=REQUIRED):
     """Only latest GitHub Actions check of each required name on exact HEAD."""
     if not SHA.fullmatch(head) or not isinstance(checks, list):
         block("CHECKS_INVALID")
-    found = {}
-    for row in checks:
-        if not isinstance(row, dict) or row.get("name") not in required:
-            continue
-        if (row.get("head_sha") != head
-                or row.get("app", {}).get("slug") != "github-actions"
-                or not isinstance(row.get("id"), int)):
-            continue
-        name = row["name"]
-        if name not in found or row["id"] > found[name]["id"]:
-            found[name] = row
+    found = latest_executed_checks(checks, required, head)
     if len(found) != len(required):
         block("CHECKS_MISSING")
     if any(row.get("status") != "completed" or row.get("conclusion") != "success"
