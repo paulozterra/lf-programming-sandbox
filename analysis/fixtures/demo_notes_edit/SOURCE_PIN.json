@@ -2,6 +2,6 @@
   "schema_version": "SOURCE_SCREEN_PIN_V1",
   "fixture_id": "DEMO-NOTES-EDIT",
   "source_file": "source.json",
-  "sha256": "04fce0b8766c6b71e98e5dc014c2fc15e2c509069f25bc012b129263520ce228",
+  "sha256": "6da6bb4eb79c69a6b7ba5e42ca5a7202a0545e7a827cc8d62cecaa3af280f0db",
   "simulation_only": true
 }
