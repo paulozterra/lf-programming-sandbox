@@ -141,6 +141,35 @@ class Tests(TestCase):
         self.assertEqual(len(outcomes),3)
         self.assertTrue(all(x["reason_code"]=="EXAMEN_PENDIENTE" for x in outcomes))
 
+    def test_new_plan_requires_exact_generated_t7_merge(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            folder = root / "pilot/runs/req-901"
+            folder.mkdir(parents=True)
+            (folder / "request_meta.json").write_text(json.dumps(
+                {"issue": 901, "author": "synthetic", "date": "2026-11-14T00:00:00Z"}))
+            source = {
+                "merged": True, "merge_commit_sha": "a" * 40,
+                "base": {"ref": "main"},
+                "head": {"ref": "lf/generated-t7/" + "b" * 12,
+                         "repo": {"full_name": chain_lots.REPO}},
+            }
+            def github(path):
+                self.assertEqual(path, "pulls/777")
+                return source
+            def changed(*args):
+                self.assertEqual(args[:3], ("git", "diff", "--name-only"))
+                return "pilot/runs/req-901/chain_plan.json"
+            with patch.object(chain_lots, "ROOT", root), \
+                 patch.object(chain_lots, "api", side_effect=github), \
+                 patch.object(chain_lots, "run", side_effect=changed), \
+                 patch.object(chain_lots, "require_green_base") as green:
+                chain_lots.verify_new_plan("req-901", 777, "a" * 40)
+                green.assert_called_once()
+                source["head"]["ref"] = "lf/native-integration/other-run-2"
+                with self.assertRaisesRegex(Exception, "EXAM_PLAN_PROVENANCE_INVALID"):
+                    chain_lots.verify_new_plan("req-901", 777, "a" * 40)
+
     def test_close_after_verified_registered_main_merge(self):
         with TemporaryDirectory() as temp:
             root=Path(temp)
