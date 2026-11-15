@@ -247,8 +247,11 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
     selected = route(branch, mapping)
     validate_train_run(api, number, train_run_id)
     if selected is None:
-        ensure_main_ci(api, sha, required=False)
-        return {"status": "NO_HANDOFF", "branch": branch}
+        ci = ensure_main_ci(api, sha, required=False)
+        from pilot.exam_issue_lifecycle import close_registered
+        exam = close_registered(api, sha, branch, git, Path("."))
+        return {"status": "NO_HANDOFF", "branch": branch,
+                "main_ci": ci, "exam": exam}
     item, match = selected
     if type(item.get("requires_green_base")) is not bool:
         raise HandoffBlocked("HANDOFF_MAP_GATE_UNDEFINED")
