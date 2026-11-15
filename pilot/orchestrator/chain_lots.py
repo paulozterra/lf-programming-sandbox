@@ -821,6 +821,66 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
     return worktree(head, branch, process)
 
 
+def route_request_metadata(request: str) -> bool:
+    """Only T9 bot-registered req-N inputs may receive T18 repair."""
+    if not re.fullmatch(r"req-[1-9][0-9]*", request):
+        return False
+    path = ROOT / "pilot/runs" / request / "request_meta.json"
+    if path.is_symlink() or not path.is_file():
+        return False
+    try:
+        metadata = json.loads(path.read_text("utf-8"))
+    except (ValueError, UnicodeError, OSError):
+        return False
+    if (not isinstance(metadata, dict)
+            or metadata.get("issue") != int(request[4:])
+            or not isinstance(metadata.get("author"), str)
+            or not metadata["author"]):
+        return False
+    # The request provenance itself must originate from the trusted bot
+    # commit, not an unverified file merely placed in pilot/runs/.
+    history = run("git", "log", "-1", "--format=%ae",
+                  "--", path.relative_to(ROOT).as_posix())
+    return history.strip() == "41898282+github-actions[bot]@users.noreply.github.com"
+
+
+GLOBAL_SWEEP_ERRORS = frozenset({
+    "BASE_NO_VERDE", "CHAIN_SWEEP_BASE_INVALID", "MAIN_DRIFT",
+    "MAIN_NOT_CURRENT", "HEAD_NOT_TRAIN_MERGE",
+    "HEAD_NOT_TWO_PARENT_MERGE", "TRUSTED_RUN_ENV_REQUIRED",
+    "MANUAL_INTEGRATION_OUTSIDE_HISTORY", "SOURCE_WORKFLOW_UNTRUSTED",
+})
+
+
+def per_request_block(request: str, phase: str, exc: Exception) -> dict:
+    """Contain a local failure and notify only the verified issue; no labels."""
+    raw = str(exc)
+    code = raw if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw) else "CP36_LOCAL_FAILURE"
+    if code in GLOBAL_SWEEP_ERRORS:
+        raise exc
+    if re.fullmatch(r"req-[1-9][0-9]*", request) and route_request_metadata(request):
+        try:
+            number = int(request[4:])
+            issue = api(f"issues/{number}")
+            if (issue.get("number") == number and issue.get("state") == "open"
+                    and not issue.get("pull_request")
+                    and "lf-request" in {x.get("name") for x in issue.get("labels", [])}):
+                marker = f"<!-- LF_CP36_LOCAL:{phase}:{code}:{request} -->"
+                comments = json.loads(run("gh", "api",
+                    f"repos/{REPO}/issues/{number}/comments?per_page=100"))
+                if isinstance(comments, list) and len(comments) < 100 and not any(
+                    marker in str(c.get("body", "")) for c in comments
+                    if isinstance(c, dict) and (c.get("user") or {}).get("login")
+                    == "github-actions[bot]"):
+                    run("gh", "issue", "comment", str(number), "--repo", REPO,
+                        "--body", marker + "\\nCP3.6 BLOCKED: " + code
+                        + " durante " + phase + ". La ruta continúa con otros pedidos.")
+        except (ChainBlocked, ValueError, KeyError, OSError):
+            # Reporting is best effort; the request stays locally blocked.
+            pass
+    return {"request": request, "status": "BLOCKED", "phase": phase, "reason": code}
+
+
 def publish_missing_registered_pack(request: str, task: str, head: str) -> dict | None:
     """T18: legacy registrations are repaired, never registered a second time.
 
@@ -1003,19 +1063,34 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     repair_outcomes = []
     if sweep:
         for request, _lots, _state, bindings in all_plans:
-            # Repair independently of ready_lot_ids: the registration is
-            # already in main, so no normal predecessor can reopen it.
+            if not route_request_metadata(request):
+                repair_outcomes.append({"request": request,
+                                        "status": "SKIPPED_NOT_ROUTE_REQUEST"})
+                continue
             for task in sorted({item.get("task_name") for item in bindings.values()
-                                if isinstance(item, dict) and
-                                isinstance(item.get("task_name"), str)}):
-                fixed = publish_missing_registered_pack(request, task, head)
-                if fixed is not None:
-                    repair_outcomes.append({"request": request, **fixed})
+                                if isinstance(item, dict)
+                                and isinstance(item.get("task_name"), str)}):
+                try:
+                    fixed = publish_missing_registered_pack(request, task, head)
+                    if fixed is not None:
+                        repair_outcomes.append({"request": request, **fixed})
+                except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
+                        OSError, ValueError, KeyError) as exc:
+                    repair_outcomes.append(per_request_block(request, "PACK_REPAIR", exc))
     conflict_outcomes = list(repair_outcomes)
     for stale in retired:
-        outcome = regenerate_conflicted(stale, head, all_plans)
-        conflict_outcomes.append({"pr": stale["number"], "branch": stale["branch"],
-                                  "kind": stale["kind"], **outcome})
+        try:
+            outcome = regenerate_conflicted(stale, head, all_plans)
+            conflict_outcomes.append({"pr": stale["number"], "branch": stale["branch"],
+                                      "kind": stale["kind"], **outcome})
+        except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
+                OSError, ValueError, KeyError) as exc:
+            request = conflicted_request(stale, all_plans)
+            if request:
+                conflict_outcomes.append(per_request_block(request, "CONFLICT_RECOVERY", exc))
+            else:
+                conflict_outcomes.append({"pr": stale["number"], "status": "BLOCKED",
+                                          "reason": "CONFLICT_RECOVERY_UNBOUND"})
     if not all_plans:
         return conflict_outcomes or [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
                  **({"registry": registry_status} if registry_status else {})}]
@@ -1034,76 +1109,91 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             deny("EXAM_PLAN_NOT_READY")
     outcomes = list(conflict_outcomes)
     for request, lots, state, bindings in all_plans:
-        if sweep and not sweep_request_enabled(request):
-            continue
-        if state.get("stage") == "BLOCKED":
-            outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
-            continue
-        # Only the Train-merged native registration can complete its exam
-        # issue. A ciphertext already on main permits draft preparation first.
-        if kind == "TRAIN":
-            closed = complete_registered_exam_requests(request, bindings)
-            if closed:
-                outcomes.append({"request": request, "status": "EXAM_ALREADY_REGISTERED",
-                                 "closed_exam_issues": closed})
-        if request == new_plan_request or sweep:
-            outcomes.extend(request_all_lot_exams(request, lots, bindings))
-        completed = completed_lots(lots, bindings, history)
-        if manual_sha is not None and not any(
-                proof["merge_sha"] == manual_sha for proof in completed.values()):
-            continue  # Requested integration is for a different chain.
-        failures = failed_lots(bindings)
-        result = progress(lots, completed, failures, bindings)
-        if result["stage"] == "BLOCKED":
-            outcomes.append({"request": request, **block_request(request, state, result, head)})
-            continue
-        if kind != "TRAIN":
-            continue
-        for lot_id in result["ready_lot_ids"]:
-            lot = next(x for x in lots["lots"] if x["id"] == lot_id)
-            if not set(lot["depends_on"]).issubset(completed):
-                continue
-            task = bindings[lot_id]["task_name"]
-            # Only public/source and template drift can require a new attempt.
-            # Never overwrite a registered task or reuse an old examiner SHA.
-            registered = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
-            if registered.exists() or registered.is_symlink():
-                def relevant_base_diff(base_sha: str) -> set[str]:
-                    run("git", "merge-base", "--is-ancestor", base_sha, head)
-                    return set(run("git", "diff", "--name-only", base_sha, head).splitlines())
-                candidate = registration_variant(
-                    ROOT, task, bindings[lot_id]["template_path"],
-                    relevant_base_diff)
-            else:
-                candidate = task
-            if candidate is None:
-                continue
-            chosen = dict(bindings[lot_id], task_name=candidate,
-                          original_task_name=task, lot_id=lot_id,
-                          area=lot["area"])
-            if candidate != task:
-                metadata = Path(chosen["holdout_metadata_path"])
-                chosen["holdout_metadata_path"] = str(
-                    metadata.with_name(candidate + metadata.suffix))
-            if sweep:
-                retired = close_failed_old_registration_drafts(candidate, head)
-                if retired:
-                    outcomes.append({"request": request, "lot_id": lot_id,
-                                     "status": "STALE_REGISTRATION_RETIRED",
-                                     "closed_prs": retired})
-            if pending_draft(f"lf/native-registration/{candidate}-"):
-                outcomes.append({"request": request, "lot_id": lot_id,
-                                 "status": "ALREADY_PREPARED"})
-                continue
-            admission = admit_registration(request, chosen, lot, head)
-            if admission is not None:
-                outcomes.append({"request": request, "lot_id": lot_id, **admission})
-                continue
-            outcomes.append({"request": request, "lot_id": lot_id,
-                             **prepare_successor(request, chosen, completed, head)})
+        try:
+            outcomes.extend(process_one_plan(
+                request, lots, state, bindings, head, kind, sweep,
+                new_plan_request, manual_sha, history))
+        except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
+                OSError, ValueError, KeyError) as exc:
+            outcomes.append(per_request_block(request, "CHAIN", exc))
     if registry_status is not None and registry_status.get("status") == "REGISTRY_DRAFT":
         outcomes.append(registry_status)
     return outcomes or [{"status": "NO_RELEASE_OR_BLOCK"}]
+
+
+def process_one_plan(request, lots, state, bindings, head, kind, sweep,
+                     new_plan_request, manual_sha, history) -> list[dict]:
+    outcomes = []
+    if sweep and not sweep_request_enabled(request):
+        return outcomes
+    if state.get("stage") == "BLOCKED":
+        outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
+        return outcomes
+    # Only the Train-merged native registration can complete its exam
+    # issue. A ciphertext already on main permits draft preparation first.
+    if kind == "TRAIN":
+        closed = complete_registered_exam_requests(request, bindings)
+        if closed:
+            outcomes.append({"request": request, "status": "EXAM_ALREADY_REGISTERED",
+                             "closed_exam_issues": closed})
+    if request == new_plan_request or sweep:
+        outcomes.extend(request_all_lot_exams(request, lots, bindings))
+    completed = completed_lots(lots, bindings, history)
+    if manual_sha is not None and not any(
+            proof["merge_sha"] == manual_sha for proof in completed.values()):
+        return outcomes  # Requested integration is for a different chain.
+    failures = failed_lots(bindings)
+    result = progress(lots, completed, failures, bindings)
+    if result["stage"] == "BLOCKED":
+        outcomes.append({"request": request, **block_request(request, state, result, head)})
+        return outcomes
+    if kind != "TRAIN":
+        return outcomes
+    for lot_id in result["ready_lot_ids"]:
+        lot = next(x for x in lots["lots"] if x["id"] == lot_id)
+        if not set(lot["depends_on"]).issubset(completed):
+            return outcomes
+        task = bindings[lot_id]["task_name"]
+        # Only public/source and template drift can require a new attempt.
+        # Never overwrite a registered task or reuse an old examiner SHA.
+        registered = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+        if registered.exists() or registered.is_symlink():
+            def relevant_base_diff(base_sha: str) -> set[str]:
+                run("git", "merge-base", "--is-ancestor", base_sha, head)
+                return set(run("git", "diff", "--name-only", base_sha, head).splitlines())
+            candidate = registration_variant(
+                ROOT, task, bindings[lot_id]["template_path"],
+                relevant_base_diff)
+        else:
+            candidate = task
+        if candidate is None:
+            return outcomes
+        chosen = dict(bindings[lot_id], task_name=candidate,
+                      original_task_name=task, lot_id=lot_id,
+                      area=lot["area"])
+        if candidate != task:
+            metadata = Path(chosen["holdout_metadata_path"])
+            chosen["holdout_metadata_path"] = str(
+                metadata.with_name(candidate + metadata.suffix))
+        if sweep:
+            retired = close_failed_old_registration_drafts(candidate, head)
+            if retired:
+                outcomes.append({"request": request, "lot_id": lot_id,
+                                 "status": "STALE_REGISTRATION_RETIRED",
+                                 "closed_prs": retired})
+        if pending_draft(f"lf/native-registration/{candidate}-"):
+            outcomes.append({"request": request, "lot_id": lot_id,
+                             "status": "ALREADY_PREPARED"})
+            return outcomes
+        admission = admit_registration(request, chosen, lot, head)
+        if admission is not None:
+            outcomes.append({"request": request, "lot_id": lot_id, **admission})
+            return outcomes
+        outcomes.append({"request": request, "lot_id": lot_id,
+                         **prepare_successor(request, chosen, completed, head)})
+    return outcomes
+
+
 
 
 def main() -> int:
