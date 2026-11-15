@@ -185,6 +185,7 @@ jobs:
           python3 -m unittest discover -s pilot -p 'test_t12_concurrency.py' -v
           python3 -m unittest discover -s pilot -p 'test_t14_exam_requests.py' -v
           python3 -m unittest discover -s pilot -p 'test_t15_sweep.py' -v
+          python3 -m unittest discover -s pilot -p 'test_t17_3_sweep_wake.py' -v
       - name: T11 API field naming and independent exam orchestration (offline)
         run: |
           python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt pytest==8.4.2
