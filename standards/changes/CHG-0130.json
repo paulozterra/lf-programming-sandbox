@@ -20,6 +20,7 @@
       "pilot/orchestrator/native_lot_registration.py",
       "pilot/orchestrator/native_submission_contract.py",
       "pilot/orchestrator/task_pack_publication.py",
+      "pilot/orchestrator/test_t18_task_pack_publication.py",
       "pilot/orchestrator/test_t19_native_submission.py",
       "pilot/worker_v08/native_proposal_push_guard.py",
       "pilot/worker_v08/native_push_failure_notify.py",
