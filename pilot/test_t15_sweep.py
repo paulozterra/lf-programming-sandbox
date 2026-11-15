@@ -25,6 +25,13 @@ def ci_run(status, conclusion):
 
 
 class SweepTests(unittest.TestCase):
+    def setUp(self):
+        # T15 isolates original orchestration: T20 bot-CI recovery is tested
+        # with authenticated, independently mocked GitHub evidence in T20.
+        retry = patch.object(chain_lots, "retry_failed_bot_prs", return_value=[])
+        retry.start()
+        self.addCleanup(retry.stop)
+
     def test_empty_sweep_is_noop_no_registry_write(self):
         with patch.object(chain_lots, "check_main", return_value=HEAD), \
              patch.object(chain_lots, "main_ci_decision", return_value="GREEN"), \
