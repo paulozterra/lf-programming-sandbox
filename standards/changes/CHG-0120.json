@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0120",
+  "title": "T16: contratos de plantillas y entradas Worker con diagnóstico seguro",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T16 owner request; context_derivation incompatible with vendor Worker task schema"
+  },
+  "reason": "Validación de plantillas por parser vendorizado real en generación y registro, eliminación de campo no autorizado, diagnóstico de stderr acotado; pruebas negativas por cinco áreas.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/native_lot_registration.py",
+      "pilot/orchestrator/test_t16_worker_errors.py",
+      "pilot/orchestrator/test_t16_worker_schema.py",
+      "pilot/orchestrator/worker_template_contract.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0120.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/PENDING"
+  }
+}

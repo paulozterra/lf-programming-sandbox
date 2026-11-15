@@ -44,7 +44,16 @@ def run(*args: str, cwd: Path = ROOT, check: bool = True) -> str:
     except (OSError, subprocess.TimeoutExpired):
         deny("COMMAND_UNAVAILABLE")
     if check and p.returncode:
-        deny("COMMAND_FAILED:" + args[0])
+        command = Path(args[1] if args[0] in ("python3", "lf-python", "python")
+                       and len(args) > 1 else args[0]).name
+        # Only expose a bounded machine-readable code from the last stderr
+        # line, never arbitrary paths, arguments, tokens, or secret values.
+        tail = (p.stderr or "").splitlines()
+        last = tail[-1].strip() if tail else ""
+        match = re.search(r"(CP35_BLOCKED|TEMPLATE_WORKER_SCHEMA_INVALID):([A-Z0-9_:-]{1,120})", last)
+        detail = (match.group(1) + ":" + match.group(2).rstrip(":")
+                  if match else "STDERR_REDACTED" if last else "NO_STDERR")
+        deny("COMMAND_FAILED:" + command + ":" + detail)
     return p.stdout.strip()
 
 

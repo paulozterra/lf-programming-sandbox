@@ -120,3 +120,4 @@
 | CHG-0117 | ADDITIVE | T13: intérprete Python fijo para aceptación de lotes Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/197 |
 | CHG-0118 | ADDITIVE | T14: selección y cierre de exam-request por evidencia de registro |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/199 |
 | CHG-0119 | ADDITIVE | T15: sweep de pedidos tras CI verde de toda fusión Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/200 |
+| CHG-0120 | ADDITIVE | T16: contratos de plantillas y entradas Worker con diagnóstico seguro |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/PENDING |

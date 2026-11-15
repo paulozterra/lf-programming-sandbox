@@ -23,6 +23,7 @@ WORKER = ROOT / "pilot/worker_v08"
 sys.path.insert(0, str(WORKER))
 
 from native_lot_binding import NativeLotBlocked, map_profile, real_write_paths, next_ready
+from worker_template_contract import validate_template_worker
 from register_task_context import (
     ContextBlocked, canonical, native_registration_bytes, register,
     write_native_registration,
@@ -152,6 +153,7 @@ def register_lot(root: Path, folder: Path, lot: dict, mapped: dict,
         budget=spec.get("max_context_bytes", 240000),
         root=root, persist=False)
     enriched = output["task_spec"]
+    validate_template_worker({"task_spec": enriched}, lot["area"])
     native_registration_bytes(enriched, sha, ref, task_name)
     native_file = WORKER / "native_tasks" / (task_name + ".json")
     if native_file.exists() or native_file.is_symlink():
@@ -202,7 +204,9 @@ def seal_lot(root: Path, folder: Path, lot: dict, mapped: dict,
         git(root, "cat-file", "-e", f"{head}:.lf/worker-context/{task_name}/{name}")
     sealed = dict(spec, base_head_sha=head,
                   source_snapshot_sha256=source_snapshot_sha256(root))
-    # The existing register_task_context controls the registration's shape.
+    # Validate the sealed input against the identical Worker parser used in
+    # native_run; registration-time SHA mutations cannot bypass T16.
+    validate_template_worker({"task_spec": sealed}, lot["area"])
     payload = native_registration_bytes(sealed, sha, ref, task_name)
     task_file.write_bytes(payload)
     return {"status": "SEALED_NEEDS_COMMIT", "base_head_sha": head,
