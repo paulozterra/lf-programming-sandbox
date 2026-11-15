@@ -92,7 +92,8 @@ def test_generated_branch_matches_real_diff_and_official_checks(tmp_path, kind):
             url = "https://github.com/paulozterra/lf-programming-sandbox/pull/9998"
             doc["evidence"]["pr_url"] = url
             (checkout / chg_file).write_text(json.dumps(doc, indent=2) + "\n")
-            synchronize(checkout, kind, chg_file=chg_file)
+            # CHG auto-detection must work without per-branch hardcoding.
+            synchronize(checkout, kind)
             git(checkout, "commit", "-m", "T17 link generated PR")
             assert url in (checkout / "standards/CAMBIOS.md").read_text()
             assert check(checkout, "render", "--check").returncode == 0
