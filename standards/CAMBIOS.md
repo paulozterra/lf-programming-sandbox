@@ -126,4 +126,4 @@
 | CHG-0123 | ADDITIVE | T17.2: cobertura de aviso inmediato a política C para ramas admitidas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/206 |
 | CHG-0124 | ADDITIVE | T17.3: despertar política C tras todo sweep CP3.6 sobre main |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/207 |
 | CHG-0125 | ADDITIVE | T17.4: recuperación general de PR generados con conflictos contra main |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/208 |
-| CHG-0126 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
+| CHG-0126 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
