@@ -12,8 +12,8 @@ import hashlib
 import io
 import json
 import os
-from pathlib import Path
-from generated_branch_standards import synchronize, PurePosixPath
+from pathlib import Path, PurePosixPath
+from generated_branch_standards import synchronize
 import re
 import subprocess
 import sys
