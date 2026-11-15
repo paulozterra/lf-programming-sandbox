@@ -19,7 +19,7 @@ from pilot.orchestrator.native_submission_contract import canonical, enrich_requ
 from pilot.orchestrator import chain_lots
 from native_proposal_client import read_proposal_envelope, NativeProposalClient
 from native_proposal_push_guard import validate_proposal_only, ProposalPushBlocked
-from native_push_failure_notify import notify
+import native_push_failure_notify as notifier
 from programming_agent_runner.hashutil import canonical_json_bytes
 from programming_agent_runner.worker_spec import parse_worker_task
 from programming_agent_runner.worker_patch import parse_patch_proposal, inspect_patch
@@ -50,7 +50,7 @@ def setup_repo(tmp_path):
     spec = json.loads((ROOT / "pilot/worker_v08/native_tasks/req186contrato1.json")
                       .read_text())["task_spec"]
     spec = dict(spec, write_path_patterns=[PATH],
-                context_path_patterns=[],
+                context_path_patterns=spec["context_path_patterns"],
                 protected_path_patterns=["pilot/**", "vendor/**"],
                 task_id="LF-WORKER-NATIVE-FIXTURE19")
     source.write_bytes(canonical({"task_spec": spec}))
@@ -127,7 +127,6 @@ def test_source_code_direct_push_reports_scope_failure_and_issue_comment(tmp_pat
     with pytest.raises(ProposalPushBlocked, match="NATIVE_PUSH_SCOPE_INVALID"):
         validate_proposal_only(root, head, main_sha=main,
                                branch="lf/native-proposal/" + TASK)
-    from pilot.worker_v08 import native_push_failure_notify as notifier
     real = notifier.command
     comments = []
     def command(*args):
@@ -142,7 +141,7 @@ def test_source_code_direct_push_reports_scope_failure_and_issue_comment(tmp_pat
             return ""
         return real(*args)
     with patch.object(notifier, "command", side_effect=command):
-        assert notify(root, "lf/native-proposal/" + TASK, head,
+        assert notifier.notify(root, "lf/native-proposal/" + TASK, head,
                       "NATIVE_PUSH_SCOPE_INVALID") == "NATIVE_PUSH_ALERT_COMMENTED"
     assert len(comments) == 1
     assert "NATIVE_PUSH_SCOPE_INVALID" in comments[0][-1]
