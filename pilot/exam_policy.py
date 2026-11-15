@@ -15,7 +15,7 @@ def identity(branch, paths):
     if not match or not isinstance(paths, list):
         raise ExamBlocked("EXAM_PR_INVALID")
     task = match.group(1)
-    metas = [re.fullmatch(r"pilot/runs/(req-[1-9][0-9]*)/claude_meta/"
+    metas = [re.fullmatch(r"pilot/runs/([a-z][a-z0-9_-]{0,63})/claude_meta/"
                           + re.escape(task) + r"[.]json", p)
              for p in paths]
     slugs = [x.group(1) for x in metas if x]
