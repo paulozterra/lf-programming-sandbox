@@ -24,6 +24,7 @@ from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_stat
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
 from generated_branch_standards import synchronize
+from pilot.generated_ci_selection import last_executed_ci_run
 from native_lot_binding import next_ready
 from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request, registration_variant, protected_test_conflict
 
@@ -443,10 +444,8 @@ def close_failed_old_registration_drafts(task: str, head: str) -> list[int]:
         eligible = [r for r in runs if isinstance(r, dict)
                     and r.get("head_sha") == sha and r.get("head_branch") == branch
                     and r.get("event") in ("pull_request", "workflow_dispatch", "push")]
-        if not eligible:
-            continue
-        latest = max(eligible, key=lambda r: (r.get("created_at", ""), r.get("id", 0)))
-        if latest.get("status") != "completed" or latest.get("conclusion") != "failure":
+        latest = last_executed_ci_run(eligible)
+        if latest is None or latest.get("status") != "completed" or latest.get("conclusion") != "failure":
             continue
         files = json.loads(run("gh", "api",
                                f"repos/{REPO}/pulls/{number}/files?per_page=100"))

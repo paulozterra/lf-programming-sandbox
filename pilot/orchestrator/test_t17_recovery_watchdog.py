@@ -102,6 +102,35 @@ def test_watchdog_comments_verified_generated_ci_without_label():
     assert not any("/labels" in path for _, path, _ in calls)
 
 
+def test_more_recent_action_required_does_not_retire_successful_registration():
+    """Same SHA: executed SUCCESS followed by unexecuted action_required."""
+    pulls = [{"number": 987, "headRefName": BRANCH, "headRefOid": SHA,
+              "isDraft": True, "author": {"login": "github-actions[bot]"}}]
+    calls = []
+
+    def fake_run(*args, **kwargs):
+        calls.append(args)
+        if args[:3] == ("gh", "pr", "list"):
+            return json.dumps(pulls)
+        if args[:2] == ("gh", "api"):
+            raise AssertionError("No file inspection on green CI")
+        if args[:3] == ("gh", "pr", "close"):
+            raise AssertionError("Successful registration must remain open")
+        raise AssertionError(args)
+
+    rows = {"total_count": 2, "workflow_runs": [
+        {"id": 43729617525, "head_sha": SHA, "head_branch": BRANCH,
+         "event": "pull_request", "status": "completed",
+         "conclusion": "action_required", "created_at": "2026-11-15T10:00:01Z"},
+        {"id": 43729614995, "head_sha": SHA, "head_branch": BRANCH,
+         "event": "workflow_dispatch", "status": "completed",
+         "conclusion": "success", "created_at": "2026-11-15T10:00:00Z"}]}
+    with patch.object(chain_lots, "run", side_effect=fake_run), \
+         patch.object(chain_lots, "api", return_value=rows):
+        assert chain_lots.close_failed_old_registration_drafts("t17fake", "a" * 40) == []
+    assert not any(x[:3] == ("gh", "pr", "close") for x in calls)
+
+
 def test_watchdog_rejects_unknown_generated_pr_author():
     run = {"path": ".github/workflows/ci.yml", "head_branch": BRANCH,
            "head_sha": SHA, "conclusion": "failure"}
@@ -164,11 +193,16 @@ def test_one_sweep_closes_legacy_red_registration_and_regenerates_next_chg(tmp_p
 
     def fake_api(path):
         assert "actions/workflows/ci.yml/runs?" in path
-        return {"total_count": 1, "workflow_runs": [{
-            "id": 51, "head_sha": sha, "head_branch": branch,
-            "event": "workflow_dispatch", "status": "completed",
-            "conclusion": "failure", "created_at": "2026-11-15T10:00:00Z",
-        }]}
+        return {"total_count": 2, "workflow_runs": [
+            {"id": 43729617525, "head_sha": sha, "head_branch": branch,
+             "event": "pull_request", "status": "completed",
+             "conclusion": "action_required",
+             "created_at": "2026-11-15T10:00:01Z"},
+            {"id": 43729614995, "head_sha": sha, "head_branch": branch,
+             "event": "workflow_dispatch", "status": "completed",
+             "conclusion": "failure",
+             "created_at": "2026-11-15T10:00:00Z"},
+        ]}
 
     prepared = []
     def fake_prepare(request, binding, completed, main_sha):
