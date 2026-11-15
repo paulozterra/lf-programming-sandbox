@@ -54,7 +54,7 @@ concurrency:
 jobs:
   worker-pilot:
     if: github.event_name == 'workflow_dispatch' && inputs.lot_task == ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: ${{ (inputs.task == 'exercise-3' || inputs.task == 'ex4a' || inputs.task == 'ex4b' || inputs.task == 'ex5c') && 30 || 10 }}
     permissions:
       contents: read
@@ -574,7 +574,7 @@ jobs:
   api-lot:
     name: T8 API registered CONTRATO/INFRA lot
     if: github.event_name == 'workflow_dispatch' && inputs.lot_task != '' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
       contents: read

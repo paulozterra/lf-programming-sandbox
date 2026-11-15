@@ -29,7 +29,7 @@ concurrency:
 jobs:
   route:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - name: Checkout trusted main, never PR code
@@ -58,7 +58,7 @@ jobs:
     name: Watch next stage without cron
     needs: route
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: read
