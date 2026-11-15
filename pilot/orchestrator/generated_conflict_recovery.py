@@ -72,7 +72,7 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
     if unknown:
         response = api("actions/workflows/sandbox-train.yml/runs?per_page=100")
         runs = response.get("workflow_runs")
-        if not isinstance(runs, list) or response.get("total_count", 101) > 100:
+        if not isinstance(runs, list):
             raise ValueError("CONFLICT_RECOVERY_TRAIN_LIST_INVALID")
         failures = [r for r in runs if isinstance(r, dict)
                     and r.get("event") == "workflow_dispatch"
