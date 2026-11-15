@@ -291,8 +291,13 @@ def confirm_class_after_commit(root: Path, chg: Path) -> None:
         payload = obj(chg.read_bytes())
         payload["change_class"] = classes[0] if classes else "EDITORIAL"
         chg.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
-        command(["git", "add", "--", str(chg.relative_to(root))], cwd=root)
-        command(["git", "commit", "-m", "CP3.5: align C9 detected change class"], cwd=root)
+        current_branch = command(["git", "branch", "--show-current"],
+                                 cwd=root).decode().strip()
+        kind = ("registration" if current_branch.startswith("lf/native-registration/")
+                else "integration" if current_branch.startswith("lf/native-integration/")
+                else "registry")
+        synchronize(root, kind, chg_file=chg.relative_to(root).as_posix())
+        command(["git", "commit", "-m", "CP3.5: align C9 detected change class and view"], cwd=root)
     block("C9_CHECK_FAILED")
 
 
