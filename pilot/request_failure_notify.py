@@ -9,6 +9,7 @@ import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from pilot.generated_ci_selection import last_executed_ci_run
 
 REPO = "paulozterra/lf-programming-sandbox"
 ROUTES = {
@@ -447,6 +448,29 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
 
 
 def check_run(api: Github, run: dict) -> str:
+    # A webhook/scheduled sweep may see a later unexecuted action_required
+    # event on the same generated PR SHA. Notify from the latest *executed*
+    # CI only; never mark a newer successful PR as failed.
+    branch = str(run.get("head_branch") or "")
+    sha = str(run.get("head_sha") or "")
+    generated = (
+        re.fullmatch(r"lf/native-registration/[a-z][a-z0-9_-]{0,31}-[0-9a-f]{12}", branch)
+        or re.fullmatch(r"lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-[1-9][0-9]*", branch)
+        or re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch)
+        or re.fullmatch(r"lf/request/req-[1-9][0-9]*", branch)
+    )
+    if (generated and route_name(run) == "ci"
+            and re.fullmatch(r"[0-9a-f]{40}", sha)):
+        response = api.api("GET", f"/actions/workflows/ci.yml/runs?head_sha={sha}&per_page=100")
+        rows = response.get("workflow_runs", [])
+        if (not isinstance(rows, list) or response.get("total_count", 101) > 100):
+            return "RUTA_CI_EVIDENCIA_INCOMPLETA"
+        latest = last_executed_ci_run([
+            row for row in rows if isinstance(row, dict)
+            and row.get("head_branch") == branch and row.get("head_sha") == sha
+            and row.get("event") in ("workflow_dispatch", "pull_request", "push")])
+        if latest is None or latest.get("id") != run.get("id"):
+            return "RUTA_CI_SUPERADA_O_NO_EJECUTADA"
     jobs_obj = api.api("GET", f"/actions/runs/{run['id']}/jobs?per_page=100")
     if (route_name(run) in ("CP3.6 chain after Train merge or spent native failure",
                                 "T9.2 trusted Train handoff dispatch")
