@@ -21,7 +21,7 @@ from urllib.parse import urlparse
 # Fixed toolchain pin: installed only by trusted Worker CI, never by proposals.
 PLAYWRIGHT_VERSION = "1.56.0"
 BROWSERS_DIR = "/tmp/lf-playwright-browsers"
-PYTHON_RUNTIME = Path("/tmp/lf-playwright-runtime/bin/python")
+PYTHON_RUNTIME = Path("/tmp/lf-python-runtime/bin/python")
 FRONTEND_PORT = 3000
 BACKEND_PORT = 8080
 

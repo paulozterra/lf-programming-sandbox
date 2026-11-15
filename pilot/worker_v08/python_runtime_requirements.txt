@@ -1,0 +1,5 @@
+# Shared pinned acceptance interpreter: CI, native Worker and API-lot Worker.
+PyYAML==6.0.3
+jsonschema==4.25.1
+openapi-spec-validator==0.7.2
+playwright==1.56.0

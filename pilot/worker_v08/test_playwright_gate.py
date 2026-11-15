@@ -63,7 +63,7 @@ def test_frontend_generic_acceptance_and_exam_command_format():
     commands = acceptance("FRONTEND", ["frontend/src/app/page.tsx"])
     browser = [entry for entry in commands if entry["name"] == "frontend-browser-visible"]
     assert len(browser) == 1
-    assert browser[0]["argv"] == ["python3", "pilot/worker_v08/playwright_gate.py",
+    assert browser[0]["argv"] == ["lf-python", "pilot/worker_v08/playwright_gate.py",
                                   "--path", "/", "--selector", "body"]
     assert browser[0]["timeout_seconds"] >= 200
     # Examiner can supply distinct flags inside the encrypted oracle's normal

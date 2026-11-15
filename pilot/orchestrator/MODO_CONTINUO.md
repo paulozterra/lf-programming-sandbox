@@ -13,6 +13,10 @@ Si la conexión no permite crear el Issue, GPT comunica el impedimento y entrega
 
 El bot `request-intake.yml` valida la autoría colaboradora, crea `lf/request/req-<issue>` y un PR normal con únicamente `pilot/runs/req-<issue>/request.md` y `request_meta.json`. Política C vuelve a leer el Issue y comprueba cada byte antes del Train. Después de la fusión, T7 recibe el pedido desde `main`; las restantes etapas siguen el modo continuo. El Issue se cierra únicamente cuando la ruta acredita estado terminal y un informe de intervención consultable. No confundir un H_REPORT candidato con finalización.
 
+## Intérprete Python de aceptación (T13)
+
+Los comandos Python generados por `generate_chain` usan `lf-python`, enlazado por el Worker en `/usr/local/bin/lf-python` al intérprete fijo `/tmp/lf-python-runtime/bin/python`. El entorno se crea desde `pilot/worker_v08/python_runtime_requirements.txt` en los workflows native y API. El PATH aislado del Worker (`/usr/local/bin:/usr/bin:/bin`) resuelve `lf-python` sin depender del Python del sistema. Para los exámenes independientes, puede utilizarse directamente `/tmp/lf-python-runtime/bin/python`; el navegador sigue en `/tmp/lf-playwright-browsers`.
+
 ## Bucle por lote
 1. Toma el siguiente lote listo: su PR `lf/native-registration/*` está fusionado y existe `pilot/runs/<pedido>/proposal_requests/<tarea>.task-pack.json`.
 2. Programa la propuesta solo con ese paquete. Antes de enviar:
