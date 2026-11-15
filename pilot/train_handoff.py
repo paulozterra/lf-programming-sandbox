@@ -203,10 +203,21 @@ def merged_request_slug(pr: dict, sha: str) -> str:
         slugs = {m.group(1) for path in changed
                  if (m := re.fullmatch(r"pilot/runs/(req-[1-9][0-9]*)/(?:analysis|state|lots|chain_plan)[.]json", path))}
     else:
-        match = re.fullmatch(r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*", branch)
+        match = (re.fullmatch(r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*", branch)
+                 or re.fullmatch(r"lf/exam/([a-z][a-z0-9_-]{0,31})", branch))
         if not match:
             raise HandoffBlocked("HANDOFF_REQUEST_SCOPE_INVALID")
         task = match.group(1)
+        if branch.startswith("lf/exam/"):
+            exact = {f"pilot/holdouts/{task}.oracle.json.age"}
+            changed = git("diff", "--name-only", sha + "^1", sha).splitlines()
+            if len(changed) != 2:
+                raise HandoffBlocked("HANDOFF_EXAM_PATH_DRIFT")
+            metadata = [p for p in changed if re.fullmatch(
+                r"pilot/runs/req-[1-9][0-9]*/claude_meta/"
+                + re.escape(task) + r"[.]json", p)]
+            if len(metadata) != 1 or set(changed) != exact | {metadata[0]}:
+                raise HandoffBlocked("HANDOFF_EXAM_PATH_DRIFT")
         slugs = set()
         for plan in Path("pilot/runs").glob("req-*/chain_plan.json"):
             if plan.is_symlink() or plan.parent.is_symlink():
