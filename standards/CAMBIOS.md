@@ -117,4 +117,4 @@
 | CHG-0114 | ADDITIVE | T10: reutilización limitada por área y reporte A1-A9 determinista |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/179 |
 | CHG-0115 | ADDITIVE | T11: nombres API de campos y exámenes integrados sin intervención |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/185 |
 | CHG-0116 | ADDITIVE | T12: solicitudes simultáneas, recuperación T7, exámenes idempotentes y duplicados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/196 |
-| CHG-0117 | ADDITIVE | T13: intérprete Python fijo para aceptación de lotes Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/TBD |
+| CHG-0117 | ADDITIVE | T13: intérprete Python fijo para aceptación de lotes Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/197 |
