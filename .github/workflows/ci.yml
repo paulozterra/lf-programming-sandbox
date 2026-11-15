@@ -197,7 +197,9 @@ jobs:
         run: |
           python3 -m pytest -q pilot/orchestrator/test_t17_generated_standards.py pilot/orchestrator/test_t17_recovery_watchdog.py pilot/test_t17_1_ci_selection.py -p no:cacheprovider
       - name: T17.2 Policy C notification coverage for every accepted bot branch (offline)
-        run: python3 -m pilot.workflow_entrypoint pilot/test_policy_c_handoff.py
+        run: |
+          python3 -m pytest -q pilot/test_policy_c_handoff.py -p no:cacheprovider
+          python3 -m pilot.workflow_entrypoint pilot/test_policy_c_handoff.py
       - name: T13 generated acceptance Python dependency coverage (all areas)
         run: |
           python3 -m pilot.orchestrator.worker_python_dependencies
