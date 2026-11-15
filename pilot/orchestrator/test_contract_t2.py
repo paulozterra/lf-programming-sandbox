@@ -186,7 +186,8 @@ def test_t2_contract_precedes_be_and_fe_and_validates(tmp_path, kind):
     assert set(skeleton["requirement_ids"]) == set(contract["requirement_ids"])
     assert skeleton["rules"]
     assert sorted(skeleton["fields"], key=lambda x: x["field_code"]) == sorted([
-        {"field_code": f["field_code"], "required": f["required"]}
+        {"field_code": f["field_code"], "api_name": f["nombre"],
+         "tipo_dato": f["tipo_dato"], "required": f["required"]}
         for f in package["programming_context_snapshot"]["decision_context"][
             "material_ledger"]["source_detail"]["a3_material_contract"][
                 "contract_sections"]["fields"] if f["status"] == "VIGENTE"],
