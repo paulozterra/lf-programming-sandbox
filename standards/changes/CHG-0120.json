@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "T16 owner request; context_derivation incompatible with vendor Worker task schema"
   },
-  "reason": "Validación de plantillas por parser vendorizado real en generación y registro, eliminación de campo no autorizado, diagnóstico de stderr acotado; pruebas negativas por cinco áreas.",
+  "reason": "Validación de plantillas por parser vendorizado real en generación y registro, eliminación de campo no autorizado, diagnóstico de stderr acotado; pruebas negativas por cinco áreas. El contexto LF exportado se redacciona solo para ejemplos de asignación detectados por el scanner vendor, con SHA de procedencia en recibo.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -22,6 +22,9 @@
       "pilot/orchestrator/test_t16_worker_schema.py",
       "pilot/orchestrator/worker_template_contract.py",
       "pilot/worker_v08/export_task_pack.py",
+      "pilot/worker_v08/register_task_context.py",
+      "pilot/worker_v08/test_worker_context_safety.py",
+      "pilot/worker_v08/worker_context_safety.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0120.json"
     ]
