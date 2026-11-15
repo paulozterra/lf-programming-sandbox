@@ -9,7 +9,9 @@
         "required": true,
         "rule_refs": [
           "fixture://demo_notes_edit/rules/719"
-        ]
+        ],
+        "nombre": "title",
+        "tipo_dato": "string"
       },
       {
         "field_code": "BODYNOTE__J",
@@ -17,7 +19,9 @@
         "required": true,
         "rule_refs": [
           "fixture://demo_notes_edit/rules/842"
-        ]
+        ],
+        "nombre": "body",
+        "tipo_dato": "string"
       }
     ],
     "errors": [
