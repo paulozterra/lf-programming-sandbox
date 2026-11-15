@@ -63,6 +63,7 @@ def check_commands(commands, root=ROOT, requirements=REQUIREMENTS):
 
 
 def all_generated_commands():
+    sys.path.insert(0, str(ROOT / 'pilot/orchestrator'))
     from generate_chain import acceptance
     for area in AREAS:
         paths = (["contracts/example.openapi.yaml"] if area == "CONTRATO"
