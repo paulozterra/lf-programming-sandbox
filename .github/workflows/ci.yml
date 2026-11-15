@@ -350,10 +350,10 @@ jobs:
           node-version: "22"
       - name: Install pinned browser once, only within trusted CI
         run: |
-          python3 -m venv /tmp/lf-playwright-runtime
-          /tmp/lf-playwright-runtime/bin/python -m pip install --disable-pip-version-check --no-input playwright==1.56.0
+          python3 -m venv /tmp/lf-python-runtime
+          /tmp/lf-python-runtime/bin/python -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt
           PLAYWRIGHT_BROWSERS_PATH=/tmp/lf-playwright-browsers \
-            /tmp/lf-playwright-runtime/bin/python -m playwright install --with-deps --only-shell chromium
+            /tmp/lf-python-runtime/bin/python -m playwright install --with-deps --only-shell chromium
       - name: Prepare real app (no oracle and no model)
         run: |
           npm --prefix frontend ci
