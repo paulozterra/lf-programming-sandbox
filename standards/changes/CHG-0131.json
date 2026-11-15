@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "T20: bot PR #215 Playwright headless-shell unsupported on ubuntu26.04-x64 alias latest"
   },
-  "reason": "Pin all 22 GitHub Actions workflows to ubuntu-24.04, reject floating labels with file/job code, re-dispatch verified failed bot PR CI once per HEAD with durable bot PR comment ledger, and watchdog exhausted retry per verified request without labels.",
+  "reason": "Pin 21 workflows; Train runner isolated in owner-bypass PR #217. Check floating labels for all jobs, tolerating the old Train label only while main is unpinned. One immutable HEAD CI retry for bot PRs and watchdog reporting.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -29,7 +29,6 @@
       ".github/workflows/request-failure-watchdog.yml",
       ".github/workflows/request-finalize.yml",
       ".github/workflows/request-intake.yml",
-      ".github/workflows/sandbox-train.yml",
       ".github/workflows/t7-request.yml",
       ".github/workflows/train-handoff.yml",
       ".github/workflows/worker-native-trigger.yml",
