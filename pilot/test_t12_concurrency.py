@@ -162,7 +162,7 @@ class Tests(unittest.TestCase):
 
     def test_exam_closed_only_if_registration_exists(self):
         row={"number":80,"title":"EXAM_REQUEST: task202",
-             "body":"- Pedido: \`req-901\`\n- Task ID: \`task202\`\n"
+             "body":"- Pedido: `req-901`\n- Task ID: `task202`\n"
                     "<!-- LF_EXAM_REQUEST_TASK:task202 -->",
              "state":"CLOSED","stateReason":"COMPLETED"}
         with tempfile.TemporaryDirectory() as temp:
