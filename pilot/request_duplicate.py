@@ -25,8 +25,17 @@ def screen(root: Path, value: str) -> str:
     try:
         return resolve(root, value.encode("utf-8"))[0]
     except CatalogueBlocked:
-        # Dedupe only when both requests have an unambiguous catalog identity.
-        return ""
+        # Normalized text is case-folded; resolve a case-folded screen code
+        # against the same versioned fixture catalog without guessing a target.
+        from analysis.host.request_catalog import catalogue
+        try:
+            names = catalogue(root)
+        except CatalogueBlocked:
+            return ""
+        matches = [code for code in names if re.search(
+            r"(?<![A-Za-z0-9_-])" + re.escape(code) + r"(?![A-Za-z0-9_-])",
+            value, re.IGNORECASE)]
+        return matches[0] if len(matches) == 1 else ""
 
 
 def candidate(api, issue: dict, text: str, *, root: Path) -> int | None:
