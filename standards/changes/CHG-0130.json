@@ -23,6 +23,7 @@
       "pilot/orchestrator/test_t19_native_submission.py",
       "pilot/worker_v08/native_proposal_push_guard.py",
       "pilot/worker_v08/native_push_failure_notify.py",
+      "pilot/worker_v08/test_workflow_policy.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0130.json"
     ]
