@@ -405,6 +405,26 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
             "task": binding["task_name"]}
 
 
+def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict]:
+    """Request every independent exam immediately at LOTS_PLANNED.
+
+    Opening an exam request is not permission to register its lot: CP3.6
+    still gates each successor on integrated predecessor receipts and its
+    own encrypted holdout/metadata, checked again by admit_registration.
+    """
+    planned = {lot["id"]: lot for lot in lots["lots"]}
+    if set(planned) != set(bindings):
+        deny("EXAM_PLAN_BINDING_INCOMPLETE")
+    outcomes = []
+    for lot_id in sorted(planned):
+        bound = bindings[lot_id]
+        task = bound["task_name"]
+        if missing_exam(ROOT, task):
+            outcomes.append({"request": request, "lot_id": lot_id,
+                             **request_missing_exam(request, bound, planned[lot_id])})
+    return outcomes
+
+
 def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dict | None:
     """Inspect admission before any generated commit or native preparation."""
     require_green_base(head, api)
@@ -574,6 +594,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
         if state.get("stage") == "BLOCKED":
             outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
             continue
+        if kind == "TRAIN" and state.get("stage") == "LOTS_PLANNED":
+            outcomes.extend(request_all_lot_exams(request, lots, bindings))
         completed = completed_lots(lots, bindings, history)
         if manual_sha is not None and not any(
                 proof["merge_sha"] == manual_sha for proof in completed.values()):
