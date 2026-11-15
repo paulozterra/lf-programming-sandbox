@@ -25,7 +25,8 @@ class API:
     def pages(self, path, field):
         if path == "/issues?state=open&labels=exam-request":
             return ([{"number": 212, "title": "EXAM_REQUEST: tasktest",
-                      "state": "open", "labels": [{"name": "exam-request"}],
+                      "state": "open", "user": {"login": "github-actions[bot]"},
+                      "labels": [{"name": "exam-request"}],
                       "body": "- Pedido: `req-901`\n- Task ID: `tasktest`"}]
                     if self.open_issue else [])
         raise AssertionError(path)
