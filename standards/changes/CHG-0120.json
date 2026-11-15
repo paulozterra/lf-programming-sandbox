@@ -17,6 +17,7 @@
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/generate_chain.py",
       "pilot/orchestrator/native_lot_registration.py",
+      "pilot/orchestrator/test_t16_worker_e2e.py",
       "pilot/orchestrator/test_t16_worker_errors.py",
       "pilot/orchestrator/test_t16_worker_schema.py",
       "pilot/orchestrator/worker_template_contract.py",
