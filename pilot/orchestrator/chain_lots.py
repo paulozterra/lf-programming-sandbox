@@ -23,6 +23,7 @@ from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_stat
                             progress, validate_plan, verified_failures, deny)
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
+from generated_branch_standards import synchronize
 from native_lot_binding import next_ready
 from t4_admission import AdmissionBlocked, require_green_base, missing_exam, public_exam_request, registration_variant, protected_test_conflict
 
@@ -349,6 +350,8 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     number = next_chg(root)
     entry = chg(root, number, request, reason, paths)
     run("git", "add", "--", *paths, str(entry.relative_to(root)), cwd=root)
+    kind = "registration" if branch.startswith("lf/native-registration/") else "registry"
+    synchronize(root, kind, chg_file=entry.relative_to(root).as_posix())
     run("git", "commit", "-m", f"[CP3.6][CHG-{number:04d}] {title}", cwd=root)
     from native_verified_integration import confirm_class_after_commit
     confirm_class_after_commit(root, entry)
@@ -366,7 +369,7 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     document = json.loads(entry.read_text("utf-8"))
     document["evidence"]["pr_url"] = url
     entry.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", "utf-8")
-    run("git", "add", "--", str(entry.relative_to(root)), cwd=root)
+    synchronize(root, kind, chg_file=entry.relative_to(root).as_posix())
     run("git", "commit", "-m", "[CP3.6] link reviewable draft evidence", cwd=root)
     run("python3", "standards/tools/changes.py", "check", "--base", "origin/main", cwd=root)
     run("git", "push", "origin", branch, cwd=root)
@@ -637,9 +640,12 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
                 if not file.is_file() or file.is_symlink():
                     deny("EXPORTED_PACK_MISSING")
                 shutil.copyfile(file, destination / file.name)
-        paths = [f".lf/worker-context/{task}/{n}" for n in
-                 ("profile.md", "skills.md", "receipt.json")]
-        paths += [f"pilot/worker_v08/native_tasks/{task}.json"]
+        # CP3.5 commits every generated context file; derive scope from Git
+        # rather than a historical three-file list.
+        paths = sorted(set(run("git", "diff", "--name-only", "origin/main", "HEAD",
+                               cwd=root).splitlines()))
+        if not paths or f"pilot/worker_v08/native_tasks/{task}.json" not in paths:
+            deny("PREPARED_TASK_DIFF_INVALID")
         review = draft(root, branch, request, paths,
                        f"Registration from main {head} for lot {binding['lot_id']}; "
                        f"task {task}; base {prepared['base_head_sha']}; "
