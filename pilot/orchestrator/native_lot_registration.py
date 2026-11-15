@@ -250,7 +250,17 @@ def export_lot(root: Path, folder: Path, lot: dict, mapped: dict,
         try:
             raw_spec = Path(tmp) / "task.json"
             raw_spec.write_bytes(canonical(spec))
-            pack_hash = export(source, raw_spec, pack_path)
+            try:
+                pack_hash = export(source, raw_spec, pack_path)
+            except RuntimeError as exc:
+                # The vendor capture reports only a bounded machine code;
+                # CP3.5/CP3.6 must not bury this behind a generic traceback.
+                message = str(exc)
+                match = re.fullmatch(
+                    r"NATIVE_CAPTURE_FAILED_OR_PREFLIGHT_BLOCKED:([A-Z][A-Z0-9_]{0,79})",
+                    message)
+                blocked("CP34_EXPORT_" + match.group(1)
+                        if match else "CP34_EXPORT_FAILED")
         finally:
             git(root, "worktree", "remove", "--force", str(source))
     request = {"schema_version": "CP34_NATIVE_PROPOSAL_REQUEST_V1",
