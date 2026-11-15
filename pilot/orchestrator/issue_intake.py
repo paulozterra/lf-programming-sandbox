@@ -194,6 +194,8 @@ def intake(api: API, event: dict):
     git("-c", "user.name=github-actions[bot]",
         "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
         "commit", "-m", f"T9 issue #{info['issue']} request")
+    from pilot.orchestrator.generated_branch_standards import synchronize
+    synchronize(Path.cwd(), "request")
     git("push", "--set-upstream", "origin", branch)
     pr = api.call("POST", "/pulls", {
         "title": f"[T9] Pedido #{info['issue']} ({slug})",
