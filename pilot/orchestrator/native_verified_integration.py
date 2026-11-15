@@ -12,7 +12,8 @@ import hashlib
 import io
 import json
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path
+from generated_branch_standards import synchronize, PurePosixPath
 import re
 import subprocess
 import sys
@@ -361,9 +362,8 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
                 target = work / chg_file
                 target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
                                   encoding="utf-8")
-                command(["python3", "standards/tools/changes.py", "render"], cwd=work)
-                command(["git", "add", "--", *sorted(changed), chg_file,
-                         "standards/CAMBIOS.md"], cwd=work)
+                command(["git", "add", "--", *sorted(changed), chg_file], cwd=work)
+                synchronize(work, "integration", base=parent, chg_file=chg_file)
                 expected_tree = command(["git", "write-tree"], cwd=work).decode().strip()
             finally:
                 command(["git", "worktree", "remove", "--force", str(work)], cwd=root)
@@ -398,6 +398,8 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
         num = next_chg(root)
         chg = record_change(root, num, task, run_id, patch_hash, list(changed))
         command(["git", "add", "--", str(chg.relative_to(root))], cwd=root)
+        synchronize(root, "integration",
+                    chg_file=chg.relative_to(root).as_posix())
         current_remote = command(["git", "ls-remote", "origin", "refs/heads/main"],
                                  cwd=root).decode().split()[0]
         if current_remote != main:
@@ -426,8 +428,9 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     payload = obj(chg.read_bytes())
     payload["evidence"]["pr_url"] = url
     chg.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
+    synchronize(root, "integration", base=check_base,
+                chg_file=chg.relative_to(root).as_posix())
     command(["python3", "standards/tools/changes.py", "check", "--base", check_base], cwd=root)
-    command(["git", "add", "--", str(chg.relative_to(root))], cwd=root)
     command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] record PR evidence"], cwd=root)
     command(["git", "push", "origin", branch], cwd=root)
     final_head = command(["git", "rev-parse", "HEAD"], cwd=root).decode().strip()
