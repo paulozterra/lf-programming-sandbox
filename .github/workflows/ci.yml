@@ -180,6 +180,10 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt pytest==8.4.2
           python3 -m unittest discover -s pilot -p 'test_t11_api_exams.py' -v
+      - name: T13 generated acceptance Python dependency coverage (all areas)
+        run: |
+          python3 -m pilot.orchestrator.worker_python_dependencies
+          python3 -m pytest -q pilot/orchestrator/test_worker_python_dependencies.py -p no:cacheprovider
       - name: T10 deterministic analysis report and same-area reuse regression
         run: |
           python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt pytest==8.4.2
