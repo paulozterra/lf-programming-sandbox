@@ -24,8 +24,8 @@ def issue_for(api, task: str, slug: str) -> dict | None:
                and issue.get("title") == f"EXAM_REQUEST: {task}"
                and any(row.get("name") == "exam-request"
                        for row in issue.get("labels", []))
-               and f"- Pedido: \`{slug}\`" in issue.get("body", "")
-               and f"- Task ID: \`{task}\`" in issue.get("body", "")]
+               and f"- Pedido: `{slug}`" in issue.get("body", "")
+               and f"- Task ID: `{task}`" in issue.get("body", "")]
     if len(matches) > 1:
         raise LifecycleBlocked("EXAM_REQUEST_DUPLICATE")
     return matches[0] if matches else None
@@ -60,8 +60,8 @@ def close_registered(api, sha: str, branch: str, git, root: Path) -> str:
     number = issue.get("number")
     if type(number) is not int:
         raise LifecycleBlocked("EXAM_REQUEST_UNVERIFIED")
-    comment = (f"Examen integrado: tarea \`{task}\` registrada en main "
-               f"mediante Train, commit \`{sha}\`. "
+    comment = (f"Examen integrado: tarea `{task}` registrada en main "
+               f"mediante Train, commit `{sha}`. "
                "La cadena continúa según dependencias y verificación de CI.")
     api.call("POST", f"/issues/{number}/comments", {"body": comment})
     api.call("PATCH", f"/issues/{number}", {"state": "closed",
