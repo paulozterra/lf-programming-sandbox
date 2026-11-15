@@ -25,6 +25,7 @@ from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
 from generated_branch_standards import synchronize
 from pilot.orchestrator.task_pack_publication import verify_published_pair, legacy_artifact_reference, regenerate_pack_from_registered_base, TaskPackBlocked
+from pilot.orchestrator.native_submission_contract import enrich_request, is_current
 from generated_conflict_recovery import retire_conflicted_generated
 from pilot.generated_ci_selection import last_executed_ci_run
 from native_lot_binding import next_ready
@@ -927,6 +928,43 @@ def publish_missing_registered_pack(request: str, task: str, head: str) -> dict 
         deny(reason)
 
 
+def publish_legacy_submission_contract(request: str, task: str, head: str) -> dict | None:
+    """T19 metadata-only bot draft; never edit an existing task pack or registration."""
+    from pilot.orchestrator.task_pack_publication import verify_published_pair
+    if not re.fullmatch(r"req-[1-9][0-9]*", request) or not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task):
+        deny("NATIVE_SUBMISSION_SCOPE_INVALID")
+    relative = f"pilot/runs/{request}/proposal_requests/{task}.proposal-request.json"
+    source = ROOT / relative
+    record_path = ROOT / f"pilot/worker_v08/native_tasks/{task}.json"
+    pack_path = ROOT / f"pilot/runs/{request}/proposal_requests/{task}.task-pack.json"
+    if not source.is_file() or source.is_symlink() or not pack_path.is_file() or pack_path.is_symlink():
+        return None  # T18's missing-package repair handles this case.
+    if record_path.is_symlink() or not record_path.is_file():
+        return None
+    old = json.loads(source.read_text("utf-8"))
+    spec = json.loads(record_path.read_text("utf-8"))["task_spec"]
+    verify_published_pair(ROOT, request, task, old["task_pack_sha256"])
+    if is_current(old, spec):
+        return None
+    branch = f"lf/native-registration/envelope-{task}-{head[:12]}"
+    if (pending_draft(f"lf/native-registration/envelope-{task}-")
+            or run("git", "ls-remote", "--heads", "origin", branch)):
+        return {"status": "SUBMISSION_CONTRACT_PENDING", "task": task}
+    def create(root: Path):
+        original = (root / relative).read_bytes()
+        updated = canonical(enrich_request(old, spec))
+        if original == updated:
+            return {"status": "SUBMISSION_CONTRACT_CURRENT", "task": task}
+        (root / relative).write_bytes(updated)
+        review = draft(root, branch, request, [relative],
+                       "T19: publish exact Worker envelope submission instructions; "
+                       "native task, task pack and task_pack_sha256 unchanged.",
+                       f"native proposal submission contract {task}")
+        return {"status": "SUBMISSION_CONTRACT_DRAFT", "task": task,
+                "task_pack_sha256": old["task_pack_sha256"], **review}
+    return worktree(head, branch, create)
+
+
 def comment_task_pack_mismatch(request: str, task: str) -> None:
     """Fail-closed, idempotent, comment only on verified original LF issue."""
     issue_number = int(request[4:])
@@ -1074,6 +1112,13 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                     fixed = publish_missing_registered_pack(request, task, head)
                     if fixed is not None:
                         repair_outcomes.append({"request": request, **fixed})
+                    # Existing published packs need only a metadata upgrade.
+                    # This is separate from native registration and never
+                    # changes the stored Worker task nor its package SHA.
+                    if fixed is None:
+                        upgraded = publish_legacy_submission_contract(request, task, head)
+                        if upgraded is not None:
+                            repair_outcomes.append({"request": request, **upgraded})
                 except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
                         OSError, ValueError, KeyError) as exc:
                     repair_outcomes.append(per_request_block(request, "PACK_REPAIR", exc))
