@@ -64,6 +64,8 @@ jobs:
       GITHUB_REPOSITORY: ${{ github.repository }}
       SOURCE_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.source_run_id }}
       INTEGRATION_PR: ${{ inputs.integration_pr || '' }}
+      NEW_PLAN_REQUEST: ${{ inputs.new_plan_request || '' }}
+      MERGE_PR: ${{ inputs.merge_pr || '' }}
     steps:
       - name: Checkout trusted main control; no proposals, no secrets
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -101,9 +103,9 @@ jobs:
         run: |
           if [ -n "$INTEGRATION_PR" ]; then
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --integration-pr "$INTEGRATION_PR"
-          elif [ -n "${{ inputs.new_plan_request }}" ]; then
+          elif [ -n "$NEW_PLAN_REQUEST" ]; then
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --source-run-id "$SOURCE_RUN_ID" \
-              --new-plan-request "${{ inputs.new_plan_request }}" --new-plan-pr "${{ inputs.merge_pr }}"
+              --new-plan-request "$NEW_PLAN_REQUEST" --new-plan-pr "$MERGE_PR"
           else
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --source-run-id "$SOURCE_RUN_ID"
           fi
