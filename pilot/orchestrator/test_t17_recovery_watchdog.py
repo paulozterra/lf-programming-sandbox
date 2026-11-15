@@ -125,7 +125,7 @@ def test_more_recent_action_required_does_not_retire_successful_registration():
         {"id": 43729614995, "head_sha": SHA, "head_branch": BRANCH,
          "event": "workflow_dispatch", "status": "completed",
          "conclusion": "success", "created_at": "2026-11-15T10:00:00Z"}]}
-    with patch.object(chain_lots, "run", side_effect=fake_run), \\
+    with patch.object(chain_lots, "run", side_effect=fake_run), \
          patch.object(chain_lots, "api", return_value=rows):
         assert chain_lots.close_failed_old_registration_drafts("t17fake", "a" * 40) == []
     assert not any(x[:3] == ("gh", "pr", "close") for x in calls)
