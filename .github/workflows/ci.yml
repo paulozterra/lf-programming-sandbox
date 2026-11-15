@@ -201,6 +201,10 @@ jobs:
         run: |
           python3 -m pytest -q pilot/test_policy_c_handoff.py -p no:cacheprovider
           python3 -m pilot.workflow_entrypoint pilot/test_policy_c_handoff.py
+      - name: T20 runner labels pinned across all 22 workflows (offline)
+        run: python3 -m pilot.workflow_entrypoint pilot/test_t20_runner_pin.py
+      - name: T20 bot PR CI one retry per HEAD and watchdog (offline)
+        run: python3 -m pytest -q pilot/orchestrator/test_t20_bot_ci_retry.py -p no:cacheprovider
       - name: T19 native envelope publication, push guard and worker client (offline)
         run: python3 -m pytest -q pilot/orchestrator/test_t19_native_submission.py -p no:cacheprovider
       - name: T18.1 isolated CP3.6 sweep and global failure alert (offline)
