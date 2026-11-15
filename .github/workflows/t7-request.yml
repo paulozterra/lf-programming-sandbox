@@ -104,7 +104,7 @@ jobs:
           git -c user.name='github-actions[bot]' \
               -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
               commit -m 'T7 generated request analysis, reuse assessment and chain'
-          python3 pilot/orchestrator/generated_branch_standards.py \
+          python3 -m pilot.workflow_entrypoint pilot/orchestrator/generated_branch_standards.py \
             --kind generated-t7 --base "$GITHUB_SHA"
           git push --set-upstream origin "$branch"
           gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
