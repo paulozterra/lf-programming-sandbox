@@ -885,7 +885,7 @@ def comment_task_pack_mismatch(request: str, task: str) -> None:
            (row.get("user") or {}).get("login") == "github-actions[bot]"):
         return
     run("gh", "issue", "comment", str(issue_number), "--repo", REPO,
-        "--body", marker + "\\nTASK_PACK_HASH_MISMATCH: no se publica el paquete de "
+        "--body", marker + "\nTASK_PACK_HASH_MISMATCH: no se publica el paquete de "
         + task + ". La regeneración desde la base registrada no coincide "
         + "con el paquete original; requiere revisión. Sin re-registro ni etiquetas.")
 
@@ -1005,8 +1005,6 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         for request, _lots, _state, bindings in all_plans:
             # Repair independently of ready_lot_ids: the registration is
             # already in main, so no normal predecessor can reopen it.
-            if not sweep_request_enabled(request):
-                continue
             for task in sorted({item.get("task_name") for item in bindings.values()
                                 if isinstance(item, dict) and
                                 isinstance(item.get("task_name"), str)}):
