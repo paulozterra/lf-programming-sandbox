@@ -62,7 +62,7 @@ def test_invalid_schema_is_rejected_before_worker(area):
 
 
 def test_actual_generate_chain_emits_worker_compatible_tasks_for_all_areas(tmp_path, monkeypatch):
-    from pilot.orchestrator import contract_generate
+    import contract_generate
     monkeypatch.setattr(contract_generate, "generate",
                         lambda module, package, atoms: {"synthetic": module})
     run = "req-901"
