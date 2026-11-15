@@ -21,6 +21,7 @@
       "pilot/orchestrator/test_t16_worker_errors.py",
       "pilot/orchestrator/test_t16_worker_schema.py",
       "pilot/orchestrator/worker_template_contract.py",
+      "pilot/worker_v08/export_task_pack.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0120.json"
     ]
