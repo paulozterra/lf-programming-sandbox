@@ -239,6 +239,16 @@ def comment_analysis_report(api: Github, sha: str, slug: str) -> str:
     return comment(api, sha, slug, git)
 
 
+def dispatch_chain_sweep(api: Github, sha: str) -> dict:
+    """After a verified Train merge and exact-main green CI, resume all chains."""
+    if not SHA.fullmatch(sha):
+        raise HandoffBlocked("CHAIN_SWEEP_SHA_INVALID")
+    inputs = {"sweep": "true", "base_sha": sha}
+    api.call("POST", "/actions/workflows/chain-lots.yml/dispatches",
+             {"ref": "main", "inputs": inputs})
+    return {"workflow": "chain-lots.yml", "inputs": inputs}
+
+
 def dispatch(api: Github, number: int, sha: str, train_run_id: int,
              mapping: dict):
     pr = api.call("GET", f"/pulls/{number}")
@@ -247,11 +257,12 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
     selected = route(branch, mapping)
     validate_train_run(api, number, train_run_id)
     if selected is None:
-        ci = ensure_main_ci(api, sha, required=False)
+        ci = ensure_main_ci(api, sha, required=True)
         from pilot.exam_issue_lifecycle import close_registered
         exam = close_registered(api, sha, branch, git, Path("."))
-        return {"status": "NO_HANDOFF", "branch": branch,
-                "main_ci": ci, "exam": exam}
+        sweep = dispatch_chain_sweep(api, sha)
+        return {"status": "SWEEP_DISPATCHED", "branch": branch,
+                "main_ci": ci, "exam": exam, "sweep": sweep}
     item, match = selected
     if type(item.get("requires_green_base")) is not bool:
         raise HandoffBlocked("HANDOFF_MAP_GATE_UNDEFINED")
@@ -261,7 +272,8 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
     if item["workflow"] == "chain-lots.yml" and re.fullmatch(
             r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch):
         comment_analysis_report(api, sha, slug_for_stage)
-    ci = ensure_main_ci(api, sha, required=item["requires_green_base"])
+    # Every Train merge, including feat/*, is CI-gated before a sweep.
+    ci = ensure_main_ci(api, sha, required=True)
     if item["input_kind"] == "slug":
         slug = match.group(1)
         validate_request_paths(slug, sha)
@@ -279,8 +291,10 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
         raise HandoffBlocked("HANDOFF_INPUT_KIND_INVALID")
     api.call("POST", f"/actions/workflows/{item['workflow']}/dispatches",
              {"ref": "main", "inputs": inputs})
+    sweep = dispatch_chain_sweep(api, sha)
     return {"status": "DISPATCHED", "branch": branch,
-            "workflow": item["workflow"], "inputs": inputs, "main_ci": ci}
+            "workflow": item["workflow"], "inputs": inputs,
+            "main_ci": ci, "sweep": sweep}
 
 
 def verify_t7_dispatch(slug: str, sha: str):

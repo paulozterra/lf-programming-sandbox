@@ -167,7 +167,9 @@ class Tests(unittest.TestCase):
             result=handoff.dispatch(api,177,SHA,42,MAPPING)
         paths=[p for method,p,_ in api.calls if method=="POST"]
         self.assertEqual(paths,["/actions/workflows/ci.yml/dispatches",
+                                "/actions/workflows/chain-lots.yml/dispatches",
                                 "/actions/workflows/chain-lots.yml/dispatches"])
+        self.assertEqual(api.calls[-1][2]["inputs"], {"sweep": "true", "base_sha": SHA})
         self.assertEqual(result["inputs"]["request_slug"],"req-175")
         self.assertEqual(result["inputs"]["base_sha"],SHA)
 

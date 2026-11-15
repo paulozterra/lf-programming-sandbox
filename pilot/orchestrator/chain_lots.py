@@ -103,6 +103,41 @@ def event_kind(event_run_id: int, head: str) -> str:
     return "IRRELEVANT"
 
 
+def main_ci_decision(head: str) -> str:
+    """Missing/running CI is neutral; only a completed failed CI is red."""
+    response = api("actions/workflows/ci.yml/runs?head_sha=" + head + "&per_page=100")
+    rows, count = response.get("workflow_runs"), response.get("total_count")
+    if not isinstance(rows, list) or type(count) is not int or count > 100:
+        deny("BASE_NO_VERDE")
+    eligible = [row for row in rows if isinstance(row, dict)
+                and row.get("head_sha") == head
+                and row.get("head_branch") == "main"
+                and row.get("event") in ("push", "workflow_dispatch")
+                and (row.get("path") or "").split("@")[0] == CI
+                and row.get("repository", {}).get("full_name") == REPO
+                and type(row.get("run_attempt")) is int]
+    if not eligible:
+        return "WAITING_MAIN_CI"
+    latest = max(eligible, key=lambda row: (row.get("created_at") or "",
+                                            row.get("id") or 0))
+    if latest.get("status") != "completed":
+        return "WAITING_MAIN_CI"
+    if latest.get("conclusion") != "success":
+        deny("BASE_NO_VERDE")
+    return "GREEN"
+
+
+def sweep_request_enabled(request: str) -> bool:
+    """Only open, non-discarded issue-backed requests can be resumed."""
+    if not re.fullmatch(r"req-[1-9][0-9]*", request):
+        return True  # Legacy synthetic chains without a source issue.
+    row = api("issues/" + request[4:])
+    if row.get("number") != int(request[4:]):
+        deny("CHAIN_REQUEST_IDENTITY_INVALID")
+    state, reason = exam_issue_state(row)
+    return state == "open" and reason not in ("not_planned", "duplicate")
+
+
 def merged_integration(head: str) -> tuple[dict, set[str]]:
     message = run("git", "log", "-1", "--format=%s")
     found = MERGE_MESSAGE.fullmatch(message)
@@ -686,16 +721,26 @@ def verify_new_plan(request: str, merge_pr: int, sha: str) -> None:
 
 def process(event_run_id: int | None = None, integration_pr: int | None = None,
             new_plan_request: str | None = None,
-            new_plan_pr: int | None = None) -> list[dict]:
+            new_plan_pr: int | None = None, *,
+            sweep: bool = False, base_sha: str | None = None,
+            require_ci: bool = False) -> list[dict]:
     head = check_main()
+    if sweep and (base_sha != head or not re.fullmatch(r"[0-9a-f]{40}", base_sha or "")):
+        deny("CHAIN_SWEEP_BASE_INVALID")
     manual_sha = (validated_manual_integration(integration_pr, head)
                   if integration_pr is not None else None)
-    kind = "TRAIN" if manual_sha is not None else event_kind(event_run_id, head)
+    kind = ("TRAIN" if sweep or manual_sha is not None
+            else event_kind(event_run_id, head))
     if kind == "IRRELEVANT":
         return [{"status": "IGNORED_SOURCE_EVENT"}]
-    # Seed registry on first trusted Train/main-CI event, even when no
-    # previously registered chain plan exists. Never require a manual label.
-    registry_status = (sync_implemented_registry(head) if kind == "TRAIN" else None)
+    # Production entrypoint always checks CI before mutating anything.
+    # Older offline process() fixtures exercise logic without GitHub API.
+    if kind == "TRAIN" and (sweep or require_ci):
+        if main_ci_decision(head) == "WAITING_MAIN_CI":
+            return [{"status": "WAITING_MAIN_CI", "head_sha": head}]
+    # A sweep must not create unrelated registry drafts when idle.
+    registry_status = (sync_implemented_registry(head)
+                       if kind == "TRAIN" and not sweep else None)
     all_plans = plans()
     if not all_plans:
         return [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
@@ -715,6 +760,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             deny("EXAM_PLAN_NOT_READY")
     outcomes = []
     for request, lots, state, bindings in all_plans:
+        if sweep and not sweep_request_enabled(request):
+            continue
         if state.get("stage") == "BLOCKED":
             outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
             continue
@@ -725,7 +772,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             if closed:
                 outcomes.append({"request": request, "status": "EXAM_ALREADY_REGISTERED",
                                  "closed_exam_issues": closed})
-        if request == new_plan_request:
+        if request == new_plan_request or sweep:
             outcomes.extend(request_all_lot_exams(request, lots, bindings))
         completed = completed_lots(lots, bindings, history)
         if manual_sha is not None and not any(
@@ -784,17 +831,26 @@ def main() -> int:
     parser.add_argument("--integration-pr", type=int)
     parser.add_argument("--new-plan-request")
     parser.add_argument("--new-plan-pr", type=int)
+    parser.add_argument("--sweep", action="store_true")
+    parser.add_argument("--base-sha")
     args = parser.parse_args()
     try:
         if (os.environ.get("GITHUB_REPOSITORY") != REPO
                 or not os.environ.get("GH_TOKEN")
-                or (args.integration_pr is None and
+                or (args.sweep and (args.source_run_id is not None
+                    or args.integration_pr is not None
+                    or args.new_plan_request is not None
+                    or args.new_plan_pr is not None))
+                or (not args.sweep and args.base_sha is not None)
+                or (not args.sweep and args.integration_pr is None and
                     (args.source_run_id is None or args.source_run_id <= 0))
-                or (args.integration_pr is not None and
+                or (not args.sweep and args.integration_pr is not None and
                     (args.integration_pr <= 0 or args.source_run_id is not None))):
             deny("TRUSTED_RUN_ENV_REQUIRED")
         print(json.dumps(process(args.source_run_id, args.integration_pr,
-                                 args.new_plan_request, args.new_plan_pr), sort_keys=True))
+                                 args.new_plan_request, args.new_plan_pr,
+                                 sweep=args.sweep, base_sha=args.base_sha,
+                                 require_ci=True), sort_keys=True))
     except (ChainBlocked, IntegrationBlocked, AdmissionBlocked, OSError, ValueError, KeyError) as exc:
         code = (str(exc) if isinstance(exc, (ChainBlocked, IntegrationBlocked, AdmissionBlocked))
                 else "CP36_UNEXPECTED_FAILURE")
