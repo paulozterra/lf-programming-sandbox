@@ -127,4 +127,4 @@
 | CHG-0124 | ADDITIVE | T17.3: despertar política C tras todo sweep CP3.6 sobre main |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/207 |
 | CHG-0125 | ADDITIVE | T17.4: recuperación general de PR generados con conflictos contra main |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/208 |
 | CHG-0126 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/209 |
-| CHG-0127 | ADDITIVE | T18: publicar paquetes Worker en registro y reparar registros históricos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/PENDING |
+| CHG-0127 | ADDITIVE | T18: publicar paquetes Worker en registro y reparar registros históricos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/211 |
