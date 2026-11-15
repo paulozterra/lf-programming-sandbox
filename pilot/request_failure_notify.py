@@ -9,14 +9,10 @@ import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
-try:
-    from pilot.generated_ci_selection import last_executed_ci_run
-except ModuleNotFoundError as exc:
-    # A standalone script has pilot/ on sys.path but may not have repo root.
-    # Re-raise unrelated module errors; do not hide a broken selector.
-    if exc.name != "pilot":
-        raise
-    from generated_ci_selection import last_executed_ci_run
+# The policy/watchdog are loaded in isolated python -I run_path tests too.
+# Resolve this pinned module from the trusted script directory, never cwd.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from generated_ci_selection import last_executed_ci_run
 
 REPO = "paulozterra/lf-programming-sandbox"
 ROUTES = {
