@@ -31,7 +31,14 @@ def export(repo: Path, spec_path: Path, output_path: Path) -> str:
         or result.receipt.get("status") != "BLOCKED"
         or result.receipt.get("reason") != "NATIVE_CAPTURE_ONLY"
         or result.patch):
-        raise RuntimeError("NATIVE_CAPTURE_FAILED_OR_PREFLIGHT_BLOCKED")
+        # The Worker already produced a machine reason. Keep it visible but
+        # never copy model data, stderr, arbitrary text or potential secrets.
+        import re
+        reason = result.receipt.get("reason")
+        prefix = (re.match(r"^([A-Z][A-Z0-9_]{0,79})(?::|[ ]|$)", reason)
+                  if isinstance(reason, str) else None)
+        safe = prefix.group(1) if prefix else "UNCLASSIFIED"
+        raise RuntimeError("NATIVE_CAPTURE_FAILED_OR_PREFLIGHT_BLOCKED:" + safe)
     actual = hashlib.sha256(output_path.read_bytes()).hexdigest()
     if actual != client.captured_sha256:
         raise RuntimeError("NATIVE_PACK_SHA_MISMATCH")

@@ -366,11 +366,21 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     dest = output["task_spec"] if "task_spec" in output else output
     lf_rules = None
     lf_rule_receipt = None
+    lf_rules_worker_safety = None
     if task_name.lower() not in {"ex6", "ex7", "ex8"}:
         from lf_rule_context import material, RuleContextBlocked
+        from worker_context_safety import safe_rule_context, WorkerContextUnsafe
         try:
-            lf_rules, lf_rule_receipt = material(area, skill_codes=[r["code"] for r in identities])
-        except RuleContextBlocked as exc:
+            source_rules, lf_rule_receipt = material(
+                area, skill_codes=[r["code"] for r in identities])
+            lf_rules, redaction_count = safe_rule_context(source_rules)
+            lf_rules_worker_safety = {
+                "source_sha256": digest(source_rules),
+                "worker_sha256": digest(lf_rules),
+                "assignment_examples_redacted": redaction_count,
+                "vendor_secret_scanner_passed": True,
+            }
+        except (RuleContextBlocked, WorkerContextUnsafe) as exc:
             block(str(exc))
     reuse_markdown = None
     reuse_sha = {}
@@ -485,6 +495,8 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
                                "lf_rules.receipt.json": digest(canonical(lf_rule_receipt))}
                               if lf_rules is not None else {})},
         **({"lf_rules": lf_rule_receipt} if lf_rule_receipt is not None else {}),
+        **({"lf_rules_worker_safety": lf_rules_worker_safety}
+           if lf_rules_worker_safety is not None else {}),
         **({"reuse_context_sha256": reuse_sha} if reuse_markdown is not None else {}),
         "builder_protocol": {"source": "pilot/orchestrator/MODO_CONTINUO.md",
                              "sha256": digest(protocol_src.read_bytes()), "mode": "CONTINUOUS_DEFAULT"},

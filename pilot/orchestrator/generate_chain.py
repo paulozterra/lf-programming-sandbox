@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from chain_contract import validate_plan
+from worker_template_contract import validate_template_worker
 
 def canonical(value):
     return (json.dumps(value,sort_keys=True,separators=(",",":"),ensure_ascii=False)+"\n").encode("utf-8")
@@ -283,6 +284,9 @@ def generate(root, run, lots):
                         context_paths.append(src)
                     protected.append(src)
             context_paths.append("pilot/runs/"+run+"/reuse_assessment.json")
+        # Every generated task needs an existing public source anchor: the
+        # real Worker rejects empty context_path_patterns.
+        context_paths.append("pilot/runs/" + run + "/analysis.json")
         context_paths=sorted(set(context_paths))
         protected=sorted(set(protected))
         behavior_note = ("; conservar el comportamiento existente: "
@@ -312,8 +316,8 @@ def generate(root, run, lots):
                                              skeleton_path=(skeleton_template.format(module=module)
                                                             if module and skeleton_template else None),
                                              infra_dependencies=lot.get("infra_missing_dependencies")),
-            "context_derivation":"pilot/worker_v08/derive_context.py",
         }}
+        validate_template_worker(template, lot["area"], pending_shas=True)
         output[tpath]=template
     plan={"schema_version":"CP36_CHAIN_PLAN_V1","request_id":run,
           "production_authority":False,

@@ -44,7 +44,16 @@ def run(*args: str, cwd: Path = ROOT, check: bool = True) -> str:
     except (OSError, subprocess.TimeoutExpired):
         deny("COMMAND_UNAVAILABLE")
     if check and p.returncode:
-        deny("COMMAND_FAILED:" + args[0])
+        command = Path(args[1] if args[0] in ("python3", "lf-python", "python")
+                       and len(args) > 1 else args[0]).name
+        # Only expose a bounded machine-readable code from the last stderr
+        # line, never arbitrary paths, arguments, tokens, or secret values.
+        tail = (p.stderr or "").splitlines()
+        last = tail[-1].strip() if tail else ""
+        match = re.search(r"(CP35_BLOCKED|TEMPLATE_WORKER_SCHEMA_INVALID):([A-Z0-9_:-]{1,120})", last)
+        detail = (match.group(1) + ":" + match.group(2).rstrip(":")
+                  if match else "STDERR_REDACTED" if last else "NO_STDERR")
+        deny("COMMAND_FAILED:" + command + ":" + detail)
     return p.stdout.strip()
 
 
@@ -589,6 +598,11 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
         sys.path.insert(0, str(root / "vendor/programming-agent/src"))
         from programming_agent_runner.hashutil import source_snapshot_sha256
         spec["source_snapshot_sha256"] = source_snapshot_sha256(root)
+        # Pending templates from before T16 may contain the one unsupported
+        # tracing field. Normalize only that exact historical value and
+        # re-validate against the real Worker parser before invoking CP3.5.
+        from worker_template_contract import normalize_legacy_registration_template
+        template = normalize_legacy_registration_template(template, binding["area"])
         template_json = Path(tempfile.mkdtemp(prefix="cp36-template-")) / "task.json"
         try:
             template_json.write_bytes(canonical(template))
@@ -805,7 +819,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             if candidate is None:
                 continue
             chosen = dict(bindings[lot_id], task_name=candidate,
-                          original_task_name=task, lot_id=lot_id)
+                          original_task_name=task, lot_id=lot_id,
+                          area=lot["area"])
             if candidate != task:
                 metadata = Path(chosen["holdout_metadata_path"])
                 chosen["holdout_metadata_path"] = str(
