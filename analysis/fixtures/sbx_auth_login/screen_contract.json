@@ -12,7 +12,9 @@
         "required": true,
         "rule_refs": [
           "supabase://lf_ops.reglas/1"
-        ]
+        ],
+        "nombre": "username",
+        "tipo_dato": "string"
       },
       {
         "field_code": "SBX-F-PASS",
@@ -20,7 +22,9 @@
         "required": true,
         "rule_refs": [
           "supabase://lf_ops.reglas/2"
-        ]
+        ],
+        "nombre": "password",
+        "tipo_dato": "string"
       }
     ],
     "errors": [

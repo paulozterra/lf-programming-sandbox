@@ -405,6 +405,26 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
             "task": binding["task_name"]}
 
 
+def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict]:
+    """Request every independent exam immediately at LOTS_PLANNED.
+
+    Opening an exam request is not permission to register its lot: CP3.6
+    still gates each successor on integrated predecessor receipts and its
+    own encrypted holdout/metadata, checked again by admit_registration.
+    """
+    planned = {lot["id"]: lot for lot in lots["lots"]}
+    if set(planned) != set(bindings):
+        deny("EXAM_PLAN_BINDING_INCOMPLETE")
+    outcomes = []
+    for lot_id in sorted(planned):
+        bound = bindings[lot_id]
+        task = bound["task_name"]
+        if missing_exam(ROOT, task):
+            outcomes.append({"request": request, "lot_id": lot_id,
+                             **request_missing_exam(request, bound, planned[lot_id])})
+    return outcomes
+
+
 def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dict | None:
     """Inspect admission before any generated commit or native preparation."""
     require_green_base(head, api)
@@ -549,7 +569,31 @@ def sync_implemented_registry(head: str) -> dict:
     return {"status": "REGISTRY_DRAFT", **worktree(head, branch, create)}
 
 
-def process(event_run_id: int | None = None, integration_pr: int | None = None) -> list[dict]:
+def verify_new_plan(request: str, merge_pr: int, sha: str) -> None:
+    """Side-effect gate: exact generated-T7 Train merge, not an old plan."""
+    if (not re.fullmatch(r"req-[1-9][0-9]*", request)
+            or type(merge_pr) is not int or merge_pr < 1):
+        deny("EXAM_PLAN_PROVENANCE_INVALID")
+    pr = api(f"pulls/{merge_pr}")
+    if (pr.get("merged") is not True or pr.get("merge_commit_sha") != sha
+            or pr.get("base", {}).get("ref") != "main"
+            or pr.get("head", {}).get("repo", {}).get("full_name") != REPO
+            or not re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}",
+                                pr.get("head", {}).get("ref", ""))):
+        deny("EXAM_PLAN_PROVENANCE_INVALID")
+    changed = set(run("git", "diff", "--name-only", sha + "^1", sha).splitlines())
+    if f"pilot/runs/{request}/chain_plan.json" not in changed:
+        deny("EXAM_PLAN_PROVENANCE_INVALID")
+    metadata = json.loads((ROOT / "pilot/runs" / request /
+                           "request_meta.json").read_text("utf-8"))
+    if metadata.get("issue") != int(request[4:]):
+        deny("EXAM_PLAN_PROVENANCE_INVALID")
+    require_green_base(sha, api)
+
+
+def process(event_run_id: int | None = None, integration_pr: int | None = None,
+            new_plan_request: str | None = None,
+            new_plan_pr: int | None = None) -> list[dict]:
     head = check_main()
     manual_sha = (validated_manual_integration(integration_pr, head)
                   if integration_pr is not None else None)
@@ -569,11 +613,20 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None) 
     # Historical first-parent commits are the proof. Reconcile all merged
     # native integrations so an unrelated Train merge between the source
     # event and this job cannot silently lose a successor.
+    if new_plan_request is not None:
+        if kind != "TRAIN" or manual_sha is not None or new_plan_pr is None:
+            deny("EXAM_PLAN_PROVENANCE_INVALID")
+        verify_new_plan(new_plan_request, new_plan_pr, head)
+        if not any(request == new_plan_request and state.get("stage") == "LOTS_PLANNED"
+                   for request, lots, state, bindings in all_plans):
+            deny("EXAM_PLAN_NOT_READY")
     outcomes = []
     for request, lots, state, bindings in all_plans:
         if state.get("stage") == "BLOCKED":
             outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
             continue
+        if request == new_plan_request:
+            outcomes.extend(request_all_lot_exams(request, lots, bindings))
         completed = completed_lots(lots, bindings, history)
         if manual_sha is not None and not any(
                 proof["merge_sha"] == manual_sha for proof in completed.values()):
@@ -629,6 +682,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-run-id", type=int)
     parser.add_argument("--integration-pr", type=int)
+    parser.add_argument("--new-plan-request")
+    parser.add_argument("--new-plan-pr", type=int)
     args = parser.parse_args()
     try:
         if (os.environ.get("GITHUB_REPOSITORY") != REPO
@@ -638,7 +693,8 @@ def main() -> int:
                 or (args.integration_pr is not None and
                     (args.integration_pr <= 0 or args.source_run_id is not None))):
             deny("TRUSTED_RUN_ENV_REQUIRED")
-        print(json.dumps(process(args.source_run_id, args.integration_pr), sort_keys=True))
+        print(json.dumps(process(args.source_run_id, args.integration_pr,
+                                 args.new_plan_request, args.new_plan_pr), sort_keys=True))
     except (ChainBlocked, IntegrationBlocked, AdmissionBlocked, OSError, ValueError, KeyError) as exc:
         code = (str(exc) if isinstance(exc, (ChainBlocked, IntegrationBlocked, AdmissionBlocked))
                 else "CP36_UNEXPECTED_FAILURE")

@@ -21,6 +21,13 @@
       "input_kind": "integration_pr",
       "requires_green_base": true,
       "correlate_request_slug": true
+    },
+    {
+      "branch_regex": "^lf/exam/([a-z][a-z0-9_-]{0,31})$",
+      "workflow": "chain-lots.yml",
+      "input_kind": "train_run_id",
+      "requires_green_base": true,
+      "correlate_request_slug": true
     }
   ]
 }

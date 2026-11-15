@@ -12,7 +12,9 @@
         "required": false,
         "rule_refs": [
           "supabase://lf_ops.reglas/202"
-        ]
+        ],
+        "nombre": "priority",
+        "tipo_dato": "string"
       }
     ],
     "errors": [

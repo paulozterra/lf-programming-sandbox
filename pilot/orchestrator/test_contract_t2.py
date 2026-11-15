@@ -48,7 +48,7 @@ def attach_screen_readback(package, screen):
 def constructor_proposal(skeleton):
     """Fixture-only candidate: constructor chooses path/method, not Analysis."""
     module = skeleton["functional_module"]
-    properties = {f["field_code"]: {"type": "string"} for f in skeleton["fields"]}
+    properties = {f["api_name"]: {"type": "string"} for f in skeleton["fields"]}
     return {
         "openapi": "3.1.0", "info": {"title": module, "version": "1.0.0"},
         "paths": {"/api/" + module: {"post": {
@@ -101,7 +101,8 @@ def scenario(root, kind, *, slug):
         a, b = "FIELD_" + token.upper(), "ERROR_" + token.upper()
         screen = {
             "fields": [{"field_code": "INPUT_" + token.upper(), "status":"VIGENTE",
-                        "required":True,"rule_refs":[source_a]}],
+                        "required":True,"nombre":"synthetic_input","tipo_dato":"string",
+                        "rule_refs":[source_a]}],
             "errors": [{"error_code":"ERROR_RESPONSE_" + token.upper(),
                         "status":"VIGENTE","generic":True,"rule_refs":[source_b]}],
             "visual":{"variants":[{"code":"VARIANT_" + token.upper(),
@@ -185,7 +186,8 @@ def test_t2_contract_precedes_be_and_fe_and_validates(tmp_path, kind):
     assert set(skeleton["requirement_ids"]) == set(contract["requirement_ids"])
     assert skeleton["rules"]
     assert sorted(skeleton["fields"], key=lambda x: x["field_code"]) == sorted([
-        {"field_code": f["field_code"], "required": f["required"]}
+        {"field_code": f["field_code"], "api_name": f["nombre"],
+         "tipo_dato": f["tipo_dato"], "required": f["required"]}
         for f in package["programming_context_snapshot"]["decision_context"][
             "material_ledger"]["source_detail"]["a3_material_contract"][
                 "contract_sections"]["fields"] if f["status"] == "VIGENTE"],
@@ -230,7 +232,8 @@ def sample_skeleton():
         "functional_module": "sample",
         "production_authority": False,
         "requirement_ids": ["REQ-RANDOM-A"],
-        "fields": [{"field_code": "SYNTH_FIELD", "required": True}],
+        "fields": [{"field_code": "SYNTH_FIELD", "api_name": "syntheticField",
+                    "tipo_dato": "string", "required": True}],
         "errors": [{"error_code": "SYNTH_ERROR"}],
         "rules": [{"rule_code": "RANDOM-A", "requirement_id": "REQ-RANDOM-A",
                    "source_ref": "fixture://random/rule"}],
@@ -252,7 +255,7 @@ def test_contract_missing_field_fails(tmp_path):
     path = tmp_path / "sample.openapi.yaml"
     spec = constructor_proposal(skeleton)
     del spec["paths"]["/api/sample"]["post"]["requestBody"]["content"][
-        "application/json"]["schema"]["properties"]["SYNTH_FIELD"]
+        "application/json"]["schema"]["properties"]["syntheticField"]
     path.write_text(yaml.safe_dump(spec))
     with pytest.raises(ContractBlocked, match="CONTRACT_FIELD_COVERAGE_MISSING"):
         validate(path, skeleton, "sample")
@@ -333,7 +336,7 @@ def test_nested_password_in_example_blocks(tmp_path):
     spec = constructor_proposal(skeleton)
     spec["paths"]["/api/sample"]["post"]["requestBody"]["content"][
         "application/json"]["example"] = {
-            "SYNTH_FIELD": "value", "password": "unredacted"
+            "syntheticField": "value", "password": "unredacted"
         }
     path = tmp_path / "sample.openapi.yaml"
     path.write_text(yaml.safe_dump(spec))

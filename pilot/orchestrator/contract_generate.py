@@ -52,7 +52,12 @@ def generate(module, package, atoms):
             if source_key == "fields":
                 if not isinstance(row.get("required"), bool):
                     deny("T2_FIELD_REQUIRED_UNRESOLVED")
+                if (not isinstance(row.get("nombre"), str) or not row["nombre"].strip()
+                        or not isinstance(row.get("tipo_dato"), str) or not row["tipo_dato"].strip()):
+                    deny("CAMPO_SIN_NOMBRE_API")
                 item["required"] = row["required"]
+                item["api_name"] = row["nombre"]
+                item["tipo_dato"] = row["tipo_dato"]
             elif "generic" in row:
                 if not isinstance(row["generic"], bool):
                     deny("T2_ERROR_GENERIC_INVALID")

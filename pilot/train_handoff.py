@@ -203,12 +203,23 @@ def merged_request_slug(pr: dict, sha: str) -> str:
         slugs = {m.group(1) for path in changed
                  if (m := re.fullmatch(r"pilot/runs/(req-[1-9][0-9]*)/(?:analysis|state|lots|chain_plan)[.]json", path))}
     else:
-        match = re.fullmatch(r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*", branch)
+        match = (re.fullmatch(r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*", branch)
+                 or re.fullmatch(r"lf/exam/([a-z][a-z0-9_-]{0,31})", branch))
         if not match:
             raise HandoffBlocked("HANDOFF_REQUEST_SCOPE_INVALID")
         task = match.group(1)
+        if branch.startswith("lf/exam/"):
+            exact = {f"pilot/holdouts/{task}.oracle.json.age"}
+            changed = git("diff", "--name-only", sha + "^1", sha).splitlines()
+            if len(changed) != 2:
+                raise HandoffBlocked("HANDOFF_EXAM_PATH_DRIFT")
+            metadata = [p for p in changed if re.fullmatch(
+                r"pilot/runs/[a-z][a-z0-9_-]{0,63}/claude_meta/"
+                + re.escape(task) + r"[.]json", p)]
+            if len(metadata) != 1 or set(changed) != exact | {metadata[0]}:
+                raise HandoffBlocked("HANDOFF_EXAM_PATH_DRIFT")
         slugs = set()
-        for plan in Path("pilot/runs").glob("req-*/chain_plan.json"):
+        for plan in Path("pilot/runs").glob("*/chain_plan.json"):
             if plan.is_symlink() or plan.parent.is_symlink():
                 continue
             data = json.loads(plan.read_text(encoding="utf-8"))
@@ -236,8 +247,11 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
     selected = route(branch, mapping)
     validate_train_run(api, number, train_run_id)
     if selected is None:
-        ensure_main_ci(api, sha, required=False)
-        return {"status": "NO_HANDOFF", "branch": branch}
+        ci = ensure_main_ci(api, sha, required=False)
+        from pilot.exam_issue_lifecycle import close_registered
+        exam = close_registered(api, sha, branch, git, Path("."))
+        return {"status": "NO_HANDOFF", "branch": branch,
+                "main_ci": ci, "exam": exam}
     item, match = selected
     if type(item.get("requires_green_base")) is not bool:
         raise HandoffBlocked("HANDOFF_MAP_GATE_UNDEFINED")
@@ -256,6 +270,8 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
         inputs = {"source_run_id": str(train_run_id),
                   "merge_pr": str(number), "request_slug": slug_for_stage,
                   "base_sha": sha}
+        if re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
+            inputs["new_plan_request"] = slug_for_stage
     elif item["input_kind"] == "integration_pr":
         inputs = {"integration_pr": str(number), "request_slug": slug_for_stage,
                   "base_sha": sha}

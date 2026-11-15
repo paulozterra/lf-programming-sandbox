@@ -60,7 +60,7 @@ def is_prohibited(path):
     ))
 
 
-def eligible_pr(pr, paths, repo=REPOSITORY):
+def eligible_pr(pr, paths, repo=REPOSITORY, api=None):
     """Pure gate: same repository, bot, allowed branch and safe complete paths."""
     if (not isinstance(pr, dict) or pr.get("state") != "open"
             or pr.get("base", {}).get("ref") != "main"
@@ -69,12 +69,15 @@ def eligible_pr(pr, paths, repo=REPOSITORY):
         block("PR_UNTRUSTED")
     branch = pr["head"].get("ref", "")
     generated = branch.startswith(("lf/generated-t7/", "lf/implemented-registry/"))
-    if pr.get("user", {}).get("login") != BOT:
+    examiner = re.fullmatch(r"lf/exam/[a-z][a-z0-9_-]{0,31}", branch) is not None
+    if pr.get("user", {}).get("login") != BOT and not examiner:
         block("PR_AUTHOR_NOT_BOT" if generated else "PR_UNTRUSTED")
     if branch.startswith("lf/native-registration/") and len(branch) > len("lf/native-registration/"):
         kind = "registration"
     elif branch.startswith("lf/native-integration/") and len(branch) > len("lf/native-integration/"):
         kind = "integration"
+    elif examiner:
+        kind = "exam"
     elif re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}", branch):
         kind = "generated-t7"
     elif re.fullmatch(r"lf/implemented-registry/[0-9a-f]{12}", branch):
@@ -87,7 +90,15 @@ def eligible_pr(pr, paths, repo=REPOSITORY):
         block("PR_HEAD_INVALID")
     if not isinstance(paths, list) or not paths:
         block("PR_PATH_NOT_ALLOWED" if generated else "PR_PATH_PROHIBITED")
-    if kind == "generated-t7":
+    if kind == "exam":
+        from pilot.exam_policy import verify_issue, ExamBlocked
+        if api is None:
+            block("EXAM_REQUEST_UNVERIFIED")
+        try:
+            verify_issue(api, branch, paths, pr.get("user", {}).get("login"))
+        except (ExamBlocked, KeyError, TypeError, AttributeError):
+            block("EXAM_REQUEST_UNVERIFIED")
+    elif kind == "generated-t7":
         # Only generated per-request evidence, never request.md or code.
         allow = re.compile(
             r"pilot/runs/[a-z][a-z0-9_-]{0,63}/(?:"
@@ -450,7 +461,7 @@ def comment_once(api, pr_number):
 def evaluate_one(api, number):
     pr = api.request("GET", f"/pulls/{number}")
     paths = pr_files(api, number)
-    kind = eligible_pr(pr, paths)
+    kind = eligible_pr(pr, paths, api=api)
     head = pr["head"]["sha"]
     if kind == "request":
         verify_issue_request(api, pr, paths)
@@ -497,11 +508,12 @@ def run(api, trigger, *, numbers=None, scheduled=False):
         candidates = [row["number"] for row in pulls
                       if isinstance(row, dict) and type(row.get("number")) is int
                       and row.get("head", {}).get("repo", {}).get("full_name") == REPOSITORY
-                      and row.get("user", {}).get("login") == BOT
+                      and (row.get("user", {}).get("login") == BOT
+                           or row.get("head", {}).get("ref", "").startswith("lf/exam/"))
                       and row.get("head", {}).get("ref", "").startswith(
                           ("lf/native-registration/", "lf/native-integration/",
                            "lf/generated-t7/", "lf/implemented-registry/",
-                            "lf/request/"))]
+                            "lf/request/", "lf/exam/"))]
     output = []
     for number in candidates:
         try:
