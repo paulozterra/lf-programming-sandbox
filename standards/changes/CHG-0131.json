@@ -39,6 +39,7 @@
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/test_t20_bot_ci_retry.py",
       "pilot/request_failure_notify.py",
+      "pilot/test_t15_sweep.py",
       "pilot/test_t20_runner_pin.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0131.json"
