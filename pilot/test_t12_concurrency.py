@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch, Mock
 from datetime import datetime, timedelta, timezone
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "orchestrator"))
 from pilot import request_duplicate as dup, auto_integrate as policy
 from pilot.orchestrator import issue_intake, chain_lots
 
