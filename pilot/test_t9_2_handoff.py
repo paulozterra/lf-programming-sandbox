@@ -68,7 +68,8 @@ class HandoffTests(unittest.TestCase):
         self.assertEqual(generated["workflow"], "chain-lots.yml")
         self.assertEqual(gw[0][1]["inputs"],
                          {"source_run_id": "12345", "merge_pr": "777",
-                          "request_slug": "req-987", "base_sha": SHA})
+                          "request_slug": "req-987", "base_sha": SHA,
+                                                     "new_plan_request": "req-987"})
         integration, iw = self.dispatch("lf/native-integration/demo-run-123")
         self.assertEqual(integration["workflow"], "chain-lots.yml")
         self.assertEqual(iw[0][1]["inputs"], {"integration_pr": "777", "request_slug": "req-987",
