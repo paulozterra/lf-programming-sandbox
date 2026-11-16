@@ -43,6 +43,7 @@ MAX_BYTES = 24_000
 # (vendor worker.py). Accept exactly that excerpt (<= 4 bytes per char);
 # a stricter limit silently withheld real visible feedback (e.g. Spotless).
 FIELD_MAX_BYTES = 16_000
+WORKSPACE_PREFIX = re.compile(r"(?:/[^\s\"'/]+)*/native-private/(?:workspace[^\s\"'/]*/)?")
 
 
 class FeedbackBlocked(ValueError):
@@ -82,8 +83,15 @@ def parse_feedback(raw: bytes, attempt: int) -> dict:
             elif value is not None and (not isinstance(value, str)
                                         or len(value.encode("utf-8")) > FIELD_MAX_BYTES):
                 deny("FIELD_SIZE")
-    # This is the same public object, not a rewritten/summarized feedback.
-    # Check the *entire* serialized payload, including nested output strings.
+    # T28.4: the Worker runs commands inside its workspace under the private
+    # runner directory, so tool output (Maven, Spotless) carries that absolute
+    # path. Replace only the path prefix with a neutral marker; any exam file
+    # name after it (oracle, holdout) is still caught below.
+    for command in data["commands"]:
+        for name in ("stdout_excerpt", "stderr_excerpt", "reason"):
+            if isinstance(command.get(name), str):
+                command[name] = WORKSPACE_PREFIX.sub("<worker-workspace>/", command[name])
+    # Same public object otherwise. Check the *entire* serialized payload.
     serialized = json.dumps(data, sort_keys=True, ensure_ascii=False)
     if PRIVATE.search(serialized):
         deny("PRIVATE_PATTERN")
