@@ -2,6 +2,8 @@
 from pathlib import Path
 import re
 
+from pilot.orchestrator.native_write_scope import PRODUCT_ROOTS
+
 ROOT = Path(__file__).resolve().parents[2]
 EXACT_FIXTURE = re.compile(r"(?<![A-Za-z0-9])(?:SBX|DEMO)-[A-Za-z0-9_-]+")
 CONCRETE_RULE = re.compile(r"REQ-(?:SBX|DEMO)-[A-Za-z0-9_-]+")
@@ -20,21 +22,53 @@ NEW_PRODUCTION = (
 CASE_ROUTE = re.compile(r"(?i)(?:/|\\b)(?:login|notes)(?:/|\\.|-|\\b)")
 
 
-def test_no_concrete_fixture_code_in_pilot_and_workflows():
-    roots = (ROOT/"pilot/orchestrator", ROOT/"pilot/worker_v08", ROOT/"analysis/host")
+def production_route_sources(root: Path) -> list[Path]:
+    """Scan only control-plane implementation, never T24 product outputs."""
     files = [
-        p for start in roots for p in start.rglob("*.py")
-        if not p.name.startswith("test_") and "tests" not in p.parts
+        p for relative in ("pilot", "analysis/host")
+        for p in (root / relative).rglob("*.py")
+        if p.is_file() and not p.name.startswith("test_")
+        and "tests" not in p.parts
     ]
-    files += list((ROOT/".github/workflows").glob("*.yml"))
-    files += list((ROOT/"contracts").glob("*.openapi.yaml"))
-    errors=[]
-    for file in sorted(files):
-        data=file.read_text(encoding="utf-8")
+    files.extend((root / ".github/workflows").glob("*.yml"))
+    files.extend((root / ".github/workflows").glob("*.yaml"))
+    # Keep the T24 single authority for exclusions, rather than an invented
+    # list of individual product directories.
+    return sorted(p for p in files
+                  if not p.relative_to(root).as_posix().startswith(tuple(PRODUCT_ROOTS)))
+
+
+def concrete_case_violations(root: Path) -> list[str]:
+    errors = []
+    for file in production_route_sources(root):
+        data = file.read_text(encoding="utf-8")
         for pattern in (EXACT_FIXTURE, CONCRETE_RULE):
-            if pattern.search(data):
-                errors.append(str(file.relative_to(ROOT))+":"+pattern.search(data).group())
-    assert not errors, "T2_CONCRETE_CASE_IN_PRODUCTION:"+",".join(errors)
+            match = pattern.search(data)
+            if match:
+                errors.append(str(file.relative_to(root)) + ":" + match.group())
+    return errors
+
+
+def test_no_concrete_fixture_code_in_pilot_and_workflows():
+    assert not concrete_case_violations(ROOT), (
+        "T2_CONCRETE_CASE_IN_PRODUCTION:" + ",".join(concrete_case_violations(ROOT)))
+
+
+def test_product_openapi_case_codes_are_not_an_implementation_fixture(tmp_path):
+    contract = tmp_path / "contracts/sample.openapi.yaml"
+    contract.parent.mkdir(parents=True)
+    contract.write_text("operationId: SBX-REM-LIST\n"
+                        "x-requirement: REQ-SBX-PRIORITY\n", "utf-8")
+    assert concrete_case_violations(tmp_path) == []
+
+
+def test_literal_case_in_pilot_implementation_still_fails(tmp_path):
+    control = tmp_path / "pilot/orchestrator/example.py"
+    control.parent.mkdir(parents=True)
+    control.write_text("SCREEN_CODE = 'SBX-REM-LIST'\n", "utf-8")
+    assert concrete_case_violations(tmp_path) == [
+        "pilot/orchestrator/example.py:SBX-REM-LIST"]
+
 
 
 def test_new_t2_pipeline_contains_no_case_specific_paths():
