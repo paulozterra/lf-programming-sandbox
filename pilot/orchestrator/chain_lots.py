@@ -557,8 +557,7 @@ def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> N
             or "lf-request" not in {x.get("name") for x in issue.get("labels", [])}):
         return
     marker = f"<!-- LF_CONFLICT_RECOVERY:{row['number']}:{row['sha']} -->"
-    comments = json.loads(run("gh", "api",
-                              f"repos/{REPO}/issues/{number}/comments?per_page=100"))
+    comments = api_list(f"issues/{number}/comments")
     if not isinstance(comments, list) or len(comments) >= 100:
         deny("CONFLICT_RECOVERY_COMMENTS_INVALID")
     if any(marker in str(comment.get("body", ""))
@@ -1044,8 +1043,7 @@ def comment_task_pack_mismatch(request: str, task: str) -> None:
             or "lf-request" not in {label.get("name") for label in issue.get("labels", [])}):
         return
     marker = "<!-- LF_TASK_PACK_HASH_MISMATCH:" + task + " -->"
-    comments = json.loads(run("gh", "api",
-                              f"repos/{REPO}/issues/{issue_number}/comments?per_page=100"))
+    comments = api_list(f"issues/{issue_number}/comments")
     if not isinstance(comments, list) or len(comments) >= 100:
         deny("TASK_PACK_ISSUE_COMMENTS_INVALID")
     if any(marker in str(row.get("body", "")) for row in comments
