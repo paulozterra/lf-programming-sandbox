@@ -34,6 +34,9 @@ class SweepTests(unittest.TestCase):
         native = patch.object(chain_lots, "retry_native_infra", return_value=[])
         native.start()
         self.addCleanup(native.stop)
+        feedback = patch.object(chain_lots, "recover_native_feedback", return_value=[])
+        feedback.start()
+        self.addCleanup(feedback.stop)
 
     def test_empty_sweep_is_noop_no_registry_write(self):
         with patch.object(chain_lots, "check_main", return_value=HEAD), \
