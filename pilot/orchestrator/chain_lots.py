@@ -503,8 +503,7 @@ def close_failed_old_registration_drafts(task: str, head: str) -> list[int]:
         latest = last_executed_ci_run(eligible)
         if latest is None or latest.get("status") != "completed" or latest.get("conclusion") != "failure":
             continue
-        files = json.loads(run("gh", "api",
-                               f"repos/{REPO}/pulls/{number}/files?per_page=100"))
+        files = api_list(f"pulls/{number}/files")
         if not isinstance(files, list) or len(files) >= 100:
             deny("PENDING_DRAFT_FILES_UNVERIFIED")
         names = {x.get("filename") for x in files if isinstance(x, dict)}
@@ -525,8 +524,7 @@ def conflicted_request(row: dict, all_plans: list) -> str | None:
     """Find original request only from immutable main plans or a verified T7 diff."""
     branch = row["branch"]
     if row["kind"] == "generated-t7":
-        files = json.loads(run("gh", "api",
-                               f"repos/{REPO}/pulls/{row['number']}/files?per_page=100"))
+        files = api_list(f"pulls/{row['number']}/files")
         if not isinstance(files, list) or len(files) >= 100:
             deny("CONFLICT_T7_FILES_INVALID")
         slugs = {match.group(1) for file in files if isinstance(file, dict)
@@ -940,8 +938,7 @@ def per_request_block(request: str, phase: str, exc: Exception) -> dict:
                     and not issue.get("pull_request")
                     and "lf-request" in {x.get("name") for x in issue.get("labels", [])}):
                 marker = f"<!-- LF_CP36_LOCAL:{phase}:{code}:{request} -->"
-                comments = json.loads(run("gh", "api",
-                    f"repos/{REPO}/issues/{number}/comments?per_page=100"))
+                comments = api_list(f"issues/{number}/comments")
                 if isinstance(comments, list) and len(comments) < 100 and not any(
                     marker in str(c.get("body", "")) for c in comments
                     if isinstance(c, dict) and (c.get("user") or {}).get("login")
@@ -1166,7 +1163,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             return [{"status": "WAITING_MAIN_CI", "head_sha": head}]
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
     # can hide a Train failure, including when no owner plans are active.
-    retired = (retire_conflicted_generated(head, run, api, REPO) if sweep else [])
+    retired = (retire_conflicted_generated(head, run, api, REPO, api_list) if sweep else [])
     # A sweep must not create unrelated registry drafts when idle.
     registry_status = (sync_implemented_registry(head)
                        if kind == "TRAIN" and not sweep else None)
