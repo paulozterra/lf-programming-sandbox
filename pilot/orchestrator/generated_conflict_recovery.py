@@ -9,6 +9,7 @@ import json
 import re
 
 from pilot.auto_integrate import BOT, accepted_branch_kind
+from pilot.native_registration_family import registration_family
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 SAFE_BOT = {BOT, "app/github-actions", "github-actions"}
@@ -47,6 +48,10 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
             continue
         number, branch, sha = row.get("number"), row.get("headRefName"), row.get("headRefOid")
         kind = accepted_branch_kind(branch)
+        if isinstance(branch, str) and branch.startswith("lf/native-registration/"):
+            family, _task = registration_family(branch)
+            if family == "invalid":
+                continue
         if (kind not in GENERATED or type(number) is not int or number < 1
                 or not SHA.fullmatch(str(sha))
                 or (row.get("author") or {}).get("login") not in SAFE_BOT):
