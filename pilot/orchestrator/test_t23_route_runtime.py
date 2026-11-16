@@ -60,11 +60,11 @@ def test_route_block_only_for_allowlisted_tool_environment_codes():
         "name": "contract-source-coverage", "status": "FAIL",
         "reason": "EXIT_NONZERO", "returncode": 2,
         "stdout_excerpt": "",
-        "stderr_excerpt": "BLOCKED:CONTRACT_SPEC_VALIDATOR_UNAVAILABLE\\n",
+        "stderr_excerpt": "BLOCKED:CONTRACT_SPEC_VALIDATOR_UNAVAILABLE\n",
     }]}
     assert classify(failure, ORIGINAL)
     for changed in [
-        {"stderr_excerpt": "BLOCKED:CONTRACT_OPENAPI_INVALID\\n"},
+        {"stderr_excerpt": "BLOCKED:CONTRACT_OPENAPI_INVALID\n"},
         {"stderr_excerpt": "AssertionError: incorrect contract"},
         {"name": "constructor-owned-test"},
         {"reason": "PROPOSAL_INVALID"},
