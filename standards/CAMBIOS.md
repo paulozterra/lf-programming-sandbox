@@ -164,3 +164,4 @@
 | CHG-0167 | EDITORIAL | CP3.5: integración verificada nativa req186backend2 (run 43955440007) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/258 |
 | CHG-0168 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/261 |
 | CHG-0169 | EDITORIAL | Corrige el SHA del examen oculto req186frontend3 (texto plano, no cifrado) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/263 |
+| CHG-0170 | EDITORIAL | T30: una tarea registrada no genera variante por su propio contexto generado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/0 |
