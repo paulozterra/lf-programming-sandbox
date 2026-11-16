@@ -120,7 +120,7 @@ def test_generated_registration_draft_preserves_old_exam_and_baseline(tmp_path):
         assert "pilot/runs/req-901/proposal_requests/synthetic1.task-pack.json" in paths
         return {"draft_pr": "https://example.invalid/draft"}
     new_raw = b"corrected visible package"
-    def export(_, __, ___, pack, ____):
+    def export(_, __, ___, ____, pack, _____):
         assert pack.read_bytes() == b"original visible package"
         pack.write_bytes(new_raw)
         return hashlib.sha256(new_raw).hexdigest()
