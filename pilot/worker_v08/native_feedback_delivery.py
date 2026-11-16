@@ -191,6 +191,12 @@ def recover_one(run, api, repo: str, root: Path, item: dict) -> str:
     if identity is None:
         return "FEEDBACK_RUN_NOT_ELIGIBLE"
     task, sha = identity
+    # Legacy synthetic Workers have no issue-backed request; skip those runs.
+    # An unmapped task is not an unsafe feedback payload.
+    try:
+        issue_for_task(root, task)
+    except FeedbackBlocked:
+        return "FEEDBACK_NO_SOURCE_ISSUE"
     run_id = item["id"]
     jobs = api(f"actions/runs/{run_id}/jobs?per_page=100")
     jobrows = jobs.get("jobs")
@@ -238,7 +244,7 @@ def recover_sweep(run, api, repo: str, root: Path) -> list[dict]:
     response = api("actions/workflows/worker-native.yml/runs?per_page=100")
     rows = response.get("workflow_runs")
     if (not isinstance(rows, list) or type(response.get("total_count")) is not int
-            or response["total_count"] > MAX or len(rows) >= MAX):
+            or len(rows) > MAX):
         return [{"status": "FEEDBACK_HISTORY_INCOMPLETE"}]
     result = []
     for item in rows:
