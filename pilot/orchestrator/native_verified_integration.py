@@ -361,7 +361,16 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
         block("BRANCH_EXISTS_DIFFERENT")
     chg_file = matches[0]
     number = int(Path(chg_file).stem[4:])
-    # A trusted product-generator may add derived TypeScript; never expand\n    # the native Worker write scope.\n    raw_record = command(["git", "show", remote_sha + ":" + chg_file], cwd=root)\n    recorded = obj(raw_record)\n    derived = recorded.get("derived", {"paths": [], "generator": None})\n    generated_paths = derived.get("paths", []) if isinstance(derived, dict) else []\n    if (not isinstance(generated_paths, list)\n            or any(not isinstance(x, str) or not x.startswith("frontend/src/lib/api/generated/")\n                   for x in generated_paths)\n            or set(changed_names) != allowed | set(generated_paths) | {chg_file, "standards/CAMBIOS.md"}):
+    # A trusted product-generator may add derived TypeScript; never expand
+    # the native Worker write scope.
+    raw_record = command(["git", "show", remote_sha + ":" + chg_file], cwd=root)
+    recorded = obj(raw_record)
+    derived = recorded.get("derived", {"paths": [], "generator": None})
+    generated_paths = derived.get("paths", []) if isinstance(derived, dict) else []
+    if (not isinstance(generated_paths, list)
+            or any(not isinstance(x, str) or not x.startswith("frontend/src/lib/api/generated/")
+                   for x in generated_paths)
+            or set(changed_names) != allowed | set(generated_paths) | {chg_file, "standards/CAMBIOS.md"}):
         block("BRANCH_EXISTS_DIFFERENT")
     try:
         with tempfile.TemporaryDirectory(prefix="cp35-replay-") as temporary:
