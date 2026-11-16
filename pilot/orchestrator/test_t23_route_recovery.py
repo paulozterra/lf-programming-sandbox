@@ -158,7 +158,12 @@ def test_new_main_replays_same_sha_once_without_changing_branch(tmp_path):
         if args[:3] == ("git", "ls-remote", "origin"):
             return PROPOSAL + "\trefs/heads/lf/native-proposal/" + TASK
         if args[:2] == ("git", "show"):
-            return json.dumps({"task_pack_sha256": "d" * 64})
+            proposal = {"schema_version": 1, "summary": "synthetic",
+                        "patch": "diff --git a/a b/a", "changed_paths": ["a"]}
+            return json.dumps({"task_pack_sha256": "d" * 64, "author": "GPT_NATIVE",
+                               "proposal": proposal, "proposal_sha256":
+                               hashlib.sha256(json.dumps(proposal, sort_keys=True,
+                               separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()})
         return ""
     def api(route):
         if route == f"actions/runs/{RUN}":
