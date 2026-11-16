@@ -140,3 +140,4 @@
 | CHG-0138 | ADDITIVE | T23.1: familias nativas de registro y handoff sin bloqueo por exam-request |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/223 |
 | CHG-0139 | ADDITIVE | T24: ámbitos de escritura comunes y recuperación de integración de PASS existente |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/224 |
 | CHG-0140 | ADDITIVE | T24.1: conectar replay de CP3.5 y descontar defectos de ruta del historial |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/225 |
+| CHG-0141 | EDITORIAL | CP3.5: integración verificada nativa req186contrato1 (run 43797847761) |  | paulozterra |  |
