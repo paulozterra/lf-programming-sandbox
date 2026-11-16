@@ -92,8 +92,8 @@ def test_actual_generate_chain_five_lots_paths_pass_cp35(tmp_path, monkeypatch):
 ])
 def test_mismatched_generation_fails_with_exact_area_code(area, bad):
     with pytest.raises(ValueError, match="SCOPE_GENERACION_INTEGRACION_DIVERGE:" + area):
-        validate_write_paths(bad, area=area)
-    assert not area_candidates(bad) == {area}
+        generate_chain.enforce_generated_scope(area, bad)
+    assert area not in area_candidates(bad)
 
 
 @pytest.mark.parametrize("bad", [
