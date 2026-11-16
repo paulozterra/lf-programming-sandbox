@@ -6,7 +6,6 @@ import json
 import os
 import re
 
-from native_registration_family import is_native_registration, registration_family
 import sys
 from pathlib import Path
 import urllib.error
@@ -16,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 # Resolve this pinned module from the trusted script directory, never cwd.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from generated_ci_selection import last_executed_ci_run
+from native_registration_family import is_native_registration
 
 REPO = "paulozterra/lf-programming-sandbox"
 ROUTES = {
