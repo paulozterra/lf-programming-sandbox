@@ -1198,18 +1198,20 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     repair_outcomes = list(recovery_failures)
     if sweep:
         recoveries = (
-            ("T20_BOT_CI_RETRY", retry_failed_bot_prs,
-             (head, run, api, REPO, all_plans, route_request_metadata)),
-            ("T20_NATIVE_INFRA", retry_native_infra,
-             (head, run, api, REPO, ROOT)),
-            ("T22_FEEDBACK", recover_native_feedback,
-             (run, api, REPO, ROOT)),
-            ("T23_ROUTE", recover_route_defects,
-             (head, run, api, REPO, ROOT, worktree, draft, pending_draft)),
+            ("T20_BOT_CI_RETRY",
+             lambda: retry_failed_bot_prs(
+                 head, run, api, REPO, all_plans, route_request_metadata)),
+            ("T20_NATIVE_INFRA",
+             lambda: retry_native_infra(head, run, api, REPO, ROOT)),
+            ("T22_FEEDBACK",
+             lambda: recover_native_feedback(run, api, REPO, ROOT)),
+            ("T23_ROUTE",
+             lambda: recover_route_defects(
+                 head, run, api, REPO, ROOT, worktree, draft, pending_draft)),
         )
-        for phase, action, args in recoveries:
+        for phase, action in recoveries:
             try:
-                repair_outcomes.extend(action(*args))
+                repair_outcomes.extend(action())
             except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
                     OSError, ValueError, KeyError, TypeError) as exc:
                 repair_outcomes.append(sweep_recovery_block(phase, exc))
