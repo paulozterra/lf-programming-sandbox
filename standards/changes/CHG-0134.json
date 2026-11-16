@@ -1,0 +1,43 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0134",
+  "title": "T21: wrapper lf-python preserva venv y recuperación de fallo nativo preadmisión",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T21: native Worker run 43777824639, T13 ModuleNotFoundError yaml before task admission"
+  },
+  "reason": "Replace symlink with shared executable venv wrapper across both Workers; CI installs pinned actual packages and proves isolated symlink failure and wrapper success; CP3.6 re-dispatches verified pre-admission infra failures once per immutable native proposal SHA without modifying proposal; historical registered main ancestor provenance.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/worker-native.yml",
+      ".github/workflows/worker-pilot.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/native_infra_retry.py",
+      "pilot/orchestrator/test_t21_native_infra_retry.py",
+      "pilot/test_t21_python_runtime.py",
+      "pilot/worker_v08/install_lf_python.py",
+      "pilot/worker_v08/native_proposal_push_guard.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0134.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/219"
+  }
+}
