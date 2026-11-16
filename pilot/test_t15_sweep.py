@@ -40,6 +40,9 @@ class SweepTests(unittest.TestCase):
         route = patch.object(chain_lots, "recover_route_defects", return_value=[])
         route.start()
         self.addCleanup(route.stop)
+        integration = patch.object(chain_lots, "replay_native_integration", return_value=[])
+        integration.start()
+        self.addCleanup(integration.stop)
 
     def test_empty_sweep_is_noop_no_registry_write(self):
         with patch.object(chain_lots, "check_main", return_value=HEAD), \

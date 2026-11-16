@@ -1,11 +1,17 @@
 name: CP3.5 native verified patch to draft PR
-run-name: CP3.5 ${{ github.event.workflow_run.display_title || github.run_id }}
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('CP3.5 recovery native-run-{0}', inputs.source_run_id) || format('CP3.5 {0}', github.event.workflow_run.display_title || github.run_id) }}
 
 on:
   workflow_run:
     workflows:
       - "LF Worker native (trusted workflow_run or manual, no API)"
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Existing immutable PASS run ID to re-integrate, never run Worker
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -21,13 +27,15 @@ jobs:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
-      github.event.workflow_run.run_attempt == 1
+      github.event.workflow_run.run_attempt == 1 ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == 'refs/heads/main' && inputs.source_run_id != '')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       GH_TOKEN: ${{ github.token }}
       GITHUB_REPOSITORY: ${{ github.repository }}
-      NATIVE_RUN_ID: ${{ github.event.workflow_run.id }}
+      NATIVE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id || github.event.workflow_run.id }}
     steps:
       - name: Checkout trusted main only (never proposal checkout)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262

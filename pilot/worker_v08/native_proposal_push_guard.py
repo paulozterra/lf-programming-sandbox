@@ -11,6 +11,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Import only trusted-main scope policy; never import untrusted proposal code.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "orchestrator"))
+from native_write_scope import validate_write_paths, WriteScopeError
+
 TASK_RE = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 
@@ -73,6 +77,13 @@ def validate_proposal_only(control: Path, proposal_sha: str, *, main_sha: str | 
     registration = _git(control, "ls-tree", base, "--", registered).decode().strip().split()
     if len(registration) < 3 or registration[:2] != ["100644", "blob"]:
         raise ProposalPushBlocked("NATIVE_TASK_UNREGISTERED")
+    # The same write scope that the generator issued must be admissible to
+    # CP3.5; fail before a proposal can spend a native attempt.
+    try:
+        registered_task = json.loads(_git(control, "show", main_sha + ":" + registered))
+        validate_write_paths(registered_task["task_spec"]["write_path_patterns"])
+    except (OSError, KeyError, ValueError, TypeError, WriteScopeError) as exc:
+        raise ProposalPushBlocked("NATIVE_TASK_SCOPE_UNSAFE") from exc
     info = _git(control, "ls-tree", proposal_sha, "--", path).decode().strip().split()
     if len(info) < 3 or info[0] != "100644" or info[1] != "blob":
         raise ProposalPushBlocked("NATIVE_PUSH_PROPOSAL_NOT_REGULAR_FILE")

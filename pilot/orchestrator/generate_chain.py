@@ -8,6 +8,7 @@ from pathlib import Path
 
 from chain_contract import validate_plan
 from worker_template_contract import validate_template_worker
+from native_write_scope import validate_write_paths
 
 def canonical(value):
     return (json.dumps(value,sort_keys=True,separators=(",",":"),ensure_ascii=False)+"\n").encode("utf-8")
@@ -23,6 +24,14 @@ def save(path, value):
     else:
         with path.open("xb") as f:
             f.write(content)
+
+def enforce_generated_scope(area: str, paths: list[str]) -> None:
+    """No generator may issue a path that CP3.5 rejects for its area."""
+    try:
+        validate_write_paths(paths, area=area)
+    except ValueError as exc:
+        raise ValueError("SCOPE_GENERACION_INTEGRACION_DIVERGE:" + str(area)) from exc
+
 
 def acceptance(area, paths, *, run=None, module=None, has_contract=False, skeleton_path=None, infra_dependencies=None):
     def item(name, argv, timeout=600):
@@ -204,6 +213,7 @@ def generate(root, run, lots):
         rows.append({"lot_id":lot["id"],"task_name":task,"template_path":tpath,
                      "holdout_metadata_path":f"pilot/runs/{run}/claude_meta/{task}.json"})
         paths=sorted(lot["write_paths"])
+        enforce_generated_scope(lot["area"], paths)
         protected=[".github/**",".lf/**","pilot/**","vendor/**",
                    "apps/time-service/src/test/**","apps/time-service/visible-tests/**",
                    "apps/time-service/pom.xml","apps/time-service/src/main/resources/**",

@@ -30,6 +30,7 @@ from generated_conflict_recovery import retire_conflicted_generated
 from pilot.orchestrator.bot_ci_retry import retry_failed_bot_prs
 from pilot.orchestrator.native_infra_retry import retry_native_infra
 from pilot.orchestrator.native_route_recovery import sweep as recover_route_defects
+from pilot.orchestrator.native_integration_replay import recover as replay_native_integration
 from pilot.worker_v08.native_feedback_delivery import recover_sweep as recover_native_feedback
 from pilot.generated_ci_selection import last_executed_ci_run
 from native_lot_binding import next_ready
