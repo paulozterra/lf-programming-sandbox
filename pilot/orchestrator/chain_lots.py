@@ -50,46 +50,47 @@ SAFE_ID = re.compile(r"[a-z][a-z0-9_-]{0,63}\Z")
 
 
 def run(*args: str, cwd: Path = ROOT, check: bool = True) -> str:
-    try:
-        p = subprocess.run(list(args), cwd=cwd, stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE, text=True, timeout=120)
-    except (OSError, subprocess.TimeoutExpired):
-        deny("COMMAND_UNAVAILABLE")
-    if check and p.returncode:
+    # The existing run() seam stays injectable for offline T12/T25 tests.
+    # Only idempotent gh api GETs are retried; POSTs must not be replayed.
+    api_get = len(args) >= 3 and args[:2] == ("gh", "api") and args[2] != "-X"
+    attempts = 3 if api_get else 1
+    for attempt in range(attempts):
+        try:
+            p = subprocess.run(list(args), cwd=cwd, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, text=True, timeout=120)
+        except (OSError, subprocess.TimeoutExpired):
+            if api_get and attempt + 1 < attempts:
+                time.sleep(2 ** attempt)
+                continue
+            if api_get:
+                raise ValueError("GITHUB_TRANSITORIO:API") from None
+            deny("COMMAND_UNAVAILABLE")
+        if not check or p.returncode == 0:
+            return p.stdout.strip()
+        if api_get:
+            stderr = p.stderr or ""
+            match = re.search(r"(?<![0-9])(?:HTTP[ /:]*)?([45][0-9]{2})(?![0-9])", stderr)
+            status = int(match.group(1)) if match else None
+            if status is not None and status != 429 and not 500 <= status <= 599:
+                raise ValueError(f"GITHUB_HTTP_{status}:API") from None
+            if attempt + 1 < attempts:
+                time.sleep(2 ** attempt)
+                continue
+            raise ValueError("GITHUB_TRANSITORIO:API") from None
         command = Path(args[1] if args[0] in ("python3", "lf-python", "python")
                        and len(args) > 1 else args[0]).name
-        # Only expose a bounded machine-readable code from the last stderr
-        # line, never arbitrary paths, arguments, tokens, or secret values.
         tail = (p.stderr or "").splitlines()
         last = tail[-1].strip() if tail else ""
         match = re.search(r"(CP35_BLOCKED|TEMPLATE_WORKER_SCHEMA_INVALID):([A-Z0-9_:-]{1,120})", last)
         detail = (match.group(1) + ":" + match.group(2).rstrip(":")
                   if match else "STDERR_REDACTED" if last else "NO_STDERR")
         deny("COMMAND_FAILED:" + command + ":" + detail)
-    return p.stdout.strip()
+    raise ValueError("GITHUB_TRANSITORIO:API")
 
 
 def github_api_raw(path: str) -> str:
-    """Idempotent GET transport. Never expose gh stderr or credentialed URLs."""
-    for attempt in range(3):
-        try:
-            proc = subprocess.run(
-                ["gh", "api", f"repos/{REPO}/{path}"],
-                cwd=ROOT, capture_output=True, text=True, timeout=60)
-        except (OSError, subprocess.TimeoutExpired):
-            proc = None
-        if proc is not None and proc.returncode == 0:
-            return proc.stdout.strip()
-        stderr = proc.stderr if proc is not None else ""
-        # gh emits status in several documented forms (HTTP 502, (502), 502 Bad Gateway).
-        match = re.search(r"(?<![0-9])(?:HTTP[ /:]*)?([45][0-9]{2})(?![0-9])", stderr)
-        status = int(match.group(1)) if match else None
-        if status is not None and status != 429 and not 500 <= status <= 599:
-            deny(f"GITHUB_HTTP_{status}:API")
-        if attempt == 2:
-            deny("GITHUB_TRANSITORIO:API")
-        time.sleep(2 ** attempt)
-    deny("GITHUB_TRANSITORIO:API")
+    """Read via injectable transport, with bounded retries and safe errors."""
+    return run("gh", "api", f"repos/{REPO}/{path}")
 
 
 def api(path: str) -> dict:
