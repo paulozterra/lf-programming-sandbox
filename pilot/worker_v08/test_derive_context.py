@@ -20,7 +20,23 @@ def file(root: Path, name: str, data: str = "fixture") -> None:
     path.write_text(data, encoding="utf-8")
 
 
-def test_ex5c_real_repo_exact_paths_and_reasons():
+# T29: the ex5c routing fixture is pinned to a historical snapshot of the
+# product tree. Reading the live tree made every later product change (a
+# delivered lot) break this pilot test.
+EX5C_SNAPSHOT = "13609483de4398ad87e0eee80b864c6bad1bcb9f"
+
+
+def ex5c_snapshot(tmp_path):
+    import io, subprocess, tarfile
+    raw = subprocess.run(["git", "-C", str(ROOT), "archive", "--format=tar", EX5C_SNAPSHOT,
+                          "apps/time-service"], check=True, capture_output=True).stdout
+    with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
+        archive.extractall(tmp_path, filter="data")
+    return tmp_path
+
+
+def test_ex5c_real_repo_exact_paths_and_reasons(tmp_path):
+    ROOT = ex5c_snapshot(tmp_path)
     result = derive(ROOT, list(EX5C_WRITES), [EX5C_SPEC])
     expected_ex5c(result, ROOT)
     names = {r["path"]: r["reason"] for r in result["files"]}
