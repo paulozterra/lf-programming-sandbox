@@ -25,6 +25,7 @@
       "pilot/orchestrator/test_t18_1_sweep_isolation.py",
       "pilot/orchestrator/test_t18_task_pack_publication.py",
       "pilot/orchestrator/test_t20_bot_ci_retry.py",
+      "pilot/orchestrator/test_t21_native_infra_retry.py",
       "pilot/orchestrator/test_t24_integration_replay.py",
       "pilot/orchestrator/test_t24_scope_contract.py",
       "pilot/orchestrator/worker_template_contract.py",
