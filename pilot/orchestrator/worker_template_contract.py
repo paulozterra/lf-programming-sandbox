@@ -42,7 +42,11 @@ def validate_template_worker(template: dict, area: str, *, pending_shas: bool = 
         parsed = parse_worker_task(spec)
         if parsed.to_dict() != spec:
             raise TaskSpecError("Worker roundtrip drift")
-    except (TaskSpecError, ValueError, TypeError, KeyError) as exc:
+    except ValueError as exc:
+        if str(exc).startswith("TEMPLATE_PYTHON_NO_FIJADO:"):
+            raise
+        raise ValueError("TEMPLATE_WORKER_SCHEMA_INVALID:" + area) from exc
+    except (TaskSpecError, TypeError, KeyError) as exc:
         raise ValueError("TEMPLATE_WORKER_SCHEMA_INVALID:" + area) from exc
 
 
