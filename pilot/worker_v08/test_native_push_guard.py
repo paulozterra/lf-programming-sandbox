@@ -160,6 +160,7 @@ def test_registered_unsafe_write_scope_fails_before_proposal_is_admitted(tmp_pat
     trusted = git(repo, "rev-parse", "HEAD")
     git(repo, "checkout", "-qb", "lf/native-proposal/ex6-recheck")
     proposal = repo / "pilot/native_proposals/ex6.json"
+    proposal.parent.mkdir(parents=True, exist_ok=True)
     proposal.write_text(json.dumps({"proposal": "synthetic"}))
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "proposal on invalid registration")
