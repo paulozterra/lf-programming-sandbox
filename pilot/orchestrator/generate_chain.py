@@ -26,8 +26,11 @@ def save(path, value):
 
 def acceptance(area, paths, *, run=None, module=None, has_contract=False, skeleton_path=None, infra_dependencies=None):
     def item(name, argv, timeout=600):
-        if argv and argv[0] == "python3":
+        if argv and Path(argv[0]).name in ("python", "python2", "python3", "python3.12"):
             argv = ["lf-python", *argv[1:]]
+        if argv and (Path(argv[0]).name.startswith("python")
+                     and argv[0] != "lf-python"):
+            raise ValueError("TEMPLATE_PYTHON_NO_FIJADO:" + area)
         return {"name":name,"argv":argv,"timeout_seconds":timeout,"max_output_bytes":32000}
     if area=="CONTRATO":
         if not run or not module or len(paths)!=1 or not skeleton_path:
