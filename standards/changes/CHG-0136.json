@@ -1,0 +1,55 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0136",
+  "title": "T23: lf-python en aceptación y reintento sin cargo tras defecto verificado de ruta",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T23: req186contrato1 run 43783407265 attempt 1 blocked CONTRACT_SPEC_VALIDATOR_UNAVAILABLE"
+  },
+  "reason": "Fijar todo intérprete Python de aceptación a lf-python en plantillas de cinco áreas, clasificar fallos visibles de infraestructura de herramientas confiables como ROUTE_DEFECT sin consumir intentos, re-registrar por PR CP3.6 con paquete actualizado y examen intacto, reevaluar el sobre original solo bajo compatibilidad hash verificada, y comentar instrucciones de reenvío si es incompatible.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/worker-native.yml",
+      "pilot/orchestrator/MODO_CONTINUO.md",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/native_route_recovery.py",
+      "pilot/orchestrator/test_t17_4_conflict_recovery.py",
+      "pilot/orchestrator/test_t17_recovery_watchdog.py",
+      "pilot/orchestrator/test_t18_1_sweep_isolation.py",
+      "pilot/orchestrator/test_t18_task_pack_publication.py",
+      "pilot/orchestrator/test_t20_bot_ci_retry.py",
+      "pilot/orchestrator/test_t23_route_recovery.py",
+      "pilot/orchestrator/test_t23_route_runtime.py",
+      "pilot/orchestrator/worker_template_contract.py",
+      "pilot/test_t15_sweep.py",
+      "pilot/worker_v08/native_feedback_delivery.py",
+      "pilot/worker_v08/native_proposal_client.py",
+      "pilot/worker_v08/native_route_defect.py",
+      "pilot/worker_v08/native_run.py",
+      "pilot/worker_v08/native_run_history.py",
+      "pilot/worker_v08/test_t23_route_attempt_history.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0136.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
