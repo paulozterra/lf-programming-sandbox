@@ -105,8 +105,22 @@
         "SBX-R-USER"
       ],
       "status": "NO_DERIVABLE"
+    },
+    {
+      "area": null,
+      "endpoints": [],
+      "files": [],
+      "lot": null,
+      "merge_sha": "b2dc9b5b7a01768c06b16a9e3d99dbf3abee8107",
+      "reasons": [
+        "LOT_MAPPING_NOT_UNIQUE"
+      ],
+      "request": null,
+      "requirement_ids": [],
+      "rule_codes": [],
+      "status": "NO_DERIVABLE"
     }
   ],
   "schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
-  "source_main_sha": "4d87ee7848476533d40a95753f4b55efc458acf5"
+  "source_main_sha": "b2dc9b5b7a01768c06b16a9e3d99dbf3abee8107"
 }
