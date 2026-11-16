@@ -29,6 +29,7 @@ from pilot.orchestrator.native_submission_contract import enrich_request, is_cur
 from generated_conflict_recovery import retire_conflicted_generated
 from pilot.orchestrator.bot_ci_retry import retry_failed_bot_prs
 from pilot.orchestrator.native_infra_retry import retry_native_infra
+from pilot.orchestrator.native_route_recovery import sweep as recover_route_defects
 from pilot.worker_v08.native_feedback_delivery import recover_sweep as recover_native_feedback
 from pilot.generated_ci_selection import last_executed_ci_run
 from native_lot_binding import next_ready
@@ -1110,7 +1111,11 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                              if sweep else [])
     feedback_outcomes = (recover_native_feedback(run, api, REPO, ROOT)
                          if sweep else [])
-    repair_outcomes = list(retry_outcomes) + list(native_retry_outcomes) + list(feedback_outcomes)
+    route_outcomes = (recover_route_defects(head, run, api, REPO, ROOT,
+                                           worktree, draft, pending_draft)
+                      if sweep else [])
+    repair_outcomes = (list(retry_outcomes) + list(native_retry_outcomes)
+                       + list(feedback_outcomes) + list(route_outcomes))
     if sweep:
         for request, _lots, _state, bindings in all_plans:
             if not route_request_metadata(request):
