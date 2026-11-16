@@ -22,7 +22,8 @@ def create_repository(tmp_path):
     (repo/"README").write_text("trusted\n")
     registry=repo/"pilot/worker_v08/native_tasks/ex6.json"
     registry.parent.mkdir(parents=True)
-    registry.write_text('{"task_spec":{},"holdout_sha256":"pin"}')
+    registry.write_text(json.dumps({"task_spec": {"write_path_patterns": [
+        "apps/time-service/src/main/java/Sample.java"]}, "holdout_sha256": "pin"}))
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "main")
     base=git(repo,"rev-parse","HEAD")
@@ -121,7 +122,8 @@ def test_second_registered_task_is_supported(tmp_path):
     repo,base,_=create_repository(tmp_path)
     git(repo,"checkout","-q",base)
     other=repo/"pilot/worker_v08/native_tasks/sample.json"
-    other.write_text("{}")
+    other.write_text(json.dumps({"task_spec": {"write_path_patterns": [
+        "contracts/sample.openapi.yaml"]}}))
     git(repo,"add","-A")
     git(repo,"commit","-qm","register sample")
     newbase=git(repo,"rev-parse","HEAD")
@@ -145,3 +147,22 @@ def test_transient_non_proposal_commit_stays_blocked_even_if_reverted(tmp_path):
     head=git(repo,"rev-parse","HEAD")
     with pytest.raises(ProposalPushBlocked,match="NATIVE_PUSH_COMMIT_SCOPE_INVALID"):
         validate_proposal_only(repo,head,main_sha=base)
+
+
+def test_registered_unsafe_write_scope_fails_before_proposal_is_admitted(tmp_path):
+    repo, base, head = create_repository(tmp_path)
+    git(repo, "checkout", "-q", base)
+    registration = repo / "pilot/worker_v08/native_tasks/ex6.json"
+    registration.write_text(json.dumps({"task_spec": {
+        "write_path_patterns": ["vendor/secret.py"]}}))
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "unsafe registration")
+    trusted = git(repo, "rev-parse", "HEAD")
+    git(repo, "checkout", "-qb", "lf/native-proposal/ex6-recheck")
+    proposal = repo / "pilot/native_proposals/ex6.json"
+    proposal.write_text(json.dumps({"proposal": "synthetic"}))
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "proposal on invalid registration")
+    with pytest.raises(ProposalPushBlocked, match="NATIVE_TASK_SCOPE_UNSAFE"):
+        validate_proposal_only(repo, git(repo, "rev-parse", "HEAD"), main_sha=trusted,
+                               branch="lf/native-proposal/ex6")
