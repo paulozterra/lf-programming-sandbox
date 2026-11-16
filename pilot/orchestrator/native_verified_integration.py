@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 from generated_branch_standards import synchronize
+from native_write_scope import validate_write_paths, WriteScopeError
 import re
 import subprocess
 import sys
@@ -177,18 +178,10 @@ def allowed_paths(reg: dict) -> tuple[str, set[str]]:
     if (not isinstance(base, str) or not SHA40.fullmatch(base)
             or not isinstance(paths, list) or not paths or len(paths) > 6):
         block("TASK_SCOPE_INVALID")
-    safe = set()
-    for name in paths:
-        if (not isinstance(name, str) or not name
-                or name.startswith(("/", ".github/", "vendor/", "pilot/", "standards/"))
-                or "\\" in name or "*" in name or "?" in name
-                or PurePosixPath(name).as_posix() != name
-                or any(part in ("..", ".") for part in PurePosixPath(name).parts)
-                or not name.startswith(("apps/", "backend/", "frontend/", "db/", "supabase/migrations/"))):
-            block("TASK_SCOPE_UNSAFE")
-        safe.add(name)
-    if len(safe) != len(paths):
-        block("TASK_SCOPE_DUPLICATE")
+    try:
+        safe = validate_write_paths(paths)
+    except WriteScopeError:
+        block("TASK_SCOPE_UNSAFE")
     return base, safe
 
 
