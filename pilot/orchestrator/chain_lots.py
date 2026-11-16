@@ -78,6 +78,42 @@ def api(path: str) -> dict:
     return parsed
 
 
+def api_list(path: str, *, max_pages: int = 10) -> list[dict]:
+    """GitHub REST collection, validated in the real list shape.
+
+    Never coerce list replies into object replies. Fail closed when the last
+    page is full, the response changes type, or pagination is incomplete.
+    Each request uses a bounded explicit page, not an untrusted Link URL.
+    """
+    if (not isinstance(path, str) or not path or not 1 <= max_pages <= 10
+            or "page=" in path or "per_page=" in path):
+        deny("GITHUB_LIST_PAGINATION_INVALID")
+    result: list[dict] = []
+    seen: set[str] = set()
+    for page in range(1, max_pages + 1):
+        separator = "&" if "?" in path else "?"
+        endpoint = f"{path}{separator}per_page=100&page={page}"
+        raw = run("gh", "api", f"repos/{REPO}/{endpoint}")
+        try:
+            parsed = json.loads(raw)
+        except ValueError:
+            deny("GITHUB_LIST_RESPONSE_INVALID")
+        if (not isinstance(parsed, list)
+                or any(not isinstance(item, dict) for item in parsed)
+                or len(parsed) > 100):
+            deny("GITHUB_LIST_RESPONSE_INVALID")
+        # Request only trusted paginated GitHub collections; repeat pages
+        # cannot be accepted as evidence that the listing is complete.
+        fingerprint = json.dumps(parsed, sort_keys=True, separators=(",", ":"))
+        if parsed and fingerprint in seen:
+            deny("GITHUB_LIST_PAGINATION_INVALID")
+        seen.add(fingerprint)
+        result.extend(parsed)
+        if len(parsed) < 100:
+            return result
+    deny("GITHUB_LIST_PAGINATION_LIMIT")
+
+
 def check_main() -> str:
     head = run("git", "rev-parse", "HEAD")
     if (head != run("git", "rev-parse", "origin/main")
@@ -467,8 +503,7 @@ def close_failed_old_registration_drafts(task: str, head: str) -> list[int]:
         latest = last_executed_ci_run(eligible)
         if latest is None or latest.get("status") != "completed" or latest.get("conclusion") != "failure":
             continue
-        files = json.loads(run("gh", "api",
-                               f"repos/{REPO}/pulls/{number}/files?per_page=100"))
+        files = api_list(f"pulls/{number}/files")
         if not isinstance(files, list) or len(files) >= 100:
             deny("PENDING_DRAFT_FILES_UNVERIFIED")
         names = {x.get("filename") for x in files if isinstance(x, dict)}
@@ -489,8 +524,7 @@ def conflicted_request(row: dict, all_plans: list) -> str | None:
     """Find original request only from immutable main plans or a verified T7 diff."""
     branch = row["branch"]
     if row["kind"] == "generated-t7":
-        files = json.loads(run("gh", "api",
-                               f"repos/{REPO}/pulls/{row['number']}/files?per_page=100"))
+        files = api_list(f"pulls/{row['number']}/files")
         if not isinstance(files, list) or len(files) >= 100:
             deny("CONFLICT_T7_FILES_INVALID")
         slugs = {match.group(1) for file in files if isinstance(file, dict)
@@ -523,8 +557,7 @@ def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> N
             or "lf-request" not in {x.get("name") for x in issue.get("labels", [])}):
         return
     marker = f"<!-- LF_CONFLICT_RECOVERY:{row['number']}:{row['sha']} -->"
-    comments = json.loads(run("gh", "api",
-                              f"repos/{REPO}/issues/{number}/comments?per_page=100"))
+    comments = api_list(f"issues/{number}/comments")
     if not isinstance(comments, list) or len(comments) >= 100:
         deny("CONFLICT_RECOVERY_COMMENTS_INVALID")
     if any(marker in str(comment.get("body", ""))
@@ -667,8 +700,7 @@ def choose_exam_issue(matches: list, registered: bool) -> tuple[str, dict | None
 
 
 def listed_exam_requests() -> list:
-    rows = json.loads(run("gh", "api",
-                          f"repos/{REPO}/issues?state=all&labels=exam-request&per_page=100"))
+    rows = api_list("issues?state=all&labels=exam-request")
     if not isinstance(rows, list) or len(rows) >= 100:
         deny("EXAM_REQUEST_LIST_UNTRUSTED")
     return rows
@@ -890,6 +922,22 @@ GLOBAL_SWEEP_ERRORS = frozenset({
 })
 
 
+def sweep_recovery_block(phase: str, exc: Exception, *,
+                         pr: int | None = None) -> dict:
+    """An unbound recovery failure never kills an independent healthy chain.
+
+    Only audited globally fatal integrity errors are propagated.
+    """
+    raw = str(exc)
+    code = raw if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw) else "CP36_LOCAL_FAILURE"
+    if code in GLOBAL_SWEEP_ERRORS:
+        raise exc
+    result = {"status": "BLOCKED", "phase": phase, "reason": code}
+    if pr is not None:
+        result["pr"] = pr
+    return result
+
+
 def per_request_block(request: str, phase: str, exc: Exception) -> dict:
     """Contain a local failure and notify only the verified issue; no labels."""
     raw = str(exc)
@@ -904,8 +952,7 @@ def per_request_block(request: str, phase: str, exc: Exception) -> dict:
                     and not issue.get("pull_request")
                     and "lf-request" in {x.get("name") for x in issue.get("labels", [])}):
                 marker = f"<!-- LF_CP36_LOCAL:{phase}:{code}:{request} -->"
-                comments = json.loads(run("gh", "api",
-                    f"repos/{REPO}/issues/{number}/comments?per_page=100"))
+                comments = api_list(f"issues/{number}/comments")
                 if isinstance(comments, list) and len(comments) < 100 and not any(
                     marker in str(c.get("body", "")) for c in comments
                     if isinstance(c, dict) and (c.get("user") or {}).get("login")
@@ -1011,8 +1058,7 @@ def comment_task_pack_mismatch(request: str, task: str) -> None:
             or "lf-request" not in {label.get("name") for label in issue.get("labels", [])}):
         return
     marker = "<!-- LF_TASK_PACK_HASH_MISMATCH:" + task + " -->"
-    comments = json.loads(run("gh", "api",
-                              f"repos/{REPO}/issues/{issue_number}/comments?per_page=100"))
+    comments = api_list(f"issues/{issue_number}/comments")
     if not isinstance(comments, list) or len(comments) >= 100:
         deny("TASK_PACK_ISSUE_COMMENTS_INVALID")
     if any(marker in str(row.get("body", "")) for row in comments
@@ -1130,25 +1176,46 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             return [{"status": "WAITING_MAIN_CI", "head_sha": head}]
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
     # can hide a Train failure, including when no owner plans are active.
-    retired = (retire_conflicted_generated(head, run, api, REPO) if sweep else [])
+    retired = []
+    recovery_failures = []
+    if sweep:
+        try:
+            for entry in retire_conflicted_generated(head, run, api, REPO, api_list):
+                if entry.get("status") == "BLOCKED":
+                    recovery_failures.append(entry)
+                else:
+                    retired.append(entry)
+        except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
+                OSError, ValueError, KeyError, TypeError) as exc:
+            recovery_failures.append(sweep_recovery_block("T17_4_RETIRE", exc))
     # A sweep must not create unrelated registry drafts when idle.
     registry_status = (sync_implemented_registry(head)
                        if kind == "TRAIN" and not sweep else None)
     all_plans = plans()
-    # T20: per-HEAD CI retry belongs to the sweep, not to a particular
-    # active plan. A bot PR can be blocked by transient CI even when its
-    # originating request has already completed planning.
-    retry_outcomes = (retry_failed_bot_prs(head, run, api, REPO, all_plans,
-                                          route_request_metadata) if sweep else [])
-    native_retry_outcomes = (retry_native_infra(head, run, api, REPO, ROOT)
-                             if sweep else [])
-    feedback_outcomes = (recover_native_feedback(run, api, REPO, ROOT)
-                         if sweep else [])
-    route_outcomes = (recover_route_defects(head, run, api, REPO, ROOT,
-                                           worktree, draft, pending_draft)
-                      if sweep else [])
-    repair_outcomes = (list(retry_outcomes) + list(native_retry_outcomes)
-                       + list(feedback_outcomes) + list(route_outcomes))
+    # Each recovery is a separate trust boundary. A local failure may not
+    # short-circuit later recoveries or per-request planning.
+    repair_outcomes = list(recovery_failures)
+    if sweep:
+        recoveries = (
+            ("T20_BOT_CI_RETRY",
+             lambda: retry_failed_bot_prs(
+                 head, run, api, REPO, all_plans, route_request_metadata,
+                 api_list)),
+            ("T20_NATIVE_INFRA",
+             lambda: retry_native_infra(head, run, api, REPO, ROOT)),
+            ("T22_FEEDBACK",
+             lambda: recover_native_feedback(run, api, REPO, ROOT)),
+            ("T23_ROUTE",
+             lambda: recover_route_defects(
+                 head, run, api, REPO, ROOT, worktree, draft, pending_draft,
+                 api_list=api_list)),
+        )
+        for phase, action in recoveries:
+            try:
+                repair_outcomes.extend(action())
+            except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
+                    OSError, ValueError, KeyError, TypeError) as exc:
+                repair_outcomes.append(sweep_recovery_block(phase, exc))
     # T25: T17.4 retired a mechanically red integration and its remote
     # branch. Its one trusted CP3.5 re-dispatch is owned by
     # regenerate_conflicted, not by historical T24 replay.

@@ -208,6 +208,8 @@ jobs:
           python3 -m pilot.workflow_entrypoint pilot/test_policy_c_handoff.py
       - name: T20 runner labels pinned across all 22 workflows (offline)
         run: python3 -m pilot.workflow_entrypoint pilot/test_t20_runner_pin.py
+      - name: T25.1 GitHub typed paginated list and complete CP3.6 sweep isolation (offline)
+        run: python3 -m pytest -q pilot/orchestrator/test_t25_1_github_lists_isolation.py -p no:cacheprovider
       - name: T25 guard T2 product exclusions and integration mechanical CI recovery (offline)
         run: python3 -m pytest -q pilot/orchestrator/test_t25_contract_derivatives.py -k "not real_npm_gen_api" -p no:cacheprovider
       - name: T24.1 full CP3.6 replay, SHA-pinned route defect history and recovery wiring (offline)

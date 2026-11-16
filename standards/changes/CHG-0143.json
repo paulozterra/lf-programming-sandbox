@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0143",
+  "title": "T25.1: API de colecciones GitHub paginada y recuperación aislada por pedido",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T25.1: sweep CP3.6 05:46 UTC CP36_GITHUB_RESPONSE_INVALID en generated_conflict_recovery.py:49 leyendo lista de archivos del PR #227"
+  },
+  "reason": "T25.1: GitHub pulls/<n>/files e issues/<n>/comments son listas REST y requieren api_list paginado, no api objeto; el sweep CP3.6 conserva el error BLOCKED local de una recuperación y procesa las independientes; retiro y regeneración CP3.5 del PR generado desde PASS original sin Worker.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/bot_ci_retry.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/generated_conflict_recovery.py",
+      "pilot/orchestrator/native_route_recovery.py",
+      "pilot/orchestrator/test_t25_1_github_lists_isolation.py",
+      "pilot/orchestrator/test_t25_contract_derivatives.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0143.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/229"
+  }
+}

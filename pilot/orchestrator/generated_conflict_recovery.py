@@ -40,13 +40,13 @@ CI_DERIVED_GEN = re.compile(
     r"git diff --exit-code -- frontend/src/lib/api/generated")
 
 
-def _provably_stale_generated_client(number: int, api) -> bool:
+def _provably_stale_generated_client(number: int, api_list) -> bool:
     """A new OpenAPI contract *must* add an index export. No CI log needed.
 
     The PR is already authenticated as a bot-owned CP3.5 integration on the
     exact reported head SHA. Never inspect/execute its source files.
     """
-    response = api("pulls/" + str(number) + "/files?per_page=100")
+    response = api_list("pulls/" + str(number) + "/files")
     if not isinstance(response, list) or len(response) >= 100:
         return False
     added = {row.get("filename") for row in response if isinstance(row, dict)
@@ -103,7 +103,7 @@ def _ci_derived_failure(number: int, branch: str, sha: str, run, api, repo: str)
     return None
 
 
-def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
+def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -> list[dict]:
     """Return retired PR metadata; callers regenerate from trusted current main.
 
     All changes use caller-provided run/api boundaries for CP3.6 offline tests.
@@ -115,6 +115,7 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
     if not isinstance(rows, list) or len(rows) >= 100:
         raise ValueError("CONFLICT_RECOVERY_PR_LIST_INVALID")
     eligible = []
+    blocked = []
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -128,7 +129,13 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
                 or not SHA.fullmatch(str(sha))
                 or (row.get("author") or {}).get("login") not in SAFE_BOT):
             continue
-        detail = api(f"pulls/{number}")
+        try:
+            detail = api(f"pulls/{number}")
+        except (ValueError, OSError, KeyError, TypeError):
+            blocked.append({"status": "BLOCKED", "pr": number,
+                            "phase": "T17_4_PR_READ",
+                            "reason": "CP36_LOCAL_FAILURE"})
+            continue
         if (detail.get("number") != number or detail.get("state") != "open"
                 or detail.get("merged") is True
                 or (detail.get("user") or {}).get("login") not in SAFE_BOT
@@ -141,6 +148,13 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
                       for label in detail.get("labels", []))
         eligible.append((number, branch, sha, kind,
                          detail.get("mergeable_state") == "dirty", labeled))
+
+    # Transport cannot be invented from object-only API. Production passes
+    # the typed collection reader; old callers without integration candidates
+    # may still exercise conflict-only recovery.
+    if api_list is None:
+        def api_list(_path):
+            raise ValueError("GITHUB_LIST_TRANSPORT_REQUIRED")
 
     # Only consult Train runs if the PR isn't already provably dirty.
     unknown = [(n, b, sha, k) for n, b, sha, k, dirty, labeled in eligible
@@ -165,24 +179,29 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
             if (number, sha) not in evidence and _train_conflict(log, number, sha):
                 evidence[(number, sha)] = f["id"]
 
-    retired = []
+    retired = list(blocked)
     for number, branch, sha, kind, dirty, _labeled in eligible:
-        reason = ("GitHub mergeable_state=dirty" if dirty else
-                  "Train BRANCH_CONFLICT #" + str(evidence[(number, sha)])
-                  if (number, sha) in evidence else None)
-        if reason is None and kind == "integration":
-            # Missing generated export for a *new* contract is a deterministic
-            # CI failure even when Actions is awaiting approval (action_required).
-            # For modified existing contracts, require exact red CI evidence.
-            if _provably_stale_generated_client(number, api):
-                reason = "CI_DERIVED_GEN_API_STALE"
-            else:
-                reason = _ci_derived_failure(number, branch, sha, run, api, repo)
-        if reason is None:
-            continue
-        run("gh", "pr", "close", str(number), "--repo", repo, "--delete-branch",
-            "--comment", "T17.4/T25: " + reason + ". PR generado retirado, "
-            "se conserva el PASS nativo original y se regenerará desde main.")
-        retired.append({"number": number, "branch": branch, "sha": sha,
-                        "kind": kind, "reason": reason})
+        try:
+            reason = ("GitHub mergeable_state=dirty" if dirty else
+                      "Train BRANCH_CONFLICT #" + str(evidence[(number, sha)])
+                      if (number, sha) in evidence else None)
+            if reason is None and kind == "integration":
+                # Missing generated export for a *new* contract is a deterministic
+                # CI failure even when Actions is awaiting approval (action_required).
+                # For modified existing contracts, require exact red CI evidence.
+                if _provably_stale_generated_client(number, api_list):
+                    reason = "CI_DERIVED_GEN_API_STALE"
+                else:
+                    reason = _ci_derived_failure(number, branch, sha, run, api, repo)
+            if reason is None:
+                continue
+            run("gh", "pr", "close", str(number), "--repo", repo, "--delete-branch",
+                "--comment", "T17.4/T25: " + reason + ". PR generado retirado, "
+                "se conserva el PASS nativo original y se regenerará desde main.")
+            retired.append({"number": number, "branch": branch, "sha": sha,
+                            "kind": kind, "reason": reason})
+        except (ValueError, OSError, KeyError, TypeError):
+            retired.append({"status": "BLOCKED", "pr": number,
+                            "phase": "T17_4_PR_RECOVERY",
+                            "reason": "CP36_LOCAL_FAILURE"})
     return retired

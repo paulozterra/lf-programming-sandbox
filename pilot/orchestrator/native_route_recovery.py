@@ -134,7 +134,20 @@ def inspect(run, api, repo: str, root: Path, event: dict):
             "base": original["task_spec"]["base_head_sha"]}
 
 
-def comment_defect(run, api, repo: str, evidence: dict) -> str:
+def _comments(run, repo: str, number: int, api_list=None) -> list[dict]:
+    """Use typed GitHub collection transport in production CP3.6."""
+    if api_list is not None:
+        return api_list(f"issues/{number}/comments")
+    # Historical isolated T23 tests inject a command-based list response.
+    result = json.loads(run("gh", "api",
+        f"repos/{repo}/issues/{number}/comments?per_page=100"))
+    if not isinstance(result, list) or len(result) >= 100:
+        raise ValueError("ROUTE_DEFECT_COMMENT_HISTORY_INCOMPLETE")
+    return result
+
+
+def comment_defect(run, api, repo: str, evidence: dict,
+                   api_list=None) -> str:
     task, sha = evidence["task"], evidence["sha"]
     number, run_id = evidence["request"], evidence["run_id"]
     marker = f"<!-- {MARKER}:{task}:{sha}:{run_id} -->"
@@ -143,8 +156,7 @@ def comment_defect(run, api, repo: str, evidence: dict) -> str:
             or "lf-request" not in {x.get("name") for x in issue.get("labels", [])
                                    if isinstance(x, dict)}):
         raise ValueError("ROUTE_DEFECT_ISSUE_UNVERIFIED")
-    raw = run("gh", "api", f"repos/{repo}/issues/{number}/comments?per_page=100")
-    comments = json.loads(raw)
+    comments = _comments(run, repo, number, api_list)
     if not isinstance(comments, list) or len(comments) >= 100:
         raise ValueError("ROUTE_DEFECT_COMMENT_HISTORY_INCOMPLETE")
     if any(marker in str(c.get("body") or "") for c in comments
@@ -236,14 +248,13 @@ def prepare_repair(head, run, api, repo, root, evidence, worktree, draft,
 
 
 def comment_resubmit(run, api, repo: str, number: int, task: str,
-                     sha: str, reason: str) -> str:
+                     sha: str, reason: str, api_list=None) -> str:
     marker = f"<!-- LF_NATIVE_ROUTE_RESUBMIT:{task}:{sha} -->"
     issue = api(f"issues/{number}")
     if issue.get("number") != number or "lf-request" not in {
             x.get("name") for x in issue.get("labels", []) if isinstance(x, dict)}:
         raise ValueError("ROUTE_DEFECT_ISSUE_UNVERIFIED")
-    comments = json.loads(run("gh", "api",
-                              f"repos/{repo}/issues/{number}/comments?per_page=100"))
+    comments = _comments(run, repo, number, api_list)
     if any(marker in str(c.get("body") or "") for c in comments
            if isinstance(c, dict) and
            (c.get("user") or {}).get("login") == "github-actions[bot]"):
@@ -257,7 +268,7 @@ def comment_resubmit(run, api, repo: str, number: int, task: str,
 
 
 def replay_corrected(head, run, api, repo: str, root: Path,
-                     rows: list[dict]) -> list[dict]:
+                     rows: list[dict], api_list=None) -> list[dict]:
     results = []
     done = set()
     for item in rows:
@@ -291,13 +302,13 @@ def replay_corrected(head, run, api, repo: str, root: Path,
         comment_defect(run, api, repo, {
             "request": request, "task": task, "sha": sha,
             "run_id": migration_info["source_run_id"], "attempt": 1,
-        })
+        }, api_list)
         branch = "lf/native-proposal/" + task
         remote = run("git", "ls-remote", "origin", "refs/heads/" + branch).split()
         if len(remote) != 2 or remote[0] != sha or remote[1] != "refs/heads/" + branch:
             results.append({"status": comment_resubmit(
                 run, api, repo, request, task, sha,
-                "la rama original ya no apunta al SHA enviado")})
+                "la rama original ya no apunta al SHA enviado", api_list)})
             continue
         run("git", "fetch", "--no-tags", "origin", sha)
         try:
@@ -308,7 +319,7 @@ def replay_corrected(head, run, api, repo: str, root: Path,
         except (ProposalPushBlocked, ValueError):
             results.append({"status": comment_resubmit(
                 run, api, repo, request, task, sha,
-                "el sobre original ya no supera la validación de procedencia")})
+                "el sobre original ya no supera la validación de procedencia", api_list)})
             continue
         if (not isinstance(envelope, dict)
                 or set(envelope) != {"task_pack_sha256", "proposal_sha256", "proposal", "author"}
@@ -321,7 +332,7 @@ def replay_corrected(head, run, api, repo: str, root: Path,
                 or envelope.get("task_pack_sha256") != migration_info["legacy_task_pack_sha256"]):
             results.append({"status": comment_resubmit(
                 run, api, repo, request, task, sha,
-                "el SHA del paquete original difiere del paquete histórico certificado")})
+                "el SHA del paquete original difiere del paquete histórico certificado", api_list)})
             continue
         run("gh", "workflow", "run", "worker-native.yml", "--repo", repo, "--ref", "main",
             "-f", "task=" + task, "-f", "proposal_commit_sha=" + sha,
@@ -332,7 +343,8 @@ def replay_corrected(head, run, api, repo: str, root: Path,
     return results
 
 
-def sweep(head, run, api, repo, root, worktree, draft, pending_draft):
+def sweep(head, run, api, repo, root, worktree, draft, pending_draft,
+          api_list=None):
     rows = history(api)
     results = []
     # A historical run is classified once from trusted visible artifacts; no
@@ -346,7 +358,8 @@ def sweep(head, run, api, repo, root, worktree, draft, pending_draft):
         evidence = inspect(run, api, repo, root, item)
         if evidence is None:
             continue
-        results.append({"status": comment_defect(run, api, repo, evidence),
+        results.append({"status": comment_defect(run, api, repo, evidence,
+                                                   api_list),
                         "task": evidence["task"], "run_id": item["id"]})
         # One generated CHG / Draft per sweep; subsequent tasks follow after
         # Train advances main, avoiding two bot branches claiming one CHG.
@@ -358,5 +371,6 @@ def sweep(head, run, api, repo, root, worktree, draft, pending_draft):
                     "ROUTE_DEFECT_REGISTRATION_DRAFT",
                     "ROUTE_DEFECT_REGISTRATION_PENDING"):
                 scheduled = True
-    results.extend(replay_corrected(head, run, api, repo, root, rows))
+    results.extend(replay_corrected(head, run, api, repo, root, rows,
+                                    api_list))
     return results

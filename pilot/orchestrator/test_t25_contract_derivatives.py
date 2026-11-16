@@ -216,12 +216,12 @@ def test_added_openapi_without_index_is_provably_red_even_before_ci_runs():
     calls = []
     def api(path):
         calls.append(path)
-        assert path == "pulls/227/files?per_page=100"
+        assert path == "pulls/227/files"
         return [{"filename": "contracts/sbx-rem-list.openapi.yaml", "status": "added"},
                 {"filename": "standards/CAMBIOS.md", "status": "modified"},
                 {"filename": "standards/changes/CHG-0141.json", "status": "added"}]
     assert recovery._provably_stale_generated_client(227, api)
-    assert calls == ["pulls/227/files?per_page=100"]
+    assert calls == ["pulls/227/files"]
     def good(path):
         return [{"filename": "contracts/new.openapi.yaml", "status": "added"},
                 {"filename": "frontend/src/lib/api/generated/index.ts",
@@ -260,11 +260,11 @@ def test_bot_ci_static_recovery_is_closed_and_relaunched_only_through_cp35():
     def api(path):
         if path == "pulls/227":
             return detail
-        if path == "pulls/227/files?per_page=100":
+        if path == "pulls/227/files":
             return [{"filename": "contracts/sbx-rem-list.openapi.yaml",
                      "status": "added"}]
         raise AssertionError(path)
-    retired = recovery.retire_conflicted_generated(head, run, api, REPO)
+    retired = recovery.retire_conflicted_generated(head, run, api, REPO, api)
     assert len(retired) == 1
     assert retired[0]["number"] == 227
     assert retired[0]["reason"] == "CI_DERIVED_GEN_API_STALE"
