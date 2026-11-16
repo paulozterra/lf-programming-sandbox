@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 # Resolve this pinned module from the trusted script directory, never cwd.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from generated_ci_selection import last_executed_ci_run
-from native_registration_family import is_native_registration
+from native_registration_family import is_native_registration, registration_family
 
 REPO = "paulozterra/lf-programming-sandbox"
 ROUTES = {
@@ -271,7 +271,8 @@ def generated_ci_issue(api, run: dict) -> int | None:
         return None
     task = None
     direct = re.fullmatch(r"lf/request/req-([1-9][0-9]*)", branch)
-    register = is_native_registration(branch)
+    family, registered_task = registration_family(branch)
+    register = family in ("registration", "auxiliary")
     integration = re.fullmatch(
         r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*", branch)
     t7 = re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch)
@@ -291,7 +292,7 @@ def generated_ci_issue(api, run: dict) -> int | None:
     if direct:
         return int(direct.group(1))
     if register or integration:
-        task = (register or integration).group(1)
+        task = registered_task if register else integration.group(1)
         slugs = request_for_task(task)
         return int(next(iter(slugs))[4:]) if len(slugs) == 1 else None
     files = api.api("GET", f"/pulls/{matches[0]['number']}/files?per_page=100")
