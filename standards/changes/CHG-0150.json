@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0150",
   "title": "T26.2: el refresco del plan pendiente actualiza chain_plan.json y retira borradores plan- de un main anterior",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "T26.2: el PR del bot #238 (plan-req186backend2) falla con CP36_CHAIN_PLAN_DRIFT: refresh no actualizaba pilot/runs/<pedido>/chain_plan.json, que también fija lots_sha256"
