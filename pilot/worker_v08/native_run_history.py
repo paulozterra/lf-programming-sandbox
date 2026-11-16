@@ -165,6 +165,7 @@ def admit_attempt(
     ):
         raise ValueError("NATIVE_ROUTE_RETRY_NOT_ATTESTED")
     prior: list[dict] = []
+    route_defect_run_ids: list[int] = []
     for run in results:
         if run.get("id") == run_id:
             continue
@@ -192,6 +193,7 @@ def admit_attempt(
                 and _recognized_run(run, task, sha=migration["proposal_commit_sha"])):
             # The route-owned interpreter failure is retained in GitHub
             # history but does not consume a constructor attempt.
+            route_defect_run_ids.append(run["id"])
             continue
         title = run.get("display_title") or ""
         match = (_AUTO_TITLE.fullmatch(title)
