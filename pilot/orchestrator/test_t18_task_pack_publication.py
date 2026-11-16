@@ -24,7 +24,8 @@ def isolate_retries_in_historical_task_pack_tests():
     with patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]), \
          patch.object(chain_lots, "retry_native_infra", return_value=[]), \
          patch.object(chain_lots, "recover_native_feedback", return_value=[]), \
-         patch.object(chain_lots, "recover_route_defects", return_value=[]):
+         patch.object(chain_lots, "recover_route_defects", return_value=[]), \
+          patch.object(chain_lots, "replay_native_integration", return_value=[]):
         yield
 
 
