@@ -11,6 +11,8 @@ HEADER = "#!/bin/sh\n"
 def write_wrapper(destination: Path, interpreter: Path = RUNTIME / "bin/python") -> None:
     if not interpreter.is_absolute() or not interpreter.is_file():
         raise ValueError("LF_PYTHON_INTERPRETER_MISSING")
+    if destination.is_symlink():
+        destination.unlink()
     destination.write_text(
         HEADER + 'exec "' + str(interpreter) + '" "$@"\n', encoding="utf-8"
     )
