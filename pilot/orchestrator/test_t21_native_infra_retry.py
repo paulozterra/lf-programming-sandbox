@@ -82,7 +82,8 @@ def test_historical_main_ancestor_proposal_remains_eligible():
         task = "synthetic1"
         reg = repo / "pilot/worker_v08/native_tasks"
         reg.mkdir(parents=True)
-        (reg / (task + ".json")).write_text("{}")
+        (reg / (task + ".json")).write_text(json.dumps({"task_spec": {
+            "write_path_patterns": ["contracts/synthetic.openapi.yaml"]}}))
         _git(repo, "add", ".")
         _git(repo, "commit", "-m", "registered")
         base = _git(repo, "rev-parse", "HEAD")
