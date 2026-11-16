@@ -14,10 +14,12 @@
     "term_ids": [],
     "paths": [
       ".github/workflows/ci.yml",
+      "pilot/orchestrator/bot_ci_retry.py",
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/generated_conflict_recovery.py",
-      "pilot/orchestrator/test_t25_contract_derivatives.py",
+      "pilot/orchestrator/native_route_recovery.py",
       "pilot/orchestrator/test_t25_1_github_lists_isolation.py",
+      "pilot/orchestrator/test_t25_contract_derivatives.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0143.json"
     ]
