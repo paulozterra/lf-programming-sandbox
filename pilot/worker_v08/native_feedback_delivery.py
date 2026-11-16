@@ -144,14 +144,14 @@ def publish(run, api, repo: str, root: Path, task: str, sha: str,
            and (c.get("user") or {}).get("login") == "github-actions[bot]"):
         return "FEEDBACK_ALREADY_PUBLISHED"
     body = (key + "\nFeedback visible del Worker nativo (sin examen oculto).\n\n"
-            + "**Tarea:** \`" + task + "\`\n"
+            + "**Tarea:** `" + task + "`\n"
             + "**Intento:** " + str(attempt) + "/3\n"
-            + "**SHA de propuesta:** \`" + sha + "\`\n"
+            + "**SHA de propuesta:** `" + sha + "`\n"
             + "**Resultado:** " + result + "\n"
             + "**Feedback visible (public/feedback.json):**\n"
-            + "\`\`\`json\n" + json.dumps(feedback, ensure_ascii=False,
+            + "```json\n" + json.dumps(feedback, ensure_ascii=False,
                                              sort_keys=True, indent=2)
-            + "\n\`\`\`")
+            + "\n```")
     run("gh", "issue", "comment", str(number), "--repo", repo, "--body", body)
     return "FEEDBACK_PUBLISHED"
 
