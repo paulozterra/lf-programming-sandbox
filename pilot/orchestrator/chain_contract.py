@@ -106,7 +106,8 @@ def attest_merge(merge_sha: str, pr: dict, lots: dict,
                     "integration_pr": pr["number"], "task_name": task}
 
 
-def verified_failures(task: str, runs: list[dict], proofs: dict[int, dict | None],\n                      *, route_defects: dict[int, str] | None = None) -> list[int]:
+def verified_failures(task: str, runs: list[dict], proofs: dict[int, dict | None],
+                      *, route_defects: dict[int, str] | None = None) -> list[int]:
     """Count only three authenticated, spent native attempts; not queued or preflight.
 
     The proof is the trusted Actions 'native-attempt-proof' artifact, never
