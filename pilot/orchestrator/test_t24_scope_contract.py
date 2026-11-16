@@ -50,7 +50,7 @@ def test_actual_generated_synthetic_area_template_passes_cp35(area, tmp_path):
 
 
 def test_actual_generate_chain_five_lots_paths_pass_cp35(tmp_path, monkeypatch):
-    from pilot.orchestrator import contract_generate
+    import contract_generate
     monkeypatch.setattr(contract_generate, "generate",
                         lambda module, package, atoms: {"synthetic": module})
     folder = tmp_path / "pilot/runs/req-901"
