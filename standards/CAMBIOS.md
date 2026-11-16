@@ -146,4 +146,4 @@
 | CHG-0145 | ADDITIVE | T26: pruebas afectadas en el alcance del lote y refresco del plan de lotes pendientes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/232 |
 | CHG-0146 | ADDITIVE | T26.1: la certificación de un lote de contrato integrado acepta las salidas del generador confiable |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/236 |
 | CHG-0148 | EDITORIAL | T20: fijar runner del sandbox Train en Ubuntu 24.04 (bypass owner) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/217 |
-| CHG-0149 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
+| CHG-0149 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
