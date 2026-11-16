@@ -206,7 +206,7 @@ jobs:
       - name: T21 real pinned Python venv isolation regression (symlink fails, wrapper passes)
         run: python3 -m pilot.workflow_entrypoint pilot/test_t21_python_runtime.py
       - name: T21 native pre-admission recovery and historical proposal guard (offline)
-        run: python3 -m pytest -q pilot/orchestrator/test_t21_native_infra_retry.py -p no:cacheprovider
+        run: python3 -m pytest -q pilot/orchestrator/test_t21_native_infra_retry.py pilot/worker_v08/test_t21_native_history.py -p no:cacheprovider
       - name: T20 bot PR CI one retry per HEAD and watchdog (offline)
         run: python3 -m pytest -q pilot/orchestrator/test_t20_bot_ci_retry.py -p no:cacheprovider
       - name: T19 native envelope publication, push guard and worker client (offline)
