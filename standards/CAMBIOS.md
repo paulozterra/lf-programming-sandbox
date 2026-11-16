@@ -149,3 +149,4 @@
 | CHG-0150 | EDITORIAL | T26.2: el refresco del plan pendiente actualiza chain_plan.json y retira borradores plan- de un main anterior |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/239 |
 | CHG-0151 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/240 |
 | CHG-0152 | EDITORIAL | T27: recuperación de fallos transitorios GitHub en CP3.6 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/241 |
+| CHG-0153 | EDITORIAL | T26.3: el registro acepta las pruebas afectadas planificadas y el contexto de la tarea cabe en su presupuesto |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/242 |

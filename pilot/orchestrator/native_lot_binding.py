@@ -25,6 +25,19 @@ REAL_ROOTS = {
 FAKE_PREFIXES = ("src/main/java/com/lf/", "web/src/app/")
 
 
+def _existing_affected_test(root: Path, area: str, path: str) -> bool:
+    """T26.3: an existing project test planned into a BACKEND lot ("prueba afectada").
+
+    Same classifier as the planner (affected_tests.is_project_test); only an
+    already existing test file qualifies, never a new or invented one.
+    """
+    from affected_tests import is_project_test
+    if area != "BACKEND" or not is_project_test(path):
+        return False
+    target = root / path
+    return target.is_file() and not target.is_symlink()
+
+
 def _infra_allowed_paths():
     from pilot.orchestrator import infra_lot
     p = infra_lot.policy()
@@ -73,7 +86,8 @@ def real_write_paths(root: Path, area: str, paths: list[str]) -> list[str]:
                 or "\\" in path or str(PurePosixPath(path)) != path
                 or any(part in (".", "..") for part in PurePosixPath(path).parts)
                 or path.startswith(FAKE_PREFIXES)
-                or not path.startswith(REAL_ROOTS[area])
+                or not (path.startswith(REAL_ROOTS[area])
+                        or _existing_affected_test(root, area, path))
                 or (area == "INFRA" and path not in _infra_allowed_paths())
                 or Path(path).suffix not in ({".yaml"} if area == "CONTRATO"
                                              else {".xml", ".properties", ".example", ".json"} if area == "INFRA"

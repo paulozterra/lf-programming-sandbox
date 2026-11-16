@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0153",
+  "title": "T26.3: el registro acepta las pruebas afectadas planificadas y el contexto de la tarea cabe en su presupuesto",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T26.3: sweep 43919185644 bloquea req-186 con CP36_LOCAL_FAILURE:ChainBlocked; reproducido: prepare_native_lot rechaza las pruebas afectadas (CP34_FAKE_OR_UNSAFE_PATH, UNCLASSIFIED_LOT_PATH) y luego CP34_EXPORT_CONTEXT_EXCEEDS_MAX_CONTEXT_BYTES por analysis.json (126 KB)"
+  },
+  "reason": "T26.3: native_lot_binding.real_write_paths y register_task_context.classify_path reconocen como BACKEND las pruebas existentes del proyecto planificadas en el lote (mismo clasificador del planificador, affected_tests.is_project_test; solo archivos existentes). generate_chain añade analysis.json como ancla de contexto solo si la tarea no tendría otro contexto, para no exceder max_context_bytes. Reproducido punta a punta localmente hasta el borrador de registro.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/native_lot_binding.py",
+      "pilot/orchestrator/test_t26_affected_tests.py",
+      "pilot/worker_v08/register_task_context.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0153.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/242"
+  }
+}
