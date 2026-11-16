@@ -79,9 +79,9 @@ class API:
 def run_handoff(branch, *, exam=None):
     api = API(branch)
     exam = exam if exam is not None else lambda *args: "EXAM_ISSUE_CLOSED"
-    with patch.object(train_handoff, "git", return_value=SHA), \\
-         patch.object(train_handoff, "validate_train_run"), \\
-         patch.object(train_handoff, "ensure_main_ci", return_value={"status": "MAIN_CI_GREEN"}), \\
+    with patch.object(train_handoff, "git", return_value=SHA), \
+         patch.object(train_handoff, "validate_train_run"), \
+         patch.object(train_handoff, "ensure_main_ci", return_value={"status": "MAIN_CI_GREEN"}), \
          patch("pilot.exam_issue_lifecycle.close_registered", side_effect=exam) as close:
         mapping = json.loads((Path(__file__).with_name(
             "train_handoff_map_v1.json")).read_text("utf-8"))
@@ -127,9 +127,9 @@ def test_issue_comment_failure_is_nonblocking_too():
             return super().call(method, route, body)
 
     api = CommentFail(REAL)
-    with patch.object(train_handoff, "git", return_value=SHA), \\
-         patch.object(train_handoff, "validate_train_run"), \\
-         patch.object(train_handoff, "ensure_main_ci", return_value={"status": "MAIN_CI_GREEN"}), \\
+    with patch.object(train_handoff, "git", return_value=SHA), \
+         patch.object(train_handoff, "validate_train_run"), \
+         patch.object(train_handoff, "ensure_main_ci", return_value={"status": "MAIN_CI_GREEN"}), \
          patch("pilot.exam_issue_lifecycle.close_registered",
                side_effect=LifecycleBlocked("EXAM_REGISTRATION_NOT_MERGED")):
         mapping = json.loads(Path(__file__).with_name(
