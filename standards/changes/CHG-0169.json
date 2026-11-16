@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0169",
+  "title": "Corrige el SHA del examen oculto req186frontend3 (texto plano, no cifrado)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Worker 43977555091: HOLDOUT_AGE_BLOCKED; la metadata del examinador declaró el SHA del archivo .age en lugar del SHA del oráculo descifrado"
+  },
+  "reason": "Error del examinador (Claude): holdout_sha256 debe ser el SHA-256 del oráculo descifrado, que es el que verifica holdout_age.py. Se corrige el valor en la metadata y en el registro de la tarea. El examen cifrado, el paquete de la tarea y la propuesta de GPT no cambian; el fallo ocurrió antes del comprobante y no consumió intento.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/runs/req-186/claude_meta/req186frontend3.json",
+      "pilot/worker_v08/native_tasks/req186frontend3.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0169.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/263"
+  }
+}

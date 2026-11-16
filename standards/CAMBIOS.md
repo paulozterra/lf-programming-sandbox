@@ -163,3 +163,4 @@
 | CHG-0166 | EDITORIAL | T30: Análisis asigna área a la taxonomía real de reglas de LF y a todos los errores vigentes; ficha SBX-B2B-LOGIN |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/257 |
 | CHG-0167 | EDITORIAL | CP3.5: integración verificada nativa req186backend2 (run 43955440007) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/258 |
 | CHG-0168 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/261 |
+| CHG-0169 | EDITORIAL | Corrige el SHA del examen oculto req186frontend3 (texto plano, no cifrado) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/263 |
