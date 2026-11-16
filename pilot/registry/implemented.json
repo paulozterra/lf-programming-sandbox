@@ -119,8 +119,39 @@
       "requirement_ids": [],
       "rule_codes": [],
       "status": "NO_DERIVABLE"
+    },
+    {
+      "area": "BACKEND",
+      "endpoints": [
+        "GET /api/reminders"
+      ],
+      "files": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+          "sha256": "7cf51d06dcbba1d0b9e76018c04df4307abd3d2a839a3a73e2c0316c5df18d5f"
+        },
+        {
+          "path": "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerDeleteSearchVisibleTest.java",
+          "sha256": "112a3bc84bc29b15bd7cbcf8dc819a2ad0d7de3e92ad798948cc730279442c69"
+        },
+        {
+          "path": "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java",
+          "sha256": "3a87fe8f686cc1151c158b3a66e442c46126d740fda41b321d9d2d9fce8903a2"
+        }
+      ],
+      "lot": "SOL-002",
+      "merge_sha": "2b376e85d79d4915a61f31f9c4838f9c261009e4",
+      "reasons": [],
+      "request": "req-186",
+      "requirement_ids": [
+        "REQ-SBX-R-SESSION-REQUIRED"
+      ],
+      "rule_codes": [
+        "SBX-R-SESSION-REQUIRED"
+      ],
+      "status": "ATTESTED"
     }
   ],
   "schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
-  "source_main_sha": "b2dc9b5b7a01768c06b16a9e3d99dbf3abee8107"
+  "source_main_sha": "2b376e85d79d4915a61f31f9c4838f9c261009e4"
 }
