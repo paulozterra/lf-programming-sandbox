@@ -14,9 +14,10 @@
     "paths": [
       ".github/workflows/chain-lots.yml",
       "pilot/orchestrator/chain_lots.py",
-      "pilot/worker_v08/native_run_history.py",
-      "pilot/worker_v08/github_network_retry.py",
+      "pilot/orchestrator/test_t16_worker_errors.py",
       "pilot/orchestrator/test_t27_github_transient.py",
+      "pilot/worker_v08/github_network_retry.py",
+      "pilot/worker_v08/native_run_history.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0152.json"
     ],
