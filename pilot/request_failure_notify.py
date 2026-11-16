@@ -5,6 +5,8 @@ import argparse
 import json
 import os
 import re
+
+from native_registration_family import is_native_registration, registration_family
 import sys
 from pathlib import Path
 import urllib.error
@@ -269,8 +271,7 @@ def generated_ci_issue(api, run: dict) -> int | None:
         return None
     task = None
     direct = re.fullmatch(r"lf/request/req-([1-9][0-9]*)", branch)
-    register = re.fullmatch(
-        r"lf/native-registration/([a-z][a-z0-9_-]{0,31})-[0-9a-f]{12}", branch)
+    register = is_native_registration(branch)
     integration = re.fullmatch(
         r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*", branch)
     t7 = re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch)
@@ -615,7 +616,7 @@ def check_run(api: Github, run: dict) -> str:
     branch = str(run.get("head_branch") or "")
     sha = str(run.get("head_sha") or "")
     generated = (
-        re.fullmatch(r"lf/native-registration/[a-z][a-z0-9_-]{0,31}-[0-9a-f]{12}", branch)
+        is_native_registration(branch)
         or re.fullmatch(r"lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-[1-9][0-9]*", branch)
         or re.fullmatch(r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch)
         or re.fullmatch(r"lf/request/req-[1-9][0-9]*", branch)
