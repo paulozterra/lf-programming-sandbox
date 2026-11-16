@@ -24,9 +24,12 @@ def _listed(run, repo):
     return result if isinstance(result, list) and len(result) < MAX else []
 
 
-def _comment_rows(run, repo, number):
-    raw = json.loads(run("gh", "api",
-                         f"repos/{repo}/issues/{number}/comments?per_page=100"))
+def _comment_rows(run, repo, number, api_list=None):
+    # Production CP3.6 passes its separately validated paginated list transport.
+    # The run fallback exists for isolated historical T20 offline fixtures.
+    raw = (api_list(f"issues/{number}/comments") if api_list is not None
+           else json.loads(run("gh", "api",
+                  f"repos/{repo}/issues/{number}/comments?per_page=100")))
     if not isinstance(raw, list) or len(raw) >= MAX:
         raise ValueError("CI_RETRY_COMMENT_LEDGER_UNAVAILABLE")
     return raw
@@ -54,15 +57,17 @@ def _route_issue(request, route_ok, api):
     return number
 
 
-def _linked_request(run, api, repo, number, branch, all_plans, route_ok):
+def _linked_request(run, api, repo, number, branch, all_plans, route_ok,
+                    api_list=None):
     candidates = set()
     direct = re.fullmatch(r"lf/request/(req-[1-9][0-9]*)", branch)
     if direct:
         candidates.add(direct.group(1))
     # PR file list is sourced from the authenticated GitHub PR, not its title.
     try:
-        files = json.loads(run("gh", "api",
-                               f"repos/{repo}/pulls/{number}/files?per_page=100"))
+        files = (api_list(f"pulls/{number}/files") if api_list is not None
+                 else json.loads(run("gh", "api",
+                      f"repos/{repo}/pulls/{number}/files?per_page=100")))
     except (ValueError, RuntimeError):
         files = []
     if isinstance(files, list) and len(files) < MAX:
@@ -89,11 +94,12 @@ def _linked_request(run, api, repo, number, branch, all_plans, route_ok):
 
 def _notify_exhausted(run, api, repo, number, branch, sha, source, latest,
                       all_plans, route_ok):
-    issue = _linked_request(run, api, repo, number, branch, all_plans, route_ok)
+    issue = _linked_request(run, api, repo, number, branch, all_plans,
+                            route_ok, api_list)
     if issue is None:
         return "CI_RETRY_ISSUE_UNMAPPED"
     marker = f"<!-- LF_T20_CI_RETRY_EXHAUSTED:{number}:{sha} -->"
-    rows = _comment_rows(run, repo, issue)
+    rows = _comment_rows(run, repo, issue, api_list)
     if any(marker in str(row.get("body") or "")
            for row in rows if isinstance(row, dict)
            and (row.get("user") or {}).get("login") == BOT):
@@ -108,7 +114,8 @@ def _notify_exhausted(run, api, repo, number, branch, sha, source, latest,
     return "CI_RETRY_ISSUE_NOTIFIED"
 
 
-def retry_failed_bot_prs(head, run, api, repo, all_plans, route_ok):
+def retry_failed_bot_prs(head, run, api, repo, all_plans, route_ok,
+                         *, api_list=None):
     """Call once after global main/CI integrity gates, including empty sweeps."""
     outcomes = []
     for row in _listed(run, repo):
@@ -146,7 +153,7 @@ def retry_failed_bot_prs(head, run, api, repo, all_plans, route_ok):
             latest = last_executed_ci_run(eligible)
             if latest is None or latest.get("status") != "completed" and latest.get("status") != "in_progress":
                 continue
-            rows = _comment_rows(run, repo, number)
+            rows = _comment_rows(run, repo, number, api_list)
             original = _marker(rows, number, sha)
             if original is not None:
                 status = "CI_RETRY_ALREADY_RECORDED"
@@ -157,7 +164,7 @@ def retry_failed_bot_prs(head, run, api, repo, all_plans, route_ok):
                         and type(latest.get("id")) is int and latest["id"] > original):
                     status = _notify_exhausted(
                         run, api, repo, number, branch, sha, original,
-                        latest, all_plans, route_ok)
+                        latest, all_plans, route_ok, api_list)
                 outcomes.append({"pr": number, "head_sha": sha, "status": status})
                 continue
             if (latest.get("status") != "completed"
