@@ -147,6 +147,7 @@ def test_two_branches_same_chg_first_merges_second_regenerates_same_sweep(tmp_pa
          patch.object(chain_lots, "completed_lots", return_value={}), \
          patch.object(chain_lots, "failed_lots", return_value={}), \
          patch.object(chain_lots, "run", side_effect=command), \
+         patch.object(chain_lots, "retry_native_infra", return_value=[]), \
          patch.object(chain_lots, "api", side_effect=api), \
          patch.object(chain_lots, "admit_registration", return_value=None), \
          patch.object(chain_lots, "prepare_successor", side_effect=prepare):
