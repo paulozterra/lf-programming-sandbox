@@ -46,7 +46,7 @@ def failure(**updates):
 
 def fixture(tmp_path, *, paths=None):
     file = tmp_path / "pilot/worker_v08/native_tasks" / (TASK + ".json")
-    file.parent.mkdir(parents=True)
+    file.parent.mkdir(parents=True, exist_ok=True)
     file.write_text(json.dumps({
         "task_spec": {"base_head_sha": HEAD,
                       "write_path_patterns": paths or [
