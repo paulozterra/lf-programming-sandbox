@@ -1,5 +1,5 @@
 name: LF Worker native (trusted workflow_run or manual, no API)
-run-name: ${{ github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || inputs.request_slug && format('lf-native-{0}-{1}-a{2}', inputs.request_slug, inputs.task, inputs.attempt) || format('lf-native-{0}-a{1}', inputs.task, inputs.attempt) }}
+run-name: ${{ inputs.infra_retry && format('lf-native-infra-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || inputs.request_slug && format('lf-native-{0}-{1}-a{2}', inputs.request_slug, inputs.task, inputs.attempt) || format('lf-native-{0}-a{1}', inputs.task, inputs.attempt) }}
 
 on:
   workflow_run:
@@ -19,6 +19,11 @@ on:
         description: "Immutable 40-hex Git commit; read proposal JSON only"
         required: true
         type: string
+      infra_retry:
+        description: "T21 authenticated pre-admission infra recovery (CP3.6 only)"
+        required: false
+        type: boolean
+        default: false
       attempt:
         description: "One CI run per attempt; 1 to 3"
         required: true
@@ -79,6 +84,7 @@ jobs:
           MANUAL_SHA: ${{ inputs.proposal_commit_sha }}
           MANUAL_TASK: ${{ inputs.task }}
           MANUAL_ATTEMPT: ${{ inputs.attempt }}
+          MANUAL_INFRA_RETRY: ${{ inputs.infra_retry }}
           REPO_NAME: ${{ github.repository }}
         shell: bash
         run: |
@@ -105,6 +111,9 @@ jobs:
           if [ -n "$branch" ]; then
             args+=(--branch "$branch")
           fi
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$MANUAL_INFRA_RETRY" = "true" ]; then
+            args+=(--allow-historical-base)
+          fi
           python3 control/pilot/worker_v08/native_proposal_push_guard.py "${args[@]}"
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             derived="$(sed -n 's/^task=//p' "$GITHUB_OUTPUT" | tail -1)"
@@ -121,7 +130,8 @@ jobs:
           set -euo pipefail
           python3 -m venv /tmp/lf-python-runtime
           /tmp/lf-python-runtime/bin/python -m pip install --disable-pip-version-check --no-input -r control/pilot/worker_v08/python_runtime_requirements.txt
-          sudo ln -sfn /tmp/lf-python-runtime/bin/python /usr/local/bin/lf-python
+          python3 control/pilot/worker_v08/install_lf_python.py --output /tmp/lf-python-wrapper
+          sudo install -m 755 /tmp/lf-python-wrapper /usr/local/bin/lf-python
           isolated_path="/usr/local/bin:/usr/bin:/bin"
           test "$(env -i PATH="$isolated_path" /bin/sh -c 'command -v lf-python')" = /usr/local/bin/lf-python
           env -i PATH="$isolated_path" lf-python -c 'import yaml, jsonschema, openapi_spec_validator, playwright.sync_api'

@@ -18,10 +18,11 @@ REQ, TASK = "req-901", "t18synthetic"
 
 
 @pytest.fixture(autouse=True)
-def isolate_t20_retry_in_historical_task_pack_tests():
+def isolate_retries_in_historical_task_pack_tests():
     # T18 validates deterministic repair; T20 exercises the independent
     # GitHub CI retry boundary against authenticated synthetic PRs.
-    with patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]):
+    with patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]), \
+         patch.object(chain_lots, "retry_native_infra", return_value=[]):
         yield
 
 

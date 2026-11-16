@@ -613,7 +613,8 @@ jobs:
           set -euo pipefail
           python3 -m venv /tmp/lf-python-runtime
           /tmp/lf-python-runtime/bin/python -m pip install --disable-pip-version-check --no-input -r control/pilot/worker_v08/python_runtime_requirements.txt
-          sudo ln -sfn /tmp/lf-python-runtime/bin/python /usr/local/bin/lf-python
+          python3 control/pilot/worker_v08/install_lf_python.py --output /tmp/lf-python-wrapper
+          sudo install -m 755 /tmp/lf-python-wrapper /usr/local/bin/lf-python
           isolated_path="/usr/local/bin:/usr/bin:/bin"
           test "$(env -i PATH="$isolated_path" /bin/sh -c 'command -v lf-python')" = /usr/local/bin/lf-python
           env -i PATH="$isolated_path" lf-python -c 'import yaml, jsonschema, openapi_spec_validator, playwright.sync_api'

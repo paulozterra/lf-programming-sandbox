@@ -162,7 +162,9 @@ def test_offline_api_and_native_browser_toolchain_pin_parity():
         assert "/tmp/lf-python-runtime/bin/python -m pip install" in workflow
         assert "/tmp/lf-python-runtime/bin/python -m playwright install --with-deps --only-shell chromium" in workflow
         assert "/tmp/lf-playwright-browsers" in workflow
-        assert "sudo ln -sfn /tmp/lf-python-runtime/bin/python /usr/local/bin/lf-python" in workflow
+        assert "python3 control/pilot/worker_v08/install_lf_python.py --output /tmp/lf-python-wrapper" in workflow
+        assert "sudo install -m 755 /tmp/lf-python-wrapper /usr/local/bin/lf-python" in workflow
+        assert "sudo ln -sfn /tmp/lf-python-runtime/bin/python /usr/local/bin/lf-python" not in workflow
         assert 'env -i PATH="$isolated_path" lf-python -c' in workflow
     assert "source/pilot/worker_v08/test_t8_lf_rules.py" in api
     assert re.search(r"node-version:\s*[\"']?22",api)
