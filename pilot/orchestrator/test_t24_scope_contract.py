@@ -126,3 +126,12 @@ def test_real_req186_contract_path_is_accepted():
         "base_head_sha": BASE,
         "write_path_patterns": ["contracts/sbx-rem-list.openapi.yaml"],
     }}) == (BASE, {"contracts/sbx-rem-list.openapi.yaml"})
+
+
+@pytest.mark.parametrize("area,root", sorted(
+    (area, root) for area, roots in AREA_ROOTS.items() for root in roots))
+def test_every_authorized_root_per_area_is_accepted_by_integration(area, root):
+    path = root + "t24_probe.txt"
+    assert validate_write_paths([path], area=area) == {path}
+    assert allowed_paths({"task_spec": {"base_head_sha": BASE,
+                                       "write_path_patterns": [path]}}) == (BASE, {path})
