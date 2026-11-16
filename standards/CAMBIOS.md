@@ -137,4 +137,4 @@
 | CHG-0135 | ADDITIVE | T22: entregar feedback visible de Worker nativo en issue verificado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/220 |
 | CHG-0136 | ADDITIVE | T23: lf-python en aceptación y reintento sin cargo tras defecto verificado de ruta |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/221 |
 | CHG-0137 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/222 |
-| CHG-0138 | ADDITIVE | T23.1: familias nativas de registro y handoff sin bloqueo por exam-request |  | paulozterra |  |
+| CHG-0138 | ADDITIVE | T23.1: familias nativas de registro y handoff sin bloqueo por exam-request |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/223 |
