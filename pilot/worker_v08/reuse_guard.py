@@ -31,9 +31,14 @@ def _public_signature(method: tuple[str, str, str]) -> tuple[str, str]:
     return signature, ",".join(parts)
 
 
-def check(root: Path, patch: str, reuse_context: list[dict]) -> None:
+def check(root: Path, patch: str, reuse_context: list[dict],
+          writable: tuple[str, ...] | list[str] = ()) -> None:
+    """``writable``: files the registered task is authorized to change (an
+    EXTEND lot). Editing them in place is the task itself, never a duplicate;
+    duplicating them elsewhere is still rejected."""
     if not isinstance(patch, str) or not isinstance(reuse_context, list):
         raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+    writable = frozenset(p for p in writable if isinstance(p, str))
     baseline = index(root)["entries"]
     existing_endpoints = {r["key"]: r["path"] for r in baseline if r["kind"] == "endpoint"}
     existing_types = {r["key"]: r["path"] for r in baseline if r["kind"] == "public_signature"}
@@ -56,7 +61,7 @@ def check(root: Path, patch: str, reuse_context: list[dict]) -> None:
             if current is None:
                 raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
             added.append((current, line[1:]))
-    for path in sorted(touched & context.keys()):
+    for path in sorted((touched & context.keys()) - writable):
         raise DuplicateComponent("DUPLICA_COMPONENTE_EXISTENTE:reuse_context:" + path)
     for path, sha in sorted(context.items()):
         candidate = root / path
@@ -73,7 +78,8 @@ def check(root: Path, patch: str, reuse_context: list[dict]) -> None:
         snippet = "\n".join(lines)
         for kind, left, right in JAVA_MAPPING.findall(snippet):
             key = METHODS.get(kind, "ANY") + " " + (left or right)
-            if key in existing_endpoints:
+            if key in existing_endpoints and not (
+                    existing_endpoints[key] == path and path in writable):
                 raise DuplicateComponent("DUPLICA_COMPONENTE_EXISTENTE:endpoint:" + key +
                                          ":" + existing_endpoints[key])
         for typ in JAVA_TYPE.findall(snippet):

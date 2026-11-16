@@ -176,7 +176,8 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
                 for ref in row["reuse_context"]:
                     if isinstance(ref, dict) and ref.get("path") in raw_task.get("context_path_patterns", []):
                         reuse_context.append(ref)
-            check_reuse(source, proposal.patch, reuse_context)
+            check_reuse(source, proposal.patch, reuse_context,
+                        writable=raw_task.get("write_path_patterns", []))
         except (DuplicateComponent, OSError, ValueError, KeyError) as exc:
             code = str(exc).split(":", 1)[0]
             if code not in ("DUPLICA_COMPONENTE_EXISTENTE", "REUTILIZACION_INDETERMINADA"):
