@@ -35,7 +35,7 @@ def _train_conflict(log: str, number: int, sha: str) -> bool:
 # Only two trusted and specific mechanical contract CI failures permit
 # retirement; other red checks must remain for ordinary owner inspection.
 CI_DERIVED_T2 = re.compile(
-    r"T2_CONCRETE_CASE_IN_PRODUCTION:contracts/[a-z][a-z0-9-]*\\.openapi\\.yaml:")
+    r"T2_CONCRETE_CASE_IN_PRODUCTION:contracts/[a-z][a-z0-9-]*\.openapi\.yaml:")
 CI_DERIVED_GEN = re.compile(
     r"git diff --exit-code -- frontend/src/lib/api/generated")
 
