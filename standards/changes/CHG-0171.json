@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0171",
+  "title": "Examen oculto req186frontend3 v2: argumentos dentro del límite del Worker",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Worker 43981400626: NATIVE_RUN_BLOCKED_OR_FAILED; el cargador del oráculo rechaza un argumento mayor a 4096 bytes (HIDDEN_ORACLE_COMMANDS_INVALID)"
+  },
+  "reason": "Error del examinador (Claude): el script del examen iba en un solo argumento de más de 4096 bytes. La v2 lo divide en trozos de menos de 4000 bytes (mismo formato que el examen de CONTRATO), con el mismo contenido y las mismas pruebas. Se validó con load_hidden_oracle y assert_hidden_oracle_external del Worker. Se actualiza el SHA del texto plano en la metadata y en el registro. El fallo ocurrió antes del comprobante y no consumió intento.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/holdouts/req186frontend3.oracle.json.age",
+      "pilot/runs/req-186/claude_meta/req186frontend3.json",
+      "pilot/worker_v08/native_tasks/req186frontend3.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0171.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/0"
+  }
+}
