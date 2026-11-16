@@ -361,7 +361,7 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
         block("BRANCH_EXISTS_DIFFERENT")
     chg_file = matches[0]
     number = int(Path(chg_file).stem[4:])
-    if set(changed_names) != allowed | {chg_file, "standards/CAMBIOS.md"}:
+    # A trusted product-generator may add derived TypeScript; never expand\n    # the native Worker write scope.\n    raw_record = command(["git", "show", remote_sha + ":" + chg_file], cwd=root)\n    recorded = obj(raw_record)\n    derived = recorded.get("derived", {"paths": [], "generator": None})\n    generated_paths = derived.get("paths", []) if isinstance(derived, dict) else []\n    if (not isinstance(generated_paths, list)\n            or any(not isinstance(x, str) or not x.startswith("frontend/src/lib/api/generated/")\n                   for x in generated_paths)\n            or set(changed_names) != allowed | set(generated_paths) | {chg_file, "standards/CAMBIOS.md"}):
         block("BRANCH_EXISTS_DIFFERENT")
     try:
         with tempfile.TemporaryDirectory(prefix="cp35-replay-") as temporary:
@@ -369,8 +369,10 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
             command(["git", "worktree", "add", "--detach", str(work), parent], cwd=root)
             try:
                 changed = validate_patch_against_repo(work, patch, base, allowed)
+                derived = mechanical_derivatives(work, set(changed))
                 payload = chg_payload(number, task, run_id,
-                                      hashlib.sha256(patch).hexdigest(), list(changed))
+                                      hashlib.sha256(patch).hexdigest(),
+                                      list(changed), derived)
                 target = work / chg_file
                 target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
                                   encoding="utf-8")
@@ -434,6 +436,7 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
             f"- Native patch SHA-256: `{patch_hash}`\n"
             f"- Source files SHA-256 after exact application: "
             + json.dumps(changed, sort_keys=True) + "\n"
+            + f"- Derived by CP3.5, not Worker: {json.dumps(derived, sort_keys=True)}\\n"
             f"- CHG-{num:04d}; sin etiquetado ni merge automático. "
             f"Claude revisa; Paulo aplica ready-to-merge.\n")
     url = command(["gh", "pr", "create", "--repo", REPOSITORY, "--base", "main",
