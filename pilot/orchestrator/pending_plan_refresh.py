@@ -78,10 +78,11 @@ def refresh(root: Path, request: str, completed: dict) -> list[str]:
         writes[f"pilot/runs/{request}/lots.json"] = canonical(refreshed)
         writes[f"pilot/runs/{request}/state.json"] = canonical(
             dict(state, lots_sha256=hashlib.sha256(canonical(refreshed)).hexdigest()))
-        plan_path = root / f"pilot/orchestrator/chain_plans/{request}.json"
-        if plan_path.exists():
-            writes[f"pilot/orchestrator/chain_plans/{request}.json"] = generate_chain.canonical(
-                result["plan"])
+        # Every committed copy of the chain plan pins lots_sha256 and must follow.
+        for plan_rel in (f"pilot/runs/{request}/chain_plan.json",
+                         f"pilot/orchestrator/chain_plans/{request}.json"):
+            if (root / plan_rel).exists():
+                writes[plan_rel] = generate_chain.canonical(result["plan"])
     for path, content in sorted(writes.items()):
         target = root / path
         if target.is_symlink():
