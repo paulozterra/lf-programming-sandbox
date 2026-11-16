@@ -115,6 +115,7 @@ def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -
     if not isinstance(rows, list) or len(rows) >= 100:
         raise ValueError("CONFLICT_RECOVERY_PR_LIST_INVALID")
     eligible = []
+    blocked = []
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -128,7 +129,13 @@ def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -
                 or not SHA.fullmatch(str(sha))
                 or (row.get("author") or {}).get("login") not in SAFE_BOT):
             continue
-        detail = api(f"pulls/{number}")
+        try:
+            detail = api(f"pulls/{number}")
+        except (ValueError, OSError, KeyError, TypeError):
+            blocked.append({"status": "BLOCKED", "pr": number,
+                            "phase": "T17_4_PR_READ",
+                            "reason": "CP36_LOCAL_FAILURE"})
+            continue
         if (detail.get("number") != number or detail.get("state") != "open"
                 or detail.get("merged") is True
                 or (detail.get("user") or {}).get("login") not in SAFE_BOT
@@ -172,24 +179,29 @@ def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -
             if (number, sha) not in evidence and _train_conflict(log, number, sha):
                 evidence[(number, sha)] = f["id"]
 
-    retired = []
+    retired = list(blocked)
     for number, branch, sha, kind, dirty, _labeled in eligible:
-        reason = ("GitHub mergeable_state=dirty" if dirty else
-                  "Train BRANCH_CONFLICT #" + str(evidence[(number, sha)])
-                  if (number, sha) in evidence else None)
-        if reason is None and kind == "integration":
-            # Missing generated export for a *new* contract is a deterministic
-            # CI failure even when Actions is awaiting approval (action_required).
-            # For modified existing contracts, require exact red CI evidence.
-            if _provably_stale_generated_client(number, api_list):
-                reason = "CI_DERIVED_GEN_API_STALE"
-            else:
-                reason = _ci_derived_failure(number, branch, sha, run, api, repo)
-        if reason is None:
-            continue
-        run("gh", "pr", "close", str(number), "--repo", repo, "--delete-branch",
-            "--comment", "T17.4/T25: " + reason + ". PR generado retirado, "
-            "se conserva el PASS nativo original y se regenerará desde main.")
-        retired.append({"number": number, "branch": branch, "sha": sha,
-                        "kind": kind, "reason": reason})
+        try:
+            reason = ("GitHub mergeable_state=dirty" if dirty else
+                      "Train BRANCH_CONFLICT #" + str(evidence[(number, sha)])
+                      if (number, sha) in evidence else None)
+            if reason is None and kind == "integration":
+                # Missing generated export for a *new* contract is a deterministic
+                # CI failure even when Actions is awaiting approval (action_required).
+                # For modified existing contracts, require exact red CI evidence.
+                if _provably_stale_generated_client(number, api_list):
+                    reason = "CI_DERIVED_GEN_API_STALE"
+                else:
+                    reason = _ci_derived_failure(number, branch, sha, run, api, repo)
+            if reason is None:
+                continue
+            run("gh", "pr", "close", str(number), "--repo", repo, "--delete-branch",
+                "--comment", "T17.4/T25: " + reason + ". PR generado retirado, "
+                "se conserva el PASS nativo original y se regenerará desde main.")
+            retired.append({"number": number, "branch": branch, "sha": sha,
+                            "kind": kind, "reason": reason})
+        except (ValueError, OSError, KeyError, TypeError):
+            retired.append({"status": "BLOCKED", "pr": number,
+                            "phase": "T17_4_PR_RECOVERY",
+                            "reason": "CP36_LOCAL_FAILURE"})
     return retired
