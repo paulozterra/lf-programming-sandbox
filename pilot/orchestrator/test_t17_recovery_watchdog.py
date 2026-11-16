@@ -232,6 +232,7 @@ def test_one_sweep_closes_legacy_red_registration_and_regenerates_next_chg(tmp_p
          patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]), \
          patch.object(chain_lots, "retry_native_infra", return_value=[]), \
          patch.object(chain_lots, "recover_native_feedback", return_value=[]), \
+         patch.object(chain_lots, "recover_route_defects", return_value=[]), \
          patch.object(chain_lots, "api", side_effect=fake_api), \
          patch.object(chain_lots, "admit_registration", return_value=None), \
          patch.object(chain_lots, "prepare_successor", side_effect=fake_prepare):

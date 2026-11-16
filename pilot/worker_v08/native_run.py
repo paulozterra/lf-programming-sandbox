@@ -118,7 +118,8 @@ def _proof(proposal: dict, task: str, attempt: int, run_id: int) -> dict:
 
 
 def execute(control: Path, source: Path, proposal_checkout: Path,
-            private: Path, task: str, attempt: int, run_id: int) -> bool:
+            private: Path, task: str, attempt: int, run_id: int,
+            *, route_retry: bool = False, proposal_sha: str | None = None) -> bool:
     public = private / "public"
     public.mkdir(parents=True, exist_ok=True)
     raw_task, expected_sha = load_registration(control, task)
@@ -238,7 +239,16 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
                 "status":"FAIL", "authority":"REAL_SANDBOX_UNAUTHENTICATED",
                 "production_authority":False, "receipt_authenticated":False})
             return False
-    client = NativeProposalClient(proposal_file)
+    compatibility = None
+    if route_retry:
+        from native_route_defect import verified_migration
+        registration = strict_json_loads((control / "pilot/worker_v08/native_tasks" /
+                                          (task + ".json")).read_text("utf-8"))
+        compatibility = verified_migration(control, task, registration,
+                                           proposal_sha=proposal_sha)
+        if compatibility is None or attempt != 1:
+            raise ValueError("NATIVE_ROUTE_RETRY_MIGRATION_UNVERIFIED")
+    client = NativeProposalClient(proposal_file, compatibility=compatibility)
     seen = []
     original = verified_module.run_worker
 
@@ -301,6 +311,8 @@ def main() -> None:
     parser.add_argument("--task", required=True)
     parser.add_argument("--attempt", type=int, default=1)
     parser.add_argument("--run-id", type=int)
+    parser.add_argument("--route-retry", action="store_true")
+    parser.add_argument("--proposal-sha")
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--reuse-context", type=Path)
     parser.add_argument("--rule-receipt", type=Path)
@@ -363,7 +375,8 @@ def main() -> None:
             preflight(a.control, a.task, a.github_output)
         else:
             if not execute(a.control, a.source, a.proposal, a.private,
-                           a.task, a.attempt, a.run_id):
+                           a.task, a.attempt, a.run_id,
+                           route_retry=a.route_retry, proposal_sha=a.proposal_sha):
                 raise ValueError("NATIVE_VERIFIED_NONPASS")
     except Exception:
         # No exception messages: they may contain untrusted stdout or secrets.

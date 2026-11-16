@@ -22,6 +22,7 @@ TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 REQUEST = re.compile(r"req-[1-9][0-9]*\Z")
 AUTO = re.compile(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
+ROUTE_REPLAY = re.compile(r"lf-native-route-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 INFRA = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 PRIVATE = re.compile(
     r"oracle|holdout|hidden|private|secret|credential|token|"
@@ -119,8 +120,14 @@ def read_public(path: Path, attempt: int) -> dict:
 
 
 def publish(run, api, repo: str, root: Path, task: str, sha: str,
-            attempt: int, feedback: dict, result: str) -> str:
+            attempt: int, feedback: dict, result: str,
+            *, route_replay_run_id: int | None = None) -> str:
     key = marker(task, sha, attempt)
+    if route_replay_run_id is not None:
+        if type(route_replay_run_id) is not int or route_replay_run_id <= 0:
+            deny()
+        key = (f"<!-- LF_NATIVE_ROUTE_REPLAY_FEEDBACK:{task}:{sha}:"
+               f"{attempt}:{route_replay_run_id} -->")
     if result not in ("PASS", "FAIL", "BLOCKED_OR_FAILED"):
         deny()
     # Validate again at the publishing boundary; no bypass from a caller.
@@ -181,7 +188,8 @@ def _run_identity(item: dict, repo: str):
             or (item.get("repository") or {}).get("full_name") != repo):
         return None
     title = item.get("display_title") or ""
-    match = (INFRA.fullmatch(title) if item["event"] == "workflow_dispatch"
+    match = ((INFRA.fullmatch(title) or ROUTE_REPLAY.fullmatch(title))
+             if item["event"] == "workflow_dispatch"
              else AUTO.fullmatch(title))
     return (match.group(1), match.group(2)) if match else None
 
@@ -237,7 +245,9 @@ def recover_one(run, api, repo: str, root: Path, item: dict) -> str:
         result = ("PASS" if item["conclusion"] == "success"
                   else "BLOCKED_OR_FAILED")
         return publish(run, api, repo, root, task, sha, proof["attempt"],
-                       feedback, result)
+                       feedback, result,
+                       route_replay_run_id=(run_id if ROUTE_REPLAY.fullmatch(
+                           item.get("display_title") or "") else None))
 
 
 def recover_sweep(run, api, repo: str, root: Path) -> list[dict]:
@@ -301,8 +311,10 @@ def main() -> None:
         deny()
     feedback = read_public(args.feedback, args.attempt)
     status = "PASS" if args.outcome == "success" else "BLOCKED_OR_FAILED"
+    replay = os.environ.get("NATIVE_ROUTE_RETRY") == "true"
     print(publish(_subprocess, lambda path: _api(REPO, path), REPO,
-                  args.control, args.task, args.sha, args.attempt, feedback, status))
+                  args.control, args.task, args.sha, args.attempt, feedback, status,
+                  route_replay_run_id=(args.run_id if replay else None)))
 
 
 if __name__ == "__main__":
