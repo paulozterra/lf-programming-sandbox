@@ -111,6 +111,9 @@ def test_project_test_classifier():
 
 # --- real committed request, refreshed read-only on a copy ---------------------------------
 
+REAL_CASE_SNAPSHOT = "13609483de4398ad87e0eee80b864c6bad1bcb9f"
+
+
 def _real_request(tmp_path) -> tuple[Path, str] | None:
     candidates = []
     # Most recent request first: older discarded runs may predate later analysis fixes.
@@ -129,6 +132,16 @@ def _real_request(tmp_path) -> tuple[Path, str] | None:
     copy = tmp_path / "repo"
     shutil.copytree(ROOT, copy, ignore=shutil.ignore_patterns(
         ".git", "node_modules", "target", ".next", "__pycache__"), symlinks=True)
+    # T29: product code and request data come from a pinned snapshot, so later
+    # integrated lots (which change the live tree) do not break this fixture.
+    import io, subprocess, tarfile
+    for tree in ("apps/time-service", "pilot/runs/" + candidates[0]):
+        shutil.rmtree(copy / tree, ignore_errors=True)
+        raw = subprocess.run(["git", "-C", str(ROOT), "archive", "--format=tar",
+                              REAL_CASE_SNAPSHOT, tree],
+                             check=True, capture_output=True).stdout
+        with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
+            archive.extractall(copy, filter="data")
     return copy, candidates[0]
 
 

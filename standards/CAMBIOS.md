@@ -158,3 +158,4 @@
 | CHG-0159 | EDITORIAL | T28.2: el publicador de feedback acepta el extracto completo que produce el Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/249 |
 | CHG-0160 | EDITORIAL | T28.3: un feedback retenido indica la regla y la corrida, sin contenido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/250 |
 | CHG-0161 | EDITORIAL | T28.4: la ruta del workspace del Worker en la salida visible se normaliza en vez de bloquear el feedback |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/251 |
+| CHG-0163 | EDITORIAL | T29: las pruebas de la ruta que usan el producto real leen una instantánea fijada, no el árbol vivo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/253 |
