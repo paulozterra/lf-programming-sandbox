@@ -86,7 +86,7 @@ def _failed_for_scope(api, run, repo: str, integration: dict) -> bool:
         is not None for line in logs.splitlines())
 
 
-def recover(head: str, run, api, repo: str, root: Path) -> list[dict]:
+def recover(head: str, run, api, repo: str, root: Path,\n            *, allowed_tasks: set[str] | None = None) -> list[dict]:
     """Idempotent CP3.6 dispatch; all GitHub effects through injected run/API."""
     if not re.fullmatch(r"[0-9a-f]{40}", head):
         raise ValueError("INTEGRATION_REPLAY_HEAD_INVALID")
