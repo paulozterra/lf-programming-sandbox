@@ -577,7 +577,14 @@ jobs:
 
       - name: Exercise ex5c derive-context CLI and full-file checksum offline
         run: |
-          python3 -m pilot.workflow_entrypoint pilot/worker_v08/derive_context.py --task ex5c --root . --output "$RUNNER_TEMP/derived-context.json"
+          # T29.1: the ex5c fixture reads a pinned snapshot of the product tree
+          # (same pin as test_derive_context), never the live tree that each
+          # integrated lot legitimately changes.
+          snapshot="$RUNNER_TEMP/ex5c-snapshot"
+          pin="$(python3 -c 'import re,sys;print(re.search(r"EX5C_SNAPSHOT = \"([0-9a-f]{40})\"",open("pilot/worker_v08/test_derive_context.py").read()).group(1))')"
+          mkdir -p "$snapshot"
+          git archive --format=tar "$pin" apps/time-service | tar -x -C "$snapshot"
+          python3 -m pilot.workflow_entrypoint pilot/worker_v08/derive_context.py --task ex5c --root "$snapshot" --output "$RUNNER_TEMP/derived-context.json"
           cd "$RUNNER_TEMP" && sha256sum --check derived-context.sha256
 
       - name: Compile real-ex5c bundle generator and test SHA/mapping offline (NO API)
