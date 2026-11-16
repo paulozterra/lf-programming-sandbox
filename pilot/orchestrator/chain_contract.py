@@ -116,6 +116,7 @@ def verified_failures(task: str, runs: list[dict], proofs: dict[int, dict | None
     if not ID.fullmatch(task):
         deny("TASK_INVALID")
     matched = {}
+    route_defects = route_defects or {}
     for run in runs:
         if run.get("status") != "completed" or run.get("conclusion") != "failure":
             continue
@@ -136,6 +137,12 @@ def verified_failures(task: str, runs: list[dict], proofs: dict[int, dict | None
                 or not isinstance(proof.get("task_pack_sha256"), str)
                 or not SHA64.fullmatch(proof["task_pack_sha256"])):
             deny("ATTEMPT_PROOF_INVALID")
+        # T23: exempt only the trusted migration's original run ID and exact
+        # registered legacy task-pack SHA-256. Other failures still count.
+        if run_id in route_defects:
+            if proof["task_pack_sha256"] != route_defects[run_id]:
+                deny("ROUTE_DEFECT_PROOF_MISMATCH")
+            continue
         n = proof["attempt"]
         if n in matched or (matched and any(existing == run_id for existing in matched.values())):
             deny("ATTEMPT_DUPLICATE")
