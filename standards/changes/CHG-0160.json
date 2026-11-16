@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0160",
+  "title": "T28.3: un feedback retenido indica la regla y la corrida, sin contenido",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T28.3: tras T28.1 y T28.2 el barrido sigue informando T22_FEEDBACK FEEDBACK_NO_PUBLICO sin motivo ni corrida"
+  },
+  "reason": "T28.3: cada rechazo del publicador de feedback lleva un código de la regla que falló (esquema, tamaño, patrón privado, procedencia…) y la corrida afectada; nunca el contenido. Diagnóstico general para no dejar al constructor sin feedback sin saber por qué.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_feedback_delivery.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0160.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/0"
+  }
+}

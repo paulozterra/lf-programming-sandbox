@@ -49,84 +49,89 @@ class FeedbackBlocked(ValueError):
     pass
 
 
-def deny() -> None:
-    raise FeedbackBlocked("FEEDBACK_NO_PUBLICO")
+def deny(reason: str = "") -> None:
+    # T28.3: name the failed rule (never the content) so a withheld feedback
+    # can be diagnosed from the sweep outcome.
+    raise FeedbackBlocked("FEEDBACK_NO_PUBLICO" + (":" + reason if reason else ""))
 
 
 def parse_feedback(raw: bytes, attempt: int) -> dict:
-    if type(attempt) is not int or not 1 <= attempt <= 3 or len(raw) > MAX_BYTES:
-        deny()
+    if type(attempt) is not int or not 1 <= attempt <= 3:
+        deny("ATTEMPT")
+    if len(raw) > MAX_BYTES:
+        deny("TOTAL_SIZE")
     try:
         data = json.loads(raw)
     except (ValueError, UnicodeError):
-        deny()
+        deny("JSON")
     if (not isinstance(data, dict) or set(data) != TOP_KEYS
             or data.get("schema_version") != SCHEMA
             or data.get("kind") != "VISIBLE_ACCEPTANCE_ONLY"
             or data.get("attempt") != attempt
             or not isinstance(data.get("commands"), list)
             or len(data["commands"]) > 30):
-        deny()
+        deny("SCHEMA_TOP" + (":ATTEMPT_MISMATCH" if isinstance(data, dict)
+                             and data.get("attempt") != attempt else ""))
     for command in data["commands"]:
         if not isinstance(command, dict) or set(command) != CMD_KEYS:
-            deny()
+            deny("SCHEMA_COMMAND")
         for name, value in command.items():
             if name == "returncode":
                 if value is not None and (type(value) is not int or abs(value) > 32768):
-                    deny()
+                    deny("RETURNCODE")
             elif value is not None and (not isinstance(value, str)
                                         or len(value.encode("utf-8")) > FIELD_MAX_BYTES):
-                deny()
+                deny("FIELD_SIZE")
     # This is the same public object, not a rewritten/summarized feedback.
     # Check the *entire* serialized payload, including nested output strings.
     serialized = json.dumps(data, sort_keys=True, ensure_ascii=False)
     if PRIVATE.search(serialized):
-        deny()
+        deny("PRIVATE_PATTERN")
     return data
 
 
 def marker(task: str, sha: str, attempt: int) -> str:
     if not TASK.fullmatch(task) or not SHA.fullmatch(sha) or not 1 <= attempt <= 3:
-        deny()
+        deny("MARKER_1")
     return f"<!-- LF_NATIVE_VISIBLE_FEEDBACK:{task}:{sha}:{attempt} -->"
 
 
 def issue_for_task(root: Path, task: str) -> int:
     if not TASK.fullmatch(task):
-        deny()
+        deny("ISSUE_FOR_TASK_1")
     registered = root / "pilot/worker_v08/native_tasks" / (task + ".json")
     if registered.is_symlink() or not registered.is_file():
-        deny()
+        deny("ISSUE_FOR_TASK_2")
     matches = []
     for file in sorted((root / "pilot/runs").glob(
             "req-*/proposal_requests/" + task + ".proposal-request.json")):
         folder = file.parent.parent
         if (file.is_symlink() or folder.is_symlink()
                 or not REQUEST.fullmatch(folder.name)):
-            deny()
+            deny("ISSUE_FOR_TASK_3")
         request = folder.name
         meta = folder / "request_meta.json"
         if meta.is_symlink() or not meta.is_file():
-            deny()
+            deny("ISSUE_FOR_TASK_4")
         try:
             envelope = json.loads(file.read_text("utf-8"))
             metadata = json.loads(meta.read_text("utf-8"))
         except (ValueError, UnicodeError, OSError):
-            deny()
+            deny("ISSUE_FOR_TASK_5")
         if (not isinstance(envelope, dict)
                 or envelope.get("branch") != "lf/native-proposal/" + task
                 or not isinstance(metadata, dict)
                 or metadata.get("issue") != int(request[4:])):
-            deny()
+            deny("ISSUE_FOR_TASK_6")
         matches.append(int(request[4:]))
     if len(matches) != 1:
-        deny()
+        deny("ISSUE_FOR_TASK_7")
     return matches[0]
 
 
 def read_public(path: Path, attempt: int) -> dict:
     if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_BYTES:
-        deny()
+        deny("READ_PUBLIC_1")
     return parse_feedback(path.read_bytes(), attempt)
 
 
@@ -136,11 +141,11 @@ def publish(run, api, repo: str, root: Path, task: str, sha: str,
     key = marker(task, sha, attempt)
     if route_replay_run_id is not None:
         if type(route_replay_run_id) is not int or route_replay_run_id <= 0:
-            deny()
+            deny("PUBLISH_1")
         key = (f"<!-- LF_NATIVE_ROUTE_REPLAY_FEEDBACK:{task}:{sha}:"
                f"{attempt}:{route_replay_run_id} -->")
     if result not in ("PASS", "FAIL", "BLOCKED_OR_FAILED"):
-        deny()
+        deny("PUBLISH_2")
     # Validate again at the publishing boundary; no bypass from a caller.
     payload = json.dumps(feedback, sort_keys=True, ensure_ascii=False).encode("utf-8")
     feedback = parse_feedback(payload, attempt)
@@ -149,14 +154,14 @@ def publish(run, api, repo: str, root: Path, task: str, sha: str,
     if (issue.get("number") != number or issue.get("pull_request")
             or "lf-request" not in {x.get("name") for x in issue.get("labels", [])
                                    if isinstance(x, dict)}):
-        deny()
+        deny("PUBLISH_3")
     raw_comments = run("gh", "api", f"repos/{repo}/issues/{number}/comments?per_page=100")
     try:
         comments = json.loads(raw_comments)
     except ValueError:
-        deny()
+        deny("PUBLISH_4")
     if not isinstance(comments, list) or len(comments) >= MAX:
-        deny()
+        deny("PUBLISH_5")
     if any(key in str(c.get("body") or "")
            for c in comments if isinstance(c, dict)
            and (c.get("user") or {}).get("login") == "github-actions[bot]"):
@@ -179,7 +184,7 @@ def _artifact_names(api, run_id: int) -> bool:
     artifacts = obj.get("artifacts")
     if (not isinstance(artifacts, list) or type(obj.get("total_count")) is not int
             or obj["total_count"] > MAX or len(artifacts) >= MAX):
-        deny()
+        deny("ARTIFACT_NAMES_1")
     for name in ("native-attempt-proof", "native-visible-feedback-and-cost"):
         found = [a for a in artifacts if isinstance(a, dict) and a.get("name") == name]
         if (len(found) != 1 or found[0].get("expired") is True
@@ -222,7 +227,7 @@ def recover_one(run, api, repo: str, root: Path, item: dict) -> str:
     if (not isinstance(jobrows, list) or len(jobrows) != 1
             or jobs.get("total_count") != 1
             or jobrows[0].get("name") != "native"):
-        deny()
+        deny("RECOVER_ONE_1")
     steps = jobrows[0].get("steps")
     if (not isinstance(steps, list)
             or not any(s.get("name") == "Execute original run_verified_worker using native proposal (single attempt)"
@@ -240,17 +245,17 @@ def recover_one(run, api, repo: str, root: Path, item: dict) -> str:
                 "--name", name, "--dir", str(location))
         proof_file = folder / "native-attempt-proof/attempt-proof.json"
         if proof_file.is_symlink() or not proof_file.is_file() or proof_file.stat().st_size > 4096:
-            deny()
+            deny("RECOVER_ONE_2")
         try:
             proof = json.loads(proof_file.read_text("utf-8"))
         except (ValueError, UnicodeError):
-            deny()
+            deny("RECOVER_ONE_3")
         if (not isinstance(proof, dict)
                 or set(proof) != {"task_id", "attempt", "task_pack_sha256", "run_id"}
                 or proof.get("task_id") != task or proof.get("run_id") != run_id
                 or type(proof.get("attempt")) is not int
                 or not 1 <= proof["attempt"] <= 3):
-            deny()
+            deny("RECOVER_ONE_4")
         file = folder / "native-visible-feedback-and-cost/feedback.json"
         feedback = read_public(file, proof["attempt"])
         result = ("PASS" if item["conclusion"] == "success"
@@ -274,10 +279,11 @@ def recover_sweep(run, api, repo: str, root: Path) -> list[dict]:
         try:
             status = recover_one(run, api, repo, root, item)
             result.append({"status": status, "run_id": item["id"]})
-        except FeedbackBlocked:
+        except FeedbackBlocked as exc:
             result.append({"status": "FEEDBACK_NO_PUBLICO", "run_id": item["id"]})
-            # Do not publish anything from an unsafe artifact.
-            raise
+            # Do not publish anything from an unsafe artifact. Name the run and
+            # the failed rule (T28.3), never the content.
+            raise FeedbackBlocked(f"{exc}:RUN_{int(item['id'])}") from None
     return result
 
 
@@ -292,9 +298,9 @@ def _api(repo: str, route: str) -> dict:
     try:
         value = json.loads(_subprocess("gh", "api", f"repos/{repo}/{route}"))
     except ValueError:
-        deny()
+        deny("API_1")
     if not isinstance(value, dict):
-        deny()
+        deny("API_2")
     return value
 
 
@@ -310,7 +316,7 @@ def main() -> None:
     args = parser.parse_args()
     if (not os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_REPOSITORY") != REPO
             or int(os.environ.get("GITHUB_RUN_ID", "0")) != args.run_id):
-        deny()
+        deny("MAIN_1")
     # Already-claimed attempt proof only. A pre-admission failure is not an attempt.
     proof = args.feedback.parent / "attempt-proof.json"
     if not proof.is_file() or proof.is_symlink():
@@ -319,7 +325,7 @@ def main() -> None:
     data = json.loads(proof.read_text("utf-8"))
     if (data.get("task_id") != args.task or data.get("attempt") != args.attempt
             or data.get("run_id") != args.run_id):
-        deny()
+        deny("MAIN_2")
     feedback = read_public(args.feedback, args.attempt)
     status = "PASS" if args.outcome == "success" else "BLOCKED_OR_FAILED"
     replay = os.environ.get("NATIVE_ROUTE_RETRY") == "true"
