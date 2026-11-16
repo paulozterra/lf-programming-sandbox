@@ -18,6 +18,8 @@
       ".github/workflows/worker-pilot.yml",
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/native_infra_retry.py",
+      "pilot/orchestrator/test_t17_4_conflict_recovery.py",
+      "pilot/orchestrator/test_t17_recovery_watchdog.py",
       "pilot/orchestrator/test_t21_native_infra_retry.py",
       "pilot/test_t15_sweep.py",
       "pilot/test_t21_python_runtime.py",
