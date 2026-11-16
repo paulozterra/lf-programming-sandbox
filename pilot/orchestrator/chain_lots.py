@@ -298,6 +298,7 @@ def failed_lots(bindings: dict) -> dict[str, list[int]]:
     # The upstream native_run_history proof-reader handles signed artifact
     # redirects without passing credentials to storage and never opens oracles.
     from native_run_history import _artifact_json, _recognized_run
+    from pilot.worker_v08.native_route_defect import verified_migration
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
         deny("GITHUB_TOKEN_MISSING")
@@ -321,7 +322,18 @@ def failed_lots(bindings: dict) -> dict[str, list[int]]:
         for entry in failures:
             proof = _artifact_json(REPO, token, entry["id"])
             proofs[entry["id"]] = proof
-        result[lot] = verified_failures(task, failures, proofs)
+        registration = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+        migration = None
+        if registration.is_file() and not registration.is_symlink():
+            try:
+                migration = verified_migration(
+                    ROOT, task, json.loads(registration.read_text("utf-8")))
+            except (OSError, ValueError, KeyError, TypeError):
+                migration = None
+        defects = ({migration["source_run_id"]: migration["legacy_task_pack_sha256"]}
+                   if migration is not None else {})
+        result[lot] = verified_failures(task, failures, proofs,
+                                       route_defects=defects)
     return result
 
 
@@ -1117,6 +1129,24 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                       if sweep else [])
     repair_outcomes = (list(retry_outcomes) + list(native_retry_outcomes)
                        + list(feedback_outcomes) + list(route_outcomes))
+    # T24.1: dispatch an already-PASS Worker integration before per-lot
+    # progress. Isolate each request: one corrupted scope must never hold
+    # back a different request's attested CP3.5 replay.
+    if sweep:
+        for request, _lots, _state, bindings in all_plans:
+            try:
+                if not route_request_metadata(request):
+                    continue
+                tasks = {value.get("task_name") for value in bindings.values()
+                         if isinstance(value, dict)
+                         and isinstance(value.get("task_name"), str)}
+                for outcome in replay_native_integration(
+                        head, run, api, REPO, ROOT, allowed_tasks=tasks):
+                    repair_outcomes.append({"request": request, **outcome})
+            except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
+                    OSError, ValueError, KeyError) as exc:
+                repair_outcomes.append(
+                    per_request_block(request, "INTEGRATION_REPLAY", exc))
     if sweep:
         for request, _lots, _state, bindings in all_plans:
             if not route_request_metadata(request):

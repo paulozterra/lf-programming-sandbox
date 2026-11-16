@@ -86,7 +86,8 @@ def _failed_for_scope(api, run, repo: str, integration: dict) -> bool:
         is not None for line in logs.splitlines())
 
 
-def recover(head: str, run, api, repo: str, root: Path) -> list[dict]:
+def recover(head: str, run, api, repo: str, root: Path,
+            *, allowed_tasks: set[str] | None = None) -> list[dict]:
     """Idempotent CP3.6 dispatch; all GitHub effects through injected run/API."""
     if not re.fullmatch(r"[0-9a-f]{40}", head):
         raise ValueError("INTEGRATION_REPLAY_HEAD_INVALID")
@@ -119,6 +120,10 @@ def recover(head: str, run, api, repo: str, root: Path) -> list[dict]:
             continue
         identity = WORKER_TITLE.fullmatch(source["display_title"])
         task = identity.group(1)
+        # A sweep invokes this once per request. Never dispatch a PASS
+        # belonging to another request, nor replay it twice in one sweep.
+        if allowed_tasks is not None and task not in allowed_tasks:
+            continue
         registration = root / "pilot/worker_v08/native_tasks" / (task + ".json")
         if not registration.is_file() or registration.is_symlink():
             continue
