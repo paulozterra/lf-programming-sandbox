@@ -298,6 +298,7 @@ def failed_lots(bindings: dict) -> dict[str, list[int]]:
     # The upstream native_run_history proof-reader handles signed artifact
     # redirects without passing credentials to storage and never opens oracles.
     from native_run_history import _artifact_json, _recognized_run
+    from pilot.worker_v08.native_route_defect import verified_migration
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
         deny("GITHUB_TOKEN_MISSING")
