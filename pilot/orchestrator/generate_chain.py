@@ -8,6 +8,7 @@ from pathlib import Path
 
 from chain_contract import validate_plan
 from worker_template_contract import validate_template_worker
+from native_write_scope import validate_write_paths
 
 def canonical(value):
     return (json.dumps(value,sort_keys=True,separators=(",",":"),ensure_ascii=False)+"\n").encode("utf-8")
@@ -204,6 +205,10 @@ def generate(root, run, lots):
         rows.append({"lot_id":lot["id"],"task_name":task,"template_path":tpath,
                      "holdout_metadata_path":f"pilot/runs/{run}/claude_meta/{task}.json"})
         paths=sorted(lot["write_paths"])
+        try:
+            validate_write_paths(paths, area=lot["area"])
+        except ValueError as exc:
+            raise ValueError("SCOPE_GENERACION_INTEGRACION_DIVERGE:" + str(lot["area"])) from exc
         protected=[".github/**",".lf/**","pilot/**","vendor/**",
                    "apps/time-service/src/test/**","apps/time-service/visible-tests/**",
                    "apps/time-service/pom.xml","apps/time-service/src/main/resources/**",
