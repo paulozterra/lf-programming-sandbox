@@ -40,13 +40,13 @@ CI_DERIVED_GEN = re.compile(
     r"git diff --exit-code -- frontend/src/lib/api/generated")
 
 
-def _provably_stale_generated_client(number: int, api) -> bool:
+def _provably_stale_generated_client(number: int, api_list) -> bool:
     """A new OpenAPI contract *must* add an index export. No CI log needed.
 
     The PR is already authenticated as a bot-owned CP3.5 integration on the
     exact reported head SHA. Never inspect/execute its source files.
     """
-    response = api("pulls/" + str(number) + "/files?per_page=100")
+    response = api_list("pulls/" + str(number) + "/files")
     if not isinstance(response, list) or len(response) >= 100:
         return False
     added = {row.get("filename") for row in response if isinstance(row, dict)
@@ -103,7 +103,7 @@ def _ci_derived_failure(number: int, branch: str, sha: str, run, api, repo: str)
     return None
 
 
-def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
+def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -> list[dict]:
     """Return retired PR metadata; callers regenerate from trusted current main.
 
     All changes use caller-provided run/api boundaries for CP3.6 offline tests.
@@ -142,6 +142,13 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
         eligible.append((number, branch, sha, kind,
                          detail.get("mergeable_state") == "dirty", labeled))
 
+    # Transport cannot be invented from object-only API. Production passes
+    # the typed collection reader; old callers without integration candidates
+    # may still exercise conflict-only recovery.
+    if api_list is None:
+        def api_list(_path):
+            raise ValueError("GITHUB_LIST_TRANSPORT_REQUIRED")
+
     # Only consult Train runs if the PR isn't already provably dirty.
     unknown = [(n, b, sha, k) for n, b, sha, k, dirty, labeled in eligible
                if not dirty and labeled]
@@ -174,7 +181,7 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
             # Missing generated export for a *new* contract is a deterministic
             # CI failure even when Actions is awaiting approval (action_required).
             # For modified existing contracts, require exact red CI evidence.
-            if _provably_stale_generated_client(number, api):
+            if _provably_stale_generated_client(number, api_list):
                 reason = "CI_DERIVED_GEN_API_STALE"
             else:
                 reason = _ci_derived_failure(number, branch, sha, run, api, repo)
