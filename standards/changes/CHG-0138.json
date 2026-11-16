@@ -1,0 +1,45 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0138",
+  "title": "T23.1: familias nativas de registro y handoff sin bloqueo por exam-request",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T23.1: #222 Train handoff 43792626872 blocked EXAM_REGISTRATION_NOT_MERGED for route-python auxiliary"
+  },
+  "reason": "Clasificador único de subfamilias lf/native-registration usado por ciclo de examen, Train handoff, política C, recuperación T17.4 y watchdog; solo registro real puede cerrar examen. Cierre secundario no bloquea CI main ni sweep, que reactiva reevaluación del SHA histórico de T23 sin modificar propuesta.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/auto_integrate.py",
+      "pilot/exam_issue_lifecycle.py",
+      "pilot/native_registration_family.py",
+      "pilot/orchestrator/generated_conflict_recovery.py",
+      "pilot/request_failure_notify.py",
+      "pilot/request_stage_watchdog.py",
+      "pilot/test_auto_integrate.py",
+      "pilot/test_policy_c_handoff.py",
+      "pilot/test_t23_1_registration_handoff.py",
+      "pilot/train_handoff.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0138.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
