@@ -140,16 +140,20 @@ jobs:
               outcomes = json.load(open(sys.argv[1], encoding="utf-8"))
           except (OSError, ValueError):
               sys.exit(0)
-          requests = sorted({
-              row.get("request") for row in outcomes
+          transient = [
+              row for row in outcomes
               if isinstance(row, dict)
               and isinstance(row.get("reason"), str)
               and row["reason"].startswith("GITHUB_TRANSITORIO:")
-              and isinstance(row.get("request"), str)
+          ]
+          requests = sorted({
+              row["request"] for row in transient
+              if isinstance(row.get("request"), str)
               and re.fullmatch(r"req-[1-9][0-9]*", row["request"])
           })
           with open(sys.argv[2], "w", encoding="utf-8") as handle:
-              handle.write("\n".join(requests))
+              handle.write("\n".join(requests) if requests else
+                           "GLOBAL" if transient else "")
           PY
           test -s "$RUNNER_TEMP/cp36-transient-requests.txt" || exit 0
           [[ "$RETRY_ATTEMPT" =~ ^[012]$ ]] || exit 1
@@ -162,6 +166,7 @@ jobs:
           else
             # Terminal notice; the existing watchdog is still triggered below.
             while IFS= read -r request; do
+              [[ "$request" == req-* ]] || continue
               number="${request#req-}"
               gh issue comment "$number" --repo "$GITHUB_REPOSITORY" \
                 --body "<!-- LF_T27_TRANSIENT_EXHAUSTED:$BASE_SHA:$request --> GITHUB_TRANSITORIO: reintentos CP3.6 agotados para $BASE_SHA; requiere revisión del watchdog."
