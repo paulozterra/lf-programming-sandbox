@@ -15,6 +15,7 @@ import os
 from pathlib import Path, PurePosixPath
 from generated_branch_standards import synchronize
 from native_write_scope import validate_write_paths, WriteScopeError
+from native_derived_generation import generate as generate_derivatives, DerivedGenerationBlocked
 import re
 import subprocess
 import sys
@@ -216,8 +217,9 @@ def validate_patch_against_repo(root: Path, patch: bytes, base: str,
 
 
 def chg_payload(number: int, task: str, run_id: int, patch_sha: str,
-                paths: list[str]) -> dict:
+                paths: list[str], derived: dict | None = None) -> dict:
     ident = f"CHG-{number:04d}"
+    derived = derived or {"generator": None, "paths": []}
     return {
         "schema_version": "LF_STANDARD_CHANGE_V1",
         "change_id": ident,
@@ -229,8 +231,11 @@ def chg_payload(number: int, task: str, run_id: int, patch_sha: str,
                   f"nativa PASS {run_id}, SHA-256 {patch_sha}; rutas y bytes aplicados "
                   f"sin reconstruir propuesta, sin exámenes ni aprobación automática.",
         "artifacts": [],
+        "derived": {"generator": derived["generator"],
+                    "paths": sorted(derived["paths"]),
+                    "attribution": "CP3.5_TRUSTED_GENERATOR_NOT_WORKER"},
         "affected": {"rule_ids": [], "term_ids": [],
-                     "paths": sorted(paths + [f"standards/changes/{ident}.json",
+                     "paths": sorted(paths + derived["paths"] + [f"standards/changes/{ident}.json",
                                              "standards/CAMBIOS.md"])},
         "existing_code_impact": {"mode": "NEW_OR_MODIFIED_ONLY",
                                   "baseline_ref": "standards/baseline/",
@@ -240,6 +245,14 @@ def chg_payload(number: int, task: str, run_id: int, patch_sha: str,
         "evidence": {"pr_url": ""},
     }
 
+
+
+def mechanical_derivatives(root: Path, worker_paths: set[str]) -> dict:
+    """Trusted CP3.5-only generated outputs, never part of native patch."""
+    try:
+        return generate_derivatives(root, worker_paths, command)
+    except DerivedGenerationBlocked as exc:
+        raise IntegrationBlocked(str(exc)) from exc
 
 def next_chg(root: Path) -> int:
     used = [int(p.stem[4:]) for p in (root / "standards/changes").glob("CHG-????.json")]
@@ -253,11 +266,12 @@ def next_chg(root: Path) -> int:
 
 
 def record_change(root: Path, number: int, task: str,
-                  run_id: int, patch_sha: str, paths: list[str]) -> Path:
+                  run_id: int, patch_sha: str, paths: list[str],
+                  derived: dict | None = None) -> Path:
     dest = root / f"standards/changes/CHG-{number:04d}.json"
     if dest.exists():
         block("CHG_COLLISION")
-    payload = chg_payload(number, task, run_id, patch_sha, paths)
+    payload = chg_payload(number, task, run_id, patch_sha, paths, derived)
     dest.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", "utf-8")
     return dest
 
@@ -347,7 +361,16 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
         block("BRANCH_EXISTS_DIFFERENT")
     chg_file = matches[0]
     number = int(Path(chg_file).stem[4:])
-    if set(changed_names) != allowed | {chg_file, "standards/CAMBIOS.md"}:
+    # A trusted product-generator may add derived TypeScript; never expand
+    # the native Worker write scope.
+    raw_record = command(["git", "show", remote_sha + ":" + chg_file], cwd=root)
+    recorded = obj(raw_record)
+    derived = recorded.get("derived", {"paths": [], "generator": None})
+    generated_paths = derived.get("paths", []) if isinstance(derived, dict) else []
+    if (not isinstance(generated_paths, list)
+            or any(not isinstance(x, str) or not x.startswith("frontend/src/lib/api/generated/")
+                   for x in generated_paths)
+            or set(changed_names) != allowed | set(generated_paths) | {chg_file, "standards/CAMBIOS.md"}):
         block("BRANCH_EXISTS_DIFFERENT")
     try:
         with tempfile.TemporaryDirectory(prefix="cp35-replay-") as temporary:
@@ -355,8 +378,10 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
             command(["git", "worktree", "add", "--detach", str(work), parent], cwd=root)
             try:
                 changed = validate_patch_against_repo(work, patch, base, allowed)
+                derived = mechanical_derivatives(work, set(changed))
                 payload = chg_payload(number, task, run_id,
-                                      hashlib.sha256(patch).hexdigest(), list(changed))
+                                      hashlib.sha256(patch).hexdigest(),
+                                      list(changed), derived)
                 target = work / chg_file
                 target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
                                   encoding="utf-8")
@@ -393,8 +418,10 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     resumed = reconstruct_existing_branch(root, branch, patch, base, allowed, task, run_id)
     if resumed is None:
         changed = validate_patch_against_repo(root, patch, base, allowed)
+        derived = mechanical_derivatives(root, set(changed))
         num = next_chg(root)
-        chg = record_change(root, num, task, run_id, patch_hash, list(changed))
+        chg = record_change(root, num, task, run_id, patch_hash,
+                            list(changed), derived)
         command(["git", "add", "--", str(chg.relative_to(root))], cwd=root)
         synchronize(root, "integration",
                     chg_file=chg.relative_to(root).as_posix())
@@ -412,11 +439,13 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
     else:
         num, changed, check_base = resumed
         chg = root / f"standards/changes/CHG-{num:04d}.json"
+        derived = obj(chg.read_bytes()).get("derived", {"paths": [], "generator": None})
     body = (f"CP3.5: PASS verificado por workflow nativo confiable.\n\n"
             f"- Task: `{task}` · run: {run_id} · base: `{base}`\n"
             f"- Native patch SHA-256: `{patch_hash}`\n"
             f"- Source files SHA-256 after exact application: "
             + json.dumps(changed, sort_keys=True) + "\n"
+            + f"- Derived by CP3.5, not Worker: {json.dumps(derived, sort_keys=True)}\\n"
             f"- CHG-{num:04d}; sin etiquetado ni merge automático. "
             f"Claude revisa; Paulo aplica ready-to-merge.\n")
     url = command(["gh", "pr", "create", "--repo", REPOSITORY, "--base", "main",
@@ -438,6 +467,7 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
              "--ref", branch], cwd=root)
     return {"pr_url": url, "branch": branch, "head_sha": final_head,
             "run_id": run_id, "patch_sha256": patch_hash, "files_sha256": changed,
+            "derived": derived,
             "merge_authorized": False}
 
 

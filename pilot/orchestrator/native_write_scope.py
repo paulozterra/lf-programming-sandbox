@@ -17,6 +17,7 @@ AREA_ROOTS: dict[str, tuple[str, ...]] = {
     "FRONTEND": ("frontend/",),
 }
 AREAS = frozenset(AREA_ROOTS)
+PRODUCT_ROOTS = frozenset(root for roots in AREA_ROOTS.values() for root in roots)
 FORBIDDEN_ROOTS = (".github/", "vendor/", "pilot/", "standards/")
 MAX_PATHS = 6
 

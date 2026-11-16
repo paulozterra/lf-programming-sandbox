@@ -31,6 +31,78 @@ def _train_conflict(log: str, number: int, sha: str) -> bool:
     return False
 
 
+
+# Only two trusted and specific mechanical contract CI failures permit
+# retirement; other red checks must remain for ordinary owner inspection.
+CI_DERIVED_T2 = re.compile(
+    r"T2_CONCRETE_CASE_IN_PRODUCTION:contracts/[a-z][a-z0-9-]*\.openapi\.yaml:")
+CI_DERIVED_GEN = re.compile(
+    r"git diff --exit-code -- frontend/src/lib/api/generated")
+
+
+def _provably_stale_generated_client(number: int, api) -> bool:
+    """A new OpenAPI contract *must* add an index export. No CI log needed.
+
+    The PR is already authenticated as a bot-owned CP3.5 integration on the
+    exact reported head SHA. Never inspect/execute its source files.
+    """
+    response = api("pulls/" + str(number) + "/files?per_page=100")
+    if not isinstance(response, list) or len(response) >= 100:
+        return False
+    added = {row.get("filename") for row in response if isinstance(row, dict)
+             and row.get("status") == "added"
+             and isinstance(row.get("filename"), str)
+             and re.fullmatch(r"contracts/[a-z][a-z0-9-]*[.]openapi[.]yaml",
+                              row["filename"])}
+    touched = {row.get("filename") for row in response if isinstance(row, dict)}
+    # An added product contract *always* changes the official generated index.
+    return bool(added) and "frontend/src/lib/api/generated/index.ts" not in touched
+
+
+def _ci_derived_failure(number: int, branch: str, sha: str, run, api, repo: str) -> str | None:
+    if not re.fullmatch(
+            r"lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-[1-9][0-9]*", branch):
+        return None
+    response = api("actions/workflows/ci.yml/runs?head_sha=" + sha + "&per_page=100")
+    rows = response.get("workflow_runs")
+    if not isinstance(rows, list):
+        raise ValueError("INTEGRATION_CI_HISTORY_INVALID")
+    for candidate in rows:
+        if (not isinstance(candidate, dict)
+                or candidate.get("head_sha") != sha
+                or candidate.get("head_branch") != branch
+                or candidate.get("status") != "completed"
+                or candidate.get("conclusion") != "failure"
+                or candidate.get("run_attempt") != 1
+                or candidate.get("event") not in ("pull_request", "workflow_dispatch")
+                or (candidate.get("path") or "").split("@")[0] != ".github/workflows/ci.yml"
+                or (candidate.get("repository") or {}).get("full_name") != repo
+                or type(candidate.get("id")) is not int):
+            continue
+        jobs = api("actions/runs/" + str(candidate["id"]) + "/jobs?per_page=100")
+        entries = jobs.get("jobs")
+        if not isinstance(entries, list):
+            continue
+        failed = {j.get("name") for j in entries if isinstance(j, dict)
+                  and j.get("conclusion") == "failure"}
+        if not failed.intersection({
+                "Worker pilot (offline budget, policy, vendor integrity)",
+                "frontend (lint, tipos, build)"}):
+            continue
+        log = run("gh", "run", "view", str(candidate["id"]),
+                  "--repo", repo, "--log")
+        if not isinstance(log, str) or len(log) > 2_000_000:
+            continue
+        if ("Worker pilot (offline budget, policy, vendor integrity)" in failed
+                and CI_DERIVED_T2.search(log)):
+            return "CI_DERIVED_T2 run " + str(candidate["id"])
+        if ("frontend (lint, tipos, build)" in failed
+                and CI_DERIVED_GEN.search(log)
+                and "Process completed with exit code 1" in log):
+            return "CI_DERIVED_GEN_API run " + str(candidate["id"])
+    return None
+
+
 def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
     """Return retired PR metadata; callers regenerate from trusted current main.
 
@@ -95,13 +167,22 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
 
     retired = []
     for number, branch, sha, kind, dirty, _labeled in eligible:
-        if not dirty and (number, sha) not in evidence:
-            continue
         reason = ("GitHub mergeable_state=dirty" if dirty else
-                  "Train BRANCH_CONFLICT #" + str(evidence[(number, sha)]))
+                  "Train BRANCH_CONFLICT #" + str(evidence[(number, sha)])
+                  if (number, sha) in evidence else None)
+        if reason is None and kind == "integration":
+            # Missing generated export for a *new* contract is a deterministic
+            # CI failure even when Actions is awaiting approval (action_required).
+            # For modified existing contracts, require exact red CI evidence.
+            if _provably_stale_generated_client(number, api):
+                reason = "CI_DERIVED_GEN_API_STALE"
+            else:
+                reason = _ci_derived_failure(number, branch, sha, run, api, repo)
+        if reason is None:
+            continue
         run("gh", "pr", "close", str(number), "--repo", repo, "--delete-branch",
-            "--comment", "T17.4: " + reason + ". PR generado obsoleto frente a main "
-            + head[:12] + "; se retira para regeneración desde main actual.")
+            "--comment", "T17.4/T25: " + reason + ". PR generado retirado, "
+            "se conserva el PASS nativo original y se regenerará desde main.")
         retired.append({"number": number, "branch": branch, "sha": sha,
                         "kind": kind, "reason": reason})
     return retired
