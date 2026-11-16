@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0166",
+  "title": "T30: Análisis asigna área a la taxonomía real de reglas de LF y a todos los errores vigentes; ficha SBX-B2B-LOGIN",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T30: la ficha SBX-B2B-LOGIN (derivada de LF B2B-AUTH-001) se bloquea en A9 con A9_FRONT_BINDING_GAP: 13 reglas con categorías reales de LF sin área y 3 errores específicos (429/503/500) sin dueño"
+  },
+  "reason": "T30 (hueco I13): area_rules_v1.json solo cubría el vocabulario de las fichas ficticias. Se agregan las categorías reales de LF (ACCESSIBILITY, UX, DESIGN, THEME, RESPONSIVE → FRONTEND; SESSION, RESILIENCE, PRIVACY, ERROR, ERROR_HANDLING → BACKEND). A9 asigna todo error VIGENTE de la pantalla, no solo el genérico. Una categoría desconocida sigue bloqueando. Se agrega la ficha SBX-B2B-LOGIN: textos y valores de LF B2B-AUTH-001 v0.5 con códigos, IDs y referencias ficticios; alcance recortado por decisión del owner (sin MFA, OIDC, anti-bot, dispositivo confiable, umbral de intentos, empresa/perfiles, modo noche, analítica ni reglas de gobierno). Excepción a la regla 3 de CLAUDE.md autorizada por el owner solo para este ejemplo; pendiente mover a copia privada.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/a9/area_rules_v1.json",
+      "analysis/a9/front_bindings.py",
+      "analysis/a9/test_t30_lf_taxonomy.py",
+      "analysis/fixtures/sbx_b2b_login/",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0166.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/257"
+  }
+}

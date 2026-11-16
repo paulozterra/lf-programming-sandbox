@@ -1,0 +1,17 @@
+{
+  "imitates": "lf_ops.pantalla_variantes",
+  "variants": [
+    {
+      "code": "SBX-B2B-V-DESKTOP",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-V-TABLET",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-V-MOBILE",
+      "status": "VIGENTE"
+    }
+  ]
+}

@@ -1,0 +1,599 @@
+{
+  "imitates": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas",
+  "schema_version": "SBX_DIRECT_RULES_READBACK_V1",
+  "linked_rules": [
+    {
+      "code": "SBX-B2B-R-AUTH-GENERIC",
+      "title": "Mensaje genérico ante credenciales inválidas",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/301",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/41",
+      "categoria": "SECURITY",
+      "descripcion": "Ante fallos de credencial o denegaciones relacionadas con la cuenta, el Login no debe revelar si el correo existe, si el usuario está activo/restringido ni qué credencial falló. Las respuestas externas de estos fallos deben ser funcionalmente indistinguibles en mensaje y comportamiento observable, mitigando diferencias de tiempo. Estados no equivalentes como rate limit o indisponibilidad del servicio conservan su tratamiento específico."
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+      "title": "Contraseña solo en runtime",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/302",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/42",
+      "categoria": "SECURITY",
+      "descripcion": "La contraseña ingresada en Login solo existe durante la autenticación. No se persiste en tablas funcionales, logs, analytics, session replay ni payloads de diseño."
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-FAIL-CLOSED",
+      "title": "Autenticación del lado servidor y fail-closed",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/303",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/43",
+      "categoria": "SECURITY",
+      "descripcion": "El Login se comunica exclusivamente con una capa de autenticación del lado servidor. El navegador no verifica credenciales por sí mismo. Si la identidad no puede verificarse válidamente, no se crea sesión ni se concede acceso."
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-OUTCOMES",
+      "title": "Resultados normalizados del servicio de autenticación",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/304",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/44",
+      "categoria": "SECURITY",
+      "descripcion": "La capa de autenticación traduce cualquier resultado a un outcome funcional estable. Para outcomes no exitosos se utiliza exclusivamente un código del catálogo de errores; el HTTP y los mensajes visibles se resuelven desde ese catálogo."
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-REQUEST",
+      "title": "Contrato de solicitud hacia la capa de autenticación",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/305",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/45",
+      "categoria": "SECURITY",
+      "descripcion": "La solicitud de login viaja por HTTPS en el cuerpo, nunca en la URL, query string ni headers de logging. La contraseña no se recorta, normaliza ni transforma; el correo puede recortarse por fuera. El servidor genera el correlation_id. Un resultado de éxito declarado por el cliente no es autoritativo."
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-ENVELOPE",
+      "title": "Sobre de respuesta seguro de autenticación",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/306",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/46",
+      "categoria": "SECURITY",
+      "descripcion": "La respuesta expone únicamente el outcome funcional, un correlation_id generado por servidor y, cuando corresponda, el código de error canónico. No se exponen errores crudos, credenciales, tokens internos ni razones sensibles."
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+      "title": "Creación de sesión únicamente tras autenticación completa",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/307",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/47",
+      "categoria": "SECURITY",
+      "descripcion": "Solo se crea o confirma una sesión autenticada cuando el resultado funcional sea AUTHENTICATED. La creación y rotación de sesión se ejecutan del lado servidor y consumen la política central de sesión; el cliente no decide TTL, concurrencia, rotación ni elevación de privilegios."
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-DENY-DEFAULT",
+      "title": "Denegar por defecto",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/308",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/48",
+      "categoria": "SECURITY",
+      "descripcion": "Toda acción operativa posterior a autenticación completa se deniega por defecto y requiere autorización del lado servidor. El login nunca concede por sí mismo permisos operativos."
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-TIMEOUT",
+      "title": "Timeout y reintento controlado de autenticación",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/309",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/49",
+      "categoria": "RESILIENCE",
+      "descripcion": "La autenticación consume la política central de timeout. Ante timeout o indisponibilidad se mantiene fail-closed y la respuesta funcional se normaliza como SERVICE_UNAVAILABLE; nunca se reclasifica como credenciales inválidas."
+    },
+    {
+      "code": "SBX-B2B-R-RATE-LIMIT",
+      "title": "Límites por recurso",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/310",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/50",
+      "categoria": "SECURITY",
+      "descripcion": "Todo límite de frecuencia o cantidad de solicitudes se obtiene de la política central de rate limit. Las reglas y pantallas solo referencian la política aplicable y no duplican ventanas, máximos ni burst limits."
+    },
+    {
+      "code": "SBX-B2B-R-SESSION-IDLE",
+      "title": "Inactividad controlada",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/311",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/51",
+      "categoria": "SESSION",
+      "descripcion": "La advertencia y finalización por inactividad se ejecutan según la política central de sesión, con los mensajes canónicos de aviso y de sesión expirada."
+    },
+    {
+      "code": "SBX-B2B-R-SESSION-CONCURRENCY",
+      "title": "Rotación y concurrencia gobernadas por políticas centrales",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/312",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/52",
+      "categoria": "SESSION",
+      "descripcion": "La rotación de sesión, refresh y límites de concurrencia se obtienen de la política central de sesión. La regla no almacena cantidades de sesiones ni tiempos."
+    },
+    {
+      "code": "SBX-B2B-R-ERROR-CODE",
+      "title": "Código canónico de error",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/313",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/53",
+      "categoria": "ERROR",
+      "descripcion": "Todo error se relaciona con el catálogo de errores de la pantalla mediante su código canónico estable."
+    },
+    {
+      "code": "SBX-B2B-R-ERROR-TRACE",
+      "title": "Trazabilidad de ocurrencia",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/314",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/54",
+      "categoria": "ERROR",
+      "descripcion": "Cada ocurrencia de error se registra del lado servidor con trace_code y correlation_id. El cliente nunca inserta ocurrencias directamente. En errores pre-autenticación solo se conserva contexto redactado y no identificante."
+    },
+    {
+      "code": "SBX-B2B-R-ERROR-SAFE-MESSAGE",
+      "title": "Mensaje seguro al usuario",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/315",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/55",
+      "categoria": "ERROR",
+      "descripcion": "Mostrar qué ocurrió, acción sugerida, CTA y código de referencia; ocultar detalles técnicos."
+    },
+    {
+      "code": "SBX-B2B-R-PRIVACY-TELEMETRY",
+      "title": "PII prohibida en telemetría",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/316",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/56",
+      "categoria": "PRIVACY",
+      "descripcion": "Analytics, logs, replay y errores no reciben PII."
+    },
+    {
+      "code": "SBX-B2B-R-UX-RECOVERY",
+      "title": "Recuperación de contraseña visible y separada",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/317",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/57",
+      "categoria": "UX",
+      "descripcion": "El Login muestra una acción visible de recuperación inmediatamente asociada al campo Contraseña. La recuperación se resuelve en un flujo separado (fuera de alcance de esta pantalla) y no se ejecuta dentro del formulario de Login."
+    },
+    {
+      "code": "SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+      "title": "Mostrar u ocultar contraseña sin alterar el valor",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/318",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/58",
+      "categoria": "UX",
+      "descripcion": "El campo Contraseña permite alternar entre contenido visible y enmascarado mediante control de visibilidad, sin modificar el valor ni enviarlo a telemetría."
+    },
+    {
+      "code": "SBX-B2B-R-UX-PASSWORD-MANAGERS",
+      "title": "Entrada compatible con gestores de credenciales",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/319",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/59",
+      "categoria": "UX",
+      "descripcion": "El Login permite gestores de contraseñas y pegado de credenciales mediante controles estándar. El correo usa autocomplete=username y la contraseña autocomplete=current-password, en el mismo formulario. El valor de la contraseña nunca se envía a telemetría."
+    },
+    {
+      "code": "SBX-B2B-R-UX-SINGLE-FLIGHT",
+      "title": "Un solo intento de autenticación en vuelo",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/320",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/60",
+      "categoria": "UX",
+      "descripcion": "Mientras exista una solicitud de autenticación pendiente, se ignoran envíos duplicados y el CTA permanece en estado procesando."
+    },
+    {
+      "code": "SBX-B2B-R-UX-ACTIONS",
+      "title": "Contrato de acciones del Login",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/321",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/61",
+      "categoria": "UX",
+      "descripcion": "Las acciones del Login son: iniciar sesión, mostrar u ocultar contraseña, recuperación de contraseña, Términos y condiciones, Política de privacidad y Contáctanos. Recuperación, Términos, Privacidad y Contáctanos se muestran como enlaces sin destino funcional en esta pantalla."
+    },
+    {
+      "code": "SBX-B2B-R-A11Y-INTERACTION",
+      "title": "Interacción accesible",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/322",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/62",
+      "categoria": "ACCESSIBILITY",
+      "descripcion": "Controles con área táctil mínima, foco visible, navegación por teclado y etiquetas."
+    },
+    {
+      "code": "SBX-B2B-R-A11Y-CONTRAST",
+      "title": "Contraste y color",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/323",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/63",
+      "categoria": "ACCESSIBILITY",
+      "descripcion": "Ningún estado depende únicamente del color."
+    },
+    {
+      "code": "SBX-B2B-R-A11Y-MOTION",
+      "title": "Preferencia de movimiento reducido",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/324",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/64",
+      "categoria": "ACCESSIBILITY",
+      "descripcion": "Se respeta la preferencia de movimiento reducido del usuario. Cuando esté activa, las animaciones y transiciones no esenciales se reducen o eliminan; ningún estado, error, progreso ni acción depende exclusivamente del movimiento."
+    },
+    {
+      "code": "SBX-B2B-R-A11Y-FORCED-COLORS",
+      "title": "Forced colors y alto contraste sin pérdida funcional",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/325",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/65",
+      "categoria": "ACCESSIBILITY",
+      "descripcion": "En modo de colores forzados o alto contraste la pantalla conserva toda su funcionalidad, foco y estados."
+    },
+    {
+      "code": "SBX-B2B-R-RESP-BREAKPOINTS",
+      "title": "Tres breakpoints funcionales",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/326",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/66",
+      "categoria": "RESPONSIVE",
+      "descripcion": "La pantalla tiene variantes desktop, tablet y móvil."
+    },
+    {
+      "code": "SBX-B2B-R-DESIGN-TOKENS",
+      "title": "Referencias semánticas de tokens",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/327",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/67",
+      "categoria": "DESIGN",
+      "descripcion": "Toda definición visual consume los tokens del sistema de diseño de la pantalla (color, tipografía, espaciado, componentes). Está prohibido gobernar la pantalla mediante valores locales no registrados."
+    },
+    {
+      "code": "SBX-B2B-R-DESIGN-NO-HARDCODE",
+      "title": "Sin valores visuales duros",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/328",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/68",
+      "categoria": "DESIGN",
+      "descripcion": "Pantallas y componentes no almacenan HEX, RGB ni medidas directas; los consumen desde los tokens."
+    },
+    {
+      "code": "SBX-B2B-R-THEME-LIGHT",
+      "title": "Modo claro",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/329",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/69",
+      "categoria": "THEME",
+      "descripcion": "La pantalla usa el tema claro del sistema de diseño (el modo noche queda fuera de alcance en este sandbox)."
+    }
+  ],
+  "valor_config": [
+    {
+      "code": "SBX-B2B-R-AUTH-GENERIC",
+      "valor_config": {
+        "do_not_reveal": [
+          "email_exists",
+          "user_status",
+          "which_credential_failed",
+          "account_restriction_reason"
+        ],
+        "user_message_policy": "GENERIC",
+        "credential_failure_classes": [
+          "UNKNOWN_USER",
+          "BAD_PASSWORD",
+          "INACTIVE_OR_RESTRICTED_ACCOUNT"
+        ],
+        "distinct_operational_states": [
+          "RATE_LIMITED",
+          "SERVICE_UNAVAILABLE"
+        ],
+        "consistent_external_behavior": true,
+        "timing_discrepancy_mitigation": "REQUIRED",
+        "credential_failure_external_mapping": "INVALID_CREDENTIALS"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+      "valor_config": {
+        "logs": "DENY",
+        "analytics": "DENY",
+        "persistence": "DENY",
+        "session_replay": "MASK_FULL"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-FAIL-CLOSED",
+      "valor_config": {
+        "fail_closed": true,
+        "browser_direct_auth": "DENY",
+        "session_on_unverified_result": "DENY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-OUTCOMES",
+      "valor_config": {
+        "allowed_outcomes": [
+          "AUTHENTICATED",
+          "INVALID_CREDENTIALS",
+          "RATE_LIMITED",
+          "SERVICE_UNAVAILABLE"
+        ],
+        "error_mapping": {
+          "INVALID_CREDENTIALS": "SBX-B2B-E-CREDENTIALS",
+          "RATE_LIMITED": "SBX-B2B-E-RATE",
+          "SERVICE_UNAVAILABLE": "SBX-B2B-E-NETWORK"
+        },
+        "credential_echo": "DENY",
+        "required_metadata": [
+          "outcome",
+          "correlation_id"
+        ]
+      }
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-REQUEST",
+      "valor_config": {
+        "transport": "HTTPS_REQUIRED",
+        "credentials_in_url": "DENY",
+        "credentials_in_query_string": "DENY",
+        "credentials_in_logging_headers": "DENY",
+        "password_trim": "DENY",
+        "password_normalization": "DENY",
+        "email_external_trim": "ALLOW",
+        "server_generates_correlation_id": true,
+        "client_supplied_auth_success": "NON_AUTHORITATIVE"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-ENVELOPE",
+      "valor_config": {
+        "required_fields": [
+          "outcome",
+          "correlation_id"
+        ],
+        "conditional_error_field": "error_code",
+        "credential_echo": "DENY",
+        "internal_token_exposure": "DENY",
+        "account_restriction_reason_exposure": "DENY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+      "valor_config": {
+        "required_auth_outcome": "AUTHENTICATED",
+        "session_creation_authority": "SERVER_ONLY",
+        "session_rotation": "POLICY_DRIVEN",
+        "client_session_parameters_authoritative": "DENY",
+        "session_policy_code": "SBX-B2B-P-SESSION"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-DENY-DEFAULT",
+      "valor_config": {
+        "deny_by_default": true,
+        "server_side_enforcement": true,
+        "preauth_grants_operational_access": "DENY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-AUTH-TIMEOUT",
+      "valor_config": {
+        "timeout_outcome": "SERVICE_UNAVAILABLE",
+        "session_on_timeout": "DENY",
+        "auth_automatic_retry": "DENY",
+        "timeout_policy_code": "SBX-B2B-P-TIMEOUT",
+        "technical_failure_as_invalid_credentials": "DENY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-RATE-LIMIT",
+      "valor_config": {
+        "rate_limit_policy_code": "SBX-B2B-P-RATE",
+        "error_code": "SBX-B2B-E-RATE"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-SESSION-IDLE",
+      "valor_config": {
+        "session_policy_code": "SBX-B2B-P-SESSION",
+        "warning_message_code": "SBX-B2B-M-SESSION-WARNING",
+        "expired_message_code": "SBX-B2B-M-SESSION-EXPIRED"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-SESSION-CONCURRENCY",
+      "valor_config": {
+        "session_policy_code": "SBX-B2B-P-SESSION"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-ERROR-CODE",
+      "valor_config": {
+        "catalog": "screen_contract.errors"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-ERROR-TRACE",
+      "valor_config": {
+        "trace_format": "SBX-YYYYMMDD-XXXXXXXX",
+        "writer_boundary": "SERVER_ONLY",
+        "client_direct_write": "DENY",
+        "correlation_required": true,
+        "payload_redacted_required": true,
+        "preauth_context": "REDACTED_SERVER_ONLY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-ERROR-SAFE-MESSAGE",
+      "valor_config": {
+        "hide": [
+          "stack_trace",
+          "sql",
+          "table_name",
+          "access_token",
+          "technical_payload",
+          "pii"
+        ],
+        "show": [
+          "user_title",
+          "user_message",
+          "suggested_action",
+          "action_label",
+          "trace_code"
+        ]
+      }
+    },
+    {
+      "code": "SBX-B2B-R-PRIVACY-TELEMETRY",
+      "valor_config": {
+        "redaction_required": true,
+        "analytics_pii_allowed": false
+      }
+    },
+    {
+      "code": "SBX-B2B-R-UX-RECOVERY",
+      "valor_config": {
+        "flow": "SEPARATE_RECOVERY_FLOW",
+        "placement": "ADJACENT_TO_PASSWORD",
+        "target_in_scope": false
+      }
+    },
+    {
+      "code": "SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+      "valor_config": {
+        "control": "TOGGLE_VISIBILITY",
+        "default": "MASKED",
+        "telemetry_value": "DENY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-UX-PASSWORD-MANAGERS",
+      "valor_config": {
+        "email_paste": "ALLOW",
+        "password_paste": "ALLOW",
+        "email_autocomplete": "username",
+        "password_autocomplete": "current-password",
+        "same_form_association": "REQUIRED",
+        "credential_value_telemetry": "DENY",
+        "password_default_visibility": "MASKED"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-UX-SINGLE-FLIGHT",
+      "valor_config": {
+        "concurrency_mode": "SINGLE_FLIGHT",
+        "duplicate_submit": "IGNORE",
+        "submit_button_state": "PROCESSING_DISABLED",
+        "credential_edit_during_request": "DISABLED",
+        "new_attempt_after_response": "ALLOW",
+        "reenable_on_recoverable_response": true
+      }
+    },
+    {
+      "code": "SBX-B2B-R-UX-ACTIONS",
+      "valor_config": {
+        "actions": [
+          "SUBMIT_LOGIN",
+          "TOGGLE_PASSWORD_VISIBILITY",
+          "START_PASSWORD_RECOVERY",
+          "OPEN_TERMS",
+          "OPEN_PRIVACY",
+          "CONTACT_SUPPORT"
+        ],
+        "visual_only_actions": [
+          "START_PASSWORD_RECOVERY",
+          "OPEN_TERMS",
+          "OPEN_PRIVACY",
+          "CONTACT_SUPPORT"
+        ]
+      }
+    },
+    {
+      "code": "SBX-B2B-R-A11Y-INTERACTION",
+      "valor_config": {
+        "keyboard": true,
+        "aria_labels": true,
+        "focus_visible": true,
+        "screen_reader_status_updates": true
+      }
+    },
+    {
+      "code": "SBX-B2B-R-A11Y-CONTRAST",
+      "valor_config": {
+        "contrast_target": "WCAG_AA",
+        "status_requires_text_or_icon": true
+      }
+    },
+    {
+      "code": "SBX-B2B-R-A11Y-MOTION",
+      "valor_config": {
+        "preference": "prefers-reduced-motion",
+        "functional_dependency_on_motion": "DENY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-A11Y-FORCED-COLORS",
+      "valor_config": {
+        "media": "forced-colors",
+        "functional_loss": "DENY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-RESP-BREAKPOINTS",
+      "valor_config": {
+        "breakpoints": [
+          "viewport_desktop",
+          "viewport_tablet",
+          "viewport_mobile"
+        ]
+      }
+    },
+    {
+      "code": "SBX-B2B-R-DESIGN-TOKENS",
+      "valor_config": {
+        "token_source": "screen_contract.visual",
+        "screen_local_token_creation": "DENY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-DESIGN-NO-HARDCODE",
+      "valor_config": {
+        "hardcoded_hex": false,
+        "hardcoded_rgb": false,
+        "hardcoded_dimensions_in_screens": false
+      }
+    },
+    {
+      "code": "SBX-B2B-R-THEME-LIGHT",
+      "valor_config": {
+        "light": "SBX_B2B_THEME_LIGHT"
+      }
+    }
+  ]
+}

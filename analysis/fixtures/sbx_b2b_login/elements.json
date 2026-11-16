@@ -1,0 +1,57 @@
+{
+  "imitates": "lf_ops.pantalla_elementos",
+  "elements": [
+    {
+      "code": "SBX-B2B-EL-HEADER-CONTEXT",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-HEADING",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-EMAIL",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-PASSWORD",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-PASSWORD-VISIBILITY",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-CREDENTIAL-ICONS",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-RECOVERY-LINK",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-SUBMIT",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-ERROR",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-TERMS",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-PRIVACY",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-SUPPORT",
+      "status": "VIGENTE"
+    },
+    {
+      "code": "SBX-B2B-EL-LAYOUT",
+      "status": "VIGENTE"
+    }
+  ]
+}
