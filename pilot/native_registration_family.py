@@ -11,10 +11,10 @@ import re
 PREFIX = "lf/native-registration/"
 TASK = r"[a-z][a-z0-9_-]{0,31}"
 COMMIT = r"[0-9a-f]{12}"
-# All auxiliary prefixes produced by CP3.6/T17/T18/T19/T23.
+# All auxiliary prefixes produced by CP3.6/T17/T18/T19/T23/T26.
 # Match auxiliary families *before* task registration to prevent mistaken
 # exam-request closures for names like route-python-req186contrato1.
-AUXILIARY = ("route-python-", "pack-", "envelope-")
+AUXILIARY = ("route-python-", "pack-", "envelope-", "plan-")
 VALID = re.compile(r"^" + re.escape(PREFIX) + r"(" + TASK + r")-(" + COMMIT + r")$")
 AUX = {
     prefix: re.compile(r"^" + re.escape(PREFIX + prefix)

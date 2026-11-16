@@ -9,6 +9,7 @@ from pathlib import Path
 from chain_contract import validate_plan
 from worker_template_contract import validate_template_worker
 from native_write_scope import validate_write_paths
+from affected_tests import is_project_test, project_test_files, PROJECT_TEST_GLOBS
 
 def canonical(value):
     return (json.dumps(value,sort_keys=True,separators=(",",":"),ensure_ascii=False)+"\n").encode("utf-8")
@@ -141,7 +142,26 @@ def _existing_behavior_tests(root, source_path, endpoints):
     return sorted(set(matched))
 
 
-def generate(root, run, lots):
+def _unprotect_affected(root, protected, affected):
+    """Make exactly the lot's affected tests writable; keep every other test protected."""
+    result = [p for p in protected if p not in affected]
+    if any(g in result for g in PROJECT_TEST_GLOBS):
+        result = [p for p in result if p not in PROJECT_TEST_GLOBS]
+        result.extend(f.relative_to(root).as_posix() for f in project_test_files(Path(root))
+                      if f.relative_to(root).as_posix() not in affected)
+    return result
+
+
+def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
+    """Build the chain plan and task templates.
+
+    persist=False returns {"plan": plan, "templates": {path: template}} without
+    writing, so CP3.6 can regenerate a pending lot with the current generator.
+    allow_source_drift lists files that already-integrated lots of the same
+    request legitimately changed; their analysis-time reuse hashes are not
+    re-checked when regenerating later lots.
+    """
+    allow_source_drift=frozenset(allow_source_drift)
     folder=Path(root)/"pilot/runs"/run
     report_path=folder/"reuse_assessment.json"
     reuse_rows=[]
@@ -200,7 +220,8 @@ def generate(root, run, lots):
                     if extended:
                         skeleton["extended_endpoints"]=extended
             path=Path(root)/skeleton_template.format(module=module)
-            save(path,skeleton)
+            if persist:
+                save(path,skeleton)
     # T7 only: a typed, evidence-backed reuse report is optional for legacy
     # chains. No report means no claim of reuse, never an implicit BUILD_NEW.
     rows=[]
@@ -273,12 +294,14 @@ def generate(root, run, lots):
                     src, sha = reference.get("path"), reference.get("sha256")
                     if (not isinstance(src, str) or not isinstance(sha, str)
                             or not (Path(root)/src).is_file()
-                            or _hashlib.sha256((Path(root)/src).read_bytes()).hexdigest()!=sha):
+                            or (src not in allow_source_drift and
+                                _hashlib.sha256((Path(root)/src).read_bytes()).hexdigest()!=sha)):
                         raise ValueError("REUTILIZACION_INDETERMINADA")
                     if src in paths:
                         matching = [row for row in extended.get(src, [])
                                     if row.get("path") == src
-                                    and row.get("sha256") == sha]
+                                    and (row.get("sha256") == sha
+                                         or src in allow_source_drift)]
                         if obligation.get("decision") != "REUSE_AS_IS" or not matching:
                             raise ValueError("REUTILIZACION_INDETERMINADA")
                         endpoints = obligation.get("reused_endpoints", [])
@@ -301,6 +324,11 @@ def generate(root, run, lots):
         # real Worker rejects empty context_path_patterns.
         context_paths.append("pilot/runs/" + run + "/analysis.json")
         context_paths=sorted(set(context_paths))
+        # T26: project tests planned into this lot ("pruebas afectadas") are
+        # writable; every other project test stays protected.
+        affected_tests={p for p in paths if is_project_test(p)}
+        if affected_tests:
+            protected=_unprotect_affected(root, protected, affected_tests)
         protected=sorted(set(protected))
         behavior_note = ("; conservar el comportamiento existente: "
                          + "; ".join(
@@ -308,9 +336,17 @@ def generate(root, run, lots):
                              + ("; debe seguir funcionando: " + row["existing_outcome"]
                                 if isinstance(row["existing_outcome"],str) and row["existing_outcome"]
                                 else "")
-                             + "; no modificar sus tests protegidos: "
-                             + ", ".join(row["protected_tests"])
+                             + ("; no modificar sus tests protegidos: "
+                                + ", ".join(t for t in row["protected_tests"]
+                                            if t not in affected_tests)
+                                if [t for t in row["protected_tests"] if t not in affected_tests]
+                                else "")
                              for row in retained_behavior)) if retained_behavior else ""
+        if affected_tests:
+            behavior_note += ("; pruebas afectadas (editables): "
+                              + ", ".join(sorted(affected_tests))
+                              + "; adaptar solo sus precondiciones al nuevo comportamiento,"
+                              " sin eliminar ni debilitar sus aserciones existentes")
         template={"task_spec":{
             "schema_version":1,"task_id":"LF-WORKER-NATIVE-"+task.upper(),
             "base_head_sha":"<FILL_AT_REGISTRATION>",
@@ -337,6 +373,8 @@ def generate(root, run, lots):
           "lots_sha256":hashlib.sha256(canonical(lots)).hexdigest(),
           "bindings":rows}
     validate_plan(plan,lots,run)
+    if not persist:
+        return {"plan": plan, "templates": output}
     for path,data in sorted(output.items()):
         save(Path(root)/path,data)
     save(Path(root)/"pilot/orchestrator/chain_plans"/(run+".json"),plan)

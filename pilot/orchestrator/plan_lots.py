@@ -752,6 +752,8 @@ def plan(root: Path, run: str) -> dict:
             package,source_fixture,rows,outputs,dsn)
         lots=_t2_contract_lots(fixture,lots)
         lots=_t3_infra_lots(package,fixture,lots)
+        from affected_tests import with_affected_tests
+        lots=with_affected_tests(root,run,lots)
     except (OSError,RuntimeError):
         blocked("SELECTOR_REQUIERE_ENTORNO")
     document={"schema_version":"CP33_LOTS_CANDIDATE_V1","request_id":run,
