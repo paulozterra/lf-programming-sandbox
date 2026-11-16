@@ -24,7 +24,7 @@ Los comandos Python generados por `generate_chain` usan `lf-python`, enlazado po
    - el `task_pack_sha256` coincide con el paquete registrado;
    - pasa el chequeo del área (Java: `mvn -f apps/time-service/pom.xml spotless:check package`).
 3. Envía a `lf/native-proposal/<tarea>` y espera el resultado del Worker.
-4. **Falla y quedan intentos (máx. 3):** corrige **solo** con el feedback visible y reenvía, sin pedir permiso.
+4. **Falla y quedan intentos (máx. 3):** consulta el **Issue original del pedido** (`#<número>`): el Worker publica un comentario con marcador `<!-- LF_NATIVE_VISIBLE_FEEDBACK:<tarea>:<SHA-de-propuesta>:<intento> -->`, el resultado y el contenido exacto de `public/feedback.json` (únicamente aceptación visible). Usa ese comentario del Issue para corregir **solo** con el feedback visible y reenvía, sin pedir permiso. Si el comentario todavía no aparece, el siguiente sweep CP3.6 recupera el artifact de una corrida ya ejecutada y publica el mismo comentario; no relances el Worker ni cuentes un intento nuevo por esa publicación.
 5. **Pasa:** el PR de integración se abre, se etiqueta (política C, `pilot/auto_integrate.py`) y el Train lo fusiona solos. Luego el encadenamiento prepara el siguiente lote: vuelve al paso 1.
 6. Sin lotes pendientes: entrega un resumen (lotes, intentos, corridas, PRs, H_REPORT).
 
