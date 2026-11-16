@@ -60,7 +60,11 @@ def check_coverage(ci: dict, policy: dict, rules=BRANCH_RULES) -> list[str]:
     for kind, prefix, pattern in rules:
         # Construct examples from the policy's actual prefix and common
         # valid suffixes. No second allowlist or copied list of prefixes.
-        examples = [prefix + suffix for suffix in ("a", "a" * 12, "req-1", "1")]
+        examples = ([prefix + "req186contrato1-" + "a" * 12,
+                     prefix + "pack-req186contrato1-" + "b" * 12,
+                     prefix + "route-python-req186contrato1-" + "c" * 12]
+                    if kind == "registration" else
+                    [prefix + suffix for suffix in ("a", "a" * 12, "req-1", "1")])
         examples = [b for b in examples if re.fullmatch(pattern, b)]
         if (not wired or not examples or
                 not all(accepted_branch_kind(branch) == kind

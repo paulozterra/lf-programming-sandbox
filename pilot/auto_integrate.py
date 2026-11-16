@@ -21,6 +21,7 @@ import zipfile
 # Resolve this pinned module from the trusted script directory, never cwd.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from generated_ci_selection import latest_executed_checks
+from native_registration_family import is_native_registration
 
 REPOSITORY = "paulozterra/lf-programming-sandbox"
 BOT = "github-actions[bot]"
@@ -61,6 +62,10 @@ def accepted_branch_kind(branch: str) -> str | None:
     if not isinstance(branch, str):
         return None
     for kind, _prefix, pattern in BRANCH_RULES:
+        if kind == "registration":
+            if is_native_registration(branch):
+                return kind
+            continue
         if re.fullmatch(pattern, branch):
             return kind
     return None

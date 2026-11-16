@@ -239,6 +239,35 @@ def comment_analysis_report(api: Github, sha: str, slug: str) -> str:
     return comment(api, sha, slug, git)
 
 
+def _optional_exam_close(api: Github, sha: str, branch: str, number: int) -> str:
+    """Exam bookkeeping must never block trusted main CI or CP3.6 sweep.
+
+    Log the exact scoped error to the merged PR, not an unrelated Issue.
+    A failed comment must likewise not prevent downstream dispatch.
+    """
+    from pilot.native_registration_family import registration_family
+    from pilot.exam_issue_lifecycle import close_registered
+    family, _task = registration_family(branch)
+    if family != "registration":
+        return "NO_EXAM_REGISTRATION"
+    try:
+        return close_registered(api, sha, branch, git, Path("."))
+    except Exception as exc:
+        code = str(exc)
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]{1,100}", code):
+            code = "EXAM_CLOSE_UNAVAILABLE"
+        print("EXAM_CLOSE_NONBLOCKING:" + code)
+        try:
+            api.call("POST", f"/issues/{number}/comments", {
+                "body": ("Train handoff: cierre secundario de exam-request no completado "
+                         f"({code}) tras merge de `{branch}`. "
+                         "No se bloquea CI main ni el sweep CP3.6.")
+            })
+        except Exception:
+            print("EXAM_CLOSE_COMMENT_UNAVAILABLE")
+        return "EXAM_CLOSE_NONBLOCKING:" + code
+
+
 def dispatch_chain_sweep(api: Github, sha: str) -> dict:
     """After a verified Train merge and exact-main green CI, resume all chains."""
     if not SHA.fullmatch(sha):
@@ -258,8 +287,7 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
     validate_train_run(api, number, train_run_id)
     if selected is None:
         ci = ensure_main_ci(api, sha, required=True)
-        from pilot.exam_issue_lifecycle import close_registered
-        exam = close_registered(api, sha, branch, git, Path("."))
+        exam = _optional_exam_close(api, sha, branch, number)
         sweep = dispatch_chain_sweep(api, sha)
         return {"status": "SWEEP_DISPATCHED", "branch": branch,
                 "main_ci": ci, "exam": exam, "sweep": sweep}

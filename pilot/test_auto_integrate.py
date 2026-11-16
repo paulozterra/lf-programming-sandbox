@@ -16,7 +16,8 @@ def pr(kind="integration"):
     return {
         "number": 129, "state": "open", "draft": True, "changed_files": 2,
         "base": {"ref": "main", "repo": {"full_name": ai.REPOSITORY}},
-        "head": {"ref": "lf/native-" + kind + "/sandbox", "sha": HEAD,
+        "head": {"ref": ("lf/native-registration/sandbox-aaaaaaaaaaaa" if kind == "registration"
+                         else "lf/native-" + kind + "/sandbox"), "sha": HEAD,
                  "repo": {"full_name": ai.REPOSITORY}},
         "user": {"login": ai.BOT}, "labels": [],
         "body": "Task: f5backend · run: " + str(RUN),

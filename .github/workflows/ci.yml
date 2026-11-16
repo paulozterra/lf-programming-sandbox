@@ -203,6 +203,8 @@ jobs:
           python3 -m pilot.workflow_entrypoint pilot/test_policy_c_handoff.py
       - name: T20 runner labels pinned across all 22 workflows (offline)
         run: python3 -m pilot.workflow_entrypoint pilot/test_t20_runner_pin.py
+      - name: T23.1 native registration subfamilies and nonblocking Train sweep (offline)
+        run: python3 -m pytest -q pilot/test_t23_1_registration_handoff.py -p no:cacheprovider
       - name: T23 all-area Python pins, route defect accounting and verified automatic replay (offline + isolated runtime)
         run: |
           python3 -m pytest -q pilot/orchestrator/test_t23_route_runtime.py pilot/orchestrator/test_t23_route_recovery.py pilot/worker_v08/test_t23_route_attempt_history.py -p no:cacheprovider
