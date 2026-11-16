@@ -40,6 +40,25 @@ CI_DERIVED_GEN = re.compile(
     r"git diff --exit-code -- frontend/src/lib/api/generated")
 
 
+def _provably_stale_generated_client(number: int, api) -> bool:
+    """A new OpenAPI contract *must* add an index export. No CI log needed.
+
+    The PR is already authenticated as a bot-owned CP3.5 integration on the
+    exact reported head SHA. Never inspect/execute its source files.
+    """
+    response = api("pulls/" + str(number) + "/files?per_page=100")
+    if not isinstance(response, list) or len(response) >= 100:
+        return False
+    added = {row.get("filename") for row in response if isinstance(row, dict)
+             and row.get("status") == "added"
+             and isinstance(row.get("filename"), str)
+             and re.fullmatch(r"contracts/[a-z][a-z0-9-]*[.]openapi[.]yaml",
+                              row["filename"])}
+    touched = {row.get("filename") for row in response if isinstance(row, dict)}
+    # An added product contract *always* changes the official generated index.
+    return bool(added) and "frontend/src/lib/api/generated/index.ts" not in touched
+
+
 def _ci_derived_failure(number: int, branch: str, sha: str, run, api, repo: str) -> str | None:
     if not re.fullmatch(
             r"lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-[1-9][0-9]*", branch):
@@ -152,7 +171,13 @@ def retire_conflicted_generated(head: str, run, api, repo: str) -> list[dict]:
                   "Train BRANCH_CONFLICT #" + str(evidence[(number, sha)])
                   if (number, sha) in evidence else None)
         if reason is None and kind == "integration":
-            reason = _ci_derived_failure(number, branch, sha, run, api, repo)
+            # Missing generated export for a *new* contract is a deterministic
+            # CI failure even when Actions is awaiting approval (action_required).
+            # For modified existing contracts, require exact red CI evidence.
+            if _provably_stale_generated_client(number, api):
+                reason = "CI_DERIVED_GEN_API_STALE"
+            else:
+                reason = _ci_derived_failure(number, branch, sha, run, api, repo)
         if reason is None:
             continue
         run("gh", "pr", "close", str(number), "--repo", repo, "--delete-branch",
