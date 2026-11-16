@@ -201,6 +201,28 @@ def main_ci_decision(head: str) -> str:
     latest = max(eligible, key=lambda row: (row.get("created_at") or "",
                                             row.get("id") or 0))
     if latest.get("status") != "completed":
+        if latest.get("status") == "queued":
+            timestamp = latest.get("created_at")
+            try:
+                started = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                age = (datetime.now(timezone.utc) - started).total_seconds()
+            except (ValueError, TypeError, AttributeError):
+                age = 0
+            if age >= 600:
+                jobs = api(f"actions/runs/{latest['id']}/jobs?per_page=100")
+                if (isinstance(jobs.get("jobs"), list)
+                        and jobs.get("total_count") == 0):
+                    # Only a queued push can be retried. A queued dispatch
+                    # represents the one replacement; never spawn another.
+                    if latest.get("event") == "push":
+                        try:
+                            run("gh", "api", "-X", "POST",
+                                f"repos/{REPO}/actions/runs/{latest['id']}/cancel")
+                        except (ChainBlocked, OSError):
+                            pass  # Cancellation best effort; dispatch remains bounded.
+                        run("gh", "workflow", "run", "ci.yml", "--repo", REPO,
+                            "--ref", "main")
+                    return "GITHUB_CI_ATASCADO"
         return "WAITING_MAIN_CI"
     if latest.get("conclusion") != "success":
         deny("BASE_NO_VERDE")
@@ -1287,8 +1309,9 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     # Production entrypoint always checks CI before mutating anything.
     # Older offline process() fixtures exercise logic without GitHub API.
     if kind == "TRAIN" and (sweep or require_ci):
-        if main_ci_decision(head) == "WAITING_MAIN_CI":
-            return [{"status": "WAITING_MAIN_CI", "head_sha": head}]
+        ci_status = main_ci_decision(head)
+        if ci_status != "GREEN":
+            return [{"status": ci_status, "head_sha": head}]
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
     # can hide a Train failure, including when no owner plans are active.
     retired = []
