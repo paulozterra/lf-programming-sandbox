@@ -203,6 +203,8 @@ jobs:
           python3 -m pilot.workflow_entrypoint pilot/test_policy_c_handoff.py
       - name: T20 runner labels pinned across all 22 workflows (offline)
         run: python3 -m pilot.workflow_entrypoint pilot/test_t20_runner_pin.py
+      - name: T24.1 full CP3.6 replay, SHA-pinned route defect history and recovery wiring (offline)
+        run: python3 -m pytest -q pilot/orchestrator/test_t24_1_sweep_and_attempts.py -p no:cacheprovider
       - name: T24 area write scope contract vs CP3.5 and immutable PASS replay (offline)
         run: python3 -m pytest -q pilot/orchestrator/test_t24_scope_contract.py pilot/orchestrator/test_t24_integration_replay.py -p no:cacheprovider
       - name: T23.1 native registration subfamilies and nonblocking Train sweep (offline)
