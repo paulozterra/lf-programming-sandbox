@@ -33,6 +33,12 @@ def validate_template_worker(template: dict, area: str, *, pending_shas: bool = 
                 raise TaskSpecError("template SHA placeholders are not exact")
             spec["base_head_sha"] = "0" * 40
             spec["source_snapshot_sha256"] = "0" * 64
+        for entry in spec.get("acceptance_commands", []):
+            argv = entry.get("argv", []) if isinstance(entry, dict) else []
+            if (isinstance(argv, list) and argv and isinstance(argv[0], str)
+                    and (Path(argv[0]).name == "python" or
+                         Path(argv[0]).name.startswith("python3"))):
+                raise ValueError("TEMPLATE_PYTHON_NO_FIJADO:" + area)
         parsed = parse_worker_task(spec)
         if parsed.to_dict() != spec:
             raise TaskSpecError("Worker roundtrip drift")
@@ -58,5 +64,9 @@ def normalize_legacy_registration_template(template: dict, area: str) -> dict:
         trace = spec.pop("context_derivation")
         if trace != "pilot/worker_v08/derive_context.py":
             raise ValueError("TEMPLATE_WORKER_SCHEMA_INVALID:" + str(area))
+    for command in spec.get("acceptance_commands", []):
+        if isinstance(command, dict) and isinstance(command.get("argv"), list) and command["argv"]:
+            if Path(command["argv"][0]).name in ("python", "python3", "python3.12"):
+                command["argv"][0] = "lf-python"
     validate_template_worker(normalized, area)
     return normalized
