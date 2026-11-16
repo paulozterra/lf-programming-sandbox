@@ -11,6 +11,7 @@ import subprocess
 import time
 
 from request_failure_notify import Github, REPO, emit
+from native_registration_family import registration_family
 
 CONFIG = Path(__file__).with_name("request_stage_thresholds_v1.json")
 SRC = Path(__file__).resolve().parents[1]
@@ -41,6 +42,9 @@ def stage_config(path: Path = CONFIG) -> dict:
 def request_slugs(pr: dict, merge_sha: str) -> tuple[str, list[str]] | None:
     """Derive scope from trusted first-parent merge delta, not PR description."""
     branch = pr.get("head", {}).get("ref", "")
+    # Auxiliary registration-family merges are not user-visible request stages.
+    if registration_family(branch)[0] in ("registration", "auxiliary"):
+        return None
     if m := re.fullmatch(r"lf/request/(req-[1-9][0-9]*)", branch):
         return "REQUEST_MERGED", [m.group(1)]
     paths = git("diff", "--name-only", merge_sha + "^1", merge_sha).splitlines()
