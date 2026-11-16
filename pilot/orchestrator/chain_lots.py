@@ -700,8 +700,7 @@ def choose_exam_issue(matches: list, registered: bool) -> tuple[str, dict | None
 
 
 def listed_exam_requests() -> list:
-    rows = json.loads(run("gh", "api",
-                          f"repos/{REPO}/issues?state=all&labels=exam-request&per_page=100"))
+    rows = api_list("issues?state=all&labels=exam-request")
     if not isinstance(rows, list) or len(rows) >= 100:
         deny("EXAM_REQUEST_LIST_UNTRUSTED")
     return rows
@@ -1200,7 +1199,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         recoveries = (
             ("T20_BOT_CI_RETRY",
              lambda: retry_failed_bot_prs(
-                 head, run, api, REPO, all_plans, route_request_metadata)),
+                 head, run, api, REPO, all_plans, route_request_metadata,
+                 api_list=api_list)),
             ("T20_NATIVE_INFRA",
              lambda: retry_native_infra(head, run, api, REPO, ROOT)),
             ("T22_FEEDBACK",
