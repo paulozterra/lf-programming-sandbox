@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0150",
+  "title": "T26.2: el refresco del plan pendiente actualiza chain_plan.json y retira borradores plan- de un main anterior",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T26.2: el PR del bot #238 (plan-req186backend2) falla con CP36_CHAIN_PLAN_DRIFT: refresh no actualizaba pilot/runs/<pedido>/chain_plan.json, que también fija lots_sha256"
+  },
+  "reason": "T26.2: pending_plan_refresh reescribe toda copia comprometida del plan de cadena (pilot/runs/<pedido>/chain_plan.json y chain_plans/<pedido>.json) junto a lots.json/state.json; CP3.6 cierra los borradores plan- construidos sobre un main anterior antes de publicar uno nuevo. Prueba del caso real independiente del estado ya refrescado del repo.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/pending_plan_refresh.py",
+      "pilot/orchestrator/test_t26_affected_tests.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0150.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/239"
+  }
+}

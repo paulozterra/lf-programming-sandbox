@@ -148,11 +148,22 @@ def test_real_request_pending_backend_lot_gets_affected_tests_and_current_genera
     for lot in after["lots"]:
         if lot["id"] in completed:
             assert lot == before[lot["id"]]  # integrated lots are never touched
-    gained = {lot["id"]: set(lot["write_paths"]) - set(before[lot["id"]]["write_paths"])
-              for lot in after["lots"]}
-    assert any(gained.values()), "an EXTEND lot must gain its affected project tests"
-    for lot_id, paths in gained.items():
-        assert all(at.is_project_test(p) for p in paths)
+    # Whether main already carries the refreshed plan or not, after refresh
+    # every pending EXTEND lot holds exactly its affected project tests.
+    rows, scopes = at.load_reuse(root, request)
+    assert any(at.affected_for_lot(root, lot, rows, scopes) for lot in after["lots"]
+               if lot["id"] not in completed), "the request must have an EXTEND lot with tests"
+    for lot in after["lots"]:
+        if lot["id"] in completed:
+            continue
+        expected = at.affected_for_lot(root, lot, rows, scopes)
+        assert expected <= set(lot["write_paths"])
+        gained = set(lot["write_paths"]) - set(before[lot["id"]]["write_paths"])
+        assert all(at.is_project_test(p) for p in gained)
+    for plan_rel in (f"pilot/runs/{request}/chain_plan.json",):
+        if (root / plan_rel).exists():
+            plan = json.loads((root / plan_rel).read_text("utf-8"))
+            assert plan["lots_sha256"] == state["lots_sha256"]
     for path in changed:
         if path.endswith(".task.json"):
             spec = json.loads((root / path).read_text("utf-8"))["task_spec"]
@@ -161,6 +172,27 @@ def test_real_request_pending_backend_lot_gets_affected_tests_and_current_genera
             assert not (writable & set(spec["protected_path_patterns"]))
     # Idempotent: a second refresh against the refreshed plan changes nothing.
     assert ppr.refresh(root, request, completed) == []
+
+
+def test_refreshed_plan_keeps_every_chain_plan_valid(tmp_path):
+    found = _real_request(tmp_path)
+    if found is None:
+        pytest.skip("no committed request with an EXTEND obligation")
+    root, request = found
+    lots = json.loads((root / f"pilot/runs/{request}/lots.json").read_text("utf-8"))
+    completed = {lot["id"]: {"expected_files": lot["write_paths"]}
+                 for lot in lots["lots"] if lot["area"] == "CONTRATO"}
+    ppr.refresh(root, request, completed)
+    from chain_contract import validate_plan
+    plan = json.loads((root / f"pilot/runs/{request}/chain_plan.json").read_text("utf-8"))
+    validate_plan(plan, json.loads((root / f"pilot/runs/{request}/lots.json").read_text("utf-8")),
+                  request)
+
+
+def test_cp36_retires_plan_drafts_from_an_older_main():
+    source = (HERE / "chain_lots.py").read_text("utf-8")
+    body = source.split("def publish_pending_plan_refresh(", 1)[1].split("\ndef ", 1)[0]
+    assert body.index("close_stale_drafts(") < body.index("pending_draft(")
 
 
 def test_cp36_refreshes_before_registering_and_plan_branch_is_auxiliary():

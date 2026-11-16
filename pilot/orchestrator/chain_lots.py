@@ -853,6 +853,8 @@ def publish_pending_plan_refresh(request: str, binding: dict, completed: dict,
     from pending_plan_refresh import refresh as refresh_pending_plan, PlanRefreshBlocked
     task = binding["task_name"]
     branch = f"lf/native-registration/plan-{task}-{head[:12]}"
+    # A plan draft built on an older main can never match the current plan.
+    close_stale_drafts(f"lf/native-registration/plan-{task}-", head[:12])
     if (pending_draft(f"lf/native-registration/plan-{task}-")
             or run("git", "ls-remote", "--heads", "origin", branch)):
         return {"status": "PLAN_REFRESH_PENDING", "task": task, "branch": branch}
