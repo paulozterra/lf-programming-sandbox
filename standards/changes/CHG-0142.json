@@ -1,0 +1,43 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0142",
+  "title": "T25: contrato de producto y cliente OpenAPI derivado en integración CP3.5",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T25: PR #227 integra contrato SBX-REM-LIST, T2 guard rechaza códigos de producto y frontend gen:api diff"
+  },
+  "reason": "T2 verifica solo implementación de ruta (raíces de producto T24 excluidas); CP3.5 ejecuta generador oficial OpenAPI TypeScript en checkout confiable, limita sus rutas y registra productos derivados en CHG sin atribuir al Worker; T17.4 retira PR generado fallido o demostrablemente desactualizado y solo reenvía CP3.5 con el PASS inmutable, sin consumir intentos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/native-verified-integration.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/generated_conflict_recovery.py",
+      "pilot/orchestrator/native_derived_generation.py",
+      "pilot/orchestrator/native_verified_integration.py",
+      "pilot/orchestrator/native_write_scope.py",
+      "pilot/orchestrator/test_t2_general_guard.py",
+      "pilot/orchestrator/test_t25_contract_derivatives.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0142.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
