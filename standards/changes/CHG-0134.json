@@ -23,6 +23,8 @@
       "pilot/test_t21_python_runtime.py",
       "pilot/worker_v08/install_lf_python.py",
       "pilot/worker_v08/native_proposal_push_guard.py",
+      "pilot/worker_v08/native_run_history.py",
+      "pilot/worker_v08/test_t21_native_history.py",
       "pilot/worker_v08/test_t8_lf_rules.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0134.json"
