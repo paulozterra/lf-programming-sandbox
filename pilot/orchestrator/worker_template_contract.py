@@ -14,6 +14,7 @@ if str(VENDOR) not in sys.path:
     sys.path.insert(0, str(VENDOR))
 
 from programming_agent_runner.worker_spec import parse_worker_task, TaskSpecError
+from native_write_scope import validate_write_paths, WriteScopeError
 
 AREAS = frozenset({"CONTRATO", "INFRA", "DATA", "BACKEND", "FRONTEND"})
 BASE_PLACEHOLDER = "<FILL_AT_REGISTRATION>"
@@ -39,11 +40,15 @@ def validate_template_worker(template: dict, area: str, *, pending_shas: bool = 
                     and (Path(argv[0]).name == "python" or
                          Path(argv[0]).name.startswith("python3"))):
                 raise ValueError("TEMPLATE_PYTHON_NO_FIJADO:" + area)
+        try:
+            validate_write_paths(spec.get("write_path_patterns"), area=area)
+        except WriteScopeError as exc:
+            raise ValueError("TEMPLATE_SCOPE_UNSAFE:" + area) from exc
         parsed = parse_worker_task(spec)
         if parsed.to_dict() != spec:
             raise TaskSpecError("Worker roundtrip drift")
     except ValueError as exc:
-        if str(exc).startswith("TEMPLATE_PYTHON_NO_FIJADO:"):
+        if str(exc).startswith(("TEMPLATE_PYTHON_NO_FIJADO:", "TEMPLATE_SCOPE_UNSAFE:")):
             raise
         raise ValueError("TEMPLATE_WORKER_SCHEMA_INVALID:" + area) from exc
     except (TaskSpecError, TypeError, KeyError) as exc:
