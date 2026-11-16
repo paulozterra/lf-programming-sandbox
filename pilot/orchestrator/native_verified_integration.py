@@ -217,7 +217,7 @@ def validate_patch_against_repo(root: Path, patch: bytes, base: str,
 
 
 def chg_payload(number: int, task: str, run_id: int, patch_sha: str,
-                paths: list[str]) -> dict:
+                paths: list[str], derived: dict | None = None) -> dict:
     ident = f"CHG-{number:04d}"
     derived = derived or {"generator": None, "paths": []}
     return {
