@@ -20,7 +20,7 @@ class ProposalPushBlocked(ValueError):
 def _git(repo: Path, *args: str) -> bytes:
     return subprocess.check_output(["git", "-C", str(repo), *args], stderr=subprocess.DEVNULL)
 
-def validate_proposal_only(control: Path, proposal_sha: str, *, main_sha: str | None = None, branch: str | None = None) -> dict:
+def validate_proposal_only(control: Path, proposal_sha: str, *, main_sha: str | None = None, branch: str | None = None, allow_historical_base: bool = False) -> dict:
     if _SHA40.fullmatch(proposal_sha) is None:
         raise ProposalPushBlocked("NATIVE_PUSH_SHA_INVALID")
     main_sha = main_sha or _git(control, "rev-parse", "HEAD").decode().strip()
@@ -35,7 +35,8 @@ def validate_proposal_only(control: Path, proposal_sha: str, *, main_sha: str | 
         base = _git(control, "merge-base", main_sha, proposal_sha).decode().strip()
     except subprocess.CalledProcessError as exc:
         raise ProposalPushBlocked("NATIVE_PUSH_NOT_DESCENDANT_OF_TRUSTED_MAIN") from exc
-    if not _SHA40.fullmatch(base) or base == proposal_sha:
+    if (not _SHA40.fullmatch(base) or base == proposal_sha
+            or (not allow_historical_base and base != main_sha)):
         raise ProposalPushBlocked("NATIVE_PUSH_NOT_DESCENDANT_OF_TRUSTED_MAIN")
     if subprocess.run(["git", "-C", str(control), "merge-base", "--is-ancestor",
                        base, main_sha], check=False,
@@ -92,9 +93,11 @@ def main() -> None:
     parser.add_argument("--control", required=True, type=Path)
     parser.add_argument("--sha", required=True)
     parser.add_argument("--branch")
+    parser.add_argument("--allow-historical-base", action="store_true")
     parser.add_argument("--github-output", type=Path)
     args = parser.parse_args()
-    result = validate_proposal_only(args.control, args.sha, branch=args.branch)
+    result = validate_proposal_only(args.control, args.sha, branch=args.branch,
+                                    allow_historical_base=args.allow_historical_base)
     if args.github_output:
         with args.github_output.open("a", encoding="utf-8") as stream:
             for key in ("task", "proposal_commit_sha", "proposal_path"):
