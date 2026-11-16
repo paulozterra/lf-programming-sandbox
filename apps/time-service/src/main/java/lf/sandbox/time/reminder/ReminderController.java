@@ -7,6 +7,7 @@ import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.List;
 import java.util.Map;
+import lf.sandbox.time.auth.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,9 +28,11 @@ public class ReminderController {
             DateTimeFormatter.ofPattern("HH:mm:ss").withResolverStyle(ResolverStyle.STRICT);
 
     private final ReminderRepository repository;
+    private final AuthService authService;
 
-    public ReminderController(ReminderRepository repository) {
+    public ReminderController(ReminderRepository repository, AuthService authService) {
         this.repository = repository;
+        this.authService = authService;
     }
 
     private static LocalTime validBodyTime(Map<String, Object> body) {
@@ -131,9 +135,13 @@ public class ReminderController {
     }
 
     @GetMapping("/api/reminders")
-    public ResponseEntity<List<ReminderResponse>> listFiltered(
+    public ResponseEntity<?> listFiltered(
             @RequestParam(name = "q", required = false) String q,
-            @RequestParam(name = "priority", required = false) String priority) {
+            @RequestParam(name = "priority", required = false) String priority,
+            @RequestHeader(name = "Authorization", required = false) String authorization) {
+        if (authService.session(authorization).isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("error", "SBX-E-GENERIC"));
+        }
         try {
             String selected = validFilterPriority(priority);
             return ResponseEntity.ok(list(q).stream()
