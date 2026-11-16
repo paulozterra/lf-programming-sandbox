@@ -1128,6 +1128,24 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                       if sweep else [])
     repair_outcomes = (list(retry_outcomes) + list(native_retry_outcomes)
                        + list(feedback_outcomes) + list(route_outcomes))
+    # T24.1: dispatch an already-PASS Worker integration before per-lot
+    # progress. Isolate each request: one corrupted scope must never hold
+    # back a different request's attested CP3.5 replay.
+    if sweep:
+        for request, _lots, _state, bindings in all_plans:
+            try:
+                if not route_request_metadata(request):
+                    continue
+                tasks = {value.get("task_name") for value in bindings.values()
+                         if isinstance(value, dict)
+                         and isinstance(value.get("task_name"), str)}
+                for outcome in replay_native_integration(
+                        head, run, api, REPO, ROOT, allowed_tasks=tasks):
+                    repair_outcomes.append({"request": request, **outcome})
+            except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
+                    OSError, ValueError, KeyError) as exc:
+                repair_outcomes.append(
+                    per_request_block(request, "INTEGRATION_REPLAY", exc))
     if sweep:
         for request, _lots, _state, bindings in all_plans:
             if not route_request_metadata(request):
