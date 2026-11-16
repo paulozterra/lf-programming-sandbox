@@ -1,0 +1,45 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0144",
+  "title": "CP3.5: integración verificada nativa req186contrato1 (run 43797847761)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "CP3.5 autorizado por Paulo; PR draft automático de PASS nativo"
+  },
+  "reason": "Parche originado exclusivamente en native-verified-patch de la corrida nativa PASS 43797847761, SHA-256 61710a12e0cf1a96144a158b02a1a286a797e6eb6d44bfb6d966551a66b5d46f; rutas y bytes aplicados sin reconstruir propuesta, sin exámenes ni aprobación automática.",
+  "artifacts": [],
+  "derived": {
+    "generator": "npm run gen:api",
+    "paths": [
+      "frontend/src/lib/api/generated/index.ts",
+      "frontend/src/lib/api/generated/sbx-rem-list.ts"
+    ],
+    "attribution": "CP3.5_TRUSTED_GENERATOR_NOT_WORKER"
+  },
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "contracts/sbx-rem-list.openapi.yaml",
+      "frontend/src/lib/api/generated/index.ts",
+      "frontend/src/lib/api/generated/sbx-rem-list.ts",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0144.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
