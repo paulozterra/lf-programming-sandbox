@@ -73,10 +73,16 @@ def run(*args: str, cwd: Path = ROOT, check: bool = True) -> str:
             status = int(match.group(1)) if match else None
             if status is not None and status != 429 and not 500 <= status <= 599:
                 raise ValueError(f"GITHUB_HTTP_{status}:API") from None
-            if attempt + 1 < attempts:
-                time.sleep(2 ** attempt)
-                continue
-            raise ValueError("GITHUB_TRANSITORIO:API") from None
+            transient = (status == 429 or status is not None and 500 <= status <= 599
+                         or bool(re.search(
+                             r"(?i)(timed? out|connection reset|connection refused|"
+                             r"could not resolve host|temporary failure|TLS handshake)",
+                             stderr)))
+            if transient:
+                if attempt + 1 < attempts:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise ValueError("GITHUB_TRANSITORIO:API") from None
         command = Path(args[1] if args[0] in ("python3", "lf-python", "python")
                        and len(args) > 1 else args[0]).name
         tail = (p.stderr or "").splitlines()
