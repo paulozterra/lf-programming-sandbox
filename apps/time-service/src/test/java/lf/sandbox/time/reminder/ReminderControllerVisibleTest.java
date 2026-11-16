@@ -9,11 +9,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
+import lf.sandbox.time.auth.AuthService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assumptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -29,9 +31,18 @@ import org.springframework.test.web.servlet.MockMvc;
 // Each test starts with an empty in-memory repository: no ordering between test classes.
 @DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 @AutoConfigureMockMvc
+@TestPropertySource(properties = {
+    "app.auth.default-username=visible-test-user",
+    "app.auth.default-password-bcrypt=$2y$10$Zf8fOW96yhmfo8AOzWpKkeTCOHLyyTMPthHR3e4InWj/ID.MYglk2"
+})
 class ReminderControllerVisibleTest {
 
     @Autowired MockMvc mvc;
+    @Autowired AuthService authService;
+
+    private String validAuthorization() {
+        return "Bearer " + authService.login("visible-test-user", "visible-test-password").orElseThrow().token();
+    }
 
     @BeforeEach
     void requireLotBController() {
@@ -57,7 +68,7 @@ class ReminderControllerVisibleTest {
                 // P4: responses may also carry priority; accept both shapes.
                 .andExpect(jsonPath("$.*", anyOf(hasSize(3), hasSize(4))));
 
-        mvc.perform(get("/api/reminders"))
+        mvc.perform(get("/api/reminders").header("Authorization", validAuthorization()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(org.hamcrest.Matchers.greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$[0].text").value("take a break"));
