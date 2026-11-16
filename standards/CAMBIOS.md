@@ -145,4 +145,4 @@
 | CHG-0144 | EDITORIAL | CP3.5: integración verificada nativa req186contrato1 (run 43797847761) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/230 |
 | CHG-0145 | ADDITIVE | T26: pruebas afectadas en el alcance del lote y refresco del plan de lotes pendientes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/232 |
 | CHG-0146 | ADDITIVE | T26.1: la certificación de un lote de contrato integrado acepta las salidas del generador confiable |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/236 |
-| CHG-0150 | ADDITIVE | T26.2: el refresco del plan pendiente actualiza chain_plan.json y retira borradores plan- de un main anterior |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/0 |
+| CHG-0150 | ADDITIVE | T26.2: el refresco del plan pendiente actualiza chain_plan.json y retira borradores plan- de un main anterior |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/239 |
