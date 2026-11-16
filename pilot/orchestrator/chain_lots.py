@@ -1207,7 +1207,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
              lambda: recover_native_feedback(run, api, REPO, ROOT)),
             ("T23_ROUTE",
              lambda: recover_route_defects(
-                 head, run, api, REPO, ROOT, worktree, draft, pending_draft)),
+                 head, run, api, REPO, ROOT, worktree, draft, pending_draft,
+                 api_list=api_list)),
         )
         for phase, action in recoveries:
             try:
