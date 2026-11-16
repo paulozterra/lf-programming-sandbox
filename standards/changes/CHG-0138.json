@@ -7,13 +7,14 @@
     "kind": "OWNER",
     "reference": "T23.1: #222 Train handoff 43792626872 blocked EXAM_REGISTRATION_NOT_MERGED for route-python auxiliary"
   },
-  "reason": "Clasificador único de subfamilias lf/native-registration usado por ciclo de examen, Train handoff, política C, recuperación T17.4 y watchdog; solo registro real puede cerrar examen. Cierre secundario no bloquea CI main ni sweep, que reactiva reevaluación del SHA histórico de T23 sin modificar propuesta.",
+  "reason": "Clasificador único de subfamilias lf/native-registration usado por ciclo de examen, Train handoff, política C, recuperación T17.4 y watchdog; solo registro real puede cerrar examen. Cierre secundario no bloquea CI main ni sweep, que reactiva reevaluación del SHA histórico de T23 sin modificar propuesta. Ajustar permiso issues:write de T7 exigido por el validador estático del CI de main para emisión de comentarios confiables.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
       ".github/workflows/ci.yml",
+      ".github/workflows/t7-request.yml",
       "pilot/auto_integrate.py",
       "pilot/exam_issue_lifecycle.py",
       "pilot/native_registration_family.py",
