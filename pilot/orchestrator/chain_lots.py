@@ -1200,7 +1200,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             ("T20_BOT_CI_RETRY",
              lambda: retry_failed_bot_prs(
                  head, run, api, REPO, all_plans, route_request_metadata,
-                 api_list=api_list)),
+                 api_list)),
             ("T20_NATIVE_INFRA",
              lambda: retry_native_infra(head, run, api, REPO, ROOT)),
             ("T22_FEEDBACK",
