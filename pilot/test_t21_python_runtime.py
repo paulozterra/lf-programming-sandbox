@@ -27,7 +27,7 @@ def check() -> None:
         site = subprocess.check_output(
             [str(python), "-c", "import site; print(site.getsitepackages()[0])"],
             text=True).strip()
-        (Path(site) / "lf_t21_venv_only.py").write_text("VERIFIED = True\\n")
+        (Path(site) / "lf_t21_venv_only.py").write_text("VERIFIED = True" + chr(10))
         bin_dir = root / "bin"
         bin_dir.mkdir()
         shim = bin_dir / "lf-python"
