@@ -50,6 +50,31 @@ def test_historical_route_defect_then_real_one_and_pass_two_are_valid():
     assert [proofs[ATTEMPT_ONE]["attempt"], proofs[PASS]["attempt"]] == [1, 2]
 
 
+
+def test_actual_main_t23_migration_binds_historical_route_defect():
+    from pilot.worker_v08.native_route_defect import verified_migration
+    root = Path(__file__).resolve().parents[2]
+    path = root / "pilot/worker_v08/native_tasks/req186contrato1.json"
+    registration = json.loads(path.read_text("utf-8"))
+    migration = verified_migration(root, TASK, registration)
+    assert migration is not None, "T23_ROUTE_MIGRATION_UNVERIFIED"
+    assert migration["source_run_id"] == ROUTE_DEFECT
+    assert migration["proposal_commit_sha"] == (
+        "23517ffc11bb6f763f1771a022d88c348ceeff10")
+    assert migration["legacy_task_pack_sha256"] == (
+        "aad35e83a04c1ae6d8676cd0b7b61dacef09ac9239ee8f5a3d78ff60e136e08b")
+    rows = [_run(ROUTE_DEFECT, "failure"), _run(ATTEMPT_ONE, "failure"),
+            _run(PASS, "success")]
+    proofs = {
+        ROUTE_DEFECT: _proof(ROUTE_DEFECT, 1, migration["legacy_task_pack_sha256"]),
+        ATTEMPT_ONE: _proof(ATTEMPT_ONE, 1, migration["corrected_task_pack_sha256"]),
+        PASS: _proof(PASS, 2, migration["corrected_task_pack_sha256"]),
+    }
+    assert verified_failures(TASK, rows, proofs,
+        route_defects={migration["source_run_id"]:
+                       migration["legacy_task_pack_sha256"]}) == [ATTEMPT_ONE]
+
+
 def test_route_defect_exemption_cannot_mask_changed_proof():
     rows = [_run(ROUTE_DEFECT, "failure"), _run(ATTEMPT_ONE, "failure")]
     proofs = {ROUTE_DEFECT: _proof(ROUTE_DEFECT, 1, "d" * 64),
