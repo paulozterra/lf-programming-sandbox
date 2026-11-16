@@ -161,4 +161,4 @@
 | CHG-0163 | EDITORIAL | T29: las pruebas de la ruta que usan el producto real leen una instantánea fijada, no el árbol vivo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/253 |
 | CHG-0165 | ADDITIVE | T29.1: el paso de CI de derive-context ex5c usa la misma instantánea fijada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/255 |
 | CHG-0166 | EDITORIAL | T30: Análisis asigna área a la taxonomía real de reglas de LF y a todos los errores vigentes; ficha SBX-B2B-LOGIN |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/257 |
-| CHG-0167 | EDITORIAL | CP3.5: integración verificada nativa req186backend2 (run 43955440007) |  | paulozterra |  |
+| CHG-0167 | EDITORIAL | CP3.5: integración verificada nativa req186backend2 (run 43955440007) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/258 |
