@@ -20,6 +20,7 @@ from native_attempt_guard import validate_attempt_history
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 _MANUAL_TITLE = re.compile(r"lf-native-([a-z][a-z0-9_-]{0,31})-a([1-3])\Z")
 _INFRA_TITLE = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
+_ROUTE_TITLE = re.compile(r"lf-native-route-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _AUTO_TITLE = re.compile(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 _WORKFLOW = "worker-native.yml"
@@ -101,7 +102,7 @@ def _recognized_run(run: dict, task: str, *, attempt: int | None = None,
         if match is not None:
             return match.group(1) == task and (
                 attempt is None or int(match.group(2)) == attempt)
-        recovery = _INFRA_TITLE.fullmatch(title)
+        recovery = _INFRA_TITLE.fullmatch(title) or _ROUTE_TITLE.fullmatch(title)
         return (recovery is not None and recovery.group(1) == task
                 and (attempt is None or attempt == 1)
                 and (sha is None or recovery.group(2) == sha))
@@ -118,6 +119,7 @@ def admit_attempt(
     run_id: int, run_attempt: int, sha: str, output: Path,
     event: str = "workflow_dispatch", head_branch: str = "main",
     proposal_branch: str | None = None, github_output: Path | None = None,
+    route_retry: bool = False,
 ) -> int:
     if (repository != "paulozterra/lf-programming-sandbox" or
         not token or _TASK.fullmatch(task or "") is None or
@@ -146,6 +148,22 @@ def admit_attempt(
                             sha=sha,
                             branch=proposal_branch)):
         raise ValueError("NATIVE_CURRENT_RUN_NOT_ATTESTED")
+    # Only a trusted, merged launcher-only migration may forgive a previously
+    # spent proof. The immutable source run and original pack must still match.
+    from native_route_defect import verified_migration
+    control = Path(__file__).resolve().parents[2]
+    registration = control / "pilot/worker_v08/native_tasks" / (task + ".json")
+    try:
+        record = json.loads(registration.read_text("utf-8"))
+    except (OSError, ValueError):
+        record = {}
+    migration = verified_migration(control, task, record)
+    if route_retry and (
+        event != "workflow_dispatch" or attempt != 1
+        or migration is None or migration["proposal_commit_sha"] != sha
+        or _ROUTE_TITLE.fullmatch(current[0].get("display_title") or "") is None
+    ):
+        raise ValueError("NATIVE_ROUTE_RETRY_NOT_ATTESTED")
     prior: list[dict] = []
     for run in results:
         if run.get("id") == run_id:
@@ -167,10 +185,19 @@ def admit_attempt(
             raise ValueError("NATIVE_PRIOR_PROOF_MISMATCH")
         if proof["task_id"] != task:
             continue
+        if (migration is not None and run["id"] == migration["source_run_id"]
+                and run.get("status") == "completed"
+                and run.get("conclusion") == "failure"
+                and proof["task_pack_sha256"] == migration["legacy_task_pack_sha256"]
+                and _recognized_run(run, task, sha=migration["proposal_commit_sha"])):
+            # The route-owned interpreter failure is retained in GitHub
+            # history but does not consume a constructor attempt.
+            continue
         title = run.get("display_title") or ""
         match = (_AUTO_TITLE.fullmatch(title)
                  if run.get("event") == "workflow_run"
-                 else _INFRA_TITLE.fullmatch(title))
+                 else (_INFRA_TITLE.fullmatch(title) or
+                      _ROUTE_TITLE.fullmatch(title)))
         if match is not None and match.group(2) == sha:
             raise ValueError("NATIVE_DUPLICATE_PROPOSAL_SHA")
         prior.append(proof)
@@ -195,6 +222,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", required=True)
     parser.add_argument("--attempt", type=int)
+    parser.add_argument("--route-retry", action="store_true")
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--sha", required=True)
     parser.add_argument("--out", type=Path, required=True)
@@ -207,6 +235,7 @@ def main() -> None:
                   event=os.environ.get("GITHUB_EVENT_NAME", "workflow_dispatch"),
                   head_branch=os.environ.get("GITHUB_REF_NAME", "main"),
                   proposal_branch=os.environ.get("NATIVE_PROPOSAL_BRANCH"),
+                  route_retry=a.route_retry,
                   github_output=a.github_output)
 
 
