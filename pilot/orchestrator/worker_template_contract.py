@@ -14,9 +14,8 @@ if str(VENDOR) not in sys.path:
     sys.path.insert(0, str(VENDOR))
 
 from programming_agent_runner.worker_spec import parse_worker_task, TaskSpecError
-from native_write_scope import validate_write_paths, WriteScopeError
+from native_write_scope import AREAS, validate_write_paths, WriteScopeError
 
-AREAS = frozenset({"CONTRATO", "INFRA", "DATA", "BACKEND", "FRONTEND"})
 BASE_PLACEHOLDER = "<FILL_AT_REGISTRATION>"
 
 
