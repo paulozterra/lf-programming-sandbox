@@ -322,7 +322,10 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
             context_paths.append("pilot/runs/"+run+"/reuse_assessment.json")
         # Every generated task needs an existing public source anchor: the
         # real Worker rejects empty context_path_patterns.
-        context_paths.append("pilot/runs/" + run + "/analysis.json")
+        # T26.3: only as a last resort. analysis.json is large; adding it to a
+        # task that already has real context can exceed max_context_bytes.
+        if not context_paths:
+            context_paths.append("pilot/runs/" + run + "/analysis.json")
         context_paths=sorted(set(context_paths))
         # T26: project tests planned into this lot ("pruebas afectadas") are
         # writable; every other project test stays protected.

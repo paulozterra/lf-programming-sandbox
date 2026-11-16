@@ -203,3 +203,29 @@ def test_cp36_refreshes_before_registering_and_plan_branch_is_auxiliary():
     from native_registration_family import registration_family
     assert registration_family("lf/native-registration/plan-demotask2-0123456789ab") == (
         "auxiliary", "demotask2")
+
+
+# --- T26.3: registration accepts planned affected tests; small context --------------
+
+def test_registration_accepts_only_existing_backend_project_tests(tmp_path):
+    from native_lot_binding import real_write_paths, NativeLotBlocked
+    root = project(tmp_path)
+    (root / "apps/time-service/src/main/java/demo/widget").mkdir(parents=True)
+    existing = f"{TEST_DIR}/GadgetControllerTest.java"
+    assert real_write_paths(root, "BACKEND", [SRC, existing]) == sorted([SRC, existing])
+    with pytest.raises(NativeLotBlocked):
+        real_write_paths(root, "BACKEND", [SRC, f"{TEST_DIR}/InventedTest.java"])
+    with pytest.raises(NativeLotBlocked):
+        real_write_paths(root, "FRONTEND", [existing])
+
+
+def test_task_context_classifies_project_tests_as_backend():
+    sys.path.insert(0, str(ROOT / "pilot/worker_v08"))
+    from register_task_context import classify_path
+    assert classify_path("apps/time-service/src/test/java/demo/GadgetTest.java") == "BACKEND"
+
+
+def test_large_analysis_anchor_only_when_context_would_be_empty():
+    source = (HERE / "generate_chain.py").read_text("utf-8")
+    block = source.split('if not context_paths:', 1)
+    assert len(block) == 2 and '/analysis.json' in block[1].split("\n", 2)[1]

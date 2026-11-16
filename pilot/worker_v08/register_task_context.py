@@ -120,6 +120,16 @@ def classify_path(value: str) -> str:
         value.startswith("backend/src/main/java/") or
         value.startswith("backend/")):
         return "BACKEND"
+    # T26.3: existing project tests planned into a backend lot ("pruebas afectadas"),
+    # same classifier as the planner.
+    import sys as _sys
+    from pathlib import Path as _Path
+    _orchestrator = str(_Path(__file__).resolve().parents[1] / "orchestrator")
+    if _orchestrator not in _sys.path:
+        _sys.path.insert(0, _orchestrator)
+    from affected_tests import is_project_test
+    if is_project_test(value):
+        return "BACKEND"
     if value.startswith(("frontend/", "apps/web/")):
         return "FRONTEND"
     if value.startswith(("db/", "supabase/migrations/", "standards/kit-base/")):
