@@ -147,3 +147,4 @@
 | CHG-0146 | ADDITIVE | T26.1: la certificación de un lote de contrato integrado acepta las salidas del generador confiable |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/236 |
 | CHG-0148 | EDITORIAL | T20: fijar runner del sandbox Train en Ubuntu 24.04 (bypass owner) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/217 |
 | CHG-0150 | EDITORIAL | T26.2: el refresco del plan pendiente actualiza chain_plan.json y retira borradores plan- de un main anterior |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/239 |
+| CHG-0151 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
