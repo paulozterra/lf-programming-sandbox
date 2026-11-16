@@ -78,6 +78,42 @@ def api(path: str) -> dict:
     return parsed
 
 
+def api_list(path: str, *, max_pages: int = 10) -> list[dict]:
+    """GitHub REST collection, validated in the real list shape.
+
+    Never coerce list replies into object replies. Fail closed when the last
+    page is full, the response changes type, or pagination is incomplete.
+    Each request uses a bounded explicit page, not an untrusted Link URL.
+    """
+    if (not isinstance(path, str) or not path or not 1 <= max_pages <= 10
+            or "page=" in path or "per_page=" in path):
+        deny("GITHUB_LIST_PAGINATION_INVALID")
+    result: list[dict] = []
+    seen: set[str] = set()
+    for page in range(1, max_pages + 1):
+        separator = "&" if "?" in path else "?"
+        endpoint = f"{path}{separator}per_page=100&page={page}"
+        raw = run("gh", "api", f"repos/{REPO}/{endpoint}")
+        try:
+            parsed = json.loads(raw)
+        except ValueError:
+            deny("GITHUB_LIST_RESPONSE_INVALID")
+        if (not isinstance(parsed, list)
+                or any(not isinstance(item, dict) for item in parsed)
+                or len(parsed) > 100):
+            deny("GITHUB_LIST_RESPONSE_INVALID")
+        # Request only trusted paginated GitHub collections; repeat pages
+        # cannot be accepted as evidence that the listing is complete.
+        fingerprint = json.dumps(parsed, sort_keys=True, separators=(",", ":"))
+        if parsed and fingerprint in seen:
+            deny("GITHUB_LIST_PAGINATION_INVALID")
+        seen.add(fingerprint)
+        result.extend(parsed)
+        if len(parsed) < 100:
+            return result
+    deny("GITHUB_LIST_PAGINATION_LIMIT")
+
+
 def check_main() -> str:
     head = run("git", "rev-parse", "HEAD")
     if (head != run("git", "rev-parse", "origin/main")
