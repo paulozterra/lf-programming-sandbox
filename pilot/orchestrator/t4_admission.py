@@ -162,7 +162,16 @@ def registration_variant(root: Path, base_task: str, template_path: str,
     tracked = ("objective", "write_path_patterns", "context_path_patterns",
                "protected_path_patterns", "acceptance_commands", "max_patch_bytes",
                "max_changed_files")
-    same_pack = all(spec.get(k) == desired.get(k) for k in tracked)
+    # T30: registration enriches the spec with the task's own generated
+    # worker context (.lf/worker-context/<task>/). That is not a pack change.
+    own = f".lf/worker-context/{newest}/"
+    def comparable(value):
+        if isinstance(value, list):
+            return [p for p in value
+                    if not (isinstance(p, str) and p.startswith(own))]
+        return value
+    same_pack = all(comparable(spec.get(k)) == comparable(desired.get(k))
+                    for k in tracked)
     base = spec.get("base_head_sha")
     if not isinstance(base, str) or not SHA.fullmatch(base):
         raise AdmissionBlocked("TASK_BASE_INVALID")

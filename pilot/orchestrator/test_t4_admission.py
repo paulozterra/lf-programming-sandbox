@@ -113,6 +113,33 @@ def test_variant_changes_only_if_relevant_source_or_pack_changes(tmp_path):
     assert registration_variant(tmp_path, "sampler", path, clean) == "sampler3"
 
 
+def test_t30_own_generated_context_is_not_a_pack_change(tmp_path):
+    directory = tmp_path / "pilot/worker_v08/native_tasks"
+    directory.mkdir(parents=True)
+    template = tmp_path / "pilot/runs/sample/templates/sampler.task.json"
+    template.parent.mkdir(parents=True)
+    wanted = {"objective": "Implement the feature",
+              "write_path_patterns": ["frontend/src/demo.ts"],
+              "context_path_patterns": ["contracts/demo.yaml"],
+              "protected_path_patterns": [".github/**"]}
+    template.write_text(json.dumps({"task_spec": wanted}))
+    path = str(template.relative_to(tmp_path))
+    own = [".lf/worker-context/sampler/profile.md",
+           ".lf/worker-context/sampler/receipt.json"]
+    (directory / "sampler.json").write_text(json.dumps({"task_spec": {
+        **wanted, "base_head_sha": "a" * 40,
+        "context_path_patterns": wanted["context_path_patterns"] + own,
+        "protected_path_patterns": wanted["protected_path_patterns"] + own}}))
+    clean = lambda _: set()
+    assert registration_variant(tmp_path, "sampler", path, clean) is None
+    # Foreign generated context is still a real difference.
+    (directory / "sampler.json").write_text(json.dumps({"task_spec": {
+        **wanted, "base_head_sha": "a" * 40,
+        "context_path_patterns": wanted["context_path_patterns"]
+        + [".lf/worker-context/other/profile.md"]}}))
+    assert registration_variant(tmp_path, "sampler", path, clean) == "sampler2"
+
+
 def test_existing_protected_status_assertion_conflict(tmp_path):
     """Only explicit conflicting HTTP assertions block, never edit the test."""
     contract = tmp_path / "contracts/module.openapi.yaml"
