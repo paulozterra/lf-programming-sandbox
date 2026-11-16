@@ -321,7 +321,18 @@ def failed_lots(bindings: dict) -> dict[str, list[int]]:
         for entry in failures:
             proof = _artifact_json(REPO, token, entry["id"])
             proofs[entry["id"]] = proof
-        registration = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")\n        migration = None\n        if registration.is_file() and not registration.is_symlink():\n            try:\n                migration = verified_migration(\n                    ROOT, task, json.loads(registration.read_text("utf-8")))\n            except (OSError, ValueError, KeyError, TypeError):\n                migration = None\n        defects = ({migration["source_run_id"]: migration["legacy_task_pack_sha256"]}\n                   if migration is not None else {})\n        result[lot] = verified_failures(task, failures, proofs,\n                                       route_defects=defects)
+        registration = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+        migration = None
+        if registration.is_file() and not registration.is_symlink():
+            try:
+                migration = verified_migration(
+                    ROOT, task, json.loads(registration.read_text("utf-8")))
+            except (OSError, ValueError, KeyError, TypeError):
+                migration = None
+        defects = ({migration["source_run_id"]: migration["legacy_task_pack_sha256"]}
+                   if migration is not None else {})
+        result[lot] = verified_failures(task, failures, proofs,
+                                       route_defects=defects)
     return result
 
 
