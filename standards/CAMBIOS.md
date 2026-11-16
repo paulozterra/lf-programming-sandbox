@@ -162,3 +162,4 @@
 | CHG-0165 | ADDITIVE | T29.1: el paso de CI de derive-context ex5c usa la misma instantánea fijada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/255 |
 | CHG-0166 | EDITORIAL | T30: Análisis asigna área a la taxonomía real de reglas de LF y a todos los errores vigentes; ficha SBX-B2B-LOGIN |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/257 |
 | CHG-0167 | EDITORIAL | CP3.5: integración verificada nativa req186backend2 (run 43955440007) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/258 |
+| CHG-0168 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/261 |
