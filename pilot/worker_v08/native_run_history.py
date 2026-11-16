@@ -19,7 +19,7 @@ from native_attempt_guard import validate_attempt_history
 
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 _MANUAL_TITLE = re.compile(r"lf-native-([a-z][a-z0-9_-]{0,31})-a([1-3])\Z")
-_INFRA_TITLE = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\\Z")
+_INFRA_TITLE = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _AUTO_TITLE = re.compile(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 _WORKFLOW = "worker-native.yml"
