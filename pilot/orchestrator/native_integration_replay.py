@@ -120,6 +120,10 @@ def recover(head: str, run, api, repo: str, root: Path,
             continue
         identity = WORKER_TITLE.fullmatch(source["display_title"])
         task = identity.group(1)
+        # A sweep invokes this once per request. Never dispatch a PASS
+        # belonging to another request, nor replay it twice in one sweep.
+        if allowed_tasks is not None and task not in allowed_tasks:
+            continue
         registration = root / "pilot/worker_v08/native_tasks" / (task + ".json")
         if not registration.is_file() or registration.is_symlink():
             continue
