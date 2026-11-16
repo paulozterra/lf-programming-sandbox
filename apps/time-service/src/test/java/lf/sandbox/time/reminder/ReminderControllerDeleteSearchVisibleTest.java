@@ -9,10 +9,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
+import lf.sandbox.time.auth.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -23,8 +25,17 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 // Each test starts with an empty in-memory repository: no ordering between test classes.
 @DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 @AutoConfigureMockMvc
+@TestPropertySource(properties = {
+    "app.auth.default-username=visible-test-user",
+    "app.auth.default-password-bcrypt=$2y$10$Zf8fOW96yhmfo8AOzWpKkeTCOHLyyTMPthHR3e4InWj/ID.MYglk2"
+})
 class ReminderControllerDeleteSearchVisibleTest {
     @Autowired MockMvc mvc;
+    @Autowired AuthService authService;
+
+    private String validAuthorization() {
+        return "Bearer " + authService.login("visible-test-user", "visible-test-password").orElseThrow().token();
+    }
 
     @BeforeEach
     void requiresLotCController() {
@@ -56,7 +67,7 @@ class ReminderControllerDeleteSearchVisibleTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"text\":\"UniqueEx5Needle\",\"at\":\"14:20:30\"}"))
                 .andExpect(status().isCreated());
-        mvc.perform(get("/api/reminders").param("q", "needLE"))
+        mvc.perform(get("/api/reminders").param("q", "needLE").header("Authorization", validAuthorization()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].text").value("UniqueEx5Needle"));
     }
