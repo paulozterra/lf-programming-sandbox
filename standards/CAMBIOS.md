@@ -136,4 +136,4 @@
 | CHG-0134 | ADDITIVE | T21: wrapper lf-python preserva venv y recuperación de fallo nativo preadmisión |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/219 |
 | CHG-0135 | ADDITIVE | T22: entregar feedback visible de Worker nativo en issue verificado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/220 |
 | CHG-0136 | ADDITIVE | T23: lf-python en aceptación y reintento sin cargo tras defecto verificado de ruta |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/221 |
-| CHG-0137 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
+| CHG-0137 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
