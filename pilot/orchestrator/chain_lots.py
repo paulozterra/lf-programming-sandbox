@@ -10,6 +10,8 @@ write). Missing manifests, evidence and encrypted holdouts fail closed.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
+import time
 import hashlib
 import json
 import os
@@ -67,8 +69,31 @@ def run(*args: str, cwd: Path = ROOT, check: bool = True) -> str:
     return p.stdout.strip()
 
 
+def github_api_raw(path: str) -> str:
+    """Idempotent GET transport. Never expose gh stderr or credentialed URLs."""
+    for attempt in range(3):
+        try:
+            proc = subprocess.run(
+                ["gh", "api", f"repos/{REPO}/{path}"],
+                cwd=ROOT, capture_output=True, text=True, timeout=60)
+        except (OSError, subprocess.TimeoutExpired):
+            proc = None
+        if proc is not None and proc.returncode == 0:
+            return proc.stdout.strip()
+        stderr = proc.stderr if proc is not None else ""
+        # gh emits status in several documented forms (HTTP 502, (502), 502 Bad Gateway).
+        match = re.search(r"(?<![0-9])(?:HTTP[ /:]*)?([45][0-9]{2})(?![0-9])", stderr)
+        status = int(match.group(1)) if match else None
+        if status is not None and status != 429 and not 500 <= status <= 599:
+            deny(f"GITHUB_HTTP_{status}:API")
+        if attempt == 2:
+            deny("GITHUB_TRANSITORIO:API")
+        time.sleep(2 ** attempt)
+    deny("GITHUB_TRANSITORIO:API")
+
+
 def api(path: str) -> dict:
-    raw = run("gh", "api", f"repos/{REPO}/{path}")
+    raw = github_api_raw(path)
     try:
         parsed = json.loads(raw)
     except ValueError:
@@ -93,7 +118,7 @@ def api_list(path: str, *, max_pages: int = 10) -> list[dict]:
     for page in range(1, max_pages + 1):
         separator = "&" if "?" in path else "?"
         endpoint = f"{path}{separator}per_page=100&page={page}"
-        raw = run("gh", "api", f"repos/{REPO}/{endpoint}")
+        raw = github_api_raw(endpoint)
         try:
             parsed = json.loads(raw)
         except ValueError:
@@ -999,6 +1024,19 @@ GLOBAL_SWEEP_ERRORS = frozenset({
 })
 
 
+def safe_failure_code(exc: Exception) -> str:
+    """Preserve machine-readable detail, never a URL, path, token or response body."""
+    raw = str(exc)
+    if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw):
+        return raw
+    status = getattr(exc, "code", None)
+    status_part = f":{status}" if type(status) is int and 100 <= status <= 599 else ""
+    kind = type(exc).__name__
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,50}", kind):
+        kind = "Exception"
+    return "CP36_LOCAL_FAILURE:" + kind + status_part
+
+
 def sweep_recovery_block(phase: str, exc: Exception, *,
                          pr: int | None = None) -> dict:
     """An unbound recovery failure never kills an independent healthy chain.
@@ -1006,7 +1044,7 @@ def sweep_recovery_block(phase: str, exc: Exception, *,
     Only audited globally fatal integrity errors are propagated.
     """
     raw = str(exc)
-    code = raw if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw) else "CP36_LOCAL_FAILURE"
+    code = safe_failure_code(exc)
     if code in GLOBAL_SWEEP_ERRORS:
         raise exc
     result = {"status": "BLOCKED", "phase": phase, "reason": code}
@@ -1018,7 +1056,7 @@ def sweep_recovery_block(phase: str, exc: Exception, *,
 def per_request_block(request: str, phase: str, exc: Exception) -> dict:
     """Contain a local failure and notify only the verified issue; no labels."""
     raw = str(exc)
-    code = raw if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw) else "CP36_LOCAL_FAILURE"
+    code = safe_failure_code(exc)
     if code in GLOBAL_SWEEP_ERRORS:
         raise exc
     if re.fullmatch(r"req-[1-9][0-9]*", request) and route_request_metadata(request):
