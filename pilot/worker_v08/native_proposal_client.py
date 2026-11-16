@@ -47,8 +47,9 @@ class NativeProposalClient:
     provider = "native-subscription"
     model = "gpt-native"
 
-    def __init__(self, proposal_path: Path) -> None:
+    def __init__(self, proposal_path: Path, *, compatibility: dict | None = None) -> None:
         self.proposal_path = Path(proposal_path)
+        self.compatibility = compatibility
         self.calls = 0
 
     def generate(self, system_instruction: str, user_payload: dict[str, Any]) -> ModelResponse:
@@ -56,8 +57,13 @@ class NativeProposalClient:
         if self.calls != 1:
             raise ModelError("NATIVE_SINGLE_ATTEMPT_ONLY")
         value = read_proposal_envelope(self.proposal_path)
-        if task_pack_sha256(system_instruction, user_payload) != value["task_pack_sha256"]:
-            raise ModelError("NATIVE_PACK_MISMATCH")
+        current = task_pack_sha256(system_instruction, user_payload)
+        if current != value["task_pack_sha256"]:
+            mapping = self.compatibility
+            if (not isinstance(mapping, dict)
+                    or current != mapping["corrected_task_pack_sha256"]
+                    or value["task_pack_sha256"] != mapping["legacy_task_pack_sha256"]):
+                raise ModelError("NATIVE_PACK_MISMATCH")
         return ModelResponse(
             response_id=value["proposal_sha256"],
             requested_model=self.model,
