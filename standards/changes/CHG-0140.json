@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0140",
+  "title": "T24.1: conectar replay de CP3.5 y descontar defectos de ruta del historial",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T24.1: CP3.6 sweep 43805641813 did not dispatch PASS 43797847761; req-186 CP36_ATTEMPT_DUPLICATE"
+  },
+  "reason": "Integrar native_integration_replay.recover por request en el sweep confiable, auditar estáticamente invocaciones de recover/sweep y omitir corridas ROUTE_DEFECT solo bajo migración T23 verificada con run ID + hash del paquete, preservando intentos 1 real y 2 PASS; sin relanzar Worker.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/chain_contract.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/native_integration_replay.py",
+      "pilot/orchestrator/test_t24_1_sweep_and_attempts.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0140.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
