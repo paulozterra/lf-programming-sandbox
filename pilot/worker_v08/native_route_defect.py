@@ -124,6 +124,9 @@ def migration(task: str, original: dict, fixed: dict,
         "legacy_task_pack_sha256": legacy_pack,
         "corrected_task_pack_sha256": current_pack,
         "launcher_changes": changes,
+        "legacy_launchers": [[i, cmd["argv"][0]] for i, cmd in
+                             enumerate(original["task_spec"]["acceptance_commands"])
+                             if cmd["argv"][0] in LEGACY],
     }
 
 
@@ -143,7 +146,7 @@ def verified_migration(root: Path, task: str, record: dict,
         "schema_version", "task", "source_run_id", "proposal_commit_sha",
         "base_head_sha", "legacy_registration_sha256",
         "corrected_registration_sha256", "legacy_task_pack_sha256",
-        "corrected_task_pack_sha256", "launcher_changes",
+        "corrected_task_pack_sha256", "launcher_changes", "legacy_launchers",
     }
     if (not isinstance(data, dict) or set(data) != allowed
             or data.get("schema_version") != SCHEMA or data.get("task") != task
@@ -153,8 +156,24 @@ def verified_migration(root: Path, task: str, record: dict,
             or not SHA64.fullmatch(data.get("corrected_task_pack_sha256") or "")
             or (proposal_sha is not None and data.get("proposal_commit_sha") != proposal_sha)):
         return None
-    # Public generated request must agree with the new pack digest.
-    request = root / "pilot/runs" / ("req-" + task[3:].split("contrato")[0]) if False else None
-    if type(data.get("launcher_changes")) is not int or data["launcher_changes"] < 1:
+    if (type(data.get("launcher_changes")) is not int or data["launcher_changes"] < 1
+            or not isinstance(data.get("legacy_launchers"), list)
+            or len(data["legacy_launchers"]) != data["launcher_changes"]):
+        return None
+    old = json.loads(canonical(record))
+    commands = old["task_spec"]["acceptance_commands"]
+    seen = set()
+    for entry in data["legacy_launchers"]:
+        if (not isinstance(entry, list) or len(entry) != 2
+                or type(entry[0]) is not int or entry[0] in seen
+                or not 0 <= entry[0] < len(commands) or entry[1] not in LEGACY
+                or commands[entry[0]]["argv"][0] != PINNED):
+            return None
+        seen.add(entry[0])
+        commands[entry[0]]["argv"][0] = entry[1]
+    corrected, count = convert(old)
+    if (corrected != record or count != data["launcher_changes"]
+            or sha(old) != data.get("legacy_registration_sha256")
+            or not SHA40.fullmatch(data.get("proposal_commit_sha") or "")):
         return None
     return data
