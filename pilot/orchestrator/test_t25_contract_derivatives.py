@@ -210,3 +210,64 @@ def test_recovery_from_red_generated_pr_reuses_only_native_pass():
     assert "source_run_id=" + str(SOURCE_ID) in calls[0]
     assert "worker-native.yml" not in str(calls)
     assert not any("proposal" in str(arg) for arg in calls[0])
+
+
+def test_added_openapi_without_index_is_provably_red_even_before_ci_runs():
+    calls = []
+    def api(path):
+        calls.append(path)
+        assert path == "pulls/227/files?per_page=100"
+        return [{"filename": "contracts/sbx-rem-list.openapi.yaml", "status": "added"},
+                {"filename": "standards/CAMBIOS.md", "status": "modified"},
+                {"filename": "standards/changes/CHG-0141.json", "status": "added"}]
+    assert recovery._provably_stale_generated_client(227, api)
+    assert calls == ["pulls/227/files?per_page=100"]
+    def good(path):
+        return [{"filename": "contracts/new.openapi.yaml", "status": "added"},
+                {"filename": "frontend/src/lib/api/generated/index.ts",
+                 "status": "modified"}]
+    assert not recovery._provably_stale_generated_client(227, good)
+
+
+def test_unrelated_or_only_modified_contract_never_triggers_static_retirement():
+    for files in ([],
+                  [{"filename": "contracts/foo.openapi.yaml", "status": "modified"}],
+                  [{"filename": "backend/src/Some.java", "status": "added"}]):
+        assert not recovery._provably_stale_generated_client(
+            227, lambda _path, files=files: files)
+
+
+def test_bot_ci_static_recovery_is_closed_and_relaunched_only_through_cp35():
+    head = "a" * 40
+    pr_sha = "b" * 40
+    ci_branch = BRANCH
+    identity = {"number": 227, "headRefName": ci_branch,
+                "headRefOid": pr_sha, "author": {"login": "github-actions[bot]"}}
+    detail = {"number": 227, "state": "open", "merged": False,
+              "mergeable_state": "blocked", "labels": [],
+              "user": {"login": "github-actions[bot]"},
+              "base": {"ref": "main"},
+              "head": {"sha": pr_sha, "ref": ci_branch,
+                       "repo": {"full_name": REPO}}}
+    calls = []
+    def run(*args):
+        calls.append(args)
+        if args[:3] == ("gh", "pr", "list"):
+            return json.dumps([identity])
+        if args[:3] == ("gh", "pr", "close"):
+            return ""
+        raise AssertionError(args)
+    def api(path):
+        if path == "pulls/227":
+            return detail
+        if path == "pulls/227/files?per_page=100":
+            return [{"filename": "contracts/sbx-rem-list.openapi.yaml",
+                     "status": "added"}]
+        raise AssertionError(path)
+    retired = recovery.retire_conflicted_generated(head, run, api, REPO)
+    assert len(retired) == 1
+    assert retired[0]["number"] == 227
+    assert retired[0]["reason"] == "CI_DERIVED_GEN_API_STALE"
+    closes = [args for args in calls if args[:3] == ("gh", "pr", "close")]
+    assert len(closes) == 1 and "--delete-branch" in closes[0]
+    assert not any(args[:3] == ("gh", "workflow", "run") for args in calls)
