@@ -45,7 +45,7 @@ def generate(root: Path, worker_paths: set[str], command) -> dict[str, object]:
         raise DerivedGenerationBlocked("INTEGRATION_DERIVED_GENERATION_FAILED:gen:api")
     try:
         command(["npm", "run", "gen:api"], cwd=root / "frontend")
-        raw = command(["git", "status", "--porcelain", "-z"], cwd=root)
+        raw = command(["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"], cwd=root)
         # The staged native patch is already in the index. Check *new*
         # unstaged or untracked paths, including deletions and renames.
         if not isinstance(raw, bytes):
