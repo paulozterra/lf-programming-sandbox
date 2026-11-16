@@ -19,7 +19,8 @@ def isolate_retries_in_historical_sweep_tests():
     # The T18.1 tests exercise request-level recovery, while T20 tests own
     # real/authenticated GitHub CI retry behaviour in a separate suite.
     with patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]), \
-         patch.object(chain_lots, "retry_native_infra", return_value=[]):
+         patch.object(chain_lots, "retry_native_infra", return_value=[]), \
+         patch.object(chain_lots, "recover_native_feedback", return_value=[]):
         yield
 
 
