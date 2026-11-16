@@ -156,3 +156,4 @@
 | CHG-0157 | EDITORIAL | T28: el guard anti-duplicación no bloquea la edición de los archivos que la tarea está autorizada a extender |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/246 |
 | CHG-0158 | EDITORIAL | T28.1: el feedback visible no se oculta por palabras comunes; se bloquean material de examen y valores secretos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/248 |
 | CHG-0159 | EDITORIAL | T28.2: el publicador de feedback acepta el extracto completo que produce el Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/249 |
+| CHG-0160 | EDITORIAL | T28.3: un feedback retenido indica la regla y la corrida, sin contenido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/250 |
