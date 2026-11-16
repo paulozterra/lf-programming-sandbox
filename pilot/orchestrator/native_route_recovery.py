@@ -77,6 +77,8 @@ def _artifact_payload(run, api, repo: str, event: dict):
             proof = json.loads(path.read_text("utf-8"))
         except (UnicodeError, ValueError):
             return None
+        if not isinstance(proof, dict):
+            return None
         feedback = read_public(folder / "native-visible-feedback-and-cost/feedback.json",
                                proof.get("attempt"))
     return proof, feedback
@@ -150,8 +152,8 @@ def comment_defect(run, api, repo: str, evidence: dict) -> str:
            and (c.get("user") or {}).get("login") == "github-actions[bot]"):
         return "ROUTE_DEFECT_ALREADY_RECORDED"
     body = (marker + "\n**ROUTE_DEFECT confirmado:** el intento "
-            + str(evidence["attempt"]) + "/3 de \`" + task + "\` (SHA \`" + sha
-            + "\`) de la corrida " + str(run_id)
+            + str(evidence["attempt"]) + "/3 de `" + task + "` (SHA `" + sha
+            + "`) de la corrida " + str(run_id)
             + " no cuenta para el máximo de 3. "
             + "El fallo corresponde a una dependencia del comando Python de la ruta, "
             + "no a una evaluación válida del código propuesto. "
@@ -246,8 +248,8 @@ def comment_resubmit(run, api, repo: str, number: int, task: str,
            if isinstance(c, dict) and
            (c.get("user") or {}).get("login") == "github-actions[bot]"):
         return "ROUTE_DEFECT_RESUBMIT_ALREADY_NOTIFIED"
-    msg = (marker + "\n**REENVÍO REQUERIDO:** \`" + task + "\` SHA \`"
-           + sha + "\`: " + reason
+    msg = (marker + "\n**REENVÍO REQUERIDO:** `" + task + "` SHA `"
+           + sha + "`: " + reason
            + ". Consulta el proposal-request.json actualizado en main y "
            + "vuelve a enviar un sobre con su task_pack_sha256 y base registrados.")
     run("gh", "issue", "comment", str(number), "--repo", repo, "--body", msg)
@@ -308,7 +310,15 @@ def replay_corrected(head, run, api, repo: str, root: Path,
                 run, api, repo, request, task, sha,
                 "el sobre original ya no supera la validación de procedencia")})
             continue
-        if envelope.get("task_pack_sha256") != migration_info["legacy_task_pack_sha256"]:
+        if (not isinstance(envelope, dict)
+                or set(envelope) != {"task_pack_sha256", "proposal_sha256", "proposal", "author"}
+                or envelope.get("author") != "GPT_NATIVE"
+                or not isinstance(envelope.get("proposal"), dict)
+                or hashlib.sha256(json.dumps(
+                    envelope["proposal"], sort_keys=True, separators=(",", ":"),
+                    ensure_ascii=False, allow_nan=False).encode("utf-8")).hexdigest()
+                       != envelope.get("proposal_sha256")
+                or envelope.get("task_pack_sha256") != migration_info["legacy_task_pack_sha256"]):
             results.append({"status": comment_resubmit(
                 run, api, repo, request, task, sha,
                 "el SHA del paquete original difiere del paquete histórico certificado")})
@@ -327,6 +337,7 @@ def sweep(head, run, api, repo, root, worktree, draft, pending_draft):
     results = []
     # A historical run is classified once from trusted visible artifacts; no
     # source file is changed by this classification alone.
+    scheduled = False
     for item in rows:
         if not isinstance(item, dict) or item.get("conclusion") != "failure":
             continue
@@ -337,7 +348,15 @@ def sweep(head, run, api, repo, root, worktree, draft, pending_draft):
             continue
         results.append({"status": comment_defect(run, api, repo, evidence),
                         "task": evidence["task"], "run_id": item["id"]})
-        results.append(prepare_repair(head, run, api, repo, root,
-                                      evidence, worktree, draft, pending_draft))
+        # One generated CHG / Draft per sweep; subsequent tasks follow after
+        # Train advances main, avoiding two bot branches claiming one CHG.
+        if not scheduled:
+            registration = prepare_repair(head, run, api, repo, root,
+                                          evidence, worktree, draft, pending_draft)
+            results.append(registration)
+            if registration["status"] in (
+                    "ROUTE_DEFECT_REGISTRATION_DRAFT",
+                    "ROUTE_DEFECT_REGISTRATION_PENDING"):
+                scheduled = True
     results.extend(replay_corrected(head, run, api, repo, root, rows))
     return results
