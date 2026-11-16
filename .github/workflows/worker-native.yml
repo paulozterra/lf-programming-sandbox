@@ -84,6 +84,7 @@ jobs:
           MANUAL_SHA: ${{ inputs.proposal_commit_sha }}
           MANUAL_TASK: ${{ inputs.task }}
           MANUAL_ATTEMPT: ${{ inputs.attempt }}
+          MANUAL_INFRA_RETRY: ${{ inputs.infra_retry }}
           REPO_NAME: ${{ github.repository }}
         shell: bash
         run: |
@@ -109,6 +110,9 @@ jobs:
           args=(--control control --sha "$sha" --github-output "$GITHUB_OUTPUT")
           if [ -n "$branch" ]; then
             args+=(--branch "$branch")
+          fi
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$MANUAL_INFRA_RETRY" = "true" ]; then
+            args+=(--allow-historical-base)
           fi
           python3 control/pilot/worker_v08/native_proposal_push_guard.py "${args[@]}"
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
