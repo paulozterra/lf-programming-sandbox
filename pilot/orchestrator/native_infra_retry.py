@@ -66,8 +66,8 @@ def retry_native_infra(head, run, api, repo, control):
         if (job.get("name") != "native" or not isinstance(steps, list)
                 or not any(s.get("name") == INFRA_STEP and s.get("conclusion") == "failure"
                            for s in steps if isinstance(s, dict))
-                or any(s.get("name") == "Run native Worker and verify" and
-                       s.get("conclusion") == "success" for s in steps if isinstance(s, dict))):
+                or any(s.get("name") == "Admit task and registered base (fail closed until Claude registers ex6)" and
+                       s.get("conclusion") != "skipped" for s in steps if isinstance(s, dict))):
             continue
         branch = "lf/native-proposal/" + task
         remote = run("git", "ls-remote", "origin", "refs/heads/" + branch).split()
@@ -84,7 +84,8 @@ def retry_native_infra(head, run, api, repo, control):
             continue
         run("gh", "workflow", "run", "worker-native.yml", "--repo", repo,
             "--ref", "main", "-f", "task=" + task,
-            "-f", "proposal_commit_sha=" + sha, "-f", "attempt=1")
+            "-f", "proposal_commit_sha=" + sha, "-f", "attempt=1",
+            "-f", "infra_retry=true")
         outcomes.append({"status": "NATIVE_INFRA_RETRY_DISPATCHED",
                          "task": task, "proposal_sha": sha,
                          "source_run_id": original["id"]})
