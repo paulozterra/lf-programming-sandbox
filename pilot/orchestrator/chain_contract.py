@@ -98,6 +98,12 @@ def attest_merge(merge_sha: str, pr: dict, lots: dict,
     lot_id = matching[0]
     lot = next(x for x in lots["lots"] if x["id"] == lot_id)
     allowed = set(lot["write_paths"])
+    # T26.1: a contract lot's integration also carries the outputs of the
+    # trusted CP3.5 generator (T25). Accept exactly those generator outputs,
+    # and only for a lot that integrates an OpenAPI contract.
+    from native_derived_generation import generated_output, needs_contract_derivatives
+    if needs_contract_derivatives(lot["write_paths"]):
+        allowed |= {p for p in changes if generated_output(p)}
     actual = changes - {p for p in changes if p.startswith("standards/changes/")} - {"standards/CAMBIOS.md"}
     if not actual or not actual.issubset(allowed):
         deny("INTEGRATION_SCOPE_MISMATCH")

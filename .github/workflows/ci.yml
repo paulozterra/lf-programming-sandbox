@@ -231,6 +231,8 @@ jobs:
         run: python3 -m pytest -q pilot/orchestrator/test_t20_bot_ci_retry.py -p no:cacheprovider
       - name: T19 native envelope publication, push guard and worker client (offline)
         run: python3 -m pytest -q pilot/orchestrator/test_t19_native_submission.py -p no:cacheprovider
+      - name: T26.1 contract lot attestation accepts trusted generator outputs (offline)
+        run: python3 -m pytest -q pilot/orchestrator/test_t26_1_attest_derivatives.py -p no:cacheprovider
       - name: T26 affected project tests in lot scope and pending plan refresh (offline)
         run: python3 -m pytest -q pilot/orchestrator/test_t26_affected_tests.py -p no:cacheprovider
       - name: T18.1 isolated CP3.6 sweep and global failure alert (offline)

@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0146",
+  "title": "T26.1: la certificación de un lote de contrato integrado acepta las salidas del generador confiable",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T26.1: sweep CP3.6 tras #233 bloquea req-186 con CP36_INTEGRATION_SCOPE_MISMATCH: la integración #230 del lote CONTRATO incluye el cliente TypeScript generado por CP3.5 (T25)"
+  },
+  "reason": "T26.1: attest_merge acepta exactamente las salidas del generador confiable de T25 (frontend/src/lib/api/generated/<nombre>.ts) y solo en lotes que integran un contrato OpenAPI; el alcance del Worker (expected_files) sigue siendo el planificado. Cualquier otra ruta sigue bloqueando.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/chain_contract.py",
+      "pilot/orchestrator/test_t26_1_attest_derivatives.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0146.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/236"
+  }
+}
