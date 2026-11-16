@@ -154,3 +154,4 @@
 | CHG-0155 | ADDITIVE | T27.1: un fallo transitorio del CI de main no detiene la cadena |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/244 |
 | CHG-0156 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/245 |
 | CHG-0157 | EDITORIAL | T28: el guard anti-duplicación no bloquea la edición de los archivos que la tarea está autorizada a extender |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/246 |
+| CHG-0158 | EDITORIAL | T28.1: el feedback visible no se oculta por palabras comunes; se bloquean material de examen y valores secretos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/0 |

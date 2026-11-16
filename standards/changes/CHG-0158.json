@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0158",
+  "title": "T28.1: el feedback visible no se oculta por palabras comunes; se bloquean material de examen y valores secretos",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T28.1: Worker 43932762… req186backend2 intento 2: el paso T22 respondió FEEDBACK_NO_PUBLICO; el constructor no recibió el feedback visible (fallo de Spotless) por palabras como token en la salida de una funcionalidad de autenticación"
+  },
+  "reason": "T28.1: el filtro de publicación deja de bloquear palabras ordinarias (token, secret, private, hidden, credential) y bloquea referencias al examen (oracle, holdout, rutas de exámenes, holdout_sha256) y valores secretos concretos (hash bcrypt, bearer con valor, claves privadas). La recuperación T22 del barrido publica el feedback ya rechazado.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_feedback_delivery.py",
+      "pilot/worker_v08/test_t28_1_feedback_words.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0158.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/0"
+  }
+}

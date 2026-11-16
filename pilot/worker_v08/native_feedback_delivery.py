@@ -24,10 +24,17 @@ REQUEST = re.compile(r"req-[1-9][0-9]*\Z")
 AUTO = re.compile(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 ROUTE_REPLAY = re.compile(r"lf-native-route-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 INFRA = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
+# T28.1: block exam material and real secret VALUES, not ordinary words.
+# Visible build/test output of an auth feature legitimately says "token",
+# "secret" or "private"; blocking those words hid all feedback from the
+# constructor. Exam references and concrete credential values stay blocked.
 PRIVATE = re.compile(
-    r"oracle|holdout|hidden|private|secret|credential|token|"
+    r"oracle|holdout|"
     r"comando[s]? oculto[s]?|examen oculto|/native-private/|"
-    r"pil[o]t/holdouts/|holdout_sha256",
+    r"pil[o]t/holdouts/|holdout_sha256|"
+    r"\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{20,}|"          # bcrypt hash value
+    r"bearer\s+[A-Za-z0-9._~+/=-]{16,}|"                  # concrete bearer token
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----|AGE-SECRET-KEY-",  # key material
     re.IGNORECASE,
 )
 MAX = 100
