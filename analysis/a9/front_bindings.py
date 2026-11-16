@@ -116,7 +116,7 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
     consume("fields", "fields",
             lambda row: row.get("status") == "VIGENTE")
     consume("errors", "errors",
-            lambda row: row.get("status") == "VIGENTE" and row.get("generic") is True)
+            lambda row: row.get("status") == "VIGENTE")
     consume("visual", "visual.variants",
             lambda row: row.get("status") == "VIGENTE")
 

@@ -30,7 +30,37 @@
     "error_states": [
       "BACKEND"
     ],
-    "analytics": []
+    "analytics": [],
+    "accessibility": [
+      "FRONTEND"
+    ],
+    "ux": [
+      "FRONTEND"
+    ],
+    "design": [
+      "FRONTEND"
+    ],
+    "theme": [
+      "FRONTEND"
+    ],
+    "responsive": [
+      "FRONTEND"
+    ],
+    "session": [
+      "BACKEND"
+    ],
+    "resilience": [
+      "BACKEND"
+    ],
+    "privacy": [
+      "BACKEND"
+    ],
+    "error": [
+      "BACKEND"
+    ],
+    "error_handling": [
+      "BACKEND"
+    ]
   },
   "version": 1,
   "source_policy": "EXPLICIT_RULE_REFS_ONLY",
