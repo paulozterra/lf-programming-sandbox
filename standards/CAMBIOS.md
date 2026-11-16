@@ -142,3 +142,4 @@
 | CHG-0140 | ADDITIVE | T24.1: conectar replay de CP3.5 y descontar defectos de ruta del historial |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/225 |
 | CHG-0142 | ADDITIVE | T25: contrato de producto y cliente OpenAPI derivado en integración CP3.5 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/228 |
 | CHG-0143 | ADDITIVE | T25.1: API de colecciones GitHub paginada y recuperación aislada por pedido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/229 |
+| CHG-0144 | EDITORIAL | CP3.5: integración verificada nativa req186contrato1 (run 43797847761) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/230 |
