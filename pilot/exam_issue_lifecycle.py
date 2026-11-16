@@ -5,14 +5,16 @@ import json
 from pathlib import Path
 import re
 
+from pilot.native_registration_family import registration_family
+
 
 class LifecycleBlocked(ValueError):
     pass
 
 
 def registration_task(branch: str) -> str | None:
-    m = re.fullmatch(r"lf/native-registration/([a-z][a-z0-9_-]{0,31})-[0-9a-f]{12}", branch)
-    return m.group(1) if m else None
+    kind, task = registration_family(branch)
+    return task if kind == "registration" else None
 
 
 def issue_for(api, task: str, slug: str) -> dict | None:
