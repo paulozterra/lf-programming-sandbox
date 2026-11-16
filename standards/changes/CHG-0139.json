@@ -1,0 +1,51 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0139",
+  "title": "T24: ámbitos de escritura comunes y recuperación de integración de PASS existente",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T24: req186contrato1 PASS Worker 43797847761, CP3.5 43797998417 failed CP35_TASK_SCOPE_UNSAFE"
+  },
+  "reason": "Compartir una única política de raíces de escritura por área en generate_chain, plantillas, guard de propuestas e integración CP3.5; garantizar por CI que toda ruta generada sea admisible. Tras integrar T24, CP3.6 recupera exactamente el PASS previo con artefactos y prueba de intento verificados por CP3.5, sin relanzar Worker, mediante dispatch idempotente y PR de integración bajo política C/Train.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/native-verified-integration.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/native_integration_replay.py",
+      "pilot/orchestrator/native_verified_integration.py",
+      "pilot/orchestrator/native_write_scope.py",
+      "pilot/orchestrator/test_t17_4_conflict_recovery.py",
+      "pilot/orchestrator/test_t17_recovery_watchdog.py",
+      "pilot/orchestrator/test_t18_1_sweep_isolation.py",
+      "pilot/orchestrator/test_t18_task_pack_publication.py",
+      "pilot/orchestrator/test_t20_bot_ci_retry.py",
+      "pilot/orchestrator/test_t24_integration_replay.py",
+      "pilot/orchestrator/test_t24_scope_contract.py",
+      "pilot/orchestrator/worker_template_contract.py",
+      "pilot/test_t15_sweep.py",
+      "pilot/worker_v08/native_proposal_push_guard.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0139.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
