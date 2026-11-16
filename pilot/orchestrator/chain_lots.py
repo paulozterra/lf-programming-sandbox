@@ -565,9 +565,21 @@ def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
         if not found:
             comment_unrecoverable_conflict(row, all_plans, "INTEGRATION_PROVENANCE_UNKNOWN")
             return {"status": "CONFLICT_REGEN_BLOCKED", "reason": "INTEGRATION_PROVENANCE_UNKNOWN"}
-        # A CI-red generated-product PR was retired by T17.4. Re-run only
-        # CP3.5 on the immutable successful Worker run, never the Worker.
-        if str(row.get("reason", "")).startswith("CI_DERIVED_"):
+        # T25: contracts require the official Node code generator. Route
+        # both mechanically red and main-conflicted contract integrations
+        # through trusted CP3.5, which provisions npm and reattests the PASS.
+        # Legacy non-contract conflict recovery keeps its worktree path.
+        task = branch.rsplit("/", 1)[-1].rsplit("-run-", 1)[0]
+        registration = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+        contract = False
+        if registration.is_file() and not registration.is_symlink():
+            from pilot.orchestrator.native_derived_generation import needs_contract_derivatives
+            try:
+                spec = json.loads(registration.read_text("utf-8"))["task_spec"]
+                contract = needs_contract_derivatives(spec["write_path_patterns"])
+            except (OSError, ValueError, KeyError, TypeError):
+                contract = False
+        if str(row.get("reason", "")).startswith("CI_DERIVED_") or contract:
             run("gh", "workflow", "run", "native-verified-integration.yml",
                 "--repo", REPO, "--ref", "main", "-f",
                 "source_run_id=" + found.group(1))
@@ -1143,7 +1155,6 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     ci_retired_tasks = {
         match.group(1) for row in retired
         if row.get("kind") == "integration"
-        and str(row.get("reason", "")).startswith("CI_DERIVED_")
         for match in [re.fullmatch(
             r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*",
             row.get("branch", ""))] if match
