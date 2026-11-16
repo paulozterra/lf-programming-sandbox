@@ -180,7 +180,9 @@ def ensure_main_ci(api: Github, sha: str, *, required: bool,
         return {"status": "MAIN_CI_DISPATCHED", "sha": sha}
     attempts = (config["wait_seconds"] + config["poll_seconds"] - 1) // config["poll_seconds"]
     last = None
-    for attempt in range(attempts):
+    rerun_requested = False
+    attempt = 0
+    while attempt < attempts:
         run = main_ci_run(api, sha, config)
         if run is not None and type(run.get("id")) is int and run["id"] > previous_id:
             last = run
@@ -188,8 +190,18 @@ def ensure_main_ci(api: Github, sha: str, *, required: bool,
                 if run.get("conclusion") == "success":
                     return {"status": "MAIN_CI_GREEN", "sha": sha,
                             "run_id": run["id"], "url": run["html_url"]}
+                # T27.1: transient infrastructure (registry 429/503, runner
+                # loss) must not stop the chain. Re-run only the failed jobs
+                # of this exact run, once; a real defect fails again.
+                if not rerun_requested and run.get("run_attempt", 1) == 1:
+                    api.call("POST", f"/actions/runs/{run['id']}/rerun-failed-jobs")
+                    rerun_requested = True
+                    attempt = 0  # fresh wait budget for the re-run
+                    sleep(config["poll_seconds"])
+                    continue
                 raise HandoffBlocked("BASE_NO_VERDE:" + str(run.get("html_url") or "CI_NO_URL"))
-        if attempt + 1 < attempts:
+        attempt += 1
+        if attempt < attempts:
             sleep(config["poll_seconds"])
     # A completed old run cannot stand in for a missing new dispatch.
     raise HandoffBlocked("BASE_NO_VERDE:" + str(last.get("html_url") if last else "CI_NO_RUN"))

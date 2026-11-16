@@ -183,7 +183,24 @@ class Tests(unittest.TestCase):
                                         "BASE_NO_VERDE:.*actions/runs/189"):
                 handoff.dispatch(api, 177, SHA, 42, MAPPING)
         dispatched = [path for method, path, _ in api.calls if method == "POST"]
-        self.assertEqual(dispatched, ["/actions/workflows/ci.yml/dispatches"])
+        # T27.1: exactly one re-run of the failed jobs, then terminal; never CP3.6.
+        self.assertEqual(dispatched, ["/actions/workflows/ci.yml/dispatches",
+                                      "/actions/runs/189/rerun-failed-jobs"])
+
+    def test_transient_main_ci_failure_rerun_turns_green_and_releases_cp36(self):
+        failed = ci_run(conclusion="failure")
+        rerun_green = dict(ci_run(), run_attempt=2)
+        api = API([None, failed, rerun_green])
+        with patch.object(handoff, "git", return_value=SHA), \
+             patch.object(handoff, "validate_train_run"), \
+             patch.object(handoff, "merged_request_slug", return_value="req-175"), \
+             patch.object(handoff, "comment_analysis_report"), \
+             patch.object(handoff.time, "sleep"):
+            handoff.dispatch(api, 177, SHA, 42, MAPPING)
+        posts = [path for method, path, _ in api.calls if method == "POST"]
+        self.assertEqual(posts[:2], ["/actions/workflows/ci.yml/dispatches",
+                                     "/actions/runs/189/rerun-failed-jobs"])
+        self.assertIn("/actions/workflows/chain-lots.yml/dispatches", posts)
 
     def test_main_moved_blocks_before_ci_dispatch(self):
         class Moved(API):
