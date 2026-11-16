@@ -25,6 +25,14 @@ def save(path, value):
         with path.open("xb") as f:
             f.write(content)
 
+def enforce_generated_scope(area: str, paths: list[str]) -> None:
+    """No generator may issue a path that CP3.5 rejects for its area."""
+    try:
+        validate_write_paths(paths, area=area)
+    except ValueError as exc:
+        raise ValueError("SCOPE_GENERACION_INTEGRACION_DIVERGE:" + str(area)) from exc
+
+
 def acceptance(area, paths, *, run=None, module=None, has_contract=False, skeleton_path=None, infra_dependencies=None):
     def item(name, argv, timeout=600):
         if argv and Path(argv[0]).name in ("python", "python2", "python3", "python3.12"):
@@ -205,10 +213,7 @@ def generate(root, run, lots):
         rows.append({"lot_id":lot["id"],"task_name":task,"template_path":tpath,
                      "holdout_metadata_path":f"pilot/runs/{run}/claude_meta/{task}.json"})
         paths=sorted(lot["write_paths"])
-        try:
-            validate_write_paths(paths, area=lot["area"])
-        except ValueError as exc:
-            raise ValueError("SCOPE_GENERACION_INTEGRACION_DIVERGE:" + str(lot["area"])) from exc
+        enforce_generated_scope(lot["area"], paths)
         protected=[".github/**",".lf/**","pilot/**","vendor/**",
                    "apps/time-service/src/test/**","apps/time-service/visible-tests/**",
                    "apps/time-service/pom.xml","apps/time-service/src/main/resources/**",
