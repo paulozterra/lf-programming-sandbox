@@ -19,6 +19,7 @@ from native_attempt_guard import validate_attempt_history
 
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 _MANUAL_TITLE = re.compile(r"lf-native-([a-z][a-z0-9_-]{0,31})-a([1-3])\Z")
+_INFRA_TITLE = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\\Z")
 _AUTO_TITLE = re.compile(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 _WORKFLOW = "worker-native.yml"
@@ -97,8 +98,13 @@ def _recognized_run(run: dict, task: str, *, attempt: int | None = None,
     event = run.get("event")
     if event == "workflow_dispatch":
         match = _MANUAL_TITLE.fullmatch(title)
-        return (match is not None and match.group(1) == task and
-                (attempt is None or int(match.group(2)) == attempt))
+        if match is not None:
+            return match.group(1) == task and (
+                attempt is None or int(match.group(2)) == attempt)
+        recovery = _INFRA_TITLE.fullmatch(title)
+        return (recovery is not None and recovery.group(1) == task
+                and (attempt is None or attempt == 1)
+                and (sha is None or recovery.group(2) == sha))
     if event == "workflow_run":
         match = _AUTO_TITLE.fullmatch(title)
         return (match is not None and match.group(1) == task and
@@ -137,7 +143,7 @@ def admit_attempt(
     current = [r for r in results if r.get("id") == run_id]
     if (len(current) != 1 or current[0].get("event") != event or
         not _recognized_run(current[0], task, attempt=attempt,
-                            sha=sha if event == "workflow_run" else None,
+                            sha=sha,
                             branch=proposal_branch)):
         raise ValueError("NATIVE_CURRENT_RUN_NOT_ATTESTED")
     prior: list[dict] = []
@@ -161,10 +167,12 @@ def admit_attempt(
             raise ValueError("NATIVE_PRIOR_PROOF_MISMATCH")
         if proof["task_id"] != task:
             continue
-        if run.get("event") == "workflow_run":
-            match = _AUTO_TITLE.fullmatch(run.get("display_title") or "")
-            if match is not None and match.group(2) == sha:
-                raise ValueError("NATIVE_DUPLICATE_PROPOSAL_SHA")
+        title = run.get("display_title") or ""
+        match = (_AUTO_TITLE.fullmatch(title)
+                 if run.get("event") == "workflow_run"
+                 else _INFRA_TITLE.fullmatch(title))
+        if match is not None and match.group(2) == sha:
+            raise ValueError("NATIVE_DUPLICATE_PROPOSAL_SHA")
         prior.append(proof)
     computed = len(prior) + 1
     if computed > 3:
