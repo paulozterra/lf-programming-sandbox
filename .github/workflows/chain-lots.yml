@@ -39,6 +39,11 @@ on:
         required: false
         type: boolean
         default: false
+      retry_attempt:
+        description: T27 bounded transient retry number, 0 through 2
+        required: false
+        type: string
+        default: '0'
 
 permissions:
   contents: write
@@ -108,8 +113,9 @@ jobs:
         env:
           CP36_PACK_OUT: ${{ runner.temp }}/cp36-proposal-packs
         run: |
+          set -o pipefail
           if [ "${{ inputs.sweep }}" = "true" ]; then
-            python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --sweep --base-sha "${{ inputs.base_sha }}"
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --sweep --base-sha "${{ inputs.base_sha }}" | tee "$RUNNER_TEMP/cp36-sweep-outcomes.json"
           elif [ -n "$INTEGRATION_PR" ]; then
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --integration-pr "$INTEGRATION_PR"
           elif [ -n "$NEW_PLAN_REQUEST" ]; then
@@ -117,6 +123,54 @@ jobs:
               --new-plan-request "$NEW_PLAN_REQUEST" --new-plan-pr "$MERGE_PR"
           else
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --source-run-id "$SOURCE_RUN_ID"
+          fi
+      - name: T27 retry transient sweep on exact main, bounded by attempt
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.sweep == true && github.ref == 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ inputs.base_sha }}
+          RETRY_ATTEMPT: ${{ inputs.retry_attempt || '0' }}
+        run: |
+          set -euo pipefail
+          file="$RUNNER_TEMP/cp36-sweep-outcomes.json"
+          test -f "$file" || exit 0
+          python3 - "$file" "$RUNNER_TEMP/cp36-transient-requests.txt" <<'PY'
+          import json, re, sys
+          try:
+              outcomes = json.load(open(sys.argv[1], encoding="utf-8"))
+          except (OSError, ValueError):
+              sys.exit(0)
+          transient = [
+              row for row in outcomes
+              if isinstance(row, dict)
+              and isinstance(row.get("reason"), str)
+              and row["reason"].startswith("GITHUB_TRANSITORIO:")
+          ]
+          requests = sorted({
+              row["request"] for row in transient
+              if isinstance(row.get("request"), str)
+              and re.fullmatch(r"req-[1-9][0-9]*", row["request"])
+          })
+          with open(sys.argv[2], "w", encoding="utf-8") as handle:
+              handle.write("\n".join(requests) if requests else
+                           "GLOBAL" if transient else "")
+          PY
+          test -s "$RUNNER_TEMP/cp36-transient-requests.txt" || exit 0
+          [[ "$RETRY_ATTEMPT" =~ ^[012]$ ]] || exit 1
+          test "$(git rev-parse HEAD)" = "$BASE_SHA" || exit 0
+          if [ "$RETRY_ATTEMPT" -lt 2 ]; then
+            sleep 180
+            test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$BASE_SHA" || exit 0
+            gh workflow run chain-lots.yml --repo "$GITHUB_REPOSITORY" --ref main \
+              -f sweep=true -f base_sha="$BASE_SHA" -f retry_attempt="$((RETRY_ATTEMPT + 1))"
+          else
+            # Terminal notice; the existing watchdog is still triggered below.
+            while IFS= read -r request; do
+              [[ "$request" == req-* ]] || continue
+              number="${request#req-}"
+              gh issue comment "$number" --repo "$GITHUB_REPOSITORY" \
+                --body "<!-- LF_T27_TRANSIENT_EXHAUSTED:$BASE_SHA:$request --> GITHUB_TRANSITORIO: reintentos CP3.6 agotados para $BASE_SHA; requiere revisión del watchdog."
+            done < "$RUNNER_TEMP/cp36-transient-requests.txt"
           fi
       - name: Publish only safe GPT task packs, not hidden tests
         if: always()

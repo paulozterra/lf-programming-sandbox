@@ -16,6 +16,7 @@ import zipfile
 from pathlib import Path
 
 from native_attempt_guard import validate_attempt_history
+from github_network_retry import transport_read
 
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 _MANUAL_TITLE = re.compile(r"lf-native-([a-z][a-z0-9_-]{0,31})-a([1-3])\Z")
@@ -33,8 +34,10 @@ def _api(base: str, token: str, route: str) -> dict:
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     })
-    with urllib.request.urlopen(request, timeout=25) as response:
-        return json.loads(response.read(5_000_001))
+    def read():
+        with urllib.request.urlopen(request, timeout=25) as response:
+            return json.loads(response.read(5_000_001))
+    return transport_read(read, "ARTIFACT_API")
 
 
 def _artifact_json(base: str, token: str, run_id: int) -> dict | None:
@@ -62,24 +65,31 @@ def _artifact_json(base: str, token: str, run_id: int) -> dict | None:
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
     })
-    try:
-        with urllib.request.build_opener(NoRedirect()).open(request, timeout=25):
-            raise ValueError("NATIVE_PRIOR_PROOF_REDIRECT_EXPECTED")
-    except urllib.error.HTTPError as exc:
-        if exc.code != 302:
-            raise
-        location = exc.headers.get("Location")
-        exc.close()
+    def read_redirect():
+        try:
+            with urllib.request.build_opener(NoRedirect()).open(request, timeout=25):
+                raise ValueError("NATIVE_PRIOR_PROOF_REDIRECT_EXPECTED")
+        except urllib.error.HTTPError as exc:
+            if exc.code != 302:
+                raise
+            location = exc.headers.get("Location")
+            exc.close()
+            return location
+
+    location = transport_read(read_redirect, "ARTIFACT_REDIRECT")
     target = urllib.parse.urlsplit(location) if isinstance(location, str) else None
     if (target is None or target.scheme != "https" or not target.hostname
             or target.username is not None or target.password is not None):
         raise ValueError("NATIVE_PRIOR_PROOF_REDIRECT_HTTPS_REQUIRED")
     # A separate request to signed storage: absolutely no Authorization header.
     # Do not follow a second redirect to an unverified destination.
-    with urllib.request.build_opener(NoRedirect()).open(
-        urllib.request.Request(location), timeout=25
-    ) as response:
-        archive = response.read(1_000_001)
+    def read_archive():
+        with urllib.request.build_opener(NoRedirect()).open(
+            urllib.request.Request(location), timeout=25
+        ) as response:
+            return response.read(1_000_001)
+
+    archive = transport_read(read_archive, "ARTIFACT_DOWNLOAD")
     if len(archive) > 1_000_000:
         raise ValueError("NATIVE_PRIOR_PROOF_ARCHIVE_SIZE_INVALID")
     with zipfile.ZipFile(io.BytesIO(archive)) as zipped:

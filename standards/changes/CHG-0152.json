@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0152",
+  "title": "T27: recuperación de fallos transitorios GitHub en CP3.6",
+  "reason": "T27: reintentos limitados de lecturas, detalle de bloqueos, re-barrido controlado y CI main atascado.",
+  "change_class": "EDITORIAL",
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-16 T27"
+  },
+  "affected": {
+    "paths": [
+      ".github/workflows/chain-lots.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/test_t16_worker_errors.py",
+      "pilot/orchestrator/test_t27_github_transient.py",
+      "pilot/worker_v08/github_network_retry.py",
+      "pilot/worker_v08/native_run_history.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0152.json"
+    ],
+    "rule_ids": [],
+    "term_ids": []
+  },
+  "existing_code_impact": {
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING",
+    "mode": "NEW_OR_MODIFIED_ONLY"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "artifacts": [],
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/241"
+  }
+}

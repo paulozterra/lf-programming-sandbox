@@ -10,6 +10,8 @@ write). Missing manifests, evidence and encrypted holdouts fail closed.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
+import time
 import hashlib
 import json
 import os
@@ -48,27 +50,57 @@ SAFE_ID = re.compile(r"[a-z][a-z0-9_-]{0,63}\Z")
 
 
 def run(*args: str, cwd: Path = ROOT, check: bool = True) -> str:
-    try:
-        p = subprocess.run(list(args), cwd=cwd, stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE, text=True, timeout=120)
-    except (OSError, subprocess.TimeoutExpired):
-        deny("COMMAND_UNAVAILABLE")
-    if check and p.returncode:
+    # The existing run() seam stays injectable for offline T12/T25 tests.
+    # Only idempotent gh api GETs are retried; POSTs must not be replayed.
+    api_get = len(args) >= 3 and args[:2] == ("gh", "api") and args[2] != "-X"
+    attempts = 3 if api_get else 1
+    for attempt in range(attempts):
+        try:
+            p = subprocess.run(list(args), cwd=cwd, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, text=True, timeout=120)
+        except (OSError, subprocess.TimeoutExpired):
+            if api_get and attempt + 1 < attempts:
+                time.sleep(2 ** attempt)
+                continue
+            if api_get:
+                raise ValueError("GITHUB_TRANSITORIO:API") from None
+            deny("COMMAND_UNAVAILABLE")
+        if not check or p.returncode == 0:
+            return p.stdout.strip()
+        if api_get:
+            stderr = p.stderr or ""
+            match = re.search(r"(?<![0-9])(?:HTTP[ /:]*)?([45][0-9]{2})(?![0-9])", stderr)
+            status = int(match.group(1)) if match else None
+            if status is not None and status != 429 and not 500 <= status <= 599:
+                raise ValueError(f"GITHUB_HTTP_{status}:API") from None
+            transient = (status == 429 or status is not None and 500 <= status <= 599
+                         or bool(re.search(
+                             r"(?i)(timed? out|connection reset|connection refused|"
+                             r"could not resolve host|temporary failure|TLS handshake)",
+                             stderr)))
+            if transient:
+                if attempt + 1 < attempts:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise ValueError("GITHUB_TRANSITORIO:API") from None
         command = Path(args[1] if args[0] in ("python3", "lf-python", "python")
                        and len(args) > 1 else args[0]).name
-        # Only expose a bounded machine-readable code from the last stderr
-        # line, never arbitrary paths, arguments, tokens, or secret values.
         tail = (p.stderr or "").splitlines()
         last = tail[-1].strip() if tail else ""
         match = re.search(r"(CP35_BLOCKED|TEMPLATE_WORKER_SCHEMA_INVALID):([A-Z0-9_:-]{1,120})", last)
         detail = (match.group(1) + ":" + match.group(2).rstrip(":")
                   if match else "STDERR_REDACTED" if last else "NO_STDERR")
         deny("COMMAND_FAILED:" + command + ":" + detail)
-    return p.stdout.strip()
+    raise ValueError("GITHUB_TRANSITORIO:API")
+
+
+def github_api_raw(path: str) -> str:
+    """Read via injectable transport, with bounded retries and safe errors."""
+    return run("gh", "api", f"repos/{REPO}/{path}")
 
 
 def api(path: str) -> dict:
-    raw = run("gh", "api", f"repos/{REPO}/{path}")
+    raw = github_api_raw(path)
     try:
         parsed = json.loads(raw)
     except ValueError:
@@ -93,7 +125,7 @@ def api_list(path: str, *, max_pages: int = 10) -> list[dict]:
     for page in range(1, max_pages + 1):
         separator = "&" if "?" in path else "?"
         endpoint = f"{path}{separator}per_page=100&page={page}"
-        raw = run("gh", "api", f"repos/{REPO}/{endpoint}")
+        raw = github_api_raw(endpoint)
         try:
             parsed = json.loads(raw)
         except ValueError:
@@ -176,6 +208,28 @@ def main_ci_decision(head: str) -> str:
     latest = max(eligible, key=lambda row: (row.get("created_at") or "",
                                             row.get("id") or 0))
     if latest.get("status") != "completed":
+        if latest.get("status") == "queued":
+            timestamp = latest.get("created_at")
+            try:
+                started = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                age = (datetime.now(timezone.utc) - started).total_seconds()
+            except (ValueError, TypeError, AttributeError):
+                age = 0
+            if age >= 600:
+                jobs = api(f"actions/runs/{latest['id']}/jobs?per_page=100")
+                if (isinstance(jobs.get("jobs"), list)
+                        and jobs.get("total_count") == 0):
+                    # Only a queued push can be retried. A queued dispatch
+                    # represents the one replacement; never spawn another.
+                    if latest.get("event") == "push":
+                        try:
+                            run("gh", "api", "-X", "POST",
+                                f"repos/{REPO}/actions/runs/{latest['id']}/cancel")
+                        except (ChainBlocked, OSError):
+                            pass  # Cancellation best effort; dispatch remains bounded.
+                        run("gh", "workflow", "run", "ci.yml", "--repo", REPO,
+                            "--ref", "main")
+                    return "GITHUB_CI_ATASCADO"
         return "WAITING_MAIN_CI"
     if latest.get("conclusion") != "success":
         deny("BASE_NO_VERDE")
@@ -999,6 +1053,19 @@ GLOBAL_SWEEP_ERRORS = frozenset({
 })
 
 
+def safe_failure_code(exc: Exception) -> str:
+    """Preserve machine-readable detail, never a URL, path, token or response body."""
+    raw = str(exc)
+    if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw):
+        return raw
+    status = getattr(exc, "code", None)
+    status_part = f":{status}" if type(status) is int and 100 <= status <= 599 else ""
+    kind = type(exc).__name__
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,50}", kind):
+        kind = "Exception"
+    return "CP36_LOCAL_FAILURE:" + kind + status_part
+
+
 def sweep_recovery_block(phase: str, exc: Exception, *,
                          pr: int | None = None) -> dict:
     """An unbound recovery failure never kills an independent healthy chain.
@@ -1006,7 +1073,7 @@ def sweep_recovery_block(phase: str, exc: Exception, *,
     Only audited globally fatal integrity errors are propagated.
     """
     raw = str(exc)
-    code = raw if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw) else "CP36_LOCAL_FAILURE"
+    code = safe_failure_code(exc)
     if code in GLOBAL_SWEEP_ERRORS:
         raise exc
     result = {"status": "BLOCKED", "phase": phase, "reason": code}
@@ -1018,7 +1085,7 @@ def sweep_recovery_block(phase: str, exc: Exception, *,
 def per_request_block(request: str, phase: str, exc: Exception) -> dict:
     """Contain a local failure and notify only the verified issue; no labels."""
     raw = str(exc)
-    code = raw if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw) else "CP36_LOCAL_FAILURE"
+    code = safe_failure_code(exc)
     if code in GLOBAL_SWEEP_ERRORS:
         raise exc
     if re.fullmatch(r"req-[1-9][0-9]*", request) and route_request_metadata(request):
@@ -1249,8 +1316,9 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     # Production entrypoint always checks CI before mutating anything.
     # Older offline process() fixtures exercise logic without GitHub API.
     if kind == "TRAIN" and (sweep or require_ci):
-        if main_ci_decision(head) == "WAITING_MAIN_CI":
-            return [{"status": "WAITING_MAIN_CI", "head_sha": head}]
+        ci_status = main_ci_decision(head)
+        if ci_status != "GREEN":
+            return [{"status": ci_status, "head_sha": head}]
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
     # can hide a Train failure, including when no owner plans are active.
     retired = []
@@ -1490,8 +1558,12 @@ def main() -> int:
                                  sweep=args.sweep, base_sha=args.base_sha,
                                  require_ci=True), sort_keys=True))
     except (ChainBlocked, IntegrationBlocked, AdmissionBlocked, OSError, ValueError, KeyError) as exc:
-        code = (str(exc) if isinstance(exc, (ChainBlocked, IntegrationBlocked, AdmissionBlocked))
-                else "CP36_UNEXPECTED_FAILURE")
+        code = safe_failure_code(exc)
+        if args.sweep and code.startswith("GITHUB_TRANSITORIO:"):
+            # Produce a structured retry signal even before plan discovery.
+            print(json.dumps([{"status": "BLOCKED", "phase": "GLOBAL",
+                               "reason": code}], sort_keys=True))
+            return 0
         print(code, file=sys.stderr)
         return 1
     return 0
