@@ -1551,8 +1551,12 @@ def main() -> int:
                                  sweep=args.sweep, base_sha=args.base_sha,
                                  require_ci=True), sort_keys=True))
     except (ChainBlocked, IntegrationBlocked, AdmissionBlocked, OSError, ValueError, KeyError) as exc:
-        code = (str(exc) if isinstance(exc, (ChainBlocked, IntegrationBlocked, AdmissionBlocked))
-                else "CP36_UNEXPECTED_FAILURE")
+        code = safe_failure_code(exc)
+        if args.sweep and code.startswith("GITHUB_TRANSITORIO:"):
+            # Produce a structured retry signal even before plan discovery.
+            print(json.dumps([{"status": "BLOCKED", "phase": "GLOBAL",
+                               "reason": code}], sort_keys=True))
+            return 0
         print(code, file=sys.stderr)
         return 1
     return 0
