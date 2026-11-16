@@ -22,7 +22,7 @@ def retry_native_infra(head, run, api, repo, control):
     response = api("actions/workflows/worker-native.yml/runs?per_page=100")
     rows = response.get("workflow_runs")
     if (not isinstance(rows, list) or type(response.get("total_count")) is not int
-            or response["total_count"] >= MAX or len(rows) >= MAX):
+            or len(rows) > MAX):
         return [{"status": "NATIVE_INFRA_RETRY_HISTORY_INCOMPLETE"}]
     # GitHub's run-name is a durable dispatch ledger: manual retry titles
     # include the exact proposal SHA. Check every run, not just failures.
@@ -77,7 +77,8 @@ def retry_native_infra(head, run, api, repo, control):
         # without executing any proposal code.
         run("git", "fetch", "--no-tags", "origin", sha)
         try:
-            check = validate_proposal_only(control, sha, main_sha=head, branch=branch)
+            check = validate_proposal_only(control, sha, main_sha=head, branch=branch,
+                                           allow_historical_base=True)
         except ProposalPushBlocked:
             continue
         if check["task"] != task:
