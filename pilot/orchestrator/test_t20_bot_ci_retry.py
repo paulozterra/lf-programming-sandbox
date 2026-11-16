@@ -128,14 +128,21 @@ def test_one_failing_pr_does_not_prevent_another_healthy_pr():
 
 def test_sweep_retries_even_with_zero_active_plans():
     invoked = []
+    native_queries = []
+    def simulated_api(path):
+        native_queries.append(path)
+        assert path == "actions/workflows/worker-native.yml/runs?per_page=100"
+        return {"total_count": 0, "workflow_runs": []}
     with patch.object(chain_lots, "check_main", return_value=HEAD), \
          patch.object(chain_lots, "main_ci_decision", return_value="GREEN"), \
          patch.object(chain_lots, "retire_conflicted_generated", return_value=[]), \
          patch.object(chain_lots, "plans", return_value=[]), \
+         patch.object(chain_lots, "api", side_effect=simulated_api), \
          patch.object(chain_lots, "retry_failed_bot_prs", side_effect=lambda *_:
                       invoked.append(True) or [{"status": "CI_RETRY_DISPATCHED", "pr": 901}]):
         rows = chain_lots.process(sweep=True, base_sha=HEAD)
     assert invoked == [True]
+    assert native_queries == ["actions/workflows/worker-native.yml/runs?per_page=100"]
     assert rows == [{"status": "CI_RETRY_DISPATCHED", "pr": 901}]
 
 
