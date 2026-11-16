@@ -203,6 +203,8 @@ jobs:
           python3 -m pilot.workflow_entrypoint pilot/test_policy_c_handoff.py
       - name: T20 runner labels pinned across all 22 workflows (offline)
         run: python3 -m pilot.workflow_entrypoint pilot/test_t20_runner_pin.py
+      - name: T22 public feedback idempotency and hidden-field rejection (offline)
+        run: python3 -m pytest -q pilot/worker_v08/test_t22_feedback_delivery.py -p no:cacheprovider
       - name: T21 real pinned Python venv isolation regression (symlink fails, wrapper passes)
         run: python3 -m pilot.workflow_entrypoint pilot/test_t21_python_runtime.py
       - name: T21 native pre-admission recovery and historical proposal guard (offline)
