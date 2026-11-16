@@ -46,3 +46,17 @@ def test_full_worker_excerpt_length_is_published():
     text = ("[ERROR] src/main/java/demo/GadgetController.java format violation\n" * 80)[-4000:]
     assert len(text) == 4000
     assert delivery.parse_feedback(feedback(text), 2)["commands"][0]["stdout_excerpt"] == text
+
+
+def test_worker_workspace_path_is_normalized_not_blocked():
+    text = ("[ERROR] Failed to execute goal spotless:check on project time-service: "
+            "/home/runner/work/_temp/native-private/workspace/apps/time-service/src/main/java/"
+            "demo/GadgetController.java had format violations")
+    out = delivery.parse_feedback(feedback(text), 2)["commands"][0]["stdout_excerpt"]
+    assert "native-private" not in out and "<worker-workspace>/" in out
+    assert out.endswith("demo/GadgetController.java had format violations")
+
+
+def test_exam_file_under_workspace_still_blocked():
+    with pytest.raises(delivery.FeedbackBlocked, match="PRIVATE_PATTERN"):
+        delivery.parse_feedback(feedback("/home/runner/_temp/native-private/holdout.oracle.json"), 2)
