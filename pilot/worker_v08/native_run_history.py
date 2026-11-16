@@ -211,6 +211,7 @@ def admit_attempt(
     prior.sort(key=lambda entry: entry["attempt"])
     validate_attempt_history(task, computed, prior)
     result = {"prior_run_ids": [x["run_id"] for x in prior],
+              "route_defect_run_ids": sorted(route_defect_run_ids),
               "run_id": run_id, "attempt": computed,
               "proposal_commit_sha": sha, "event": event}
     output.write_text(json.dumps(result, sort_keys=True) + "\n", encoding="utf-8")
