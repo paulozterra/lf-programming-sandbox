@@ -156,3 +156,34 @@ def test_recovery_does_not_publish_without_spent_worker_step(tmp_path):
              "conclusion": "skipped"}]}]}
     assert delivery.recover_one(lambda *_: (_ for _ in ()).throw(AssertionError()),
                                 api, REPO, control, item) == "FEEDBACK_NO_SPENT_ATTEMPT"
+
+
+def test_sweep_reads_latest_page_even_when_total_native_history_exceeds_100(tmp_path, monkeypatch):
+    root(tmp_path)
+    item = {"id": 43783407265, "event": "workflow_dispatch",
+            "display_title": f"lf-native-infra-retry-{TASK}-{SHA}",
+            "head_branch": "main", "run_attempt": 1,
+            "status": "completed", "conclusion": "failure",
+            "path": ".github/workflows/worker-native.yml",
+            "repository": {"full_name": REPO}}
+    seen = []
+    def api(path):
+        assert path == "actions/workflows/worker-native.yml/runs?per_page=100"
+        return {"total_count": 150, "workflow_runs": [item]}
+    monkeypatch.setattr(delivery, "recover_one", lambda *args: seen.append(args[-1]["id"]) or "FEEDBACK_PUBLISHED")
+    outcome = delivery.recover_sweep(lambda *_: "", api, REPO, tmp_path)
+    assert seen == [43783407265]
+    assert outcome == [{"status": "FEEDBACK_PUBLISHED", "run_id": 43783407265}]
+
+
+def test_non_issue_backed_historical_worker_does_not_block_recovery(tmp_path):
+    item = {"id": 90002, "event": "workflow_dispatch",
+            "display_title": f"lf-native-infra-retry-{TASK}-{SHA}",
+            "head_branch": "main", "run_attempt": 1,
+            "status": "completed", "conclusion": "failure",
+            "path": ".github/workflows/worker-native.yml",
+            "repository": {"full_name": REPO}}
+    assert delivery.recover_one(
+        lambda *_: (_ for _ in ()).throw(AssertionError("No GitHub IO")),
+        lambda *_: (_ for _ in ()).throw(AssertionError("No GitHub IO")),
+        REPO, tmp_path, item) == "FEEDBACK_NO_SOURCE_ISSUE"
