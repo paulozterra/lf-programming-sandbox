@@ -96,15 +96,15 @@ def test_full_sweep_dispatches_immutable_pass_and_continues_other_request(tmp_pa
         "base_head_sha": HEAD,
         "write_path_patterns": ["contracts/sbx-rem-list.openapi.yaml"]}}))
     plan = [
-        ("req-186", {"lots": []}, {"stage": "LOTS_PLANNED"},
+        ("req-186", {"lots": [{"id": "SOL-001", "area": "CONTRATO", "depends_on": []}]}, {"stage": "LOTS_PLANNED"},
          {"SOL-001": {"task_name": TASK}}),
-        ("req-901", {"lots": []}, {"stage": "LOTS_PLANNED"},
+        ("req-901", {"lots": [{"id": "SOL-002", "area": "BACKEND", "depends_on": []}]}, {"stage": "LOTS_PLANNED"},
          {"SOL-002": {"task_name": "othertask"}}),
     ]
     worker_row = worker()
     cp35_row = failure()
     dispatched = []
-    requests_processed = []
+    failed_ledger_reads = []
     def api(path):
         if path == f"actions/workflows/{INTEGRATION}/runs?per_page=100":
             return {"total_count": 1, "workflow_runs": [cp35_row]}
@@ -125,9 +125,10 @@ def test_full_sweep_dispatches_immutable_pass_and_continues_other_request(tmp_pa
             dispatched.append(args)
             return ""
         raise AssertionError(args)
-    def process_one_plan(request, *_args):
-        requests_processed.append(request)
-        return [{"request": request, "status": "CHAIN_OK"}]
+    def read_failed_lots(bindings):
+        task = next(iter(bindings.values()))["task_name"]
+        failed_ledger_reads.append(task)
+        return {next(iter(bindings)): [ATTEMPT_ONE] if task == TASK else []}
     with patch.object(chain_lots, "ROOT", tmp_path), \
          patch.object(chain_lots, "check_main", return_value=HEAD), \
          patch.object(chain_lots, "main_ci_decision", return_value="GREEN"), \
@@ -141,11 +142,17 @@ def test_full_sweep_dispatches_immutable_pass_and_continues_other_request(tmp_pa
          patch.object(chain_lots, "publish_missing_registered_pack", return_value=None), \
          patch.object(chain_lots, "publish_legacy_submission_contract", return_value=None), \
          patch.object(chain_lots, "first_parent_merges", return_value=[]), \
-         patch.object(chain_lots, "process_one_plan", side_effect=process_one_plan), \
+         patch.object(chain_lots, "sweep_request_enabled", return_value=True), \
+         patch.object(chain_lots, "complete_registered_exam_requests", return_value=[]), \
+         patch.object(chain_lots, "request_all_lot_exams", return_value=[]), \
+         patch.object(chain_lots, "completed_lots", return_value={}), \
+         patch.object(chain_lots, "failed_lots", side_effect=read_failed_lots), \
+         patch.object(chain_lots, "progress", return_value={
+             "stage": "CHAIN_READY", "ready_lot_ids": []}), \
          patch.object(chain_lots, "api", side_effect=api), \
          patch.object(chain_lots, "run", side_effect=run):
         results = chain_lots.process(sweep=True, base_sha=HEAD)
-    assert requests_processed == ["req-186", "req-901"]
+    assert failed_ledger_reads == [TASK, "othertask"]
     assert len(dispatched) == 1
     assert dispatched[0][:4] == ("gh", "workflow", "run", INTEGRATION)
     assert "source_run_id=" + str(PASS) in dispatched[0]
