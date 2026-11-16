@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0159",
+  "title": "T28.2: el publicador de feedback acepta el extracto completo que produce el Worker",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T28.2: tras T28.1 el feedback del intento 2 de req186backend2 (Worker 43932759237) sigue FEEDBACK_NO_PUBLICO: el Worker guarda hasta 4000 caracteres por comando y el publicador rechazaba campos de más de 1600 bytes (salida de Spotless)"
+  },
+  "reason": "T28.2: límite por campo alineado con el extracto del Worker (4000 caracteres, hasta 16000 bytes UTF-8); el límite total de 24000 bytes, el esquema y el filtro de material de examen/secretos se mantienen.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_feedback_delivery.py",
+      "pilot/worker_v08/test_t28_1_feedback_words.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0159.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/0"
+  }
+}
