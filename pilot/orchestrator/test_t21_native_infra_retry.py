@@ -100,6 +100,7 @@ def test_historical_main_ancestor_proposal_remains_eligible():
         head = _git(repo, "rev-parse", "HEAD")
         assert head != base
         result = validate_proposal_only(
-            repo, proposal, main_sha=head, branch="lf/native-proposal/" + task)
+            repo, proposal, main_sha=head, branch="lf/native-proposal/" + task,
+            allow_historical_base=True)
         assert result["base_commit_sha"] == base
         assert result["task"] == task
