@@ -271,3 +271,22 @@ def test_bot_ci_static_recovery_is_closed_and_relaunched_only_through_cp35():
     closes = [args for args in calls if args[:3] == ("gh", "pr", "close")]
     assert len(closes) == 1 and "--delete-branch" in closes[0]
     assert not any(args[:3] == ("gh", "workflow", "run") for args in calls)
+
+
+def test_main_conflicted_contract_integration_uses_cp35_not_local_npm(tmp_path):
+    registry = tmp_path / "pilot/worker_v08/native_tasks/req186contrato1.json"
+    registry.parent.mkdir(parents=True)
+    registry.write_text(json.dumps({"task_spec": {
+        "write_path_patterns": ["contracts/sbx-rem-list.openapi.yaml"]}}))
+    calls = []
+    row = {"kind": "integration", "branch": BRANCH, "number": 227,
+           "reason": "GitHub mergeable_state=dirty", "sha": PR_SHA}
+    with patch.object(chain_lots, "ROOT", tmp_path), \
+         patch.object(chain_lots, "run",
+                      side_effect=lambda *args, **kw: calls.append(args) or ""):
+        result = chain_lots.regenerate_conflicted(row, HEAD, [])
+    assert result == {"status": "CI_DERIVED_INTEGRATION_REDISPATCHED",
+                      "source_run_id": SOURCE_ID}
+    assert len(calls) == 1 and calls[0][:4] == (
+        "gh", "workflow", "run", "native-verified-integration.yml")
+    assert "worker-native.yml" not in str(calls)
