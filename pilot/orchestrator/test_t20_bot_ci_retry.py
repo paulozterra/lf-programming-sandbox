@@ -142,7 +142,7 @@ def test_sweep_retries_even_with_zero_active_plans():
                       invoked.append(True) or [{"status": "CI_RETRY_DISPATCHED", "pr": 901}]):
         rows = chain_lots.process(sweep=True, base_sha=HEAD)
     assert invoked == [True]
-    assert native_queries == ["actions/workflows/worker-native.yml/runs?per_page=100"]
+    assert native_queries == ["actions/workflows/worker-native.yml/runs?per_page=100"] * 2
     assert rows == [{"status": "CI_RETRY_DISPATCHED", "pr": 901}]
 
 
