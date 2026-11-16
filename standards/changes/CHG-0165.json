@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0165",
+  "title": "T29.1: el paso de CI de derive-context ex5c usa la misma instantánea fijada",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T29.1: el PR de integración regenerado #254 (BACKEND req186backend2) falla en el paso 'Exercise ex5c derive-context CLI' con CONTEXT_DERIVATION_MISMATCH: corre sobre el árbol vivo"
+  },
+  "reason": "T29.1: el paso de CI extrae apps/time-service del commit fijado en test_derive_context (EX5C_SNAPSHOT) y ejecuta derive_context sobre esa instantánea; mismo checksum que antes. Un lote integrado ya no rompe este paso.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0165.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/255"
+  }
+}
