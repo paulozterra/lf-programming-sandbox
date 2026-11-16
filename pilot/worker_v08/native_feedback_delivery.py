@@ -1,0 +1,313 @@
+"""T22: publish only schema-verified visible native feedback to its LF request issue.
+
+Trusted main code only. Never read or publish an oracle, private evidence, or
+hidden acceptance result. The GitHub issue comment marker is the durable ledger.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import tempfile
+
+REPO = "paulozterra/lf-programming-sandbox"
+SCHEMA = "LF_NATIVE_VISIBLE_FEEDBACK_V1"
+CMD_KEYS = frozenset({"name", "status", "reason", "returncode",
+                       "stdout_excerpt", "stderr_excerpt"})
+TOP_KEYS = frozenset({"schema_version", "attempt", "kind", "commands"})
+TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
+SHA = re.compile(r"[0-9a-f]{40}\Z")
+REQUEST = re.compile(r"req-[1-9][0-9]*\Z")
+AUTO = re.compile(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
+INFRA = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
+PRIVATE = re.compile(
+    r"oracle|holdout|hidden|private|secret|credential|token|"
+    r"comando[s]? oculto[s]?|examen oculto|/native-private/|"
+    r"pil[o]t/holdouts/|holdout_sha256",
+    re.IGNORECASE,
+)
+MAX = 100
+MAX_BYTES = 24_000
+
+
+class FeedbackBlocked(ValueError):
+    pass
+
+
+def deny() -> None:
+    raise FeedbackBlocked("FEEDBACK_NO_PUBLICO")
+
+
+def parse_feedback(raw: bytes, attempt: int) -> dict:
+    if type(attempt) is not int or not 1 <= attempt <= 3 or len(raw) > MAX_BYTES:
+        deny()
+    try:
+        data = json.loads(raw)
+    except (ValueError, UnicodeError):
+        deny()
+    if (not isinstance(data, dict) or set(data) != TOP_KEYS
+            or data.get("schema_version") != SCHEMA
+            or data.get("kind") != "VISIBLE_ACCEPTANCE_ONLY"
+            or data.get("attempt") != attempt
+            or not isinstance(data.get("commands"), list)
+            or len(data["commands"]) > 30):
+        deny()
+    for command in data["commands"]:
+        if not isinstance(command, dict) or set(command) != CMD_KEYS:
+            deny()
+        for name, value in command.items():
+            if name == "returncode":
+                if value is not None and (type(value) is not int or abs(value) > 32768):
+                    deny()
+            elif value is not None and (not isinstance(value, str)
+                                        or len(value.encode("utf-8")) > 1600):
+                deny()
+    # This is the same public object, not a rewritten/summarized feedback.
+    # Check the *entire* serialized payload, including nested output strings.
+    serialized = json.dumps(data, sort_keys=True, ensure_ascii=False)
+    if PRIVATE.search(serialized):
+        deny()
+    return data
+
+
+def marker(task: str, sha: str, attempt: int) -> str:
+    if not TASK.fullmatch(task) or not SHA.fullmatch(sha) or not 1 <= attempt <= 3:
+        deny()
+    return f"<!-- LF_NATIVE_VISIBLE_FEEDBACK:{task}:{sha}:{attempt} -->"
+
+
+def issue_for_task(root: Path, task: str) -> int:
+    if not TASK.fullmatch(task):
+        deny()
+    registered = root / "pilot/worker_v08/native_tasks" / (task + ".json")
+    if registered.is_symlink() or not registered.is_file():
+        deny()
+    matches = []
+    for file in sorted((root / "pilot/runs").glob(
+            "req-*/proposal_requests/" + task + ".proposal-request.json")):
+        folder = file.parent.parent
+        if (file.is_symlink() or folder.is_symlink()
+                or not REQUEST.fullmatch(folder.name)):
+            deny()
+        request = folder.name
+        meta = folder / "request_meta.json"
+        if meta.is_symlink() or not meta.is_file():
+            deny()
+        try:
+            envelope = json.loads(file.read_text("utf-8"))
+            metadata = json.loads(meta.read_text("utf-8"))
+        except (ValueError, UnicodeError, OSError):
+            deny()
+        if (not isinstance(envelope, dict)
+                or envelope.get("branch") != "lf/native-proposal/" + task
+                or not isinstance(metadata, dict)
+                or metadata.get("issue") != int(request[4:])):
+            deny()
+        matches.append(int(request[4:]))
+    if len(matches) != 1:
+        deny()
+    return matches[0]
+
+
+def read_public(path: Path, attempt: int) -> dict:
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_BYTES:
+        deny()
+    return parse_feedback(path.read_bytes(), attempt)
+
+
+def publish(run, api, repo: str, root: Path, task: str, sha: str,
+            attempt: int, feedback: dict, result: str) -> str:
+    key = marker(task, sha, attempt)
+    if result not in ("PASS", "FAIL", "BLOCKED_OR_FAILED"):
+        deny()
+    # Validate again at the publishing boundary; no bypass from a caller.
+    payload = json.dumps(feedback, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    feedback = parse_feedback(payload, attempt)
+    number = issue_for_task(root, task)
+    issue = api(f"issues/{number}")
+    if (issue.get("number") != number or issue.get("pull_request")
+            or "lf-request" not in {x.get("name") for x in issue.get("labels", [])
+                                   if isinstance(x, dict)}):
+        deny()
+    raw_comments = run("gh", "api", f"repos/{repo}/issues/{number}/comments?per_page=100")
+    try:
+        comments = json.loads(raw_comments)
+    except ValueError:
+        deny()
+    if not isinstance(comments, list) or len(comments) >= MAX:
+        deny()
+    if any(key in str(c.get("body") or "")
+           for c in comments if isinstance(c, dict)
+           and (c.get("user") or {}).get("login") == "github-actions[bot]"):
+        return "FEEDBACK_ALREADY_PUBLISHED"
+    body = (key + "\nFeedback visible del Worker nativo (sin examen oculto).\n\n"
+            + "**Tarea:** `" + task + "`\n"
+            + "**Intento:** " + str(attempt) + "/3\n"
+            + "**SHA de propuesta:** `" + sha + "`\n"
+            + "**Resultado:** " + result + "\n"
+            + "**Feedback visible (public/feedback.json):**\n"
+            + "```json\n" + json.dumps(feedback, ensure_ascii=False,
+                                             sort_keys=True, indent=2)
+            + "\n```")
+    run("gh", "issue", "comment", str(number), "--repo", repo, "--body", body)
+    return "FEEDBACK_PUBLISHED"
+
+
+def _artifact_names(api, run_id: int) -> bool:
+    obj = api(f"actions/runs/{run_id}/artifacts?per_page=100")
+    artifacts = obj.get("artifacts")
+    if (not isinstance(artifacts, list) or type(obj.get("total_count")) is not int
+            or obj["total_count"] > MAX or len(artifacts) >= MAX):
+        deny()
+    for name in ("native-attempt-proof", "native-visible-feedback-and-cost"):
+        found = [a for a in artifacts if isinstance(a, dict) and a.get("name") == name]
+        if (len(found) != 1 or found[0].get("expired") is True
+                or found[0].get("workflow_run", {}).get("id", run_id) != run_id):
+            return False
+    return True
+
+
+def _run_identity(item: dict, repo: str):
+    if (not isinstance(item, dict) or type(item.get("id")) is not int
+            or item.get("event") not in ("workflow_dispatch", "workflow_run")
+            or item.get("head_branch") != "main"
+            or item.get("status") != "completed"
+            or item.get("conclusion") not in ("success", "failure")
+            or item.get("run_attempt") != 1
+            or (item.get("path") or "").split("@")[0] != ".github/workflows/worker-native.yml"
+            or (item.get("repository") or {}).get("full_name") != repo):
+        return None
+    title = item.get("display_title") or ""
+    match = (INFRA.fullmatch(title) if item["event"] == "workflow_dispatch"
+             else AUTO.fullmatch(title))
+    return (match.group(1), match.group(2)) if match else None
+
+
+def recover_one(run, api, repo: str, root: Path, item: dict) -> str:
+    identity = _run_identity(item, repo)
+    if identity is None:
+        return "FEEDBACK_RUN_NOT_ELIGIBLE"
+    task, sha = identity
+    # Legacy synthetic Workers have no issue-backed request; skip those runs.
+    # An unmapped task is not an unsafe feedback payload.
+    try:
+        issue_for_task(root, task)
+    except FeedbackBlocked:
+        return "FEEDBACK_NO_SOURCE_ISSUE"
+    run_id = item["id"]
+    jobs = api(f"actions/runs/{run_id}/jobs?per_page=100")
+    jobrows = jobs.get("jobs")
+    if (not isinstance(jobrows, list) or len(jobrows) != 1
+            or jobs.get("total_count") != 1
+            or jobrows[0].get("name") != "native"):
+        deny()
+    steps = jobrows[0].get("steps")
+    if (not isinstance(steps, list)
+            or not any(s.get("name") == "Execute original run_verified_worker using native proposal (single attempt)"
+                       and s.get("conclusion") in ("success", "failure")
+                       for s in steps if isinstance(s, dict))):
+        return "FEEDBACK_NO_SPENT_ATTEMPT"
+    if not _artifact_names(api, run_id):
+        return "FEEDBACK_ARTIFACT_MISSING"
+    with tempfile.TemporaryDirectory(prefix="lf-t22-") as directory:
+        folder = Path(directory)
+        for name in ("native-attempt-proof", "native-visible-feedback-and-cost"):
+            location = folder / name
+            location.mkdir()
+            run("gh", "run", "download", str(run_id), "--repo", repo,
+                "--name", name, "--dir", str(location))
+        proof_file = folder / "native-attempt-proof/attempt-proof.json"
+        if proof_file.is_symlink() or not proof_file.is_file() or proof_file.stat().st_size > 4096:
+            deny()
+        try:
+            proof = json.loads(proof_file.read_text("utf-8"))
+        except (ValueError, UnicodeError):
+            deny()
+        if (not isinstance(proof, dict)
+                or set(proof) != {"task_id", "attempt", "task_pack_sha256", "run_id"}
+                or proof.get("task_id") != task or proof.get("run_id") != run_id
+                or type(proof.get("attempt")) is not int
+                or not 1 <= proof["attempt"] <= 3):
+            deny()
+        file = folder / "native-visible-feedback-and-cost/feedback.json"
+        feedback = read_public(file, proof["attempt"])
+        result = ("PASS" if item["conclusion"] == "success"
+                  else "BLOCKED_OR_FAILED")
+        return publish(run, api, repo, root, task, sha, proof["attempt"],
+                       feedback, result)
+
+
+def recover_sweep(run, api, repo: str, root: Path) -> list[dict]:
+    response = api("actions/workflows/worker-native.yml/runs?per_page=100")
+    rows = response.get("workflow_runs")
+    if (not isinstance(rows, list) or type(response.get("total_count")) is not int
+            or len(rows) > MAX):
+        return [{"status": "FEEDBACK_HISTORY_INCOMPLETE"}]
+    result = []
+    for item in rows:
+        if _run_identity(item, repo) is None:
+            continue
+        try:
+            status = recover_one(run, api, repo, root, item)
+            result.append({"status": status, "run_id": item["id"]})
+        except FeedbackBlocked:
+            result.append({"status": "FEEDBACK_NO_PUBLICO", "run_id": item["id"]})
+            # Do not publish anything from an unsafe artifact.
+            raise
+    return result
+
+
+def _subprocess(*args: str) -> str:
+    result = subprocess.run(args, text=True, capture_output=True, timeout=90)
+    if result.returncode:
+        raise FeedbackBlocked("FEEDBACK_GITHUB_UNAVAILABLE")
+    return result.stdout.strip()
+
+
+def _api(repo: str, route: str) -> dict:
+    try:
+        value = json.loads(_subprocess("gh", "api", f"repos/{repo}/{route}"))
+    except ValueError:
+        deny()
+    if not isinstance(value, dict):
+        deny()
+    return value
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--control", type=Path, required=True)
+    parser.add_argument("--task", required=True)
+    parser.add_argument("--sha", required=True)
+    parser.add_argument("--attempt", type=int, required=True)
+    parser.add_argument("--run-id", type=int, required=True)
+    parser.add_argument("--feedback", type=Path, required=True)
+    parser.add_argument("--outcome", choices=["success", "failure"], required=True)
+    args = parser.parse_args()
+    if (not os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_REPOSITORY") != REPO
+            or int(os.environ.get("GITHUB_RUN_ID", "0")) != args.run_id):
+        deny()
+    # Already-claimed attempt proof only. A pre-admission failure is not an attempt.
+    proof = args.feedback.parent / "attempt-proof.json"
+    if not proof.is_file() or proof.is_symlink():
+        print("FEEDBACK_NO_SPENT_ATTEMPT")
+        return
+    data = json.loads(proof.read_text("utf-8"))
+    if (data.get("task_id") != args.task or data.get("attempt") != args.attempt
+            or data.get("run_id") != args.run_id):
+        deny()
+    feedback = read_public(args.feedback, args.attempt)
+    status = "PASS" if args.outcome == "success" else "BLOCKED_OR_FAILED"
+    print(publish(_subprocess, lambda path: _api(REPO, path), REPO,
+                  args.control, args.task, args.sha, args.attempt, feedback, status))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except FeedbackBlocked as exc:
+        print(str(exc), file=__import__("sys").stderr)
+        raise SystemExit(1)

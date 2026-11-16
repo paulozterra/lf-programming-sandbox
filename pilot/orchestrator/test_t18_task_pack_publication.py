@@ -22,7 +22,8 @@ def isolate_retries_in_historical_task_pack_tests():
     # T18 validates deterministic repair; T20 exercises the independent
     # GitHub CI retry boundary against authenticated synthetic PRs.
     with patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]), \
-         patch.object(chain_lots, "retry_native_infra", return_value=[]):
+         patch.object(chain_lots, "retry_native_infra", return_value=[]), \
+         patch.object(chain_lots, "recover_native_feedback", return_value=[]):
         yield
 
 

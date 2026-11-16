@@ -36,6 +36,7 @@ on:
 permissions:
   contents: read
   actions: read
+  issues: write
 
 concurrency:
   group: lf-worker-native-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || format('lf/native-proposal/{0}', inputs.task) }}
@@ -357,6 +358,24 @@ jobs:
             ${{ runner.temp }}/native-private/public/status.json
           if-no-files-found: ignore
           retention-days: 90
+      - name: Publish schema-checked visible native feedback to original request issue (T22)
+        if: ${{ always() && steps.source.outcome == 'success' && steps.history.outcome == 'success' && (steps.worker.outcome == 'success' || steps.worker.outcome == 'failure') }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          PROPOSAL_SHA: ${{ steps.source.outputs.proposal_sha }}
+          NATIVE_ATTEMPT: ${{ steps.history.outputs.attempt }}
+          WORKER_OUTCOME: ${{ steps.worker.outcome }}
+        run: |
+          set -euo pipefail
+          python3 control/pilot/worker_v08/native_feedback_delivery.py \
+            --control control --task "$NATIVE_TASK" \
+            --sha "$PROPOSAL_SHA" --attempt "$NATIVE_ATTEMPT" \
+            --run-id "$GITHUB_RUN_ID" \
+            --feedback "$RUNNER_TEMP/native-private/public/feedback.json" \
+            --outcome "$WORKER_OUTCOME"
       - name: Publish LF rule coverage table separately from pinned PG-07 proof artifacts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
