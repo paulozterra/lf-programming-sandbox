@@ -160,4 +160,4 @@
 | CHG-0161 | EDITORIAL | T28.4: la ruta del workspace del Worker en la salida visible se normaliza en vez de bloquear el feedback |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/251 |
 | CHG-0163 | EDITORIAL | T29: las pruebas de la ruta que usan el producto real leen una instantánea fijada, no el árbol vivo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/253 |
 | CHG-0165 | ADDITIVE | T29.1: el paso de CI de derive-context ex5c usa la misma instantánea fijada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/255 |
-| CHG-0166 | EDITORIAL | CP3.5: integración verificada nativa req186backend2 (run 43955440007) |  | paulozterra |  |
+| CHG-0166 | EDITORIAL | CP3.5: integración verificada nativa req186backend2 (run 43955440007) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/256 |
