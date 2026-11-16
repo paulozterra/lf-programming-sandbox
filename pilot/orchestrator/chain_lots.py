@@ -805,8 +805,78 @@ def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dic
     return None
 
 
+def regenerate_template(root: Path, request: str, binding: dict, completed: dict,
+                        stored: dict) -> dict:
+    """Current-generator template for a pending lot (T26).
+
+    Files changed by already-integrated lots of the same request are allowed
+    to drift from the analysis-time reuse hashes. Task identity and holdout
+    binding stay those of the original plan.
+    """
+    folder = root / "pilot/runs" / request
+    lots_path = folder / "lots.json"
+    if not lots_path.is_file() or lots_path.is_symlink():
+        deny("TEMPLATE_REGENERATION_INPUT_MISSING")
+    orchestrator = str(root / "pilot/orchestrator")
+    if orchestrator not in sys.path:
+        sys.path.insert(0, orchestrator)
+    import generate_chain
+    drift = {path for proof in completed.values()
+             for path in proof.get("expected_files", []) if isinstance(path, str)}
+    try:
+        result = generate_chain.generate(
+            str(root), request, json.loads(lots_path.read_text("utf-8")),
+            persist=False, allow_source_drift=drift)
+    except ValueError as exc:
+        code = str(exc).split(":", 1)[0]
+        deny("TEMPLATE_REGENERATION_FAILED:" + (code if re.fullmatch(r"[A-Z0-9_]{1,80}", code)
+                                                 else "INVALID"))
+    fresh = result["templates"].get(binding["template_path"])
+    if not isinstance(fresh, dict) or not isinstance(fresh.get("task_spec"), dict):
+        deny("TEMPLATE_REGENERATION_TASK_MISSING")
+    if fresh["task_spec"].get("task_id") != stored["task_spec"].get("task_id"):
+        deny("TEMPLATE_REGENERATION_IDENTITY_CHANGED")
+    if fresh != stored:
+        (root / binding["template_path"]).write_bytes(generate_chain.canonical(fresh))
+    return fresh
+
+
+def publish_pending_plan_refresh(request: str, binding: dict, completed: dict,
+                                 head: str) -> dict | None:
+    """T26: a pending lot is never registered from a stale plan or template.
+
+    Recompute the request's pending lots (affected tests, current generator)
+    in a throwaway worktree. If anything changes, publish it as an auxiliary
+    bot PR (lf/native-registration/plan-<task>-<sha>) and wait; the lot is
+    registered by a later sweep, once main carries the refreshed plan.
+    """
+    from pending_plan_refresh import refresh as refresh_pending_plan, PlanRefreshBlocked
+    task = binding["task_name"]
+    branch = f"lf/native-registration/plan-{task}-{head[:12]}"
+    if (pending_draft(f"lf/native-registration/plan-{task}-")
+            or run("git", "ls-remote", "--heads", "origin", branch)):
+        return {"status": "PLAN_REFRESH_PENDING", "task": task, "branch": branch}
+    def create(root: Path):
+        try:
+            changed = refresh_pending_plan(root, request, completed)
+        except PlanRefreshBlocked as exc:
+            deny(str(exc))
+        if not changed:
+            return None
+        review = draft(root, branch, request, changed,
+                       "T26: refresh pending lots with the current planner/generator "
+                       "(affected project tests in scope, current acceptance commands); "
+                       "task identity and exams unchanged.",
+                       f"pending plan refresh before registering {task}")
+        return {"status": "PLAN_REFRESH_DRAFT", "task": task, "paths": changed, **review}
+    return worktree(head, branch, create)
+
+
 def prepare_successor(request: str, binding: dict, completed: dict, head: str) -> dict:
     task = binding["task_name"]
+    refreshed = publish_pending_plan_refresh(request, binding, completed, head)
+    if refreshed is not None:
+        return refreshed
     branch = f"lf/native-registration/{task}-{head[:12]}"
     if pending_draft(f"lf/native-registration/{task}-") or run("git", "ls-remote", "--heads", "origin", branch):
         return {"status": "ALREADY_PREPARED", "branch": branch}
@@ -820,6 +890,11 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
         template = json.loads(template_path.read_text("utf-8"))
         if not isinstance(template, dict) or not isinstance(template.get("task_spec"), dict):
             deny("PREPARATION_TEMPLATE_INVALID")
+        # T26: never register a pending lot from a template written by an
+        # older generator. Regenerate it from the request's committed inputs
+        # with the current generator; persist the refreshed template in this
+        # same registration branch so main and the registered task agree.
+        template = regenerate_template(root, request, binding, completed, template)
         # Bind to NEW merged main; no stale sha from a prior lot.
         from native_lot_registration import canonical
         spec = template["task_spec"]
