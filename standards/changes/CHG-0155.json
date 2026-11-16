@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0155",
+  "title": "T27.1: un fallo transitorio del CI de main no detiene la cadena",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T27.1: tras fusionar #243, el CI de main (43923221565) falló solo por HTTP 429 de Maven Central; el handoff declaró BASE_NO_VERDE y no hubo barrido"
+  },
+  "reason": "T27.1: el Train handoff re-ejecuta una sola vez los jobs fallidos de la corrida exacta del CI de main antes de declarar BASE_NO_VERDE (un defecto real vuelve a fallar). El CI reintenta con backoff las respuestas 429/503 del repositorio Maven (MAVEN_ARGS).",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/test_t9_5_main_ci.py",
+      "pilot/train_handoff.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0155.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/0"
+  }
+}

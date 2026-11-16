@@ -18,6 +18,13 @@ on:
 permissions:
   contents: read
 
+env:
+  # T27.1: Maven Central rate limits (HTTP 429/503) are transient; retry them
+  # with backoff instead of failing main CI and stalling the request chain.
+  MAVEN_ARGS: >-
+    -Daether.transport.http.retryHandler.count=6
+    -Daether.transport.http.retryHandler.interval=10000
+    -Daether.transport.http.retryHandler.serviceUnavailable=429,503
 concurrency:
   # Each Train merge SHA must complete its own main CI; later merges must not
   # cancel it. PR revisions retain cancellation to limit redundant usage.
