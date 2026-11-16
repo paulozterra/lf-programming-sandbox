@@ -39,6 +39,10 @@ PRIVATE = re.compile(
 )
 MAX = 100
 MAX_BYTES = 24_000
+# T28.2: the Worker keeps up to 4000 characters of each command's output
+# (vendor worker.py). Accept exactly that excerpt (<= 4 bytes per char);
+# a stricter limit silently withheld real visible feedback (e.g. Spotless).
+FIELD_MAX_BYTES = 16_000
 
 
 class FeedbackBlocked(ValueError):
@@ -71,7 +75,7 @@ def parse_feedback(raw: bytes, attempt: int) -> dict:
                 if value is not None and (type(value) is not int or abs(value) > 32768):
                     deny()
             elif value is not None and (not isinstance(value, str)
-                                        or len(value.encode("utf-8")) > 1600):
+                                        or len(value.encode("utf-8")) > FIELD_MAX_BYTES):
                 deny()
     # This is the same public object, not a rewritten/summarized feedback.
     # Check the *entire* serialized payload, including nested output strings.

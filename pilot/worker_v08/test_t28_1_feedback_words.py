@@ -39,3 +39,10 @@ def test_ordinary_auth_words_are_published(text):
 def test_exam_material_and_secret_values_stay_blocked(text):
     with pytest.raises(delivery.FeedbackBlocked, match="FEEDBACK_NO_PUBLICO"):
         delivery.parse_feedback(feedback(text), 2)
+
+
+def test_full_worker_excerpt_length_is_published():
+    # The Worker keeps the last 4000 characters of a command's output.
+    text = ("[ERROR] src/main/java/demo/GadgetController.java format violation\n" * 80)[-4000:]
+    assert len(text) == 4000
+    assert delivery.parse_feedback(feedback(text), 2)["commands"][0]["stdout_excerpt"] == text
