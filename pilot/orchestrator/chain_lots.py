@@ -923,6 +923,22 @@ GLOBAL_SWEEP_ERRORS = frozenset({
 })
 
 
+def sweep_recovery_block(phase: str, exc: Exception, *,
+                         pr: int | None = None) -> dict:
+    """An unbound recovery failure never kills an independent healthy chain.
+
+    Only audited globally fatal integrity errors are propagated.
+    """
+    raw = str(exc)
+    code = raw if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw) else "CP36_LOCAL_FAILURE"
+    if code in GLOBAL_SWEEP_ERRORS:
+        raise exc
+    result = {"status": "BLOCKED", "phase": phase, "reason": code}
+    if pr is not None:
+        result["pr"] = pr
+    return result
+
+
 def per_request_block(request: str, phase: str, exc: Exception) -> dict:
     """Contain a local failure and notify only the verified issue; no labels."""
     raw = str(exc)
@@ -1161,25 +1177,42 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             return [{"status": "WAITING_MAIN_CI", "head_sha": head}]
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
     # can hide a Train failure, including when no owner plans are active.
-    retired = (retire_conflicted_generated(head, run, api, REPO, api_list) if sweep else [])
+    retired = []
+    recovery_failures = []
+    if sweep:
+        try:
+            for entry in retire_conflicted_generated(head, run, api, REPO, api_list):
+                if entry.get("status") == "BLOCKED":
+                    recovery_failures.append(entry)
+                else:
+                    retired.append(entry)
+        except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
+                OSError, ValueError, KeyError, TypeError) as exc:
+            recovery_failures.append(sweep_recovery_block("T17_4_RETIRE", exc))
     # A sweep must not create unrelated registry drafts when idle.
     registry_status = (sync_implemented_registry(head)
                        if kind == "TRAIN" and not sweep else None)
     all_plans = plans()
-    # T20: per-HEAD CI retry belongs to the sweep, not to a particular
-    # active plan. A bot PR can be blocked by transient CI even when its
-    # originating request has already completed planning.
-    retry_outcomes = (retry_failed_bot_prs(head, run, api, REPO, all_plans,
-                                          route_request_metadata) if sweep else [])
-    native_retry_outcomes = (retry_native_infra(head, run, api, REPO, ROOT)
-                             if sweep else [])
-    feedback_outcomes = (recover_native_feedback(run, api, REPO, ROOT)
-                         if sweep else [])
-    route_outcomes = (recover_route_defects(head, run, api, REPO, ROOT,
-                                           worktree, draft, pending_draft)
-                      if sweep else [])
-    repair_outcomes = (list(retry_outcomes) + list(native_retry_outcomes)
-                       + list(feedback_outcomes) + list(route_outcomes))
+    # Each recovery is a separate trust boundary. A local failure may not
+    # short-circuit later recoveries or per-request planning.
+    repair_outcomes = list(recovery_failures)
+    if sweep:
+        recoveries = (
+            ("T20_BOT_CI_RETRY", retry_failed_bot_prs,
+             (head, run, api, REPO, all_plans, route_request_metadata)),
+            ("T20_NATIVE_INFRA", retry_native_infra,
+             (head, run, api, REPO, ROOT)),
+            ("T22_FEEDBACK", recover_native_feedback,
+             (run, api, REPO, ROOT)),
+            ("T23_ROUTE", recover_route_defects,
+             (head, run, api, REPO, ROOT, worktree, draft, pending_draft)),
+        )
+        for phase, action, args in recoveries:
+            try:
+                repair_outcomes.extend(action(*args))
+            except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
+                    OSError, ValueError, KeyError, TypeError) as exc:
+                repair_outcomes.append(sweep_recovery_block(phase, exc))
     # T25: T17.4 retired a mechanically red integration and its remote
     # branch. Its one trusted CP3.5 re-dispatch is owned by
     # regenerate_conflicted, not by historical T24 replay.
