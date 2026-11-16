@@ -565,6 +565,14 @@ def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
         if not found:
             comment_unrecoverable_conflict(row, all_plans, "INTEGRATION_PROVENANCE_UNKNOWN")
             return {"status": "CONFLICT_REGEN_BLOCKED", "reason": "INTEGRATION_PROVENANCE_UNKNOWN"}
+        # A CI-red generated-product PR was retired by T17.4. Re-run only
+        # CP3.5 on the immutable successful Worker run, never the Worker.
+        if str(row.get("reason", "")).startswith("CI_DERIVED_"):
+            run("gh", "workflow", "run", "native-verified-integration.yml",
+                "--repo", REPO, "--ref", "main", "-f",
+                "source_run_id=" + found.group(1))
+            return {"status": "CI_DERIVED_INTEGRATION_REDISPATCHED",
+                    "source_run_id": int(found.group(1))}
         # CP3.5 re-verifies the original successful native run, its artifact and
         # its patch before minting the next CHG on current main. Use an isolated
         # worktree so CP3.6's trusted main checkout is never switched.
@@ -1129,6 +1137,17 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                       if sweep else [])
     repair_outcomes = (list(retry_outcomes) + list(native_retry_outcomes)
                        + list(feedback_outcomes) + list(route_outcomes))
+    # T25: T17.4 retired a mechanically red integration and its remote
+    # branch. Its one trusted CP3.5 re-dispatch is owned by
+    # regenerate_conflicted, not by historical T24 replay.
+    ci_retired_tasks = {
+        match.group(1) for row in retired
+        if row.get("kind") == "integration"
+        and str(row.get("reason", "")).startswith("CI_DERIVED_")
+        for match in [re.fullmatch(
+            r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*",
+            row.get("branch", ""))] if match
+    }
     # T24.1: dispatch an already-PASS Worker integration before per-lot
     # progress. Isolate each request: one corrupted scope must never hold
     # back a different request's attested CP3.5 replay.
@@ -1139,7 +1158,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                     continue
                 tasks = {value.get("task_name") for value in bindings.values()
                          if isinstance(value, dict)
-                         and isinstance(value.get("task_name"), str)}
+                         and isinstance(value.get("task_name"), str)} - ci_retired_tasks
                 for outcome in replay_native_integration(
                         head, run, api, REPO, ROOT, allowed_tasks=tasks):
                     repair_outcomes.append({"request": request, **outcome})
