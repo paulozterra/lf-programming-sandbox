@@ -145,3 +145,4 @@
 | CHG-0144 | EDITORIAL | CP3.5: integración verificada nativa req186contrato1 (run 43797847761) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/230 |
 | CHG-0145 | ADDITIVE | T26: pruebas afectadas en el alcance del lote y refresco del plan de lotes pendientes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/232 |
 | CHG-0146 | ADDITIVE | T26.1: la certificación de un lote de contrato integrado acepta las salidas del generador confiable |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/236 |
+| CHG-0147 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
