@@ -159,4 +159,4 @@
 | CHG-0160 | EDITORIAL | T28.3: un feedback retenido indica la regla y la corrida, sin contenido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/250 |
 | CHG-0161 | EDITORIAL | T28.4: la ruta del workspace del Worker en la salida visible se normaliza en vez de bloquear el feedback |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/251 |
 | CHG-0163 | EDITORIAL | T29: las pruebas de la ruta que usan el producto real leen una instantánea fijada, no el árbol vivo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/253 |
-| CHG-0164 | EDITORIAL | CP3.5: integración verificada nativa req186backend2 (run 43955440007) |  | paulozterra |  |
+| CHG-0164 | EDITORIAL | CP3.5: integración verificada nativa req186backend2 (run 43955440007) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/254 |
