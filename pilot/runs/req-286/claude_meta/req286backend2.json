@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/req286backend2.oracle.json.age",
+  "holdout_sha256": "a513f64fab04e02b9c75bdfdb0b280881cffcff1b987519d7e5fd2cca2a2624a",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "analysis/fixtures/sbx_b2b_login (ficha derivada de LF B2B-AUTH-001) y esqueleto público del lote; no del código ni de la propuesta"
+}

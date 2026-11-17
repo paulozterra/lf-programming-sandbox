@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0184",
+  "title": "Exámenes ocultos req-286 (SBX-B2B-LOGIN): CONTRATO, BACKEND y FRONTEND",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "EXAM_REQUEST #290, #291, #292/#293 del pedido #286"
+  },
+  "reason": "Examinador independiente (Claude). Preparados con publish_exam.py: la referencia PASA y todos los mutantes FALLAN (CONTRATO 9/9, BACKEND 9/9, FRONTEND 10/10), y el cifrado se verificó descifrándolo de vuelta con la llave nueva (T34). Derivados de la ficha y del esqueleto público, no del código ni de una propuesta. Solo se publica el cifrado y su metadato.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/holdouts/req286contrato1.oracle.json.age",
+      "pilot/holdouts/req286backend2.oracle.json.age",
+      "pilot/holdouts/req286frontend3.oracle.json.age",
+      "pilot/runs/req-286/claude_meta/",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0184.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
