@@ -77,7 +77,8 @@ def verify_handoffs(root: Path, lots: dict, proofs: list[dict]) -> set[str]:
         if (lot_id not in by_id or lot_id in completed or
                 not isinstance(sha, str) or not SHA40.fullmatch(sha) or
                 not isinstance(files, list) or
-                not files or sorted(files) != sorted(by_id[lot_id]["write_paths"])):
+                not files or not all(isinstance(f, str) for f in files)
+                or not set(files) <= set(by_id[lot_id]["write_paths"])):
             blocked("CP34_HANDOFF_PROOF_INVALID")
         # Prove SHA is on current HEAD history (caller should work on main
         # containing the predecessor merge), not just any reachable object.

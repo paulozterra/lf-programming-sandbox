@@ -108,7 +108,9 @@ def attest_merge(merge_sha: str, pr: dict, lots: dict,
     if not actual or not actual.issubset(allowed):
         deny("INTEGRATION_SCOPE_MISMATCH")
     return lot_id, {"lot_id": lot_id, "merge_sha": merge_sha,
-                    "expected_files": sorted(lot["write_paths"]),
+                    # T43: write_paths is the allowed scope, not a list of
+                    # mandatory files (an EXTEND lot may touch only part of it).
+                    "expected_files": sorted(actual & set(lot["write_paths"])),
                     "integration_pr": pr["number"], "task_name": task}
 
 
