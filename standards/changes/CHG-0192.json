@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0192",
+  "title": "T34.1: deja de versionar apps/time-service/target (artefactos de build agregados por error)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T34.1: el commit 0f338c6 (CHG-0183) versionó por error 36 archivos de apps/time-service/target, incluido un jar de 26 MB, porque .gitignore solo cubría backend/target"
+  },
+  "reason": "Se quitan del índice (git rm --cached) y se ignora apps/*/target/. El Worker y el CI recompilan con mvn package, así que no cambia ningún resultado; evita que una copia limpia use un jar viejo.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".gitignore",
+      "apps/time-service/target/",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0192.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/307"
+  }
+}

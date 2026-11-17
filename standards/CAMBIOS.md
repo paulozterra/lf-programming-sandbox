@@ -185,3 +185,4 @@
 | CHG-0189 | ADDITIVE | T37: intentos gastados por una herramienta de la ruta ya corregida no cuentan (perdón gobernado + re-anclaje del lote) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/301 |
 | CHG-0190 | EDITORIAL | CP3.5: integración verificada nativa req286contrato1 (run 44111534766) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/302 |
 | CHG-0191 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/304 |
+| CHG-0192 | EDITORIAL | T34.1: deja de versionar apps/time-service/target (artefactos de build agregados por error) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/307 |
