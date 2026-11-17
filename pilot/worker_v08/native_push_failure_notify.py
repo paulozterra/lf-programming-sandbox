@@ -51,9 +51,10 @@ def notify(control, branch, sha, code):
     if number is None:
         return "NATIVE_PUSH_ALERT_UNMAPPED"
     issue = json.loads(command("gh", "api", f"repos/{REPO}/issues/{number}"))
+    # T38.1 (as T35): identity is proven by find_issue (bot-written request_meta
+    # on trusted main); API-created issues carry no lf-request label.
     if (issue.get("number") != number or issue.get("state") != "open"
-            or issue.get("pull_request")
-            or "lf-request" not in {x.get("name") for x in issue.get("labels", [])}):
+            or issue.get("pull_request")):
         return "NATIVE_PUSH_ALERT_ISSUE_UNVERIFIED"
     marker = f"<!-- LF_NATIVE_PUSH_REJECTED:{task}:{sha}:{code} -->"
     comments = json.loads(command("gh", "api",
@@ -64,6 +65,15 @@ def notify(control, branch, sha, code):
            if isinstance(c, dict) and (c.get("user") or {}).get("login") == "github-actions[bot]"):
         return "NATIVE_PUSH_ALERT_ALREADY_SENT"
     expected = "pilot/native_proposals/" + task + ".json"
+    if code == "NATIVE_PUSH_PATCH_NOT_APPLICABLE":
+        body = (marker + "\nWorker push rechazado: " + code + ". "
+                "El campo proposal.patch de " + expected + " no se aplica con "
+                "`git apply --check` sobre la base registrada del lote (task_spec.base_head_sha "
+                "en pilot/worker_v08/native_tasks/" + task + ".json). "
+                "No se ejecutó el Worker y NO se cobró intento. "
+                "Genera el parche con `git diff` desde esa base y vuelve a enviarlo.")
+        command("gh", "issue", "comment", str(number), "--repo", REPO, "--body", body)
+        return "NATIVE_PUSH_ALERT_COMMENTED"
     body = (marker + "\nWorker push rechazado: " + code + ". "
             "Se esperaba UN archivo " + expected +
             " con exactamente task_pack_sha256, proposal_sha256, proposal, author=GPT_NATIVE. "
