@@ -1,14 +1,19 @@
 {
   "schema_version": "LF_NATIVE_EXAMINER_DEFECT_V1",
   "task": "req186frontend3",
-  "superseded_holdout_sha256": "2761c3d84ae93ccab306d5494482a45a06b0eb0b43973b5de2a6d31bbf06018a",
-  "current_holdout_sha256": "d5958cc84d5b686192f582cea0d5efa41f4bade8adf30b82659ca48628345a4e",
+  "superseded_holdout_sha256": "d5958cc84d5b686192f582cea0d5efa41f4bade8adf30b82659ca48628345a4e",
+  "current_holdout_sha256": "df2d4b16bcca73e942d1a502b7f21a4a6163af3ccad2d026dee1a94b9ae0f2d3",
   "forgiven": [
     {
       "run_id": 43988930874,
       "proposal_commit_sha": "e994503c0d72724537d15922173d9cad0f6e3bcb",
       "task_pack_sha256": "c01162b03b1e727f36a39d0c57538cb9daec6c743fb658a15fb089606ba2f67e"
+    },
+    {
+      "run_id": 43994461155,
+      "proposal_commit_sha": "7500c69d54ab0bf86a47da50fcb7a56cf5f99ded",
+      "task_pack_sha256": "c01162b03b1e727f36a39d0c57538cb9daec6c743fb658a15fb089606ba2f67e"
     }
   ],
-  "reason": "El examen v2 probaba la lista sin establecer sesión y suponía que la página siempre llama al backend; una implementación válida que redirige al login cuando no hay token fallaba. Reproducido por el examinador: el mismo código pasa con sesión. El examen v3 establece una sesión genérica en los escenarios autenticados."
+  "reason": "El examen v2 probaba la lista sin establecer sesión y suponía que la página siempre llama al backend; una implementación válida que redirige al login cuando no hay token fallaba. Reproducido por el examinador: el mismo código pasa con sesión. El examen v3 establece una sesión genérica en los escenarios autenticados. El examen v3 además arrancaba el frontend sin instalar dependencias; el Worker corre el oráculo en una copia limpia sin node_modules (APP_NO_ARRANCA). El v4 instala dependencias primero y se validó en copia limpia: la referencia y el código del constructor pasan, y los 9 mutantes fallan."
 }
