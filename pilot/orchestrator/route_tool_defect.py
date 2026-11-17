@@ -123,10 +123,12 @@ def tool_sha(base: str, tool: str) -> str:
                                          capture_output=True, check=True).stdout).hexdigest()
 
 
-def prove(task: str, run_ids: list[int], current_base: str, reason: str) -> dict:
+def prove(task: str, run_ids: list[int], current_base: str, reason: str,
+          registered_ref: str = "origin/main") -> dict:
+    """registered_ref: the commit whose registration the failed runs used."""
     if not TASK.fullmatch(task) or not SHA40.fullmatch(current_base) or not run_ids:
         deny("INPUT_INVALID")
-    reg = json.loads((ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")).read_text("utf-8"))
+    reg = json.loads(sh("git", "show", f"{registered_ref}:pilot/worker_v08/native_tasks/{task}.json"))
     old_base = reg["task_spec"]["base_head_sha"]
     if old_base == current_base:
         deny("BASE_NOT_CHANGED")
@@ -173,10 +175,11 @@ def main() -> int:
     ap.add_argument("--run-id", type=int, action="append", required=True)
     ap.add_argument("--current-base", required=True)
     ap.add_argument("--reason", required=True)
+    ap.add_argument("--registered-ref", default="origin/main")
     ap.add_argument("--out", type=Path)
     a = ap.parse_args()
     try:
-        record = prove(a.task, a.run_id, a.current_base, a.reason)
+        record = prove(a.task, a.run_id, a.current_base, a.reason, a.registered_ref)
     except (ToolDefectBlocked, subprocess.CalledProcessError, KeyError, ValueError) as exc:
         print("T37_BLOCKED:" + str(exc), file=sys.stderr)
         return 1

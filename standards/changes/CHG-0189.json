@@ -21,7 +21,10 @@
       "pilot/orchestrator/test_t37_route_tool_proof.py",
       ".github/workflows/ci.yml",
       "standards/CAMBIOS.md",
-      "standards/changes/CHG-0189.json"
+      "standards/changes/CHG-0189.json",
+      "pilot/worker_v08/route_tool_defects/req286contrato1.json",
+      "pilot/worker_v08/native_tasks/req286contrato1.json",
+      "pilot/runs/req-286/proposal_requests/"
     ]
   },
   "existing_code_impact": {
