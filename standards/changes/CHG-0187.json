@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0187",
+  "title": "T36: el validador del contrato sigue los $ref locales al medir la cobertura de campos",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T36: req286contrato1 intento 2 falló con CONTRACT_FIELD_COVERAGE_MISSING:email,password con un OpenAPI válido que declara el cuerpo con $ref a components/schemas (defecto de la ruta, no de la propuesta)"
+  },
+  "reason": "_field_names ahora resuelve referencias locales #/... (acotado, sin ciclos, nunca externas). Con el cambio, la propuesta del intento 2 pasa la validación visible sin modificarla. Un campo realmente ausente sigue bloqueando.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/contract_validate.py",
+      "pilot/orchestrator/test_t36_contract_ref.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0187.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

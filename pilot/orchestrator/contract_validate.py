@@ -95,11 +95,28 @@ def _examples(obj, parents=(), in_example=False):
             _examples(part, parents, in_example)
 
 
-def _field_names(operation):
-    """Only schema properties and explicit parameters count as visible API fields."""
+def _field_names(operation, spec=None):
+    """Only schema properties and explicit parameters count as visible API fields.
+
+    T36: local `#/components/...` references are followed (bounded, no cycles),
+    so a valid OpenAPI that uses $ref for its request/response schemas counts."""
     names = set()
+    seen_refs = set()
+    def resolve(ref):
+        if not (isinstance(spec, dict) and isinstance(ref, str) and ref.startswith("#/")) or ref in seen_refs:
+            return None
+        seen_refs.add(ref)
+        node = spec
+        for key in ref[2:].split("/"):
+            if not isinstance(node, dict) or key not in node:
+                return None
+            node = node[key]
+        return node
     def walk(value):
         if isinstance(value, dict):
+            target = resolve(value.get("$ref")) if "$ref" in value else None
+            if target is not None:
+                walk(target)
             properties = value.get("properties")
             if isinstance(properties, dict):
                 names.update(properties)
@@ -178,7 +195,7 @@ def validate(path, skeleton, module):
         if identity in extended:
             seen_extensions.add(identity)
         seen_requirements.update(operation["x-requirement-ids"])
-        seen_fields.update(_field_names(operation))
+        seen_fields.update(_field_names(operation, spec))
         for response in operation["responses"].values():
             if not isinstance(response, dict):
                 deny("CONTRACT_RESPONSE_INVALID")
