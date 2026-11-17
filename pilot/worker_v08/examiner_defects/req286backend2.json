@@ -1,0 +1,14 @@
+{
+  "schema_version": "LF_NATIVE_EXAMINER_DEFECT_V1",
+  "task": "req286backend2",
+  "superseded_holdout_sha256": "290df0eeacfd2da2427a7c9ed7332a0c40dabfeebdcdff07dbfe2e3cccf00a02",
+  "current_holdout_sha256": "27cc8e218158804f70ac8a2be5014d1dc13566b9ef1e8a0b1c477b9ca5b54a43",
+  "forgiven": [
+    {
+      "run_id": 44144858234,
+      "proposal_commit_sha": "17beb4e8b74d3bf6ff74d7076877dee6b5e191cd",
+      "task_pack_sha256": "69f85ae2e4c1c4dbc073098293f1cc70dac0dc2bd120f4345edc4737a9acd34f"
+    }
+  ],
+  "reason": "El examen v2 solo recompilaba si el jar era más antiguo que las fuentes. La base registrada (616eca70) trae un apps/time-service/target versionado por error (retirado luego en T34.1) y el Worker copia los archivos en orden alfabético, así que el jar viejo quedaba más nuevo que el código y el examen arrancaba el jar viejo. publish_exam validaba la referencia en otro orden y no lo detectó. El examen v3 siempre recompila (mvn clean package); con el orden del Worker (T39), publish_exam rechaza v2 y v3 pasa la referencia y falla los 9 mutantes."
+}

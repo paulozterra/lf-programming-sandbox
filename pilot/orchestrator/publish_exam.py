@@ -120,13 +120,29 @@ def clean_copy(worktree: Path, dest: Path) -> Path:
     return dest
 
 
+def worker_order_copy(candidate: Path, dest: Path) -> Path:
+    """Copy every file of `candidate` in sorted relative-path order, like
+    worker_workspace.copy_candidate_for_commands."""
+    files = sorted(p.relative_to(candidate).as_posix() for p in candidate.rglob("*")
+                   if p.is_file() and not p.is_symlink())
+    for rel in files:
+        target = dest / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(candidate / rel, target)
+    return dest
+
+
 def exercise(raw: bytes, worktree: Path, reference: Path, mutants: list[Path],
              python: str) -> dict:
     results = {}
     for label, files in [("reference", reference)] + [(m.name, m) for m in mutants]:
         with tempfile.TemporaryDirectory(prefix="lf-exam-case-") as tmp:
-            case = clean_copy(worktree, Path(tmp) / "commands")
-            overlay(case, files, case)
+            # T39: same order as the Worker: base + change in a candidate, then
+            # the commands workspace copied path by path in sorted order (so
+            # e.g. a tracked build output gets a newer mtime than the sources).
+            candidate = clean_copy(worktree, Path(tmp) / "candidate")
+            overlay(candidate, files, candidate)
+            case = worker_order_copy(candidate, Path(tmp) / "commands")
             results[label] = run_oracle(raw, case, python)
     if not results.get("reference"):
         raise ExamBlocked("EXAM_REFERENCE_DOES_NOT_PASS")
