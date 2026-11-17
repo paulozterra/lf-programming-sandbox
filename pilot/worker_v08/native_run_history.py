@@ -168,6 +168,9 @@ def admit_attempt(
     except (OSError, ValueError):
         record = {}
     migration = verified_migration(control, task, record)
+    # T32: governed examiner-defect forgiveness (exact runs, replaced exam).
+    from native_examiner_defect import verified_examiner_defects
+    examiner_defects = verified_examiner_defects(control, task, record)
     if route_retry and (
         event != "workflow_dispatch" or attempt != 1
         or migration is None or migration["proposal_commit_sha"] != sha
@@ -203,6 +206,13 @@ def admit_attempt(
                 and _recognized_run(run, task, sha=migration["proposal_commit_sha"])):
             # The route-owned interpreter failure is retained in GitHub
             # history but does not consume a constructor attempt.
+            route_defect_run_ids.append(run["id"])
+            continue
+        forgiven = examiner_defects.get(run["id"])
+        if (forgiven is not None and run.get("status") == "completed"
+                and run.get("conclusion") == "failure"
+                and proof["task_pack_sha256"] == forgiven["task_pack_sha256"]
+                and _recognized_run(run, task, sha=forgiven["proposal_commit_sha"])):
             route_defect_run_ids.append(run["id"])
             continue
         title = run.get("display_title") or ""
