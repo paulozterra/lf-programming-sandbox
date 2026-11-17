@@ -172,3 +172,4 @@
 | CHG-0175 | EDITORIAL | Examen oculto req186frontend3 v4 (instala dependencias) y perdón T32 de la corrida 43994461155 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/270 |
 | CHG-0176 | EDITORIAL | T31.1: la herramienta de exámenes valida en copia limpia, como el Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/271 |
 | CHG-0177 | EDITORIAL | CP3.5: integración verificada nativa req186frontend3 (run 43998055732) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/272 |
+| CHG-0178 | EDITORIAL | T31: ficha SBX-B2B-LOGIN se integra con el login existente y con /sbx-rem-list |  | paulozterra |  |

@@ -6,22 +6,22 @@
   "files": [
     {
       "file": "screen_contract.json",
-      "sha256": "44d1f93effef14ce362154f4686390d42b522f180e9bf5900758192ee05c1573",
+      "sha256": "f71489db454deee79f3d22761ced8e17c82fc43d171840aac49f5d750c995338",
       "imitates": "lf_ops.fn_screen_contract_v1"
     },
     {
       "file": "direct_rules.json",
-      "sha256": "aeeee2b95c82b3e9419f459ba99a205acd1900c7ee20a08e7ce0037735a2ec27",
+      "sha256": "a3f0e7c18d5ae52fcffcde241f230ae9d3e6af1d35f9fd79e92940240a0f5b3a",
       "imitates": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas"
     },
     {
       "file": "effective_rules.json",
-      "sha256": "60eeee6234811abcb68ffe4c3b8c5aad60d4f6a7c6dc4952121308fd412bfc79",
+      "sha256": "4370e90f1aed4e47d6c0eecdb17f125130b0a3ebbfcbebd802be31f1aab96d54",
       "imitates": "programacion.fn_input_effective_rule_links_v1"
     },
     {
       "file": "policies.json",
-      "sha256": "5713a1eeb3bacb4b71664ea2de4a16c40726d5bbc3090f4135f8a7bcaca99719",
+      "sha256": "4c0abbba627ed7fb33490db11fd7a7ba657a72073b7a117b08c8449f58a9f7f2",
       "imitates": "lf_ops.pantallas_politicas + lf_ops.politicas_*"
     },
     {
@@ -46,7 +46,7 @@
     },
     {
       "file": "inventory.json",
-      "sha256": "d5cb554a3f315d46e8c313f2a98456b18a026481453d860a55dae7f6cccc277a",
+      "sha256": "253821b27a850216c54cac1efcedef6a395d5c5cd6171318ae32f44100a50e4d",
       "imitates": "inventory.objects + inventory.fn_impact_analysis_v1 + inventory.fn_dependencies_v1"
     },
     {

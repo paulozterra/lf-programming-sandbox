@@ -147,7 +147,7 @@
         "session_creation_authority": "SERVER_ONLY",
         "session_rotation": "POLICY_DRIVEN",
         "client_session_parameters_authoritative": "DENY",
-        "session_policy_code": "SBX-B2B-P-SESSION"
+        "sandbox_policy": "EXISTING_LOGIN_POLICY"
       },
       "categoria": "SECURITY",
       "descripcion": "Solo se crea o confirma una sesión autenticada cuando el resultado funcional sea AUTHENTICATED. La creación y rotación de sesión se ejecutan del lado servidor y consumen la política central de sesión; el cliente no decide TTL, concurrencia, rotación ni elevación de privilegios."
@@ -192,26 +192,24 @@
       "binding_source": "LEGACY_EXPLICIT",
       "source_ref": "supabase://lf_ops.reglas/310",
       "config": {
-        "rate_limit_policy_code": "SBX-B2B-P-RATE",
+        "sandbox_policy": "EXISTING_LOGIN_POLICY",
         "error_code": "SBX-B2B-E-RATE"
       },
       "categoria": "SECURITY",
-      "descripcion": "Todo límite de frecuencia o cantidad de solicitudes se obtiene de la política central de rate limit. Las reglas y pantallas solo referencian la política aplicable y no duplican ventanas, máximos ni burst limits."
+      "descripcion": "Todo límite de frecuencia o cantidad de solicitudes se obtiene de la política central. En el sandbox rige la política del login existente (sesión de 30 minutos y bloqueo tras 5 fallos durante 15 minutos); los valores de sesión y rate limit B2B no aplican (decisión del owner 2026-11-16)."
     },
     {
       "code": "SBX-B2B-R-SESSION-IDLE",
-      "title": "Inactividad controlada",
+      "title": "Duración de la sesión",
       "status": "VIGENTE",
       "pending_decision": false,
       "binding_source": "LEGACY_EXPLICIT",
       "source_ref": "supabase://lf_ops.reglas/311",
       "config": {
-        "session_policy_code": "SBX-B2B-P-SESSION",
-        "warning_message_code": "SBX-B2B-M-SESSION-WARNING",
-        "expired_message_code": "SBX-B2B-M-SESSION-EXPIRED"
+        "sandbox_policy": "EXISTING_LOGIN_POLICY"
       },
       "categoria": "SESSION",
-      "descripcion": "La advertencia y finalización por inactividad se ejecutan según la política central de sesión, con los mensajes canónicos de aviso y de sesión expirada."
+      "descripcion": "La expiración de la sesión se rige por la política central de sesión. En el sandbox rige la política del login existente (sesión de 30 minutos y bloqueo tras 5 fallos durante 15 minutos); los valores de sesión y rate limit B2B no aplican (decisión del owner 2026-11-16)."
     },
     {
       "code": "SBX-B2B-R-SESSION-CONCURRENCY",
@@ -221,10 +219,10 @@
       "binding_source": "LEGACY_EXPLICIT",
       "source_ref": "supabase://lf_ops.reglas/312",
       "config": {
-        "session_policy_code": "SBX-B2B-P-SESSION"
+        "sandbox_policy": "EXISTING_LOGIN_POLICY"
       },
       "categoria": "SESSION",
-      "descripcion": "La rotación de sesión, refresh y límites de concurrencia se obtienen de la política central de sesión. La regla no almacena cantidades de sesiones ni tiempos."
+      "descripcion": "La rotación de sesión y los límites de concurrencia se obtienen de la política central de sesión. En el sandbox rige la política del login existente (sesión de 30 minutos y bloqueo tras 5 fallos durante 15 minutos); los valores de sesión y rate limit B2B no aplican (decisión del owner 2026-11-16)."
     },
     {
       "code": "SBX-B2B-R-ERROR-CODE",
@@ -496,12 +494,80 @@
       "descripcion": "Pantallas y componentes no almacenan HEX, RGB ni medidas directas; los consumen desde los tokens."
     },
     {
+      "code": "SBX-B2B-R-INT-ROUTE",
+      "title": "Ruta de la pantalla y redirección desde pantallas protegidas",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/329",
+      "config": {
+        "origin": "SANDBOX_INTEGRATION",
+        "page_route": "/sbx-b2b-login",
+        "protected_pages": [
+          "/sbx-rem-list"
+        ],
+        "redirect_template": "/sbx-b2b-login?next=<ruta de origen>"
+      },
+      "categoria": "UX",
+      "descripcion": "Integración del sandbox (no es regla de LF): la pantalla de login vive en la ruta /sbx-b2b-login. La pantalla protegida existente /sbx-rem-list, cuando no hay sesión, redirige a /sbx-b2b-login?next=/sbx-rem-list en vez de a /login."
+    },
+    {
+      "code": "SBX-B2B-R-INT-SESSION-STORE",
+      "title": "Dónde queda la sesión en el navegador",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/330",
+      "config": {
+        "origin": "SANDBOX_INTEGRATION",
+        "storage": "sessionStorage",
+        "key": "sbx-session-token",
+        "password_storage": "DENY"
+      },
+      "categoria": "UX",
+      "descripcion": "Integración del sandbox (no es regla de LF): tras un resultado AUTHENTICATED, el token devuelto por el backend se guarda en sessionStorage con la clave sbx-session-token, que es la que leen las pantallas protegidas existentes. Nunca se guarda la contraseña."
+    },
+    {
+      "code": "SBX-B2B-R-INT-RETURN",
+      "title": "Volver a la pantalla de origen",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/331",
+      "config": {
+        "origin": "SANDBOX_INTEGRATION",
+        "return_param": "next",
+        "default_route": "/sbx-rem-list",
+        "external_redirect": "DENY"
+      },
+      "categoria": "UX",
+      "descripcion": "Integración del sandbox (no es regla de LF): tras iniciar sesión se navega a la ruta interna indicada en el parámetro next de /login; si no hay next o no es una ruta interna del sitio, se navega a /sbx-rem-list. Nunca se redirige a un dominio externo."
+    },
+    {
+      "code": "SBX-B2B-R-INT-EMAIL-LOGIN",
+      "title": "El login existente acepta correo",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "binding_source": "LEGACY_EXPLICIT",
+      "source_ref": "supabase://lf_ops.reglas/332",
+      "config": {
+        "origin": "SANDBOX_INTEGRATION",
+        "endpoint": "POST /api/auth/login",
+        "identifier": "email",
+        "demo_email": "demo@sandbox.test",
+        "second_login_service": "DENY",
+        "keep_username_login": true
+      },
+      "categoria": "SECURITY",
+      "descripcion": "Integración del sandbox (no es regla de LF): el servicio de login existente (POST /api/auth/login) acepta el correo electrónico como identificador; el usuario de prueba tiene el correo demo@sandbox.test. No se crea un segundo servicio de login; el acceso por usuario existente sigue funcionando."
+    },
+    {
       "code": "SBX-B2B-R-THEME-LIGHT",
       "title": "Modo claro",
       "status": "VIGENTE",
       "pending_decision": false,
       "binding_source": "LEGACY_EXPLICIT",
-      "source_ref": "supabase://lf_ops.reglas/329",
+      "source_ref": "supabase://lf_ops.reglas/333",
       "config": {
         "light": "SBX_B2B_THEME_LIGHT"
       },
