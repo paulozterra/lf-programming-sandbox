@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0197",
+  "title": "T39.1: el conteo de intentos ya no pisa el id de la corrida actual al aplicar perdones",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T39.1: run 44162966915 de req286backend2 bloqueado con NATIVE_PRIOR_PROOF_MISMATCH antes del Worker (sin cobrar intento)"
+  },
+  "reason": "En admit_attempt, los bucles de perdón de T37 y T38 usaban la variable run_id, que es el id de la corrida actual. Tras aplicar un perdón, una prueba de intento anterior legítima parecía más nueva que la corrida actual y la admisión fallaba. Se renombra la variable y se añade una prueba estructural (admit_attempt nunca reasigna run_id) más un caso con perdón seguido de otro intento.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_run_history.py",
+      "pilot/worker_v08/test_t39_1_history_forgiveness_scope.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0197.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}
