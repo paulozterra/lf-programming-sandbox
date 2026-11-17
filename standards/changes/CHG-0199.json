@@ -26,7 +26,8 @@
       "pilot/test_t40_train_rehearsal.py",
       "pilot/worker_v08/test_t40_exam_controls.py",
       "standards/CAMBIOS.md",
-      "standards/changes/CHG-0199.json"
+      "standards/changes/CHG-0199.json",
+      "pilot/test_t20_runner_pin.py"
     ]
   },
   "existing_code_impact": {

@@ -213,7 +213,7 @@ jobs:
         run: |
           python3 -m pytest -q pilot/test_policy_c_handoff.py -p no:cacheprovider
           python3 -m pilot.workflow_entrypoint pilot/test_policy_c_handoff.py
-      - name: T20 runner labels pinned across all 22 workflows (offline)
+      - name: T20 runner labels pinned across all 23 workflows (offline)
         run: python3 -m pilot.workflow_entrypoint pilot/test_t20_runner_pin.py
       - name: T25.1 GitHub typed paginated list and complete CP3.6 sweep isolation (offline)
         run: python3 -m pytest -q pilot/orchestrator/test_t25_1_github_lists_isolation.py -p no:cacheprovider
