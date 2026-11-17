@@ -199,3 +199,4 @@
 | CHG-0205 | EDITORIAL | CP3.5: integración verificada nativa req286backend2 (run 44167628590) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/322 |
 | CHG-0206 | ADDITIVE | T43: un lote se completa con los archivos que realmente integró dentro de su alcance (lotes EXTEND) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/324 |
 | CHG-0207 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/325 |
+| CHG-0208 | EDITORIAL | T40.3: referencia del examinador de req286frontend3 solo con archivos del lote |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/326 |
