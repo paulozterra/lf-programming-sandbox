@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0201",
   "title": "T40.2: exam-rehearsal.yml sin claves duplicadas; prueba que ningún workflow las tenga",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "T40.2: GitHub rechazó exam-rehearsal.yml (env duplicado en el job); PyYAML lo aceptaba en silencio"
