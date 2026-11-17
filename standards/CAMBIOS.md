@@ -173,4 +173,4 @@
 | CHG-0176 | EDITORIAL | T31.1: la herramienta de exámenes valida en copia limpia, como el Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/271 |
 | CHG-0177 | EDITORIAL | CP3.5: integración verificada nativa req186frontend3 (run 43998055732) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/272 |
 | CHG-0178 | EDITORIAL | T31: ficha SBX-B2B-LOGIN se integra con el login existente y con /sbx-rem-list |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/274 |
-| CHG-0179 | ADDITIVE | T33: las reglas de negocio y la ficha de la pantalla viajan en el contexto de cada lote |  | paulozterra |  |
+| CHG-0179 | ADDITIVE | T33: las reglas de negocio y la ficha de la pantalla viajan en el contexto de cada lote |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/278 |
