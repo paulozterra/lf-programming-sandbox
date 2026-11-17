@@ -66,11 +66,18 @@ def api(path: str):
     return json.loads(sh("gh", "api", f"repos/{REPO}/{path}"))
 
 
+def api_list(path: str) -> list:
+    rows = json.loads(sh("gh", "api", f"repos/{REPO}/{path}"))
+    if not isinstance(rows, list):
+        deny("GITHUB_COLLECTION_INVALID")
+    return rows
+
+
 def feedback_for(issue: int, task: str, sha: str) -> dict:
     marker = f"<!-- LF_NATIVE_VISIBLE_FEEDBACK:{task}:{sha}:"
     found = []
     for page in range(1, 6):
-        rows = api(f"issues/{issue}/comments?per_page=100&page={page}")
+        rows = api_list(f"issues/{issue}/comments?per_page=100&page={page}")
         found += [c for c in rows if (c.get("user") or {}).get("login") == "github-actions[bot]"
                   and marker in (c.get("body") or "")]
         if len(rows) < 100:
