@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0200",
   "title": "T40.1: referencias cifradas del examinador para req286backend2 y req286frontend3",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "T40.1: primeras referencias para el ensayo y el control positivo de T40"
