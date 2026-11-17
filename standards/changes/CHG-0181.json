@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0181",
+  "title": "T33.2: la re-ejecución T12 de T7 vuelve a leer el pedido (sed escapado nunca coincidía)",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T33.2: T12 cerró el candidato T7 de req-275 por avance de main y su re-ejecución (corrida 44016113396) murió en 'Stage generated evidence' con exit 1 y sin mensaje: el sed con barras escapadas devolvía slug vacío"
+  },
+  "reason": "El paso de re-ejecución (inputs.rerun=true) ahora lee el slug con una expresión de bash sin escapes. Sigue exigiendo un único pedido req-N. Prueba que ejecuta el mismo bloque del workflow.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/t7-request.yml",
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/test_t33_2_t7_rerun.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0181.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
