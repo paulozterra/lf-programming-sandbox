@@ -1,0 +1,159 @@
+openapi: 3.0.3
+info:
+  title: SBX-B2B-LOGIN
+  version: 1.0.0
+  description: >-
+    Contrato de Login B2B. Extiende POST /api/auth/login existente;
+    la autenticación y la sesión son responsabilidad del servidor.
+servers:
+  - url: /
+paths:
+  /api/auth/login:
+    post:
+      operationId: loginB2b
+      summary: Iniciar sesión con correo electrónico y contraseña
+      description: >-
+        Solicitud por HTTPS en el cuerpo, sin credenciales en URL, query ni
+        telemetría. El correo puede recortarse externamente; la contraseña
+        no se recorta ni normaliza. El servidor genera correlation_id,
+        autentica y crea una sesión solo con resultado AUTHENTICATED.
+        Sin reintentos automáticos; sesión y permisos se aplican del lado servidor.
+      x-requirement-ids:
+        - REQ-SBX-B2B-R-A11Y-CONTRAST
+        - REQ-SBX-B2B-R-A11Y-FORCED-COLORS
+        - REQ-SBX-B2B-R-A11Y-INTERACTION
+        - REQ-SBX-B2B-R-A11Y-MOTION
+        - REQ-SBX-B2B-R-AUTH-DENY-DEFAULT
+        - REQ-SBX-B2B-R-AUTH-ENVELOPE
+        - REQ-SBX-B2B-R-AUTH-FAIL-CLOSED
+        - REQ-SBX-B2B-R-AUTH-OUTCOMES
+        - REQ-SBX-B2B-R-AUTH-REQUEST
+        - REQ-SBX-B2B-R-AUTH-RUNTIME-PASSWORD
+        - REQ-SBX-B2B-R-AUTH-SESSION-AFTER-AUTH
+        - REQ-SBX-B2B-R-AUTH-TIMEOUT
+        - REQ-SBX-B2B-R-DESIGN-NO-HARDCODE
+        - REQ-SBX-B2B-R-DESIGN-TOKENS
+        - REQ-SBX-B2B-R-ERROR-CODE
+        - REQ-SBX-B2B-R-ERROR-SAFE-MESSAGE
+        - REQ-SBX-B2B-R-ERROR-TRACE
+        - REQ-SBX-B2B-R-INT-EMAIL-LOGIN
+        - REQ-SBX-B2B-R-INT-RETURN
+        - REQ-SBX-B2B-R-INT-ROUTE
+        - REQ-SBX-B2B-R-INT-SESSION-STORE
+        - REQ-SBX-B2B-R-PRIVACY-TELEMETRY
+        - REQ-SBX-B2B-R-RESP-BREAKPOINTS
+        - REQ-SBX-B2B-R-THEME-LIGHT
+        - REQ-SBX-B2B-R-UX-ACTIONS
+        - REQ-SBX-B2B-R-UX-PASSWORD-MANAGERS
+        - REQ-SBX-B2B-R-UX-PASSWORD-VISIBILITY
+        - REQ-SBX-B2B-R-UX-RECOVERY
+        - REQ-SBX-B2B-R-UX-SINGLE-FLIGHT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: AUTHENTICATED; sesión emitida únicamente por el servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccess'
+        '401':
+          description: No pudimos validar tus datos de acceso. Revisa la información e inténtalo nuevamente.
+          x-error-codes:
+            - SBX-B2B-E-CREDENTIALS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginFailure'
+        '429':
+          description: Se alcanzó temporalmente el límite de operaciones.
+          x-error-codes:
+            - SBX-B2B-E-RATE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginFailure'
+        '503':
+          description: Se perdió la conexión durante la operación.
+          x-error-codes:
+            - SBX-B2B-E-NETWORK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginFailure'
+        '500':
+          description: Ocurrió un error inesperado.
+          x-error-codes:
+            - SBX-B2B-E-UNEXPECTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginFailure'
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: >-
+            Correo electrónico. Ingresa un correo electrónico válido. Ejemplo:
+            usuario@empresa.com
+        password:
+          type: string
+          minLength: 1
+          format: password
+          writeOnly: true
+          description: Contraseña. Ingresa tu contraseña.
+    LoginSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - outcome
+        - correlation_id
+        - token
+      properties:
+        outcome:
+          type: string
+          enum:
+            - AUTHENTICATED
+        correlation_id:
+          type: string
+        token:
+          type: string
+          writeOnly: false
+          description: Token de sesión opaco generado por servidor; solo se entrega tras autenticación.
+    LoginFailure:
+      type: object
+      additionalProperties: false
+      required:
+        - outcome
+        - correlation_id
+        - error_code
+      properties:
+        outcome:
+          type: string
+          enum:
+            - INVALID_CREDENTIALS
+            - RATE_LIMITED
+            - SERVICE_UNAVAILABLE
+        correlation_id:
+          type: string
+        error_code:
+          type: string
+          enum:
+            - SBX-B2B-E-CREDENTIALS
+            - SBX-B2B-E-RATE
+            - SBX-B2B-E-NETWORK
+            - SBX-B2B-E-UNEXPECTED

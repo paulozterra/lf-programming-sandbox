@@ -1,0 +1,45 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0190",
+  "title": "CP3.5: integración verificada nativa req286contrato1 (run 44111534766)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "CP3.5 autorizado por Paulo; PR draft automático de PASS nativo"
+  },
+  "reason": "Parche originado exclusivamente en native-verified-patch de la corrida nativa PASS 44111534766, SHA-256 f5b4233b2ab1af76391ecb340fe1656758c1aa0938628a4662d1253b0bd6b2ff; rutas y bytes aplicados sin reconstruir propuesta, sin exámenes ni aprobación automática.",
+  "artifacts": [],
+  "derived": {
+    "generator": "npm run gen:api",
+    "paths": [
+      "frontend/src/lib/api/generated/index.ts",
+      "frontend/src/lib/api/generated/sbx-b2b-login.ts"
+    ],
+    "attribution": "CP3.5_TRUSTED_GENERATOR_NOT_WORKER"
+  },
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "contracts/sbx-b2b-login.openapi.yaml",
+      "frontend/src/lib/api/generated/index.ts",
+      "frontend/src/lib/api/generated/sbx-b2b-login.ts",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0190.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/302"
+  }
+}
