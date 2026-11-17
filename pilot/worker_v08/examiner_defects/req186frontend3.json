@@ -1,0 +1,14 @@
+{
+  "schema_version": "LF_NATIVE_EXAMINER_DEFECT_V1",
+  "task": "req186frontend3",
+  "superseded_holdout_sha256": "2761c3d84ae93ccab306d5494482a45a06b0eb0b43973b5de2a6d31bbf06018a",
+  "current_holdout_sha256": "d5958cc84d5b686192f582cea0d5efa41f4bade8adf30b82659ca48628345a4e",
+  "forgiven": [
+    {
+      "run_id": 43988930874,
+      "proposal_commit_sha": "e994503c0d72724537d15922173d9cad0f6e3bcb",
+      "task_pack_sha256": "c01162b03b1e727f36a39d0c57538cb9daec6c743fb658a15fb089606ba2f67e"
+    }
+  ],
+  "reason": "El examen v2 probaba la lista sin establecer sesión y suponía que la página siempre llama al backend; una implementación válida que redirige al login cuando no hay token fallaba. Reproducido por el examinador: el mismo código pasa con sesión. El examen v3 establece una sesión genérica en los escenarios autenticados."
+}
