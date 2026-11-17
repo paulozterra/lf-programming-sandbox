@@ -192,3 +192,4 @@
 | CHG-0196 | ADDITIVE | T39: publish_exam valida el examen en el mismo orden que el Worker; req286backend2 examen v3 y perdón del intento afectado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/312 |
 | CHG-0197 | ADDITIVE | T39.1: el conteo de intentos ya no pisa el id de la corrida actual al aplicar perdones |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/313 |
 | CHG-0199 | ADDITIVE | T40: controles del examen: ensayo con el Worker real antes de usarlo, control positivo con la referencia al fallar y trazabilidad de cada fallo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/315 |
+| CHG-0200 | ADDITIVE | T40.1: referencias cifradas del examinador para req286backend2 y req286frontend3 |  | paulozterra | PENDING |
