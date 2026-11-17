@@ -315,7 +315,8 @@ def expanded_context_size(root: Path, patterns: list[str], excluded: set[str]) -
 
 def register(task: dict, *, project: str, area: str, lot_paths: list[str],
              task_name: str, budget: int, root: Path = ROOT,
-             pinned: Path = PINROOT, persist: bool = True) -> tuple[dict, dict[str, bytes]]:
+             pinned: Path = PINROOT, persist: bool = True,
+             requirement_ids: list[str] | None = None) -> tuple[dict, dict[str, bytes]]:
     if not ID.fullmatch(task_name):
         block("TASK_ID_UNSAFE")
     if task_name.lower() in {"ex6", "ex7"}:
@@ -437,9 +438,20 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
             for signature in sorted(set(signatures)):
                 lines.append("- " + signature)
         reuse_markdown = ("\n".join(lines) + "\n").encode("utf-8")
+    # T33: the lot's business rules and screen material travel with it.
+    business = {}
+    if requirement_ids is not None:
+        from business_context import material as business_material, run_slug, BusinessContextBlocked
+        try:
+            slug = run_slug(spec.get("context_path_patterns", []))
+            if slug is not None:
+                business = business_material(root, slug, list(requirement_ids), area)
+        except BusinessContextBlocked as exc:
+            block(str(exc))
     names = ["profile.md", "skills.md", "protocolo.md"]
     if reuse_markdown is not None:
         names.append("reutilizar.md")
+    names.extend(sorted(business))
     if lf_rules is not None:
         names.extend(["lf_rules.md", "lf_rules.receipt.json"])
     names.append("receipt.json")
@@ -501,6 +513,7 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
                            "protocolo.md": digest(protocol),
                            **({"reutilizar.md": digest(reuse_markdown)}
                               if reuse_markdown is not None else {}),
+                           **{k: digest(v) for k, v in sorted(business.items())},
                            **({"lf_rules.md": digest(lf_rules),
                                "lf_rules.receipt.json": digest(canonical(lf_rule_receipt))}
                               if lf_rules is not None else {})},
@@ -516,6 +529,7 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     values = [profile, skills, protocol]
     if reuse_markdown is not None:
         values.append(reuse_markdown)
+    values.extend(business[k] for k in sorted(business))
     if lf_rules is not None:
         values.extend([lf_rules, canonical(lf_rule_receipt)])
     values.append(receipt_raw)

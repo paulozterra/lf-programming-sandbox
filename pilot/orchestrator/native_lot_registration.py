@@ -151,7 +151,8 @@ def register_lot(root: Path, folder: Path, lot: dict, mapped: dict,
         template, project=holdout.get("project_ref", "lf_java"),
         area=lot["area"], lot_paths=paths, task_name=task_name,
         budget=spec.get("max_context_bytes", 240000),
-        root=root, persist=False)
+        root=root, persist=False,
+        requirement_ids=lot.get("requirement_ids"))
     enriched = output["task_spec"]
     validate_template_worker({"task_spec": enriched}, lot["area"])
     native_registration_bytes(enriched, sha, ref, task_name)
