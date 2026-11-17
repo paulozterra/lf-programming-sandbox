@@ -182,3 +182,4 @@
 | CHG-0185 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/297 |
 | CHG-0186 | ADDITIVE | T35: el feedback visible llega al Issue del pedido aunque no tenga la etiqueta lf-request |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/298 |
 | CHG-0187 | ADDITIVE | T36: el validador del contrato sigue los $ref locales al medir la cobertura de campos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/299 |
+| CHG-0188 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/300 |
