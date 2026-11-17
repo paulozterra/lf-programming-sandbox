@@ -124,6 +124,13 @@ def _real_request(tmp_path) -> tuple[Path, str] | None:
         lots = folder / "lots.json"
         if not (assessment.is_file() and lots.is_file()):
             continue
+        # T33.1: the case is read from the pinned snapshot, so a request
+        # admitted after it (e.g. a new EXTEND request) is not a candidate.
+        import subprocess
+        if subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e",
+                           f"{REAL_CASE_SNAPSHOT}:pilot/runs/{folder.name}/lots.json"],
+                          capture_output=True).returncode != 0:
+            continue
         rows = json.loads(assessment.read_text("utf-8")).get("obligations", [])
         if any(r.get("decision") == "EXTEND" and r.get("reused_endpoints") for r in rows):
             candidates.append(folder.name)

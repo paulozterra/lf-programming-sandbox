@@ -174,3 +174,4 @@
 | CHG-0177 | EDITORIAL | CP3.5: integración verificada nativa req186frontend3 (run 43998055732) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/272 |
 | CHG-0178 | EDITORIAL | T31: ficha SBX-B2B-LOGIN se integra con el login existente y con /sbx-rem-list |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/274 |
 | CHG-0179 | ADDITIVE | T33: las reglas de negocio y la ficha de la pantalla viajan en el contexto de cada lote |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/278 |
+| CHG-0180 | EDITORIAL | T33.1: la prueba T26 del caso real ignora pedidos admitidos después de su instantánea fijada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/279 |
