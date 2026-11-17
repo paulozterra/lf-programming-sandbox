@@ -197,3 +197,4 @@
 | CHG-0203 | ADDITIVE | T41: un archivo registrado puede cambiar solo por linaje verificado (integraciones fusionadas por el Train) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/320 |
 | CHG-0204 | ADDITIVE | T42: la etiqueta del owner en un PR de integración del bot lanza el Train (puerta humana del intento 3) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/321 |
 | CHG-0205 | EDITORIAL | CP3.5: integración verificada nativa req286backend2 (run 44167628590) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/322 |
+| CHG-0206 | ADDITIVE | T43: un lote se completa con los archivos que realmente integró dentro de su alcance (lotes EXTEND) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/324 |
