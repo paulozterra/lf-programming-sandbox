@@ -194,4 +194,4 @@
 | CHG-0199 | ADDITIVE | T40: controles del examen: ensayo con el Worker real antes de usarlo, control positivo con la referencia al fallar y trazabilidad de cada fallo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/315 |
 | CHG-0200 | EDITORIAL | T40.1: referencias cifradas del examinador para req286backend2 y req286frontend3 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/316 |
 | CHG-0201 | EDITORIAL | T40.2: exam-rehearsal.yml sin claves duplicadas; prueba que ningún workflow las tenga |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/317 |
-| CHG-0202 | EDITORIAL | CP3.5: integración verificada nativa req286backend2 (run 44167628590) |  | paulozterra |  |
+| CHG-0202 | EDITORIAL | CP3.5: integración verificada nativa req286backend2 (run 44167628590) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/319 |
