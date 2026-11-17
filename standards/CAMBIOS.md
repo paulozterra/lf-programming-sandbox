@@ -183,3 +183,4 @@
 | CHG-0186 | ADDITIVE | T35: el feedback visible llega al Issue del pedido aunque no tenga la etiqueta lf-request |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/298 |
 | CHG-0187 | ADDITIVE | T36: el validador del contrato sigue los $ref locales al medir la cobertura de campos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/299 |
 | CHG-0189 | ADDITIVE | T37: intentos gastados por una herramienta de la ruta ya corregida no cuentan (perdón gobernado + re-anclaje del lote) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/301 |
+| CHG-0190 | EDITORIAL | CP3.5: integración verificada nativa req286contrato1 (run 44111534766) |  | paulozterra |  |
