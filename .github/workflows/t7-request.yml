@@ -80,7 +80,11 @@ jobs:
           short_sha="$(printf '%s' "$GITHUB_SHA" | cut -c1-12)"
           branch="lf/generated-t7/$short_sha"
           if [ "${{ inputs.rerun || 'false' }}" = "true" ]; then
-            slug="$(sed -n '1s|^pilot/runs/\\([^/]*\\)/request.md$|\\1|p' "$RUNNER_TEMP/t7-requests.txt")"
+            # T33.2: plain path parsing (the escaped sed never matched, so every
+            # T12 re-run died here silently with exit 1).
+            first="$(head -n 1 "$RUNNER_TEMP/t7-requests.txt")"
+            [[ "$first" =~ ^pilot/runs/(req-[1-9][0-9]*)/request[.]md$ ]]
+            slug="${BASH_REMATCH[1]}"
             [[ "$slug" =~ ^req-[1-9][0-9]*$ ]]
             test "$(wc -l < "$RUNNER_TEMP/t7-requests.txt")" -eq 1
             branch="lf/generated-t7/$short_sha-$slug"
