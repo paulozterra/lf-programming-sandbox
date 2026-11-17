@@ -175,18 +175,50 @@ def prove(task: str, run_ids: list[int], current_base: str, reason: str,
             "forgiven": rows, "reason": reason}
 
 
+def prove_patch(task: str, run_ids: list[int], reason: str) -> dict:
+    """T38: each run's patch must not apply to the registered base."""
+    from native_intake_defect import SCHEMA as INTAKE, CODE
+    from native_proposal_push_guard import patch_applies
+    if not TASK.fullmatch(task) or not run_ids:
+        deny("INPUT_INVALID")
+    reg = json.loads((ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")).read_text("utf-8"))
+    base = reg["task_spec"]["base_head_sha"]
+    meta = sorted((ROOT / "pilot/runs").glob(f"*/proposal_requests/{task}.proposal-request.json"))
+    if len(meta) != 1:
+        deny("REQUEST_NOT_FOUND")
+    issue = int(meta[0].parts[-3].split("-", 1)[1])
+    rows = []
+    for run_id in run_ids:
+        run = api(f"actions/runs/{run_id}")
+        identity = _run_identity(run, REPO)
+        if run.get("conclusion") != "failure" or identity is None or identity[0] != task:
+            deny("RUN_NOT_A_FAILED_ATTEMPT")
+        sha = identity[1]
+        if feedback_for(issue, task, sha).get("commands") != []:
+            deny("ACCEPTANCE_RAN")
+        sh("git", "fetch", "-q", "--no-tags", "origin", sha)
+        env = json.loads(sh("git", "show", f"{sha}:pilot/native_proposals/{task}.json"))
+        if patch_applies(ROOT, base, env["proposal"]["patch"]):
+            deny("PATCH_APPLIES")
+        rows.append({"run_id": run_id, "proposal_commit_sha": sha,
+                     "task_pack_sha256": env["task_pack_sha256"]})
+    return {"schema_version": INTAKE, "task": task, "code": CODE, "base_head_sha": base,
+            "forgiven": rows, "reason": reason}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("command", choices=["prove"])
+    ap.add_argument("command", choices=["prove", "prove-patch"])
     ap.add_argument("--task", required=True)
     ap.add_argument("--run-id", type=int, action="append", required=True)
-    ap.add_argument("--current-base", required=True)
+    ap.add_argument("--current-base")
     ap.add_argument("--reason", required=True)
     ap.add_argument("--registered-ref", default="origin/main")
     ap.add_argument("--out", type=Path)
     a = ap.parse_args()
     try:
-        record = prove(a.task, a.run_id, a.current_base, a.reason, a.registered_ref)
+        record = (prove_patch(a.task, a.run_id, a.reason) if a.command == "prove-patch"
+                  else prove(a.task, a.run_id, a.current_base or "", a.reason, a.registered_ref))
     except (ToolDefectBlocked, subprocess.CalledProcessError, KeyError, ValueError) as exc:
         print("T37_BLOCKED:" + str(exc), file=sys.stderr)
         return 1
