@@ -195,4 +195,4 @@
 | CHG-0200 | EDITORIAL | T40.1: referencias cifradas del examinador para req286backend2 y req286frontend3 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/316 |
 | CHG-0201 | EDITORIAL | T40.2: exam-rehearsal.yml sin claves duplicadas; prueba que ningún workflow las tenga |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/317 |
 | CHG-0203 | ADDITIVE | T41: un archivo registrado puede cambiar solo por linaje verificado (integraciones fusionadas por el Train) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/320 |
-| CHG-0204 | ADDITIVE | T42: la etiqueta del owner en un PR de integración del bot lanza el Train (puerta humana del intento 3) |  | paulozterra | PENDING |
+| CHG-0204 | ADDITIVE | T42: la etiqueta del owner en un PR de integración del bot lanza el Train (puerta humana del intento 3) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/321 |
