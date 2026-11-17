@@ -528,6 +528,31 @@ def recover_stale_generated(api, pr, paths):
     return "STALE_CLOSED_T7_REDISPATCHED"
 
 
+def owner_labeled_after_last_train(api, number):
+    """True if the latest ready-to-merge label on this PR was applied by a
+    repository admin (a human owner, never the bot) and no Train run was
+    dispatched for the PR since then. The Train itself re-checks policy."""
+    events = api.pages(f"/issues/{number}/events", None)
+    labels = [e for e in events if isinstance(e, dict) and e.get("event") == "labeled"
+              and (e.get("label") or {}).get("name") == READY_LABEL]
+    if not labels:
+        return False
+    last = labels[-1]
+    actor = (last.get("actor") or {}).get("login", "")
+    if actor == BOT or not re.fullmatch(r"[A-Za-z0-9-]{1,39}", actor):
+        return False
+    permission = api.request("GET", f"/collaborators/{actor}/permission")
+    if permission.get("permission") != "admin":
+        return False
+    since = last.get("created_at", "")
+    runs = api.request("GET", "/actions/workflows/sandbox-train.yml/runs?event=workflow_dispatch&per_page=100")
+    for run in runs.get("workflow_runs", []):
+        if (run.get("created_at", "") >= since
+                and run.get("display_title") == f"sandbox-train PR #{number}"):
+            return False
+    return True
+
+
 def evaluate_one(api, number):
     pr = api.request("GET", f"/pulls/{number}")
     paths = pr_files(api, number)
@@ -540,6 +565,12 @@ def evaluate_one(api, number):
         if recovery:
             return recovery
     if READY_LABEL in {x.get("name") for x in pr.get("labels", [])}:
+        # T42: an owner's label on a bot PR (e.g. the attempt-3 human gate)
+        # triggers no pull_request workflow, so dispatch the Train once.
+        if kind == "integration" and owner_labeled_after_last_train(api, number):
+            api.request("POST", "/actions/workflows/sandbox-train.yml/dispatches",
+                        {"ref": "main", "inputs": {"pr_number": str(number)}})
+            return "OWNER_LABEL_TRAIN_DISPATCHED"
         return "ALREADY_LABELED"
     if kind in ("generated-t7", "implemented-registry"):
         verify_generated_content(api, pr, paths, kind)

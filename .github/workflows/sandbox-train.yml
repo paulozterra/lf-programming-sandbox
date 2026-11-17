@@ -1,4 +1,5 @@
 name: sandbox-train
+run-name: "${{ inputs.pr_number && format('sandbox-train PR #{0}', inputs.pr_number) || github.event.pull_request.title }}"
 
 on:
   pull_request:

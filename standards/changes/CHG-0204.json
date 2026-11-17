@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0204",
+  "title": "T42: la etiqueta del owner en un PR de integración del bot lanza el Train (puerta humana del intento 3)",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T42: Paulo etiquetó #319 (PASS en intento 3, REVISION_HUMANA_REQUERIDA) y no ocurrió nada"
+  },
+  "reason": "GitHub no ejecuta workflows pull_request en PRs creados por el bot, aunque la etiqueta la ponga una persona; la Política C devolvía ALREADY_LABELED sin lanzar el Train. Ahora, si la última etiqueta ready-to-merge de un PR de integración la puso un admin del repo (nunca el bot) y no hubo un Train lanzado para ese PR desde entonces, la Política C lanza el Train una vez. El Train sigue sacando el borrador y verificando CI y política. sandbox-train.yml lleva run-name con el número de PR para que esa comprobación sea exacta.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/auto_integrate.py",
+      "pilot/test_t42_owner_label_dispatch.py",
+      ".github/workflows/sandbox-train.yml",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0204.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}
