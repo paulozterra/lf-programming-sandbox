@@ -229,7 +229,7 @@ jobs:
         run: |
           python3 -m pytest -q pilot/orchestrator/test_t23_route_runtime.py pilot/orchestrator/test_t23_route_recovery.py pilot/worker_v08/test_t23_route_attempt_history.py -p no:cacheprovider
       - name: T22 public feedback idempotency and hidden-field rejection (offline)
-        run: python3 -m pytest -q pilot/worker_v08/test_t22_feedback_delivery.py -p no:cacheprovider
+        run: python3 -m pytest -q pilot/worker_v08/test_t22_feedback_delivery.py pilot/worker_v08/test_t35_feedback_unlabeled_issue.py -p no:cacheprovider
       - name: T21 real pinned Python venv isolation regression (symlink fails, wrapper passes)
         run: python3 -m pilot.workflow_entrypoint pilot/test_t21_python_runtime.py
       - name: T21 native pre-admission recovery and historical proposal guard (offline)
