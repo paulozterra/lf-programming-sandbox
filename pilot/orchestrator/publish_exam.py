@@ -8,8 +8,8 @@ metadata that are consistent by construction:
 1. build the oracle from a check script, split into Worker-sized argv chunks;
 2. load it with the vendored Worker loader (load_hidden_oracle and
    assert_hidden_oracle_external);
-3. run it against the reference overlay (must PASS) and each mutant overlay
-   (each must FAIL);
+3. run it, in a clean copy of git-tracked files (as the Worker does), against
+   the reference overlay (must PASS) and each mutant overlay (each must FAIL);
 4. encrypt to the repository recipient, decrypt back and compare bytes;
 5. write metadata whose holdout_sha256 is the plaintext SHA the Worker checks.
 
@@ -102,23 +102,32 @@ def run_oracle(raw: bytes, workdir: Path, python: str) -> bool:
     return True
 
 
+def clean_copy(worktree: Path, dest: Path) -> Path:
+    """T31.1: like the Worker, run the oracle on git-tracked files only
+    (no node_modules, build caches or other local state)."""
+    listed = subprocess.run(["git", "ls-files", "-z"], cwd=worktree, check=True,
+                            capture_output=True).stdout.split(b"\0")
+    for raw in listed:
+        if not raw:
+            continue
+        rel = raw.decode("utf-8")
+        src = worktree / rel
+        if src.is_symlink() or not src.is_file():
+            continue
+        target = dest / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, target)
+    return dest
+
+
 def exercise(raw: bytes, worktree: Path, reference: Path, mutants: list[Path],
              python: str) -> dict:
     results = {}
     for label, files in [("reference", reference)] + [(m.name, m) for m in mutants]:
-        backup = {}
-        try:
-            for src in (p for p in files.rglob("*") if p.is_file()):
-                target = worktree / src.relative_to(files)
-                backup[target] = target.read_bytes() if target.is_file() else None
-            overlay(worktree, files, worktree)
-            results[label] = run_oracle(raw, worktree, python)
-        finally:
-            for target, content in backup.items():
-                if content is None:
-                    target.unlink(missing_ok=True)
-                else:
-                    target.write_bytes(content)
+        with tempfile.TemporaryDirectory(prefix="lf-exam-case-") as tmp:
+            case = clean_copy(worktree, Path(tmp) / "commands")
+            overlay(case, files, case)
+            results[label] = run_oracle(raw, case, python)
     if not results.get("reference"):
         raise ExamBlocked("EXAM_REFERENCE_DOES_NOT_PASS")
     survivors = sorted(k for k, ok in results.items() if k != "reference" and ok)

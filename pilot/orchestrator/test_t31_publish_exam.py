@@ -38,6 +38,9 @@ def _case(tmp_path):
     work = tmp_path / "work"
     (work / "src").mkdir(parents=True)
     (work / "src/value.txt").write_text("0")
+    import subprocess
+    subprocess.run(["git", "init", "-q", str(work)], check=True)
+    subprocess.run(["git", "-C", str(work), "add", "-A"], check=True)
     script = ("import sys\n"
               "v=open('src/value.txt').read().strip()\n"
               "sys.exit(0 if v=='42' else 1)\n")
@@ -56,7 +59,21 @@ def test_reference_passes_and_mutants_must_fail(tmp_path):
     (muts / "off_by_one/src/value.txt").write_text("41")
     result = pe.exercise(raw, work, ref, sorted(muts.iterdir()), sys.executable)
     assert result == {"reference": True, "off_by_one": False}
-    assert (work / "src/value.txt").read_text() == "0"  # worktree restored
+    assert (work / "src/value.txt").read_text() == "0"  # worktree untouched
+
+
+def test_oracle_runs_without_untracked_local_state(tmp_path):
+    # The req186frontend3 v3 defect: the exam relied on local node_modules,
+    # which the Worker's clean command workspace does not have.
+    work, _, ref = _case(tmp_path)
+    (work / "node_modules").mkdir()
+    (work / "node_modules/dep.txt").write_text("installed locally only")
+    script = ("import os,sys\n"
+              "sys.exit(0 if os.path.exists('node_modules/dep.txt') else 1)\n")
+    raw = pe.build_oracle(script, name="holdout", family="f", version="v1",
+                          timeout=30, max_output=8000)
+    with pytest.raises(pe.ExamBlocked, match="EXAM_REFERENCE_DOES_NOT_PASS"):
+        pe.exercise(raw, work, ref, [], sys.executable)
 
 
 def test_surviving_mutant_blocks(tmp_path):
