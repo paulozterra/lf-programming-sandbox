@@ -176,4 +176,4 @@
 | CHG-0179 | ADDITIVE | T33: las reglas de negocio y la ficha de la pantalla viajan en el contexto de cada lote |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/278 |
 | CHG-0180 | EDITORIAL | T33.1: la prueba T26 del caso real ignora pedidos admitidos después de su instantánea fijada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/279 |
 | CHG-0181 | ADDITIVE | T33.2: la re-ejecución T12 de T7 vuelve a leer el pedido (sed escapado nunca coincidía) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/280 |
-| CHG-0182 | ADDITIVE | T33.3: el validador del contrato acepta páginas reutilizadas (PAGE) del esqueleto T7 |  | paulozterra |  |
+| CHG-0182 | ADDITIVE | T33.3: el validador del contrato acepta páginas reutilizadas (PAGE) del esqueleto T7 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/294 |
