@@ -170,3 +170,4 @@
 | CHG-0173 | ADDITIVE | T32: perdón gobernado de intentos gastados por un examen oculto defectuoso |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/268 |
 | CHG-0174 | EDITORIAL | Examen oculto req186frontend3 v3 y perdón T32 de la corrida juzgada por el examen defectuoso |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/269 |
 | CHG-0175 | EDITORIAL | Examen oculto req186frontend3 v4 (instala dependencias) y perdón T32 de la corrida 43994461155 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/270 |
+| CHG-0176 | EDITORIAL | T31.1: la herramienta de exámenes valida en copia limpia, como el Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/0 |
