@@ -46,8 +46,6 @@ jobs:
           --health-retries 10
     env:
       PYTHONDONTWRITEBYTECODE: "1"
-    env:
-      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Checkout trusted main control code
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
