@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0208",
+  "title": "T40.3: referencia del examinador de req286frontend3 solo con archivos del lote",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T40.3: el ensayo del registro #325 falló (VISIBLE): la referencia incluía contracts/sbx-b2b-login.openapi.yaml, fuera del alcance del lote FRONTEND"
+  },
+  "reason": "Se regenera la referencia contra la base registrada del lote (8f2ffe2), solo con frontend/; pasa el examen oculto con el contrato integrado. El examen no cambia.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/holdouts/req286frontend3.reference.json.age",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0208.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}
