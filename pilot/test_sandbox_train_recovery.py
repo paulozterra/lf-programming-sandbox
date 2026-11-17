@@ -87,6 +87,8 @@ class RacePolicyTests(unittest.TestCase):
         clock = FakeClock()
         dispatched = []
         def api(method, path, payload=None, expected=(200,)):
+            if path.startswith("/pulls/81/files"):
+                return []  # T40: no lot/exam files -> no rehearsal required
             if path.startswith("/actions/workflows/ci.yml/runs?"):
                 runs = [] if run_status == "none" else [{
                     "head_sha": "b" * 40, "event": "push", "status": run_status

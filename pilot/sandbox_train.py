@@ -257,6 +257,40 @@ def approve_pending_runs(sha):
                 print(json.dumps({"event": "approve_pending_run_failed", "run": run["id"], "reason": str(exc)[:200]}), flush=True)
 
 
+# T40 capa 1: a PR that registers a lot or changes an exam must also carry a
+# successful exam rehearsal (reference through the real Worker).
+REHEARSAL_CHECK = "rehearse"
+REHEARSAL_PATHS = re.compile(
+    r"pilot/(?:worker_v08/native_tasks/[a-z][a-z0-9_-]{0,31}\.json"
+    r"|holdouts/[a-z][a-z0-9_-]{0,31}\.(?:oracle|reference)\.json\.age)\Z")
+
+
+def needs_rehearsal(number):
+    page, names = 1, []
+    while True:
+        batch = api("GET", f"/pulls/{number}/files?per_page=100&page={page}")
+        names.extend(f.get("filename", "") for f in batch)
+        if len(batch) < 100:
+            break
+        page += 1
+        if page > 30:
+            raise TrainError("PR_FILES_PAGINATION_LIMIT")
+    return any(REHEARSAL_PATHS.fullmatch(n) for n in names)
+
+
+def rehearsal_runs_for_head(sha):
+    result = api("GET", f"/actions/workflows/exam-rehearsal.yml/runs?head_sha={sha}&per_page=100")
+    return [r for r in result["workflow_runs"] if r.get("head_sha") == sha
+            and r.get("status") != "action_required"]
+
+
+def dispatch_rehearsal(branch, sha):
+    api("POST", "/actions/workflows/exam-rehearsal.yml/dispatches",
+        {"ref": branch, "inputs": {"task": ""}}, expected=(204,))
+    print(json.dumps({"event": "dispatch_exam_rehearsal", "branch": branch,
+                      "head_sha": sha}), flush=True)
+
+
 def ci_workflow_runs_for_head(sha):
     """Only an actual ci.yml run on the exact commit can suppress dispatch."""
     runs = []
@@ -292,6 +326,7 @@ def wait_for_pushed_head(number, merged_head):
 
 def await_checks(number, sha, dispatched_heads=None):
     dispatched_heads = dispatched_heads if dispatched_heads is not None else set()
+    required = REQUIRED + ((REHEARSAL_CHECK,) if needs_rehearsal(number) else ())
     start = time.monotonic()
     deadline = start + WAIT_SECONDS
     while time.monotonic() < deadline:
@@ -307,21 +342,26 @@ def await_checks(number, sha, dispatched_heads=None):
             dispatch_updated_head_ci(pr["head"]["ref"], sha)
             dispatched_heads.add(sha)
             print(json.dumps({"event": "ci_missing_fallback_dispatch", "head": sha}), flush=True)
+        if (REHEARSAL_CHECK in required and ("rehearsal", sha) not in dispatched_heads
+                and time.monotonic() - start >= CI_MISSING_GRACE_SECONDS
+                and not rehearsal_runs_for_head(sha)):
+            dispatch_rehearsal(pr["head"]["ref"], sha)
+            dispatched_heads.add(("rehearsal", sha))
         approve_pending_runs(sha)
         found = {name: value for name, value in checks_for_head(sha).items()
                  if name not in TRAIN_OWN_CHECKS}
-        failed = [name for name in REQUIRED if name in found and found[name]["conclusion"] not in (None, "success")]
+        failed = [name for name in required if name in found and found[name]["conclusion"] not in (None, "success")]
         if failed:
             raise TrainError("CHECK_FAILED " + json.dumps({name: found[name] for name in failed}))
-        missing = [name for name in REQUIRED if name not in found or found[name]["status"] != "completed"]
+        missing = [name for name in required if name not in found or found[name]["status"] != "completed"]
         if not missing:
             # Any completed failing GitHub Actions check on this SHA is blocking.
             extra_bad = {name: value for name, value in found.items()
-                         if name not in REQUIRED and value["status"] == "completed"
+                         if name not in required and value["status"] == "completed"
                          and value["conclusion"] not in ("success", "skipped", "neutral")}
             if extra_bad:
                 raise TrainError("EXTRA_CHECK_FAILED " + json.dumps(extra_bad))
-            return {name: found[name] for name in REQUIRED}
+            return {name: found[name] for name in required}
         print(json.dumps({"event": "waiting_checks", "head": sha, "missing": missing}), flush=True)
         time.sleep(POLL_SECONDS)
     raise TrainError("CHECK_WAIT_TIMEOUT")

@@ -339,6 +339,16 @@ jobs:
           path.chmod(0o600)
           PY
           fi
+      - name: Decode optional examiner reference for the positive control (T40)
+        if: ${{ steps.task.outputs.holdout_ref != '' }}
+        env:
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          PILOT_HOLDOUT_AGE_KEY: ${{ secrets.PILOT_HOLDOUT_AGE_KEY }}
+        run: |
+          python3 control/pilot/worker_v08/holdout_age.py --reference \
+            --control control --task "$NATIVE_TASK" \
+            --private "$RUNNER_TEMP/native-private" \
+            --age-bin "$RUNNER_TEMP/age-bin/age"
       - name: Execute original run_verified_worker using native proposal (single attempt)
         id: worker
         env:
