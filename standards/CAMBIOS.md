@@ -186,4 +186,4 @@
 | CHG-0190 | EDITORIAL | CP3.5: integración verificada nativa req286contrato1 (run 44111534766) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/302 |
 | CHG-0191 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/304 |
 | CHG-0192 | EDITORIAL | T34.1: deja de versionar apps/time-service/target (artefactos de build agregados por error) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/307 |
-| CHG-0193 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0193 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/308 |
