@@ -1,0 +1,14 @@
+{
+  "base_head_sha": "616eca70603ef93c41bfb469e2c5c5e77c67cc27",
+  "code": "NATIVE_PUSH_PATCH_NOT_APPLICABLE",
+  "forgiven": [
+    {
+      "proposal_commit_sha": "a4c4f52e13ade125c46249d93aa021a944b0a849",
+      "run_id": 44138247403,
+      "task_pack_sha256": "69f85ae2e4c1c4dbc073098293f1cc70dac0dc2bd120f4345edc4737a9acd34f"
+    }
+  ],
+  "reason": "El parche del intento 3 no se aplica sobre la base registrada (git apply: corrupt patch); el Worker no lleg\u00f3 a las pruebas y el feedback sali\u00f3 vac\u00edo. Desde T38 esto se rechaza al recibir la propuesta sin cobrar intento.",
+  "schema_version": "LF_NATIVE_INTAKE_DEFECT_V1",
+  "task": "req286backend2"
+}

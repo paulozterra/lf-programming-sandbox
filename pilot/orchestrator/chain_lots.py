@@ -431,10 +431,12 @@ def failed_lots(bindings: dict) -> dict[str, list[int]]:
             examiner = {}
         # T37: governed route-tool-defect forgiveness.
         from pilot.worker_v08.native_route_tool_defect import verified_route_tool_defects
+        from pilot.worker_v08.native_intake_defect import verified_intake_defects
         try:
-            for run_id, row in verified_route_tool_defects(
-                    ROOT, task, json.loads(registration.read_text("utf-8"))).items():
-                examiner.setdefault(run_id, row)
+            reg_record = json.loads(registration.read_text("utf-8"))
+            for verify in (verified_route_tool_defects, verified_intake_defects):
+                for run_id, row in verify(ROOT, task, reg_record).items():
+                    examiner.setdefault(run_id, row)
         except (OSError, ValueError):
             pass
         for run_id, row in examiner.items():

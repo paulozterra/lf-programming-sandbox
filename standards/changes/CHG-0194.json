@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0194",
+  "title": "T38: un parche que no se aplica a su base se rechaza al recibirlo, sin cobrar intento (+ perdón gobernado de corridas previas)",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T38: req286backend2 intento 3 (run 44138247403) gastó un intento con un parche corrupto; el Worker no corrió pruebas y el feedback salió vacío"
+  },
+  "reason": "El push guard ejecuta git apply --check del parche contra base_head_sha registrada en un índice desechable; si no aplica, bloquea con NATIVE_PUSH_PATCH_NOT_APPLICABLE antes del Worker (no cuenta intento, el aviso de push fallido muestra el código). Nuevo registro gobernado pilot/worker_v08/intake_defects/<tarea>.json (LF_NATIVE_INTAKE_DEFECT_V1) para corridas previas a T38; solo se honra si la base coincide con la registrada. route_tool_defect.py prove-patch lo genera comprobando que la corrida falló sin ejecutar comandos y que su parche no aplica. native_run_history y chain_lots lo consumen como T32/T37.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_proposal_push_guard.py",
+      "pilot/worker_v08/native_intake_defect.py",
+      "pilot/orchestrator/route_tool_defect.py",
+      "pilot/worker_v08/native_run_history.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/worker_v08/test_t38_patch_intake.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0194.json",
+      "pilot/worker_v08/intake_defects/req286backend2.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}

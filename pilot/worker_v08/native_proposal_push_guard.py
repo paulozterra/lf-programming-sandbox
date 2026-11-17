@@ -24,6 +24,21 @@ class ProposalPushBlocked(ValueError):
 def _git(repo: Path, *args: str) -> bytes:
     return subprocess.check_output(["git", "-C", str(repo), *args], stderr=subprocess.DEVNULL)
 
+def patch_applies(control: Path, base: str, patch: str) -> bool:
+    """git apply --check of the patch against `base` in a throwaway index."""
+    import os
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="t38-") as tmp:
+        env = dict(os.environ, GIT_INDEX_FILE=str(Path(tmp) / "index"))
+        if subprocess.run(["git", "-C", str(control), "read-tree", base], env=env,
+                          capture_output=True).returncode:
+            return False
+        patch_file = Path(tmp) / "p.patch"
+        patch_file.write_text(patch, "utf-8")
+        return subprocess.run(["git", "-C", str(control), "apply", "--cached", "--check",
+                               str(patch_file)], env=env, capture_output=True).returncode == 0
+
+
 def validate_proposal_only(control: Path, proposal_sha: str, *, main_sha: str | None = None, branch: str | None = None, allow_historical_base: bool = False) -> dict:
     if _SHA40.fullmatch(proposal_sha) is None:
         raise ProposalPushBlocked("NATIVE_PUSH_SHA_INVALID")
@@ -96,6 +111,17 @@ def validate_proposal_only(control: Path, proposal_sha: str, *, main_sha: str | 
         raise ProposalPushBlocked("NATIVE_PUSH_JSON_INVALID") from exc
     if not isinstance(obj, dict):
         raise ProposalPushBlocked("NATIVE_PUSH_JSON_OBJECT_REQUIRED")
+    # T38: a patch that cannot be applied to the registered base never reaches
+    # the Worker, so it cannot spend an attempt. Checked against an index built
+    # from the base tree; nothing from the proposal is executed or checked out.
+    patch = (obj.get("proposal") or {}).get("patch") if isinstance(obj.get("proposal"), dict) else None
+    task_base = (registered_task.get("task_spec") or {}).get("base_head_sha")
+    if (isinstance(patch, str) and isinstance(task_base, str) and _SHA40.fullmatch(task_base)
+            and subprocess.run(["git", "-C", str(control), "cat-file", "-e", task_base + "^{commit}"],
+                               capture_output=True).returncode == 0):
+        # An unavailable base keeps the previous behaviour (the Worker decides).
+        if not patch_applies(control, task_base, patch):
+            raise ProposalPushBlocked("NATIVE_PUSH_PATCH_NOT_APPLICABLE")
     return {"proposal_commit_sha": proposal_sha, "base_commit_sha": base,
             "proposal_path": path, "task": task, "scope_valid": True}
 
