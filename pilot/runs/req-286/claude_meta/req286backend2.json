@@ -1,6 +1,6 @@
 {
   "holdout_ref": "pilot/holdouts/req286backend2.oracle.json.age",
-  "holdout_sha256": "290df0eeacfd2da2427a7c9ed7332a0c40dabfeebdcdff07dbfe2e3cccf00a02",
+  "holdout_sha256": "27cc8e218158804f70ac8a2be5014d1dc13566b9ef1e8a0b1c477b9ca5b54a43",
   "project_ref": "lf_java",
   "written_by": "claude",
   "derived_from": "analysis/fixtures/sbx_b2b_login (ficha derivada de LF B2B-AUTH-001), esqueleto público del lote y contrato integrado (nombres de campos); no del código ni de la propuesta"

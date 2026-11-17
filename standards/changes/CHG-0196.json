@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0196",
+  "title": "T39: publish_exam valida el examen en el mismo orden que el Worker; req286backend2 examen v3 y perdón del intento afectado",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T39: req286backend2 run 44144858234 falló EMAIL_LOGIN en el examen oculto v2 por un jar versionado en la base; el mismo código pasa con el examen corregido"
+  },
+  "reason": "publish_exam copiaba la base y superponía la referencia después, mientras el Worker arma base+cambio y luego copia los archivos en orden alfabético. Un examen que confía en mtimes de una salida de compilación versionada pasaba al publicar y fallaba en el Worker. Ahora cada caso se arma en el orden del Worker (worker_order_copy). Con eso, el examen v2 de req286backend2 se rechaza (EXAM_REFERENCE_DOES_NOT_PASS); el v3 siempre recompila, pasa la referencia y falla los 9 mutantes. Se re-ancla holdout_sha256 al v3 y se perdona la corrida 44144858234 con el registro T32.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/publish_exam.py",
+      "pilot/orchestrator/test_t39_exam_worker_order.py",
+      ".github/workflows/ci.yml",
+      "pilot/holdouts/req286backend2.oracle.json.age",
+      "pilot/runs/req-286/claude_meta/req286backend2.json",
+      "pilot/worker_v08/native_tasks/req286backend2.json",
+      "pilot/worker_v08/examiner_defects/req286backend2.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0196.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/312"
+  }
+}
