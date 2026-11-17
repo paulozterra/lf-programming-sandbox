@@ -173,12 +173,12 @@ def admit_attempt(
     examiner_defects = verified_examiner_defects(control, task, record)
     # T37: governed route-tool-defect forgiveness (exact runs, fixed tool, re-pinned base).
     from native_route_tool_defect import verified_route_tool_defects
-    for run_id, row in verified_route_tool_defects(control, task, record).items():
-        examiner_defects.setdefault(run_id, row)
+    for forgiven_id, row in verified_route_tool_defects(control, task, record).items():
+        examiner_defects.setdefault(forgiven_id, row)
     # T38: governed forgiveness of pre-T38 runs whose patch could not apply.
     from native_intake_defect import verified_intake_defects
-    for run_id, row in verified_intake_defects(control, task, record).items():
-        examiner_defects.setdefault(run_id, row)
+    for forgiven_id, row in verified_intake_defects(control, task, record).items():
+        examiner_defects.setdefault(forgiven_id, row)
     if route_retry and (
         event != "workflow_dispatch" or attempt != 1
         or migration is None or migration["proposal_commit_sha"] != sha
