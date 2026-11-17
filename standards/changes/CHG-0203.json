@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0203",
+  "title": "T41: un archivo registrado puede cambiar solo por linaje verificado (integraciones fusionadas por el Train)",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T41: la integración #319 de req286backend2 (EXTEND de AuthController.java) falló REGISTRY_SHA_DRIFT contra la entrada del login f5"
+  },
+  "reason": "El registro de implementado guarda el hash de cada archivo en su merge. Un lote posterior que EXTIENDE el mismo componente lo cambia legítimamente y la evaluación de reutilización lo trataba como deriva. Ahora la deriva se acepta solo si todos los commits de la línea principal que tocaron el archivo desde la entrada son merges del Train; en el CI de un PR de integración verificada (rama lf/native-integration/*), también sus propios commits que aún no están en main. Cualquier otro cambio sigue bloqueando con REGISTRY_SHA_DRIFT.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/reuse_assessment.py",
+      "pilot/orchestrator/test_t41_registry_lineage.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0203.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/320"
+  }
+}
