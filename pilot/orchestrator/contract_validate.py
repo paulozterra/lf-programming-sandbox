@@ -152,7 +152,7 @@ def _check_skeleton(skeleton, module):
     reused = skeleton.get("reused_endpoints", [])
     if (not isinstance(reused, list) or len(set(reused)) != len(reused)
             or any(not isinstance(op, str) or not re.fullmatch(
-                r"(?:GET|POST|PUT|PATCH|DELETE) /[A-Za-z0-9_/{}/.-]*", op)
+                r"(?:GET|POST|PUT|PATCH|DELETE|PAGE) /[A-Za-z0-9_/{}/.-]*", op)
                 for op in reused)):
         deny("REUTILIZACION_INDETERMINADA")
     extended = skeleton.get("extended_endpoints", [])
@@ -166,8 +166,10 @@ def validate(path, skeleton, module):
     spec = load(path)
     fields, errors, required = _check_skeleton(skeleton, module)
     seen_requirements, seen_errors, seen_fields = set(), set(), set()
-    reused = set(skeleton.get("reused_endpoints", []))
-    extended = set(skeleton.get("extended_endpoints", []))
+    # T33.3: PAGE entries are reused frontend pages (T7), not API operations;
+    # the OpenAPI contract only governs HTTP endpoints.
+    reused = {op for op in skeleton.get("reused_endpoints", []) if not op.startswith("PAGE ")}
+    extended = {op for op in skeleton.get("extended_endpoints", []) if not op.startswith("PAGE ")}
     seen_extensions = set()
     for route, method, operation in operations(spec):
         identity = method.upper() + " " + route

@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0182",
+  "title": "T33.3: el validador del contrato acepta páginas reutilizadas (PAGE) del esqueleto T7",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T33.3: el lote CONTRATO de req-286 nunca podría pasar su aceptación visible: el esqueleto trae 'PAGE /sbx-rem-list' (EXTEND de T7) y contract_validate exigía solo verbos HTTP (REUTILIZACION_INDETERMINADA)"
+  },
+  "reason": "Las entradas PAGE del esqueleto son páginas del frontend reutilizadas por T7, no operaciones HTTP: se aceptan y no se exigen en el OpenAPI. Las extensiones de API siguen siendo obligatorias y un verbo desconocido sigue bloqueando.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/contract_validate.py",
+      "pilot/orchestrator/test_t33_3_contract_page.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0182.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/294"
+  }
+}
