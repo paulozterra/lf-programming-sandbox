@@ -159,9 +159,11 @@ def publish(run, api, repo: str, root: Path, task: str, sha: str,
     feedback = parse_feedback(payload, attempt)
     number = issue_for_task(root, task)
     issue = api(f"issues/{number}")
-    if (issue.get("number") != number or issue.get("pull_request")
-            or "lf-request" not in {x.get("name") for x in issue.get("labels", [])
-                                   if isinstance(x, dict)}):
+    # T35: the request identity is proven by issue_for_task (registered task
+    # + trusted pilot/runs/req-N/request_meta.json on main). The lf-request
+    # label is only added by the web form; Issues created through the API
+    # (e.g. the GPT connector) do not carry it, so it is not required here.
+    if issue.get("number") != number or issue.get("pull_request"):
         deny("PUBLISH_3")
     raw_comments = run("gh", "api", f"repos/{repo}/issues/{number}/comments?per_page=100")
     try:

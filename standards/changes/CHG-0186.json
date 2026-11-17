@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0186",
+  "title": "T35: el feedback visible llega al Issue del pedido aunque no tenga la etiqueta lf-request",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T35: Worker 44035018564 (req286contrato1, intento 1) terminó con FEEDBACK_NO_PUBLICO:PUBLISH_3. El Issue #286 se creó desde el conector de GPT (API), que no aplica las etiquetas de la plantilla web"
+  },
+  "reason": "La identidad del pedido ya la prueba issue_for_task (tarea registrada y pilot/runs/req-N/request_meta.json en main). El publicador deja de exigir la etiqueta lf-request; sigue exigiendo el número exacto y que no sea un PR. Sin feedback visible, GPT no puede corregir.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_feedback_delivery.py",
+      "pilot/worker_v08/test_t35_feedback_unlabeled_issue.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0186.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
