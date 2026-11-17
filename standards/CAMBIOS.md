@@ -166,3 +166,4 @@
 | CHG-0169 | EDITORIAL | Corrige el SHA del examen oculto req186frontend3 (texto plano, no cifrado) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/263 |
 | CHG-0170 | EDITORIAL | T30: una tarea registrada no genera variante por su propio contexto generado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/264 |
 | CHG-0171 | EDITORIAL | Examen oculto req186frontend3 v2: argumentos dentro del límite del Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/265 |
+| CHG-0172 | EDITORIAL | T31: herramienta única para preparar exámenes ocultos con los chequeos del Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/0 |
