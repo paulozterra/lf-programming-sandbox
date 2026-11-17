@@ -167,3 +167,4 @@
 | CHG-0170 | EDITORIAL | T30: una tarea registrada no genera variante por su propio contexto generado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/264 |
 | CHG-0171 | EDITORIAL | Examen oculto req186frontend3 v2: argumentos dentro del límite del Worker |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/265 |
 | CHG-0173 | ADDITIVE | T32: perdón gobernado de intentos gastados por un examen oculto defectuoso |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/268 |
+| CHG-0174 | EDITORIAL | Examen oculto req186frontend3 v3 y perdón T32 de la corrida juzgada por el examen defectuoso |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/0 |
