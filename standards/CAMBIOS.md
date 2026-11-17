@@ -184,4 +184,4 @@
 | CHG-0187 | ADDITIVE | T36: el validador del contrato sigue los $ref locales al medir la cobertura de campos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/299 |
 | CHG-0189 | ADDITIVE | T37: intentos gastados por una herramienta de la ruta ya corregida no cuentan (perdón gobernado + re-anclaje del lote) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/301 |
 | CHG-0190 | EDITORIAL | CP3.5: integración verificada nativa req286contrato1 (run 44111534766) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/302 |
-| CHG-0191 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0191 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
