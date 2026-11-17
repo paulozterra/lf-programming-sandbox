@@ -80,6 +80,49 @@ def decrypt_private(root: Path, task: str, ref: str, sha: str,
         if identity.is_file() and not identity.is_symlink():
             identity.unlink()
 
+def decrypt_reference(root: Path, task: str, identity_key: str, private: Path,
+                      age_bin: str = "age") -> Path | None:
+    """T40: optional examiner reference next to the exam. Missing -> None.
+    The content is validated (task, exam binding) by native_exam_control."""
+    if not isinstance(task, str) or not TASK.fullmatch(task):
+        raise AgeBlocked("NATIVE_TASK_ID_INVALID")
+    directory = root / "pilot/holdouts"
+    source = directory / f"{task}.reference.json.age"
+    if directory.is_symlink() or source.is_symlink():
+        raise AgeBlocked("REFERENCE_REF_INVALID")
+    if not source.is_file():
+        return None
+    if not isinstance(identity_key, str) or not identity_key.startswith("AGE-SECRET-KEY-1"):
+        raise AgeBlocked("HOLDOUT_AGE_KEY_MISSING")
+    private.mkdir(parents=True, exist_ok=True, mode=0o700)
+    identity = private / ".age-identity-reference"
+    dest = private / "reference.json"
+    if identity.exists() or identity.is_symlink() or dest.exists() or dest.is_symlink():
+        raise AgeBlocked("REFERENCE_PRIVATE_PATH_EXISTS")
+    try:
+        fd = os.open(identity, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        with os.fdopen(fd, "wb") as out:
+            out.write((identity_key.rstrip("\n") + "\n").encode("utf-8"))
+        try:
+            result = subprocess.run(
+                [age_bin, "--decrypt", "--identity", str(identity),
+                 "--output", str(dest), str(source)],
+                capture_output=True, timeout=60, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            raise AgeBlocked("REFERENCE_DECRYPT_FAILED") from None
+        if result.returncode or not dest.is_file() or dest.is_symlink():
+            raise AgeBlocked("REFERENCE_DECRYPT_FAILED")
+        dest.chmod(0o600)
+        return dest
+    except BaseException:
+        if dest.is_file() and not dest.is_symlink():
+            dest.unlink()
+        raise
+    finally:
+        if identity.is_file() and not identity.is_symlink():
+            identity.unlink()
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--validate-recipient", type=Path)
@@ -89,9 +132,14 @@ def main() -> int:
     p.add_argument("--expected-sha")
     p.add_argument("--private", type=Path)
     p.add_argument("--age-bin", default="age")
+    p.add_argument("--reference", action="store_true",
+                   help="T40: also decrypt the optional examiner reference")
     a = p.parse_args()
     try:
-        if a.validate_recipient is not None:
+        if a.reference:
+            decrypt_reference(a.control, a.task, os.environ.get("PILOT_HOLDOUT_AGE_KEY", ""),
+                              a.private, a.age_bin)
+        elif a.validate_recipient is not None:
             validate_recipient(a.validate_recipient.read_text("utf-8"))
         else:
             decrypt_private(a.control, a.task, a.ref, a.expected_sha,

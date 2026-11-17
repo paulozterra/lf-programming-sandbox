@@ -288,11 +288,52 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
         "receipt_authenticated": False,
     })
     if outcome.receipt["status"] != "PASS":
+        _examiner_control(source, spec, oracle, private, public, task, run_id,
+                          expected_sha, attempt, visible, submitted)
         return False
     if not outcome.patch:
         raise ValueError("NATIVE_EMPTY_PASS_PATCH")
     with (public / "worker.patch").open("xb") as target:
         target.write(outcome.patch.encode("utf-8"))
+    return True
+
+
+def _examiner_control(source, spec, oracle, private, public, task, run_id,
+                      expected_sha, attempt, visible, submitted) -> bool:
+    """T40 capa 2: the constructor's proposal did not pass. Run the examiner's
+    reference through the same Worker; if it does not pass either, the defect
+    is the examiner's or the route's and this attempt is not charged."""
+    from native_exam_control import (load_reference, run_reference, defect_record,
+                                     feedback_line, write_json)
+    try:
+        patch_text = load_reference(private, task, expected_sha)
+    except (OSError, UnicodeError, ValueError):
+        patch_text = None  # an unusable reference is treated as missing
+    if patch_text is None:
+        return False
+    control = run_reference(source, spec, oracle, patch_text, private / "control")
+    if control["status"] == "PASS":
+        return False
+    proof = public / "attempt-proof.json"
+    if proof.is_file() and not proof.is_symlink():
+        proof.unlink()  # no proof artifact: the run is not an attempt
+    write_json(public / "examiner-control.json",
+               defect_record(task, run_id, expected_sha, control))
+    feedback = _visible_feedback(visible, attempt)
+    feedback["commands"].append(feedback_line())
+    for name in ("feedback.json", "status.json"):
+        if (public / name).is_file():
+            (public / name).unlink()
+    _write(public / "feedback.json", feedback)
+    _write(public / "status.json", {
+        "feedback_sha256": hashlib.sha256(canonical_json_bytes(feedback)).hexdigest(),
+        "schema_version": "LF_NATIVE_RESULT_SUMMARY_V1",
+        "task_id": task, "attempt": attempt,
+        "proposal_sha256": submitted["proposal_sha256"],
+        "task_pack_sha256": submitted["task_pack_sha256"],
+        "status": "BLOCKED", "authority": "REAL_SANDBOX_UNAUTHENTICATED",
+        "production_authority": False, "receipt_authenticated": False,
+    })
     return True
 
 

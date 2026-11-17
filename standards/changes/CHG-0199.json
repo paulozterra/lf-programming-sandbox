@@ -1,0 +1,46 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0199",
+  "title": "T40: controles del examen: ensayo con el Worker real antes de usarlo, control positivo con la referencia al fallar y trazabilidad de cada fallo",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T40: tres defectos de examen en el pedido #286 (FE sin dependencias, BE v1 camelCase, BE v2 jar versionado) detectados tarde; el owner pide que no se repita y que un examen defectuoso se detecte de inmediato"
+  },
+  "reason": "Capa 1: workflow exam-rehearsal (mismo entorno que worker-native, verificado por prueba) corre la referencia cifrada del examinador por el run_verified_worker original sobre la base registrada para cada lote/examen que cambia un PR; el Train lo exige en esos PR y lo lanza si un PR del bot no lo disparó. Capa 2: si una propuesta no pasa, el Worker corre la referencia en el mismo job; si tampoco pasa, el defecto es del examen o de la ruta: se elimina la prueba de intento (no se cobra), se publica EXAMINER_DEFECT_NOT_CHARGED en el feedback y queda examiner-control.json. Capa 3: publish_exam exige una traza por cada código de fallo (regla de la ficha, archivo de contrato, decisión del pedido o sonda de entorno), genera la referencia como parche contra la base y la cifra atada al sha del examen. Sin referencia, los lotes antiguos se comportan como antes.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/exam-rehearsal.yml",
+      ".github/workflows/worker-native.yml",
+      ".github/workflows/ci.yml",
+      "pilot/worker_v08/native_exam_control.py",
+      "pilot/worker_v08/exam_rehearsal.py",
+      "pilot/worker_v08/native_run.py",
+      "pilot/worker_v08/holdout_age.py",
+      "pilot/orchestrator/publish_exam.py",
+      "pilot/sandbox_train.py",
+      "pilot/test_sandbox_train_recovery.py",
+      "pilot/test_t40_train_rehearsal.py",
+      "pilot/worker_v08/test_t40_exam_controls.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0199.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}

@@ -154,6 +154,64 @@ def exercise(raw: bytes, worktree: Path, reference: Path, mutants: list[Path],
     return results
 
 
+FAIL_CODE = re.compile(r"""fail\(\s*f?["']([A-Z][A-Z0-9_]*)""")
+TRACE_KINDS = ("rule:", "contract:", "request:", "env:")
+
+
+def check_trace(script: str, trace: dict, worktree: Path, reference: Path,
+                request: str) -> None:
+    """T40 capa 3: every failure code of the exam is traced to what the
+    constructor was given: a fiche rule, a contract file, the request's own
+    decisions, or an environment probe (build/start). Untraced code -> blocked."""
+    codes = set(FAIL_CODE.findall(script))
+    if not codes:
+        raise ExamBlocked("EXAM_TRACE_NO_FAIL_CODES")
+    if not isinstance(trace, dict) or set(trace) != codes:
+        missing = sorted(codes - set(trace or {}))
+        extra = sorted(set(trace or {}) - codes)
+        raise ExamBlocked("EXAM_TRACE_MISMATCH:" + ",".join(
+            ["missing=" + c for c in missing] + ["unused=" + c for c in extra]))
+    fixtures = "\n".join(p.read_text("utf-8", "replace")
+                         for p in (ROOT / "analysis/fixtures").rglob("*.json"))
+    for code, target in sorted(trace.items()):
+        if not isinstance(target, str) or not target.startswith(TRACE_KINDS):
+            raise ExamBlocked("EXAM_TRACE_KIND_INVALID:" + code)
+        kind, value = target.split(":", 1)
+        value = value.strip()
+        if not value:
+            raise ExamBlocked("EXAM_TRACE_EMPTY:" + code)
+        if kind == "rule" and not re.search(r"(?<![A-Z0-9-])" + re.escape(value) + r"(?![A-Z0-9])", fixtures):
+            raise ExamBlocked("EXAM_TRACE_RULE_UNKNOWN:" + code + "=" + value)
+        if kind == "contract" and not ((worktree / value).is_file() or (reference / value).is_file()):
+            raise ExamBlocked("EXAM_TRACE_CONTRACT_UNKNOWN:" + code + "=" + value)
+        if kind == "request" and value.split()[0] != request:
+            raise ExamBlocked("EXAM_TRACE_REQUEST_MISMATCH:" + code)
+
+
+def reference_patch(worktree: Path, reference: Path) -> str:
+    """The reference as a unified diff against the base (git apply-able)."""
+    with tempfile.TemporaryDirectory(prefix="lf-exam-ref-") as tmp:
+        repo = clean_copy(worktree, Path(tmp) / "repo")
+        git = ["git", "-c", "user.name=lf", "-c", "user.email=lf@sandbox.test",
+               "-c", "core.autocrlf=false", "-C", str(repo)]
+        subprocess.run(git + ["init", "-q"], check=True, capture_output=True)
+        subprocess.run(git + ["add", "-A"], check=True, capture_output=True)
+        subprocess.run(git + ["commit", "-qm", "base"], check=True, capture_output=True)
+        overlay(repo, reference, repo)
+        subprocess.run(git + ["add", "-A"], check=True, capture_output=True)
+        patch = subprocess.run(git + ["diff", "--cached", "--no-color", "--no-renames"],
+                               check=True, capture_output=True, text=True).stdout
+    if not patch.strip():
+        raise ExamBlocked("EXAM_REFERENCE_EMPTY")
+    return patch
+
+
+def reference_package(task: str, raw: bytes, patch: str) -> bytes:
+    return (json.dumps({"schema_version": "LF_EXAM_REFERENCE_V1", "task": task,
+                        "holdout_sha256": hashlib.sha256(raw).hexdigest(),
+                        "patch": patch}, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
+
+
 def encrypt_roundtrip(raw: bytes, recipient: Path, identity: Path, out: Path) -> None:
     subprocess.run(["age", "-R", str(recipient), "-o", str(out)], input=raw, check=True)
     back = subprocess.run(["age", "-d", "-i", str(identity), str(out)],
@@ -182,6 +240,10 @@ def main() -> int:
     p.add_argument("--derived-from", required=True)
     p.add_argument("--python", default=sys.executable)
     p.add_argument("--project-ref", default="lf_java")
+    p.add_argument("--trace", type=Path, required=True,
+                   help="T40: JSON {FAIL_CODE: rule:<id>|contract:<path>|request:<slug> ...|env:<why>}")
+    p.add_argument("--add-reference", action="store_true",
+                   help="T40: exam already published unchanged; only add its reference")
     a = p.parse_args()
     try:
         if not TASK.fullmatch(a.task):
@@ -191,12 +253,36 @@ def main() -> int:
         raw = build_oracle(a.script.read_text("utf-8"), name=a.name, family=a.family,
                            version=a.version, timeout=a.timeout, max_output=a.max_output)
         worker_load(raw, ROOT)
+        try:
+            trace = json.loads(a.trace.read_text("utf-8"))
+        except (OSError, ValueError):
+            raise ExamBlocked("EXAM_TRACE_UNREADABLE") from None
+        check_trace(a.script.read_text("utf-8"), trace, a.worktree, a.reference, a.request)
         mutants = sorted(d for d in a.mutants.iterdir() if d.is_dir())
         results = exercise(raw, a.worktree, a.reference, mutants, a.python)
+        package = reference_package(a.task, raw, reference_patch(a.worktree, a.reference))
         cipher = ROOT / "pilot/holdouts" / f"{a.task}.oracle.json.age"
-        if cipher.exists():
+        ref_cipher = ROOT / "pilot/holdouts" / f"{a.task}.reference.json.age"
+        recipient = ROOT / "pilot/holdouts/recipient.txt"
+        if a.add_reference:
+            meta_file = ROOT / "pilot/runs" / a.request / "claude_meta" / f"{a.task}.json"
+            try:
+                published = json.loads(meta_file.read_text("utf-8"))["holdout_sha256"]
+            except (OSError, ValueError, KeyError):
+                raise ExamBlocked("EXAM_NOT_PUBLISHED") from None
+            if not cipher.exists() or published != hashlib.sha256(raw).hexdigest():
+                raise ExamBlocked("EXAM_CHANGED_USE_NEW_VERSION_PR")
+            # The reference is the examiner's control, not the exam: replacing it
+            # (e.g. re-based to the registered base) does not change what is graded.
+            ref_cipher.unlink(missing_ok=True)
+            encrypt_roundtrip(package, recipient, a.identity, ref_cipher)
+            print(json.dumps({"status": "EXAM_REFERENCE_READY", "task": a.task,
+                              "holdout_sha256": published}))
+            return 0
+        if cipher.exists() or ref_cipher.exists():
             raise ExamBlocked("EXAM_ALREADY_PUBLISHED_USE_NEW_VERSION_PR")
-        encrypt_roundtrip(raw, ROOT / "pilot/holdouts/recipient.txt", a.identity, cipher)
+        encrypt_roundtrip(raw, recipient, a.identity, cipher)
+        encrypt_roundtrip(package, recipient, a.identity, ref_cipher)
         meta = ROOT / "pilot/runs" / a.request / "claude_meta" / f"{a.task}.json"
         meta.parent.mkdir(parents=True, exist_ok=True)
         meta.write_text(json.dumps({
