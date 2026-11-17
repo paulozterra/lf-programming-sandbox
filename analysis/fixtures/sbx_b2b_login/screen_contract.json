@@ -400,7 +400,7 @@
           "rule_refs": [
             "supabase://lf_ops.reglas/326",
             "supabase://lf_ops.reglas/327",
-            "supabase://lf_ops.reglas/329"
+            "supabase://lf_ops.reglas/333"
           ]
         },
         {
@@ -414,7 +414,7 @@
           "rule_refs": [
             "supabase://lf_ops.reglas/326",
             "supabase://lf_ops.reglas/327",
-            "supabase://lf_ops.reglas/329"
+            "supabase://lf_ops.reglas/333"
           ]
         },
         {
@@ -428,7 +428,7 @@
           "rule_refs": [
             "supabase://lf_ops.reglas/326",
             "supabase://lf_ops.reglas/327",
-            "supabase://lf_ops.reglas/329"
+            "supabase://lf_ops.reglas/333"
           ]
         }
       ]
@@ -543,20 +543,7 @@
           "order": 2
         }
       ],
-      "messages": [
-        {
-          "code": "SBX-B2B-M-SESSION-WARNING",
-          "type": "WARNING",
-          "title": "Tu sesión está por expirar",
-          "body": "Por inactividad, tu sesión se cerrará pronto."
-        },
-        {
-          "code": "SBX-B2B-M-SESSION-EXPIRED",
-          "type": "INFO",
-          "title": "Sesión expirada",
-          "body": "Tu sesión se cerró por inactividad. Inicia sesión nuevamente."
-        }
-      ]
+      "messages": []
     },
     "metadata": {
       "screen_code": "SBX-B2B-LOGIN",
@@ -648,7 +635,7 @@
       },
       {
         "code": "SBX-B2B-R-SESSION-IDLE",
-        "title": "Inactividad controlada",
+        "title": "Duración de la sesión",
         "status": "VIGENTE",
         "pending_decision": false,
         "source_ref": "supabase://lf_ops.reglas/311",
@@ -791,17 +778,47 @@
         "association_ref": "supabase://lf_ops.reglas_pantallas/68"
       },
       {
-        "code": "SBX-B2B-R-THEME-LIGHT",
-        "title": "Modo claro",
+        "code": "SBX-B2B-R-INT-ROUTE",
+        "title": "Ruta de la pantalla y redirección desde pantallas protegidas",
         "status": "VIGENTE",
         "pending_decision": false,
         "source_ref": "supabase://lf_ops.reglas/329",
         "association_ref": "supabase://lf_ops.reglas_pantallas/69"
+      },
+      {
+        "code": "SBX-B2B-R-INT-SESSION-STORE",
+        "title": "Dónde queda la sesión en el navegador",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/330",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/70"
+      },
+      {
+        "code": "SBX-B2B-R-INT-RETURN",
+        "title": "Volver a la pantalla de origen",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/331",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/71"
+      },
+      {
+        "code": "SBX-B2B-R-INT-EMAIL-LOGIN",
+        "title": "El login existente acepta correo",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/332",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/72"
+      },
+      {
+        "code": "SBX-B2B-R-THEME-LIGHT",
+        "title": "Modo claro",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/333",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/73"
       }
     ],
     "policies": [
-      "SBX-B2B-P-RATE",
-      "SBX-B2B-P-SESSION",
       "SBX-B2B-P-TIMEOUT"
     ]
   }

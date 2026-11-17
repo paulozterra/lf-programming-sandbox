@@ -4,20 +4,6 @@
   "policy_links": [
     {
       "source_ref": "supabase://lf_ops.pantallas_politicas/81",
-      "reference_role": "rate_limit_policy_id",
-      "policy_target_ref": "supabase://lf_ops.politicas_rate_limit/11",
-      "status": "VIGENTE",
-      "policy_kind": "RATE_LIMIT"
-    },
-    {
-      "source_ref": "supabase://lf_ops.pantallas_politicas/82",
-      "reference_role": "session_policy_id",
-      "policy_target_ref": "supabase://lf_ops.politicas_sesion/12",
-      "status": "VIGENTE",
-      "policy_kind": "SESSION"
-    },
-    {
-      "source_ref": "supabase://lf_ops.pantallas_politicas/83",
       "reference_role": "timeout_policy_id",
       "policy_target_ref": "supabase://lf_ops.politicas_timeout/13",
       "status": "VIGENTE",
@@ -25,49 +11,6 @@
     }
   ],
   "policy_objects": [
-    {
-      "table": "lf_ops.politicas_rate_limit",
-      "primary_key": "rate_limit_policy_id",
-      "policy_id": 11,
-      "policy_code": "SBX-B2B-P-RATE",
-      "status": "VIGENTE",
-      "parameters": {
-        "resource_code": "AUTH_LOGIN",
-        "window_seconds": 900,
-        "max_requests": 5,
-        "burst_limit": 5,
-        "scope_key": "IP_USER",
-        "error_code": "SBX-B2B-E-RATE"
-      },
-      "source_ref": "supabase://lf_ops.politicas_rate_limit/11",
-      "read_origin": "DIRECT_CANONICAL_POLICY_LOOKUP",
-      "read_source_ref": "supabase://lf_ops.politicas_rate_limit/11"
-    },
-    {
-      "table": "lf_ops.politicas_sesion",
-      "primary_key": "session_policy_id",
-      "policy_id": 12,
-      "policy_code": "SBX-B2B-P-SESSION",
-      "status": "VIGENTE",
-      "parameters": {
-        "idle_timeout_seconds": 900,
-        "warning_before_timeout_seconds": 120,
-        "absolute_timeout_seconds": 28800,
-        "access_token_ttl_seconds": 900,
-        "refresh_rotation_enabled": true,
-        "max_concurrent_sessions": 3,
-        "extend_on_user_activity": true,
-        "cookie_policy": {
-          "secure": true,
-          "http_only": true,
-          "same_site": "Lax",
-          "session_storage": "server_managed"
-        }
-      },
-      "source_ref": "supabase://lf_ops.politicas_sesion/12",
-      "read_origin": "DIRECT_CANONICAL_POLICY_LOOKUP",
-      "read_source_ref": "supabase://lf_ops.politicas_sesion/12"
-    },
     {
       "table": "lf_ops.politicas_timeout",
       "primary_key": "timeout_policy_id",

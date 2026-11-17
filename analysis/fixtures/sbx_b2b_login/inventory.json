@@ -6,5 +6,50 @@
   "source_attested": false,
   "objects": [],
   "impacts": [],
-  "dependencies": []
+  "dependencies": [
+    {
+      "kind": "endpoint",
+      "method": "POST",
+      "route": "/api/auth/login",
+      "rule_code": "SBX-B2B-R-INT-EMAIL-LOGIN",
+      "adds_rule": true,
+      "reuse_component_signature": "type:AuthService"
+    },
+    {
+      "kind": "endpoint",
+      "method": "POST",
+      "route": "/api/auth/login",
+      "rule_code": "SBX-B2B-R-AUTH-GENERIC",
+      "adds_rule": false
+    },
+    {
+      "kind": "endpoint",
+      "method": "POST",
+      "route": "/api/auth/login",
+      "rule_code": "SBX-B2B-R-RATE-LIMIT",
+      "adds_rule": false
+    },
+    {
+      "kind": "endpoint",
+      "method": "GET",
+      "route": "/api/auth/session",
+      "rule_code": "SBX-B2B-R-SESSION-IDLE",
+      "adds_rule": false
+    },
+    {
+      "kind": "endpoint",
+      "method": "GET",
+      "route": "/api/auth/session",
+      "rule_code": "SBX-B2B-R-SESSION-CONCURRENCY",
+      "adds_rule": false
+    },
+    {
+      "kind": "page",
+      "method": "PAGE",
+      "route": "/sbx-rem-list",
+      "rule_code": "SBX-B2B-R-INT-ROUTE",
+      "adds_rule": true,
+      "reuse_component_signature": "export:listReminders"
+    }
+  ]
 }

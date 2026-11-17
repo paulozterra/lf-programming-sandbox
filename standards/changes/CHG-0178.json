@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0178",
+  "title": "T31: ficha SBX-B2B-LOGIN se integra con el login existente y con /sbx-rem-list",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T31: la ficha B2B quedaba como un login aparte (T7 BUILD_NEW en todo) y /sbx-rem-list redirige a /login, que no existe"
+  },
+  "reason": "Se agregan 4 reglas de integración del sandbox (no son de LF): ruta /sbx-b2b-login y redirección desde /sbx-rem-list con next; token en sessionStorage 'sbx-session-token'; volver a next o a /sbx-rem-list; POST /api/auth/login acepta correo (demo@sandbox.test). El inventario declara el login existente: EXTEND de POST /api/auth/login y de la página /sbx-rem-list; REUSE_AS_IS del mensaje genérico, la sesión y el freno de intentos. Decisión del owner: sesión y rate limit B2B no aplican en el sandbox, rige la política del login existente (30 min; bloqueo tras 5 fallos por 15 min).",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/fixtures/sbx_b2b_login/",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0178.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/274"
+  }
+}
