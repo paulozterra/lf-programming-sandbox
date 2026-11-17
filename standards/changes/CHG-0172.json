@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0172",
   "title": "T31: herramienta única para preparar exámenes ocultos con los chequeos del Worker",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "T31: dos bloqueos del Worker en req186frontend3 por errores del examinador (SHA del cifrado en vez del texto plano; argumento mayor a 4096 bytes)"
