@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0179",
+  "title": "T33: las reglas de negocio y la ficha de la pantalla viajan en el contexto de cada lote",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T33: el paquete del constructor solo traía IDs de requisitos y el OpenAPI; el bloque reglas_negocio existía solo para f5-login (D-AN3 no generalizada)"
+  },
+  "reason": "Al registrar un lote, la ruta proyecta desde pilot/runs/<slug>/analysis.json: reglas_negocio.json (requisitos del lote con su texto, criterios, evidencia y reglas con valor_config) y pantalla.json (secciones de la ficha A3 según el área: FRONTEND recibe campos, errores, tokens visuales y contexto; BACKEND y CONTRATO, campos y errores). Se copian sin inferir; un requisito ausente o un run ambiguo bloquea. Aplica a pedidos ya planificados porque se calcula al registrar. Sin paquete A9 (casos legados) no agrega nada.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/business_context.py",
+      "pilot/worker_v08/register_task_context.py",
+      "pilot/orchestrator/native_lot_registration.py",
+      "pilot/worker_v08/test_t33_business_context.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0179.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
