@@ -180,4 +180,4 @@
 | CHG-0183 | EDITORIAL | T34: rotación de la llave pública de exámenes ocultos (recipient.txt) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/295 |
 | CHG-0184 | EDITORIAL | Exámenes ocultos req-286 (SBX-B2B-LOGIN): CONTRATO, BACKEND y FRONTEND |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/296 |
 | CHG-0185 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/297 |
-| CHG-0186 | ADDITIVE | T35: el feedback visible llega al Issue del pedido aunque no tenga la etiqueta lf-request |  | paulozterra |  |
+| CHG-0186 | ADDITIVE | T35: el feedback visible llega al Issue del pedido aunque no tenga la etiqueta lf-request |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/298 |
