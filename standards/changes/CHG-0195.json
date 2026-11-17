@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0195",
+  "title": "T38.1: el aviso de push rechazado llega a pedidos sin etiqueta lf-request y explica PATCH_NOT_APPLICABLE",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T38.1: el push 8a9c537 de req286backend2 fue rechazado por T38 pero el aviso no se publicó en #286 (NATIVE_PUSH_ALERT_ISSUE_UNVERIFIED: issue creado por API, sin etiqueta)"
+  },
+  "reason": "native_push_failure_notify exigía la etiqueta lf-request, igual que el defecto que T35 corrigió en native_feedback_delivery. La identidad del pedido ya la prueba find_issue (request_meta escrito por el bot en main). Además, para NATIVE_PUSH_PATCH_NOT_APPLICABLE el aviso explica que el parche no aplica sobre la base registrada y que no se cobró intento.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_push_failure_notify.py",
+      "pilot/worker_v08/test_t38_1_push_notice.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0195.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}
