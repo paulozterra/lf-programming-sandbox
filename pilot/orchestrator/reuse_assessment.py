@@ -102,6 +102,44 @@ def _registry_matches(ledger: dict, key: str, endpoint: str | None) -> tuple[lis
     return exact, related
 
 
+TRAIN_MERGE = re.compile(r"Merge PR #[1-9][0-9]* via sandbox-train\Z")
+INTEGRATION_BRANCH = re.compile(r"lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-[1-9][0-9]*\Z")
+
+
+def _git(root: Path, *argv: str):
+    import subprocess
+    return subprocess.run(["git", "-C", str(root), *argv], capture_output=True, text=True)
+
+
+def extended_by_verified_integrations(root: Path, rel: str, since: str) -> list[str] | None:
+    """T41: a registered file may legitimately change after its entry when a
+    later lot EXTENDs the same component. Accept the drift only if every
+    main-line commit that touched the file since the entry's merge is a
+    Train merge; in CI of a pending verified-integration PR, also the PR's
+    own commits (not yet on main). Returns the extending commits, or None."""
+    if not isinstance(since, str) or not re.fullmatch(r"[0-9a-f]{40}", since):
+        return None
+    if _git(root, "merge-base", "--is-ancestor", since, "HEAD").returncode != 0:
+        return None
+    log = _git(root, "log", "--first-parent", "--format=%H%x09%s", since + "..HEAD", "--", rel)
+    if log.returncode != 0:
+        return None
+    import os
+    pending = INTEGRATION_BRANCH.fullmatch(os.environ.get("LF_PENDING_INTEGRATION_BRANCH", "")) is not None
+    commits = []
+    for line in log.stdout.splitlines():
+        commit, _, subject = line.partition("\t")
+        if TRAIN_MERGE.fullmatch(subject):
+            commits.append(commit)
+            continue
+        on_main = _git(root, "merge-base", "--is-ancestor", commit, "origin/main").returncode == 0
+        if pending and not on_main:
+            commits.append(commit)  # the verified integration under review
+            continue
+        return None
+    return commits or None
+
+
 def _verified_context(root: Path, row: dict) -> list[dict]:
     refs = row.get("files")
     if not isinstance(refs, list) or not refs:
@@ -117,9 +155,13 @@ def _verified_context(root: Path, row: dict) -> list[dict]:
         file = root / rel
         # A stale registry is not evidence of a new component or permission
         # to overwrite previously integrated source.
-        if (file.is_symlink() or not file.is_file()
-                or hashlib.sha256(file.read_bytes()).hexdigest() != expected):
+        if file.is_symlink() or not file.is_file():
             raise ReuseBlocked("REUTILIZACION_INDETERMINADA:REGISTRY_SHA_DRIFT:" + rel)
+        live = hashlib.sha256(file.read_bytes()).hexdigest()
+        if live != expected:
+            if extended_by_verified_integrations(root, rel, row.get("merge_sha")) is None:
+                raise ReuseBlocked("REUTILIZACION_INDETERMINADA:REGISTRY_SHA_DRIFT:" + rel)
+            expected = live  # T41: current version, reached only via verified lineage
         result.append({"path": rel, "sha256": expected})
     return result
 
