@@ -188,4 +188,4 @@
 | CHG-0192 | EDITORIAL | T34.1: deja de versionar apps/time-service/target (artefactos de build agregados por error) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/307 |
 | CHG-0193 | EDITORIAL | req286backend2: examen oculto v2 (los nombres de campos siguen al contrato integrado) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/309 |
 | CHG-0194 | ADDITIVE | T38: un parche que no se aplica a su base se rechaza al recibirlo, sin cobrar intento (+ perdón gobernado de corridas previas) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/310 |
-| CHG-0195 | ADDITIVE | T38.1: el aviso de push rechazado llega a pedidos sin etiqueta lf-request y explica PATCH_NOT_APPLICABLE |  | paulozterra | PENDING |
+| CHG-0195 | ADDITIVE | T38.1: el aviso de push rechazado llega a pedidos sin etiqueta lf-request y explica PATCH_NOT_APPLICABLE |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/311 |
