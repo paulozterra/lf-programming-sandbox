@@ -139,3 +139,21 @@ def test_reference_patch_applies_to_base(tmp_path):
     subprocess.run(["git", "apply", "--check", str(pf)], cwd=wt, check=True)
     pkg = json.loads(pe.reference_package("req9backend2", b"exam", patch))
     assert c.parse_reference(json.dumps(pkg).encode(), "req9backend2", pkg["holdout_sha256"]) == patch
+
+
+def test_no_workflow_has_duplicate_keys():
+    """T40.2: GitHub rejects duplicated mapping keys that PyYAML silently merges."""
+    import yaml
+
+    class Strict(yaml.SafeLoader):
+        pass
+
+    def mapping(loader, node, deep=False):
+        keys = [loader.construct_object(k, deep=deep) for k, _ in node.value]
+        dup = {k for k in keys if keys.count(k) > 1}
+        assert not dup, f"duplicate keys {dup} at line {node.start_mark.line + 1}"
+        return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+    Strict.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, mapping)
+    for wf in sorted((ROOT / ".github/workflows").glob("*.yml")):
+        yaml.load(wf.read_text("utf-8"), Loader=Strict)
