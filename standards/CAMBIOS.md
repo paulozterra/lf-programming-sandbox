@@ -179,4 +179,4 @@
 | CHG-0182 | ADDITIVE | T33.3: el validador del contrato acepta páginas reutilizadas (PAGE) del esqueleto T7 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/294 |
 | CHG-0183 | EDITORIAL | T34: rotación de la llave pública de exámenes ocultos (recipient.txt) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/295 |
 | CHG-0184 | EDITORIAL | Exámenes ocultos req-286 (SBX-B2B-LOGIN): CONTRATO, BACKEND y FRONTEND |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/296 |
-| CHG-0185 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0185 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
