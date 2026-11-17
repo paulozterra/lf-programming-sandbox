@@ -1,0 +1,548 @@
+{
+  "area": "FRONTEND",
+  "note": "Ficha de la pantalla (textos, campos, validaciones, errores y, en FRONTEND, tokens visuales y variantes) copiada del paquete A9. Usar estos textos y valores tal cual; no inventar otros.",
+  "run": "req-286",
+  "schema_version": "LF_LOT_SCREEN_MATERIAL_V1",
+  "sections": {
+    "context": {
+      "description": "Pantalla de acceso al Back Office Empresa mediante correo electrónico y contraseña.",
+      "elements": [
+        {
+          "code": "SBX-B2B-EL-HEADER-CONTEXT",
+          "component_token": null,
+          "label_visible": "Backoffice Empresa",
+          "role": "HEADER_LABEL",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-HEADING",
+          "component_token": "text_section_h2",
+          "label_visible": "Iniciar sesión",
+          "role": "HEADING",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-EMAIL",
+          "component_token": "input_default",
+          "label_visible": "Correo electrónico",
+          "role": "EMAIL_INPUT",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-PASSWORD",
+          "component_token": "input_default",
+          "label_visible": "Contraseña",
+          "role": "PASSWORD_INPUT",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-PASSWORD-VISIBILITY",
+          "component_token": "auth_credential_input_icons",
+          "label_visible": null,
+          "role": "PASSWORD_VISIBILITY_ACTION",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-CREDENTIAL-ICONS",
+          "component_token": "auth_credential_input_icons",
+          "label_visible": null,
+          "role": "INPUT_ICONS",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-RECOVERY-LINK",
+          "component_token": "link_inline_default",
+          "label_visible": "¿Olvidaste tu contraseña?",
+          "role": "INLINE_LINK",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-SUBMIT",
+          "component_token": "cta_primary_default",
+          "label_visible": "Acceder",
+          "role": "PRIMARY_CTA",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-ERROR",
+          "component_token": "form_error_inline",
+          "label_visible": null,
+          "role": "FORM_ERROR",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-TERMS",
+          "component_token": "link_inline_default",
+          "label_visible": "Términos y condiciones",
+          "role": "LEGAL_LINK",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-PRIVACY",
+          "component_token": "link_inline_default",
+          "label_visible": "Política de privacidad",
+          "role": "LEGAL_LINK",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-SUPPORT",
+          "component_token": "link_inline_default",
+          "label_visible": "Contáctanos",
+          "role": "SUPPORT_LINK",
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-EL-LAYOUT",
+          "component_token": "sbx_b2b_auth_login_layout",
+          "label_visible": null,
+          "role": "AUTH_LAYOUT",
+          "status": "VIGENTE"
+        }
+      ],
+      "messages": [],
+      "module_code": "SBX-M-B2B-AUTH",
+      "objective": "Autenticar a un usuario y habilitar el acceso según las políticas de seguridad.",
+      "screen_name": "Iniciar sesión",
+      "states": [
+        {
+          "code": "SBX-B2B-ST-UNAUTHENTICATED",
+          "order": 1,
+          "status": "VIGENTE"
+        },
+        {
+          "code": "SBX-B2B-ST-AUTHENTICATED",
+          "order": 2,
+          "status": "VIGENTE"
+        }
+      ]
+    },
+    "errors": [
+      {
+        "action_label": "Revisar datos",
+        "error_code": "SBX-B2B-E-CREDENTIALS",
+        "generic": true,
+        "http_status": 401,
+        "message": "No pudimos validar tus datos de acceso. Revisa la información e inténtalo nuevamente.",
+        "retryable": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/301",
+          "supabase://lf_ops.reglas/304",
+          "supabase://lf_ops.reglas/315"
+        ],
+        "status": "VIGENTE",
+        "suggested_action": "Verifica tu correo y contraseña. Si no recuerdas tu contraseña, utiliza la opción de recuperación.",
+        "title": "No pudimos iniciar sesión"
+      },
+      {
+        "action_label": "Reintentar después",
+        "error_code": "SBX-B2B-E-RATE",
+        "generic": false,
+        "http_status": 429,
+        "message": "Se alcanzó temporalmente el límite de operaciones.",
+        "retryable": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/310",
+          "supabase://lf_ops.reglas/304"
+        ],
+        "status": "VIGENTE",
+        "suggested_action": "Espere unos minutos antes de volver a intentar.",
+        "title": "Demasiadas solicitudes"
+      },
+      {
+        "action_label": "Reintentar",
+        "error_code": "SBX-B2B-E-NETWORK",
+        "generic": false,
+        "http_status": 503,
+        "message": "Se perdió la conexión durante la operación.",
+        "retryable": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/309",
+          "supabase://lf_ops.reglas/304"
+        ],
+        "status": "VIGENTE",
+        "suggested_action": "Verifique su conexión. La aplicación intentará recuperar el estado.",
+        "title": "Conexión interrumpida"
+      },
+      {
+        "action_label": "Contactar soporte",
+        "error_code": "SBX-B2B-E-UNEXPECTED",
+        "generic": false,
+        "http_status": 500,
+        "message": "Ocurrió un error inesperado.",
+        "retryable": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/314",
+          "supabase://lf_ops.reglas/315"
+        ],
+        "status": "VIGENTE",
+        "suggested_action": "Use el código de referencia para solicitar soporte.",
+        "title": "No pudimos completar la operación"
+      }
+    ],
+    "fields": [
+      {
+        "analytics_allowed": false,
+        "component_token": "input_default",
+        "field_code": "SBX-B2B-F-EMAIL",
+        "label": "Correo electrónico",
+        "logs_allowed": false,
+        "masking_rule": "MASK_EMAIL",
+        "nombre": "email",
+        "order": 1,
+        "placeholder": "ejemplo@empresa.com",
+        "required": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/305",
+          "supabase://lf_ops.reglas/319",
+          "supabase://lf_ops.reglas/316"
+        ],
+        "sensitive": true,
+        "status": "VIGENTE",
+        "tipo_dato": "email",
+        "validations": [
+          {
+            "blocking": true,
+            "code": "SBX-B2B-V-EMAIL-FORMAT",
+            "config": {
+              "allow_consecutive_dots": false,
+              "allow_internal_spaces": false,
+              "allow_leading_or_trailing_dot": false,
+              "client_side_validation": "UX_ONLY",
+              "domain_case_for_comparison": "LOWERCASE",
+              "local_part_case": "PRESERVE",
+              "max_length": 254,
+              "require_domain_dot": true,
+              "require_fqdn": true,
+              "require_local_part": true,
+              "require_single_at": true,
+              "require_tld": true,
+              "server_side_validation": "REQUIRED",
+              "trim_external_spaces": true
+            },
+            "message": "Ingresa un correo electrónico válido. Ejemplo: usuario@empresa.com",
+            "type": "EMAIL"
+          }
+        ]
+      },
+      {
+        "analytics_allowed": false,
+        "component_token": "input_default",
+        "field_code": "SBX-B2B-F-PASSWORD",
+        "label": "Contraseña",
+        "logs_allowed": false,
+        "masking_rule": "MASK_FULL",
+        "nombre": "password",
+        "order": 2,
+        "placeholder": "Ingresa tu contraseña",
+        "required": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/302",
+          "supabase://lf_ops.reglas/305",
+          "supabase://lf_ops.reglas/318",
+          "supabase://lf_ops.reglas/319"
+        ],
+        "sensitive": true,
+        "status": "VIGENTE",
+        "tipo_dato": "password",
+        "validations": [
+          {
+            "blocking": true,
+            "code": "SBX-B2B-V-PASSWORD-REQUIRED",
+            "config": {
+              "min_length": 1,
+              "trim": false
+            },
+            "message": "Ingresa tu contraseña.",
+            "type": "REQUIRED"
+          }
+        ]
+      }
+    ],
+    "visual": {
+      "colors": [
+        {
+          "hex": "#0F172A",
+          "role": "Estructura principal y confianza",
+          "token": "navy_core"
+        },
+        {
+          "hex": "#334155",
+          "role": "Texto informativo oscuro",
+          "token": "navy_muted"
+        },
+        {
+          "hex": "#FDFCFA",
+          "role": "Fondo general light",
+          "token": "warm_surface"
+        },
+        {
+          "hex": "#FFFFFF",
+          "role": "Superficie de card",
+          "token": "card_surface"
+        },
+        {
+          "hex": "#E2E8F0",
+          "role": "Borde suave",
+          "token": "border_soft"
+        },
+        {
+          "hex": "#FEE2E2",
+          "role": "Fondo de error suave",
+          "token": "error_bg"
+        },
+        {
+          "hex": "#991B1B",
+          "role": "Texto de error",
+          "token": "error_text"
+        },
+        {
+          "hex": "#109044",
+          "role": "Acción principal",
+          "token": "green_action"
+        },
+        {
+          "hex": "#0d7336",
+          "role": "Hover de acción principal",
+          "token": "green_action_hover"
+        },
+        {
+          "hex": "#2563EB",
+          "role": "Acento secundario",
+          "token": "blue_brand_accent"
+        }
+      ],
+      "components": [
+        {
+          "bindings": {
+            "background": "card_surface",
+            "border": "border_soft",
+            "radius": "radius_12",
+            "text": "navy_core"
+          },
+          "token": "input_default"
+        },
+        {
+          "bindings": {
+            "background": "green_action",
+            "hover_background": "green_action_hover",
+            "radius": "radius_12",
+            "text": "card_surface",
+            "typography": "text_button"
+          },
+          "token": "cta_primary_default"
+        },
+        {
+          "bindings": {
+            "decoration": "underline",
+            "text": "blue_brand_accent",
+            "typography": "text_body_small"
+          },
+          "token": "link_inline_default"
+        },
+        {
+          "bindings": {
+            "background": "error_bg",
+            "text": "error_text",
+            "typography": "text_body_small"
+          },
+          "token": "form_error_inline"
+        },
+        {
+          "bindings": {
+            "credential": "LockKeyhole",
+            "email": "Mail",
+            "icon_library": "lucide-react",
+            "visibility_hide": "EyeOff",
+            "visibility_show": "Eye"
+          },
+          "token": "auth_credential_input_icons"
+        },
+        {
+          "bindings": {
+            "input_component": "input_default",
+            "label_typography": "text_body_small",
+            "navigation_mode": "NO_NAVIGATION",
+            "page_background": "warm_surface",
+            "primary_cta_component": "cta_primary_default",
+            "recovery_link_color": "blue_brand_accent",
+            "responsive_architecture": "SINGLE_LAYOUT_CONTAINER_QUERIES",
+            "subtitle_color": "navy_muted",
+            "subtitle_typography": "text_body",
+            "title_color": "navy_core",
+            "title_typography": "text_section_h2"
+          },
+          "token": "sbx_b2b_auth_login_layout"
+        }
+      ],
+      "decisions": [
+        {
+          "code": "SBX-B2B-VD-NO-NAV",
+          "detail": "Pantalla de acceso pre-autenticación. No muestra sidebar, drawer ni navegación interna.",
+          "title": "Login sin navegación lateral"
+        },
+        {
+          "code": "SBX-B2B-VD-COMPOSITION",
+          "detail": "Encabezado con la etiqueta persistente Backoffice Empresa arriba a la derecha (en móvil en dos líneas). Sin card contenedora. Contenido central: título Iniciar sesión, Correo electrónico, Contraseña, recuperación junto a la contraseña, CTA primario Acceder. Pie con Términos y condiciones, Política de privacidad y Contáctanos visibles antes del acceso. No se muestran versión/build, estados internos ni mensajes de seguridad no verificables.",
+          "title": "Composición del Login"
+        },
+        {
+          "code": "SBX-B2B-VD-RECOVERY",
+          "detail": "¿Olvidaste tu contraseña? queda inmediatamente asociada al campo Contraseña como acción secundaria con blue_brand_accent, separada del CTA primario con space_24. El CTA Acceder usa cta_primary_default / green_action.",
+          "title": "Recuperación junto al campo contraseña"
+        },
+        {
+          "code": "SBX-B2B-VD-ICONS",
+          "detail": "Correo usa Mail, contraseña usa LockKeyhole, mostrar usa Eye y ocultar usa EyeOff (lucide-react). El candado no se usa como claim decorativo de seguridad.",
+          "title": "Iconografía de credenciales"
+        },
+        {
+          "code": "SBX-B2B-VD-CANVAS",
+          "detail": "Desktop 1440x900, tablet 834x1112, móvil 390x844.",
+          "title": "Canvas de referencia"
+        }
+      ],
+      "design_system": {
+        "code": "SBX_DS_V1",
+        "name": "Sistema de diseño del sandbox (valores del DS de LF)"
+      },
+      "spacing_and_radius": [
+        {
+          "px": 4,
+          "token": "space_4"
+        },
+        {
+          "px": 8,
+          "token": "space_8"
+        },
+        {
+          "px": 12,
+          "token": "space_12"
+        },
+        {
+          "px": 16,
+          "token": "space_16"
+        },
+        {
+          "px": 24,
+          "token": "space_24"
+        },
+        {
+          "px": 32,
+          "token": "space_32"
+        },
+        {
+          "px": 48,
+          "token": "space_48"
+        },
+        {
+          "px": 64,
+          "token": "space_64"
+        },
+        {
+          "px": 12,
+          "token": "radius_12"
+        },
+        {
+          "px": 16,
+          "token": "radius_16"
+        },
+        {
+          "px": 24,
+          "token": "radius_24"
+        }
+      ],
+      "typography": [
+        {
+          "family": "Inter",
+          "token": "font_family_base"
+        },
+        {
+          "family": "Inter",
+          "line_height_px": 40,
+          "size_px": 32,
+          "token": "text_section_h2",
+          "weight": 700
+        },
+        {
+          "family": "Inter",
+          "line_height_px": 26,
+          "size_px": 18,
+          "token": "text_card_title",
+          "weight": 700
+        },
+        {
+          "family": "Inter",
+          "line_height_px": 24,
+          "size_px": 16,
+          "token": "text_body",
+          "weight": 400
+        },
+        {
+          "family": "Inter",
+          "line_height_px": 20,
+          "size_px": 14,
+          "token": "text_body_small",
+          "weight": 400
+        },
+        {
+          "family": "Inter",
+          "line_height_px": 18,
+          "size_px": 12,
+          "token": "text_disclaimer",
+          "weight": 400
+        },
+        {
+          "family": "Inter",
+          "line_height_px": 20,
+          "size_px": 14,
+          "token": "text_button",
+          "weight": 700
+        }
+      ],
+      "variants": [
+        {
+          "code": "SBX-B2B-V-DESKTOP",
+          "density": "COMFORTABLE",
+          "layout": "sbx_b2b_auth_login_layout",
+          "rule_refs": [
+            "supabase://lf_ops.reglas/326",
+            "supabase://lf_ops.reglas/327",
+            "supabase://lf_ops.reglas/333"
+          ],
+          "status": "VIGENTE",
+          "supports_touch": false,
+          "theme": "SBX_B2B_THEME_LIGHT",
+          "viewport": "viewport_desktop"
+        },
+        {
+          "code": "SBX-B2B-V-TABLET",
+          "density": "COMFORTABLE",
+          "layout": "sbx_b2b_auth_login_layout",
+          "rule_refs": [
+            "supabase://lf_ops.reglas/326",
+            "supabase://lf_ops.reglas/327",
+            "supabase://lf_ops.reglas/333"
+          ],
+          "status": "VIGENTE",
+          "supports_touch": true,
+          "theme": "SBX_B2B_THEME_LIGHT",
+          "viewport": "viewport_tablet"
+        },
+        {
+          "code": "SBX-B2B-V-MOBILE",
+          "density": "COMFORTABLE",
+          "layout": "sbx_b2b_auth_login_layout",
+          "rule_refs": [
+            "supabase://lf_ops.reglas/326",
+            "supabase://lf_ops.reglas/327",
+            "supabase://lf_ops.reglas/333"
+          ],
+          "status": "VIGENTE",
+          "supports_touch": true,
+          "theme": "SBX_B2B_THEME_LIGHT",
+          "viewport": "viewport_mobile"
+        }
+      ]
+    }
+  }
+}
