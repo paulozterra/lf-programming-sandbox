@@ -422,6 +422,17 @@ def failed_lots(bindings: dict) -> dict[str, list[int]]:
                 migration = None
         defects = ({migration["source_run_id"]: migration["legacy_task_pack_sha256"]}
                    if migration is not None else {})
+        # T32: governed examiner-defect forgiveness (exact runs, replaced exam).
+        from pilot.worker_v08.native_examiner_defect import verified_examiner_defects
+        try:
+            examiner = verified_examiner_defects(
+                ROOT, task, json.loads(registration.read_text("utf-8")))
+        except (OSError, ValueError):
+            examiner = {}
+        for run_id, row in examiner.items():
+            if any(r.get("id") == run_id and _recognized_run(
+                    r, task, sha=row["proposal_commit_sha"]) for r in failures):
+                defects.setdefault(run_id, row["task_pack_sha256"])
         result[lot] = verified_failures(task, failures, proofs,
                                        route_defects=defects)
     return result
