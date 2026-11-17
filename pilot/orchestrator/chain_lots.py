@@ -429,6 +429,14 @@ def failed_lots(bindings: dict) -> dict[str, list[int]]:
                 ROOT, task, json.loads(registration.read_text("utf-8")))
         except (OSError, ValueError):
             examiner = {}
+        # T37: governed route-tool-defect forgiveness.
+        from pilot.worker_v08.native_route_tool_defect import verified_route_tool_defects
+        try:
+            for run_id, row in verified_route_tool_defects(
+                    ROOT, task, json.loads(registration.read_text("utf-8"))).items():
+                examiner.setdefault(run_id, row)
+        except (OSError, ValueError):
+            pass
         for run_id, row in examiner.items():
             if any(r.get("id") == run_id and _recognized_run(
                     r, task, sha=row["proposal_commit_sha"]) for r in failures):

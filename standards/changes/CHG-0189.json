@@ -1,0 +1,44 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0189",
+  "title": "T37: intentos gastados por una herramienta de la ruta ya corregida no cuentan (perdón gobernado + re-anclaje del lote)",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T37: req286contrato1 intentos 2 y 3 fallaron con CONTRACT_FIELD_COVERAGE_MISSING de contract_validate.py, ya corregido en main por T36; el Worker evalúa con la herramienta de la base registrada"
+  },
+  "reason": "Nuevo registro gobernado pilot/worker_v08/route_tool_defects/<tarea>.json (como T32 examiner_defects): lista corridas exactas cuyo único fallo visible fue un BLOCKED de una herramienta de ROUTE_TOOLS. Solo se honra si el lote fue re-anclado a la base corregida y la herramienta cambió entre ambas bases. pilot/orchestrator/route_tool_defect.py prueba cada corrida re-ejecutando el mismo comando sobre la misma propuesta: debe fallar con el mismo código en la base vieja y pasar en la nueva. Un fallo real del constructor (p. ej. YAML inválido del intento 1) no se perdona (CURRENT_TOOL_STILL_FAILS). native_run_history y chain_lots consumen el registro igual que T32.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_route_tool_defect.py",
+      "pilot/orchestrator/route_tool_defect.py",
+      "pilot/worker_v08/native_run_history.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/worker_v08/test_t37_route_tool_defect.py",
+      "pilot/orchestrator/test_t37_route_tool_proof.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0189.json",
+      "pilot/worker_v08/route_tool_defects/req286contrato1.json",
+      "pilot/worker_v08/native_tasks/req286contrato1.json",
+      "pilot/runs/req-286/proposal_requests/"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/301"
+  }
+}

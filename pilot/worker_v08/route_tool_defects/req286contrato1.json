@@ -1,0 +1,23 @@
+{
+  "blocked_code": "CONTRACT_FIELD_COVERAGE_MISSING",
+  "current_base_sha": "02f890673d0d061d603adb1e05df833929b0138e",
+  "current_tool_sha256": "c16857066c1a890a603e44739134c3843b99af73156b600a5904f7ea8bce63aa",
+  "forgiven": [
+    {
+      "proposal_commit_sha": "e503c4b9080a42e9ac18dc1232186fb1cdbcb340",
+      "run_id": 44101246820,
+      "task_pack_sha256": "84b50d06a726aaff1bc6d03af057683173b919f2e937d396ca3313a478719a11"
+    },
+    {
+      "proposal_commit_sha": "f93aac4df3ddf74b9fbcf0550a2ec9801857116c",
+      "run_id": 44105394957,
+      "task_pack_sha256": "84b50d06a726aaff1bc6d03af057683173b919f2e937d396ca3313a478719a11"
+    }
+  ],
+  "reason": "contract_validate.py no segu\u00eda $ref locales (CONTRACT_FIELD_COVERAGE_MISSING sobre un OpenAPI v\u00e1lido); corregido por T36 (#299). La misma propuesta falla con la herramienta de la base 01fe050 y pasa con la de 02f8906.",
+  "schema_version": "LF_NATIVE_ROUTE_TOOL_DEFECT_V1",
+  "superseded_base_sha": "01fe0506faac2fd46a0c2b190b0bd7ef119ca8db",
+  "superseded_tool_sha256": "3db4e4084fdbb786cbd62d86942751b0c9919771f4131836b23ad3b7a90dc905",
+  "task": "req286contrato1",
+  "tool": "pilot/orchestrator/contract_validate.py"
+}

@@ -171,6 +171,10 @@ def admit_attempt(
     # T32: governed examiner-defect forgiveness (exact runs, replaced exam).
     from native_examiner_defect import verified_examiner_defects
     examiner_defects = verified_examiner_defects(control, task, record)
+    # T37: governed route-tool-defect forgiveness (exact runs, fixed tool, re-pinned base).
+    from native_route_tool_defect import verified_route_tool_defects
+    for run_id, row in verified_route_tool_defects(control, task, record).items():
+        examiner_defects.setdefault(run_id, row)
     if route_retry and (
         event != "workflow_dispatch" or attempt != 1
         or migration is None or migration["proposal_commit_sha"] != sha
