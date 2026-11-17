@@ -191,3 +191,4 @@
 | CHG-0195 | ADDITIVE | T38.1: el aviso de push rechazado llega a pedidos sin etiqueta lf-request y explica PATCH_NOT_APPLICABLE |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/311 |
 | CHG-0196 | ADDITIVE | T39: publish_exam valida el examen en el mismo orden que el Worker; req286backend2 examen v3 y perdón del intento afectado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/312 |
 | CHG-0197 | ADDITIVE | T39.1: el conteo de intentos ya no pisa el id de la corrida actual al aplicar perdones |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/313 |
+| CHG-0198 | EDITORIAL | CP3.5: integración verificada nativa req286backend2 (run 44167628590) |  | paulozterra |  |
