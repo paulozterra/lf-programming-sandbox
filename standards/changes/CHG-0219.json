@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0219",
+  "title": "T48: idempotencia de solicitudes EXAM_REQUEST dentro de CP3.6",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T48: issues duplicados de CONTRATO #284/#285 y #292/#293 por dos rutas de publicación en una sola corrida CP3.6"
+  },
+  "reason": "El mismo CP3.6 publica desde el plan y luego desde la admisión, y la consulta REST inmediata no necesariamente refleja el issue creado segundos antes. Una memoria por proceso por pedido, task y hash canónico completo de la plantilla T47 impide la segunda publicación incluso ante latencia de visibilidad; la identidad queda como marcador en el issue y se conserva el marcador legacy. Issues cerrados descartados jamás reabren la misma clave; los listados REST ambiguos fallan cerrados con aviso tipado; los abiertos duplicados se reconcilian conservando el más antiguo.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/test_t48_exam_request_idempotence.py",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0219.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/339"
+  }
+}

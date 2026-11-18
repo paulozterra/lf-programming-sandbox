@@ -672,7 +672,7 @@ def notify_failed_conflict_replay(row: dict, all_plans: list,
                if (c.get("user") or {}).get("login") == "github-actions[bot]"):
             return
         run("gh", "issue", "comment", str(number), "--repo", REPO,
-            "--body", marker + "\\nCP3.6 BLOCKED: "
+            "--body", marker + "\nCP3.6 BLOCKED: "
             "CONFLICT_RECOVERY_CP35_PREVIOUSLY_FAILED. "
             "La recuperación CP3.5 del PASS nativo no se repetirá "
             f"automáticamente. Corrida fallida #{failed_run_id}; "
@@ -722,60 +722,154 @@ def pending_draft(prefix: str) -> bool:
                for item in rows)
 
 
+# One CP3.6 Python process can enter exam admission twice for the root lot:
+# plan publication and ready-lot admission. Never rely on immediate REST
+# read-after-write visibility to prevent duplicate creation.
+_EXAM_RUN_CACHE: dict[str, dict] = {}
+
+
 def exam_issue_marker(task: str) -> str:
     if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task):
         deny("EXAM_REQUEST_TASK_INVALID")
     return f"<!-- LF_EXAM_REQUEST_TASK:{task} -->"
 
 
-def exam_request_matches(rows: list, task: str, request: str) -> list:
+def exam_key(request: str, binding: dict) -> str:
+    task = binding["task_name"]
+    exam_issue_marker(task)
+    if not re.fullmatch(r"req-[1-9][0-9]*", request):
+        deny("EXAM_REQUEST_KEY_INVALID")
+    path = binding.get("template_path")
+    if not isinstance(path, str) or not re.fullmatch(
+            rf"pilot/runs/{re.escape(request)}/templates/[a-z][a-z0-9_-]{{0,31}}[.]task[.]json", path):
+        deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+    template = ROOT / path
+    if template.is_symlink() or not template.is_file():
+        deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+    try:
+        content = json.loads(template.read_text("utf-8"))
+        spec = content.get("task_spec") if isinstance(content, dict) else None
+        if not isinstance(spec, dict):
+            deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+        version = hashlib.sha256(canonical(spec)).hexdigest()
+        # Pre-T47 registrations lack a verifiable original-template stamp.
+        legacy_record = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+        if legacy_record.is_symlink():
+            deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+        if legacy_record.is_file():
+            recorded = json.loads(legacy_record.read_text("utf-8"))
+            if not isinstance(recorded, dict):
+                deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+            stamped = recorded.get("template_sha256")
+            if stamped is None and "template_path" not in recorded:
+                version = "legacy"
+            elif (not isinstance(stamped, str)
+                  or not re.fullmatch(r"[0-9a-f]{64}", stamped)
+                  or not isinstance(recorded.get("template_path"), str)):
+                deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+    except (OSError, ValueError, TypeError):
+        deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+    return f"LF_EXAM_REQUEST_KEY:{request}:{task}:{version}"
+
+
+def exam_request_matches(rows: list, task: str, request: str,
+                         key: str | None = None) -> list:
     marker = exam_issue_marker(task)
     title = "EXAM_REQUEST: " + task
-    if not isinstance(rows, list) or len(rows) >= 100:
+    if not isinstance(rows, list):
         deny("EXAM_REQUEST_LIST_UNTRUSTED")
     matches = []
     for row in rows:
         if not isinstance(row, dict):
             deny("EXAM_REQUEST_LIST_UNTRUSTED")
-        if row.get("title") != title and marker not in str(row.get("body", "")):
-            continue
         body = row.get("body")
+        if row.get("title") != title and marker not in str(body):
+            continue
         if (row.get("title") != title or not isinstance(body, str)
                 or f"- Task ID: `{task}`" not in body
                 or f"- Pedido: `{request}`" not in body
                 or (marker not in body and "Solicitud automática de examen independiente (T4)." not in body)):
             deny("EXAM_REQUEST_IDENTITY_CONFLICT")
+        keys = re.findall(r"<!-- (LF_EXAM_REQUEST_KEY:[^<>\s]+) -->", body)
+        if len(keys) > 1:
+            deny("EXAM_REQUEST_IDENTITY_CONFLICT")
+        if key is not None and keys and keys[0] != key:
+            continue  # New template version is independently examinable.
         matches.append(row)
     return matches
 
 
 def exam_issue_state(row: dict) -> tuple[str, str]:
-    """Normalize both REST and GraphQL state/reason fields."""
     return (str(row.get("state", "")).lower(),
             str(row.get("state_reason") or row.get("stateReason") or "").lower())
 
 
 def choose_exam_issue(matches: list, registered: bool) -> tuple[str, dict | None]:
-    """Prefer verified completion, then the open issue; ignore closed duplicates."""
-    if registered:
-        completed = [row for row in matches if exam_issue_state(row) == ("closed", "completed")]
-        if completed:
-            return "EXAM_ALREADY_REGISTERED", min(completed, key=lambda row: row["number"])
-    opened = [row for row in matches if exam_issue_state(row)[0] == "open"]
+    ordered = sorted(matches, key=lambda row: row.get("number", 0))
+    if any(type(row.get("number")) is not int or row["number"] <= 0
+           for row in ordered):
+        deny("EXAM_REQUEST_LIST_UNTRUSTED")
+    opened = [row for row in ordered if exam_issue_state(row)[0] == "open"]
+    if len(opened) > 1:
+        return "EXAM_REQUEST_DUPLICATE_OPEN", opened[0]
+    completed = [row for row in ordered
+                 if exam_issue_state(row) == ("closed", "completed")]
+    if registered and completed:
+        return "EXAM_ALREADY_REGISTERED", completed[0]
     if opened:
-        return "EXAMEN_PENDIENTE", min(opened, key=lambda row: row["number"])
-    if any(state != "closed" or reason not in ("not_planned", "duplicate")
-           for state, reason in (exam_issue_state(row) for row in matches)):
-        deny("EXAM_REQUEST_CLOSED_UNVERIFIED")
+        return "EXAMEN_PENDIENTE", opened[0]
+    if ordered and all(exam_issue_state(row) in
+                       (("closed", "not_planned"), ("closed", "duplicate"))
+                       for row in ordered):
+        return "EXAM_REQUEST_PREVIOUSLY_DISCARDED", ordered[0]
+    if ordered:
+        return "EXAM_REQUEST_CLOSED_UNVERIFIED", ordered[0]
     return "CREATE_EXAM_REQUEST", None
 
 
 def listed_exam_requests() -> list:
-    rows = api_list("issues?state=all&labels=exam-request")
-    if not isinstance(rows, list) or len(rows) >= 100:
+    # api_list uses authenticated GitHub REST, not delayed code/issue search.
+    # A full last page or invalid/truncated response fails closed.
+    try:
+        rows = api_list("issues?state=all&labels=exam-request")
+    except (ChainBlocked, ValueError, OSError):
+        deny("EXAM_REQUEST_LIST_UNTRUSTED")
+    if not isinstance(rows, list):
         deny("EXAM_REQUEST_LIST_UNTRUSTED")
     return rows
 
+
+def exam_notice(request: str, key: str, reason: str, number: int | None = None) -> None:
+    """Best-effort deduped typed notice, never permission to publish again."""
+    marker = f"<!-- LF_EXAM_NOTICE:{key}:{reason} -->"
+    try:
+        original = api("issues/" + request[4:])
+        if original.get("number") != int(request[4:]):
+            return
+        comments = api_list("issues/" + request[4:] + "/comments")
+        if any(marker in str(c.get("body", "")) for c in comments):
+            return
+        run("gh", "issue", "comment", request[4:], "--repo", REPO, "--body",
+            marker + "\\nCP3.6 BLOCKED: " + reason + " para " + key +
+            (f"; exam_issue=#{number}" if number else ""))
+    except (ChainBlocked, OSError, ValueError, KeyError, TypeError, AttributeError):
+        pass
+
+
+def reconcile_exam_duplicates(matches: list, request: str, key: str) -> dict:
+    opened = sorted((r for r in matches if exam_issue_state(r)[0] == "open"),
+                    key=lambda row: row["number"])
+    original = opened[0]
+    for duplicate in opened[1:]:
+        n = duplicate["number"]
+        # Comment first; if either step fails, caller must block (no create).
+        run("gh", "issue", "comment", str(n), "--repo", REPO,
+            "--body", f"Duplicado de #{original['number']} para {key}. "
+                      f"Se conserva la solicitud original.")
+        run("gh", "api", "-X", "PATCH", f"repos/{REPO}/issues/{n}",
+            "-f", "state=closed", "-f", "state_reason=duplicate")
+    exam_notice(request, key, "EXAM_REQUEST_DUPLICATE_OPEN", original["number"])
+    return original
 
 def complete_registered_exam_requests(request: str, bindings: dict) -> list[int]:
     """Reconcile only after the actual registration is in trusted main.
@@ -809,42 +903,73 @@ def complete_registered_exam_requests(request: str, bindings: dict) -> list[int]
 
 
 def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
-    """Serialized CP3.6 stage: one exam issue per exact task identity.
-
-    CP3.6's global concurrency group is stronger than a per-request lock:
-    two requests never execute this check+create concurrently. Never read
-    ciphertext; published marker and public task skeleton only.
-    """
-    title, body = public_exam_request(ROOT, request, binding, lot)
+    """Single publication per (request, task, canonical template) per process."""
     task = binding["task_name"]
-    body += "\n\n" + exam_issue_marker(task) + "\n"
-    labels = json.loads(run("gh", "label", "list", "--repo", REPO,
-                            "--search", "exam-request", "--limit", "100",
-                            "--json", "name"))
-    if not isinstance(labels, list) or len(labels) >= 100:
-        deny("EXAM_REQUEST_LABELS_UNTRUSTED")
-    if not any(isinstance(row, dict) and row.get("name") == "exam-request"
-               for row in labels):
-        run("gh", "label", "create", "exam-request", "--repo", REPO,
-            "--description", "Independent encrypted examination requested",
-            "--color", "D4C5F9")
-    # Use the complete current API issue state, including body. GitHub issues
-    # have unique numbers but NOT unique titles, so a title-only lookup is
-    # insufficient for correctness and closed-success idempotency.
-    matches = exam_request_matches(listed_exam_requests(), task, request)
-    registration = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
-    if registration.is_symlink():
-        deny("EXAM_REGISTRATION_SYMLINK")
-    outcome, found = choose_exam_issue(matches, registration.is_file())
-    if outcome == "EXAM_ALREADY_REGISTERED":
-        return {"status": outcome, "task": task, "exam_issue": found["number"]}
-    if outcome == "EXAMEN_PENDIENTE":
-        return {"status": "BLOCKED", "reason_code": outcome,
-                "task": task, "exam_issue": found["number"]}
-    run("gh", "issue", "create", "--repo", REPO, "--title", title,
-        "--body", body, "--label", "exam-request")
-    return {"status": "BLOCKED", "reason_code": "EXAMEN_PENDIENTE",
-            "task": task}
+    try:
+        key = exam_key(request, binding)
+    except (ChainBlocked, ValueError):
+        exam_notice(request, f"LF_EXAM_REQUEST_KEY:{request}:{task}:legacy",
+                    "EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+        return {"status": "BLOCKED", "reason_code": "EXAM_REQUEST_TEMPLATE_UNRESOLVED",
+                "task": task}
+    if key in _EXAM_RUN_CACHE:
+        return dict(_EXAM_RUN_CACHE[key])
+    title, body = public_exam_request(ROOT, request, binding, lot)
+    body += "\n\n" + exam_issue_marker(task) + "\n<!-- " + key + " -->\n"
+    try:
+        matches = exam_request_matches(listed_exam_requests(), task, request, key)
+        registration = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+        if registration.is_symlink():
+            deny("EXAM_REGISTRATION_SYMLINK")
+        outcome, found = choose_exam_issue(matches, registration.is_file())
+        if outcome == "EXAM_REQUEST_DUPLICATE_OPEN":
+            found = reconcile_exam_duplicates(matches, request, key)
+            result = {"status": "BLOCKED",
+                      "reason_code": "EXAM_REQUEST_DUPLICATE_OPEN",
+                      "task": task, "exam_issue": found["number"]}
+            _EXAM_RUN_CACHE[key] = dict(result)
+            return result
+        if outcome == "EXAM_ALREADY_REGISTERED":
+            result = {"status": outcome, "task": task, "exam_issue": found["number"]}
+        elif outcome == "EXAMEN_PENDIENTE":
+            result = {"status": "BLOCKED", "reason_code": outcome,
+                      "task": task, "exam_issue": found["number"]}
+        elif outcome != "CREATE_EXAM_REQUEST":
+            exam_notice(request, key, outcome, found["number"] if found else None)
+            result = {"status": "BLOCKED", "reason_code": outcome,
+                      "task": task, **({"exam_issue": found["number"]} if found else {})}
+        else:
+            labels = json.loads(run("gh", "label", "list", "--repo", REPO,
+                                    "--search", "exam-request", "--limit", "100",
+                                    "--json", "name"))
+            if not isinstance(labels, list) or len(labels) >= 100:
+                deny("EXAM_REQUEST_LABELS_UNTRUSTED")
+            if not any(isinstance(row, dict) and row.get("name") == "exam-request"
+                       for row in labels):
+                run("gh", "label", "create", "exam-request", "--repo", REPO,
+                    "--description", "Independent encrypted examination requested",
+                    "--color", "D4C5F9")
+            created = run("gh", "issue", "create", "--repo", REPO,
+                          "--title", title, "--body", body, "--label", "exam-request")
+            match = re.search(r"/issues/([1-9][0-9]*)\s*$", created)
+            if not match:
+                deny("EXAM_REQUEST_CREATE_RECEIPT_INVALID")
+            result = {"status": "BLOCKED", "reason_code": "EXAMEN_PENDIENTE",
+                      "task": task, "exam_issue": int(match.group(1))}
+        _EXAM_RUN_CACHE[key] = dict(result)
+        return result
+    except (ChainBlocked, ValueError, OSError) as exc:
+        reason = str(exc)
+        typed = re.findall(r"EXAM_REQUEST_[A-Z0-9_]+", reason)
+        code = (typed[-1] if typed else
+                "EXAM_REQUEST_LIST_UNTRUSTED"
+                if any(term in reason for term in
+                       ("GITHUB_LIST_", "GITHUB_RESPONSE_")) else
+                "EXAM_REQUEST_UNRESOLVED")
+        exam_notice(request, key, code)
+        result = {"status": "BLOCKED", "reason_code": code, "task": task}
+        _EXAM_RUN_CACHE[key] = dict(result)
+        return result
 
 
 def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict]:
@@ -1580,6 +1705,7 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
 
 
 def main() -> int:
+    _EXAM_RUN_CACHE.clear()
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-run-id", type=int)
     parser.add_argument("--integration-pr", type=int)
