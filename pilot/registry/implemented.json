@@ -192,8 +192,22 @@
       "requirement_ids": [],
       "rule_codes": [],
       "status": "NO_DERIVABLE"
+    },
+    {
+      "area": null,
+      "endpoints": [],
+      "files": [],
+      "lot": null,
+      "merge_sha": "ae20aeb29142b215233215dbd25523d4d10fc970",
+      "reasons": [
+        "LOT_MAPPING_NOT_UNIQUE"
+      ],
+      "request": null,
+      "requirement_ids": [],
+      "rule_codes": [],
+      "status": "NO_DERIVABLE"
     }
   ],
   "schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
-  "source_main_sha": "ef343d9d0868c689188e2175f6ac995541d86ee7"
+  "source_main_sha": "ae20aeb29142b215233215dbd25523d4d10fc970"
 }
