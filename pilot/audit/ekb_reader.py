@@ -66,7 +66,9 @@ def read_codes(config: dict, env: dict | None = None, psql: str = "psql") -> lis
                 "NETWORK" if "could not" in err or "timeout" in err or "connection to server" in err
                 or "refused" in err or "server closed" in err else "QUERY")
         raise EkbError("AUDIT_EKB_UNAVAILABLE:" + kind
-                       + (":" + state.group(1).upper() if state and kind == "QUERY" else ""))
+                       + (":" + state.group(1).upper() if state else "")
+                       + (":" + obj.group(1).upper() if kind == "PERMISSION" and (obj := re.search(
+                           r"permission denied (?:for|to) (table|schema|sequence|function|database|relation|view|column)", err)) else ""))
     codes = [line.strip() for line in out.stdout.splitlines() if line.strip()
              and line.strip() not in ("BEGIN", "ROLLBACK")]
     return sorted(set(codes))

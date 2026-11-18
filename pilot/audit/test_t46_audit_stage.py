@@ -186,6 +186,7 @@ def test_ekb_returns_codes_only(tmp_path):
     ({"LF_EKB_READONLY_URL": "host=h user=u password=PASSWD123"}, "", "SECRET_MALFORMED"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "password authentication failed for postgresql://u:PASSWD123@h", "AUTH"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "relation does not exist", "SCHEMA"),
+    ({"LF_EKB_READONLY_URL": "postgresql://x"}, "ERROR:  42501: permission denied for schema PASSWD123", "PERMISSION:42501:SCHEMA"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, 'connection to server at "db.x" (2600::1), port 5432 failed: Network is unreachable', "NETWORK_IPV6_UNREACHABLE"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, 'psql: error: invalid URI query parameter: "foo"', "SECRET_MALFORMED"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "FATAL:  Tenant or user not found", "AUTH"),
