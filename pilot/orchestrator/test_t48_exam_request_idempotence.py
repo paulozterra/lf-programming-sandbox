@@ -72,12 +72,12 @@ def creates(calls):
     return [c for c in calls if c[:3] == ("gh", "issue", "create")]
 
 
-@pytest.mark.parametrize("request,task", [
+@pytest.mark.parametrize("req_id,task", [
     ("req-275", "req275contrato1"), ("req-286", "req286contrato1"),
 ])
 def test_t48_plan_then_admission_single_publish_even_if_rest_stale(
-        env, monkeypatch, request, task):
-    template = chain.ROOT / f"pilot/runs/{request}/templates/{task}.task.json"
+        env, monkeypatch, req_id, task):
+    template = chain.ROOT / f"pilot/runs/{req_id}/templates/{task}.task.json"
     template.parent.mkdir(parents=True, exist_ok=True)
     template.write_text(json.dumps({"task_spec": {"objective": "original"}}))
     binding = {"task_name": task, "template_path": str(template.relative_to(chain.ROOT))}
@@ -85,12 +85,12 @@ def test_t48_plan_then_admission_single_publish_even_if_rest_stale(
     lots = {"lots": [LOT]}
     bindings = {"SOL-001": binding}
     monkeypatch.setattr(chain, "missing_exam", lambda *_: True)
-    plan = chain.request_all_lot_exams(request, lots, bindings)
+    plan = chain.request_all_lot_exams(req_id, lots, bindings)
     # Re-enter through admission; the same cache entry avoids both REST and POST.
     before = len(calls)
     monkeypatch.setattr(chain, "require_green_base", lambda *args: None)
     monkeypatch.setattr(chain, "protected_test_conflict", lambda *args: None)
-    admission = chain.admit_registration(request, binding, LOT, "a" * 40)
+    admission = chain.admit_registration(req_id, binding, LOT, "a" * 40)
     assert plan[0]["exam_issue"] == 902
     assert admission["exam_issue"] == 902
     assert len(calls) == before
