@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+from pilot.orchestrator.request_lifecycle import request_state, OPEN, RequestStateError
 import re
 import subprocess
 import tempfile
@@ -158,6 +159,12 @@ def publish(run, api, repo: str, root: Path, task: str, sha: str,
     payload = json.dumps(feedback, sort_keys=True, ensure_ascii=False).encode("utf-8")
     feedback = parse_feedback(payload, attempt)
     number = issue_for_task(root, task)
+    try:
+        state = request_state("req-" + str(number), api, root=root)
+    except RequestStateError as exc:
+        raise FeedbackBlocked("REQUEST_STATE_UNRESOLVED") from exc
+    if state != OPEN:
+        return "REQUEST_CLOSED"
     issue = api(f"issues/{number}")
     # T35: the request identity is proven by issue_for_task (registered task
     # + trusted pilot/runs/req-N/request_meta.json on main). The lf-request
