@@ -1,5 +1,6 @@
 """T45: generated-index-only conflicts are kept; offline injected boundaries."""
 import json
+import subprocess
 
 import pytest
 
@@ -82,7 +83,8 @@ def exercise(paths=(), *, git_error=False, malformed=False, dirty=True):
 
 def test_t45_only_generated_changes_index_kept():
     result, calls = exercise([GENERATED_CHANGES_INDEX])
-    assert result == [{"status": "KEPT", "pr": PR,
+    assert result == [{"status": "KEPT", "pr": PR, "branch": BRANCH,
+                       "sha": HEAD,
                        "reason": "CONFLICT_ONLY_GENERATED_CHANGES_INDEX"}]
     assert not any(c[:3] == ("gh", "pr", "close") for c in calls)
 
@@ -117,8 +119,8 @@ def test_t45_cp36_kept_receipt_never_enters_regenerator():
     from unittest.mock import patch
     from pilot.orchestrator import chain_lots
 
-    kept = {"status": "KEPT", "pr": PR,
-            "reason": "CONFLICT_ONLY_GENERATED_CHANGES_INDEX"}
+    kept = {"status": "KEPT", "pr": PR, "branch": BRANCH,
+            "sha": HEAD, "reason": "CONFLICT_ONLY_GENERATED_CHANGES_INDEX"}
     with patch.object(chain_lots, "check_main", return_value=MAIN), \
          patch.object(chain_lots, "main_ci_decision", return_value="GREEN"), \
          patch.object(chain_lots, "retire_conflicted_generated",
@@ -132,3 +134,83 @@ def test_t45_cp36_kept_receipt_never_enters_regenerator():
                       side_effect=AssertionError("KEPT must not regenerate")):
         outcomes = chain_lots.process(sweep=True, base_sha=MAIN)
     assert kept in outcomes
+
+
+@pytest.mark.parametrize("extra_conflict", [False, True])
+def test_t45_real_git_merge_tree_and_published_pull_ref(tmp_path, extra_conflict):
+    """Exercise real Git porcelain, merge-tree messages and a bare PR remote."""
+    work = tmp_path / "work"
+    remote = tmp_path / "origin.git"
+    work.mkdir()
+
+    def git(*argv):
+        return subprocess.run(["git", "-C", str(work), *argv],
+                              text=True, capture_output=True, check=True).stdout.strip()
+
+    subprocess.run(["git", "init", "--bare", str(remote)],
+                   check=True, text=True, capture_output=True)
+    git("init", "-q")
+    git("config", "user.name", "T45 test")
+    git("config", "user.email", "t45@example.invalid")
+    git("remote", "add", "origin", str(remote))
+    generated = work / GENERATED_CHANGES_INDEX
+    generated.parent.mkdir(parents=True)
+    generated.write_text("base\n", encoding="utf-8")
+    other = work / "src/other.py"
+    other.parent.mkdir(parents=True)
+    other.write_text("base\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-qm", "base")
+    base = git("rev-parse", "HEAD")
+    git("switch", "-qc", "proposed")
+    generated.write_text("proposed\n", encoding="utf-8")
+    if extra_conflict:
+        other.write_text("proposed\n", encoding="utf-8")
+    git("commit", "-qam", "proposed")
+    proposed_sha = git("rev-parse", "HEAD")
+    git("push", "-q", "origin", f"HEAD:refs/pull/{PR}/head")
+    git("switch", "-qc", "main", base)
+    generated.write_text("main\n", encoding="utf-8")
+    if extra_conflict:
+        other.write_text("main\n", encoding="utf-8")
+    git("commit", "-qam", "main")
+    main_sha = git("rev-parse", "HEAD")
+
+    probe = subprocess.run(
+        ["git", "-C", str(work), "merge-tree", "--write-tree",
+         "--name-only", "--messages", main_sha, proposed_sha],
+        text=True, capture_output=True)
+    if probe.returncode == 129 and (
+        "unknown option" in probe.stderr or "usage:" in probe.stderr.lower()
+    ):
+        pytest.skip("Installed Git lacks merge-tree --write-tree support")
+    assert probe.returncode == 1, (probe.returncode, probe.stdout, probe.stderr)
+
+    def command(*args):
+        if args[:3] == ("gh", "pr", "list"):
+            row, _ = fixtures()
+            return json.dumps([{**row, "headRefOid": proposed_sha}])
+        if args[:3] == ("gh", "pr", "close"):
+            return ""
+        result = subprocess.run(args, cwd=work, capture_output=True, text=True)
+        if result.returncode:
+            raise OSError(f"git command failed: {args[0:3]}, code={result.returncode}")
+        return result.stdout.strip()
+
+    def api(path):
+        assert path == f"pulls/{PR}"
+        _, detail = fixtures()
+        detail["head"]["sha"] = proposed_sha
+        return detail
+
+    receipt = retire_conflicted_generated(main_sha, command, api, REPO,
+                                           api_list=lambda _: [])
+    if extra_conflict:
+        assert len(receipt) == 1
+        assert receipt[0]["number"] == PR
+        assert receipt[0]["reason"] == "GitHub mergeable_state=dirty"
+    else:
+        assert receipt == [{
+            "status": "KEPT", "pr": PR, "branch": BRANCH, "sha": proposed_sha,
+            "reason": "CONFLICT_ONLY_GENERATED_CHANGES_INDEX",
+        }]
