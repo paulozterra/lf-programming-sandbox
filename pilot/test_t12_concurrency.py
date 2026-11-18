@@ -156,7 +156,7 @@ class Tests(unittest.TestCase):
             bind={"task_name":"task202","template_path":"pilot/runs/req-901/templates/task202.task.json"}
             lot={"id":"SOL-1","area":"CONTRATO","requirement_ids":["REQ-ONE"]}
             state=ExamGit()
-            with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"run",side_effect=state):
+            with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"api",return_value={"number":901,"state":"open"}),patch.object(chain_lots,"run",side_effect=state):
                 a=chain_lots.request_missing_exam("req-901",bind,lot)
                 b=chain_lots.request_missing_exam("req-901",bind,lot)
             self.assertEqual(state.created,1)
@@ -189,7 +189,7 @@ class Tests(unittest.TestCase):
                 with mutex:
                     return chain_lots.request_missing_exam("req-901",binding,lot)
             with patch.object(chain_lots,"ROOT",root), \
-                 patch.object(chain_lots,"run",side_effect=git):
+                 patch.object(chain_lots,"api",return_value={"number":901,"state":"open"}),patch.object(chain_lots,"run",side_effect=git):
                 with ThreadPoolExecutor(max_workers=2) as pool:
                     results=list(pool.map(lambda _:worker(),range(2)))
             self.assertEqual(git.created,1)
@@ -223,7 +223,7 @@ class Tests(unittest.TestCase):
             git=ExamGit();git.existing=[row]
             bind={"task_name":"task202","template_path":"pilot/runs/req-901/templates/task202.task.json"}
             lot={"id":"SOL-1","area":"CONTRATO","requirement_ids":["REQ-ONE"]}
-            with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"run",side_effect=git):
+            with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"api",return_value={"number":901,"state":"open"}),patch.object(chain_lots,"run",side_effect=git):
                 self.assertEqual(chain_lots.request_missing_exam(
                     "req-901",bind,lot)["reason_code"],"EXAM_REQUEST_CLOSED_UNVERIFIED")
                 reg=root/"pilot/worker_v08/native_tasks/task202.json"
