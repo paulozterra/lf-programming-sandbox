@@ -209,3 +209,4 @@
 | CHG-0215 | ADDITIVE | T46.2: historial CP3.5 filtrado y paginado para recuperación confiable |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/335 |
 | CHG-0216 | ADDITIVE | T47: huella de plantilla e idempotencia del registro con compatibilidad legacy |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/336 |
 | CHG-0217 | EDITORIAL | T47: el tren puede fusionar PRs que tocan .github/workflows/ con un token del owner (TRAIN_PUSH_TOKEN) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/337 |
+| CHG-0219 | ADDITIVE | T48: idempotencia de solicitudes EXAM_REQUEST dentro de CP3.6 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/339 |
