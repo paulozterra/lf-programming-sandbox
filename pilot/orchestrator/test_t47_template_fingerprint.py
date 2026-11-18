@@ -103,8 +103,7 @@ def test_t47_register_schema_retains_stamp_and_rejects_unpaired(tmp_path):
 @pytest.mark.parametrize("task,req_id", [
     ("req286backend2", "req-286"), ("req186backend2", "req-186"),
 ])
-def test_t47_real_legacy_template_context_replay(task, req_id, monkeypatch):
-    monkeypatch.setenv("T47_TEST_DIAGNOSTIC", "1")
+def test_t47_real_legacy_template_context_replay(task, req_id):
     """Historical main evidence: derive using the same pinned register() path."""
     path = f"pilot/runs/{req_id}/templates/{task}.task.json"
     record = json.loads(
