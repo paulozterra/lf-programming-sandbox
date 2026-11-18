@@ -9,6 +9,8 @@ import json
 from pathlib import Path
 import re
 
+from pilot.orchestrator.request_finalize import verified_chain_complete
+
 ROOT = Path(__file__).resolve().parents[2]
 REQUEST = re.compile(r"req-([1-9][0-9]*)\Z")
 ALLOWLIST = ROOT / "pilot/orchestrator/request_lifecycle_allowlist.json"
@@ -43,28 +45,9 @@ def _synthetic_allowed(request: str, allowlist: Path) -> bool:
 
 
 def _finalized(request: str, root: Path) -> bool:
-    """Same proof contract as request_finalize: final H_REPORT and every lot integrated."""
+    """Use the canonical finalization proof, never a second implementation."""
     folder = root / "pilot/runs" / request
-    paths = [folder / "lots.json", folder / "H_REPORT.md",
-             root / "pilot/registry/implemented.json"]
-    if any(p.is_symlink() or not p.is_file() for p in paths):
-        return False
-    try:
-        lots = json.loads(paths[0].read_text(encoding="utf-8"))["lots"]
-        ledger = json.loads(paths[2].read_text(encoding="utf-8"))["entries"]
-        if not isinstance(lots, list) or not lots or not isinstance(ledger, list):
-            return False
-        planned = {x.get("id", x.get("lot_id")) for x in lots if isinstance(x, dict)}
-        if len(planned) != len(lots) or not all(
-                isinstance(i, str) and i for i in planned):
-            return False
-        merged = {x.get("lot") for x in ledger if isinstance(x, dict)
-                  and x.get("request") == request
-                  and x.get("merge_sha")
-                  and x.get("status") in ("ATTESTED", "NO_DERIVABLE")}
-        return planned.issubset(merged)
-    except (OSError, ValueError, KeyError, TypeError, UnicodeError):
-        return False
+    return verified_chain_complete(folder, root=root)
 
 
 def request_state(request: str, api, *, root: Path = ROOT,
