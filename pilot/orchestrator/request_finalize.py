@@ -16,13 +16,13 @@ TERMINAL = {"COMPLETED", "COMPLETE", "FINISHED", "FAILED_FINAL", "BLOCKED_FINAL"
 BOT = "github-actions[bot]"
 
 
-def verified_chain_complete(folder: Path) -> bool:
+def verified_chain_complete(folder: Path, *, root: Path = ROOT) -> bool:
     """Every planned lot must be in the merged historical registry and H_REPORT on main."""
     if not (folder / "H_REPORT.md").is_file():
         return False
     try:
         lots = json.loads((folder / "lots.json").read_text(encoding="utf-8"))["lots"]
-        ledger = json.loads((ROOT / "pilot/registry/implemented.json").read_text(
+        ledger = json.loads((root / "pilot/registry/implemented.json").read_text(
             encoding="utf-8"))["entries"]
     except (OSError, ValueError, TypeError, KeyError):
         return False
