@@ -62,7 +62,7 @@ def harness(monkeypatch, *, rows=None, stale=False, bad=False):
         return ""
     monkeypatch.setattr(chain, "api_list", listing)
     monkeypatch.setattr(chain, "run", command)
-    monkeypatch.setattr(chain, "api", lambda _: {"number": 286, "state": "open"})
+    monkeypatch.setattr(chain, "api", lambda path: {"number": int(path.rsplit("/", 1)[-1]), "state": "open"})
     monkeypatch.setattr(chain, "exam_notice",
                         lambda *args: notices.append(args))
     return calls, notices
