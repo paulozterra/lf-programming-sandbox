@@ -131,6 +131,8 @@ def test_full_sweep_dispatches_immutable_pass_and_continues_other_request(tmp_pa
     dispatched = []
     failed_ledger_reads = []
     def api(path):
+        if path in ("issues/186", "issues/901"):
+            return {"number": int(path.split("/")[-1]), "state": "open"}
         if path == f"actions/workflows/{INTEGRATION}/runs?per_page=100":
             return {"total_count": 1, "workflow_runs": [cp35_row]}
         if path == f"actions/workflows/{WORKER}/runs?per_page=100":
