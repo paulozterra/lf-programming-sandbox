@@ -28,12 +28,12 @@ def fixtures(dirty=True):
 
 def merge_tree(*paths, malformed=False):
     if malformed:
-        return "unparseable\\nT45_MERGE_EXIT=1"
+        return "unparseable\nT45_MERGE_EXIT=1"
     messages = ["Auto-merging " + path for path in paths]
     messages += ["CONFLICT (content): Merge conflict in " + path
                  for path in paths]
-    return ("c" * 40 + "\\n" + "\\n".join(paths) + "\\n\\n"
-            + "\\n".join(messages) + "\\n\\nT45_MERGE_EXIT=1")
+    return ("c" * 40 + "\n" + "\n".join(paths) + "\n\n"
+            + "\n".join(messages) + "\n\nT45_MERGE_EXIT=1")
 
 
 def exercise(paths=(), *, git_error=False, malformed=False, dirty=True):
@@ -61,7 +61,7 @@ def exercise(paths=(), *, git_error=False, malformed=False, dirty=True):
             raise OSError("fallback unavailable")
         if args[:3] == ("gh", "run", "view"):
             return ('{"event": "local_merge_and_render", "pr": 440, '
-                    '"head": "' + HEAD + '"}\\nTRAIN_BLOCKED BRANCH_CONFLICT')
+                    '"head": "' + HEAD + '"}\nTRAIN_BLOCKED BRANCH_CONFLICT')
         raise AssertionError(args)
 
     def api(path):
