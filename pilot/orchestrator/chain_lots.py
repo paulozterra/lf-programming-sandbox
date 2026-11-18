@@ -866,8 +866,8 @@ def reconcile_exam_duplicates(matches: list, request: str, key: str) -> dict:
         run("gh", "issue", "comment", str(n), "--repo", REPO,
             "--body", f"Duplicado de #{original['number']} para {key}. "
                       f"Se conserva la solicitud original.")
-        run("gh", "issue", "close", str(n), "--repo", REPO,
-            "--reason", "not planned")
+        run("gh", "api", "-X", "PATCH", f"repos/{REPO}/issues/{n}",
+            "-f", "state=closed", "-f", "state_reason=duplicate")
     exam_notice(request, key, "EXAM_REQUEST_DUPLICATE_OPEN", original["number"])
     return original
 
