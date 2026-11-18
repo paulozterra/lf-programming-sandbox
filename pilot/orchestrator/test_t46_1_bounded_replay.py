@@ -103,7 +103,7 @@ def test_t46_1_only_failures_after_last_success_count(monkeypatch):
     {"workflow_runs": [dispatch(12, "failure", head_branch="other")]},
     {"workflow_runs": [dispatch(12, "failure", path=".github/workflows/other.yml")]},
     {"workflow_runs": [dispatch(12, "failure", repository={"full_name": "other/repo"})]},
-    {"workflow_runs": [dispatch(12, "failure", status="completed", conclusion=None)]},
+    {"workflow_runs": [dispatch(12, None, status="completed")]},
     {"workflow_runs": "invalid"},
     {},
 ])
