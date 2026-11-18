@@ -620,6 +620,7 @@ def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> N
     request = conflicted_request(row, all_plans)
     if not request or not re.fullmatch(r"req-[1-9][0-9]*", request):
         return
+    require_open(request, api, root=ROOT)
     number = int(request[4:])
     issue = api(f"issues/{number}")
     if (issue.get("number") != number or issue.get("pull_request")
@@ -651,6 +652,7 @@ def notify_failed_conflict_replay(row: dict, all_plans: list,
             or type(failed_run_id) is not int or failed_run_id <= 0):
         return
     try:
+        require_open(request, api, root=ROOT)
         number = int(request[4:])
         issue = api(f"issues/{number}")
         if (issue.get("number") != number or issue.get("pull_request")
@@ -680,6 +682,12 @@ def notify_failed_conflict_replay(row: dict, all_plans: list,
 def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
     """Recreate from trusted main only; never execute or reuse old PR code."""
     kind, branch = row["kind"], row["branch"]
+    if kind != "implemented-registry":
+        request = conflicted_request(row, all_plans)
+        if request is None:
+            raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        if request_state(request, api, root=ROOT) != OPEN:
+            return {"status": "REQUEST_CLOSED", "request": request}
     if kind == "registration":
         # The existing ready-lot loop regenerates this branch *after* retirement
         # in the current sweep, using next_chg from current main.
@@ -1258,6 +1266,9 @@ def per_request_block(request: str, phase: str, exc: Exception) -> dict:
     code = safe_failure_code(exc)
     if code in GLOBAL_SWEEP_ERRORS:
         raise exc
+    if code in ("REQUEST_STATE_UNRESOLVED", "REQUEST_CLOSED"):
+        return {"request": request, "status": "BLOCKED", "phase": phase,
+                "reason": code, "code": code}
     if re.fullmatch(r"req-[1-9][0-9]*", request) and route_request_metadata(request):
         try:
             number = int(request[4:])
@@ -1586,6 +1597,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             try:
                 if not route_request_metadata(request):
                     continue
+                if request_state(request, api, root=ROOT) != OPEN:
+                    repair_outcomes.append({"request": request,
+                                            "status": "REQUEST_CLOSED"})
+                    continue
                 tasks = {value.get("task_name") for value in bindings.values()
                          if isinstance(value, dict)
                          and isinstance(value.get("task_name"), str)} - ci_retired_tasks
@@ -1601,6 +1616,15 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             if not route_request_metadata(request):
                 repair_outcomes.append({"request": request,
                                         "status": "SKIPPED_NOT_ROUTE_REQUEST"})
+                continue
+            try:
+                if request_state(request, api, root=ROOT) != OPEN:
+                    repair_outcomes.append({"request": request,
+                                            "status": "REQUEST_CLOSED"})
+                    continue
+            except RequestStateError:
+                repair_outcomes.append({"request": request, "status": "BLOCKED",
+                                        "reason_code": "REQUEST_STATE_UNRESOLVED"})
                 continue
             for task in sorted({item.get("task_name") for item in bindings.values()
                                 if isinstance(item, dict)
