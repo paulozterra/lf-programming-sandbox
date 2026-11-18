@@ -148,8 +148,9 @@ def test_t48_two_open_reconciles_with_comment_and_close(env, monkeypatch):
                                                  issue(key, number=903)])
     result = chain.request_missing_exam(REQUEST, BINDING, LOT)
     assert result["exam_issue"] == 902
-    assert ("gh", "issue", "close", "903", "--repo", chain.REPO,
-            "--reason", "not planned") in calls
+    assert ("gh", "api", "-X", "PATCH",
+            f"repos/{chain.REPO}/issues/903",
+            "-f", "state=closed", "-f", "state_reason=duplicate") in calls
     comments = [c for c in calls if c[:3] == ("gh", "issue", "comment")]
     assert any("#902" in " ".join(c) for c in comments)
     assert not creates(calls)
