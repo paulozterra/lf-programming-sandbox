@@ -924,7 +924,11 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
         outcome, found = choose_exam_issue(matches, registration.is_file())
         if outcome == "EXAM_REQUEST_DUPLICATE_OPEN":
             found = reconcile_exam_duplicates(matches, request, key)
-            outcome = "EXAMEN_PENDIENTE"
+            result = {"status": "BLOCKED",
+                      "reason_code": "EXAM_REQUEST_DUPLICATE_OPEN",
+                      "task": task, "exam_issue": found["number"]}
+            _EXAM_RUN_CACHE[key] = dict(result)
+            return result
         if outcome == "EXAM_ALREADY_REGISTERED":
             result = {"status": outcome, "task": task, "exam_issue": found["number"]}
         elif outcome == "EXAMEN_PENDIENTE":
