@@ -192,6 +192,8 @@ def test_one_sweep_closes_legacy_red_registration_and_regenerates_next_chg(tmp_p
         raise AssertionError("Unexpected command: " + repr(args))
 
     def fake_api(path):
+        if path == "issues/901":
+            return {"number": 901, "state": "open"}
         assert "actions/workflows/ci.yml/runs?" in path
         return {"total_count": 2, "workflow_runs": [
             {"id": 43729617525, "head_sha": sha, "head_branch": branch,

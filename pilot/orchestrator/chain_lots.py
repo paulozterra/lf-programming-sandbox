@@ -21,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 
+from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN
 from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_state,
                             progress, validate_plan, verified_failures, deny)
 from native_lot_registration import canonical
@@ -238,13 +239,7 @@ def main_ci_decision(head: str) -> str:
 
 def sweep_request_enabled(request: str) -> bool:
     """Only open, non-discarded issue-backed requests can be resumed."""
-    if not re.fullmatch(r"req-[1-9][0-9]*", request):
-        return True  # Legacy synthetic chains without a source issue.
-    row = api("issues/" + request[4:])
-    if row.get("number") != int(request[4:]):
-        deny("CHAIN_REQUEST_IDENTITY_INVALID")
-    state, reason = exam_issue_state(row)
-    return state == "open" and reason not in ("not_planned", "duplicate")
+    return request_state(request, api, root=ROOT) == OPEN
 
 
 def merged_integration(head: str) -> tuple[dict, set[str]]:
@@ -625,6 +620,7 @@ def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> N
     request = conflicted_request(row, all_plans)
     if not request or not re.fullmatch(r"req-[1-9][0-9]*", request):
         return
+    require_open(request, api, root=ROOT)
     number = int(request[4:])
     issue = api(f"issues/{number}")
     if (issue.get("number") != number or issue.get("pull_request")
@@ -656,6 +652,7 @@ def notify_failed_conflict_replay(row: dict, all_plans: list,
             or type(failed_run_id) is not int or failed_run_id <= 0):
         return
     try:
+        require_open(request, api, root=ROOT)
         number = int(request[4:])
         issue = api(f"issues/{number}")
         if (issue.get("number") != number or issue.get("pull_request")
@@ -685,6 +682,12 @@ def notify_failed_conflict_replay(row: dict, all_plans: list,
 def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
     """Recreate from trusted main only; never execute or reuse old PR code."""
     kind, branch = row["kind"], row["branch"]
+    if kind != "implemented-registry":
+        request = conflicted_request(row, all_plans)
+        if request is None:
+            raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        if request_state(request, api, root=ROOT) != OPEN:
+            return {"status": "REQUEST_CLOSED", "request": request}
     if kind == "registration":
         # The existing ready-lot loop regenerates this branch *after* retirement
         # in the current sweep, using next_chg from current main.
@@ -843,14 +846,16 @@ def exam_notice(request: str, key: str, reason: str, number: int | None = None) 
     """Best-effort deduped typed notice, never permission to publish again."""
     marker = f"<!-- LF_EXAM_NOTICE:{key}:{reason} -->"
     try:
+        require_open(request, api, root=ROOT)
         original = api("issues/" + request[4:])
-        if original.get("number") != int(request[4:]):
+        if (original.get("number") != int(request[4:])
+                or original.get("state") != "open"):
             return
         comments = api_list("issues/" + request[4:] + "/comments")
         if any(marker in str(c.get("body", "")) for c in comments):
             return
         run("gh", "issue", "comment", request[4:], "--repo", REPO, "--body",
-            marker + "\\nCP3.6 BLOCKED: " + reason + " para " + key +
+            marker + "\nCP3.6 BLOCKED: " + reason + " para " + key +
             (f"; exam_issue=#{number}" if number else ""))
     except (ChainBlocked, OSError, ValueError, KeyError, TypeError, AttributeError):
         pass
@@ -905,6 +910,11 @@ def complete_registered_exam_requests(request: str, bindings: dict) -> list[int]
 def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
     """Single publication per (request, task, canonical template) per process."""
     task = binding["task_name"]
+    try:
+        require_open(request, api, root=ROOT)
+    except RequestStateError as exc:
+        return {"status": ("REQUEST_CLOSED" if str(exc) == "REQUEST_CLOSED"
+                           else "BLOCKED"), "reason_code": str(exc), "task": task}
     try:
         key = exam_key(request, binding)
     except (ChainBlocked, ValueError):
@@ -994,6 +1004,11 @@ def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict
 
 def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dict | None:
     """Inspect admission before any generated commit or native preparation."""
+    try:
+        require_open(request, api, root=ROOT)
+    except RequestStateError as exc:
+        return {"status": ("REQUEST_CLOSED" if str(exc) == "REQUEST_CLOSED"
+                           else "BLOCKED"), "reason_code": str(exc)}
     require_green_base(head, api)
     protected_test_conflict(ROOT, lot, binding)
     if missing_exam(ROOT, binding["task_name"]):
@@ -1251,6 +1266,9 @@ def per_request_block(request: str, phase: str, exc: Exception) -> dict:
     code = safe_failure_code(exc)
     if code in GLOBAL_SWEEP_ERRORS:
         raise exc
+    if code in ("REQUEST_STATE_UNRESOLVED", "REQUEST_CLOSED"):
+        return {"request": request, "status": "BLOCKED", "phase": phase,
+                "reason": code, "code": code}
     if re.fullmatch(r"req-[1-9][0-9]*", request) and route_request_metadata(request):
         try:
             number = int(request[4:])
@@ -1483,6 +1501,28 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         ci_status = main_ci_decision(head)
         if ci_status != "GREEN":
             return [{"status": ci_status, "head_sha": head}]
+    all_plans = plans()
+    owners = {}
+    for request, _lots, _state, bindings in all_plans:
+        for binding in bindings.values():
+            task = binding.get("task_name") if isinstance(binding, dict) else None
+            if isinstance(task, str):
+                owners.setdefault(task, set()).add(request)
+
+    def task_live(task: str) -> bool:
+        candidates = owners.get(task, set())
+        if len(candidates) != 1:
+            raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        return request_state(next(iter(candidates)), api, root=ROOT) == OPEN
+
+    def candidate_live(row: dict) -> bool:
+        if row["kind"] == "implemented-registry":
+            return True
+        request = conflicted_request(row, all_plans)
+        if request is None:
+            raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        return request_state(request, api, root=ROOT) == OPEN
+
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
     # can hide a Train failure, including when no owner plans are active.
     retired = []
@@ -1490,8 +1530,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     kept = []
     if sweep:
         try:
-            for entry in retire_conflicted_generated(head, run, api, REPO, api_list):
-                if entry.get("status") == "BLOCKED":
+            for entry in retire_conflicted_generated(
+                    head, run, api, REPO, api_list,
+                    allow_candidate=candidate_live):
+                if entry.get("status") in ("BLOCKED", "REQUEST_CLOSED"):
                     recovery_failures.append(entry)
                 elif entry.get("status") == "KEPT":
                     kept.append(entry)
@@ -1503,7 +1545,6 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     # A sweep must not create unrelated registry drafts when idle.
     registry_status = (sync_implemented_registry(head)
                        if kind == "TRAIN" and not sweep else None)
-    all_plans = plans()
     # Each recovery is a separate trust boundary. A local failure may not
     # short-circuit later recoveries or per-request planning.
     repair_outcomes = list(recovery_failures) + kept
@@ -1512,15 +1553,25 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             ("T20_BOT_CI_RETRY",
              lambda: retry_failed_bot_prs(
                  head, run, api, REPO, all_plans, route_request_metadata,
-                 api_list)),
+                 api_list,
+                 allow_pr=lambda number, branch: candidate_live({
+                     "number": number, "branch": branch,
+                     "kind": ("generated-t7" if branch.startswith(
+                         "lf/generated-t7/") else
+                         "registration" if branch.startswith(
+                             "lf/native-registration/") else
+                         "integration" if branch.startswith(
+                             "lf/native-integration/") else
+                         "implemented-registry")}))),
             ("T20_NATIVE_INFRA",
-             lambda: retry_native_infra(head, run, api, REPO, ROOT)),
+             lambda: retry_native_infra(
+                 head, run, api, REPO, ROOT, allowed_task=task_live)),
             ("T22_FEEDBACK",
              lambda: recover_native_feedback(run, api, REPO, ROOT)),
             ("T23_ROUTE",
              lambda: recover_route_defects(
                  head, run, api, REPO, ROOT, worktree, draft, pending_draft,
-                 api_list=api_list)),
+                 api_list=api_list, allowed_task=task_live)),
         )
         for phase, action in recoveries:
             try:
@@ -1546,6 +1597,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             try:
                 if not route_request_metadata(request):
                     continue
+                if request_state(request, api, root=ROOT) != OPEN:
+                    repair_outcomes.append({"request": request,
+                                            "status": "REQUEST_CLOSED"})
+                    continue
                 tasks = {value.get("task_name") for value in bindings.values()
                          if isinstance(value, dict)
                          and isinstance(value.get("task_name"), str)} - ci_retired_tasks
@@ -1561,6 +1616,15 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             if not route_request_metadata(request):
                 repair_outcomes.append({"request": request,
                                         "status": "SKIPPED_NOT_ROUTE_REQUEST"})
+                continue
+            try:
+                if request_state(request, api, root=ROOT) != OPEN:
+                    repair_outcomes.append({"request": request,
+                                            "status": "REQUEST_CLOSED"})
+                    continue
+            except RequestStateError:
+                repair_outcomes.append({"request": request, "status": "BLOCKED",
+                                        "reason_code": "REQUEST_STATE_UNRESOLVED"})
                 continue
             for task in sorted({item.get("task_name") for item in bindings.values()
                                 if isinstance(item, dict)
@@ -1632,8 +1696,13 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
 def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                      new_plan_request, manual_sha, history) -> list[dict]:
     outcomes = []
-    if sweep and not sweep_request_enabled(request):
-        return outcomes
+    try:
+        current = request_state(request, api, root=ROOT)
+    except RequestStateError:
+        return [{"request": request, "status": "BLOCKED",
+                 "reason_code": "REQUEST_STATE_UNRESOLVED"}]
+    if current != OPEN:
+        return [{"request": request, "status": "REQUEST_CLOSED"}]
     if state.get("stage") == "BLOCKED":
         outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
         return outcomes

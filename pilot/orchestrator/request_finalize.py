@@ -8,21 +8,21 @@ import os
 from pathlib import Path
 import re
 
-from issue_intake import API
-from intervention_report import markdown, report
+from pilot.orchestrator.issue_intake import API
+from pilot.orchestrator.intervention_report import markdown, report
 
 ROOT = Path(__file__).resolve().parents[2]
 TERMINAL = {"COMPLETED", "COMPLETE", "FINISHED", "FAILED_FINAL", "BLOCKED_FINAL"}
 BOT = "github-actions[bot]"
 
 
-def verified_chain_complete(folder: Path) -> bool:
+def verified_chain_complete(folder: Path, *, root: Path = ROOT) -> bool:
     """Every planned lot must be in the merged historical registry and H_REPORT on main."""
     if not (folder / "H_REPORT.md").is_file():
         return False
     try:
         lots = json.loads((folder / "lots.json").read_text(encoding="utf-8"))["lots"]
-        ledger = json.loads((ROOT / "pilot/registry/implemented.json").read_text(
+        ledger = json.loads((root / "pilot/registry/implemented.json").read_text(
             encoding="utf-8"))["entries"]
     except (OSError, ValueError, TypeError, KeyError):
         return False
@@ -54,7 +54,7 @@ def terminal_requests():
         stage = state.get("stage")
         if stage in TERMINAL:
             yield folder.name, meta, stage
-        elif stage == "LOTS_PLANNED" and verified_chain_complete(folder):
+        elif stage == "LOTS_PLANNED" and verified_chain_complete(folder, root=ROOT):
             yield folder.name, meta, "CHAIN_COMPLETE_VERIFIED"
 
 

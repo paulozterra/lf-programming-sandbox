@@ -226,7 +226,9 @@ def test_recovery_from_red_generated_pr_reuses_only_native_pass():
            "reason": "CI_DERIVED_GEN_API run " + str(CI_RUN),
            "number": 227, "sha": PR_SHA}
     with patch.object(chain_lots, "run", side_effect=_t46_replay_run(calls)), \
-         patch.object(chain_lots, "api", side_effect=_t46_trusted_pass):
+         patch.object(chain_lots, "api", side_effect=_t46_trusted_pass), \
+         patch.object(chain_lots, "conflicted_request", return_value="req-186"), \
+         patch.object(chain_lots, "request_state", return_value="OPEN"):
         result = chain_lots.regenerate_conflicted(row, HEAD, [])
     assert result == {"status": "CONFLICT_INTEGRATION_REDISPATCHED",
                       "source_run_id": SOURCE_ID, "task": "req186contrato1"}
@@ -308,7 +310,9 @@ def test_main_conflicted_contract_integration_uses_cp35_not_local_npm(tmp_path):
            "reason": "GitHub mergeable_state=dirty", "sha": PR_SHA}
     with patch.object(chain_lots, "ROOT", tmp_path), \
          patch.object(chain_lots, "run", side_effect=_t46_replay_run(calls)), \
-         patch.object(chain_lots, "api", side_effect=_t46_trusted_pass):
+         patch.object(chain_lots, "api", side_effect=_t46_trusted_pass), \
+         patch.object(chain_lots, "conflicted_request", return_value="req-186"), \
+         patch.object(chain_lots, "request_state", return_value="OPEN"):
         result = chain_lots.regenerate_conflicted(row, HEAD, [])
     assert result == {"status": "CONFLICT_INTEGRATION_REDISPATCHED",
                       "source_run_id": SOURCE_ID, "task": "req186contrato1"}

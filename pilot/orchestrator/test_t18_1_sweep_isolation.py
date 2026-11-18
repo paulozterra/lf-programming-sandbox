@@ -70,6 +70,7 @@ def test_historical_names_skip_and_real_missing_pack_repaired_in_same_sweep():
          patch.object(chain_lots, "publish_missing_registered_pack",
                       side_effect=publication), \
          patch.object(chain_lots, "first_parent_merges", return_value=[]), \
+         patch.object(chain_lots, "api", side_effect=lambda path: {"number": int(path.rsplit("/", 1)[-1]), "state": "open"}), \
          patch.object(chain_lots, "sweep_request_enabled", return_value=False):
         rows = chain_lots.process(sweep=True, base_sha=HEAD)
     assert prepared == [("req-901", "registeredtask", HEAD)]
@@ -98,6 +99,7 @@ def test_one_local_pack_error_does_not_stop_healthy_request():
                       side_effect=lambda r, phase, exc:
                       {"request": r, "status": "BLOCKED", "reason": str(exc)}), \
          patch.object(chain_lots, "first_parent_merges", return_value=[]), \
+         patch.object(chain_lots, "api", side_effect=lambda path: {"number": int(path.rsplit("/", 1)[-1]), "state": "open"}), \
          patch.object(chain_lots, "sweep_request_enabled", return_value=False):
         rows = chain_lots.process(sweep=True, base_sha=HEAD)
     assert called == ["req-901", "req-902"]

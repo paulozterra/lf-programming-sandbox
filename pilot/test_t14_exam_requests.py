@@ -46,6 +46,8 @@ class GitMock:
         if argv[:3] == ("gh", "issue", "create"):
             self.created += 1
             return "https://github.com/example/repo/issues/new"
+        if argv[:3] == ("gh", "issue", "comment"):
+            return ""
         if argv[:3] == ("gh", "issue", "close"):
             self.closed.append((int(argv[3]), argv))
             return ""
@@ -63,6 +65,7 @@ class T14ExamRequestTests(unittest.TestCase):
             git = GitMock([issue(195, state="closed", reason="not_planned"),
                            issue(194, state="open")])
             with patch.object(chain_lots, "ROOT", root), patch.object(
+                    chain_lots, "api", return_value={"number":901,"state":"open"}), patch.object(
                     chain_lots, "run", side_effect=git):
                 result = chain_lots.request_missing_exam(REQUEST, binding, lot)
             self.assertEqual(result["exam_issue"], 194)
@@ -80,6 +83,7 @@ class T14ExamRequestTests(unittest.TestCase):
                            issue(194, state="open"),
                            issue(196, state="closed", reason="completed")])
             with patch.object(chain_lots, "ROOT", root), patch.object(
+                    chain_lots, "api", return_value={"number":901,"state":"open"}), patch.object(
                     chain_lots, "run", side_effect=git):
                 result = chain_lots.request_missing_exam(REQUEST, binding, lot)
             self.assertEqual(result, {"status": "EXAM_ALREADY_REGISTERED",
@@ -87,6 +91,7 @@ class T14ExamRequestTests(unittest.TestCase):
             registered.unlink()
             chain_lots._EXAM_RUN_CACHE.clear()
             with patch.object(chain_lots, "ROOT", root), patch.object(
+                    chain_lots, "api", return_value={"number":901,"state":"open"}), patch.object(
                     chain_lots, "run", side_effect=git):
                 self.assertEqual(chain_lots.request_missing_exam(
                     REQUEST, binding, lot)["exam_issue"], 194)
@@ -98,6 +103,7 @@ class T14ExamRequestTests(unittest.TestCase):
             git = GitMock([issue(195, state="closed", reason="not_planned"),
                            issue(193, state="closed", reason="duplicate")])
             with patch.object(chain_lots, "ROOT", root), patch.object(
+                    chain_lots, "api", return_value={"number":901,"state":"open"}), patch.object(
                     chain_lots, "run", side_effect=git):
                 result = chain_lots.request_missing_exam(REQUEST, binding, lot)
             self.assertEqual(result["reason_code"], "EXAM_REQUEST_PREVIOUSLY_DISCARDED")
@@ -110,6 +116,7 @@ class T14ExamRequestTests(unittest.TestCase):
             git = GitMock([issue(195, state="closed", reason="not_planned"),
                            issue(194, state="closed", reason="completed")])
             with patch.object(chain_lots, "ROOT", root), patch.object(
+                    chain_lots, "api", return_value={"number":901,"state":"open"}), patch.object(
                     chain_lots, "run", side_effect=git):
                 result = chain_lots.request_missing_exam(REQUEST, binding, lot)
                 self.assertEqual(result["reason_code"], "EXAM_REQUEST_CLOSED_UNVERIFIED")
@@ -125,6 +132,7 @@ class T14ExamRequestTests(unittest.TestCase):
             git = GitMock([issue(194, state="open"),
                            issue(195, state="closed", reason="not_planned")])
             with patch.object(chain_lots, "ROOT", root), patch.object(
+                    chain_lots, "api", return_value={"number":901,"state":"open"}), patch.object(
                     chain_lots, "run", side_effect=git), patch.object(
                     chain_lots, "require_green_base"), patch.object(
                     chain_lots, "protected_test_conflict"):

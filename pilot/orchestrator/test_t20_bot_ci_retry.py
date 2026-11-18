@@ -140,7 +140,7 @@ def test_sweep_retries_even_with_zero_active_plans():
          patch.object(chain_lots, "api", side_effect=simulated_api), \
          patch.object(chain_lots, "recover_route_defects", return_value=[]), \
           patch.object(chain_lots, "replay_native_integration", return_value=[]), \
-         patch.object(chain_lots, "retry_failed_bot_prs", side_effect=lambda *_:
+         patch.object(chain_lots, "retry_failed_bot_prs", side_effect=lambda *_, **_kw:
                       invoked.append(True) or [{"status": "CI_RETRY_DISPATCHED", "pr": 901}]):
         rows = chain_lots.process(sweep=True, base_sha=HEAD)
     assert invoked == [True]

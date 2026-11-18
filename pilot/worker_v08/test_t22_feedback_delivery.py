@@ -39,7 +39,7 @@ def test_synthetic_public_feedback_comment_once(tmp_path):
 
     def api(route):
         assert route == "issues/901"
-        return {"number": 901, "labels": [{"name": "lf-request"}]}
+        return {"number": 901, "state": "open", "labels": [{"name": "lf-request"}]}
 
     def run(*args):
         calls.append(args)
@@ -113,7 +113,7 @@ def test_recover_existing_native_run_verifies_sha_and_proof_then_comments_once(t
                 {"name": "native-attempt-proof", "workflow_run": {"id": rid}},
                 {"name": "native-visible-feedback-and-cost", "workflow_run": {"id": rid}}]}
         if route == "issues/901":
-            return {"number": 901, "labels": [{"name": "lf-request"}]}
+            return {"number": 901, "state": "open", "labels": [{"name": "lf-request"}]}
         raise AssertionError(route)
     def run(*args):
         if args[:3] == ("gh", "run", "download"):

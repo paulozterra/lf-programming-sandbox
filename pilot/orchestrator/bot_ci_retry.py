@@ -115,7 +115,7 @@ def _notify_exhausted(run, api, repo, number, branch, sha, source, latest,
 
 
 def retry_failed_bot_prs(head, run, api, repo, all_plans, route_ok,
-                         api_list=None):
+                         api_list=None, *, allow_pr=None):
     """Call once after global main/CI integrity gates, including empty sweeps."""
     outcomes = []
     for row in _listed(run, repo):
@@ -127,6 +127,9 @@ def retry_failed_bot_prs(head, run, api, repo, all_plans, route_ok,
                 or accepted_branch_kind(branch) is None
                 or not SHA.fullmatch(str(sha))
                 or (row.get("author") or {}).get("login") != BOT):
+            continue
+        if allow_pr is not None and not allow_pr(number, branch):
+            outcomes.append({"pr": number, "status": "REQUEST_CLOSED"})
             continue
         try:
             detail = api(f"pulls/{number}")

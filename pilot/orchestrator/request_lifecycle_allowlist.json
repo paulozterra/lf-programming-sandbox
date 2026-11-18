@@ -1,0 +1,5 @@
+{
+  "allowed_non_issue_requests": [
+    "p4-prioridad"
+  ]
+}

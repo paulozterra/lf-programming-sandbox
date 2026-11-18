@@ -62,7 +62,7 @@ def harness(monkeypatch, *, rows=None, stale=False, bad=False):
         return ""
     monkeypatch.setattr(chain, "api_list", listing)
     monkeypatch.setattr(chain, "run", command)
-    monkeypatch.setattr(chain, "api", lambda _: {"number": 286})
+    monkeypatch.setattr(chain, "api", lambda path: {"number": int(path.rsplit("/", 1)[-1]), "state": "open"})
     monkeypatch.setattr(chain, "exam_notice",
                         lambda *args: notices.append(args))
     return calls, notices
@@ -188,7 +188,7 @@ def test_t48_notice_is_deduped_by_rest_comments(env, monkeypatch):
     marker = f"<!-- LF_EXAM_NOTICE:{key}:EXAM_REQUEST_PREVIOUSLY_DISCARDED -->"
     def api(path):
         assert path == "issues/286"
-        return {"number": 286}
+        return {"number": 286, "state": "open"}
     def listing(path, **kw):
         return [{"body": marker}] if path.endswith("/comments") else []
     monkeypatch.setattr(chain, "api", api)

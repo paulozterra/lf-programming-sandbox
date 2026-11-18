@@ -34,6 +34,8 @@ def transport(*, unresolved=False, existing=False, pending=False, failing=False)
         raise AssertionError(args)
 
     def api(path):
+        if path == "issues/286":
+            return {"number": 286, "state": "open"}
         if path == f"actions/runs/{RUN_ID}":
             return {"created_at": "2026-11-17T10:00:00Z", "id": RUN_ID, "status": "completed",
                     "conclusion": "failure" if unresolved else "success",
@@ -87,7 +89,8 @@ def test_t46_open_integration_or_pending_dispatch_is_idempotent(existing, pendin
 def test_t46_unsafe_source_and_command_preserves_machine_code():
     run, api, _ = transport(failing=True)
     with patch.object(chain_lots, "run", side_effect=run), \
-         patch.object(chain_lots, "api", side_effect=api):
+         patch.object(chain_lots, "api", side_effect=api), \
+         patch.object(chain_lots, "conflicted_request", return_value="req-286"):
         with pytest.raises(chain_lots.ChainBlocked) as captured:
             chain_lots.regenerate_conflicted(ROW, MAIN, [])
     code = chain_lots.safe_failure_code(captured.value)
