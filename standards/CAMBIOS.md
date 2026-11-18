@@ -205,3 +205,4 @@
 | CHG-0211 | ADDITIVE | T45: conservar integraciones cuyo único conflicto es el índice de cambios generado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/331 |
 | CHG-0213 | ADDITIVE | T46: recuperación confiable de integraciones y bloqueos tipados CP3.6 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/333 |
 | CHG-0214 | ADDITIVE | T46.1: limitar reintentos de integración y unificar confianza del PASS |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/334 |
+| CHG-0215 | ADDITIVE | T46.2: historial CP3.5 filtrado y paginado para recuperación confiable |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/335 |
