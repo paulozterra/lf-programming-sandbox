@@ -19,7 +19,9 @@
       "pilot/orchestrator/test_t46_1_bounded_replay.py",
       ".github/workflows/ci.yml",
       "standards/changes/CHG-0214.json",
-      "standards/CAMBIOS.md"
+      "standards/CAMBIOS.md",
+      "pilot/orchestrator/test_t25_contract_derivatives.py",
+      "pilot/orchestrator/test_t17_4_conflict_recovery.py"
     ]
   },
   "existing_code_impact": {
