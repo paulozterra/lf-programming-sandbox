@@ -672,7 +672,7 @@ def notify_failed_conflict_replay(row: dict, all_plans: list,
                if (c.get("user") or {}).get("login") == "github-actions[bot]"):
             return
         run("gh", "issue", "comment", str(number), "--repo", REPO,
-            "--body", marker + "\\nCP3.6 BLOCKED: "
+            "--body", marker + "\nCP3.6 BLOCKED: "
             "CONFLICT_RECOVERY_CP35_PREVIOUSLY_FAILED. "
             "La recuperación CP3.5 del PASS nativo no se repetirá "
             f"automáticamente. Corrida fallida #{failed_run_id}; "
@@ -775,7 +775,7 @@ def exam_request_matches(rows: list, task: str, request: str,
                 or f"- Pedido: `{request}`" not in body
                 or (marker not in body and "Solicitud automática de examen independiente (T4)." not in body)):
             deny("EXAM_REQUEST_IDENTITY_CONFLICT")
-        keys = re.findall(r"<!-- (LF_EXAM_REQUEST_KEY:[^<>\\s]+) -->", body)
+        keys = re.findall(r"<!-- (LF_EXAM_REQUEST_KEY:[^<>\s]+) -->", body)
         if len(keys) > 1:
             deny("EXAM_REQUEST_IDENTITY_CONFLICT")
         if key is not None and keys and keys[0] != key:
@@ -900,7 +900,7 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
     if key in _EXAM_RUN_CACHE:
         return dict(_EXAM_RUN_CACHE[key])
     title, body = public_exam_request(ROOT, request, binding, lot)
-    body += "\\n\\n" + exam_issue_marker(task) + "\\n<!-- " + key + " -->\\n"
+    body += "\n\n" + exam_issue_marker(task) + "\n<!-- " + key + " -->\n"
     try:
         matches = exam_request_matches(listed_exam_requests(), task, request, key)
         registration = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
@@ -932,7 +932,7 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
                     "--color", "D4C5F9")
             created = run("gh", "issue", "create", "--repo", REPO,
                           "--title", title, "--body", body, "--label", "exam-request")
-            match = re.search(r"/issues/([1-9][0-9]*)\\s*$", created)
+            match = re.search(r"/issues/([1-9][0-9]*)\s*$", created)
             if not match:
                 deny("EXAM_REQUEST_CREATE_RECEIPT_INVALID")
             result = {"status": "BLOCKED", "reason_code": "EXAMEN_PENDIENTE",
