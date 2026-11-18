@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0217",
   "title": "T47: el tren puede fusionar PRs que tocan .github/workflows/ con un token del owner (TRAIN_PUSH_TOKEN)",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo eligió (18/11) que el tren fusione también cambios de workflows; hasta ahora fallaban con TRAIN_BLOCKED PUSH_REJECTED (#315, #329, #332)."
