@@ -10,7 +10,7 @@ from pilot.orchestrator.generated_conflict_recovery import (
 MAIN = "a" * 40
 HEAD = "b" * 40
 REPO = "paulozterra/lf-programming-sandbox"
-BRANCH = "lf/native-registration/task1-aabbccddeeff"
+BRANCH = "lf/native-registration/req186contrato1-2f384485df66"
 PR = 440
 
 
