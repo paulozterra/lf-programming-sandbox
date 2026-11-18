@@ -21,6 +21,7 @@
       "pilot/orchestrator/native_route_recovery.py",
       "pilot/orchestrator/request_lifecycle.py",
       "pilot/orchestrator/request_lifecycle_allowlist.json",
+      "pilot/orchestrator/test_t46_conflict_replay.py",
       "pilot/orchestrator/test_t48_exam_request_idempotence.py",
       "pilot/orchestrator/test_t49_lifecycle.py",
       "pilot/test_t12_concurrency.py",
