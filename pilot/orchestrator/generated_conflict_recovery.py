@@ -106,7 +106,7 @@ def _ci_derived_failure(number: int, branch: str, sha: str, run, api, repo: str)
 
 
 
-def _only_generated_index_conflict(head: str, sha: str, run) -> bool:
+def _only_generated_index_conflict(head: str, sha: str, number: int, run) -> bool:
     """Keep a dirty PR only with positive, exact conflict evidence.
 
     The trusted main SHA and API-authenticated bot head are inputs; neither
@@ -120,6 +120,10 @@ def _only_generated_index_conflict(head: str, sha: str, run) -> bool:
         'status=$?; printf "\\nT45_MERGE_EXIT=%s\\n" "$status"'
     )
     try:
+        run("git", "fetch", "--no-tags", "origin",
+            f"refs/pull/{number}/head")
+        if run("git", "rev-parse", "FETCH_HEAD") != sha:
+            return False
         output = run("bash", "-c", script, "t45-merge-tree", head, sha)
         if not isinstance(output, str) or len(output) > 100_000:
             return False
@@ -163,11 +167,11 @@ def _worktree_only_generated_index_conflict(head: str, sha: str, run) -> bool:
                 if not isinstance(entries, str) or not entries:
                     return False
                 paths = set()
-                for entry in entries.split("\\0"):
+                for entry in entries.split("\0"):
                     if not entry:
                         continue
                     match = re.fullmatch(
-                        r"[0-7]{6} [0-9a-f]{40} [123]\\t(.+)", entry)
+                        r"[0-7]{6} [0-9a-f]{40} [123]\t(.+)", entry)
                     if match is None:
                         return False
                     paths.add(match.group(1))
@@ -260,7 +264,7 @@ def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -
             reason = ("GitHub mergeable_state=dirty" if dirty else
                       "Train BRANCH_CONFLICT #" + str(evidence[(number, sha)])
                       if (number, sha) in evidence else None)
-            if dirty and _only_generated_index_conflict(head, sha, run):
+            if dirty and _only_generated_index_conflict(head, sha, number, run):
                 retired.append({"status": "KEPT", "pr": number,
                                 "reason": "CONFLICT_ONLY_GENERATED_CHANGES_INDEX"})
                 continue
