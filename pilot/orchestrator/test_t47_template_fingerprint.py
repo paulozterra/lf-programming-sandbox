@@ -100,12 +100,12 @@ def test_t47_register_schema_retains_stamp_and_rejects_unpaired(tmp_path):
                                   template_path=PATH)
 
 
-@pytest.mark.parametrize("task,request", [
+@pytest.mark.parametrize("task,req_id", [
     ("req286backend2", "req-286"), ("req186backend2", "req-186"),
 ])
-def test_t47_real_legacy_template_context_replay(task, request):
+def test_t47_real_legacy_template_context_replay(task, req_id):
     """Historical main evidence: derive using the same pinned register() path."""
-    path = f"pilot/runs/{request}/templates/{task}.task.json"
+    path = f"pilot/runs/{req_id}/templates/{task}.task.json"
     record = json.loads(
         (ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")).read_text("utf-8"))
     assert "template_sha256" not in record
