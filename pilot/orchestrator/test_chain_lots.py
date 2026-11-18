@@ -20,6 +20,7 @@ from chain_contract import (BLOCK_CODE, ChainBlocked, attest_merge,
 from native_lot_registration import canonical, verify_handoffs
 from native_lot_binding import next_ready
 import chain_lots
+from pilot.orchestrator import request_lifecycle
 
 
 def git(root, *args):
@@ -219,7 +220,11 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
     def ready(request, binding, receipts, head):
         emitted.append((request, binding["lot_id"], head, set(receipts)))
         return {"status": "DRAFT_PREPARED", "merge_authorized": False}
+    # Legacy simulated request is allowed only in this hermetic test, never in production.
+    allowlist = tmp_path / "request-allowlist.json"
+    allowlist.write_text(json.dumps({"allowed_non_issue_requests": ["simulated"]}))
     shared = (
+        patch.object(request_lifecycle, "ALLOWLIST", allowlist),
         patch.object(chain_lots, "check_main", return_value=newer_main),
         patch.object(chain_lots, "sync_implemented_registry", return_value={"status": "REGISTRY_CURRENT"}),
         patch.object(chain_lots, "plans", return_value=[
