@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0218",
   "title": "T48: la ruta abre una solicitud de auditoría (issue audit-request) al cerrarse cada pedido",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Contrato de la etapa de auditoría, paso 5 (disparo REQUEST_CLOSED); continúa T46 (CHG-0212)."
