@@ -645,6 +645,43 @@ def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> N
         + reason + "); requiere revisión del pedido. Sin etiquetas.")
 
 
+def notify_failed_conflict_replay(row: dict, all_plans: list,
+                                  failed_run_id: int) -> None:
+    """Reuse verified issue + bot-comment mechanism; dedupe by failed run ID.
+
+    A failed notice is best effort; the recovery result stays BLOCKED.
+    """
+    request = conflicted_request(row, all_plans)
+    if (request is None or not re.fullmatch(r"req-[1-9][0-9]*", request)
+            or type(failed_run_id) is not int or failed_run_id <= 0):
+        return
+    try:
+        number = int(request[4:])
+        issue = api(f"issues/{number}")
+        if (issue.get("number") != number or issue.get("pull_request")
+                or issue.get("state") != "open"
+                or "lf-request" not in {x.get("name") for x in issue.get("labels", [])}):
+            return
+        marker = f"<!-- LF_CP36_CP35_FAILED:{failed_run_id} -->"
+        comments = api_list(f"issues/{number}/comments")
+        if (not isinstance(comments, list) or len(comments) >= 100
+                or any(not isinstance(c, dict) for c in comments)):
+            return
+        if any(marker in str(c.get("body", ""))
+               for c in comments
+               if (c.get("user") or {}).get("login") == "github-actions[bot]"):
+            return
+        run("gh", "issue", "comment", str(number), "--repo", REPO,
+            "--body", marker + "\\nCP3.6 BLOCKED: "
+            "CONFLICT_RECOVERY_CP35_PREVIOUSLY_FAILED. "
+            "La recuperación CP3.5 del PASS nativo no se repetirá "
+            f"automáticamente. Corrida fallida #{failed_run_id}; "
+            "requiere revisión. Sin etiquetas.")
+    except (ChainBlocked, ValueError, KeyError, OSError, TypeError):
+        # Notice is best effort; never unblock a recovery from notification IO.
+        return
+
+
 def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
     """Recreate from trusted main only; never execute or reuse old PR code."""
     kind, branch = row["kind"], row["branch"]
@@ -1420,6 +1457,9 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     for stale in retired:
         try:
             outcome = regenerate_conflicted(stale, head, all_plans)
+            if (outcome.get("status") == "BLOCKED"
+                    and outcome.get("code") == "CONFLICT_RECOVERY_CP35_PREVIOUSLY_FAILED"):
+                notify_failed_conflict_replay(stale, all_plans, outcome["failed_run_id"])
             conflict_outcomes.append({"pr": stale["number"], "branch": stale["branch"],
                                       "kind": stale["kind"], **outcome})
         except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
