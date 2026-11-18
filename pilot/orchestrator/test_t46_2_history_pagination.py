@@ -83,7 +83,7 @@ def test_t46_2_regression_over_100_not_unresolved():
 
 
 def test_t46_2_invalid_middle_page_blocks():
-    run, api, pages, sent = harness([unrelated(i) for i in range(250)],
+    run, api, pages, sent = harness([unrelated(i) for i in range(1000, 1250)],
                                      invalid_page=2)
     with pytest.raises(replay.ReplayBlocked,
                        match="^CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED$"):
@@ -94,7 +94,7 @@ def test_t46_2_invalid_middle_page_blocks():
 
 def test_t46_2_page_cap_blocks(monkeypatch):
     monkeypatch.setenv(replay.PAGE_LIMIT_ENV, "2")
-    run, api, pages, sent = harness([unrelated(i) for i in range(250)])
+    run, api, pages, sent = harness([unrelated(i) for i in range(1000, 1250)])
     with pytest.raises(replay.ReplayBlocked,
                        match="^CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED$"):
         replay.recover(ROW, run, api, REPO)
@@ -104,7 +104,7 @@ def test_t46_2_page_cap_blocks(monkeypatch):
 
 def test_t46_2_page_cap_exact_boundary_passes(monkeypatch):
     monkeypatch.setenv(replay.PAGE_LIMIT_ENV, "3")
-    run, api, pages, sent = harness([unrelated(i) for i in range(250)])
+    run, api, pages, sent = harness([unrelated(i) for i in range(1000, 1250)])
     assert replay.recover(ROW, run, api, REPO)["status"] == "CONFLICT_INTEGRATION_REDISPATCHED"
     assert pages == [1, 2, 3] and len(sent) == 1
 
@@ -112,7 +112,7 @@ def test_t46_2_page_cap_exact_boundary_passes(monkeypatch):
 @pytest.mark.parametrize("invalid", ["0", "51", "-1", "invalid"])
 def test_t46_2_invalid_page_cap_fails_closed(monkeypatch, invalid):
     monkeypatch.setenv(replay.PAGE_LIMIT_ENV, invalid)
-    run, api, pages, sent = harness([unrelated(i) for i in range(250)])
+    run, api, pages, sent = harness([unrelated(i) for i in range(1000, 1250)])
     with pytest.raises(replay.ReplayBlocked,
                        match="^CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED$"):
         replay.recover(ROW, run, api, REPO)
@@ -120,7 +120,7 @@ def test_t46_2_invalid_page_cap_fails_closed(monkeypatch, invalid):
 
 
 def test_t46_2_truncated_last_page_blocks():
-    run, api, pages, sent = harness([unrelated(i) for i in range(250)],
+    run, api, pages, sent = harness([unrelated(i) for i in range(1000, 1250)],
                                      declared_total=251)
     with pytest.raises(replay.ReplayBlocked,
                        match="^CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED$"):
