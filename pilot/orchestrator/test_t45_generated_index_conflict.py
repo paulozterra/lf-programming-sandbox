@@ -111,3 +111,24 @@ def test_t45_train_failure_non_dirty_keeps_prior_logic():
     assert len(result) == 1 and "Train BRANCH_CONFLICT" in result[0]["reason"]
     assert any(c[:3] == ("gh", "pr", "close") for c in calls)
     assert not any(c[0] == "git" for c in calls)
+
+
+def test_t45_cp36_kept_receipt_never_enters_regenerator():
+    from unittest.mock import patch
+    from pilot.orchestrator import chain_lots
+
+    kept = {"status": "KEPT", "pr": PR,
+            "reason": "CONFLICT_ONLY_GENERATED_CHANGES_INDEX"}
+    with patch.object(chain_lots, "check_main", return_value=MAIN), \
+         patch.object(chain_lots, "main_ci_decision", return_value="GREEN"), \
+         patch.object(chain_lots, "retire_conflicted_generated",
+                      return_value=[kept]), \
+         patch.object(chain_lots, "plans", return_value=[]), \
+         patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]), \
+         patch.object(chain_lots, "retry_native_infra", return_value=[]), \
+         patch.object(chain_lots, "recover_native_feedback", return_value=[]), \
+         patch.object(chain_lots, "recover_route_defects", return_value=[]), \
+         patch.object(chain_lots, "regenerate_conflicted",
+                      side_effect=AssertionError("KEPT must not regenerate")):
+        outcomes = chain_lots.process(sweep=True, base_sha=MAIN)
+    assert kept in outcomes
