@@ -45,8 +45,8 @@ def transport(*, unresolved=False, existing=False, pending=False, failing=False)
         if path == f"actions/runs/{RUN_ID}/jobs?per_page=100":
             return {"jobs": [{"name": "native", "conclusion": "success"}]}
         if path == "actions/workflows/native-verified-integration.yml/runs?per_page=100":
-            return {"workflow_runs": [{
-                "event": "workflow_dispatch", "status": "in_progress",
+            return {"total_count": 1 if pending else 0, "workflow_runs": [{
+                "id": 9999, "event": "workflow_dispatch", "status": "in_progress",
                 "display_title": f"CP3.5 recovery native-run-{RUN_ID}",
                 "head_branch": "main",
                 "path": ".github/workflows/native-verified-integration.yml",
