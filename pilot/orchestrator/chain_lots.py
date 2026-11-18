@@ -1000,6 +1000,7 @@ def prepare_successor(request: str, binding: dict, completed: dict, head: str) -
                     "--root", str(root), "--request-id", request,
                     "--lot-id", binding["lot_id"], "--task-name", task,
                     "--template", str(template_json),
+                    "--source-template", binding["template_path"],
                     "--holdout-metadata", str(metadata_path), *args]
                 raw = run(*command_line, cwd=root)
                 prepared = json.loads(raw)
