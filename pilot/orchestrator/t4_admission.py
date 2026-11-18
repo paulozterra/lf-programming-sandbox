@@ -185,35 +185,36 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
                 project = receipt.get("project_ref")
                 if not isinstance(project, str) or not project:
                     return False
+                # T33 business context was introduced after some genuine
+                # registrations. The historical pinned receipt explicitly
+                # attests whether that phase was active; do not infer it
+                # from the current source's new defaults.
+                context_paths = receipt.get("context_paths")
+                if not isinstance(context_paths, list) or not all(
+                        isinstance(p, str) for p in context_paths):
+                    return False
+                prefix = f".lf/worker-context/{newest}/"
+                business = {prefix + "pantalla.json",
+                            prefix + "reglas_negocio.json"}
+                present = set(context_paths) & business
+                if present not in (set(), business):
+                    return False
+                requirements = (lot.get("requirement_ids")
+                                if present == business else None)
                 rebuilt, _ = register(
                     {"task_spec": expected}, project=project, area=lot["area"],
                     lot_paths=list(lot["write_paths"]), task_name=newest,
                     budget=expected.get("max_context_bytes", 240000),
                     root=historical, pinned=historical / "pilot/lf_profiles_pinned",
-                    persist=False, requirement_ids=lot.get("requirement_ids"))
-                match = rebuilt.get("task_spec") == registered
-                if not match and __import__("os").environ.get("T47_TEST_DIAGNOSTIC") == "1":
-                    diff = sorted(k for k in set(rebuilt.get("task_spec", {})) | set(registered)
-                                  if rebuilt.get("task_spec", {}).get(k) != registered.get(k))
-                    print("T47_REPLAY_MISMATCH", newest, diff)
-                    for name in diff:
-                        if name in ("context_path_patterns", "protected_path_patterns"):
-                            a = rebuilt["task_spec"].get(name, [])
-                            b = registered.get(name, [])
-                            print("T47_REPLAY_LIST_EXTRA", newest, name,
-                                  sorted(set(a) - set(b)))
-                            print("T47_REPLAY_LIST_MISSING", newest, name,
-                                  sorted(set(b) - set(a)))
-                return match
+                    persist=False, requirement_ids=requirements)
+                return rebuilt.get("task_spec") == registered
             finally:
                 subprocess.run(["git", "-C", str(root), "worktree", "remove",
                                 "--force", str(historical)], check=False,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                timeout=45)
     except (OSError, ValueError, KeyError, TypeError, ImportError, IndexError,
-            subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-        if __import__("os").environ.get("T47_TEST_DIAGNOSTIC") == "1":
-            print("T47_REPLAY_EXCEPTION", newest, type(exc).__name__, str(exc)[:170])
+            subprocess.CalledProcessError, subprocess.TimeoutExpired):
         return False
 
 def registration_variant(root: Path, base_task: str, template_path: str,
