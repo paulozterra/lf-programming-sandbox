@@ -8,8 +8,8 @@ import os
 from pathlib import Path
 import re
 
-from issue_intake import API
-from intervention_report import markdown, report
+from pilot.orchestrator.issue_intake import API
+from pilot.orchestrator.intervention_report import markdown, report
 
 ROOT = Path(__file__).resolve().parents[2]
 TERMINAL = {"COMPLETED", "COMPLETE", "FINISHED", "FAILED_FINAL", "BLOCKED_FINAL"}
