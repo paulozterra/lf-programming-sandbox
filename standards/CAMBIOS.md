@@ -201,3 +201,4 @@
 | CHG-0207 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/325 |
 | CHG-0208 | EDITORIAL | T40.3: referencia del examinador de req286frontend3 solo con archivos del lote |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/326 |
 | CHG-0209 | EDITORIAL | CP3.5: integración verificada nativa req286frontend3 (run 44205293267) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/328 |
+| CHG-0210 | ADDITIVE | T44: STD-GEN-01 no trata el texto visible de JSX como identificador |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/329 |

@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0210",
+  "title": "T44: STD-GEN-01 no trata el texto visible de JSX como identificador",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T44: la integración #328 de req286frontend3 (PASS intento 1) quedó bloqueada por BASELINE_INCREASE: STD-GEN-01 marcó la etiqueta visible \"Backoffice Empresa\" que exige el contrato de pantalla"
+  },
+  "reason": "strip_code ya excluía comentarios y literales de cadena para no revisar texto en español legítimo, pero no el texto JSX entre etiquetas. En .tsx/.jsx ahora el texto visible entre etiquetas se excluye igual que un literal; los identificadores (también dentro de {...} y argumentos de tipo genéricos) se siguen revisando. Pruebas de regresión en standards/tests/test_t44_jsx_text.py.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "standards/tools/glossary.py",
+      "standards/tests/test_t44_jsx_text.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0210.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/329"
+  }
+}
