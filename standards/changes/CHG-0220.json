@@ -13,18 +13,20 @@
     "rule_ids": [],
     "term_ids": [],
     "paths": [
-      "pilot/orchestrator/request_lifecycle.py",
-      "pilot/orchestrator/request_lifecycle_allowlist.json",
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/bot_ci_retry.py",
       "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/generated_conflict_recovery.py",
       "pilot/orchestrator/native_infra_retry.py",
       "pilot/orchestrator/native_route_recovery.py",
-      "pilot/orchestrator/generated_conflict_recovery.py",
-      "pilot/orchestrator/bot_ci_retry.py",
-      "pilot/worker_v08/native_feedback_delivery.py",
+      "pilot/orchestrator/request_lifecycle.py",
+      "pilot/orchestrator/request_lifecycle_allowlist.json",
+      "pilot/orchestrator/test_t48_exam_request_idempotence.py",
       "pilot/orchestrator/test_t49_lifecycle.py",
-      ".github/workflows/ci.yml",
-      "standards/changes/CHG-0220.json",
-      "standards/CAMBIOS.md"
+      "pilot/test_t12_concurrency.py",
+      "pilot/worker_v08/native_feedback_delivery.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0220.json"
     ]
   },
   "existing_code_impact": {
