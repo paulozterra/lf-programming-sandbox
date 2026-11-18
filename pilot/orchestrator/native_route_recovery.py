@@ -268,7 +268,7 @@ def comment_resubmit(run, api, repo: str, number: int, task: str,
 
 
 def replay_corrected(head, run, api, repo: str, root: Path,
-                     rows: list[dict], api_list=None) -> list[dict]:
+                     rows: list[dict], api_list=None, allowed_task=None) -> list[dict]:
     results = []
     done = set()
     for item in rows:
@@ -282,6 +282,9 @@ def replay_corrected(head, run, api, repo: str, root: Path,
         return []
     for file in sorted(migrations.glob("*.json")):
         task = file.stem
+        if allowed_task is not None and not allowed_task(task):
+            results.append({"task": task, "status": "REQUEST_CLOSED"})
+            continue
         if not TASK.fullmatch(task):
             raise ValueError("ROUTE_DEFECT_MIGRATION_PATH_INVALID")
         reg = root / "pilot/worker_v08/native_tasks" / (task + ".json")
@@ -344,7 +347,7 @@ def replay_corrected(head, run, api, repo: str, root: Path,
 
 
 def sweep(head, run, api, repo, root, worktree, draft, pending_draft,
-          api_list=None):
+          api_list=None, allowed_task=None):
     rows = history(api)
     results = []
     # A historical run is classified once from trusted visible artifacts; no
@@ -357,6 +360,9 @@ def sweep(head, run, api, repo, root, worktree, draft, pending_draft,
             continue
         evidence = inspect(run, api, repo, root, item)
         if evidence is None:
+            continue
+        if allowed_task is not None and not allowed_task(evidence["task"]):
+            results.append({"task": evidence["task"], "status": "REQUEST_CLOSED"})
             continue
         results.append({"status": comment_defect(run, api, repo, evidence,
                                                    api_list),
@@ -372,5 +378,5 @@ def sweep(head, run, api, repo, root, worktree, draft, pending_draft,
                     "ROUTE_DEFECT_REGISTRATION_PENDING"):
                 scheduled = True
     results.extend(replay_corrected(head, run, api, repo, root, rows,
-                                    api_list))
+                                    api_list, allowed_task=allowed_task))
     return results
