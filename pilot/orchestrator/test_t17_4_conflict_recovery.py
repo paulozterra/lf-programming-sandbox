@@ -73,6 +73,8 @@ def test_train_failure_requires_bound_pr_and_sha_not_only_red_status():
         raise AssertionError(args)
 
     def api(path):
+        if path == "issues/901":
+            return {"number": 901, "state": "open"}
         if path == "pulls/205":
             return detail
         if path.startswith("actions/workflows/sandbox-train.yml/runs?"):
@@ -190,6 +192,8 @@ def test_integration_reuses_trusted_cp35_dispatch():
         raise AssertionError(args)
 
     def source(path):
+        if path == "issues/901":
+            return {"number": 901, "state": "open"}
         if path == "actions/runs/2500":
             return {"created_at": "2026-11-17T10:00:00Z", "id": 2500, "status": "completed",
                     "conclusion": "success", "run_attempt": 1,
@@ -204,7 +208,8 @@ def test_integration_reuses_trusted_cp35_dispatch():
         raise AssertionError(path)
 
     with patch.object(chain_lots, "run", side_effect=command), \
-         patch.object(chain_lots, "api", side_effect=source):
+         patch.object(chain_lots, "api", side_effect=source), \
+         patch.object(chain_lots, "conflicted_request", return_value="req-901"):
         result = chain_lots.regenerate_conflicted(row, HEAD, [])
     assert result["status"] == "CONFLICT_INTEGRATION_REDISPATCHED"
     assert result["source_run_id"] == 2500
