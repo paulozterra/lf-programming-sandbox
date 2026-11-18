@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 
 ROOT = Path(__file__).resolve().parents[2]
-REQUEST = re.compile(r"req-([1-9][0-9]*)\\Z")
+REQUEST = re.compile(r"req-([1-9][0-9]*)\Z")
 ALLOWLIST = ROOT / "pilot/orchestrator/request_lifecycle_allowlist.json"
 OPEN = "OPEN"
 CLOSED_FINALIZED = "CLOSED_FINALIZED"
