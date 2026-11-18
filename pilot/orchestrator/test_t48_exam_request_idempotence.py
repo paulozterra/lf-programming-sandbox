@@ -148,6 +148,8 @@ def test_t48_two_open_reconciles_with_comment_and_close(env, monkeypatch):
                                                  issue(key, number=903)])
     result = chain.request_missing_exam(REQUEST, BINDING, LOT)
     assert result["exam_issue"] == 902
+    assert result["status"] == "BLOCKED"
+    assert result["reason_code"] == "EXAM_REQUEST_DUPLICATE_OPEN"
     assert ("gh", "api", "-X", "PATCH",
             f"repos/{chain.REPO}/issues/903",
             "-f", "state=closed", "-f", "state_reason=duplicate") in calls
