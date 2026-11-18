@@ -1533,7 +1533,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             for entry in retire_conflicted_generated(
                     head, run, api, REPO, api_list,
                     allow_candidate=candidate_live):
-                if entry.get("status") == "BLOCKED":
+                if entry.get("status") in ("BLOCKED", "REQUEST_CLOSED"):
                     recovery_failures.append(entry)
                 elif entry.get("status") == "KEPT":
                     kept.append(entry)
