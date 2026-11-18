@@ -78,18 +78,22 @@ def _dispatch_history(api, repo: str, run_id: int) -> list[dict]:
     if not isinstance(records, list) or len(records) >= HISTORY_LIMIT:
         block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
     total = history.get("total_count")
-    if total is not None and (type(total) is not int or total != len(records)):
+    if type(total) is not int or total != len(records):
         block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
     seen: set[int] = set()
     for item in records:
-        if (not isinstance(item, dict)
-                or type(item.get("id")) is not int or item["id"] <= 0
+        if not isinstance(item, dict):
+            block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
+        status, conclusion = item.get("status"), item.get("conclusion")
+        if (type(item.get("id")) is not int or item["id"] <= 0
                 or item["id"] in seen
-                or item.get("status") not in PENDING | {"completed"}
-                or (item.get("status") == "completed"
-                    and item.get("conclusion") not in
-                    {"success", "failure", "cancelled", "skipped", "timed_out",
-                     "action_required", "neutral"})
+                or not isinstance(status, str)
+                or status not in PENDING | {"completed"}
+                or (status == "completed"
+                    and (not isinstance(conclusion, str)
+                         or conclusion not in
+                         {"success", "failure", "cancelled", "skipped", "timed_out",
+                          "action_required", "neutral"}))
                 or not isinstance(item.get("display_title"), str)
                 or not isinstance(item.get("head_branch"), str)
                 or not isinstance(item.get("path"), str)
