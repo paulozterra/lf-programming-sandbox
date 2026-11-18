@@ -251,3 +251,9 @@ def test_ekb_strips_orm_only_parameters(tmp_path):
     f.chmod(0o755)
     url = "postgresql://u:p@h:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require"
     assert ekb.read_codes(cfg.load("lf"), env={"LF_EKB_READONLY_URL": url, "PATH": "/bin"}, psql=str(f)) == ["E-1"]
+
+
+def test_ekb_with_no_rows_is_a_failure(tmp_path):
+    psql = _fake_psql(tmp_path, stdout="BEGIN\nROLLBACK\n")
+    with pytest.raises(ekb.EkbError, match="AUDIT_EKB_UNAVAILABLE:EMPTY"):
+        ekb.read_codes(cfg.load("lf"), env={"LF_EKB_READONLY_URL": "postgresql://x", "PATH": "/bin"}, psql=psql)

@@ -81,6 +81,9 @@ def read_codes(config: dict, env: dict | None = None, psql: str = "psql") -> lis
                        + role)
     codes = [line.strip() for line in out.stdout.splitlines() if line.strip()
              and line.strip() not in ("BEGIN", "ROLLBACK")]
+    if not codes:
+        # A configured EKB that yields nothing is a read failure (e.g. RLS with no policy), not an empty catalogue.
+        raise EkbError("AUDIT_EKB_UNAVAILABLE:EMPTY")
     return sorted(set(codes))
 
 
