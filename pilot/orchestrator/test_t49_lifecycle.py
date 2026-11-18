@@ -73,10 +73,12 @@ def test_api_failure_and_invalid_issue_are_unresolved(tmp_path):
 
 
 def test_explicit_allowlist_and_unlisted_synthetic(tmp_path):
-    fixture(tmp_path)
-    assert request_state("synthetic-okay", lambda _: 1, root=tmp_path) == OPEN
+    config = fixture(tmp_path)
+    assert request_state("synthetic-okay", lambda _: 1, root=tmp_path,
+                         allowlist=config) == OPEN
     with pytest.raises(RequestStateError, match="REQUEST_STATE_UNRESOLVED"):
-        request_state("synthetic-other", lambda _: 1, root=tmp_path)
+        request_state("synthetic-other", lambda _: 1, root=tmp_path,
+                      allowlist=config)
 
 
 def test_train_closed_289_regression_never_requests_exam(tmp_path, monkeypatch):
