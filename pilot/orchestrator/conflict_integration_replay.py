@@ -77,6 +77,9 @@ def _dispatch_history(api, repo: str, run_id: int) -> list[dict]:
     # Count=100 is ambiguous even if no page 2 is advertised. Never guess.
     if not isinstance(records, list) or len(records) >= HISTORY_LIMIT:
         block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
+    total = history.get("total_count")
+    if total is not None and (type(total) is not int or total != len(records)):
+        block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
     seen: set[int] = set()
     for item in records:
         if (not isinstance(item, dict)
