@@ -64,6 +64,9 @@ class ExamGit:
 
 
 class Tests(unittest.TestCase):
+    def setUp(self):
+        chain_lots._EXAM_RUN_CACHE.clear()
+
     def test_same_screen_normalized_text_in_24h_is_duplicate(self):
         when = "2026-11-15T02:00:00Z"
         earlier=request(186,when,"Implementa  SBX-REM-LIST")
@@ -144,12 +147,13 @@ class Tests(unittest.TestCase):
     def test_exam_two_serialized_calls_create_only_one_marked_issue(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp)
-            template=root/"task.json"
+            template=root/"pilot/runs/req-901/templates/task202.task.json"
+            template.parent.mkdir(parents=True, exist_ok=True)
             template.write_text(json.dumps({"task_spec":{
                 "write_path_patterns":["contracts/sample.openapi.yaml"],
                 "context_path_patterns":[],
                 "protected_path_patterns":[]}}))
-            bind={"task_name":"task202","template_path":"task.json"}
+            bind={"task_name":"task202","template_path":"pilot/runs/req-901/templates/task202.task.json"}
             lot={"id":"SOL-1","area":"CONTRATO","requirement_ids":["REQ-ONE"]}
             state=ExamGit()
             with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"run",side_effect=state):
@@ -170,7 +174,9 @@ class Tests(unittest.TestCase):
         from threading import Lock, Barrier
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp)
-            (root/"task.json").write_text(json.dumps({"task_spec":{
+            path=root/"pilot/runs/req-901/templates/task202.task.json"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps({"task_spec":{
                 "write_path_patterns":["contracts/sample.openapi.yaml"],
                 "context_path_patterns":[]}}))
             git=ExamGit()
@@ -217,11 +223,13 @@ class Tests(unittest.TestCase):
             bind={"task_name":"task202","template_path":"task.json"}
             lot={"id":"SOL-1","area":"CONTRATO","requirement_ids":["REQ-ONE"]}
             with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"run",side_effect=git):
-                with self.assertRaisesRegex(ValueError,"EXAM_REQUEST_CLOSED_UNVERIFIED"):
-                    chain_lots.request_missing_exam("req-901",bind,lot)
+                self.assertEqual(chain_lots.request_missing_exam(
+                    "req-901",bind,lot)["reason_code"],"EXAM_REQUEST_CLOSED_UNVERIFIED")
                 reg=root/"pilot/worker_v08/native_tasks/task202.json"
                 reg.parent.mkdir(parents=True)
                 reg.write_text("{}")
+                # A later CP3.6 process re-evaluates verified registration state.
+                chain_lots._EXAM_RUN_CACHE.clear()
                 self.assertEqual(chain_lots.request_missing_exam(
                     "req-901",bind,lot)["status"],"EXAM_ALREADY_REGISTERED")
                 self.assertEqual(git.created,0)
