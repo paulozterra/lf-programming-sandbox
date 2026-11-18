@@ -1344,11 +1344,14 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     # can hide a Train failure, including when no owner plans are active.
     retired = []
     recovery_failures = []
+    kept = []
     if sweep:
         try:
             for entry in retire_conflicted_generated(head, run, api, REPO, api_list):
                 if entry.get("status") == "BLOCKED":
                     recovery_failures.append(entry)
+                elif entry.get("status") == "KEPT":
+                    kept.append(entry)
                 else:
                     retired.append(entry)
         except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
@@ -1360,7 +1363,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     all_plans = plans()
     # Each recovery is a separate trust boundary. A local failure may not
     # short-circuit later recoveries or per-request planning.
-    repair_outcomes = list(recovery_failures)
+    repair_outcomes = list(recovery_failures) + kept
     if sweep:
         recoveries = (
             ("T20_BOT_CI_RETRY",
