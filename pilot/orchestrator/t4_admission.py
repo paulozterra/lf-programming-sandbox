@@ -12,6 +12,8 @@ import copy
 from pathlib import Path
 import re
 import sys
+import subprocess
+import tempfile
 
 TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
@@ -151,13 +153,14 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
         if len(lot_rows) != 1:
             return False
         lot = lot_rows[0]
-        receipt_path = root / ".lf/worker-context" / newest / "receipt.json"
-        if receipt_path.is_symlink() or not receipt_path.is_file():
+        base = registered.get("base_head_sha")
+        if not isinstance(base, str) or not SHA.fullmatch(base):
             return False
-        receipt = json.loads(receipt_path.read_text("utf-8"))
-        project = receipt.get("project_ref")
-        if not isinstance(project, str) or not project:
-            return False
+        # Only immutable ancestors can attest a historical enrichment input.
+        subprocess.run(["git", "-C", str(root), "merge-base",
+                        "--is-ancestor", base, "HEAD"], check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       timeout=30)
         expected = copy.deepcopy(desired)
         for key in ("base_head_sha", "source_snapshot_sha256", "task_id"):
             if key in registered:
@@ -167,23 +170,43 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
         worker = root / "pilot/worker_v08"
         if str(worker) not in sys.path:
             sys.path.insert(0, str(worker))
-        from register_task_context import register, ContextBlocked
-        rebuilt, _ = register(
-            {"task_spec": expected}, project=project, area=lot["area"],
-            lot_paths=list(lot["write_paths"]), task_name=newest,
-            budget=expected.get("max_context_bytes", 240000),
-            root=root, persist=False, requirement_ids=lot.get("requirement_ids"))
-        match = rebuilt.get("task_spec") == registered
-        if not match and __import__("os").environ.get("T47_TEST_DIAGNOSTIC") == "1":
-            diff = sorted(k for k in set(rebuilt.get("task_spec", {})) | set(registered)
-                          if rebuilt.get("task_spec", {}).get(k) != registered.get(k))
-            print("T47_REPLAY_MISMATCH", newest, diff)
-        return match
-    except (OSError, ValueError, KeyError, TypeError, ImportError, IndexError) as exc:
+        from register_task_context import register
+        with tempfile.TemporaryDirectory(prefix="lf-t47-legacy-") as temp:
+            historical = Path(temp) / "checkout"
+            subprocess.run(["git", "-C", str(root), "worktree", "add",
+                            "--detach", str(historical), base], check=True,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           timeout=45)
+            try:
+                receipt_path = historical / ".lf/worker-context" / newest / "receipt.json"
+                if receipt_path.is_symlink() or not receipt_path.is_file():
+                    return False
+                receipt = json.loads(receipt_path.read_text("utf-8"))
+                project = receipt.get("project_ref")
+                if not isinstance(project, str) or not project:
+                    return False
+                rebuilt, _ = register(
+                    {"task_spec": expected}, project=project, area=lot["area"],
+                    lot_paths=list(lot["write_paths"]), task_name=newest,
+                    budget=expected.get("max_context_bytes", 240000),
+                    root=historical, pinned=historical / "pilot/lf_profiles_pinned",
+                    persist=False, requirement_ids=lot.get("requirement_ids"))
+                match = rebuilt.get("task_spec") == registered
+                if not match and __import__("os").environ.get("T47_TEST_DIAGNOSTIC") == "1":
+                    diff = sorted(k for k in set(rebuilt.get("task_spec", {})) | set(registered)
+                                  if rebuilt.get("task_spec", {}).get(k) != registered.get(k))
+                    print("T47_REPLAY_MISMATCH", newest, diff)
+                return match
+            finally:
+                subprocess.run(["git", "-C", str(root), "worktree", "remove",
+                                "--force", str(historical)], check=False,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                               timeout=45)
+    except (OSError, ValueError, KeyError, TypeError, ImportError, IndexError,
+            subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         if __import__("os").environ.get("T47_TEST_DIAGNOSTIC") == "1":
             print("T47_REPLAY_EXCEPTION", newest, type(exc).__name__, str(exc)[:170])
         return False
-
 
 def registration_variant(root: Path, base_task: str, template_path: str,
                          changed_since) -> str | None:
