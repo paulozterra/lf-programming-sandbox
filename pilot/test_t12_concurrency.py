@@ -53,6 +53,8 @@ class ExamGit:
             return json.dumps([{"name":"exam-request"}])
         if args[:2] == ("gh", "api") and args[2].startswith("repos/"):
             return json.dumps(self.existing)
+        if args[:3] == ("gh", "issue", "comment"):
+            return ""  # T49 verified-open informational notice
         if args[:3] == ("gh", "issue", "create"):
             self.created += 1
             title = args[args.index("--title")+1]
