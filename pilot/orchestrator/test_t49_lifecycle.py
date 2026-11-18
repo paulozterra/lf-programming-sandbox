@@ -23,7 +23,7 @@ def fixture(tmp_path, *, finalized=False):
              "merge_sha": "a" * 40} for x in ("SOL-001", "SOL-002")]}))
     config = tmp_path / "pilot/orchestrator/request_lifecycle_allowlist.json"
     config.parent.mkdir(parents=True)
-    config.write_text(json.dumps({"allowed_non_issue_requests": ["synthetic-okay"]}))
+    config.write_text(json.dumps({"allowed_non_issue_requests": ["synthetic-okay", "simulated"]}))
     return config
 
 
@@ -86,6 +86,8 @@ def test_api_failure_and_invalid_issue_are_unresolved(tmp_path):
 def test_explicit_allowlist_and_unlisted_synthetic(tmp_path):
     config = fixture(tmp_path)
     assert request_state("synthetic-okay", lambda _: 1, root=tmp_path,
+                         allowlist=config) == OPEN
+    assert request_state("simulated", lambda _: 1, root=tmp_path,
                          allowlist=config) == OPEN
     with pytest.raises(RequestStateError, match="REQUEST_STATE_UNRESOLVED"):
         request_state("synthetic-other", lambda _: 1, root=tmp_path,
