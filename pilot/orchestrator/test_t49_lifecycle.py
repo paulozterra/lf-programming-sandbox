@@ -77,3 +77,47 @@ def test_explicit_allowlist_and_unlisted_synthetic(tmp_path):
     assert request_state("synthetic-okay", lambda _: 1, root=tmp_path) == OPEN
     with pytest.raises(RequestStateError, match="REQUEST_STATE_UNRESOLVED"):
         request_state("synthetic-other", lambda _: 1, root=tmp_path)
+
+
+def test_train_closed_289_regression_never_requests_exam(tmp_path, monkeypatch):
+    """The non-sweep TRAIN entry must not reach EXAM_REQUEST for closed #275."""
+    fixture(tmp_path)
+    from pilot.orchestrator import chain_lots as chain
+    monkeypatch.setattr(chain, "ROOT", tmp_path)
+    monkeypatch.setattr(chain, "api", api_for("closed", "not_planned"))
+    def forbidden(*args, **kwargs):
+        raise AssertionError("closed TRAIN attempted a publication")
+    monkeypatch.setattr(chain, "request_all_lot_exams", forbidden)
+    monkeypatch.setattr(chain, "complete_registered_exam_requests", forbidden)
+    monkeypatch.setattr(chain, "prepare_successor", forbidden)
+    outcomes = chain.process_one_plan(
+        "req-275", {"lots": [{"id": "SOL-001"}]}, {"stage": "LOTS_PLANNED"},
+        {"SOL-001": {"task_name": "req275backend1"}}, "a" * 40,
+        "TRAIN", False, None, None, [])
+    assert outcomes == [{"request": "req-275", "status": "REQUEST_CLOSED"}]
+
+
+def test_train_unresolved_does_not_publish(tmp_path, monkeypatch):
+    fixture(tmp_path)
+    from pilot.orchestrator import chain_lots as chain
+    monkeypatch.setattr(chain, "ROOT", tmp_path)
+    def down(_path):
+        raise OSError("GitHub unavailable")
+    monkeypatch.setattr(chain, "api", down)
+    monkeypatch.setattr(chain, "request_all_lot_exams", lambda *_:
+                        pytest.fail("published despite unresolved state"))
+    result = chain.process_one_plan(
+        "req-275", {"lots": [{"id": "SOL-001"}]}, {"stage": "LOTS_PLANNED"},
+        {"SOL-001": {"task_name": "req275backend1"}}, "a" * 40,
+        "TRAIN", False, None, None, [])
+    assert result[0]["reason_code"] == "REQUEST_STATE_UNRESOLVED"
+
+
+def test_exam_notice_never_comments_on_closed(tmp_path, monkeypatch):
+    fixture(tmp_path)
+    from pilot.orchestrator import chain_lots as chain
+    monkeypatch.setattr(chain, "ROOT", tmp_path)
+    monkeypatch.setattr(chain, "api", api_for("closed", "completed"))
+    monkeypatch.setattr(chain, "run", lambda *_a, **_k:
+                        pytest.fail("commented on closed request"))
+    chain.exam_notice("req-275", "key", "EXAMEN_PENDIENTE")
