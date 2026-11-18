@@ -959,11 +959,12 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
         _EXAM_RUN_CACHE[key] = dict(result)
         return result
     except (ChainBlocked, ValueError, OSError) as exc:
-        reason = str(exc).split(":", 1)[0]
-        code = ("EXAM_REQUEST_LIST_UNTRUSTED"
-                if reason.startswith(("GITHUB_LIST_", "GITHUB_RESPONSE_",
-                                      "EXAM_REQUEST_LIST_")) else
-                reason if reason.startswith("EXAM_REQUEST_") else
+        reason = str(exc)
+        typed = re.findall(r"EXAM_REQUEST_[A-Z0-9_]+", reason)
+        code = (typed[-1] if typed else
+                "EXAM_REQUEST_LIST_UNTRUSTED"
+                if any(term in reason for term in
+                       ("GITHUB_LIST_", "GITHUB_RESPONSE_")) else
                 "EXAM_REQUEST_UNRESOLVED")
         exam_notice(request, key, code)
         result = {"status": "BLOCKED", "reason_code": code, "task": task}
