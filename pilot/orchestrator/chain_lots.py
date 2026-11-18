@@ -21,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 
+from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN
 from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_state,
                             progress, validate_plan, verified_failures, deny)
 from native_lot_registration import canonical
@@ -238,13 +239,7 @@ def main_ci_decision(head: str) -> str:
 
 def sweep_request_enabled(request: str) -> bool:
     """Only open, non-discarded issue-backed requests can be resumed."""
-    if not re.fullmatch(r"req-[1-9][0-9]*", request):
-        return True  # Legacy synthetic chains without a source issue.
-    row = api("issues/" + request[4:])
-    if row.get("number") != int(request[4:]):
-        deny("CHAIN_REQUEST_IDENTITY_INVALID")
-    state, reason = exam_issue_state(row)
-    return state == "open" and reason not in ("not_planned", "duplicate")
+    return request_state(request, api, root=ROOT) == OPEN
 
 
 def merged_integration(head: str) -> tuple[dict, set[str]]:
@@ -843,14 +838,16 @@ def exam_notice(request: str, key: str, reason: str, number: int | None = None) 
     """Best-effort deduped typed notice, never permission to publish again."""
     marker = f"<!-- LF_EXAM_NOTICE:{key}:{reason} -->"
     try:
+        require_open(request, api, root=ROOT)
         original = api("issues/" + request[4:])
-        if original.get("number") != int(request[4:]):
+        if (original.get("number") != int(request[4:])
+                or original.get("state") != "open"):
             return
         comments = api_list("issues/" + request[4:] + "/comments")
         if any(marker in str(c.get("body", "")) for c in comments):
             return
         run("gh", "issue", "comment", request[4:], "--repo", REPO, "--body",
-            marker + "\\nCP3.6 BLOCKED: " + reason + " para " + key +
+            marker + "\nCP3.6 BLOCKED: " + reason + " para " + key +
             (f"; exam_issue=#{number}" if number else ""))
     except (ChainBlocked, OSError, ValueError, KeyError, TypeError, AttributeError):
         pass
@@ -905,6 +902,11 @@ def complete_registered_exam_requests(request: str, bindings: dict) -> list[int]
 def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
     """Single publication per (request, task, canonical template) per process."""
     task = binding["task_name"]
+    try:
+        require_open(request, api, root=ROOT)
+    except RequestStateError as exc:
+        return {"status": ("REQUEST_CLOSED" if str(exc) == "REQUEST_CLOSED"
+                           else "BLOCKED"), "reason_code": str(exc), "task": task}
     try:
         key = exam_key(request, binding)
     except (ChainBlocked, ValueError):
@@ -994,6 +996,11 @@ def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict
 
 def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dict | None:
     """Inspect admission before any generated commit or native preparation."""
+    try:
+        require_open(request, api, root=ROOT)
+    except RequestStateError as exc:
+        return {"status": ("REQUEST_CLOSED" if str(exc) == "REQUEST_CLOSED"
+                           else "BLOCKED"), "reason_code": str(exc)}
     require_green_base(head, api)
     protected_test_conflict(ROOT, lot, binding)
     if missing_exam(ROOT, binding["task_name"]):
@@ -1632,8 +1639,13 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
 def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                      new_plan_request, manual_sha, history) -> list[dict]:
     outcomes = []
-    if sweep and not sweep_request_enabled(request):
-        return outcomes
+    try:
+        current = request_state(request, api, root=ROOT)
+    except RequestStateError:
+        return [{"request": request, "status": "BLOCKED",
+                 "reason_code": "REQUEST_STATE_UNRESOLVED"}]
+    if current != OPEN:
+        return [{"request": request, "status": "REQUEST_CLOSED"}]
     if state.get("stage") == "BLOCKED":
         outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
         return outcomes
