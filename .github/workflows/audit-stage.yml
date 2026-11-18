@@ -1,0 +1,55 @@
+name: LF route audit stage (T46)
+# Validates audit reports produced by the route's audit stage against the
+# pinned, hash-verified audit skill of the project (pilot/audit/projects/) and
+# the route checks; and, on demand, probes the project's EKB (codes only).
+# Nothing here prints EKB content or the connection string.
+
+on:
+  pull_request:
+    paths:
+      - "pilot/runs/*/audit/**"
+      - "pilot/audit/**"
+      - ".github/workflows/audit-stage.yml"
+  workflow_dispatch:
+    inputs:
+      project:
+        description: "Project config under pilot/audit/projects/"
+        required: true
+        default: "lf"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lf-audit-stage-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit-report:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PROJECT: ${{ inputs.project || 'lf' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install the validator's only dependency
+        run: python3 -m pip install --quiet --break-system-packages 'jsonschema==4.23.0'
+      - name: Fetch and verify the pinned audit skill
+        run: python3 -m pilot.workflow_entrypoint pilot/audit/skill_pin.py --project "$PROJECT" --dest "$RUNNER_TEMP/audit-skill"
+      - name: Probe the project's EKB (codes only)
+        env:
+          LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}
+        run: python3 -m pilot.workflow_entrypoint pilot/audit/ekb_reader.py --project "$PROJECT"
+      - name: Validate every audit report (skill validator + route checks + EKB codes)
+        env:
+          LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}
+        run: |
+          set -euo pipefail
+          skill="$RUNNER_TEMP/audit-skill/$(python3 -c "import json;print(json.load(open('pilot/audit/projects/$PROJECT.json'))['audit']['skill']['path'])")"
+          python3 -m pilot.workflow_entrypoint pilot/audit/validate_report.py --project "$PROJECT" --skill-dir "$skill" --all --ekb

@@ -1,0 +1,26 @@
+{
+  "schema_version": "LF_ROUTE_AUDIT_CONFIG_V1",
+  "project": "lf",
+  "audit": {
+    "enabled": true,
+    "mode": "SHADOW",
+    "trigger": "REQUEST_CLOSED",
+    "skill": {
+      "repository": "cristhianlujan/claude-persona-lf-patch",
+      "commit": "35237a78d634c7d733ffc2e1b6f21b6042371fab",
+      "path": "skills/auditoria-profunda-implementacion-lf",
+      "manifest": "pilot/audit/projects/lf.audit-skill.manifest.json"
+    },
+    "ekb": {
+      "source": "POSTGRES_READONLY",
+      "secret": "LF_EKB_READONLY_URL",
+      "table": "public.lf_error_knowledge",
+      "code_column": "codigo",
+      "store_content": false
+    },
+    "auditor": "CLAUDE_ROUTINE",
+    "sample_n": 1,
+    "performance_budget_ms": null,
+    "freshness_budget_ms": null
+  }
+}
