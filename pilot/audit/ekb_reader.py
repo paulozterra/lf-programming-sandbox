@@ -55,7 +55,10 @@ def read_codes(config: dict, env: dict | None = None, psql: str = "psql") -> lis
                 or "tenant or user not found" in err else
                 "PERMISSION" if "permission denied" in err else
                 "SCHEMA" if "does not exist" in err else
-                "NETWORK" if "could not" in err or "timeout" in err else "QUERY")
+                "NETWORK_IPV6_UNREACHABLE" if "unreachable" in err or "cannot assign requested address" in err else
+                "NETWORK_SSL" if "ssl" in err else
+                "NETWORK" if "could not" in err or "timeout" in err or "connection to server" in err
+                or "refused" in err or "server closed" in err else "QUERY")
         raise EkbError("AUDIT_EKB_UNAVAILABLE:" + kind
                        + (":" + state.group(1).upper() if state and kind == "QUERY" else ""))
     codes = [line.strip() for line in out.stdout.splitlines() if line.strip()
