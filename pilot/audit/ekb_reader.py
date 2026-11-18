@@ -65,10 +65,20 @@ def read_codes(config: dict, env: dict | None = None, psql: str = "psql") -> lis
                 "NETWORK_SSL" if "ssl" in err else
                 "NETWORK" if "could not" in err or "timeout" in err or "connection to server" in err
                 or "refused" in err or "server closed" in err else "QUERY")
+        role = ""
+        if kind == "PERMISSION":
+            try:
+                who = subprocess.run([psql, url, "-X", "-q", "-A", "-t", "-c", "select current_user"],
+                                     capture_output=True, text=True, timeout=30, env=child_env)
+                name = who.stdout.strip()
+                role = ":ROLE=" + name if who.returncode == 0 and re.fullmatch(r"[A-Za-z0-9_]{1,63}", name) else ""
+            except (OSError, subprocess.TimeoutExpired):
+                pass
         raise EkbError("AUDIT_EKB_UNAVAILABLE:" + kind
                        + (":" + state.group(1).upper() if state else "")
                        + (":" + obj.group(1).upper() if kind == "PERMISSION" and (obj := re.search(
-                           r"permission denied (?:for|to) (table|schema|sequence|function|database|relation|view|column)", err)) else ""))
+                           r"permission denied (?:for|to) (table|schema|sequence|function|database|relation|view|column)", err)) else "")
+                       + role)
     codes = [line.strip() for line in out.stdout.splitlines() if line.strip()
              and line.strip() not in ("BEGIN", "ROLLBACK")]
     return sorted(set(codes))
