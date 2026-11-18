@@ -35,7 +35,7 @@ def transport(*, unresolved=False, existing=False, pending=False, failing=False)
 
     def api(path):
         if path == f"actions/runs/{RUN_ID}":
-            return {"id": RUN_ID, "status": "completed",
+            return {"created_at": "2026-11-17T10:00:00Z", "id": RUN_ID, "status": "completed",
                     "conclusion": "failure" if unresolved else "success",
                     "run_attempt": 1, "event": "workflow_run",
                     "head_branch": "main",
@@ -44,7 +44,7 @@ def transport(*, unresolved=False, existing=False, pending=False, failing=False)
                     "display_title": f"lf-native-auto-lf/native-proposal/{TASK}-" + SHA}
         if path == f"actions/runs/{RUN_ID}/jobs?per_page=100":
             return {"jobs": [{"name": "native", "conclusion": "success"}]}
-        if path == "actions/workflows/native-verified-integration.yml/runs?per_page=100":
+        if path.startswith("actions/workflows/native-verified-integration.yml/runs?"):
             return {"total_count": 1 if pending else 0, "workflow_runs": [{
                 "id": 9999, "event": "workflow_dispatch", "status": "in_progress",
                 "display_title": f"CP3.5 recovery native-run-{RUN_ID}",
