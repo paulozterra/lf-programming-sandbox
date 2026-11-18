@@ -196,6 +196,14 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
                     diff = sorted(k for k in set(rebuilt.get("task_spec", {})) | set(registered)
                                   if rebuilt.get("task_spec", {}).get(k) != registered.get(k))
                     print("T47_REPLAY_MISMATCH", newest, diff)
+                    for name in diff:
+                        if name in ("context_path_patterns", "protected_path_patterns"):
+                            a = rebuilt["task_spec"].get(name, [])
+                            b = registered.get(name, [])
+                            print("T47_REPLAY_LIST_EXTRA", newest, name,
+                                  sorted(set(a) - set(b)))
+                            print("T47_REPLAY_LIST_MISSING", newest, name,
+                                  sorted(set(b) - set(a)))
                 return match
             finally:
                 subprocess.run(["git", "-C", str(root), "worktree", "remove",
