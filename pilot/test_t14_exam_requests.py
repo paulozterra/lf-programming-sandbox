@@ -24,10 +24,12 @@ def issue(number, *, state="open", reason=None):
 
 
 def fixture(root):
-    (root / "task.json").write_text(json.dumps({"task_spec": {
+    source = root / "pilot/runs/req-901/templates/lotexample1.task.json"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text(json.dumps({"task_spec": {
         "write_path_patterns": ["contracts/sample.openapi.yaml"],
         "context_path_patterns": [], "protected_path_patterns": []}}))
-    return ({"task_name": TASK, "template_path": "task.json"},
+    return ({"task_name": TASK, "template_path": "pilot/runs/req-901/templates/lotexample1.task.json"},
             {"id": "SOL-1", "area": "CONTRATO", "requirement_ids": ["REQ-ONE"]})
 
 
@@ -51,6 +53,9 @@ class GitMock:
 
 
 class T14ExamRequestTests(unittest.TestCase):
+    def setUp(self):
+        chain_lots._EXAM_RUN_CACHE.clear()
+
     def test_open_wins_over_closed_duplicate_regardless_of_order(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -80,12 +85,13 @@ class T14ExamRequestTests(unittest.TestCase):
             self.assertEqual(result, {"status": "EXAM_ALREADY_REGISTERED",
                                       "task": TASK, "exam_issue": 196})
             registered.unlink()
+            chain_lots._EXAM_RUN_CACHE.clear()
             with patch.object(chain_lots, "ROOT", root), patch.object(
                     chain_lots, "run", side_effect=git):
                 self.assertEqual(chain_lots.request_missing_exam(
                     REQUEST, binding, lot)["exam_issue"], 194)
 
-    def test_only_closed_duplicates_create_new_request(self):
+    def test_only_closed_duplicates_block_without_new_request(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             binding, lot = fixture(root)
@@ -94,8 +100,8 @@ class T14ExamRequestTests(unittest.TestCase):
             with patch.object(chain_lots, "ROOT", root), patch.object(
                     chain_lots, "run", side_effect=git):
                 result = chain_lots.request_missing_exam(REQUEST, binding, lot)
-            self.assertEqual(result["reason_code"], "EXAMEN_PENDIENTE")
-            self.assertEqual(git.created, 1)
+            self.assertEqual(result["reason_code"], "EXAM_REQUEST_PREVIOUSLY_DISCARDED")
+            self.assertEqual(git.created, 0)
 
     def test_only_unverified_closed_remains_blocked(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -105,8 +111,8 @@ class T14ExamRequestTests(unittest.TestCase):
                            issue(194, state="closed", reason="completed")])
             with patch.object(chain_lots, "ROOT", root), patch.object(
                     chain_lots, "run", side_effect=git):
-                with self.assertRaisesRegex(ValueError, "EXAM_REQUEST_CLOSED_UNVERIFIED"):
-                    chain_lots.request_missing_exam(REQUEST, binding, lot)
+                result = chain_lots.request_missing_exam(REQUEST, binding, lot)
+                self.assertEqual(result["reason_code"], "EXAM_REQUEST_CLOSED_UNVERIFIED")
             self.assertEqual(git.created, 0)
 
     def test_exam_on_main_allows_preparation_then_main_registration_closes(self):
