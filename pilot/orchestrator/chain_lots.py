@@ -752,6 +752,21 @@ def exam_key(request: str, binding: dict) -> str:
         if not isinstance(spec, dict):
             deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
         version = hashlib.sha256(canonical(spec)).hexdigest()
+        # Pre-T47 registrations lack a verifiable original-template stamp.
+        legacy_record = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
+        if legacy_record.is_symlink():
+            deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+        if legacy_record.is_file():
+            recorded = json.loads(legacy_record.read_text("utf-8"))
+            if not isinstance(recorded, dict):
+                deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+            stamped = recorded.get("template_sha256")
+            if stamped is None and "template_path" not in recorded:
+                version = "legacy"
+            elif (not isinstance(stamped, str)
+                  or not re.fullmatch(r"[0-9a-f]{64}", stamped)
+                  or not isinstance(recorded.get("template_path"), str)):
+                deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
     except (OSError, ValueError, TypeError):
         deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
     return f"LF_EXAM_REQUEST_KEY:{request}:{task}:{version}"
