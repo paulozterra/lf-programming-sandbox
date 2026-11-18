@@ -21,6 +21,7 @@
     "auditor": "CLAUDE_ROUTINE",
     "sample_n": 1,
     "performance_budget_ms": null,
-    "freshness_budget_ms": null
+    "freshness_budget_ms": null,
+    "since_commit": "c24dfb2e909318a04aa524af69f967196e62d642"
   }
 }

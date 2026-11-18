@@ -257,3 +257,29 @@ def test_ekb_with_no_rows_is_a_failure(tmp_path):
     psql = _fake_psql(tmp_path, stdout="BEGIN\nROLLBACK\n")
     with pytest.raises(ekb.EkbError, match="AUDIT_EKB_UNAVAILABLE:EMPTY"):
         ekb.read_codes(cfg.load("lf"), env={"LF_EKB_READONLY_URL": "postgresql://x", "PATH": "/bin"}, psql=psql)
+
+
+# ---- T48 trigger ---------------------------------------------------------
+def test_trigger_selects_closed_requests_after_cutoff(tmp_path, monkeypatch):
+    import types
+    import request_trigger as rt
+    r, shas = _repo_with_merges(tmp_path)
+    fake = types.SimpleNamespace(
+        first_parent_merges=lambda: [],
+        completed_lots=lambda lots, b, h: b)
+    monkeypatch.setitem(sys.modules, "chain_lots", fake)
+    lots = {"lots": [{"id": "A"}, {"id": "B"}]}
+    plans = [("req-old", lots, {}, {"A": {"merge_sha": shas[0]}, "B": {"merge_sha": shas[0]}}),
+             ("req-new", lots, {}, {"A": {"merge_sha": shas[1]}, "B": {"merge_sha": shas[2]}}),
+             ("req-open", lots, {}, {"A": {"merge_sha": shas[2]}})]
+    config = {"audit": {"since_commit": shas[1]}}
+    assert rt.candidates(config, plans, root=r) == ["req-new"]
+    (r / "pilot/runs/req-new/audit").mkdir(parents=True)
+    assert rt.candidates(config, plans, root=r) == []
+
+
+def test_trigger_issue_carries_marker_and_input():
+    import request_trigger as rt
+    config = cfg.load("lf")
+    body = rt.issue_body("req-9", {"base_commit": "c" * 40, "evidence_destination": "pilot/runs/req-9/audit"}, config)
+    assert body.startswith("<!-- audit-request:req-9 -->") and "CLAUDE_ROUTINE" in body and "```json" in body
