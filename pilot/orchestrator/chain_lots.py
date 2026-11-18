@@ -1490,6 +1490,28 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         ci_status = main_ci_decision(head)
         if ci_status != "GREEN":
             return [{"status": ci_status, "head_sha": head}]
+    all_plans = plans()
+    owners = {}
+    for request, _lots, _state, bindings in all_plans:
+        for binding in bindings.values():
+            task = binding.get("task_name") if isinstance(binding, dict) else None
+            if isinstance(task, str):
+                owners.setdefault(task, set()).add(request)
+
+    def task_live(task: str) -> bool:
+        candidates = owners.get(task, set())
+        if len(candidates) != 1:
+            raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        return request_state(next(iter(candidates)), api, root=ROOT) == OPEN
+
+    def candidate_live(row: dict) -> bool:
+        if row["kind"] == "implemented-registry":
+            return True
+        request = conflicted_request(row, all_plans)
+        if request is None:
+            raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        return request_state(request, api, root=ROOT) == OPEN
+
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
     # can hide a Train failure, including when no owner plans are active.
     retired = []
@@ -1497,7 +1519,9 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     kept = []
     if sweep:
         try:
-            for entry in retire_conflicted_generated(head, run, api, REPO, api_list):
+            for entry in retire_conflicted_generated(
+                    head, run, api, REPO, api_list,
+                    allow_candidate=candidate_live):
                 if entry.get("status") == "BLOCKED":
                     recovery_failures.append(entry)
                 elif entry.get("status") == "KEPT":
@@ -1510,7 +1534,6 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     # A sweep must not create unrelated registry drafts when idle.
     registry_status = (sync_implemented_registry(head)
                        if kind == "TRAIN" and not sweep else None)
-    all_plans = plans()
     # Each recovery is a separate trust boundary. A local failure may not
     # short-circuit later recoveries or per-request planning.
     repair_outcomes = list(recovery_failures) + kept
@@ -1519,15 +1542,25 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             ("T20_BOT_CI_RETRY",
              lambda: retry_failed_bot_prs(
                  head, run, api, REPO, all_plans, route_request_metadata,
-                 api_list)),
+                 api_list,
+                 allow_pr=lambda number, branch: candidate_live({
+                     "number": number, "branch": branch,
+                     "kind": ("generated-t7" if branch.startswith(
+                         "lf/generated-t7/") else
+                         "registration" if branch.startswith(
+                             "lf/native-registration/") else
+                         "integration" if branch.startswith(
+                             "lf/native-integration/") else
+                         "implemented-registry")}))),
             ("T20_NATIVE_INFRA",
-             lambda: retry_native_infra(head, run, api, REPO, ROOT)),
+             lambda: retry_native_infra(
+                 head, run, api, REPO, ROOT, allowed_task=task_live)),
             ("T22_FEEDBACK",
              lambda: recover_native_feedback(run, api, REPO, ROOT)),
             ("T23_ROUTE",
              lambda: recover_route_defects(
                  head, run, api, REPO, ROOT, worktree, draft, pending_draft,
-                 api_list=api_list)),
+                 api_list=api_list, allowed_task=task_live)),
         )
         for phase, action in recoveries:
             try:
