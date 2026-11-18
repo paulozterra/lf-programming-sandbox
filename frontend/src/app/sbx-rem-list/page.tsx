@@ -7,7 +7,7 @@ import {
   type ReminderPriority,
 } from "@/lib/sbx-rem-list";
 
-const LOGIN_PATH = "/login";
+const LOGIN_PATH = "/sbx-b2b-login?next=/sbx-rem-list";
 
 export default function SbxRemListPage() {
   const [query, setQuery] = useState("");
