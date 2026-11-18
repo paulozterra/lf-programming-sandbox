@@ -191,7 +191,7 @@ def test_integration_reuses_trusted_cp35_dispatch():
 
     def source(path):
         if path == "actions/runs/2500":
-            return {"id": 2500, "status": "completed",
+            return {"created_at": "2026-11-17T10:00:00Z", "id": 2500, "status": "completed",
                     "conclusion": "success", "run_attempt": 1,
                     "event": "workflow_run", "head_branch": "main",
                     "path": ".github/workflows/worker-native.yml",
@@ -199,7 +199,7 @@ def test_integration_reuses_trusted_cp35_dispatch():
                     "display_title": "lf-native-auto-lf/native-proposal/task1-" + HEAD}
         if path == "actions/runs/2500/jobs?per_page=100":
             return {"jobs": [{"name": "native", "conclusion": "success"}]}
-        if path == "actions/workflows/native-verified-integration.yml/runs?per_page=100":
+        if path.startswith("actions/workflows/native-verified-integration.yml/runs?"):
             return {"total_count": 0, "workflow_runs": []}
         raise AssertionError(path)
 
