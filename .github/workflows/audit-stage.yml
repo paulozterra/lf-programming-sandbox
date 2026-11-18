@@ -41,15 +41,15 @@ jobs:
       - name: Install the validator's only dependency
         run: python3 -m pip install --quiet --break-system-packages 'jsonschema==4.23.0'
       - name: Fetch and verify the pinned audit skill
-        run: python3 pilot/audit/skill_pin.py --project "$PROJECT" --dest "$RUNNER_TEMP/audit-skill"
+        run: python3 -m pilot.workflow_entrypoint pilot/audit/skill_pin.py --project "$PROJECT" --dest "$RUNNER_TEMP/audit-skill"
       - name: Probe the project's EKB (codes only)
         env:
           LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}
-        run: python3 pilot/audit/ekb_reader.py --project "$PROJECT"
+        run: python3 -m pilot.workflow_entrypoint pilot/audit/ekb_reader.py --project "$PROJECT"
       - name: Validate every audit report (skill validator + route checks + EKB codes)
         env:
           LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}
         run: |
           set -euo pipefail
           skill="$RUNNER_TEMP/audit-skill/$(python3 -c "import json;print(json.load(open('pilot/audit/projects/$PROJECT.json'))['audit']['skill']['path'])")"
-          python3 pilot/audit/validate_report.py --project "$PROJECT" --skill-dir "$skill" --all --ekb
+          python3 -m pilot.workflow_entrypoint pilot/audit/validate_report.py --project "$PROJECT" --skill-dir "$skill" --all --ekb
