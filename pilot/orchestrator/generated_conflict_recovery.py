@@ -266,6 +266,7 @@ def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -
                       if (number, sha) in evidence else None)
             if dirty and _only_generated_index_conflict(head, sha, number, run):
                 retired.append({"status": "KEPT", "pr": number,
+                                "branch": branch, "sha": sha,
                                 "reason": "CONFLICT_ONLY_GENERATED_CHANGES_INDEX"})
                 continue
             if reason is None and kind == "integration":
