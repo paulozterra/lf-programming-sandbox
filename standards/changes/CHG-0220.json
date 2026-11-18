@@ -25,6 +25,7 @@
       "pilot/orchestrator/test_t49_lifecycle.py",
       "pilot/test_t12_concurrency.py",
       "pilot/test_t14_exam_requests.py",
+      "pilot/test_t15_sweep.py",
       "pilot/worker_v08/native_feedback_delivery.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0220.json"
