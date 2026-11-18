@@ -123,3 +123,28 @@ def test_exam_notice_never_comments_on_closed(tmp_path, monkeypatch):
     monkeypatch.setattr(chain, "run", lambda *_a, **_k:
                         pytest.fail("commented on closed request"))
     chain.exam_notice("req-275", "key", "EXAMEN_PENDIENTE")
+
+
+def test_conflict_notice_suppressed_for_closed(tmp_path, monkeypatch):
+    fixture(tmp_path)
+    from pilot.orchestrator import chain_lots as chain
+    monkeypatch.setattr(chain, "ROOT", tmp_path)
+    monkeypatch.setattr(chain, "conflicted_request", lambda *_: "req-275")
+    monkeypatch.setattr(chain, "api", api_for("closed", "not_planned"))
+    monkeypatch.setattr(chain, "run", lambda *_a, **_k:
+                        pytest.fail("notice published despite closed issue"))
+    chain.notify_failed_conflict_replay({"number": 500}, [], 1234)
+
+
+def test_worker_feedback_suppressed_for_closed(tmp_path, monkeypatch):
+    fixture(tmp_path)
+    from pilot.worker_v08 import native_feedback_delivery as feedback
+    monkeypatch.setattr(feedback, "issue_for_task", lambda *_: 275)
+    monkeypatch.setattr(feedback, "parse_feedback", lambda value, attempt:
+                        {"schema_version": "test"})
+    def forbidden(*_a, **_kw):
+        pytest.fail("feedback published despite closed issue")
+    result = feedback.publish(forbidden, api_for("closed", "completed"),
+                              "org/repo", tmp_path, "task202", "a" * 40,
+                              1, {}, "FAIL")
+    assert result == "REQUEST_CLOSED"
