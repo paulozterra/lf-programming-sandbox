@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import parse_qs
 from unittest.mock import patch
 
 import pytest
@@ -17,11 +18,11 @@ SHA = "a" * 40
 BRANCH = f"lf/native-integration/{TASK}-run-{RUN}"
 ROW = {"kind": "integration", "branch": BRANCH, "number": 123,
        "sha": "b" * 40}
-HISTORY = "actions/workflows/native-verified-integration.yml/runs?per_page=100"
+HISTORY = "actions/workflows/native-verified-integration.yml/runs?"
 
 
 def source(**override):
-    item = {"id": RUN, "status": "completed", "conclusion": "success",
+    item = {"created_at": "2026-11-17T10:00:00Z", "id": RUN, "status": "completed", "conclusion": "success",
             "run_attempt": 1, "event": "workflow_run",
             "head_branch": "main",
             "path": ".github/workflows/worker-native.yml",
@@ -48,7 +49,12 @@ def fixture(history, *, source_row=None):
             return source() if source_row is None else source_row
         if path == f"actions/runs/{RUN}/jobs?per_page=100":
             return {"jobs": [{"name": "native", "conclusion": "success"}]}
-        if path == HISTORY:
+        if path.startswith(HISTORY):
+            query = parse_qs(path.split("?", 1)[1])
+            assert query["event"] == ["workflow_dispatch"]
+            assert query["branch"] == ["main"]
+            assert query["created"] == [">=2026-11-17T10:00:00Z"]
+            assert query["page"] == ["1"]
             if isinstance(history, dict) and isinstance(history.get("workflow_runs"), list):
                 return {"total_count": len(history["workflow_runs"]), **history}
             return history
@@ -122,7 +128,7 @@ def test_t46_1_ambiguous_history_denies_dispatch(history):
 def test_t46_1_history_unavailable_denies_dispatch():
     run, api, calls = fixture({"workflow_runs": []})
     def broken(path):
-        if path == HISTORY:
+        if path.startswith(HISTORY):
             raise OSError("No network")
         return api(path)
     with pytest.raises(recovery.ReplayBlocked,

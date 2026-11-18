@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import os
 import re
+from datetime import datetime, timezone
+from urllib.parse import urlencode
 
 from pilot.orchestrator.native_integration_replay import (
     _trusted_worker, WORKER_TITLE, REPLAY_TITLE, INTEGRATION_PATH,
@@ -13,6 +15,7 @@ BRANCH = re.compile(r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-([1-9][0
 INTEGRATION = "native-verified-integration.yml"
 BOT = {"github-actions[bot]", "app/github-actions", "github-actions"}
 HISTORY_LIMIT = 100
+PAGE_LIMIT_ENV = "CP36_CP35_REPLAY_HISTORY_PAGE_LIMIT"
 FAIL_LIMIT_ENV = "CP36_CP35_REPLAY_FAILURE_LIMIT"
 PENDING = {"queued", "in_progress", "requested", "waiting", "pending"}
 
@@ -36,7 +39,7 @@ def _failure_limit() -> int:
     return value
 
 
-def _native_pass(api, repo: str, run_id: int, task: str) -> None:
+def _native_pass(api, repo: str, run_id: int, task: str) -> str:
     """Use precisely T24's native-run predicate and title regex, not a copy."""
     try:
         item = api("actions/runs/" + str(run_id))
@@ -54,6 +57,18 @@ def _native_pass(api, repo: str, run_id: int, task: str) -> None:
                 and entry.get("name") == "native"
                 and entry.get("conclusion") == "success") != 1):
         block("CONFLICT_RECOVERY_SOURCE_RUN_UNRESOLVED")
+    # GitHub's created>= filter excludes all workflow runs older than the
+    # immutable original PASS. An unknown/invalid timestamp cannot be guessed.
+    created = item.get("created_at")
+    if not isinstance(created, str):
+        block("CONFLICT_RECOVERY_SOURCE_RUN_UNRESOLVED")
+    try:
+        parsed = datetime.fromisoformat(created.replace("Z", "+00:00"))
+    except ValueError:
+        block("CONFLICT_RECOVERY_SOURCE_RUN_UNRESOLVED")
+    if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(None):
+        block("CONFLICT_RECOVERY_SOURCE_RUN_UNRESOLVED")
+    return parsed.isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def _trusted_dispatch(item: object, repo: str, run_id: int) -> bool:
@@ -68,48 +83,82 @@ def _trusted_dispatch(item: object, repo: str, run_id: int) -> bool:
             and (item.get("repository") or {}).get("full_name") == repo)
 
 
-def _dispatch_history(api, repo: str, run_id: int) -> list[dict]:
-    try:
-        history = api("actions/workflows/" + INTEGRATION + "/runs?per_page=100")
-    except (OSError, ValueError, KeyError, TypeError):
+def _page_limit() -> int:
+    raw = os.environ.get(PAGE_LIMIT_ENV, "10")
+    if not isinstance(raw, str) or not re.fullmatch(r"[1-9][0-9]{0,1}", raw):
         block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
-    records = history.get("workflow_runs") if isinstance(history, dict) else None
-    # Count=100 is ambiguous even if no page 2 is advertised. Never guess.
-    if not isinstance(records, list) or len(records) >= HISTORY_LIMIT:
+    limit = int(raw)
+    if limit > 50:
         block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
-    total = history.get("total_count")
-    if type(total) is not int or total != len(records):
-        block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
+    return limit
+
+
+def _dispatch_history(api, repo: str, run_id: int, created_at: str) -> list[dict]:
+    """Read a complete, filtered GitHub history, or fail closed before dispatch.
+
+    REST pagination is 1-based. A previous failure on any page must count.
+    Snapshot changes (count or duplicate IDs) and incomplete pages are unsafe.
+    """
+    limit = _page_limit()
+    prefix = "actions/workflows/" + INTEGRATION + "/runs?"
+    filters = {"per_page": str(HISTORY_LIMIT), "event": "workflow_dispatch",
+               "branch": "main", "created": ">=" + created_at}
     seen: set[int] = set()
-    for item in records:
-        if not isinstance(item, dict):
+    selected = []
+    total = None
+    for page in range(1, limit + 1):
+        query = urlencode({**filters, "page": str(page)})
+        try:
+            history = api(prefix + query)
+        except (OSError, ValueError, KeyError, TypeError):
             block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
-        status, conclusion = item.get("status"), item.get("conclusion")
-        if (type(item.get("id")) is not int or item["id"] <= 0
-                or item["id"] in seen
-                or not isinstance(status, str)
-                or status not in PENDING | {"completed"}
-                or (status == "completed"
-                    and (not isinstance(conclusion, str)
-                         or conclusion not in
-                         {"success", "failure", "cancelled", "skipped", "timed_out",
-                          "action_required", "neutral"}))
-                or not isinstance(item.get("display_title"), str)
-                or not isinstance(item.get("head_branch"), str)
-                or not isinstance(item.get("path"), str)
-                or not isinstance(item.get("repository"), dict)
-                or not isinstance(item["repository"].get("full_name"), str)):
+        records = history.get("workflow_runs") if isinstance(history, dict) else None
+        count = history.get("total_count") if isinstance(history, dict) else None
+        if (type(count) is not int or count < 0
+                or not isinstance(records, list)
+                or len(records) > HISTORY_LIMIT
+                or (total is not None and total != count)):
             block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
-        seen.add(item["id"])
-        # A matching title with falsified origin must not let the resolver
-        # silently exclude evidence for this source PASS.
-        if (REPLAY_TITLE.fullmatch(item["display_title"])
-                and not (item.get("event") == "workflow_dispatch"
-                         and item["head_branch"] == "main"
-                         and item["path"].split("@")[0] == INTEGRATION_PATH
-                         and item["repository"]["full_name"] == repo)):
+        if total is None:
+            total = count
+            if total > limit * HISTORY_LIMIT:
+                block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
+        remaining = total - len(seen)
+        if remaining < 0 or len(records) != min(HISTORY_LIMIT, remaining):
             block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
-    return [item for item in records if _trusted_dispatch(item, repo, run_id)]
+        for item in records:
+            if not isinstance(item, dict):
+                block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
+            status, conclusion = item.get("status"), item.get("conclusion")
+            if (type(item.get("id")) is not int or item["id"] <= 0
+                    or item["id"] in seen
+                    or not isinstance(status, str)
+                    or status not in PENDING | {"completed"}
+                    or (status == "completed"
+                        and (not isinstance(conclusion, str)
+                             or conclusion not in
+                             {"success", "failure", "cancelled", "skipped",
+                              "timed_out", "action_required", "neutral"}))
+                    or not isinstance(item.get("display_title"), str)
+                    or not isinstance(item.get("head_branch"), str)
+                    or not isinstance(item.get("path"), str)
+                    or not isinstance(item.get("repository"), dict)
+                    or not isinstance(item["repository"].get("full_name"), str)):
+                block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
+            seen.add(item["id"])
+            # A matching recovery title with falsified provenance is not
+            # permission to omit an attempted recovery from the failure cap.
+            if (REPLAY_TITLE.fullmatch(item["display_title"])
+                    and not (item.get("event") == "workflow_dispatch"
+                             and item["head_branch"] == "main"
+                             and item["path"].split("@")[0] == INTEGRATION_PATH
+                             and item["repository"]["full_name"] == repo)):
+                block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
+            if _trusted_dispatch(item, repo, run_id):
+                selected.append(item)
+        if len(seen) == total:
+            return selected
+    block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
 
 
 def recover(row: dict, run, api, repo: str) -> dict:
@@ -119,7 +168,7 @@ def recover(row: dict, run, api, repo: str) -> dict:
         block("CONFLICT_RECOVERY_SOURCE_RUN_UNRESOLVED")
     task, digits = match.groups()
     run_id = int(digits)
-    _native_pass(api, repo, run_id, task)
+    created_at = _native_pass(api, repo, run_id, task)
 
     try:
         raw = run("gh", "pr", "list", "--repo", repo, "--state", "open",
@@ -135,7 +184,7 @@ def recover(row: dict, run, api, repo: str) -> dict:
         return {"status": "CONFLICT_INTEGRATION_ALREADY_PUBLISHED",
                 "source_run_id": run_id, "task": task}
 
-    records = _dispatch_history(api, repo, run_id)
+    records = _dispatch_history(api, repo, run_id, created_at)
     # A trusted prior dispatch already executing is a single-flight guard.
     if any(item["status"] in PENDING for item in records):
         return {"status": "CONFLICT_INTEGRATION_DISPATCH_PENDING",

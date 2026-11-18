@@ -197,14 +197,14 @@ def test_nonmechanical_red_ci_never_authorizes_closing_pr():
 
 def _t46_trusted_pass(path):
     if path == "actions/runs/" + str(SOURCE_ID):
-        return {"id": SOURCE_ID, "status": "completed", "conclusion": "success",
+        return {"created_at": "2026-11-17T10:00:00Z", "id": SOURCE_ID, "status": "completed", "conclusion": "success",
                 "run_attempt": 1, "event": "workflow_run", "head_branch": "main",
                 "path": ".github/workflows/worker-native.yml",
                 "repository": {"full_name": REPO},
                 "display_title": "lf-native-auto-lf/native-proposal/req186contrato1-" + HEAD}
     if path == "actions/runs/" + str(SOURCE_ID) + "/jobs?per_page=100":
         return {"jobs": [{"name": "native", "conclusion": "success"}]}
-    if path == "actions/workflows/native-verified-integration.yml/runs?per_page=100":
+    if path.startswith("actions/workflows/native-verified-integration.yml/runs?"):
         return {"total_count": 0, "workflow_runs": []}
     raise AssertionError(path)
 
