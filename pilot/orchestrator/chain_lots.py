@@ -797,12 +797,12 @@ def choose_exam_issue(matches: list, registered: bool) -> tuple[str, dict | None
     opened = [row for row in ordered if exam_issue_state(row)[0] == "open"]
     if len(opened) > 1:
         return "EXAM_REQUEST_DUPLICATE_OPEN", opened[0]
-    if opened:
-        return "EXAMEN_PENDIENTE", opened[0]
     completed = [row for row in ordered
                  if exam_issue_state(row) == ("closed", "completed")]
     if registered and completed:
         return "EXAM_ALREADY_REGISTERED", completed[0]
+    if opened:
+        return "EXAMEN_PENDIENTE", opened[0]
     if ordered and all(exam_issue_state(row) in
                        (("closed", "not_planned"), ("closed", "duplicate"))
                        for row in ordered):
