@@ -8,8 +8,8 @@ from __future__ import annotations
 import json
 import re
 
-BRANCH = re.compile(r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-([1-9][0-9]*)\\Z")
-SHA = re.compile(r"[0-9a-f]{40}\\Z")
+BRANCH = re.compile(r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-([1-9][0-9]*)\Z")
+SHA = re.compile(r"[0-9a-f]{40}\Z")
 WORKER = ".github/workflows/worker-native.yml"
 INTEGRATION = "native-verified-integration.yml"
 INTEGRATION_PATH = ".github/workflows/" + INTEGRATION
