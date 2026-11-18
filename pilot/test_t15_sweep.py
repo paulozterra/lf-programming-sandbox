@@ -75,13 +75,12 @@ class SweepTests(unittest.TestCase):
                  patch.object(chain_lots, "check_main", return_value=HEAD), \
                  patch.object(chain_lots, "main_ci_decision", return_value="GREEN"), \
                  patch.object(chain_lots, "plans", return_value=[("req-901", lots, state, binding)]), \
-                 patch.object(chain_lots, "sweep_request_enabled", return_value=True), \
+                 patch.object(chain_lots, "api", return_value={"number":901,"state":"open"}), \
                  patch.object(chain_lots, "first_parent_merges", return_value=[]), \
                  patch.object(chain_lots, "completed_lots", return_value={}), \
                  patch.object(chain_lots, "failed_lots", return_value={}), \
                  patch.object(chain_lots, "pending_draft", return_value=False), \
                  patch.object(chain_lots, "run", return_value="[]") as github_commands, \
-                 patch.object(chain_lots, "api") as github_api, \
                  patch.object(chain_lots, "admit_registration", return_value=None), \
                  patch.object(chain_lots, "prepare_successor", return_value={"status": "DRAFT_PREPARED"}) as prepare:
                 result = chain_lots.process(sweep=True, base_sha=HEAD)
@@ -92,7 +91,6 @@ class SweepTests(unittest.TestCase):
         self.assertGreaterEqual(github_commands.call_count, 2)
         self.assertTrue(all(call.args[:3] == ("gh", "pr", "list")
                             for call in github_commands.call_args_list))
-        github_api.assert_not_called()
 
     def test_closed_discarded_request_ignored(self):
         rows = {"req-901": {"number": 901, "state": "closed", "state_reason": "not_planned"},
@@ -106,13 +104,15 @@ class SweepTests(unittest.TestCase):
                  ("req-901", {}, {"stage": "LOTS_PLANNED"}, {}),
                  ("req-902", {}, {"stage": "LOTS_PLANNED"}, {})]), \
              patch.object(chain_lots, "first_parent_merges", return_value=[]), \
-             patch.object(chain_lots, "sweep_request_enabled", return_value=False), \
+             patch.object(chain_lots, "api", side_effect=lambda p: rows["req-" + p.split("/")[-1]]), \
              patch.object(chain_lots, "request_all_lot_exams") as request, \
              patch.object(chain_lots, "retire_conflicted_generated", return_value=[]), \
              patch.object(chain_lots, "prepare_successor") as prepare:
             self.assertEqual(chain_lots.process(sweep=True, base_sha=HEAD),
                              [{"request": "req-901", "status": "SKIPPED_NOT_ROUTE_REQUEST"},
-                               {"request": "req-902", "status": "SKIPPED_NOT_ROUTE_REQUEST"}])
+                               {"request": "req-902", "status": "SKIPPED_NOT_ROUTE_REQUEST"},
+                               {"request": "req-901", "status": "REQUEST_CLOSED"},
+                               {"request": "req-902", "status": "REQUEST_CLOSED"}])
             request.assert_not_called()
             prepare.assert_not_called()
 
