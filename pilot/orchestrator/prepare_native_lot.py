@@ -49,9 +49,12 @@ def run(root: Path, request: str, lot_id: str, task_name: str, template: dict,
     # The owner governs the branch; a merged main ancestor is necessary.
     git(root, "merge-base", "--is-ancestor", "origin/main", "HEAD")
     folder, lot, mapped, paths = choose(root, request, lot_id, proofs)
+    # Direct historical callers may omit the source locator; the governed
+    # CP3.6 path always supplies it and receives the new attestation.
+    stamp_kwargs = ({"template_path": source_template}
+                    if source_template is not None else {})
     registration = register_lot(root, folder, lot, mapped, paths,
-                                task_name, template, holdout,
-                                template_path=source_template)
+                                task_name, template, holdout, **stamp_kwargs)
     to_commit = registration["context_paths"] + [registration["native_task"]]
     first_sha = _commit_exact(root, to_commit, f"[CP3.4] register native context {task_name}")
     sealed = seal_lot(root, folder, lot, mapped, paths, task_name, template, holdout)
