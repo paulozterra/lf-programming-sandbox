@@ -1,0 +1,44 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0220",
+  "title": "T49: estado central del pedido y bloqueo de efectos CP3.6 para pedidos cerrados",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T49: pedido #275 cerrado; corrida TRAIN #44024745940 publicó EXAM_REQUEST #289"
+  },
+  "reason": "Una fuente central de estado diferencia OPEN, CLOSED_FINALIZED, CLOSED_CANCELLED y REQUEST_STATE_UNRESOLVED sin confiar en state_reason. La admisión TRAIN, solicitudes de examen, recuperaciones y avisos deben consultar estado vigente y no publicar sobre pedidos cerrados. Identificadores sintéticos solo se aceptan mediante lista explícita.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/request_lifecycle.py",
+      "pilot/orchestrator/request_lifecycle_allowlist.json",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/native_infra_retry.py",
+      "pilot/orchestrator/native_route_recovery.py",
+      "pilot/orchestrator/generated_conflict_recovery.py",
+      "pilot/orchestrator/bot_ci_retry.py",
+      "pilot/worker_v08/native_feedback_delivery.py",
+      "pilot/orchestrator/test_t49_lifecycle.py",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0220.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
