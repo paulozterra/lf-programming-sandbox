@@ -667,49 +667,8 @@ def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
             "-f", "merge_sha=" + source, "-f", "rerun=true")
         return {"status": "CONFLICT_T7_REDISPATCHED", "request": request}
     if kind == "integration":
-        found = re.fullmatch(
-            r"lf/native-integration/[a-z][a-z0-9_-]{0,31}-run-([1-9][0-9]*)",
-            branch)
-        if not found:
-            comment_unrecoverable_conflict(row, all_plans, "INTEGRATION_PROVENANCE_UNKNOWN")
-            return {"status": "CONFLICT_REGEN_BLOCKED", "reason": "INTEGRATION_PROVENANCE_UNKNOWN"}
-        # T25: contracts require the official Node code generator. Route
-        # both mechanically red and main-conflicted contract integrations
-        # through trusted CP3.5, which provisions npm and reattests the PASS.
-        # Legacy non-contract conflict recovery keeps its worktree path.
-        task = branch.rsplit("/", 1)[-1].rsplit("-run-", 1)[0]
-        registration = ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")
-        contract = False
-        if registration.is_file() and not registration.is_symlink():
-            from pilot.orchestrator.native_derived_generation import needs_contract_derivatives
-            try:
-                spec = json.loads(registration.read_text("utf-8"))["task_spec"]
-                contract = needs_contract_derivatives(spec["write_path_patterns"])
-            except (OSError, ValueError, KeyError, TypeError):
-                contract = False
-        if str(row.get("reason", "")).startswith("CI_DERIVED_") or contract:
-            run("gh", "workflow", "run", "native-verified-integration.yml",
-                "--repo", REPO, "--ref", "main", "-f",
-                "source_run_id=" + found.group(1))
-            return {"status": "CI_DERIVED_INTEGRATION_REDISPATCHED",
-                    "source_run_id": int(found.group(1))}
-        # CP3.5 re-verifies the original successful native run, its artifact and
-        # its patch before minting the next CHG on current main. Use an isolated
-        # worktree so CP3.6's trusted main checkout is never switched.
-        with tempfile.TemporaryDirectory(prefix="cp36-conflict-") as dirname:
-            directory = Path(dirname)
-            run("git", "worktree", "add", "--detach", str(directory), head)
-            try:
-                raw = run("python3", "pilot/orchestrator/native_verified_integration.py",
-                          "--run-id", found.group(1), "--root", str(directory),
-                          cwd=directory)
-            finally:
-                run("git", "worktree", "remove", "--force", str(directory))
-        result = json.loads(raw)
-        if result.get("run_id") != int(found.group(1)) or result.get("merge_authorized") is not False:
-            deny("CONFLICT_INTEGRATION_REGEN_UNVERIFIED")
-        return {"status": "CONFLICT_INTEGRATION_REBUILT",
-                "draft_pr": result.get("pr_url"), "head_sha": result.get("head_sha")}
+        from pilot.orchestrator.conflict_integration_replay import recover
+        return recover(row, run, api, REPO)
     comment_unrecoverable_conflict(row, all_plans, "NO_TRUSTED_REGENERATOR")
     return {"status": "CONFLICT_REGEN_BLOCKED", "reason": "NO_TRUSTED_REGENERATOR"}
 
@@ -1079,12 +1038,31 @@ def safe_failure_code(exc: Exception) -> str:
     raw = str(exc)
     if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw):
         return raw
+    # CP3.6's own command wrapper emits a trusted basename plus a bounded
+    # diagnostic class. Preserve it verbatim; never pass arbitrary stderr.
+    if re.fullmatch(
+        r"CP36_COMMAND_FAILED:[A-Za-z0-9_.-]{1,80}:"
+        r"(?:STDERR_REDACTED|NO_STDERR|CP35_BLOCKED:[A-Z0-9_:-]{1,100})",
+        raw,
+    ):
+        return raw
     status = getattr(exc, "code", None)
     status_part = f":{status}" if type(status) is int and 100 <= status <= 599 else ""
     kind = type(exc).__name__
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,50}", kind):
         kind = "Exception"
     return "CP36_LOCAL_FAILURE:" + kind + status_part
+
+
+def _failure_step(code: str, phase: str) -> str:
+    """Safe step identifier only, not arbitrary exception or stderr content."""
+    if code.startswith("CP36_COMMAND_FAILED:"):
+        match = re.fullmatch(r"CP36_COMMAND_FAILED:([A-Za-z0-9_.-]{1,80}):.*", code)
+        if match:
+            return match.group(1)
+    if code.startswith("CONFLICT_RECOVERY_"):
+        return "native-verified-integration.yml"
+    return re.sub(r"[^A-Z0-9_]", "_", phase.upper())[:64]
 
 
 def sweep_recovery_block(phase: str, exc: Exception, *,
@@ -1097,7 +1075,8 @@ def sweep_recovery_block(phase: str, exc: Exception, *,
     code = safe_failure_code(exc)
     if code in GLOBAL_SWEEP_ERRORS:
         raise exc
-    result = {"status": "BLOCKED", "phase": phase, "reason": code}
+    result = {"status": "BLOCKED", "phase": phase, "reason": code,
+              "code": code, "step": _failure_step(code, phase)}
     if pr is not None:
         result["pr"] = pr
     return result
@@ -1128,7 +1107,8 @@ def per_request_block(request: str, phase: str, exc: Exception) -> dict:
         except (ChainBlocked, ValueError, KeyError, OSError):
             # Reporting is best effort; the request stays locally blocked.
             pass
-    return {"request": request, "status": "BLOCKED", "phase": phase, "reason": code}
+    return {"request": request, "status": "BLOCKED", "phase": phase,
+            "reason": code, "code": code, "step": _failure_step(code, phase)}
 
 
 def publish_missing_registered_pack(request: str, task: str, head: str) -> dict | None:
@@ -1446,10 +1426,13 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                 OSError, ValueError, KeyError) as exc:
             request = conflicted_request(stale, all_plans)
             if request:
-                conflict_outcomes.append(per_request_block(request, "CONFLICT_RECOVERY", exc))
+                block = per_request_block(request, "CONFLICT_RECOVERY", exc)
             else:
-                conflict_outcomes.append({"pr": stale["number"], "status": "BLOCKED",
-                                          "reason": "CONFLICT_RECOVERY_UNBOUND"})
+                block = sweep_recovery_block("CONFLICT_RECOVERY", exc,
+                                             pr=stale["number"])
+            block["pr"] = stale["number"]
+            block["branch"] = stale["branch"]
+            conflict_outcomes.append(block)
     if not all_plans:
         return conflict_outcomes or [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
                  **({"registry": registry_status} if registry_status else {})}]
