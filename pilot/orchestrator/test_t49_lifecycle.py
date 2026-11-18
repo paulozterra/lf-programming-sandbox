@@ -3,6 +3,7 @@ import json
 
 import pytest
 
+from pilot.orchestrator.request_finalize import verified_chain_complete
 from pilot.orchestrator.request_lifecycle import (
     request_state, RequestStateError, OPEN, CLOSED_FINALIZED, CLOSED_CANCELLED,
 )
@@ -49,6 +50,16 @@ def test_closed_verified_is_finalized(tmp_path):
     fixture(tmp_path, finalized=True)
     assert request_state("req-275", api_for("closed", "not_planned"),
                          root=tmp_path) == CLOSED_FINALIZED
+
+
+@pytest.mark.parametrize("finalized", [False, True])
+def test_t49_canonical_finalization_parity(tmp_path, finalized):
+    fixture(tmp_path, finalized=finalized)
+    folder = tmp_path / "pilot/runs/req-275"
+    expected = verified_chain_complete(folder, root=tmp_path)
+    actual = request_state("req-275", api_for("closed"), root=tmp_path)
+    assert (actual == CLOSED_FINALIZED) is expected
+    assert actual == (CLOSED_FINALIZED if expected else CLOSED_CANCELLED)
 
 
 def test_reopened_uses_fresh_issue_state(tmp_path):
