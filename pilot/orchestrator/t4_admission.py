@@ -226,7 +226,7 @@ def registration_variant(root: Path, base_task: str, template_path: str,
           and path == template_path):
         same_pack = stamped == hashlib.sha256(
             (json.dumps(desired, sort_keys=True, separators=(",", ":"),
-                        ensure_ascii=True) + "\\n").encode("utf-8")
+                        ensure_ascii=True) + "\n").encode("utf-8")
         ).hexdigest()
     else:
         same_pack = False
