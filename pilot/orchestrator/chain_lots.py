@@ -837,7 +837,7 @@ def exam_notice(request: str, key: str, reason: str, number: int | None = None) 
         run("gh", "issue", "comment", request[4:], "--repo", REPO, "--body",
             marker + "\\nCP3.6 BLOCKED: " + reason + " para " + key +
             (f"; exam_issue=#{number}" if number else ""))
-    except (ChainBlocked, OSError, ValueError, KeyError):
+    except (ChainBlocked, OSError, ValueError, KeyError, TypeError, AttributeError):
         pass
 
 
