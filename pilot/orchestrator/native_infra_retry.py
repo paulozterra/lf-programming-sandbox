@@ -18,7 +18,7 @@ INFRA_STEP = "Install pinned shared Python acceptance runtime (T13)"
 MAX = 100
 
 
-def retry_native_infra(head, run, api, repo, control):
+def retry_native_infra(head, run, api, repo, control, *, allowed_task=None):
     response = api("actions/workflows/worker-native.yml/runs?per_page=100")
     rows = response.get("workflow_runs")
     if (not isinstance(rows, list) or type(response.get("total_count")) is not int
@@ -45,6 +45,9 @@ def retry_native_infra(head, run, api, repo, control):
             candidates.setdefault(key, []).append(item)
     outcomes = []
     for (task, sha), originals in sorted(candidates.items()):
+        if allowed_task is not None and not allowed_task(task):
+            outcomes.append({"task": task, "status": "REQUEST_CLOSED"})
+            continue
         if (task, sha) in done or not SHA.fullmatch(sha):
             continue
         # Only one initial failure, never a later Worker result for the same
