@@ -183,7 +183,12 @@ def strip_code(text: str, suffix: str) -> str:
         return re.sub(r"\"(description|summary|title|example)\"\s*:\s*\"(?:\\.|[^\"\\])*\"", '"":""', text)
     text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
     text = re.sub(r"//[^\n]*", " ", text)
-    return re.sub(r"\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[^`]*`", '""', text)
+    text = re.sub(r"\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|`[^`]*`", '""', text)
+    if suffix in (".tsx", ".jsx"):
+        # T44: visible JSX text between tags is UI copy (often mandated in
+        # Spanish by the screen contract), not an identifier.
+        text = re.sub(r">([^<>{}\n]*[^\W\d_][^<>{}\n]*)<", "><", text)
+    return text
 
 
 def _matches(path: str, patterns: list[str]) -> bool:
