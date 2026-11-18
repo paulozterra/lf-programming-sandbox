@@ -51,10 +51,27 @@ def load_registration(control: Path, task: str) -> tuple[dict, str]:
     if not path.is_file() or path.is_symlink():
         raise ValueError("NATIVE_TASK_UNREGISTERED")
     obj = strict_json_loads(path.read_text(encoding="utf-8"))
-    if (not isinstance(obj, dict) or
-            set(obj) not in ({"task_spec", "holdout_sha256"},
-                             {"task_spec", "holdout_sha256", "holdout_ref"})):
+    basic = {"task_spec", "holdout_sha256"}
+    optional = {"holdout_ref"}
+    metadata = {"template_path", "template_sha256"}
+    keys = set(obj) if isinstance(obj, dict) else set()
+    if (not isinstance(obj, dict)
+            or not basic.issubset(keys)
+            or not (keys - basic) <= optional | metadata
+            or (("template_path" in keys) != ("template_sha256" in keys))):
         raise ValueError("NATIVE_TASK_REGISTRATION_INVALID")
+    if "template_path" in obj:
+        from pathlib import PurePosixPath
+        rel = obj["template_path"]
+        template_sha = obj["template_sha256"]
+        if (not isinstance(rel, str)
+                or re.fullmatch(
+                    r"pilot/runs/req-[1-9][0-9]*/templates/[a-z][a-z0-9_-]{0,31}[.]task[.]json",
+                    rel) is None
+                or ".." in PurePosixPath(rel).parts
+                or not isinstance(template_sha, str)
+                or _SHA.fullmatch(template_sha) is None):
+            raise ValueError("NATIVE_TASK_TEMPLATE_ATTESTATION_INVALID")
     if "holdout_ref" in obj:
         holdout_ref(task, obj["holdout_ref"])
     sha = obj["holdout_sha256"]
