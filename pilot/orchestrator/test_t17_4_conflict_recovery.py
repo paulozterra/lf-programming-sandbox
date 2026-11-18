@@ -200,7 +200,7 @@ def test_integration_reuses_trusted_cp35_dispatch():
         if path == "actions/runs/2500/jobs?per_page=100":
             return {"jobs": [{"name": "native", "conclusion": "success"}]}
         if path == "actions/workflows/native-verified-integration.yml/runs?per_page=100":
-            return {"workflow_runs": []}
+            return {"total_count": 0, "workflow_runs": []}
         raise AssertionError(path)
 
     with patch.object(chain_lots, "run", side_effect=command), \
