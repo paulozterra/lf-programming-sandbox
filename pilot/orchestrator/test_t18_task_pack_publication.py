@@ -194,6 +194,7 @@ def test_next_sweep_repairs_registered_task_without_reregistering(tmp_path):
                       return_value=existing), \
          patch.object(chain_lots, "worktree", side_effect=fake_worktree), \
          patch.object(chain_lots, "draft", side_effect=fake_draft), \
+         patch.object(chain_lots, "api", return_value={"number": 901, "state": "open"}), \
          patch.object(chain_lots, "sweep_request_enabled", return_value=False):
         results = chain_lots.process(sweep=True, base_sha=head)
     assert len(drafts) == 1
