@@ -169,3 +169,27 @@ def test_t48_cache_per_template_hash_not_only_task(env, monkeypatch):
     env.write_text(json.dumps({"task_spec": {"objective": "v2"}}))
     chain.request_missing_exam(REQUEST, BINDING, LOT)
     assert len(creates(calls)) == 2
+
+
+def test_t48_old_native_registration_uses_legacy_version(env):
+    native = chain.ROOT / "pilot/worker_v08/native_tasks" / (TASK + ".json")
+    native.parent.mkdir(parents=True)
+    native.write_text(json.dumps({"task_spec": {"base_head_sha": "a" * 40}}))
+    assert chain.exam_key(REQUEST, BINDING) == (
+        f"LF_EXAM_REQUEST_KEY:{REQUEST}:{TASK}:legacy")
+
+
+def test_t48_notice_is_deduped_by_rest_comments(env, monkeypatch):
+    key = chain.exam_key(REQUEST, BINDING)
+    calls = []
+    marker = f"<!-- LF_EXAM_NOTICE:{key}:EXAM_REQUEST_PREVIOUSLY_DISCARDED -->"
+    def api(path):
+        assert path == "issues/286"
+        return {"number": 286}
+    def listing(path, **kw):
+        return [{"body": marker}] if path.endswith("/comments") else []
+    monkeypatch.setattr(chain, "api", api)
+    monkeypatch.setattr(chain, "api_list", listing)
+    monkeypatch.setattr(chain, "run", lambda *a: calls.append(a))
+    chain.exam_notice(REQUEST, key, "EXAM_REQUEST_PREVIOUSLY_DISCARDED")
+    assert calls == []
