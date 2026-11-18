@@ -19,7 +19,8 @@
       "pilot/orchestrator/test_t46_conflict_replay.py",
       ".github/workflows/ci.yml",
       "standards/CAMBIOS.md",
-      "standards/changes/CHG-0213.json"
+      "standards/changes/CHG-0213.json",
+      "pilot/orchestrator/test_t25_contract_derivatives.py"
     ]
   },
   "existing_code_impact": {
