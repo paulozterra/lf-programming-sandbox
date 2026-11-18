@@ -205,7 +205,7 @@ def _t46_trusted_pass(path):
     if path == "actions/runs/" + str(SOURCE_ID) + "/jobs?per_page=100":
         return {"jobs": [{"name": "native", "conclusion": "success"}]}
     if path == "actions/workflows/native-verified-integration.yml/runs?per_page=100":
-        return {"workflow_runs": []}
+        return {"total_count": 0, "workflow_runs": []}
     raise AssertionError(path)
 
 
