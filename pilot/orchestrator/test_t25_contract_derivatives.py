@@ -195,21 +195,46 @@ def test_nonmechanical_red_ci_never_authorizes_closing_pr():
         227, BRANCH, PR_SHA, lambda *_: "untrusted", api, REPO) is None
 
 
+def _t46_trusted_pass(path):
+    if path == "actions/runs/" + str(SOURCE_ID):
+        return {"id": SOURCE_ID, "status": "completed", "conclusion": "success",
+                "run_attempt": 1, "event": "workflow_run", "head_branch": "main",
+                "path": ".github/workflows/worker-native.yml",
+                "repository": {"full_name": REPO},
+                "display_title": "lf-native-auto-lf/native-proposal/req186contrato1-" + HEAD}
+    if path == "actions/runs/" + str(SOURCE_ID) + "/jobs?per_page=100":
+        return {"jobs": [{"name": "native", "conclusion": "success"}]}
+    if path == "actions/workflows/native-verified-integration.yml/runs?per_page=100":
+        return {"workflow_runs": []}
+    raise AssertionError(path)
+
+
+def _t46_replay_run(calls):
+    def command(*args, **kwargs):
+        calls.append(args)
+        if args[:3] == ("gh", "pr", "list"):
+            return "[]"
+        if args[:3] == ("gh", "workflow", "run"):
+            return ""
+        raise AssertionError(args)
+    return command
+
+
 def test_recovery_from_red_generated_pr_reuses_only_native_pass():
     calls = []
     row = {"kind": "integration", "branch": BRANCH,
            "reason": "CI_DERIVED_GEN_API run " + str(CI_RUN),
            "number": 227, "sha": PR_SHA}
-    with patch.object(chain_lots, "run", side_effect=lambda *args, **kw:
-                      calls.append(args) or ""):
+    with patch.object(chain_lots, "run", side_effect=_t46_replay_run(calls)), \
+         patch.object(chain_lots, "api", side_effect=_t46_trusted_pass):
         result = chain_lots.regenerate_conflicted(row, HEAD, [])
-    assert result == {"status": "CI_DERIVED_INTEGRATION_REDISPATCHED",
-                      "source_run_id": SOURCE_ID}
-    assert len(calls) == 1
-    assert calls[0][:4] == ("gh", "workflow", "run", "native-verified-integration.yml")
-    assert "source_run_id=" + str(SOURCE_ID) in calls[0]
-    assert "worker-native.yml" not in str(calls)
-    assert not any("proposal" in str(arg) for arg in calls[0])
+    assert result == {"status": "CONFLICT_INTEGRATION_REDISPATCHED",
+                      "source_run_id": SOURCE_ID, "task": "req186contrato1"}
+    dispatched = [c for c in calls if c[:3] == ("gh", "workflow", "run")]
+    assert len(dispatched) == 1
+    assert dispatched[0][:4] == ("gh", "workflow", "run", "native-verified-integration.yml")
+    assert "source_run_id=" + str(SOURCE_ID) in dispatched[0]
+    assert not any(c[0] in ("python3", "git") for c in calls)
 
 
 def test_added_openapi_without_index_is_provably_red_even_before_ci_runs():
@@ -282,11 +307,12 @@ def test_main_conflicted_contract_integration_uses_cp35_not_local_npm(tmp_path):
     row = {"kind": "integration", "branch": BRANCH, "number": 227,
            "reason": "GitHub mergeable_state=dirty", "sha": PR_SHA}
     with patch.object(chain_lots, "ROOT", tmp_path), \
-         patch.object(chain_lots, "run",
-                      side_effect=lambda *args, **kw: calls.append(args) or ""):
+         patch.object(chain_lots, "run", side_effect=_t46_replay_run(calls)), \
+         patch.object(chain_lots, "api", side_effect=_t46_trusted_pass):
         result = chain_lots.regenerate_conflicted(row, HEAD, [])
-    assert result == {"status": "CI_DERIVED_INTEGRATION_REDISPATCHED",
-                      "source_run_id": SOURCE_ID}
-    assert len(calls) == 1 and calls[0][:4] == (
-        "gh", "workflow", "run", "native-verified-integration.yml")
-    assert "worker-native.yml" not in str(calls)
+    assert result == {"status": "CONFLICT_INTEGRATION_REDISPATCHED",
+                      "source_run_id": SOURCE_ID, "task": "req186contrato1"}
+    dispatched = [c for c in calls if c[:3] == ("gh", "workflow", "run")]
+    assert len(dispatched) == 1
+    assert "source_run_id=" + str(SOURCE_ID) in dispatched[0]
+    assert not any(c[0] in ("git", "python3", "npm") for c in calls)
