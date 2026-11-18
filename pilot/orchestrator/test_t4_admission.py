@@ -1,5 +1,6 @@
 """T4 admission and re-registration tests (offline; no examiner data)."""
 import json
+import hashlib
 from pathlib import Path
 import sys
 
@@ -13,6 +14,11 @@ from t4_admission import (AdmissionBlocked, require_green_base, missing_exam,
 
 SHA = "a" * 40
 SOURCE = "b" * 64
+
+
+def template_sha(spec):
+    return hashlib.sha256((json.dumps(spec, sort_keys=True, separators=(",", ":"),
+                                   ensure_ascii=True) + "\n").encode("utf-8")).hexdigest()
 
 
 def workflow(status="completed", conclusion="success", sha=SHA, created="2026-11-13"):
@@ -102,18 +108,20 @@ def test_variant_changes_only_if_relevant_source_or_pack_changes(tmp_path):
         ".lf/worker-context/sampler/receipt.json"}
     assert registration_variant(tmp_path, "sampler", path, clean) == "sampler"
     (directory / "sampler.json").write_text(json.dumps({
+        "template_path": path, "template_sha256": template_sha(wanted),
         "task_spec": {**wanted, "base_head_sha": "a" * 40}}))
     assert registration_variant(tmp_path, "sampler", path, clean) is None
     assert registration_variant(tmp_path, "sampler", path, only_control_changed) is None
     assert registration_variant(tmp_path, "sampler", path, code_fixed) == "sampler2"
     (directory / "sampler2.json").write_text(json.dumps({
+        "template_path": path, "template_sha256": template_sha(wanted),
         "task_spec": {**wanted, "base_head_sha": "b" * 40}}))
     assert registration_variant(tmp_path, "sampler", path, clean) is None
     template.write_text(json.dumps({"task_spec": {**wanted, "objective": "Changed"}}))
     assert registration_variant(tmp_path, "sampler", path, clean) == "sampler3"
 
 
-def test_t30_own_generated_context_is_not_a_pack_change(tmp_path):
+def test_t30_generated_context_does_not_change_stamped_template(tmp_path):
     directory = tmp_path / "pilot/worker_v08/native_tasks"
     directory.mkdir(parents=True)
     template = tmp_path / "pilot/runs/sample/templates/sampler.task.json"
@@ -124,19 +132,24 @@ def test_t30_own_generated_context_is_not_a_pack_change(tmp_path):
               "protected_path_patterns": [".github/**"]}
     template.write_text(json.dumps({"task_spec": wanted}))
     path = str(template.relative_to(tmp_path))
+    stamp = template_sha(wanted)
     own = [".lf/worker-context/sampler/profile.md",
            ".lf/worker-context/sampler/receipt.json"]
-    (directory / "sampler.json").write_text(json.dumps({"task_spec": {
-        **wanted, "base_head_sha": "a" * 40,
-        "context_path_patterns": wanted["context_path_patterns"] + own,
-        "protected_path_patterns": wanted["protected_path_patterns"] + own}}))
+    (directory / "sampler.json").write_text(json.dumps({
+        "template_path": path, "template_sha256": stamp,
+        "task_spec": {**wanted, "base_head_sha": "a" * 40,
+                      "context_path_patterns": wanted["context_path_patterns"] + own,
+                      "protected_path_patterns": wanted["protected_path_patterns"] + own}}))
     clean = lambda _: set()
     assert registration_variant(tmp_path, "sampler", path, clean) is None
-    # Foreign generated context is still a real difference.
-    (directory / "sampler.json").write_text(json.dumps({"task_spec": {
-        **wanted, "base_head_sha": "a" * 40,
-        "context_path_patterns": wanted["context_path_patterns"]
-        + [".lf/worker-context/other/profile.md"]}}))
+    # T47: Arbitrary additions from the route do not change the source stamp.
+    (directory / "sampler.json").write_text(json.dumps({
+        "template_path": path, "template_sha256": stamp,
+        "task_spec": {**wanted, "base_head_sha": "a" * 40,
+                      "context_path_patterns": wanted["context_path_patterns"]
+                      + [".lf/worker-context/other/profile.md"]}}))
+    assert registration_variant(tmp_path, "sampler", path, clean) is None
+    template.write_text(json.dumps({"task_spec": {**wanted, "unknown_field": True}}))
     assert registration_variant(tmp_path, "sampler", path, clean) == "sampler2"
 
 
