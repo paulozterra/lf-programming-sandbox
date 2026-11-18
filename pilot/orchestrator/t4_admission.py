@@ -7,11 +7,17 @@ trusted main checkout, before prepare_native_lot.py is invoked.
 from __future__ import annotations
 
 import json
+import hashlib
+import copy
 from pathlib import Path
 import re
+import sys
+import subprocess
+import tempfile
 
 TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
+SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 
 
 class AdmissionBlocked(ValueError):
@@ -123,6 +129,94 @@ def incremental_task(task: str, unavailable: set[str]) -> str:
     raise AdmissionBlocked("TASK_SUFFIX_EXHAUSTED")
 
 
+
+def _legacy_template_matches(root: Path, newest: str, template_path: str,
+                             desired: dict, registered: dict) -> bool:
+    """Replay the exact pinned context enrichment used by registration.
+
+    No second merge/allowlist approximation. Missing or stale historical
+    evidence is not proof of equivalence: require a new independent exam.
+    """
+    try:
+        from pathlib import PurePosixPath
+        request = PurePosixPath(template_path).parts[2]
+        chain = json.loads((root / "pilot/runs" / request / "chain_plan.json")
+                           .read_text("utf-8"))
+        lots = json.loads((root / "pilot/runs" / request / "lots.json")
+                          .read_text("utf-8"))
+        bindings = [b for b in chain.get("bindings", [])
+                    if b.get("template_path") == template_path]
+        if len(bindings) != 1:
+            return False
+        lot_rows = [l for l in lots.get("lots", [])
+                    if l.get("id") == bindings[0].get("lot_id")]
+        if len(lot_rows) != 1:
+            return False
+        lot = lot_rows[0]
+        base = registered.get("base_head_sha")
+        if not isinstance(base, str) or not SHA.fullmatch(base):
+            return False
+        # Only immutable ancestors can attest a historical enrichment input.
+        subprocess.run(["git", "-C", str(root), "merge-base",
+                        "--is-ancestor", base, "HEAD"], check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       timeout=30)
+        expected = copy.deepcopy(desired)
+        for key in ("base_head_sha", "source_snapshot_sha256", "task_id"):
+            if key in registered:
+                expected[key] = registered[key]
+        if not all(isinstance(x, str) for x in lot.get("requirement_ids", [])):
+            return False
+        worker = root / "pilot/worker_v08"
+        if str(worker) not in sys.path:
+            sys.path.insert(0, str(worker))
+        from register_task_context import register
+        with tempfile.TemporaryDirectory(prefix="lf-t47-legacy-") as temp:
+            historical = Path(temp) / "checkout"
+            subprocess.run(["git", "-C", str(root), "worktree", "add",
+                            "--detach", str(historical), base], check=True,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           timeout=45)
+            try:
+                receipt_path = historical / ".lf/worker-context" / newest / "receipt.json"
+                if receipt_path.is_symlink() or not receipt_path.is_file():
+                    return False
+                receipt = json.loads(receipt_path.read_text("utf-8"))
+                project = receipt.get("project_ref")
+                if not isinstance(project, str) or not project:
+                    return False
+                # T33 business context was introduced after some genuine
+                # registrations. The historical pinned receipt explicitly
+                # attests whether that phase was active; do not infer it
+                # from the current source's new defaults.
+                context_paths = receipt.get("context_paths")
+                if not isinstance(context_paths, list) or not all(
+                        isinstance(p, str) for p in context_paths):
+                    return False
+                prefix = f".lf/worker-context/{newest}/"
+                business = {prefix + "pantalla.json",
+                            prefix + "reglas_negocio.json"}
+                present = set(context_paths) & business
+                if present not in (set(), business):
+                    return False
+                requirements = (lot.get("requirement_ids")
+                                if present == business else None)
+                rebuilt, _ = register(
+                    {"task_spec": expected}, project=project, area=lot["area"],
+                    lot_paths=list(lot["write_paths"]), task_name=newest,
+                    budget=expected.get("max_context_bytes", 240000),
+                    root=historical, pinned=historical / "pilot/lf_profiles_pinned",
+                    persist=False, requirement_ids=requirements)
+                return rebuilt.get("task_spec") == registered
+            finally:
+                subprocess.run(["git", "-C", str(root), "worktree", "remove",
+                                "--force", str(historical)], check=False,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                               timeout=45)
+    except (OSError, ValueError, KeyError, TypeError, ImportError, IndexError,
+            subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return False
+
 def registration_variant(root: Path, base_task: str, template_path: str,
                          changed_since) -> str | None:
     """Choose an immutable retry only if the task template or relevant
@@ -159,19 +253,23 @@ def registration_variant(root: Path, base_task: str, template_path: str,
     desired = json.loads(source.read_text("utf-8")).get("task_spec")
     if not isinstance(desired, dict):
         raise AdmissionBlocked("TASK_TEMPLATE_INVALID")
-    tracked = ("objective", "write_path_patterns", "context_path_patterns",
-               "protected_path_patterns", "acceptance_commands", "max_patch_bytes",
-               "max_changed_files")
-    # T30: registration enriches the spec with the task's own generated
-    # worker context (.lf/worker-context/<task>/). That is not a pack change.
-    own = f".lf/worker-context/{newest}/"
-    def comparable(value):
-        if isinstance(value, list):
-            return [p for p in value
-                    if not (isinstance(p, str) and p.startswith(own))]
-        return value
-    same_pack = all(comparable(spec.get(k)) == comparable(desired.get(k))
-                    for k in tracked)
+    # New registrations attest the *entire* original template task_spec.
+    # Previous records are comparable only by re-running the pinned register
+    # enrichment, never by ignoring a list of allowed differences.
+    marker = object()
+    stamped = record.get("template_sha256", marker)
+    path = record.get("template_path", marker)
+    if stamped is marker and path is marker:
+        same_pack = _legacy_template_matches(root, newest, template_path,
+                                             desired, spec)
+    elif (isinstance(stamped, str) and SHA256.fullmatch(stamped)
+          and path == template_path):
+        same_pack = stamped == hashlib.sha256(
+            (json.dumps(desired, sort_keys=True, separators=(",", ":"),
+                        ensure_ascii=True) + "\n").encode("utf-8")
+        ).hexdigest()
+    else:
+        same_pack = False
     base = spec.get("base_head_sha")
     if not isinstance(base, str) or not SHA.fullmatch(base):
         raise AdmissionBlocked("TASK_BASE_INVALID")

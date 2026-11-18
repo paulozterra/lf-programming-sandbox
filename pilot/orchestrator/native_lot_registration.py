@@ -145,7 +145,7 @@ def common(root: Path, folder: Path, lot: dict, mapped: dict,
 
 def register_lot(root: Path, folder: Path, lot: dict, mapped: dict,
                  paths: list[str], task_name: str, template: dict,
-                 holdout: dict) -> dict:
+                 holdout: dict, *, template_path: str | None = None) -> dict:
     spec, base = common(root, folder, lot, mapped, paths, task_name, template)
     sha, ref = verify_holdout(root, task_name, holdout)
     output, artifacts = register(
@@ -168,7 +168,21 @@ def register_lot(root: Path, folder: Path, lot: dict, mapped: dict,
         target = root / rel
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(raw)
-    write_native_registration(root, task_name, native_file, enriched, sha, ref)
+    stamp_path = None
+    stamp_sha = None
+    if template_path is not None:
+        candidate = root / template_path
+        if (candidate.is_symlink() or not candidate.is_file()
+                or not candidate.resolve().is_relative_to((root / "pilot/runs").resolve())):
+            blocked("CP34_TEMPLATE_PROVENANCE_INVALID")
+        origin = json.loads(candidate.read_text("utf-8"))
+        source_spec = origin.get("task_spec") if isinstance(origin, dict) else None
+        if not isinstance(source_spec, dict):
+            blocked("CP34_TEMPLATE_PROVENANCE_INVALID")
+        stamp_path = template_path
+        stamp_sha = hashlib.sha256(canonical(source_spec)).hexdigest()
+    write_native_registration(root, task_name, native_file, enriched, sha, ref,
+                              stamp_path, stamp_sha)
     return {"status": "CONTEXT_CREATED_NOT_COMMITTED", "task_name": task_name,
             "lot_id": lot["id"], "base_head_sha": base,
             "profile": mapped, "write_paths": paths,
@@ -209,7 +223,9 @@ def seal_lot(root: Path, folder: Path, lot: dict, mapped: dict,
     # Validate the sealed input against the identical Worker parser used in
     # native_run; registration-time SHA mutations cannot bypass T16.
     validate_template_worker({"task_spec": sealed}, lot["area"])
-    payload = native_registration_bytes(sealed, sha, ref, task_name)
+    payload = native_registration_bytes(sealed, sha, ref, task_name,
+                                        record.get("template_path"),
+                                        record.get("template_sha256"))
     task_file.write_bytes(payload)
     return {"status": "SEALED_NEEDS_COMMIT", "base_head_sha": head,
             "native_task": task_file.relative_to(root).as_posix(),

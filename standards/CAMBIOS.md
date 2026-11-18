@@ -206,3 +206,4 @@
 | CHG-0213 | ADDITIVE | T46: recuperación confiable de integraciones y bloqueos tipados CP3.6 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/333 |
 | CHG-0214 | ADDITIVE | T46.1: limitar reintentos de integración y unificar confianza del PASS |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/334 |
 | CHG-0215 | ADDITIVE | T46.2: historial CP3.5 filtrado y paginado para recuperación confiable |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/335 |
+| CHG-0216 | ADDITIVE | T47: huella de plantilla e idempotencia del registro con compatibilidad legacy |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/336 |

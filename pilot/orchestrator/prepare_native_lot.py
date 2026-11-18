@@ -38,7 +38,7 @@ def _commit_exact(root: Path, paths: list[str], message: str) -> str:
 
 
 def run(root: Path, request: str, lot_id: str, task_name: str, template: dict,
-        holdout: dict, proofs: list[dict]) -> dict:
+        holdout: dict, proofs: list[dict], *, source_template: str | None = None) -> dict:
     if root.resolve() != ROOT.resolve():
         blocked("CP35_REPO_ROOT_MISMATCH")
     branch = git(root, "branch", "--show-current")
@@ -49,8 +49,12 @@ def run(root: Path, request: str, lot_id: str, task_name: str, template: dict,
     # The owner governs the branch; a merged main ancestor is necessary.
     git(root, "merge-base", "--is-ancestor", "origin/main", "HEAD")
     folder, lot, mapped, paths = choose(root, request, lot_id, proofs)
+    # Direct historical callers may omit the source locator; the governed
+    # CP3.6 path always supplies it and receives the new attestation.
+    stamp_kwargs = ({"template_path": source_template}
+                    if source_template is not None else {})
     registration = register_lot(root, folder, lot, mapped, paths,
-                                task_name, template, holdout)
+                                task_name, template, holdout, **stamp_kwargs)
     to_commit = registration["context_paths"] + [registration["native_task"]]
     first_sha = _commit_exact(root, to_commit, f"[CP3.4] register native context {task_name}")
     sealed = seal_lot(root, folder, lot, mapped, paths, task_name, template, holdout)
@@ -71,6 +75,7 @@ def main() -> int:
     ap.add_argument("--lot-id", required=True)
     ap.add_argument("--task-name", required=True)
     ap.add_argument("--template", type=Path, required=True)
+    ap.add_argument("--source-template", type=str, help="Canonical source template path inside repo")
     ap.add_argument("--holdout-metadata", type=Path, required=True)
     ap.add_argument("--handoff-proof", type=Path, action="append", default=[])
     args = ap.parse_args()
@@ -79,7 +84,8 @@ def main() -> int:
         holdout = json.loads(args.holdout_metadata.read_text("utf-8"))
         proofs = [json.loads(p.read_text("utf-8")) for p in args.handoff_proof]
         outcome = run(args.root, args.request_id, args.lot_id,
-                      args.task_name, template, holdout, proofs)
+                      args.task_name, template, holdout, proofs,
+                      source_template=args.source_template)
     except (NativeLotBlocked, ContextBlocked, OSError, ValueError, KeyError) as exc:
         # A failure can leave prepared commits. Never reset or repeat blindly.
         print("CP35_BLOCKED:" + str(exc) + ":INSPECT_BRANCH_BEFORE_RETRY", file=sys.stderr)
