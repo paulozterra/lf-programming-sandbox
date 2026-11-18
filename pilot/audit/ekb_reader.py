@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import os
 from pathlib import Path
 import subprocess
@@ -41,18 +42,22 @@ def read_codes(config: dict, env: dict | None = None, psql: str = "psql") -> lis
     child_env = {k: v for k, v in env.items() if k in ("PATH", "HOME", "LANG", "LC_ALL")}
     child_env["PGCONNECT_TIMEOUT"] = "15"
     try:
-        out = subprocess.run([psql, url, "-X", "-q", "-A", "-t", "-v", "ON_ERROR_STOP=1",
+        out = subprocess.run([psql, url, "-X", "-q", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=verbose",
                               "-c", sql], capture_output=True, text=True, timeout=60,
                              env=child_env)
     except (OSError, subprocess.TimeoutExpired):
         raise EkbError("AUDIT_EKB_UNAVAILABLE:CLIENT") from None
     if out.returncode != 0:
         err = out.stderr.lower()
-        kind = ("AUTH" if "password" in err or "authentication" in err else
+        # Only a 5-char SQLSTATE ever leaves this function, never server text.
+        state = re.search(r"error:\s+([0-9a-z]{5}):", err)
+        kind = ("AUTH" if "password" in err or "authentication" in err
+                or "tenant or user not found" in err else
                 "PERMISSION" if "permission denied" in err else
                 "SCHEMA" if "does not exist" in err else
                 "NETWORK" if "could not" in err or "timeout" in err else "QUERY")
-        raise EkbError("AUDIT_EKB_UNAVAILABLE:" + kind)
+        raise EkbError("AUDIT_EKB_UNAVAILABLE:" + kind
+                       + (":" + state.group(1).upper() if state and kind == "QUERY" else ""))
     codes = [line.strip() for line in out.stdout.splitlines() if line.strip()
              and line.strip() not in ("BEGIN", "ROLLBACK")]
     return sorted(set(codes))

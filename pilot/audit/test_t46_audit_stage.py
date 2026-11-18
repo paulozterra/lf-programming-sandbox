@@ -186,6 +186,8 @@ def test_ekb_returns_codes_only(tmp_path):
     ({"LF_EKB_READONLY_URL": "host=h user=u password=PASSWD123"}, "", "SECRET_MALFORMED"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "password authentication failed for postgresql://u:PASSWD123@h", "AUTH"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "relation does not exist", "SCHEMA"),
+    ({"LF_EKB_READONLY_URL": "postgresql://x"}, "FATAL:  Tenant or user not found", "AUTH"),
+    ({"LF_EKB_READONLY_URL": "postgresql://x"}, "ERROR:  25006: PASSWD123 weird", "QUERY:25006"),
 ])
 def test_ekb_failures_never_echo_the_server_message(tmp_path, env, stderr, code):
     psql = _fake_psql(tmp_path, stderr=stderr, rc=2)
