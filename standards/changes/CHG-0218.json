@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0218",
+  "title": "T48: la ruta abre una solicitud de auditoría (issue audit-request) al cerrarse cada pedido",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Contrato de la etapa de auditoría, paso 5 (disparo REQUEST_CLOSED); continúa T46 (CHG-0212)."
+  },
+  "reason": "request_trigger.py usa la misma prueba de cierre de CP3.6 (todos los lotes integrados y atestiguados) y, por cada pedido cerrado después de audit.since_commit y sin auditoría previa, abre un issue audit-request con el LF_DEEP_AUDIT_INPUT_V2 derivado, la skill fijada y el auditor declarado. Genérico por proyecto, idempotente (marca en el issue y carpeta audit/), limitado por sample_n; un pedido con historia inválida se salta sin bloquear a los demás. Modo SHADOW. Workflow audit-request.yml en pushes a main y bajo demanda.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/audit/request_trigger.py",
+      "pilot/audit/audit_config.py",
+      "pilot/audit/projects/lf.json",
+      "pilot/audit/test_t46_audit_stage.py",
+      ".github/workflows/audit-request.yml",
+      ".github/workflows/ci.yml",
+      "pilot/test_t20_runner_pin.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0218.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}
