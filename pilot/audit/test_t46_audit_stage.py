@@ -187,6 +187,7 @@ def test_ekb_returns_codes_only(tmp_path):
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "password authentication failed for postgresql://u:PASSWD123@h", "AUTH"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "relation does not exist", "SCHEMA"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, 'connection to server at "db.x" (2600::1), port 5432 failed: Network is unreachable', "NETWORK_IPV6_UNREACHABLE"),
+    ({"LF_EKB_READONLY_URL": "postgresql://x"}, 'psql: error: invalid URI query parameter: "foo"', "SECRET_MALFORMED"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "FATAL:  Tenant or user not found", "AUTH"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "ERROR:  25006: PASSWD123 weird", "QUERY:25006"),
 ])
@@ -241,3 +242,11 @@ def test_validate_runs_skill_validator(tmp_path):
     (d / "report.json").write_text(json.dumps(_report()))
     assert vr.validate(d / "report.json", skill, tmp_path, ["E-1"]) == ["SKILL:SCHEMA:x"]
     sys.modules.pop("validate_audit_v2", None)
+
+
+def test_ekb_strips_orm_only_parameters(tmp_path):
+    f = tmp_path / "psql"
+    f.write_text('#!/bin/sh\ncase "$1" in *pgbouncer*|*connection_limit*) exit 3;; esac\necho E-1\n')
+    f.chmod(0o755)
+    url = "postgresql://u:p@h:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require"
+    assert ekb.read_codes(cfg.load("lf"), env={"LF_EKB_READONLY_URL": url, "PATH": "/bin"}, psql=str(f)) == ["E-1"]

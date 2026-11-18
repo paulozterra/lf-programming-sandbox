@@ -36,6 +36,10 @@ def read_codes(config: dict, env: dict | None = None, psql: str = "psql") -> lis
     if not url.startswith(("postgresql://", "postgres://")):
         # Never echo the value: it may be a credential pasted in another form.
         raise EkbError("AUDIT_EKB_UNAVAILABLE:SECRET_MALFORMED")
+    # ORM-only query parameters (Prisma) that libpq rejects as invalid.
+    base, _, query = url.partition("?")
+    kept = [kv for kv in query.split("&") if kv and kv.split("=")[0] not in ("pgbouncer", "connection_limit", "pool_timeout", "schema")]
+    url = base + ("?" + "&".join(kept) if kept else "")
     # Identifiers are validated by audit_config (IDENT); no user input reaches SQL.
     sql = (f"begin transaction read only; select {ekb['code_column']} from {ekb['table']} "
            f"where {ekb['code_column']} is not null order by 1; rollback;")
@@ -51,7 +55,9 @@ def read_codes(config: dict, env: dict | None = None, psql: str = "psql") -> lis
         err = out.stderr.lower()
         # Only a 5-char SQLSTATE ever leaves this function, never server text.
         state = re.search(r"error:\s+([0-9a-z]{5}):", err)
-        kind = ("AUTH" if "password" in err or "authentication" in err
+        kind = ("SECRET_MALFORMED" if "invalid" in err and ("uri" in err or "connection option" in err
+                                                              or "port" in err or "integer" in err) else
+                "AUTH" if "password" in err or "authentication" in err
                 or "tenant or user not found" in err else
                 "PERMISSION" if "permission denied" in err else
                 "SCHEMA" if "does not exist" in err else
