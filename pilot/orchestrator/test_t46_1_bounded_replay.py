@@ -49,6 +49,8 @@ def fixture(history, *, source_row=None):
         if path == f"actions/runs/{RUN}/jobs?per_page=100":
             return {"jobs": [{"name": "native", "conclusion": "success"}]}
         if path == HISTORY:
+            if isinstance(history, dict) and isinstance(history.get("workflow_runs"), list):
+                return {"total_count": len(history["workflow_runs"]), **history}
             return history
         raise AssertionError(path)
     def run(*args):
@@ -105,6 +107,8 @@ def test_t46_1_only_failures_after_last_success_count(monkeypatch):
     {"workflow_runs": [dispatch(12, "failure", repository={"full_name": "other/repo"})]},
     {"workflow_runs": [dispatch(12, None, status="completed")]},
     {"workflow_runs": "invalid"},
+    {"workflow_runs": [], "total_count": 101},
+    {"workflow_runs": [{"id": 12, "status": [], "display_title": "bad"}]},
     {},
 ])
 def test_t46_1_ambiguous_history_denies_dispatch(history):
