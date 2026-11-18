@@ -74,8 +74,7 @@ def request_state(request: str, api, *, root: Path = ROOT,
         unresolved()
     match = REQUEST.fullmatch(request)
     if match is None:
-        if _synthetic_allowed(request, allowlist or root /
-                              "pilot/orchestrator/request_lifecycle_allowlist.json"):
+        if _synthetic_allowed(request, allowlist or ALLOWLIST):
             return OPEN
         unresolved()
     number = int(match.group(1))
