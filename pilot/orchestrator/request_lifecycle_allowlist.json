@@ -1,5 +1,6 @@
 {
   "allowed_non_issue_requests": [
-    "p4-prioridad"
+    "p4-prioridad",
+    "simulated"
   ]
 }
