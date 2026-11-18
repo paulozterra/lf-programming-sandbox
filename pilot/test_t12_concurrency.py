@@ -182,7 +182,7 @@ class Tests(unittest.TestCase):
             git=ExamGit()
             mutex=Lock()
             barrier=Barrier(2)
-            binding={"task_name":"task202","template_path":"task.json"}
+            binding={"task_name":"task202","template_path":"pilot/runs/req-901/templates/task202.task.json"}
             lot={"id":"SOL-1","area":"CONTRATO","requirement_ids":["REQ-ONE"]}
             def worker():
                 barrier.wait()
@@ -215,12 +215,13 @@ class Tests(unittest.TestCase):
              "state":"CLOSED","stateReason":"COMPLETED"}
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp)
-            template=root/"task.json"
+            template=root/"pilot/runs/req-901/templates/task202.task.json"
+            template.parent.mkdir(parents=True, exist_ok=True)
             template.write_text(json.dumps({"task_spec":{
                 "write_path_patterns":["contracts/sample.openapi.yaml"],
                 "context_path_patterns":[]}}))
             git=ExamGit();git.existing=[row]
-            bind={"task_name":"task202","template_path":"task.json"}
+            bind={"task_name":"task202","template_path":"pilot/runs/req-901/templates/task202.task.json"}
             lot={"id":"SOL-1","area":"CONTRATO","requirement_ids":["REQ-ONE"]}
             with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"run",side_effect=git):
                 self.assertEqual(chain_lots.request_missing_exam(
