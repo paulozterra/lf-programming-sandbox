@@ -57,6 +57,9 @@ def load(project: str, root: Path = ROOT) -> dict:
             or not isinstance(skill, dict) or not isinstance(ekb, dict)
             or type(audit.get("sample_n")) is not int or not 1 <= audit["sample_n"] <= 100):
         raise AuditConfigError("AUDIT_CONFIG_INVALID")
+    since = audit.get("since_commit")
+    if since is not None and (not isinstance(since, str) or not SHA40.fullmatch(since)):
+        raise AuditConfigError("AUDIT_CONFIG_INVALID")
     if (not isinstance(skill.get("repository"), str) or not REPO.fullmatch(skill["repository"])
             or not isinstance(skill.get("commit"), str) or not SHA40.fullmatch(skill["commit"])):
         raise AuditConfigError("AUDIT_SKILL_CONFIG_INVALID")

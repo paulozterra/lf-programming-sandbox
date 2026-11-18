@@ -1,0 +1,46 @@
+name: T48 audit request on request close
+run-name: T48 audit request ${{ inputs.request || github.sha }}
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pilot/runs/req-*/**'
+      - 'pilot/audit/projects/**'
+  workflow_dispatch:
+    inputs:
+      project:
+        description: Project config under pilot/audit/projects
+        required: true
+        default: lf
+      request:
+        description: Force one request (optional)
+        required: false
+        default: ''
+permissions:
+  contents: read
+  issues: write
+  actions: read
+concurrency:
+  group: t48-audit-request
+  cancel-in-progress: false
+jobs:
+  open-audit-request:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PROJECT: ${{ inputs.project || 'lf' }}
+      REQUEST: ${{ inputs.request }}
+      GH_TOKEN: ${{ github.token }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Open one audit-request issue per newly closed request (SHADOW)
+        run: |
+          set -euo pipefail
+          args=(--project "$PROJECT")
+          if [ -n "$REQUEST" ]; then args+=(--request "$REQUEST"); fi
+          python3 -m pilot.workflow_entrypoint pilot/audit/request_trigger.py "${args[@]}"
