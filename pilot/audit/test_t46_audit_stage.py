@@ -177,12 +177,13 @@ def _fake_psql(tmp_path, stdout="", stderr="", rc=0):
 def test_ekb_returns_codes_only(tmp_path):
     config = cfg.load("lf")
     psql = _fake_psql(tmp_path, stdout="BEGIN\nE-2\nE-1\nE-1\nROLLBACK\n")
-    codes = ekb.read_codes(config, env={"LF_EKB_READONLY_URL": "postgresql://u:p@h/db", "PATH": "/bin"}, psql=psql)
+    codes = ekb.read_codes(config, env={"LF_EKB_READONLY_URL": ' "postgresql://u:p@h/db"\n', "PATH": "/bin"}, psql=psql)
     assert codes == ["E-1", "E-2"] and ekb.summary(codes)["rows"] == 2
 
 
 @pytest.mark.parametrize("env,stderr,code", [
     ({}, "", "SECRET_MISSING"),
+    ({"LF_EKB_READONLY_URL": "host=h user=u password=PASSWD123"}, "", "SECRET_MALFORMED"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "password authentication failed for postgresql://u:PASSWD123@h", "AUTH"),
     ({"LF_EKB_READONLY_URL": "postgresql://x"}, "relation does not exist", "SCHEMA"),
 ])

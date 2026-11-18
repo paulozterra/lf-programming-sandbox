@@ -29,9 +29,12 @@ def read_codes(config: dict, env: dict | None = None, psql: str = "psql") -> lis
     if ekb["source"] == "NONE":
         return []
     env = dict(os.environ if env is None else env)
-    url = env.get(ekb["secret"], "")
-    if not url.startswith(("postgresql://", "postgres://")):
+    url = env.get(ekb["secret"], "").strip().strip("'\"").strip()
+    if not url:
         raise EkbError("AUDIT_EKB_UNAVAILABLE:SECRET_MISSING")
+    if not url.startswith(("postgresql://", "postgres://")):
+        # Never echo the value: it may be a credential pasted in another form.
+        raise EkbError("AUDIT_EKB_UNAVAILABLE:SECRET_MALFORMED")
     # Identifiers are validated by audit_config (IDENT); no user input reaches SQL.
     sql = (f"begin transaction read only; select {ekb['code_column']} from {ekb['table']} "
            f"where {ekb['code_column']} is not null order by 1; rollback;")
