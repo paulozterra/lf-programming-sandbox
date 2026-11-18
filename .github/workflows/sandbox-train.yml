@@ -46,6 +46,10 @@ jobs:
       - name: Test CAMBIOS-only conflict policy with real Git
         run: python3 -m unittest discover -s pilot -p 'test_sandbox_train_merge.py' -v
       - name: Merge checked HEAD; fail closed
+        env:
+          # T47: owner-provided token with Contents+Workflows write so PRs that
+          # touch .github/workflows/ can be merged; falls back to github.token.
+          GH_TOKEN: ${{ secrets.TRAIN_PUSH_TOKEN || github.token }}
         run: python3 -m pilot.workflow_entrypoint pilot/sandbox_train.py
       - name: Publish merge receipt (no custom secrets)
         if: success()

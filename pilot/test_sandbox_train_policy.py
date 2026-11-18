@@ -1,6 +1,7 @@
 """Offline P0 policy gates: no network, token, database, or merge."""
 import importlib.util
 import os
+import re
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -25,7 +26,10 @@ class PolicyTests(unittest.TestCase):
     def test_no_target_no_custom_secrets_no_external_privileges(self):
         data = WORKFLOW.read_text()
         self.assertNotIn("pull_request_target", data)
-        self.assertNotIn("secrets.", data)
+        # T47: exactly one owner secret, only in the merge step (workflow-file pushes).
+        self.assertEqual(re.findall(r"secrets\.[A-Z_]+", data), ["secrets.TRAIN_PUSH_TOKEN"])
+        merge = data.split("- name: Merge checked HEAD; fail closed", 1)[1].split("- name:", 1)[0]
+        self.assertIn("GH_TOKEN: ${{ secrets.TRAIN_PUSH_TOKEN || github.token }}", merge)
         self.assertIn("actions: write", data)
         self.assertIn("contents: write", data)
         self.assertIn("pull-requests: write", data)
