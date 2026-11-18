@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0209",
+  "title": "CP3.5: integración verificada nativa req286frontend3 (run 44205293267)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "CP3.5 autorizado por Paulo; PR draft automático de PASS nativo"
+  },
+  "reason": "Parche originado exclusivamente en native-verified-patch de la corrida nativa PASS 44205293267, SHA-256 025d685da276ce7329d70bcd01c1b90d2cabade462e7887adc91217da6087a56; rutas y bytes aplicados sin reconstruir propuesta, sin exámenes ni aprobación automática.",
+  "artifacts": [],
+  "derived": {
+    "generator": null,
+    "paths": [],
+    "attribution": "CP3.5_TRUSTED_GENERATOR_NOT_WORKER"
+  },
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "frontend/src/app/sbx-b2b-login/page.tsx",
+      "frontend/src/app/sbx-rem-list/page.tsx",
+      "frontend/src/lib/sbx-b2b-login.ts",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0209.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
