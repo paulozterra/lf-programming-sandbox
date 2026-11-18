@@ -170,7 +170,8 @@ def publish(run, api, repo: str, root: Path, task: str, sha: str,
     # + trusted pilot/runs/req-N/request_meta.json on main). The lf-request
     # label is only added by the web form; Issues created through the API
     # (e.g. the GPT connector) do not carry it, so it is not required here.
-    if issue.get("number") != number or issue.get("pull_request"):
+    if (issue.get("number") != number or issue.get("pull_request")
+            or issue.get("state") != "open"):
         deny("PUBLISH_3")
     raw_comments = run("gh", "api", f"repos/{repo}/issues/{number}/comments?per_page=100")
     try:
