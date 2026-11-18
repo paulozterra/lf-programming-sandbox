@@ -182,7 +182,7 @@ def _worktree_only_generated_index_conflict(head: str, sha: str, run) -> bool:
         return False
 
 
-def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -> list[dict]:
+def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None, *, allow_candidate=None) -> list[dict]:
     """Return retired PR metadata; callers regenerate from trusted current main.
 
     All changes use caller-provided run/api boundaries for CP3.6 offline tests.
@@ -261,6 +261,12 @@ def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -
     retired = list(blocked)
     for number, branch, sha, kind, dirty, _labeled in eligible:
         try:
+            if allow_candidate is not None and not allow_candidate({
+                    "number": number, "branch": branch, "sha": sha, "kind": kind}):
+                retired.append({"status": "REQUEST_CLOSED", "pr": number,
+                                "branch": branch, "sha": sha, "kind": kind})
+                continue
+
             reason = ("GitHub mergeable_state=dirty" if dirty else
                       "Train BRANCH_CONFLICT #" + str(evidence[(number, sha)])
                       if (number, sha) in evidence else None)
