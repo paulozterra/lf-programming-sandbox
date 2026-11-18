@@ -555,7 +555,9 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
 
 def native_registration_bytes(task_spec: dict, holdout_sha256: str,
                               holdout_reference: str | None = None,
-                              task_name: str | None = None) -> bytes:
+                              task_name: str | None = None,
+                              template_path: str | None = None,
+                              template_sha256: str | None = None) -> bytes:
     """Same two-key schema consumed by native_run.load_registration."""
     if not isinstance(holdout_sha256, str) or not SHA64.fullmatch(holdout_sha256):
         block("NATIVE_HOLDOUT_SHA_INVALID")
@@ -564,6 +566,16 @@ def native_registration_bytes(task_spec: dict, holdout_sha256: str,
     if not isinstance(task_spec.get("base_head_sha"), str) or not SHA40.fullmatch(task_spec["base_head_sha"]):
         block("NATIVE_BASE_HEAD_INVALID")
     result = {"task_spec": task_spec, "holdout_sha256": holdout_sha256}
+    if (template_path is None) != (template_sha256 is None):
+        block("NATIVE_TEMPLATE_ATTESTATION_INCOMPLETE")
+    if template_path is not None:
+        safe_rel(template_path)
+        if not re.fullmatch(r"pilot/runs/req-[1-9][0-9]*/templates/[a-z][a-z0-9_-]{0,31}[.]task[.]json", template_path):
+            block("NATIVE_TEMPLATE_PATH_INVALID")
+        if not isinstance(template_sha256, str) or not SHA64.fullmatch(template_sha256):
+            block("NATIVE_TEMPLATE_SHA_INVALID")
+        result["template_path"] = template_path
+        result["template_sha256"] = template_sha256
     if holdout_reference is not None:
         try:
             result["holdout_ref"] = holdout_ref(task_name, holdout_reference)
@@ -589,10 +601,13 @@ def native_path(root: Path, task_name: str, native_out: Path) -> Path:
 
 def write_native_registration(root: Path, task_name: str, native_out: Path,
                               task_spec: dict, holdout_sha256: str,
-                              holdout_reference: str | None = None) -> bytes:
+                              holdout_reference: str | None = None,
+                              template_path: str | None = None,
+                              template_sha256: str | None = None) -> bytes:
     destination = native_path(root, task_name, native_out)
     payload = native_registration_bytes(task_spec, holdout_sha256,
-                                        holdout_reference, task_name)
+                                        holdout_reference, task_name,
+                                        template_path, template_sha256)
     if destination.exists():
         if not destination.is_file() or destination.read_bytes() != payload:
             block("NATIVE_TASK_EXISTS")
