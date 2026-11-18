@@ -1,0 +1,45 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0212",
+  "title": "T46: etapa de auditoría de la ruta (configuración por proyecto, skill fijada y verificada, entrada, EKB solo códigos, validación del informe)",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T46: integrar a la ruta la skill auditoria-profunda-implementacion-lf de Cristhian (PR #4011, commit 35237a78) como etapa genérica multiproyecto; contrato claude/contrato-etapa-auditoria-ruta-v1-20261118.md"
+  },
+  "reason": "Etapa genérica: cada proyecto declara en pilot/audit/projects/<proyecto>.json qué skill de auditoría usa (repo, commit fijado, manifiesto SHA-256 por archivo) y de dónde lee su EKB. skill_pin descarga la skill desde el repo de su dueño y bloquea con AUDIT_SKILL_PIN_MISMATCH ante cualquier archivo cambiado, faltante o extra. build_input arma LF_DEEP_AUDIT_INPUT_V2 desde la prueba de cierre de lotes de CP3.6 (commit de cierre, archivos realmente integrados, una regla por criterio). ekb_reader lee el EKB en vivo, en transacción de solo lectura, y devuelve solo códigos; nunca imprime el contenido ni la cadena de conexión. validate_report ejecuta el validador V2 de la propia skill y controles de la ruta: revisión = cierre del pedido, promotion_authorized=false, una tarea RULE:<código> por regla (traza inversa, H4) y códigos EKB existentes. Workflow audit-stage.yml en PRs de informes y bajo demanda. Modo inicial SHADOW (no bloquea pedidos).",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/audit/audit_config.py",
+      "pilot/audit/skill_pin.py",
+      "pilot/audit/build_input.py",
+      "pilot/audit/ekb_reader.py",
+      "pilot/audit/validate_report.py",
+      "pilot/audit/test_t46_audit_stage.py",
+      "pilot/audit/projects/lf.json",
+      "pilot/audit/projects/lf.audit-skill.manifest.json",
+      ".github/workflows/audit-stage.yml",
+      ".github/workflows/ci.yml",
+      "pilot/test_t20_runner_pin.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0212.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}
