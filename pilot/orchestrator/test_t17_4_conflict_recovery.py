@@ -176,27 +176,41 @@ def test_registry_rebuilds_from_new_main():
     fn.assert_called_once_with(HEAD)
 
 
-def test_integration_revalidates_original_native_run_in_isolated_worktree():
+def test_integration_reuses_trusted_cp35_dispatch():
     row = {"kind": "integration", "number": 300, "sha": OLD,
            "branch": "lf/native-integration/task1-run-2500"}
     calls = []
 
     def command(*args, **kwargs):
         calls.append(args)
-        if args[:3] in (("git", "worktree", "add"),
-                        ("git", "worktree", "remove")):
+        if args[:3] == ("gh", "pr", "list"):
+            return "[]"
+        if args[:3] == ("gh", "workflow", "run"):
             return ""
-        if args[:2] == ("python3", "pilot/orchestrator/native_verified_integration.py"):
-            return json.dumps({"run_id": 2500, "merge_authorized": False,
-                               "pr_url": "https://example.invalid/pr",
-                               "head_sha": HEAD})
         raise AssertionError(args)
 
-    with patch.object(chain_lots, "run", side_effect=command):
+    def source(path):
+        if path == "actions/runs/2500":
+            return {"id": 2500, "status": "completed",
+                    "conclusion": "success", "run_attempt": 1,
+                    "event": "workflow_run", "head_branch": "main",
+                    "path": ".github/workflows/worker-native.yml",
+                    "repository": {"full_name": REPO},
+                    "display_title": "lf-native-auto-lf/native-proposal/task1-" + HEAD}
+        if path == "actions/runs/2500/jobs?per_page=100":
+            return {"jobs": [{"name": "native", "conclusion": "success"}]}
+        if path == "actions/workflows/native-verified-integration.yml/runs?per_page=100":
+            return {"total_count": 0, "workflow_runs": []}
+        raise AssertionError(path)
+
+    with patch.object(chain_lots, "run", side_effect=command), \
+         patch.object(chain_lots, "api", side_effect=source):
         result = chain_lots.regenerate_conflicted(row, HEAD, [])
-    assert result["status"] == "CONFLICT_INTEGRATION_REBUILT"
-    assert any(x[:3] == ("git", "worktree", "remove") for x in calls)
-    assert any("--run-id" in x and "2500" in x for x in calls)
+    assert result["status"] == "CONFLICT_INTEGRATION_REDISPATCHED"
+    assert result["source_run_id"] == 2500
+    assert any(x[:3] == ("gh", "workflow", "run")
+               and "source_run_id=2500" in x for x in calls)
+    assert not any(x[0] == "git" or x[0] == "python3" for x in calls)
 
 
 def test_generated_t7_redispatches_trusted_request_merged_on_main():

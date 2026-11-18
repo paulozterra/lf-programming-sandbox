@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import re
+import tempfile
 
 from pilot.auto_integrate import BOT, accepted_branch_kind
 from pilot.native_registration_family import registration_family
@@ -14,6 +15,7 @@ from pilot.native_registration_family import registration_family
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 SAFE_BOT = {BOT, "app/github-actions", "github-actions"}
 GENERATED = {"registration", "integration", "implemented-registry", "generated-t7"}
+GENERATED_CHANGES_INDEX = "standards/CAMBIOS.md"
 TRAIN_CONFLICT = re.compile(r"TRAIN_BLOCKED BRANCH_CONFLICT(?:\s|$)")
 TRAIN_LINK = re.compile(r'\{[^\n]{0,700}"event":\s*"local_merge_and_render"[^\n]{0,700}\}')
 
@@ -103,6 +105,83 @@ def _ci_derived_failure(number: int, branch: str, sha: str, run, api, repo: str)
     return None
 
 
+
+def _only_generated_index_conflict(head: str, sha: str, number: int, run) -> bool:
+    """Keep a dirty PR only with positive, exact conflict evidence.
+
+    The trusted main SHA and API-authenticated bot head are inputs; neither
+    branch is checked out or executed in the normal merge-tree path.
+    Ambiguous output and command failures retain the historical retirement.
+    """
+    if not SHA.fullmatch(str(head)) or not SHA.fullmatch(str(sha)):
+        return False
+    script = (
+        'git merge-tree --write-tree --name-only --messages "$1" "$2"; '
+        'status=$?; printf "\\nT45_MERGE_EXIT=%s\\n" "$status"'
+    )
+    try:
+        run("git", "fetch", "--no-tags", "origin",
+            f"refs/pull/{number}/head")
+        if run("git", "rev-parse", "FETCH_HEAD") != sha:
+            return False
+        output = run("bash", "-c", script, "t45-merge-tree", head, sha)
+        if not isinstance(output, str) or len(output) > 100_000:
+            return False
+        lines = output.splitlines()
+        if not lines or lines[-1] != "T45_MERGE_EXIT=1":
+            return False
+        # Git prints: tree OID, conflicting paths, blank, merge messages.
+        if len(lines) < 5 or not SHA.fullmatch(lines[0]):
+            return False
+        separator = lines.index("", 1)
+        paths = lines[1:separator]
+        if paths != [GENERATED_CHANGES_INDEX]:
+            return False
+        messages = [line for line in lines[separator + 1:-1] if line]
+        exact = "CONFLICT (content): Merge conflict in " + GENERATED_CHANGES_INDEX
+        if exact not in messages:
+            return False
+        return all(line == exact or line == "Auto-merging " + GENERATED_CHANGES_INDEX
+                   for line in messages)
+    except (ValueError, OSError, TypeError, KeyError, AssertionError):
+        return _worktree_only_generated_index_conflict(head, sha, run)
+
+
+def _worktree_only_generated_index_conflict(head: str, sha: str, run) -> bool:
+    """Fallback to an isolated disposable worktree; never touch main's index."""
+    try:
+        with tempfile.TemporaryDirectory(prefix="t45-conflict-") as temporary:
+            run("git", "worktree", "add", "--detach", temporary, head)
+            try:
+                script = (
+                    'git -C "$1" -c core.hooksPath=/dev/null '
+                    '-c rerere.enabled=false merge --no-commit --no-ff "$2"; '
+                    'status=$?; printf "\\nT45_MERGE_EXIT=%s\\n" "$status"'
+                )
+                result = run("bash", "-c", script, "t45-worktree-merge",
+                             temporary, sha)
+                if (not isinstance(result, str) or
+                        result.splitlines()[-1:] != ["T45_MERGE_EXIT=1"]):
+                    return False
+                entries = run("git", "-C", temporary, "ls-files", "-u", "-z")
+                if not isinstance(entries, str) or not entries:
+                    return False
+                paths = set()
+                for entry in entries.split("\0"):
+                    if not entry:
+                        continue
+                    match = re.fullmatch(
+                        r"[0-7]{6} [0-9a-f]{40} [123]\t(.+)", entry)
+                    if match is None:
+                        return False
+                    paths.add(match.group(1))
+                return paths == {GENERATED_CHANGES_INDEX}
+            finally:
+                run("git", "worktree", "remove", "--force", temporary)
+    except (ValueError, OSError, TypeError, KeyError, AssertionError, IndexError):
+        return False
+
+
 def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -> list[dict]:
     """Return retired PR metadata; callers regenerate from trusted current main.
 
@@ -185,6 +264,11 @@ def retire_conflicted_generated(head: str, run, api, repo: str, api_list=None) -
             reason = ("GitHub mergeable_state=dirty" if dirty else
                       "Train BRANCH_CONFLICT #" + str(evidence[(number, sha)])
                       if (number, sha) in evidence else None)
+            if dirty and _only_generated_index_conflict(head, sha, number, run):
+                retired.append({"status": "KEPT", "pr": number,
+                                "branch": branch, "sha": sha,
+                                "reason": "CONFLICT_ONLY_GENERATED_CHANGES_INDEX"})
+                continue
             if reason is None and kind == "integration":
                 # Missing generated export for a *new* contract is a deterministic
                 # CI failure even when Actions is awaiting approval (action_required).
