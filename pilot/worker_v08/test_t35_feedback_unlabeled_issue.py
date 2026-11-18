@@ -22,7 +22,7 @@ def test_unlabeled_request_issue_receives_feedback(tmp_path):
     control = root(tmp_path)
     visible = delivery.read_public(feedback_file(tmp_path), 1)
     comments = []
-    assert delivery.publish(_run(comments), lambda r: {"number": 901, "labels": []},
+    assert delivery.publish(_run(comments), lambda r: {"number": 901, "state": "open", "labels": []},
                             REPO, control, TASK, SHA, 1, visible,
                             "BLOCKED_OR_FAILED") == "FEEDBACK_PUBLISHED"
     assert delivery.marker(TASK, SHA, 1) in comments[0]["body"]
@@ -32,6 +32,6 @@ def test_pull_request_or_other_number_still_denied(tmp_path):
     control = root(tmp_path)
     visible = delivery.read_public(feedback_file(tmp_path), 1)
     for issue in ({"number": 901, "pull_request": {"url": "x"}}, {"number": 902}):
-        with pytest.raises(delivery.FeedbackBlocked, match="PUBLISH_3"):
+        with pytest.raises(delivery.FeedbackBlocked, match="REQUEST_STATE_UNRESOLVED"):
             delivery.publish(_run([]), lambda r, i=issue: i, REPO, control, TASK, SHA, 1,
                              visible, "BLOCKED_OR_FAILED")
