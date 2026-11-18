@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0217",
+  "title": "T47: el tren puede fusionar PRs que tocan .github/workflows/ con un token del owner (TRAIN_PUSH_TOKEN)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo eligió (18/11) que el tren fusione también cambios de workflows; hasta ahora fallaban con TRAIN_BLOCKED PUSH_REJECTED (#315, #329, #332)."
+  },
+  "reason": "GitHub prohíbe que el token automático de Actions modifique .github/workflows/. Se añade una única excepción a la política \"sin secretos\" del tren: el paso de fusión usa secrets.TRAIN_PUSH_TOKEN (token del owner con permisos Contents y Workflows de escritura, solo sobre este repo) y, si no existe, sigue con github.token. El código del tren sigue saliendo solo de main (nunca del PR) y el resto de pasos no recibe el secreto. La prueba de política fija que ese es el único secreto y que solo aparece en el paso de fusión.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/sandbox-train.yml",
+      "pilot/test_sandbox_train_policy.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0217.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/337"
+  }
+}
