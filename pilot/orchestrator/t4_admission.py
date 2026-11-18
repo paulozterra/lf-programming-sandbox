@@ -173,8 +173,15 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
             lot_paths=list(lot["write_paths"]), task_name=newest,
             budget=expected.get("max_context_bytes", 240000),
             root=root, persist=False, requirement_ids=lot.get("requirement_ids"))
-        return rebuilt.get("task_spec") == registered
-    except (OSError, ValueError, KeyError, TypeError, ImportError, IndexError):
+        match = rebuilt.get("task_spec") == registered
+        if not match and __import__("os").environ.get("T47_TEST_DIAGNOSTIC") == "1":
+            diff = sorted(k for k in set(rebuilt.get("task_spec", {})) | set(registered)
+                          if rebuilt.get("task_spec", {}).get(k) != registered.get(k))
+            print("T47_REPLAY_MISMATCH", newest, diff)
+        return match
+    except (OSError, ValueError, KeyError, TypeError, ImportError, IndexError) as exc:
+        if __import__("os").environ.get("T47_TEST_DIAGNOSTIC") == "1":
+            print("T47_REPLAY_EXCEPTION", newest, type(exc).__name__, str(exc)[:170])
         return False
 
 
