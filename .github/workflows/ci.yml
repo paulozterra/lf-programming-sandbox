@@ -86,6 +86,43 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+      - name: Maven Central mirror with Central fallback (T57)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Global settings apply to every mvn on this runner, including the
+          # vendored Worker and exams that run with an isolated, empty HOME.
+          maven_home="$(mvn -v | sed -n 's/^Maven home: //p')"
+          test -n "$maven_home" && test -d "$maven_home/conf"
+          sudo tee "$maven_home/conf/settings.xml" >/dev/null <<'XML'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
+            <profiles>
+              <profile>
+                <id>lf-maven-mirror</id>
+                <repositories>
+                  <repository>
+                    <id>google-maven-central</id>
+                    <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>google-maven-central</id>
+                    <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>lf-maven-mirror</activeProfile>
+            </activeProfiles>
+          </settings>
+          XML
+          grep -q "maven-central.storage-download.googleapis.com" "$maven_home/conf/settings.xml"
       - name: STD-BE-05 Spotless/Palantir (required for time-service)
         working-directory: .
         run: mvn -U -B -q -f apps/time-service/pom.xml spotless:check
@@ -207,7 +244,7 @@ jobs:
       - name: T16 generated Worker schema across five areas and stderr sanitization
         run: |
           python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt pytest==8.4.2
-          python3 -m pytest -q pilot/orchestrator/test_t16_worker_schema.py pilot/orchestrator/test_t16_worker_errors.py pilot/orchestrator/test_t16_worker_e2e.py pilot/worker_v08/test_worker_context_safety.py pilot/worker_v08/test_t33_business_context.py pilot/orchestrator/test_t33_2_t7_rerun.py pilot/orchestrator/test_t33_3_contract_page.py pilot/orchestrator/test_t36_contract_ref.py pilot/worker_v08/test_t37_route_tool_defect.py pilot/orchestrator/test_t37_route_tool_proof.py pilot/worker_v08/test_t38_patch_intake.py pilot/worker_v08/test_t38_1_push_notice.py pilot/orchestrator/test_t39_exam_worker_order.py pilot/worker_v08/test_t39_1_history_forgiveness_scope.py pilot/worker_v08/test_t40_exam_controls.py pilot/test_t40_train_rehearsal.py pilot/orchestrator/test_t41_registry_lineage.py pilot/test_t42_owner_label_dispatch.py pilot/orchestrator/test_t43_lot_completion_actual.py pilot/orchestrator/test_t45_generated_index_conflict.py pilot/orchestrator/test_t46_conflict_replay.py pilot/orchestrator/test_t46_1_bounded_replay.py pilot/orchestrator/test_t46_2_history_pagination.py pilot/orchestrator/test_t47_template_fingerprint.py pilot/orchestrator/test_t48_exam_request_idempotence.py pilot/orchestrator/test_t49_lifecycle.py pilot/worker_v08/test_t49_1_worker.py pilot/worker_v08/test_t49_1_worker_token_isolation.py pilot/orchestrator/test_t49_1_cp35.py pilot/orchestrator/test_t49_1_pg37.py pilot/audit/test_t49_1_audit.py pilot/audit/test_t46_audit_stage.py pilot/audit/test_a4_report_scaffold.py pilot/audit/test_a5_auditor_job.py pilot/orchestrator/test_t50_history.py pilot/orchestrator/test_t50_pg37.py pilot/test_t51_watchdog.py pilot/test_t52_main_ci.py pilot/test_t52_watchdog_measure.py -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_t16_worker_schema.py pilot/orchestrator/test_t16_worker_errors.py pilot/orchestrator/test_t16_worker_e2e.py pilot/worker_v08/test_worker_context_safety.py pilot/worker_v08/test_t33_business_context.py pilot/orchestrator/test_t33_2_t7_rerun.py pilot/orchestrator/test_t33_3_contract_page.py pilot/orchestrator/test_t36_contract_ref.py pilot/worker_v08/test_t37_route_tool_defect.py pilot/orchestrator/test_t37_route_tool_proof.py pilot/worker_v08/test_t38_patch_intake.py pilot/worker_v08/test_t38_1_push_notice.py pilot/orchestrator/test_t39_exam_worker_order.py pilot/worker_v08/test_t39_1_history_forgiveness_scope.py pilot/worker_v08/test_t40_exam_controls.py pilot/test_t40_train_rehearsal.py pilot/orchestrator/test_t41_registry_lineage.py pilot/test_t42_owner_label_dispatch.py pilot/orchestrator/test_t43_lot_completion_actual.py pilot/orchestrator/test_t45_generated_index_conflict.py pilot/orchestrator/test_t46_conflict_replay.py pilot/orchestrator/test_t46_1_bounded_replay.py pilot/orchestrator/test_t46_2_history_pagination.py pilot/orchestrator/test_t47_template_fingerprint.py pilot/orchestrator/test_t48_exam_request_idempotence.py pilot/orchestrator/test_t49_lifecycle.py pilot/worker_v08/test_t49_1_worker.py pilot/worker_v08/test_t49_1_worker_token_isolation.py pilot/orchestrator/test_t49_1_cp35.py pilot/orchestrator/test_t49_1_pg37.py pilot/audit/test_t49_1_audit.py pilot/audit/test_t46_audit_stage.py pilot/audit/test_a4_report_scaffold.py pilot/audit/test_a5_auditor_job.py pilot/orchestrator/test_t50_history.py pilot/orchestrator/test_t50_pg37.py pilot/test_t51_watchdog.py pilot/test_t52_main_ci.py pilot/test_t52_watchdog_measure.py pilot/test_t57_maven_mirror.py -p no:cacheprovider
       - name: T17 standards contract for five generated branch types and CI recovery (offline)
         run: |
           python3 -m pytest -q pilot/orchestrator/test_t17_generated_standards.py pilot/orchestrator/test_t17_recovery_watchdog.py pilot/orchestrator/test_t17_4_conflict_recovery.py pilot/test_t17_1_ci_selection.py pilot/worker_v08/test_t32_examiner_defect.py pilot/orchestrator/test_t31_publish_exam.py -p no:cacheprovider
@@ -425,6 +462,43 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - name: Maven Central mirror with Central fallback (T57)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Global settings apply to every mvn on this runner, including the
+          # vendored Worker and exams that run with an isolated, empty HOME.
+          maven_home="$(mvn -v | sed -n 's/^Maven home: //p')"
+          test -n "$maven_home" && test -d "$maven_home/conf"
+          sudo tee "$maven_home/conf/settings.xml" >/dev/null <<'XML'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
+            <profiles>
+              <profile>
+                <id>lf-maven-mirror</id>
+                <repositories>
+                  <repository>
+                    <id>google-maven-central</id>
+                    <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>google-maven-central</id>
+                    <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>lf-maven-mirror</activeProfile>
+            </activeProfiles>
+          </settings>
+          XML
+          grep -q "maven-central.storage-download.googleapis.com" "$maven_home/conf/settings.xml"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "22"
@@ -455,6 +529,43 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+      - name: Maven Central mirror with Central fallback (T57)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Global settings apply to every mvn on this runner, including the
+          # vendored Worker and exams that run with an isolated, empty HOME.
+          maven_home="$(mvn -v | sed -n 's/^Maven home: //p')"
+          test -n "$maven_home" && test -d "$maven_home/conf"
+          sudo tee "$maven_home/conf/settings.xml" >/dev/null <<'XML'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
+            <profiles>
+              <profile>
+                <id>lf-maven-mirror</id>
+                <repositories>
+                  <repository>
+                    <id>google-maven-central</id>
+                    <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>google-maven-central</id>
+                    <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>lf-maven-mirror</activeProfile>
+            </activeProfiles>
+          </settings>
+          XML
+          grep -q "maven-central.storage-download.googleapis.com" "$maven_home/conf/settings.xml"
       - uses: actions/setup-node@v5
         with:
           node-version: "22"

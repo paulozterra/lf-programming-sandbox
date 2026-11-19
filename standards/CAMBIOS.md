@@ -229,3 +229,4 @@
 | CHG-0235 | ADDITIVE | T54 fase 2b: completar rutas configuradas y proyecto activo validado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/352 |
 | CHG-0236 | EDITORIAL | T53: cerrar B.8; excepción documentada de la regla 3 para las fichas sbx_* |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/358 |
 | CHG-0237 | ADDITIVE | T54 fase 3a: componentes como mapa abierto y raíces por área en la configuración del proyecto |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/359 |
+| CHG-0238 | ADDITIVE | T57: espejo de Maven Central con Central como respaldo en CI, Worker, exámenes y PG37 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/360 |
