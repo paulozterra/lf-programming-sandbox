@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo (19/11): completar fase 2b antes de fase 3, eliminar rutas fijas, selector activo y equivalencia Worker."
   },
-  "reason": "Consolida rutas de storage en project_config para lifecycle, T4, Worker, cierre y CP3.6. El proyecto activo se declara en active_project.json y se valida; ausencia o inconsistencia bloquea con PROJECT_CONFIG_INVALID. storage_path y regex usan el root recibido. CI verifica equivalencia y rechaza literales fijos fuera de config. Firmas públicas preservadas. Deuda del patrón fijo de plantillas continúa registrada en CHG-0230. Se amplía la migración a todos los consumidores con literales detectados por la prueba estática, incluidos helpers de auditoría, Worker, intake y orquestación. No se migran componentes ni rutas protegidas (fase 3).",
+  "reason": "Consolida rutas de storage en project_config para lifecycle, T4, Worker, cierre y CP3.6. El proyecto activo se declara en active_project.json y se valida; ausencia o inconsistencia bloquea con PROJECT_CONFIG_INVALID. storage_path y regex usan el root recibido. CI verifica equivalencia y rechaza literales fijos fuera de config. Firmas públicas preservadas. Deuda del patrón fijo de plantillas continúa registrada en CHG-0230. Se amplía la migración a todos los consumidores con literales detectados por la prueba estática, incluidos helpers de auditoría, Worker, intake y orquestación. No se migran componentes ni rutas protegidas (fase 3). Fase 2b de fixtures: helper compartido explícito para repos temporales; 11 fallas de CI por PROJECT_CONFIG_INVALID en pruebas sintéticas, sin fallback de configuración. Archivos de Análisis modificados únicamente en pruebas, sin cambiar su implementación.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -15,12 +15,16 @@
     "paths": [
       ".github/workflows/ci.yml",
       ".github/workflows/f5-package.yml",
+      "analysis/a9/test_general_second_screen.py",
+      "analysis/host/test_a9_intake.py",
+      "analysis/host/test_t71_general.py",
       "pilot/audit/auditor_job.py",
       "pilot/audit/build_input.py",
       "pilot/audit/test_t46_audit_stage.py",
       "pilot/auto_integrate.py",
       "pilot/config/active_project.json",
       "pilot/config/project_config.py",
+      "pilot/config/testing.py",
       "pilot/conftest.py",
       "pilot/exam_issue_lifecycle.py",
       "pilot/orchestrator/affected_tests.py",
@@ -46,6 +50,7 @@
       "pilot/orchestrator/test_native_lot_registration.py",
       "pilot/orchestrator/test_package_to_lots.py",
       "pilot/orchestrator/test_plan_lots.py",
+      "pilot/orchestrator/test_t24_integration_replay.py",
       "pilot/orchestrator/test_t4_admission.py",
       "pilot/orchestrator/test_t72_dependencies.py",
       "pilot/request_failure_notify.py",
