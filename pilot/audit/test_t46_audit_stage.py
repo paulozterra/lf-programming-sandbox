@@ -273,9 +273,11 @@ def test_trigger_selects_closed_requests_after_cutoff(tmp_path, monkeypatch):
              ("req-new", lots, {}, {"A": {"merge_sha": shas[1]}, "B": {"merge_sha": shas[2]}}),
              ("req-open", lots, {}, {"A": {"merge_sha": shas[2]}})]
     config = {"audit": {"since_commit": shas[1]}}
-    assert rt.candidates(config, plans, root=r) == ["req-new"]
+    # The legacy fixture models verified, already-closed requests explicitly.
+    monkeypatch.setattr(rt, "_finalized_request", lambda request, *a, **k: request != "req-open")
+    assert rt.candidates(config, plans, root=r, repository="o/r") == ["req-new"]
     (r / "pilot/runs/req-new/audit").mkdir(parents=True)
-    assert rt.candidates(config, plans, root=r) == []
+    assert rt.candidates(config, plans, root=r, repository="o/r") == []
 
 
 def test_trigger_issue_carries_marker_and_input():
