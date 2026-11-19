@@ -214,3 +214,4 @@
 | CHG-0220 | ADDITIVE | T49: estado central del pedido y bloqueo de efectos CP3.6 para pedidos cerrados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/340 |
 | CHG-0221 | ADDITIVE | T49.1: bloqueo fail-closed de efectos Worker/CP3.5/CP3.7 y auditoría para pedidos no autorizados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/341 |
 | CHG-0222 | ADDITIVE | T50: historial de integraciones acotado al origen de cada pedido y aislamiento de CP3.7 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/342 |
+| CHG-0223 | ADDITIVE | T51: vigilante de ruta por corrida de origen y barrido acotado con deduplicación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/343 |

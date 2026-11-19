@@ -17,6 +17,11 @@ on:
   schedule:
     - cron: '*/10 * * * *'
   workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Run ID of the originating trusted workflow; empty only for explicit recovery sweep"
+        required: false
+        type: string
 permissions:
   contents: read
   actions: read
@@ -41,10 +46,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.source_run_id || '' }}
           PYTHONDONTWRITEBYTECODE: '1'
         run: |
+          set -euo pipefail
           if [ -n "$SOURCE_RUN_ID" ]; then
+            [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]] || exit 1
+            # Fast path: one exact source run, with comment-marker idempotence.
             python3 -m pilot.workflow_entrypoint pilot/request_failure_notify.py --run-id "$SOURCE_RUN_ID"
+          else
+            # Recovery only: scheduled every ten minutes, or explicit manual sweep.
+            test "${{ github.event_name }}" = "schedule" -o "${{ github.event_name }}" = "workflow_dispatch"
+            python3 -m pilot.workflow_entrypoint pilot/request_failure_notify.py --sweep
           fi
-          python3 -m pilot.workflow_entrypoint pilot/request_failure_notify.py --sweep
