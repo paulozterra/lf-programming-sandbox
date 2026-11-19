@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from pilot.config.project_config import storage_path
 import re
 import sys
 
@@ -699,7 +700,7 @@ def plan(root: Path, run: str) -> dict:
     from intake import SLUG, normalized_request_bytes
     if not isinstance(run,str) or not SLUG.fullmatch(run):
         blocked("LOTES_RUN_INVALIDO")
-    folder=root/"pilot/runs"/run
+    folder=storage_path("requests_root", run, root=root)
     if folder.is_symlink():
         blocked("LOTES_RUTA_INVALIDA")
     generated = (folder/"atomized_inputs.json").is_file()
