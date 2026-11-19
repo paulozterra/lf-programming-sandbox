@@ -123,18 +123,18 @@ def test_inspect_equivalence_to_main_with_sandbox_project(tmp_path):
 
 
 def test_inspect_missing_project_config_is_visible(tmp_path):
-    # Build the *same valid* T23 registration/request/evidence as the positive
-    # test. The pilot/conftest.py autouse fixture installs project config for
-    # tmp_path; explicitly remove it to isolate PROJECT_CONFIG_INVALID.
+    # Same valid T23 registration/request/evidence as the positive test; the
+    # only invalid input is the configuration repository (CONFIG_ROOT).
     digest = fixture(tmp_path)
-    config = tmp_path / "pilot/config"
-    (config / "active_project.json").unlink()
-    (config / "projects/sandbox.json").unlink()
+    broken = tmp_path / "config-repo"
+    broken.mkdir()
     proof = {"task_id": TASK, "run_id": RUN, "attempt": 1,
              "task_pack_sha256": digest}
     import pytest
+    import pilot.config.project_config as project_config
     with (patch.object(recovery, "_source_record", return_value=OLD),
-          patch.object(recovery, "_artifact_payload", return_value=(proof, VISIBLE))):
+          patch.object(recovery, "_artifact_payload", return_value=(proof, VISIBLE)),
+          patch.object(project_config, "CONFIG_ROOT", broken)):
         with pytest.raises(ProjectConfigError, match="PROJECT_CONFIG_INVALID"):
             recovery.inspect(lambda *_: "", lambda *_: {}, REPO, tmp_path, EVENT)
 

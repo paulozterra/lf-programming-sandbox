@@ -48,7 +48,7 @@ from t4_admission import AdmissionBlocked, require_green_base, missing_exam, pub
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pilot/worker_v08"))
 
 ROOT = Path(__file__).resolve().parents[2]
-from pilot.config.project_config import ProjectConfigError, storage, storage_path, template_path_pattern
+from pilot.config.project_config import ProjectConfigError, storage, storage_path, template_path_pattern, repo_storage
 REPO = "paulozterra/lf-programming-sandbox"
 TRAIN = ".github/workflows/sandbox-train.yml"
 NATIVE = ".github/workflows/worker-native.yml"
@@ -349,8 +349,8 @@ def first_parent_merges(request: str, *, root: Path = ROOT,
         max_commits = int(raw)
     if type(max_commits) is not int or not 1 <= max_commits <= 10000:
         deny("CHAIN_HISTORY_INCOMPLETE")
-    paths = [f"{storage(root=root)['requests_root']}/{request}/chain_plan.json",
-             f"{storage(root=root)['chain_plans_root']}/{request}.json"]
+    paths = [f"{repo_storage()['requests_root']}/{request}/chain_plan.json",
+             f"{repo_storage()['chain_plans_root']}/{request}.json"]
     origins = []
     for path in paths:
         if not (root / path).is_file():

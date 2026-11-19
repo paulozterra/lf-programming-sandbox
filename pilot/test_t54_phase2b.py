@@ -5,6 +5,7 @@ import json
 import re
 import tempfile
 import unittest
+
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,6 +14,9 @@ from config.project_config import (
     template_path_any_request, template_path_pattern,
     request_context_pattern, reuse_assessment_pattern,
 )
+import sys
+project_config = sys.modules[storage_path.__module__]  # the module these names came from
+
 
 ROOT = Path(__file__).resolve().parents[1]
 # Explicit, individually justified exceptions only. No blanket directories.
@@ -27,8 +31,14 @@ class Phase2b(unittest.TestCase):
             root = Path(temp)
             with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
                 active_project(root=root)
-            with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
-                storage_path("requests_root", root=root)
+            # A data root never supplies configuration: paths resolve under it
+            # with the repository's validated config.
+            self.assertEqual(storage_path("requests_root", "req-1", root=root),
+                             root / storage(root=ROOT)["requests_root"] / "req-1")
+            # A broken configuration repository is denied (CONFIG_ROOT).
+            with patch.object(project_config, "CONFIG_ROOT", root):
+                with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
+                    storage_path("requests_root", root=root)
             (root / "pilot/config").mkdir(parents=True)
             selector = root / "pilot/config/active_project.json"
             for value in ({}, {"schema_version": "LF_ACTIVE_PROJECT_V1", "project_id": "../sandbox"},
@@ -51,14 +61,15 @@ class Phase2b(unittest.TestCase):
             self.assertTrue(template_path_any_request(root=root).fullmatch(
                 "pilot/runs/req-901/templates/task202.task.json"))
 
-    def test_unconfigured_temporary_repo_is_denied_even_with_real_config_available(self):
+    def test_unconfigured_config_repo_is_denied_even_with_real_config_available(self):
         from pilot.config.testing import install_project_config
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
                 storage(root=root)
-            with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
-                template_path_any_request(root=root)
+            with patch.object(project_config, "CONFIG_ROOT", root):
+                with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
+                    template_path_any_request(root=root)
             install_project_config(root)
             self.assertEqual(storage(root=root)["requests_root"], storage(root=ROOT)["requests_root"])
 

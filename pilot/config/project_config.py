@@ -145,6 +145,9 @@ def load(project: str, *, root: Path = ROOT) -> dict:
             raise
         _deny()
 
+# The repository whose pilot/config/ defines the active project (patchable in tests).
+CONFIG_ROOT = ROOT
+
 # T54 phase 2b: active project is explicit and validated; no sandbox default.
 ACTIVE_PROJECT_PATH = "pilot/config/active_project.json"
 
@@ -172,15 +175,26 @@ def active_project(*, root: Path = ROOT) -> str:
 
 
 def storage(*, root: Path = ROOT, project: str | None = None) -> dict[str, str]:
-    """Read storage from the requested root; no implicit sandbox project."""
+    """Read storage from the configuration repository `root`; no implicit project."""
     name = active_project(root=root) if project is None else project
     return load(name, root=root)["storage"]
 
 
+def repo_storage(project: str | None = None) -> dict[str, str]:
+    """Configuration always comes from the repository holding this code.
+
+    A data root (e.g. --root "$RUNNER_TEMP" for Analysis F0/F5, or a test's
+    tmp_path) only says where files live; it never supplies configuration.
+    Reading config from the data root made every scratch-dir caller fail
+    (T54 fase 2b). Tests that need another config patch CONFIG_ROOT.
+    """
+    return storage(root=CONFIG_ROOT, project=project)
+
+
 def storage_path(kind: str, *parts: str, root: Path = ROOT,
                  project: str | None = None) -> Path:
-    """Resolve only declared roots, from configuration at the given root."""
-    cfg = storage(root=root, project=project)
+    """Resolve a declared storage root under the data `root`."""
+    cfg = repo_storage(project)
     if kind not in ("requests_root", "registrations_root", "chain_plans_root"):
         _deny()
     for part in parts:
@@ -194,7 +208,7 @@ def template_path_pattern(request: str, *, root: Path = ROOT,
     """Match exactly one request and one task from validated template contract."""
     if not isinstance(request, str) or not re.fullmatch(r"req-[1-9][0-9]*", request):
         _deny()
-    template = storage(root=root, project=project)["task_template_pattern"]
+    template = repo_storage(project)["task_template_pattern"]
     escaped = re.escape(template)
     escaped = escaped.replace(re.escape("{request}"), re.escape(request))
     escaped = escaped.replace(re.escape("{task}"), r"[a-z][a-z0-9_-]{0,31}")
@@ -204,7 +218,7 @@ def template_path_pattern(request: str, *, root: Path = ROOT,
 def template_path_any_request(*, root: Path = ROOT,
                               project: str | None = None) -> re.Pattern[str]:
     """Strict Worker template regex for any valid issue request."""
-    template = storage(root=root, project=project)["task_template_pattern"]
+    template = repo_storage(project)["task_template_pattern"]
     escaped = re.escape(template)
     escaped = escaped.replace(re.escape("{request}"), r"req-[1-9][0-9]*")
     escaped = escaped.replace(re.escape("{task}"), r"[a-z][a-z0-9_-]{0,31}")
@@ -214,11 +228,11 @@ def template_path_any_request(*, root: Path = ROOT,
 def request_context_pattern(*, root: Path = ROOT,
                             project: str | None = None) -> re.Pattern[str]:
     """Strict request path prefix used by integration and reuse guards."""
-    prefix = re.escape(storage(root=root, project=project)["requests_root"])
+    prefix = re.escape(repo_storage(project)["requests_root"])
     return re.compile(prefix + r"/(req-[1-9][0-9]*)/")
 
 
 def reuse_assessment_pattern(*, root: Path = ROOT,
                              project: str | None = None) -> re.Pattern[str]:
-    prefix = re.escape(storage(root=root, project=project)["requests_root"])
+    prefix = re.escape(repo_storage(project)["requests_root"])
     return re.compile(prefix + r"/[a-z][a-z0-9_-]{0,63}/reuse_assessment[.]json\Z")

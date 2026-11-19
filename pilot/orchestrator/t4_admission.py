@@ -18,7 +18,7 @@ import tempfile
 import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
-from pilot.config.project_config import storage, storage_path
+from pilot.config.project_config import storage, storage_path, repo_storage
 
 TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
@@ -144,7 +144,7 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
     """
     try:
         from pathlib import PurePosixPath
-        request = PurePosixPath(template_path).parts[len(storage(root=root)["requests_root"].split("/"))]
+        request = PurePosixPath(template_path).parts[len(repo_storage()["requests_root"].split("/"))]
         chain = json.loads((storage_path("requests_root", request, root=root) / "chain_plan.json")
                            .read_text("utf-8"))
         lots = json.loads((storage_path("requests_root", request, root=root) / "lots.json")
