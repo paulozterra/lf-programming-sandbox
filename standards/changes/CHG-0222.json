@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0222",
+  "title": "T50: historial de integraciones acotado al origen de cada pedido y aislamiento de CP3.7",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T50: diagnóstico aprobado 2026-11-19; CP3.7 fuera de orden por límite fijo de 75 commits"
+  },
+  "reason": "El historial por número fijo omite CONTRATO antiguo y produce falsos OUT_OF_ORDER_MERGE. El origen del plan fija un límite demostrable. Un pedido con error no debe interrumpir H_REPORT de otros; la ausencia de archivo incluye su ruta tipada.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/pg37_publish.py",
+      "pilot/audit/request_trigger.py",
+      "pilot/audit/build_input.py",
+      "pilot/orchestrator/test_t49_1_pg37.py",
+      "pilot/orchestrator/test_t50_history.py",
+      "pilot/orchestrator/test_t50_pg37.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0222.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING_PR"
+  }
+}
