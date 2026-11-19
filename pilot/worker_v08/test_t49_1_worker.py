@@ -1,11 +1,14 @@
 """T49.1: unique trusted task ownership and fail-closed Worker boundaries."""
 import json
 from pathlib import Path
+import sys
 from types import SimpleNamespace
 
 import pytest
 from pilot.orchestrator import request_lifecycle as lc
-from pilot.worker_v08 import native_run as worker
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'pilot/worker_v08'))
+import native_run as worker
 
 
 def seed(tmp_path, owners=("req-275",)):
