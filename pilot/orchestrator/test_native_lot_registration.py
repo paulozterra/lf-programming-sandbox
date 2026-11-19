@@ -56,6 +56,12 @@ def test_cp34_two_lot_candidate_handoff_with_real_paths(tmp_path):
     run(tmp_path, "add", "db/V001__auth.sql")
     run(tmp_path, "commit", "-m", "Simulated DATA handoff (no Worker)")
     merge_sha = run(tmp_path, "rev-parse", "HEAD")
+    import shutil
+    config_source = Path(__file__).resolve().parents[2] / "pilot/config"
+    config_target = tmp_path / "pilot/config"
+    (config_target / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
+    shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
 
     lots = {
         "schema_version": "CP33_LOTS_CANDIDATE_V1",
