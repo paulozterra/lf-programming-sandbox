@@ -99,6 +99,7 @@ def test_worker_no_attempt_no_model_no_feedback(tmp_path, monkeypatch, deny_at):
     spec = SimpleNamespace(max_attempts=1, base_head_sha="a" * 40, source_snapshot_sha256="ok")
     monkeypatch.setattr(worker, "load_registration", lambda *_: ({"context_path_patterns": []}, "a"*64))
     monkeypatch.setattr(worker, "parse_worker_task", lambda *_: spec)
+    monkeypatch.setattr(worker, "replace", lambda original, **changes: original)
     monkeypatch.setattr(worker, "_git_head", lambda *_: "a" * 40)
     monkeypatch.setattr(worker, "source_snapshot_sha256", lambda *_: "ok")
     monkeypatch.setattr(worker, "read_proposal_envelope",
