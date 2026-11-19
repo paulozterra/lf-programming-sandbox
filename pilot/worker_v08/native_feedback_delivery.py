@@ -4,6 +4,7 @@ Trusted main code only. Never read or publish an oracle, private evidence, or
 hidden acceptance result. The GitHub issue comment marker is the durable ledger.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import json
@@ -108,11 +109,11 @@ def marker(task: str, sha: str, attempt: int) -> str:
 def issue_for_task(root: Path, task: str) -> int:
     if not TASK.fullmatch(task):
         deny("ISSUE_FOR_TASK_1")
-    registered = root / "pilot/worker_v08/native_tasks" / (task + ".json")
+    registered = storage_path("registrations_root", root=root) / (task + ".json")
     if registered.is_symlink() or not registered.is_file():
         deny("ISSUE_FOR_TASK_2")
     matches = []
-    for file in sorted((root / "pilot/runs").glob(
+    for file in sorted((storage_path("requests_root", root=root)).glob(
             "req-*/proposal_requests/" + task + ".proposal-request.json")):
         folder = file.parent.parent
         if (file.is_symlink() or folder.is_symlink()
