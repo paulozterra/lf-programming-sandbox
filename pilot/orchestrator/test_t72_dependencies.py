@@ -63,6 +63,12 @@ def _git_main(root, files):
 
 def _scenario(tmp_path, *, adds_rule=False, missing=False, declared=True,
               attested=False, drift=False, backend_only=False, by_rule=False):
+    import shutil
+    config_source = Path(__file__).resolve().parents[2] / "pilot/config"
+    config_target = tmp_path / "pilot/config"
+    (config_target / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
+    shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
     code, folder=prepare_description_screen(tmp_path)
     if backend_only:
         _backend_screen(folder)
