@@ -221,4 +221,4 @@ def request_context_pattern(*, root: Path = ROOT,
 def reuse_assessment_pattern(*, root: Path = ROOT,
                              project: str | None = None) -> re.Pattern[str]:
     prefix = re.escape(storage(root=root, project=project)["requests_root"])
-    return re.compile(prefix + r"/[a-z][a-z0-9_-]{0,63}/reuse_assessment[.]json\\Z")
+    return re.compile(prefix + r"/[a-z][a-z0-9_-]{0,63}/reuse_assessment[.]json\Z")
