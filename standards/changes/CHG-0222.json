@@ -16,6 +16,7 @@
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/pg37_publish.py",
       "pilot/audit/request_trigger.py",
+      "pilot/audit/test_t46_audit_stage.py",
       "pilot/audit/build_input.py",
       "pilot/orchestrator/test_t49_1_pg37.py",
       "pilot/orchestrator/test_t50_history.py",
