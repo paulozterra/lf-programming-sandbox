@@ -420,10 +420,17 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
     # The issue must have come through the T9 template, not an arbitrary number.
     if "lf-request" not in labels:
         return "RUTA_ISSUE_NOT_LF_REQUEST"
-    marker = f"<!-- LF_ROUTE_FAILURE_RUN:{run['id']} -->"
+    # T51: source ID + terminal conclusion is the idempotence key.
+    # The existing bot issue comments are the durable store; accept legacy
+    # T9.1 markers too, so a rollout cannot re-notify earlier failures.
+    conclusion = run.get("conclusion")
+    if conclusion not in ("failure", "timed_out"):
+        return "RUTA_NO_ISSUE_ASSOCIATION"
+    marker = f"<!-- LF_ROUTE_FAILURE_RUN:{run['id']}:{conclusion} -->"
+    legacy = f"<!-- LF_ROUTE_FAILURE_RUN:{run['id']} -->"
     comments = api.pages(f"/issues/{number}/comments")
-    if any(marker in str(c.get("body", "")) for c in comments
-           if c.get("user", {}).get("login") == "github-actions[bot]"):
+    if any((marker in str(c.get("body", "")) or legacy in str(c.get("body", "")))
+           for c in comments if c.get("user", {}).get("login") == "github-actions[bot]"):
         return "RUTA_ALREADY_NOTIFIED"
     # T17 only comments on generated PR CI failures; it must not add labels.
     if "lf-request-blocked" not in labels and linked_ci is None:
@@ -608,6 +615,10 @@ def notify_t20_retry_exhaustion(api: Github, run: dict) -> str:
 
 
 def check_run(api: Github, run: dict) -> str:
+    # T51 fast path: a successful/nonterminal source has no failure to
+    # notify; avoid jobs, CI history, issue pages and global sweeps.
+    if run.get("conclusion") not in ("failure", "timed_out"):
+        return "RUTA_SOURCE_NOT_FAILED"
     exhausted = notify_t20_retry_exhaustion(api, run)
     if exhausted not in ("T20_NOT_RETRY_EXHAUSTION", "T20_RETRY_SUPERSEDED"):
         return exhausted
