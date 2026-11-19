@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_PROJECT_CONFIG_V1",
+  "project_id": "sandbox",
+  "storage": {
+    "requests_root": "pilot/runs",
+    "registrations_root": "pilot/worker_v08/native_tasks",
+    "chain_plans_root": "pilot/orchestrator/chain_plans",
+    "task_template_pattern": "pilot/runs/{request}/templates/{task}.task.json"
+  },
+  "components": {
+    "backend": {
+      "root": "apps/time-service",
+      "build_file": "apps/time-service/pom.xml",
+      "test_roots": ["apps/time-service/src/test", "apps/time-service/visible-tests"]
+    },
+    "frontend": {
+      "root": "frontend",
+      "manifest": "frontend/package.json",
+      "test_roots": ["frontend/src"]
+    }
+  },
+  "protected_paths": [
+    "apps/time-service/src/test/**",
+    "apps/time-service/visible-tests/**",
+    "frontend/src/**/__tests__/**"
+  ],
+  "write_roots": [
+    "pilot/runs",
+    "pilot/worker_v08/native_tasks",
+    "pilot/orchestrator/chain_plans",
+    "apps/time-service",
+    "frontend",
+    "db",
+    "contracts"
+  ]
+}
