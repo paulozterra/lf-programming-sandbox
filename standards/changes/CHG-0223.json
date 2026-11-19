@@ -1,0 +1,45 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0223",
+  "title": "T51: vigilante de ruta por corrida de origen y barrido acotado con deduplicación",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T51 aprobado después de T50, 2026-11-19; reducir activaciones redundantes de T9.1 sin perder alertas"
+  },
+  "reason": "El vigilante ejecutaba un barrido de hasta 400 corridas en cada workflow_run y despacho manual. GITHUB_TOKEN y límite de 3 niveles pueden perder eventos; se conserva el respaldo manual por origen sin barrido y un cron cada diez minutos. La idempotencia usa comentarios del issue de origen y conclusión.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/auto-integrate.yml",
+      ".github/workflows/chain-lots.yml",
+      ".github/workflows/ci.yml",
+      ".github/workflows/native-verified-integration.yml",
+      ".github/workflows/pg37-evidence.yml",
+      ".github/workflows/request-failure-watchdog.yml",
+      ".github/workflows/request-finalize.yml",
+      ".github/workflows/t7-request.yml",
+      ".github/workflows/train-handoff.yml",
+      "pilot/request_failure_notify.py",
+      "pilot/test_t51_watchdog.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0223.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING_PR"
+  }
+}
