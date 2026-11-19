@@ -33,16 +33,35 @@ def ci_run(conclusion="success", status="completed", sha=SHA, run_id=189):
             "html_url": f"https://github.com/{REPO}/actions/runs/{run_id}"}
 
 
+GATE = handoff.main_ci_gate_config()
+# These T9.5 cases exercise the dispatch fallback (no push CI for the SHA):
+# one push probe, no push wait. T52 covers the push-first path.
+FALLBACK_GATE = {**GATE, "push_wait_seconds": 0}
+
+
+def green_jobs():
+    jobs = [{"name": name, "status": "completed", "conclusion": "success"}
+            for name in GATE["required_jobs"]]
+    return {"total_count": len(jobs), "jobs": jobs}
+
+
 class API:
-    def __init__(self, rows=None):
+    def __init__(self, rows=None, push_probe=True):
         self.rows = list(rows or [])
         self.calls = []
+        self.push_probe = push_probe
 
     def call(self, method, path, body=None):
         self.calls.append((method, path, body))
         if method == "GET" and path == "/git/ref/heads/main":
             return {"object": {"sha": SHA}}
+        if method == "GET" and "/jobs?filter=latest" in path:
+            return green_jobs()
         if method == "GET" and path.startswith("/actions/workflows/ci.yml/runs?"):
+            if self.push_probe:
+                # T52 push probe: no push CI exists for this SHA.
+                self.push_probe = False
+                return {"workflow_runs": [], "total_count": 0}
             state = self.rows.pop(0) if len(self.rows) > 1 else (self.rows[0] if self.rows else None)
             rows = [state] if state is not None else []
             return {"workflow_runs": rows, "total_count": len(rows)}
@@ -111,15 +130,20 @@ class NotificationAPI:
 
 
 class Tests(unittest.TestCase):
+    def setUp(self):
+        gate = patch.object(handoff, "main_ci_gate_config", return_value=FALLBACK_GATE)
+        gate.start()
+        self.addCleanup(gate.stop)
+
     def test_main_ci_green_required_before_next_stage(self):
         api = API([None, ci_run(status="in_progress", conclusion=None), ci_run()])
-        cfg = handoff.main_ci_gate_config()
+        cfg = FALLBACK_GATE
         with patch.object(handoff, "git", return_value=SHA), \
              patch.object(handoff, "validate_train_run"):
             outcome = handoff.ensure_main_ci(api, SHA, required=True,
                                              config=cfg, sleep=lambda _:None)
         self.assertEqual(outcome["status"], "MAIN_CI_GREEN")
-        self.assertEqual(api.calls[2], ("POST", "/actions/workflows/ci.yml/dispatches",
+        self.assertEqual(api.calls[3], ("POST", "/actions/workflows/ci.yml/dispatches",
                                         {"ref":"main"}))
         self.assertEqual(outcome["run_id"], 189)
 
@@ -130,7 +154,7 @@ class Tests(unittest.TestCase):
 
     def test_wrong_sha_never_unblocks(self):
         api = API([None, ci_run(sha="d"*40)])
-        cfg={**handoff.main_ci_gate_config(),"wait_seconds":60,"poll_seconds":60}
+        cfg={**FALLBACK_GATE,"wait_seconds":60,"poll_seconds":60}
         with self.assertRaisesRegex(handoff.HandoffBlocked, "BASE_NO_VERDE"):
             handoff.ensure_main_ci(api,SHA,required=True,config=cfg,sleep=lambda _:None)
 

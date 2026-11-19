@@ -735,6 +735,42 @@ def stalled_run(run: dict, now: datetime) -> dict | None:
                 failure_code="PEDIDO_WORKFLOW_SIN_AVANCE")
 
 
+def result_class(result: str) -> str:
+    if result == "RUTA_SOURCE_NOT_FAILED":
+        return "RUTA_SOURCE_NOT_FAILED"
+    if "ALREADY" in result or "DEDUP" in result or "SUPERSEDED" in result:
+        return "DEDUPED"
+    return "PROCESSED"
+
+
+def arrival_record(source_run_id: int | None, run: dict | None, result: str) -> dict:
+    """T52: one line per activation, to learn which arrival path really fires."""
+    watchdog = os.environ.get("GITHUB_RUN_ID", "")
+    path = str((run or {}).get("path") or "").split("@")[0]
+    record = {
+        "schema": "LF_WATCHDOG_ARRIVAL_V1",
+        "watchdog_run_id": int(watchdog) if watchdog.isdigit() else None,
+        "source_run_id": source_run_id,
+        "source_workflow": path or (run or {}).get("name"),
+        "arrival": os.environ.get("GITHUB_EVENT_NAME") or "unknown",
+        "result": result,
+        "result_class": "SWEEP" if source_run_id is None else result_class(result),
+    }
+    print("LF_WATCHDOG_ARRIVAL " + json.dumps(record, sort_keys=True))
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary:
+        try:
+            with open(summary, "a", encoding="utf-8") as handle:
+                handle.write("| watchdog | source | workflow | arrival | result |\n"
+                             "|---|---|---|---|---|\n"
+                             f"| {record['watchdog_run_id']} | {source_run_id} | "
+                             f"{record['source_workflow']} | {record['arrival']} | "
+                             f"{record['result_class']} ({result}) |\n")
+        except OSError:
+            pass  # Observability never blocks notification.
+    return record
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-id", type=int)
@@ -745,10 +781,13 @@ def main():
     api = Github(os.environ.get("GH_TOKEN", ""))
     if args.run_id:
         run = api.api("GET", f"/actions/runs/{args.run_id}")
-        print(check_run(api, run))
+        result = check_run(api, run)
+        print(result)
+        arrival_record(args.run_id, run, result)
         return
     if not args.sweep:
         raise ValueError("RUTA_NOTIFIER_MODE_REQUIRED")
+    arrival_record(None, None, "SWEEP")
     # Bot-token initiated workflows may not fire workflow_run; poll as backup.
     limit = datetime.now(timezone.utc) - timedelta(hours=24)
     all_runs = []

@@ -4,6 +4,25 @@
   "dispatch_ref": "main",
   "wait_seconds": 900,
   "poll_seconds": 15,
-  "required_event": "workflow_dispatch",
-  "required_branch": "main"
+  "required_branch": "main",
+  "accepted_events": [
+    "push",
+    "workflow_dispatch"
+  ],
+  "fallback_event": "workflow_dispatch",
+  "push_wait_seconds": 240,
+  "required_jobs": [
+    "backend (Maven verify)",
+    "frontend (lint, tipos, build)",
+    "estándares (catálogo y checks)",
+    "T7 registry reconstructed from exact historical Train merges",
+    "T5 Playwright Chromium local app (visible only)",
+    "estándares (modo sombra)",
+    "infra local (docker compose)",
+    "Worker pilot (offline budget, policy, vendor integrity)",
+    "native push policy (offline only)",
+    "LF pinned producer integrity and offline suites (no Supabase)",
+    "CP3.2 intake simulated A9 and PG-01 fixture (offline)",
+    "CP3.3 pinned PG02-PG05 and real disposable SQL selector"
+  ]
 }

@@ -126,28 +126,39 @@ def validate_train_run(api: Github, number: int, train_run_id: int):
 
 def main_ci_gate_config(path: Path = CI_GATE) -> dict:
     config = json.loads(path.read_text(encoding="utf-8"))
+    jobs = config.get("required_jobs")
     if (config.get("schema_version") != "LF_TRAIN_MAIN_CI_GATE_V1"
             or config.get("workflow") != "ci.yml"
             or config.get("dispatch_ref") != "main"
-            or config.get("required_event") != "workflow_dispatch"
+            or "required_event" in config
+            or config.get("accepted_events") != ["push", "workflow_dispatch"]
+            or config.get("fallback_event") != "workflow_dispatch"
             or config.get("required_branch") != "main"
             or type(config.get("wait_seconds")) is not int
             or not 60 <= config["wait_seconds"] <= 1800
             or type(config.get("poll_seconds")) is not int
-            or not 1 <= config["poll_seconds"] <= 60):
+            or not 1 <= config["poll_seconds"] <= 60
+            or type(config.get("push_wait_seconds")) is not int
+            or not 0 <= config["push_wait_seconds"] <= 900
+            or not isinstance(jobs, list) or not jobs
+            or len(jobs) != len(set(jobs))
+            or not all(isinstance(j, str) and j.strip() == j and j for j in jobs)):
         raise HandoffBlocked("MAIN_CI_GATE_CONFIG_INVALID")
     return config
 
 
-def main_ci_run(api: Github, sha: str, config: dict) -> dict | None:
+def main_ci_run(api: Github, sha: str, config: dict,
+                events: tuple[str, ...] | None = None) -> dict | None:
+    """Latest trusted ci.yml run on main for this exact SHA and accepted events."""
+    accepted = tuple(events or config["accepted_events"])
     result = api.call("GET", f"/actions/workflows/ci.yml/runs?head_sha={sha}&per_page=100")
     rows = result.get("workflow_runs", [])
     if (not isinstance(rows, list) or type(result.get("total_count")) is not int
             or result["total_count"] > 100):
         raise HandoffBlocked("BASE_NO_VERDE:CI_HISTORY_INVALID")
-    eligible = [r for r in rows if
+    eligible = [r for r in rows if isinstance(r, dict) and
                 r.get("head_sha") == sha and r.get("head_branch") == config["required_branch"]
-                and r.get("event") in ("push", config["required_event"])
+                and r.get("event") in accepted
                 and (r.get("path") or "").split("@")[0] == ".github/workflows/ci.yml"
                 and r.get("repository", {}).get("full_name") == REPO
                 and type(r.get("run_attempt")) is int]
@@ -155,40 +166,47 @@ def main_ci_run(api: Github, sha: str, config: dict) -> dict | None:
                default=None)
 
 
-def ensure_main_ci(api: Github, sha: str, *, required: bool,
-                   config: dict | None = None, sleep=time.sleep) -> dict:
-    """Dispatch CI via workflow_dispatch; never count a different main SHA.
+def required_jobs_green(api: Github, run: dict, config: dict) -> bool:
+    """Every configured job ran in this run's latest attempt and succeeded.
 
-    A gated successor is forbidden until the exact SHA's latest verified
-    workflow_dispatch CI has completed successfully. A failure is terminal
-    and contains its own GitHub Actions URL.
+    A skipped, missing, duplicated or unfinished required job never counts:
+    the CI of a different event must prove the same checks, not fewer.
     """
-    config = config or main_ci_gate_config()
-    if not SHA.fullmatch(sha):
-        raise HandoffBlocked("BASE_NO_VERDE:SHA_INVALID")
-    # A workflow_dispatch on ref main is not pinned by input; never let a
-    # concurrently advancing main count as validation of a different commit.
-    tip = api.call("GET", "/git/ref/heads/main")
-    if tip.get("object", {}).get("sha") != sha:
-        raise HandoffBlocked("BASE_NO_VERDE:MAIN_MOVED")
-    # Record the previous run before dispatch. Never treat an older success
-    # (or failure) as the outcome of the CI that this handoff just launched.
-    previous = main_ci_run(api, sha, config)
-    previous_id = previous.get("id", 0) if previous else 0
-    api.call("POST", "/actions/workflows/ci.yml/dispatches", {"ref": "main"})
-    if not required:
-        return {"status": "MAIN_CI_DISPATCHED", "sha": sha}
+    result = api.call("GET", f"/actions/runs/{run['id']}/jobs?filter=latest&per_page=100")
+    rows = result.get("jobs") if isinstance(result, dict) else None
+    if (not isinstance(rows, list) or type(result.get("total_count")) is not int
+            or result["total_count"] > 100 or result["total_count"] != len(rows)):
+        return False
+    by_name: dict[str, list[dict]] = {}
+    for row in rows:
+        if isinstance(row, dict) and isinstance(row.get("name"), str):
+            by_name.setdefault(row["name"], []).append(row)
+    for name in config["required_jobs"]:
+        found = by_name.get(name, [])
+        if (len(found) != 1 or found[0].get("status") != "completed"
+                or found[0].get("conclusion") != "success"):
+            return False
+    return True
+
+
+def _follow_main_ci(api: Github, sha: str, config: dict, event: str,
+                    min_id: int, sleep) -> dict:
+    """Wait for one exact-SHA run of `event` (id > min_id) to finish green."""
     attempts = (config["wait_seconds"] + config["poll_seconds"] - 1) // config["poll_seconds"]
     last = None
     rerun_requested = False
     attempt = 0
     while attempt < attempts:
-        run = main_ci_run(api, sha, config)
-        if run is not None and type(run.get("id")) is int and run["id"] > previous_id:
+        run = main_ci_run(api, sha, config, (event,))
+        if run is not None and type(run.get("id")) is int and run["id"] > min_id:
             last = run
             if run.get("status") == "completed":
                 if run.get("conclusion") == "success":
-                    return {"status": "MAIN_CI_GREEN", "sha": sha,
+                    if not required_jobs_green(api, run, config):
+                        # Never approve a run that skipped or lost a required check.
+                        raise HandoffBlocked("BASE_NO_VERDE:REQUIRED_JOBS:"
+                                             + str(run.get("html_url") or "CI_NO_URL"))
+                    return {"status": "MAIN_CI_GREEN", "sha": sha, "event": event,
                             "run_id": run["id"], "url": run["html_url"]}
                 # T27.1: transient infrastructure (registry 429/503, runner
                 # loss) must not stop the chain. Re-run only the failed jobs
@@ -199,12 +217,60 @@ def ensure_main_ci(api: Github, sha: str, *, required: bool,
                     attempt = 0  # fresh wait budget for the re-run
                     sleep(config["poll_seconds"])
                     continue
+                # A failed CI is terminal: never dispatch another to wash it.
                 raise HandoffBlocked("BASE_NO_VERDE:" + str(run.get("html_url") or "CI_NO_URL"))
         attempt += 1
         if attempt < attempts:
             sleep(config["poll_seconds"])
     # A completed old run cannot stand in for a missing new dispatch.
     raise HandoffBlocked("BASE_NO_VERDE:" + str(last.get("html_url") if last else "CI_NO_RUN"))
+
+
+def ensure_main_ci(api: Github, sha: str, *, required: bool,
+                   config: dict | None = None, sleep=time.sleep,
+                   clock=time.monotonic) -> dict:
+    """Validate the exact merge SHA on main; dispatch CI only as a fallback.
+
+    T52: a Train merge pushed with TRAIN_PUSH_TOKEN (PR #337) already starts
+    ci.yml on push. Reuse that run for the exact SHA; dispatch once only if no
+    push run appears by a real push_wait_seconds deadline (e.g. a GITHUB_TOKEN
+    merge, the CHG-0113 case). A failed push CI blocks; it is never replaced.
+    Renaming a job in ci.yml requires updating required_jobs in the gate
+    config (test_t52_main_ci enforces the correspondence).
+    """
+    config = config or main_ci_gate_config()
+    if not SHA.fullmatch(sha):
+        raise HandoffBlocked("BASE_NO_VERDE:SHA_INVALID")
+    # A workflow_dispatch on ref main is not pinned by input; never let a
+    # concurrently advancing main count as validation of a different commit.
+    tip = api.call("GET", "/git/ref/heads/main")
+    if tip.get("object", {}).get("sha") != sha:
+        raise HandoffBlocked("BASE_NO_VERDE:MAIN_MOVED")
+    # Monotonic deadline: the last probe happens at or after the deadline,
+    # never one poll early (review H3).
+    deadline = clock() + (config["push_wait_seconds"] if required else 0)
+    while True:
+        push_run = main_ci_run(api, sha, config, ("push",))
+        if push_run is not None:
+            break
+        remaining = deadline - clock()
+        if remaining <= 0:
+            break
+        sleep(min(config["poll_seconds"], remaining))
+    if push_run is not None:
+        if not required:
+            return {"status": "MAIN_CI_PUSH_OBSERVED", "sha": sha,
+                    "run_id": push_run.get("id")}
+        return _follow_main_ci(api, sha, config, "push", 0, sleep)
+    # Fallback: record the previous run before dispatch. Never treat an older
+    # success (or failure) as the outcome of the CI this handoff launches.
+    previous = main_ci_run(api, sha, config)
+    previous_id = previous.get("id", 0) if previous else 0
+    api.call("POST", "/actions/workflows/ci.yml/dispatches", {"ref": "main"})
+    if not required:
+        return {"status": "MAIN_CI_DISPATCHED", "sha": sha}
+    return _follow_main_ci(api, sha, config, config["fallback_event"],
+                           previous_id, sleep)
 
 
 def merged_request_slug(pr: dict, sha: str) -> str:
