@@ -90,37 +90,69 @@ def test_worker_preflight_blocks_without_outputs(tmp_path, monkeypatch, reason):
     assert not output.exists()
 
 
-@pytest.mark.parametrize("deny_at", [1, 2])
-def test_worker_no_attempt_no_model_no_feedback(tmp_path, monkeypatch, deny_at):
-    control, source, proposal, private = [tmp_path / p for p in ("control", "source", "proposal", "private")]
-    for p in (control, source, proposal, private):
-        p.mkdir()
-    (private / "holdout.oracle.json").write_text("{}")
-    spec = SimpleNamespace(max_attempts=1, base_head_sha="a" * 40, source_snapshot_sha256="ok")
-    monkeypatch.setattr(worker, "load_registration", lambda *_: ({"context_path_patterns": []}, "a"*64))
-    monkeypatch.setattr(worker, "parse_worker_task", lambda *_: spec)
-    monkeypatch.setattr(worker, "replace", lambda original, **changes: original)
-    monkeypatch.setattr(worker, "_git_head", lambda *_: "a" * 40)
-    monkeypatch.setattr(worker, "source_snapshot_sha256", lambda *_: "ok")
-    monkeypatch.setattr(worker, "read_proposal_envelope",
-                        lambda *_: {"proposal": {"patch": "safe"}, "task_pack_sha256": "a"*64})
-    monkeypatch.setattr(worker, "load_hidden_oracle", lambda *_: {})
-    monkeypatch.setattr(worker, "assert_hidden_oracle_external", lambda *_: None)
-    monkeypatch.setattr(worker, "parse_patch_proposal", lambda *_: SimpleNamespace(patch="safe"))
-    monkeypatch.setattr(worker, "inspect_patch", lambda *_: None)
-    monkeypatch.setattr(worker, "NativeProposalClient", lambda *_a, **_k: object())
-    calls = []
-    def gate(*_a, **_kw):
-        calls.append(1)
-        if len(calls) == deny_at:
-            raise lc.RequestStateError("REQUEST_CLOSED")
-    monkeypatch.setattr(worker, "require_task_open", gate)
-    monkeypatch.setattr(worker, "run_verified_worker",
-                        lambda *_a, **_kw: pytest.fail("model called on closed request"))
+def test_trusted_recheck_blocks_closed_without_touching_worker(tmp_path, monkeypatch, capsys):
+    import request_lifecycle_gate as gate
+    seed(tmp_path)
+    monkeypatch.setattr(gate, "require_task_open",
+                        lambda task, *, root: lc.require_task_open(
+                            task, root=root, api=api("closed")))
+    monkeypatch.setattr(sys, "argv",
+                        ["lifecycle-gate", "--control", str(tmp_path), "--task", "item1"])
+    assert gate.main() == 1
+    assert "REQUEST_CLOSED" in capsys.readouterr().err
+    assert not list(tmp_path.rglob("attempt-proof.json"))
+    assert not list(tmp_path.rglob("feedback.json"))
+
+
+def test_trusted_recheck_unresolved_blocks_without_attempt(tmp_path, monkeypatch, capsys):
+    import request_lifecycle_gate as gate
+    seed(tmp_path)
+    monkeypatch.setattr(gate, "require_task_open",
+                        lambda task, *, root: lc.require_task_open(
+                            task, root=root, api=api("open", fail=True)))
+    monkeypatch.setattr(sys, "argv",
+                        ["lifecycle-gate", "--control", str(tmp_path), "--task", "item1"])
+    assert gate.main() == 1
+    assert "REQUEST_STATE_UNRESOLVED" in capsys.readouterr().err
+    assert not list(tmp_path.rglob("attempt-proof.json"))
+
+
+def test_trusted_recheck_open_is_authorized(tmp_path, monkeypatch, capsys):
+    import request_lifecycle_gate as gate
+    seed(tmp_path)
+    monkeypatch.setattr(gate, "require_task_open",
+                        lambda task, *, root: lc.require_task_open(
+                            task, root=root, api=api("open")))
+    monkeypatch.setattr(sys, "argv",
+                        ["lifecycle-gate", "--control", str(tmp_path), "--task", "item1"])
+    assert gate.main() == 0
+    assert "REQUEST_OPEN_VERIFIED" in capsys.readouterr().out
+
+
+def test_execute_has_no_state_reader_or_token_calls():
+    import ast
+    source = (ROOT / "pilot/worker_v08/native_run.py").read_text()
+    module = ast.parse(source)
+    execute = next(x for x in module.body
+                   if isinstance(x, ast.FunctionDef) and x.name == "execute")
+    calls = [x.func for x in ast.walk(execute) if isinstance(x, ast.Call)]
+    names = {x.id for x in calls if isinstance(x, ast.Name)}
+    assert "require_task_open" not in names
+    assert "github_issue_api" not in names
+    assert "run_verified_worker" in names  # still performs real acceptance
+
+
+def test_gate_not_worker_owns_early_abort(tmp_path, monkeypatch):
+    import request_lifecycle_gate as gate
+    seed(tmp_path)
+    invoked = []
+    monkeypatch.setattr(gate, "require_task_open",
+                        lambda *_a, **_kw: (_ for _ in ()).throw(
+                            lc.RequestStateError("REQUEST_CLOSED")))
+    monkeypatch.setattr(worker, "execute",
+                        lambda *_a, **_kw: invoked.append("model"))
     with pytest.raises(lc.RequestStateError, match="REQUEST_CLOSED"):
-        worker.execute(control, source, proposal, private, "item1", 1, 101)
-    assert len(calls) == deny_at
-    public = private / "public"
-    assert not (public / "attempt-proof.json").exists()
-    assert not (public / "feedback.json").exists()
-    assert not (public / "cost.json").exists()
+        gate.recheck(tmp_path, "item1", checker=gate.require_task_open)
+    assert invoked == []
+    assert not list(tmp_path.rglob("attempt-proof.json"))
+    assert not list(tmp_path.rglob("feedback.json"))
