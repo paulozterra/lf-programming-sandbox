@@ -7,6 +7,10 @@ CP3.3 fixtures remain immutable; paths are validated in the actual repo.
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config import project_config as _project  # noqa: E402
 import json
 
 # Explicit aliases; deliberately NO suffix-stripping or fuzzy matching.
@@ -16,11 +20,9 @@ SELECTOR_BINDINGS = {
     "PERFIL-PROG-DATA-EXP": ("DATA", "PERFIL-PROG-DATA-EXP", "prog_data_exp"),
 }
 REAL_ROOTS = {
-    "BACKEND": ("apps/time-service/src/main/java/", "backend/src/main/java/"),
-    "FRONTEND": ("apps/web/", "frontend/"),
-    "DATA": ("db/", "supabase/migrations/", "apps/time-service/src/main/resources/db/migration/"),
-    "INFRA": ("apps/time-service/", "frontend/"),
-    "CONTRATO": ("contracts/",),
+    # T54 phase 3b: real product roots per area from the project configuration.
+    area: _project.area_project_roots(area)
+    for area in ("BACKEND", "FRONTEND", "DATA", "INFRA", "CONTRATO")
 }
 FAKE_PREFIXES = ("src/main/java/com/lf/", "web/src/app/")
 
@@ -44,6 +46,24 @@ def _infra_allowed_paths():
     return set(p["database"]["config_files"]) | {
         item["manifest"] for item in p["targets"].values()
     } | {p["targets"]["npm"]["lockfile"]}
+
+
+def _project_base(area: str, path: str) -> str:
+    """Directory that must already exist for a new file at `path` (T54 3b).
+
+    The owning component root when the path is inside one; otherwise the
+    area's matched project root (top directory for the conventional
+    "<dir>/src/main/java/" layout). Never invents an absent project.
+    """
+    owners = [item["root"] for item in _project.components().values()
+              if path.startswith(item["root"] + "/")]
+    if owners:
+        return max(owners, key=len)
+    for prefix in sorted(REAL_ROOTS[area], key=len, reverse=True):
+        if path.startswith(prefix):
+            bare = prefix.rstrip("/")
+            return bare.split("/src/main/java", 1)[0]
+    raise NativeLotBlocked("CP34_PROJECT_ROOT_MISSING")
 
 
 class NativeLotBlocked(ValueError):
@@ -98,20 +118,7 @@ def real_write_paths(root: Path, area: str, paths: list[str]) -> list[str]:
             raise NativeLotBlocked("CP34_UNSAFE_PATH")
         # A new source file is legitimate, but never invent an absent project.
         project_root = path.split("/", 2)
-        if area == "CONTRATO":
-            base = root / "contracts"
-        elif path.startswith("apps/time-service/"):
-            base = root / "apps/time-service"
-        elif path.startswith("apps/web/"):
-            base = root / "apps/web"
-        elif path.startswith("backend/"):
-            base = root / "backend"
-        elif path.startswith("frontend/"):
-            base = root / "frontend"
-        elif path.startswith("supabase/migrations/"):
-            base = root / "supabase/migrations"
-        else:
-            base = root / "db"
+        base = root / _project_base(area, path)
         if not base.is_dir() or base.is_symlink():
             raise NativeLotBlocked("CP34_PROJECT_ROOT_MISSING")
         result.append(path)

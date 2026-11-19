@@ -6,6 +6,7 @@ import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path
+from pilot.config import project_config as _project
 
 import hashlib
 import json
@@ -39,6 +40,24 @@ def enforce_generated_scope(area: str, paths: list[str]) -> None:
         raise ValueError("SCOPE_GENERACION_INTEGRACION_DIVERGE:" + str(area)) from exc
 
 
+def lot_protection(area, paths):
+    """T54 phase 3b: protected patterns of a generated lot, from project config.
+
+    protected_base minus the area's unprotect entries (and unprotect_if_written
+    entries the lot actually writes), plus the area's own protections.
+    """
+    policy=_project.lot_policy()
+    rules=policy["areas"][area]
+    protected=list(policy["protected_base"])
+    for entry in rules["unprotect_if_written"]:
+        if entry in paths:
+            protected.remove(entry)
+    for entry in rules["unprotect"]:
+        protected.remove(entry)
+    protected += rules["protect"]
+    return protected
+
+
 def acceptance(area, paths, *, run=None, module=None, has_contract=False, skeleton_path=None, infra_dependencies=None):
     def item(name, argv, timeout=600):
         if argv and Path(argv[0]).name in ("python", "python2", "python3", "python3.12"):
@@ -56,20 +75,24 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False, skelet
              skeleton_path,
              "--module",module])]
     if area=="BACKEND":
-        result=[item("backend-package",["mvn","-B","-q","-f","apps/time-service/pom.xml","package"])]
+        # T54 phase 3b: build file from the project's maven component.
+        pom=_project.area_component("BACKEND","maven")["build_file"]
+        result=[item("backend-package",["mvn","-B","-q","-f",pom,"package"])]
         if has_contract:
             result += [
-                item("backend-start-openapi",["mvn","-B","-q","-f","apps/time-service/pom.xml",
+                item("backend-start-openapi",["mvn","-B","-q","-f",pom,
                                               "spring-boot:start"]),
                 item("backend-contract-operations",
                      ["python3","pilot/orchestrator/contract_validate.py",
                       "--compare-live","http://127.0.0.1:8080/v3/api-docs"]),
-                item("backend-stop-openapi",["mvn","-B","-q","-f","apps/time-service/pom.xml",
+                item("backend-stop-openapi",["mvn","-B","-q","-f",pom,
                                              "spring-boot:stop"]),
             ]
         return result
     if area=="FRONTEND":
-        result=[item("frontend-install",["npm","--prefix","frontend","ci"]),
+        web=_project.area_component("FRONTEND","npm")
+        client=web["generated_client"]
+        result=[item("frontend-install",["npm","--prefix",web["root"],"ci"]),
                 item("frontend-lint",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-lint"]),
                 item("frontend-types",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-typecheck"]),
                 item("frontend-build",["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-build"]),
@@ -79,8 +102,10 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False, skelet
                 item("frontend-browser-visible",["python3","pilot/worker_v08/playwright_gate.py",
                                                  "--path","/","--selector","body"],240)]
         if has_contract:
+            if client is None:
+                raise ValueError("T2_GENERATED_CLIENT_NOT_CONFIGURED")
             result += [
-                item("frontend-generate-api",["npm","--prefix","frontend","run","gen:api"]),
+                item("frontend-generate-api",["npm","--prefix",web["root"],"run",client["script"]]),
                 item("frontend-typed-client-diff",["python3","pilot/orchestrator/contract_validate.py",
                                                 "--check-client","."]),
                 item("frontend-no-manual-fetch",["python3","pilot/orchestrator/contract_validate.py",
@@ -94,18 +119,22 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False, skelet
               "--check-infra","--root","."]
         for dependency in infra_dependencies:
             argv += ["--dependency-id",dependency["id"]]
-        if "apps/time-service/src/main/resources/application.properties" in paths:
+        infra=_project.area_components("INFRA")
+        if any(cfg_file in paths for _,c in infra if c["kind"]=="maven"
+               for cfg_file in c["config_files"]):
             argv += ["--database"]
         result=[item("infra-allowlist-and-env",argv)]
-        if "apps/time-service/pom.xml" in paths:
-            result.append(item("infra-build",["mvn","-U","-B","-q","-f",
-                                              "apps/time-service/pom.xml",
-                                              "-DskipTests","package"]))
-        if "frontend/package.json" in paths:
-            result.extend([
-                item("infra-npm-ci",["npm","--prefix","frontend","ci"]),
-                item("infra-generated-client",["npm","--prefix","frontend","run","gen:api"]),
-            ])
+        for _,c in infra:
+            if c["kind"]=="maven" and c["build_file"] in paths:
+                result.append(item("infra-build",["mvn","-U","-B","-q","-f",
+                                                  c["build_file"],
+                                                  "-DskipTests","package"]))
+        for _,c in infra:
+            if c["kind"]=="npm" and c["build_file"] in paths:
+                result.append(item("infra-npm-ci",["npm","--prefix",c["root"],"ci"]))
+                if c["generated_client"] is not None:
+                    result.append(item("infra-generated-client",
+                        ["npm","--prefix",c["root"],"run",c["generated_client"]["script"]]))
         return result
     if area=="DATA":
         return [item("data-classpath-migrations",["python3","pilot/orchestrator/infra_validate.py",
@@ -122,7 +151,7 @@ def _existing_behavior_tests(root, source_path, endpoints):
         raise ValueError("REUTILIZACION_INDETERMINADA")
     routes = {ep.split(" ", 1)[1] for ep in endpoints}
     matched = []
-    for name in ("apps/time-service/src/test", "apps/time-service/visible-tests"):
+    for name in _project.area_component("BACKEND", "maven")["test_roots"]:
         directory = Path(root) / name
         if directory.is_symlink():
             raise ValueError("REUTILIZACION_INDETERMINADA")
@@ -240,25 +269,7 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
                      "holdout_metadata_path":f"pilot/runs/{run}/claude_meta/{task}.json"})
         paths=sorted(lot["write_paths"])
         enforce_generated_scope(lot["area"], paths)
-        protected=[".github/**",".lf/**","pilot/**","vendor/**",
-                   "apps/time-service/src/test/**","apps/time-service/visible-tests/**",
-                   "apps/time-service/pom.xml","apps/time-service/src/main/resources/**",
-                   "frontend/package.json","frontend/package-lock.json",
-                   "frontend/src/**/__tests__/**","db/**"]
-        if lot["area"]=="INFRA":
-            for manifest in ("frontend/package.json", "frontend/package-lock.json"):
-                if manifest in paths:
-                    protected.remove(manifest)
-            protected.remove("apps/time-service/pom.xml")
-            protected.remove("apps/time-service/src/main/resources/**")
-            protected += ["apps/time-service/src/main/resources/db/**",
-                          "frontend/src/**", "apps/time-service/src/main/java/**"]
-        if lot["area"]=="DATA":
-            protected.remove("apps/time-service/src/main/resources/**")
-            protected += ["apps/time-service/src/main/resources/application.properties",
-                          "apps/time-service/src/main/resources/static/**"]
-            protected.remove("db/**")
-            protected.extend(["db/**/test/**","db/**/fixtures/**"])
+        protected=lot_protection(lot["area"], paths)
         dependency_contract=lot.get("contract_context_ref")
         if dependency_contract and dependency_contract not in contract_by_path:
             raise ValueError("T2_CONTRACT_CONTEXT_UNBOUND")
@@ -268,9 +279,8 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
         elif lot["area"]=="CONTRATO":
             protected.append("contracts/*.skeleton.json")
         if lot["area"]=="INFRA":
-            context_paths=["pilot/orchestrator/dependency_allowlist_v1.json",
-                           "apps/time-service/pom.xml",
-                           "apps/time-service/src/main/resources/application.properties"]
+            context_paths=(["pilot/orchestrator/dependency_allowlist_v1.json"]
+                           + list(_project.lot_policy()["areas"]["INFRA"]["context_files"]))
         else:
             context_paths=(
                 [skeleton_template.format(module=module)]

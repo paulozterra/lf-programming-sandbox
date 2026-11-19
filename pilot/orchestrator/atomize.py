@@ -82,12 +82,23 @@ def _rules():
     return data
 
 
+def _migrations_root():
+    """T54 3b: the DATA area's maven component declares where migrations live."""
+    import sys as _sys
+    _sys.path.insert(0, str(HERE.parents[1]))
+    from pilot.config import project_config as _project
+    found = _project.area_component("DATA", "maven")["migrations_root"]
+    if not found:
+        raise ValueError("ATOM_MIGRATIONS_ROOT_NOT_CONFIGURED")
+    return found
+
+
 def _next_version(root):
     # The staging root often contains only request artifacts. Include the
     # checked-out repository migrations so the next version is not reset to V1.
     numbers = []
     for base in (HERE.parents[1], Path(root)):
-        for file in (base / "apps/time-service/src/main/resources/db/migration").glob("V*__*.sql"):
+        for file in (base / _migrations_root()).glob("V*__*.sql"):
             match = re.fullmatch(r"V([0-9]+)__[a-z0-9_]+\.sql", file.name)
             if match:
                 numbers.append(int(match.group(1)))

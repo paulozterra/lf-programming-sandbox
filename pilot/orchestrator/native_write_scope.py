@@ -7,14 +7,17 @@ areas cannot be joined to exploit an allowlist union.
 from __future__ import annotations
 
 from pathlib import PurePosixPath
+import sys as _project_sys
+from pathlib import Path as _project_Path
 
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config import project_config as _project  # noqa: E402
+
+# T54 phase 3b: area write prefixes come from the project configuration
+# (validated, fail-closed at import). Insertion order is the route's area order.
 AREA_ROOTS: dict[str, tuple[str, ...]] = {
-    "CONTRATO": ("contracts/",),
-    "INFRA": ("apps/", "frontend/"),
-    "DATA": ("db/", "supabase/migrations/",
-             "apps/time-service/src/main/resources/db/migration/"),
-    "BACKEND": ("apps/", "backend/"),
-    "FRONTEND": ("frontend/",),
+    area: _project.area_write_prefixes(area)
+    for area in ("CONTRATO", "INFRA", "DATA", "BACKEND", "FRONTEND")
 }
 AREAS = frozenset(AREA_ROOTS)
 PRODUCT_ROOTS = frozenset(root for roots in AREA_ROOTS.values() for root in roots)

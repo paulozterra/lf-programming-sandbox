@@ -59,10 +59,21 @@ def check_infra(root, dependency_ids=None, database=True):
         match = re.search(r"(?m)^" + re.escape(key) + r"=(.*)$", example)
         if not match or match.group(1).strip():
             deny("T3_ENV_EXAMPLE_SECRET_OR_MISSING:" + key)
-    if not db["migration_directory"].startswith(
-            "apps/time-service/src/main/resources/db/migration/"):
+    if not db["migration_directory"].startswith(_migrations_prefix()):
         deny("T3_MIGRATION_LOCATION_INVALID")
     return True
+
+
+def _migrations_prefix():
+    """T54 3b: configured migrations root of the DATA area's maven component."""
+    import sys as _sys
+    from pathlib import Path as _P
+    _sys.path.insert(0, str(_P(__file__).resolve().parents[2]))
+    from pilot.config import project_config as _project
+    found = _project.area_component("DATA", "maven")["migrations_root"]
+    if not found:
+        deny("T3_MIGRATION_LOCATION_INVALID")
+    return found + "/"
 
 
 def check_data(root, paths):
