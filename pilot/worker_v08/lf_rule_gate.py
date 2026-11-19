@@ -139,7 +139,8 @@ def verified_visible_commands(rows: list[dict], visible: dict | None,
         return table
     # Only the pinned full formatter can attest complete formatting.
     # A command merely named std-XX-YY is not proof (it might run "true").
-    from register_task_context import FORMAT_COMMAND
+    from register_task_context import format_command
+    FORMAT_COMMAND = format_command()
     successful = set()
     for attempt in visible.get("attempts",[]):
         if not isinstance(attempt,dict):

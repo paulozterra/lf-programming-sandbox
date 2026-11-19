@@ -23,6 +23,9 @@
         "apps/time-service/src/test",
         "apps/time-service/visible-tests"
       ],
+      "affected_test_roots": [
+        "apps/time-service/src/test"
+      ],
       "migrations_root": "apps/time-service/src/main/resources/db/migration",
       "config_files": [
         "apps/time-service/src/main/resources/application.properties"
@@ -39,6 +42,9 @@
       ],
       "resource_roots": [],
       "test_roots": [
+        "frontend/src"
+      ],
+      "affected_test_roots": [
         "frontend/src"
       ],
       "migrations_root": null,

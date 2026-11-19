@@ -231,3 +231,4 @@
 | CHG-0237 | ADDITIVE | T54 fase 3a: componentes como mapa abierto y raíces por área en la configuración del proyecto |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/359 |
 | CHG-0238 | ADDITIVE | T57: espejo de Maven Central con Central como respaldo en CI, Worker, exámenes y PG37 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/360 |
 | CHG-0239 | ADDITIVE | T54 fase 3b: planificación y admisión de lotes leen componentes, áreas y protección desde la configuración del proyecto |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/361 |
+| CHG-0240 | ADDITIVE | T54 fase 3c: el lado del Worker lee componentes desde la configuración del proyecto |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/362 |

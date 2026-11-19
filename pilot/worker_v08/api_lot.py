@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT / "pilot/orchestrator"))
 sys.path.insert(0, str(ROOT / "pilot/worker_v08"))
 from generate_chain import acceptance
 from native_run import load_registration
-from register_task_context import FORMAT_COMMAND
+from register_task_context import format_command
 from lf_rule_context import material
 
 TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
@@ -119,7 +119,7 @@ def admit(root: Path, task: str) -> dict:
     commands = registered.get("acceptance_commands")
     # Registering a BACKEND alias can add only the existing pinned Spotless
     # command, never silently remove or replace a generated acceptance.
-    if commands not in (expected, expected + [FORMAT_COMMAND]):
+    if commands not in (expected, expected + [format_command()]):
         block("API_LOT_GENERATED_ACCEPTANCE_DRIFT")
     for key in ("task_id", "objective"):
         if registered.get(key) != template.get(key):

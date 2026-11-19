@@ -1,0 +1,56 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0240",
+  "title": "T54 fase 3c: el lado del Worker lee componentes desde la configuración del proyecto",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T54 fase 3 (B.7) aprobada 2026-11-19; construida por Claude, revisión de GPT"
+  },
+  "reason": "Último tramo de T54. register_task_context (comando de formato STD-BE-05 y clasificación de rutas del lote), playwright_gate (arranque de backend y frontend), contract_validate (cliente generado y fuente del frontend), native_derived_generation (carpeta, script y generador del cliente), generated_conflict_recovery, native_verified_integration, pg37_evidence, worker_python_dependencies, affected_tests, reuse_assessment y la revisión de pruebas protegidas en conflicto de t4_admission leen el componente correspondiente de la configuración en el momento de usarlo (no al importar). Se agrega affected_test_roots a cada componente (subconjunto obligatorio de test_roots): las pruebas que un lote puede actualizar. FORMAT_COMMAND pasa a format_command(). Equivalencia con main@efc96c96 para el sandbox, salvo un ajuste más estricto documentado: una ruta backend/ fuera de backend/src/main/java/ ya no se clasifica como BACKEND (antes bastaba el prefijo backend/; la raíz configurada del área es backend/src/main/java/). Una prueba estática impide que el código vivo de pilot/ vuelva a nombrar apps/time-service o frontend/; quedan congelados a propósito los reproductores históricos (task_selector, derive_context, build_time_service_jar, run_live_pilot, lot_preflight), package_to_lots (decisión del owner F5.1), selector_db (semilla SQL fijada) e intervention_report (etiquetas de informe). Los workflows siguen nombrando el sandbox: queda como deuda para cuando exista un segundo proyecto.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/config/project_config.py",
+      "pilot/config/projects/sandbox.json",
+      "pilot/orchestrator/affected_tests.py",
+      "pilot/orchestrator/contract_validate.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/generated_conflict_recovery.py",
+      "pilot/orchestrator/native_derived_generation.py",
+      "pilot/orchestrator/native_verified_integration.py",
+      "pilot/orchestrator/pg37_evidence.py",
+      "pilot/orchestrator/reuse_assessment.py",
+      "pilot/orchestrator/t4_admission.py",
+      "pilot/orchestrator/worker_python_dependencies.py",
+      "pilot/test_t54_phase3a.py",
+      "pilot/test_t54_phase3b.py",
+      "pilot/test_t54_phase3c.py",
+      "pilot/worker_v08/api_lot.py",
+      "pilot/worker_v08/lf_rule_gate.py",
+      "pilot/worker_v08/playwright_gate.py",
+      "pilot/worker_v08/register_task_context.py",
+      "pilot/worker_v08/test_register_task_context.py",
+      "pilot/worker_v08/test_t8_lf_rules.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0240.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/362"
+  }
+}

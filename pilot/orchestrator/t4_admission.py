@@ -367,7 +367,8 @@ def protected_test_conflict(root: Path, lot: dict, binding: dict) -> None:
     patterns = spec.get("protected_path_patterns", [])
     if not isinstance(patterns, list):
         raise AdmissionBlocked("TEST_PROTEGIDO_EN_CONFLICTO")
-    roots = (root / "apps/time-service/src/test", root / "frontend/src")
+    from pilot.config import project_config as _project
+    roots = tuple(root / name for name in _project.affected_test_roots())
     for folder in roots:
         if not folder.is_dir() or folder.is_symlink():
             continue

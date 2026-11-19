@@ -26,7 +26,7 @@ REQUIRED_STORAGE = frozenset({
 # optional facts are explicit null / [] rather than absent keys.
 COMPONENT_KEYS = frozenset({
     "kind", "root", "build_file", "lock_file", "source_roots", "resource_roots",
-    "test_roots", "migrations_root", "config_files", "generated_client",
+    "test_roots", "affected_test_roots", "migrations_root", "config_files", "generated_client",
 })
 COMPONENT_KINDS = frozenset({"maven", "npm"})
 COMPONENT_NAME = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
@@ -129,7 +129,12 @@ def _component(item: object, root: Path) -> str:
     _optional_path(item["lock_file"], root, base)
     _list_within(item["source_roots"], root, base, allow_empty=False)
     _list_within(item["resource_roots"], root, base, allow_empty=True)
-    _list_within(item["test_roots"], root, base, allow_empty=True)
+    tests = _list_within(item["test_roots"], root, base, allow_empty=True)
+    # T54 3c: project tests a lot may legitimately update ("pruebas afectadas");
+    # always a subset of the protected test roots.
+    affected = _list_within(item["affected_test_roots"], root, base, allow_empty=True)
+    if not set(affected) <= set(tests):
+        _deny()
     _optional_path(item["migrations_root"], root, base)
     _list_within(item["config_files"], root, base, allow_empty=True)
     client = item["generated_client"]
@@ -476,3 +481,26 @@ class ProductRoots(AbcSet):
 
     def __len__(self):
         return len(self._values())
+
+
+def generated_client_component(project: str | None = None) -> dict:
+    """The FRONTEND npm component that owns the generated API client."""
+    found = area_component("FRONTEND", "npm", project)
+    if found["generated_client"] is None:
+        _deny()
+    return found
+
+
+def affected_test_roots(kind: str | None = None, project: str | None = None) -> tuple[str, ...]:
+    roots: list[str] = []
+    for item in components(project).values():
+        if kind is None or item["kind"] == kind:
+            roots.extend(item["affected_test_roots"])
+    return tuple(roots)
+
+
+def free_project_roots(area: str, project: str | None = None) -> tuple[str, ...]:
+    """Area project roots that are not inside any configured component."""
+    owned = [item["root"] for item in components(project).values()]
+    return tuple(prefix for prefix in area_project_roots(area, project)
+                 if not any(_within(prefix.rstrip("/"), base) for base in owned))

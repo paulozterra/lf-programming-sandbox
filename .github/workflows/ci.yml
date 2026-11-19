@@ -324,6 +324,8 @@ jobs:
         run: python3 -m unittest discover -s pilot -p 'test_t54_phase3a.py' -v
       - name: T54 phase 3b lot planning and admission from project config
         run: python3 -m unittest discover -s pilot -p 'test_t54_phase3b.py' -v
+      - name: T54 phase 3c Worker-side consumers from project config
+        run: python3 -m unittest discover -s pilot -p 'test_t54_phase3c.py' -v
       - run: python3 standards/tools/changes.py render --check
       - run: python3 standards/tools/changes.py validate
       - name: "Circuito C9: clasificación y versiones (solo PR)"

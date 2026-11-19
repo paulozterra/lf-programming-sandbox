@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """T2: generic fail-closed OpenAPI/source/client checks."""
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 import argparse
 import json
 from pathlib import Path
@@ -224,12 +227,18 @@ def compare_live(path, live):
     return True
 
 
+def _web():
+    from pilot.config import project_config as _project
+    return _project.generated_client_component()
+
+
 def check_frontend(root):
     root = Path(root)
-    if not (root / "frontend/src").is_dir():
+    source = _web()["source_roots"][0]
+    if not (root / source).is_dir():
         deny("CONTRACT_FRONTEND_ROOT_MISSING")
     pattern = re.compile(r"(?<![a-zA-Z0-9_])(?:window[.])?fetch[ ]*[(]")
-    for path in sorted((root / "frontend/src").rglob("*")):
+    for path in sorted((root / source).rglob("*")):
         if path.is_file() and path.suffix in (".ts", ".tsx") and "generated" not in path.parts:
             if pattern.search(path.read_text(encoding="utf-8")):
                 deny("CONTRACT_MANUAL_FETCH_FORBIDDEN:" + str(path.relative_to(root)))
@@ -238,10 +247,12 @@ def check_frontend(root):
 
 def check_generated(root):
     root = Path(root)
-    subprocess.run(["npm","--prefix","frontend","run","gen:api"], cwd=root, check=True)
-    diff = subprocess.run(["git","diff","--exit-code","--","frontend/src/lib/api/generated"],cwd=root)
+    web = _web()
+    generated = web["generated_client"]["dir"]
+    subprocess.run(["npm","--prefix",web["root"],"run",web["generated_client"]["script"]], cwd=root, check=True)
+    diff = subprocess.run(["git","diff","--exit-code","--",generated],cwd=root)
     untracked = subprocess.run(["git","ls-files","--others","--exclude-standard",
-                                "--","frontend/src/lib/api/generated"],cwd=root,check=True,
+                                "--",generated],cwd=root,check=True,
                                capture_output=True,text=True)
     if diff.returncode != 0 or untracked.stdout.strip():
         deny("CONTRACT_GENERATED_CLIENT_STALE")

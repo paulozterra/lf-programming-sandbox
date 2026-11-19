@@ -82,7 +82,7 @@ class OpenMap(unittest.TestCase):
         for key in ("root",):
             extra[key] = "apps/billing"
         extra.update(build_file="apps/billing/pom.xml", source_roots=["apps/billing/src/main/java"],
-                     resource_roots=[], test_roots=[], migrations_root=None, config_files=[])
+                     resource_roots=[], test_roots=[], affected_test_roots=[], migrations_root=None, config_files=[])
         cfg["components"]["billing"] = extra
         cfg["write_roots"].append("apps/billing")
         self.assertFalse(invalid(cfg))

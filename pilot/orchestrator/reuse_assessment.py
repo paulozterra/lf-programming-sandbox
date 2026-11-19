@@ -30,7 +30,9 @@ class ReuseBlocked(ValueError):
 
 
 def _code_files(root: Path):
-    folders = (root / "apps/time-service/src/main/java", root / "frontend/src")
+    from pilot.config import project_config as _project
+    folders = tuple(root / source for kind, area in (("maven", "BACKEND"), ("npm", "FRONTEND"))
+                    for source in _project.area_component(area, kind)["source_roots"])
     for folder in folders:
         if not folder.is_dir() or folder.is_symlink():
             continue

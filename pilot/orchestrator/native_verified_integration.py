@@ -15,7 +15,7 @@ import os
 from pathlib import Path, PurePosixPath
 from generated_branch_standards import synchronize
 from native_write_scope import validate_write_paths, WriteScopeError
-from native_derived_generation import generate as generate_derivatives, DerivedGenerationBlocked
+from native_derived_generation import generate as generate_derivatives, DerivedGenerationBlocked, generated_root as _derived_generated_root
 import re
 import subprocess
 import sys
@@ -370,7 +370,7 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
     derived = recorded.get("derived", {"paths": [], "generator": None})
     generated_paths = derived.get("paths", []) if isinstance(derived, dict) else []
     if (not isinstance(generated_paths, list)
-            or any(not isinstance(x, str) or not x.startswith("frontend/src/lib/api/generated/")
+            or any(not isinstance(x, str) or not x.startswith(_derived_generated_root())
                    for x in generated_paths)
             or set(changed_names) != allowed | set(generated_paths) | {chg_file, "standards/CAMBIOS.md"}):
         block("BRANCH_EXISTS_DIFFERENT")
