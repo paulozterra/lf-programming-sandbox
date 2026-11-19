@@ -28,13 +28,18 @@ def git(root, *args):
                           check=True, capture_output=True).stdout.strip()
 
 
-def fixtures(tmp_path):
+def configure_root(tmp_path):
     import shutil
     config_source = Path(__file__).resolve().parents[2] / "pilot/config"
     config_target = tmp_path / "pilot/config"
     (config_target / "projects").mkdir(parents=True, exist_ok=True)
     shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
     shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
+
+
+def fixtures(tmp_path):
+    if tmp_path is not None:
+        configure_root(tmp_path)
     data = "db/migration/V001__cp36.sql"
     backend = "apps/time-service/src/main/java/lf/sandbox/time/Auth.java"
     lots = {
@@ -264,6 +269,7 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
 
 
 def test_p4_priority_chain_plan_data_merge_releases_backend_offline(tmp_path):
+    configure_root(tmp_path)
     """Actual owner-enrolled plan: a trusted p4data merge queues p4be only."""
     plans = chain_lots.plans()
     selected = [row for row in plans if row[0] == "p4-prioridad"]
@@ -397,6 +403,7 @@ def test_cp36_manual_pr_requires_train_and_ancestry():
 
 
 def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be(tmp_path):
+    configure_root(tmp_path)
     selected = [row for row in chain_lots.plans() if row[0] == "p4-prioridad"]
     assert len(selected) == 1
     sha, head = "a" * 40, "b" * 40
