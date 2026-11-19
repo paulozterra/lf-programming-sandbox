@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0227",
+  "title": "A5: auditor por evento — cada issue audit-request se audita al abrirse (Claude sin credencial de GitHub; publicación determinista)",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (19/11): auditor en cada pasada (opción 1) y retirar la tarea programada de 4 horas."
+  },
+  "reason": "audit-auditor.yml se dispara al abrirse/etiquetarse un issue audit-request creado por el bot de la ruta (o a demanda). auditor_job.py prepare valida el issue (autor bot, etiqueta, marca única, entrada coherente) y escribe la entrada; el paso del modelo (Claude Code CLI fijado 2.1.328, ANTHROPIC_API_KEY) corre sin GH_TOKEN ni GITHUB_TOKEN y solo escribe en pilot/runs/<pedido>/audit/. finalize rechaza cualquier archivo fuera de esa carpeta, ensambla el informe con report_scaffold y exige el validador V2 de la skill y los controles de la ruta; publish abre el PR y despacha ci.yml y audit-stage.yml; land espera el CI completo y solo entonces etiqueta ready-to-merge y despacha el tren. Un fallo comenta el issue con el enlace a la corrida. Modo SHADOW.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/audit/auditor_job.py",
+      "pilot/audit/auditor_prompt.md",
+      "pilot/audit/test_a5_auditor_job.py",
+      ".github/workflows/audit-auditor.yml",
+      ".github/workflows/ci.yml",
+      "pilot/test_t20_runner_pin.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0227.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/348"
+  }
+}

@@ -1,0 +1,78 @@
+name: A5 auditor on audit request
+run-name: A5 auditor issue ${{ github.event.issue.number || inputs.issue }}
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: audit-request issue number
+        required: true
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+  checks: read
+concurrency:
+  group: audit-auditor-${{ github.event.issue.number || inputs.issue }}
+  cancel-in-progress: false
+jobs:
+  audit:
+    # Only issues opened by the route's own bot with the audit-request label.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.user.login == 'github-actions[bot]' &&
+       contains(github.event.issue.labels.*.name, 'audit-request'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      ISSUE: ${{ github.event.issue.number || inputs.issue }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install validator dependencies
+        run: python3 -m pip install --quiet --break-system-packages 'jsonschema==4.23.0'
+      - name: Check the issue and write the audit input (deterministic)
+        id: prep
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -m pilot.workflow_entrypoint pilot/audit/auditor_job.py prepare --issue "$ISSUE"
+      - name: Fetch and verify the pinned audit skill
+        run: python3 -m pilot.workflow_entrypoint pilot/audit/skill_pin.py --project "${{ steps.prep.outputs.project }}" --dest "$RUNNER_TEMP/audit-skill"
+      - name: Audit with Claude (no GitHub credential in this step)
+        timeout-minutes: 120
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          REQUEST: ${{ steps.prep.outputs.request }}
+          PROJECT: ${{ steps.prep.outputs.project }}
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN
+          skill="$RUNNER_TEMP/audit-skill/$(python3 -c "import json;print(json.load(open('pilot/audit/projects/$PROJECT.json'))['audit']['skill']['path'])")"
+          echo "SKILL_DIR=$skill" >> "$GITHUB_ENV"
+          prompt="$(sed -e "s#{request}#$REQUEST#g" -e "s#{project}#$PROJECT#g" -e "s#{skill_dir}#$skill#g" pilot/audit/auditor_prompt.md)"
+          npx -y @anthropic-ai/claude-code@2.1.328 -p "$prompt" --model claude-opus-5-5 \
+            --dangerously-skip-permissions --max-turns 250 --output-format text | tail -c 4000
+      - name: Validate, publish the PR and dispatch CI (deterministic)
+        id: pub
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST: ${{ steps.prep.outputs.request }}
+          PROJECT: ${{ steps.prep.outputs.project }}
+        run: python3 -m pilot.workflow_entrypoint pilot/audit/auditor_job.py publish --request "$REQUEST" --project "$PROJECT" --issue "$ISSUE" --skill-dir "$SKILL_DIR"
+      - name: Hand to the train when every check is green
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -m pilot.workflow_entrypoint pilot/audit/auditor_job.py land --pr "${{ steps.pub.outputs.pr }}"
+      - name: Report a blocked audit on the issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE/comments" \
+            -f body="La auditoría automática se detuvo: ver $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
