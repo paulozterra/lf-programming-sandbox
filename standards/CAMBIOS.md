@@ -218,4 +218,4 @@
 | CHG-0224 | ADDITIVE | T52 B: CI de main tras el Train reutiliza el CI de push del SHA exacto; registro de llegada del vigilante |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/344 |
 | CHG-0225 | ADDITIVE | T52 A: el Train aprueba el CI action_required del bot antes de despachar un CI de respaldo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/345 |
 | CHG-0226 | ADDITIVE | A4: adaptador de auditor para la ruta (instructivo + ensamblador del informe) y ciclo de vida de los issues audit-request |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/347 |
-| CHG-0227 | ADDITIVE | A5: auditor por evento — cada issue audit-request se audita al abrirse (Claude sin credencial de GitHub; publicación determinista) |  | paulozterra | PENDING |
+| CHG-0227 | ADDITIVE | A5: auditor por evento — cada issue audit-request se audita al abrirse (Claude sin credencial de GitHub; publicación determinista) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/348 |
