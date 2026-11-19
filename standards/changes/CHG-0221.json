@@ -24,7 +24,9 @@
       "pilot/orchestrator/test_t49_1_cp35.py",
       "pilot/orchestrator/test_t49_1_pg37.py",
       "pilot/worker_v08/native_run.py",
+      "pilot/worker_v08/request_lifecycle_gate.py",
       "pilot/worker_v08/test_t49_1_worker.py",
+      "pilot/worker_v08/test_t49_1_worker_token_isolation.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0221.json"
     ]
