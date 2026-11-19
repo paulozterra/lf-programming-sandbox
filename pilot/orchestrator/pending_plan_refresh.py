@@ -13,6 +13,7 @@ The refreshed files are written into the registration worktree, so they enter
 main in the same governed registration PR as the task itself.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import hashlib
 import json
@@ -40,7 +41,7 @@ def _read(path: Path) -> dict:
 def refresh(root: Path, request: str, completed: dict) -> list[str]:
     """Return the repository paths rewritten (empty when already current)."""
     root = Path(root)
-    folder = root / "pilot/runs" / request
+    folder = storage_path("requests_root", root=root) / request
     lots = _read(folder / "lots.json")
     state = _read(folder / "state.json")
     if state.get("lots_sha256") != hashlib.sha256(canonical(lots)).hexdigest():
