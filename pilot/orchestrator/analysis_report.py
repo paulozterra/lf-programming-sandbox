@@ -1,5 +1,6 @@
 """T10 deterministic Markdown projection of source JSON (no model)."""
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 import json
 from pathlib import Path
 
@@ -120,7 +121,7 @@ def read_rules(fixtures: Path, request: bytes) -> dict:
 
 
 def write(root: Path, slug: str, fixtures: Path) -> bytes:
-    folder = root / "pilot/runs" / slug
+    folder = storage_path("requests_root", root=root) / slug
     request = (folder / "request.md").read_bytes()
     report = render(
         json.loads((folder / "analysis.json").read_text("utf-8")),
