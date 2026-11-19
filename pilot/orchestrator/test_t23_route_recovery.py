@@ -123,20 +123,20 @@ def test_inspect_equivalence_to_main_with_sandbox_project(tmp_path):
 
 
 def test_inspect_missing_project_config_is_visible(tmp_path):
-    # Populate a plausible registration and request, but deliberately omit
-    # the project selector and definition. Never collapse this into None.
-    record = tmp_path / "pilot/worker_v08/native_tasks" / (TASK + ".json")
-    record.parent.mkdir(parents=True)
-    record.write_bytes(canonical(OLD))
-    req = tmp_path / "pilot/runs/req-901/proposal_requests"
-    req.mkdir(parents=True)
-    (req.parent / "request_meta.json").write_text('{"issue":901,"author":"origin"}')
-    (req / (TASK + ".proposal-request.json")).write_text(
-        json.dumps({"branch": "lf/native-proposal/" + TASK,
-                    "task_pack_sha256": "0" * 64}))
+    # Build the *same valid* T23 registration/request/evidence as the positive
+    # test. The pilot/conftest.py autouse fixture installs project config for
+    # tmp_path; explicitly remove it to isolate PROJECT_CONFIG_INVALID.
+    digest = fixture(tmp_path)
+    config = tmp_path / "pilot/config"
+    (config / "active_project.json").unlink()
+    (config / "projects/sandbox.json").unlink()
+    proof = {"task_id": TASK, "run_id": RUN, "attempt": 1,
+             "task_pack_sha256": digest}
     import pytest
-    with pytest.raises(ProjectConfigError, match="PROJECT_CONFIG_INVALID"):
-        recovery.inspect(lambda *_: "", lambda *_: {}, REPO, tmp_path, EVENT)
+    with (patch.object(recovery, "_source_record", return_value=OLD),
+          patch.object(recovery, "_artifact_payload", return_value=(proof, VISIBLE))):
+        with pytest.raises(ProjectConfigError, match="PROJECT_CONFIG_INVALID"):
+            recovery.inspect(lambda *_: "", lambda *_: {}, REPO, tmp_path, EVENT)
 
 
 def test_route_defect_issue_comment_is_single_and_excludes_spent_attempt(tmp_path):
