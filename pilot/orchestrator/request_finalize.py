@@ -10,6 +10,7 @@ import re
 
 from pilot.orchestrator.issue_intake import API
 from pilot.orchestrator.intervention_report import markdown, report
+from pilot.config.project_config import storage_path
 
 ROOT = Path(__file__).resolve().parents[2]
 TERMINAL = {"COMPLETED", "COMPLETE", "FINISHED", "FAILED_FINAL", "BLOCKED_FINAL"}
@@ -38,7 +39,7 @@ def verified_chain_complete(folder: Path, *, root: Path = ROOT) -> bool:
 
 
 def terminal_requests():
-    for folder in sorted((ROOT / "pilot/runs").glob("req-*")):
+    for folder in sorted((storage_path("requests_root", root=ROOT)).glob("req-*")):
         if not re.fullmatch(r"req-[1-9][0-9]*", folder.name):
             continue
         meta_path, state_path = folder / "request_meta.json", folder / "state.json"
