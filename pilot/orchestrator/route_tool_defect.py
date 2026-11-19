@@ -15,6 +15,7 @@ the same code, and on the current base, where it must pass. Only then is the
 record written. It never reads a hidden exam.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import hashlib
@@ -139,7 +140,7 @@ def prove(task: str, run_ids: list[int], current_base: str, reason: str,
     old_base = reg["task_spec"]["base_head_sha"]
     if old_base == current_base:
         deny("BASE_NOT_CHANGED")
-    meta = sorted((ROOT / "pilot/runs").glob(f"*/proposal_requests/{task}.proposal-request.json"))
+    meta = sorted((storage_path("requests_root", root=ROOT)).glob(f"*/proposal_requests/{task}.proposal-request.json"))
     if len(meta) != 1:
         deny("REQUEST_NOT_FOUND")
     issue = int(meta[0].parts[-3].split("-", 1)[1])
@@ -181,9 +182,9 @@ def prove_patch(task: str, run_ids: list[int], reason: str) -> dict:
     from native_proposal_push_guard import patch_applies
     if not TASK.fullmatch(task) or not run_ids:
         deny("INPUT_INVALID")
-    reg = json.loads((ROOT / "pilot/worker_v08/native_tasks" / (task + ".json")).read_text("utf-8"))
+    reg = json.loads((storage_path("registrations_root", root=ROOT) / (task + ".json")).read_text("utf-8"))
     base = reg["task_spec"]["base_head_sha"]
-    meta = sorted((ROOT / "pilot/runs").glob(f"*/proposal_requests/{task}.proposal-request.json"))
+    meta = sorted((storage_path("requests_root", root=ROOT)).glob(f"*/proposal_requests/{task}.proposal-request.json"))
     if len(meta) != 1:
         deny("REQUEST_NOT_FOUND")
     issue = int(meta[0].parts[-3].split("-", 1)[1])
