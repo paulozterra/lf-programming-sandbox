@@ -145,16 +145,42 @@ def load(project: str, *, root: Path = ROOT) -> dict:
             raise
         _deny()
 
-# Phase 2: one validated storage contract, with no project-specific fallback.
-def storage(*, root: Path = ROOT, project: str = "sandbox") -> dict[str, str]:
-    """Return validated storage paths; public callers retain their signatures."""
-    return load(project, root=root)["storage"]
+# T54 phase 2b: active project is explicit and validated; no sandbox default.
+ACTIVE_PROJECT_PATH = "pilot/config/active_project.json"
+
+
+def active_project(*, root: Path = ROOT) -> str:
+    root = Path(root)
+    _path(ACTIVE_PROJECT_PATH, root)
+    file = root / ACTIVE_PROJECT_PATH
+    if not file.is_file():
+        _deny()
+    try:
+        obj = json.loads(file.read_text(encoding="utf-8"))
+        _object(obj, frozenset({"schema_version", "project_id"}))
+        if obj["schema_version"] != "LF_ACTIVE_PROJECT_V1":
+            _deny()
+        name = obj["project_id"]
+        if not isinstance(name, str) or not PROJECT_ID.fullmatch(name):
+            _deny()
+        load(name, root=root)
+        return name
+    except (OSError, UnicodeError, ValueError, TypeError) as exc:
+        if isinstance(exc, ProjectConfigError):
+            raise
+        _deny()
+
+
+def storage(*, root: Path = ROOT, project: str | None = None) -> dict[str, str]:
+    """Read storage from the requested root; no implicit sandbox project."""
+    name = active_project(root=root) if project is None else project
+    return load(name, root=root)["storage"]
 
 
 def storage_path(kind: str, *parts: str, root: Path = ROOT,
-                 project: str = "sandbox") -> Path:
-    """Resolve a configured storage root and checked identifier segments."""
-    cfg = storage(root=ROOT, project=project)
+                 project: str | None = None) -> Path:
+    """Resolve only declared roots, from configuration at the given root."""
+    cfg = storage(root=root, project=project)
     if kind not in ("requests_root", "registrations_root", "chain_plans_root"):
         _deny()
     for part in parts:
@@ -164,12 +190,35 @@ def storage_path(kind: str, *parts: str, root: Path = ROOT,
 
 
 def template_path_pattern(request: str, *, root: Path = ROOT,
-                          project: str = "sandbox") -> re.Pattern[str]:
-    """Exact-match regex derived from validated configuration, never loosened."""
+                          project: str | None = None) -> re.Pattern[str]:
+    """Match exactly one request and one task from validated template contract."""
     if not isinstance(request, str) or not re.fullmatch(r"req-[1-9][0-9]*", request):
         _deny()
-    template = storage(root=ROOT, project=project)["task_template_pattern"]
+    template = storage(root=root, project=project)["task_template_pattern"]
     escaped = re.escape(template)
     escaped = escaped.replace(re.escape("{request}"), re.escape(request))
     escaped = escaped.replace(re.escape("{task}"), r"[a-z][a-z0-9_-]{0,31}")
-    return re.compile(escaped + r"\Z")
+    return re.compile(escaped + r"\\Z")
+
+
+def template_path_any_request(*, root: Path = ROOT,
+                              project: str | None = None) -> re.Pattern[str]:
+    """Strict Worker template regex for any valid issue request."""
+    template = storage(root=root, project=project)["task_template_pattern"]
+    escaped = re.escape(template)
+    escaped = escaped.replace(re.escape("{request}"), r"req-[1-9][0-9]*")
+    escaped = escaped.replace(re.escape("{task}"), r"[a-z][a-z0-9_-]{0,31}")
+    return re.compile(escaped + r"\\Z")
+
+
+def request_context_pattern(*, root: Path = ROOT,
+                            project: str | None = None) -> re.Pattern[str]:
+    """Strict request path prefix used by integration and reuse guards."""
+    prefix = re.escape(storage(root=root, project=project)["requests_root"])
+    return re.compile(prefix + r"/(req-[1-9][0-9]*)/")
+
+
+def reuse_assessment_pattern(*, root: Path = ROOT,
+                             project: str | None = None) -> re.Pattern[str]:
+    prefix = re.escape(storage(root=root, project=project)["requests_root"])
+    return re.compile(prefix + r"/[a-z][a-z0-9_-]{0,63}/reuse_assessment[.]json\\Z")
