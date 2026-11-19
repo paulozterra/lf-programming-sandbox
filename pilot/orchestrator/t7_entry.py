@@ -5,6 +5,7 @@ Refuses untyped semantic interpretation, reuse ambiguity and incomplete
 catalogue formats. Never fabricates an oracle, selector or code rewrite.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import json
@@ -28,7 +29,7 @@ class EntryBlocked(ValueError):
 def process(root: Path, slug: str, base_sha: str) -> dict:
     if not SAFE.fullmatch(slug):
         raise EntryBlocked("PEDIDO_AMBIGUO")
-    folder = root / "pilot/runs" / slug
+    folder = storage_path("requests_root", root=root) / slug
     request = folder / "request.md"
     if folder.is_symlink() or request.is_symlink() or not request.is_file():
         raise EntryBlocked("PEDIDO_AMBIGUO")
