@@ -217,4 +217,4 @@
 | CHG-0223 | ADDITIVE | T51: vigilante de ruta por corrida de origen y barrido acotado con deduplicación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/343 |
 | CHG-0224 | ADDITIVE | T52 B: CI de main tras el Train reutiliza el CI de push del SHA exacto; registro de llegada del vigilante |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/344 |
 | CHG-0225 | ADDITIVE | T52 A: el Train aprueba el CI action_required del bot antes de despachar un CI de respaldo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/345 |
-| CHG-0226 | EDITORIAL | A4: adaptador de auditor para la ruta (instructivo + ensamblador del informe) y ciclo de vida de los issues audit-request |  | paulozterra | PENDING |
+| CHG-0226 | EDITORIAL | A4: adaptador de auditor para la ruta (instructivo + ensamblador del informe) y ciclo de vida de los issues audit-request |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/347 |
