@@ -265,8 +265,7 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     compatibility = None
     if route_retry:
         from native_route_defect import verified_migration
-        registration = strict_json_loads((control / "pilot/worker_v08/native_tasks" /
-                                          (task + ".json")).read_text("utf-8"))
+        registration = strict_json_loads(storage_path("registrations_root", task + ".json", root=control).read_text("utf-8"))
         compatibility = verified_migration(control, task, registration,
                                            proposal_sha=proposal_sha)
         if compatibility is None or attempt != 1:
