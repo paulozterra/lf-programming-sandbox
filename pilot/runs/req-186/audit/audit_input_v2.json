@@ -1,0 +1,61 @@
+{
+  "acceptance_criteria": [
+    "RULE:SBX-R-ERR :: Los fallos responden un error genérico indistinguible y la sesión expira a los treinta minutos.",
+    "RULE:SBX-R-LOG :: Nunca se registran en los logs la contraseña ni el token de sesión.",
+    "RULE:SBX-R-PRIORITY-FILTER :: La lista de recordatorios se puede filtrar por prioridad alta, media o baja (HIGH, MEDIUM, LOW) o mostrar todas; un valor distinto responde 400.",
+    "RULE:SBX-R-SESSION-REQUIRED :: Solo un usuario con sesión válida puede ver su lista de recordatorios; sin sesión se responde 401 con el error genérico y la pantalla redirige al login."
+  ],
+  "authority_refs": [
+    {
+      "expected_sha256": "2878212a6342bc30d351fc89d141e503e242e3907ec75dc3fc1e4c155df7a9f5",
+      "resolution_status": "DECLARED_ONLY",
+      "resolved_revision": "5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
+      "uri": "github://paulozterra/lf-programming-sandbox@5b0430ef7b2bc5497ef48fe8b7996e4447a31829/pilot/runs/req-186/analysis.json"
+    },
+    {
+      "expected_sha256": "05874812e76bbd33c810ae16c0598595b1a18980da026fc9b0b14f285410abee",
+      "resolution_status": "DECLARED_ONLY",
+      "resolved_revision": "5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
+      "uri": "github://paulozterra/lf-programming-sandbox@5b0430ef7b2bc5497ef48fe8b7996e4447a31829/pilot/runs/req-186/lots.json"
+    }
+  ],
+  "base_commit": "5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
+  "consumer_targets": [
+    "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+    "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerDeleteSearchVisibleTest.java",
+    "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java",
+    "frontend/src/app/sbx-rem-list/page.tsx",
+    "frontend/src/lib/sbx-rem-list.ts"
+  ],
+  "entrypoints": [
+    "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+    "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerDeleteSearchVisibleTest.java",
+    "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java",
+    "contracts/sbx-rem-list.openapi.yaml",
+    "frontend/src/app/sbx-rem-list/page.tsx",
+    "frontend/src/lib/sbx-rem-list.ts"
+  ],
+  "evidence_destination": "pilot/runs/req-186/audit",
+  "freshness_budget_ms": null,
+  "ig_execution_required": false,
+  "new_e2e_requested": false,
+  "objective": "Auditar la implementación integrada del pedido req-186 contra su ficha (reglas) y sus contratos, leyendo el código real en 5b0430ef7b2b.",
+  "performance_budget_ms": null,
+  "read_scope": [
+    "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+    "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerDeleteSearchVisibleTest.java",
+    "apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java",
+    "contracts/sbx-rem-list.openapi.yaml",
+    "frontend/src/app/sbx-rem-list/page.tsx",
+    "frontend/src/lib/sbx-rem-list.ts",
+    "pilot/runs/req-186/analysis.json",
+    "pilot/runs/req-186/lots.json"
+  ],
+  "repository": "paulozterra/lf-programming-sandbox",
+  "sample_n": 1,
+  "schema_version": "LF_DEEP_AUDIT_INPUT_V2",
+  "write_scope": [
+    "TEST_LOCAL",
+    "UPDATE_DRAFT_PR"
+  ]
+}

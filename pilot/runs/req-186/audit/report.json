@@ -1,0 +1,1035 @@
+{
+  "schema_version": "LF_DEEP_AUDIT_REPORT_V2",
+  "phases": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "checklist": [
+    {
+      "ekb_code": "LF-PE-STEP70-RUN-CLOSED-EKB-ENFORCEMENT-OPEN-20261031-005",
+      "applies": true,
+      "reason": "Los exámenes del pedido pasaron, pero 3 requisitos nunca se examinaron y la sesión solo protege un endpoint: un PASS no sustituye cubrir cada regla.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-ST-RUN",
+        "EV-BE-RUN"
+      ],
+      "evidence_kind": "MEASURED_THIS_AUDIT"
+    },
+    {
+      "ekb_code": "IG-M1013-REPOSITORY-REPAIR-POLICY-054",
+      "applies": true,
+      "reason": "El gate BACKEND no correspondía al trabajo: recibió 1 de 3 requisitos backend.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-LOTS",
+        "EV-ANA"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    },
+    {
+      "ekb_code": "LF-PE10A-ASSERTION-CONTRACT-PASSWHEN-NULL-READY-20261027-001",
+      "applies": true,
+      "reason": "Contrato declara GenericError en 400 y el productor responde sin cuerpo.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-OAS",
+        "EV-BE-RUN"
+      ],
+      "evidence_kind": "MEASURED_THIS_AUDIT"
+    },
+    {
+      "ekb_code": "LF-PROMO-INDEPENDENT-JUDGE-OWNER-20261114-001",
+      "applies": true,
+      "reason": "La auditoría no concede promoción: promotion_authorized=false.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-LOTS"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    }
+  ],
+  "audit_context": {
+    "audit_id": "AUDIT-req-186-2026-11-19",
+    "source_revision": "5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
+    "started_at": "2026-11-19T20:30:52Z",
+    "source_execution_id": null,
+    "source_run_started_at": null,
+    "new_e2e_executed": false,
+    "ig_execution_required": false,
+    "ig_invocation_verified": false,
+    "promotion_authorized": false,
+    "authority_ref": null
+  },
+  "audit_tasks": [
+    {
+      "id": "RULE:SBX-R-ERR",
+      "description": "Los fallos responden un error genérico indistinguible y la sesión expira a los treinta minutos.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-AUTH",
+        "EV-BE-RUN",
+        "EV-ST-RUN"
+      ],
+      "reason": "INCUMPLE parcial: la sesión expira a los 30 minutos (medido: 200 a los 29, 401 a los 30), pero los fallos no son un error genérico indistinguible: 401 devuelve {error: SBX-E-GENERIC} y 400/404 cuerpo vacío. Además el requisito backend no llegó a ningún lote. Ver F-ERR-NOT-GENERIC y F-ANALYSIS-REQUIREMENTS-WITHOUT-LOT."
+    },
+    {
+      "id": "RULE:SBX-R-LOG",
+      "description": "Nunca se registran en los logs la contraseña ni el token de sesión.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-AUTH",
+        "EV-ST-RUN"
+      ],
+      "reason": "CUMPLE por ausencia: no hay logger ni impresión en el servicio; pero el requisito no se asignó a ningún lote ni se examinó. Ver F-ANALYSIS-REQUIREMENTS-WITHOUT-LOT."
+    },
+    {
+      "id": "RULE:SBX-R-PRIORITY-FILTER",
+      "description": "La lista de recordatorios se puede filtrar por prioridad alta, media o baja (HIGH, MEDIUM, LOW) o mostrar todas; un valor distinto responde 400.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-OAS",
+        "EV-BE-RUN"
+      ],
+      "reason": "CUMPLE parcial: HIGH/MEDIUM/LOW y 'todas' funcionan (medido), y un valor distinto da 400, pero sin el cuerpo GenericError que exige el contrato. Ver F-FILTER-400-BODY."
+    },
+    {
+      "id": "RULE:SBX-R-SESSION-REQUIRED",
+      "description": "Solo un usuario con sesión válida puede ver su lista de recordatorios; sin sesión se responde 401 con el error genérico y la pantalla redirige al login.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-LIB",
+        "EV-BE-RUN"
+      ],
+      "reason": "INCUMPLE: la lista exige sesión, pero sin sesión se puede leer un recordatorio por id, crearlo, posponerlo y borrarlo; y la lista no es 'su' lista: incluye lo creado por anónimos. Ver F-SESSION-ONLY-ON-LIST y F-LIST-NOT-SCOPED-TO-USER."
+    }
+  ],
+  "evidence_catalog": [
+    {
+      "id": "EV-CTRL",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Controlador de recordatorios leído línea a línea en el commit de cierre.",
+      "capture_sha256": "7cf51d06dcbba1d0b9e76018c04df4307abd3d2a839a3a73e2c0316c5df18d5f"
+    },
+    {
+      "id": "EV-AUTH",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Servicio de sesión existente (expiración) leído.",
+      "capture_sha256": "402d1c7fe84c5315ee1af41ddc39c02086e6ac02a6e9e0ca876c0e8769722100"
+    },
+    {
+      "id": "EV-OAS",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "contracts/sbx-rem-list.openapi.yaml",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Contrato OpenAPI de la lista leído.",
+      "capture_sha256": "ad391114304db0b19e9792c905907a23cd628be4fd8f15a1b9577477dbe2c7ae"
+    },
+    {
+      "id": "EV-LIB",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "frontend/src/lib/sbx-rem-list.ts",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Cliente de la lista (token y 401) leído.",
+      "capture_sha256": "7da9814a82e2ad124b938c7fd28db9159f2e93ea84eb4f90dc72d8e747a4ca78"
+    },
+    {
+      "id": "EV-LOTS",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-186/lots.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Lotes del pedido con requirement_ids.",
+      "capture_sha256": "05874812e76bbd33c810ae16c0598595b1a18980da026fc9b0b14f285410abee"
+    },
+    {
+      "id": "EV-ANA",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-186/analysis.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Análisis del pedido: requisitos y frentes.",
+      "capture_sha256": "2878212a6342bc30d351fc89d141e503e242e3907ec75dc3fc1e4c155df7a9f5"
+    },
+    {
+      "id": "EV-BE-RUN",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "capture_ref": "pilot/runs/req-186/audit/evidence/backend_repro.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Salida del reproductor Java ejecutado en esta auditoría contra el commit de cierre.",
+      "capture_sha256": "6c87d5ff41e31d7962984223f09b6a953da232ae6807cda19d0412f717c8d1a4"
+    },
+    {
+      "id": "EV-ST-RUN",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "capture_ref": "pilot/runs/req-186/audit/evidence/lots_repro.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Salida del reproductor de lotes ejecutado en esta auditoría.",
+      "capture_sha256": "3405f38b2c58b58e1cd04921b8e204539b493433d0c0f976d3d3476ba9490a16"
+    },
+    {
+      "id": "EV-BE-SRC",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-186/audit/evidence/AuditReproducer186.java",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Código del reproductor backend.",
+      "capture_sha256": "9e3be27746c77b11d321b3ca19412c0983cf3bb34b0c70ba69632f2d71266de1"
+    },
+    {
+      "id": "EV-ST-SRC",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-186/audit/evidence/lots_repro.py",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Código del reproductor de lotes.",
+      "capture_sha256": "f3ff8618c0b1750d497391b46f7d37db56771ce01d82007b1e609c40726e33fc"
+    },
+    {
+      "id": "EV-COHORT",
+      "kind": "NOT_MEASURED",
+      "origin": "NONE",
+      "capture_ref": "pilot/runs/req-186/audit/cohort_sample.json#/rows",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T20:30:52Z",
+      "claim": "Sin corridas del pipeline LF para este pedido: cohorte vacía.",
+      "capture_sha256": "31851727f99a25b3937454c6cf95bd6ec9f602351ca1572375f7f1bdd3baef64"
+    }
+  ],
+  "steps": [
+    {
+      "order": 0,
+      "name": "Paso LF 0",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 10,
+      "name": "Paso LF 10",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 20,
+      "name": "Paso LF 20",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 30,
+      "name": "Paso LF 30",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 40,
+      "name": "Paso LF 40",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 45,
+      "name": "Paso LF 45",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 47,
+      "name": "Paso LF 47",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 50,
+      "name": "Paso LF 50",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 60,
+      "name": "Paso LF 60",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 70,
+      "name": "Paso LF 70",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 80,
+      "name": "Paso LF 80",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    }
+  ],
+  "hops": [
+    {
+      "id": "HOP-0-10",
+      "from_step": 0,
+      "to_step": 10,
+      "sender": "paso 0",
+      "receiver": "paso 10",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-10-20",
+      "from_step": 10,
+      "to_step": 20,
+      "sender": "paso 10",
+      "receiver": "paso 20",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-20-30",
+      "from_step": 20,
+      "to_step": 30,
+      "sender": "paso 20",
+      "receiver": "paso 30",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-30-40",
+      "from_step": 30,
+      "to_step": 40,
+      "sender": "paso 30",
+      "receiver": "paso 40",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-40-45",
+      "from_step": 40,
+      "to_step": 45,
+      "sender": "paso 40",
+      "receiver": "paso 45",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-45-47",
+      "from_step": 45,
+      "to_step": 47,
+      "sender": "paso 45",
+      "receiver": "paso 47",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-47-50",
+      "from_step": 47,
+      "to_step": 50,
+      "sender": "paso 47",
+      "receiver": "paso 50",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-50-60",
+      "from_step": 50,
+      "to_step": 60,
+      "sender": "paso 50",
+      "receiver": "paso 60",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-60-70",
+      "from_step": 60,
+      "to_step": 70,
+      "sender": "paso 60",
+      "receiver": "paso 70",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-70-80",
+      "from_step": 70,
+      "to_step": 80,
+      "sender": "paso 70",
+      "receiver": "paso 80",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    }
+  ],
+  "sql_queries": [],
+  "pass_emitters": [],
+  "pass_scan_scope": {
+    "files": [
+      "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "frontend/src/lib/sbx-rem-list.ts",
+      "frontend/src/app/sbx-rem-list/page.tsx"
+    ],
+    "literal_scan_complete": false,
+    "dynamic_emissions_complete": false,
+    "limitations": [
+      "Inventario de emisores PASS no aplica al código de producto."
+    ]
+  },
+  "run_sample": {
+    "query": "corridas LF del pedido",
+    "requested_n": 1,
+    "sampled_runs": 0,
+    "metrics": {
+      "sampled_runs": 0,
+      "run_status_counts": {},
+      "persisted_pass_steps": 0,
+      "pass_missing_evidence_ref": 0,
+      "pass_missing_evidence_ref_percent": null,
+      "pass_empty_payload": 0,
+      "ig_reported_runs": 0,
+      "ig_reported_without_invocation": 0,
+      "ig_reported_without_invocation_percent": null,
+      "confirmed_false_pass_rate": null,
+      "interpretation": "Pointer presence and naming anomalies are indicators, not semantic false-PASS classification. IG may be optional."
+    },
+    "evidence_refs": [
+      "EV-COHORT"
+    ],
+    "limitations": [
+      "El pedido no tiene corridas del pipeline LF."
+    ]
+  },
+  "contracts": [],
+  "findings": [
+    {
+      "id": "F-SESSION-ONLY-ON-LIST",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-R-SESSION-REQUIRED",
+      "location": {
+        "file": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+        "function": "get",
+        "start_line": 160,
+        "end_line": 172,
+        "commit": "5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
+        "sha256": "7cf51d06dcbba1d0b9e76018c04df4307abd3d2a839a3a73e2c0316c5df18d5f"
+      },
+      "found_code": "    @GetMapping(\"/api/reminders/{id}\")\n    public ResponseEntity<Object> get(@PathVariable String id) {\n        long value;\n        try {\n            value = Long.parseLong(id);\n        } catch (NumberFormatException e) {\n            return ResponseEntity.badRequest().build();\n        }\n        return repository\n                .findById(value)\n                .<ResponseEntity<Object>>map(r -> ResponseEntity.ok(toResponse(r)))\n                .orElseGet(() -> ResponseEntity.notFound().build());\n    }",
+      "expected": {
+        "behavior": "Ningún recordatorio de la lista se puede leer ni modificar sin sesión válida: sin sesión, 401 con el error genérico.",
+        "contract_refs": [
+          "contracts/sbx-rem-list.openapi.yaml",
+          "pilot/runs/req-186/analysis.json"
+        ]
+      },
+      "defect": "Solo GET /api/reminders valida la sesión. Sin sesión: GET /api/reminders/{id} devuelve el recordatorio (200), POST crea (201), snooze pospone (200) y DELETE borra (204). Tampoco /api/reminders/stats ni PUT validan sesión.",
+      "root_cause": "El lote BACKEND recibió solo REQ-SBX-R-SESSION-REQUIRED aplicado al endpoint de listado del contrato; el resto de endpoints del recurso quedó fuera del contrato del pedido.",
+      "impact": [
+        "Cualquiera sin sesión lee, altera o borra los recordatorios que la pantalla protege.",
+        "El 401 de la lista da una falsa sensación de protección."
+      ],
+      "correction": {
+        "code": "Validar la sesión en todos los endpoints de /api/reminders (filtro o interceptor común) y responder 401 {error: SBX-E-GENERIC}.",
+        "targets": [
+          "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "Sin sesión, GET /api/reminders/1 responde 401.",
+        "evidence_ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/2",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "Con sesión, GET /api/reminders/1 sigue respondiendo 200.",
+        "evidence_ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/0",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.reminder.AuditReproducer186 (fuentes de git archive 5b0430ef)",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-186/audit/evidence/backend_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "GET/POST/PUT/DELETE /api/reminders y pantalla /sbx-rem-list",
+        "effect": "ninguno (solo lectura)",
+        "evidence_refs": [
+          "pilot/runs/req-186/audit/evidence/backend_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "HIGH",
+      "confidence_reason": "Ejecutado: GET por id 200, crear 201, posponer 200 y borrar 204 sin sesión; la lista sí da 401.",
+      "current_audit_evidence_refs": [
+        "EV-CTRL",
+        "EV-BE-RUN"
+      ]
+    },
+    {
+      "id": "F-LIST-NOT-SCOPED-TO-USER",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-R-SESSION-REQUIRED",
+      "location": {
+        "file": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+        "function": "list",
+        "start_line": 155,
+        "end_line": 158,
+        "commit": "5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
+        "sha256": "7cf51d06dcbba1d0b9e76018c04df4307abd3d2a839a3a73e2c0316c5df18d5f"
+      },
+      "found_code": "    public List<ReminderResponse> list(String q) {\n        List<Reminder> found = (q == null || q.isBlank()) ? repository.findAll() : repository.findByTextContaining(q);\n        return found.stream().map(ReminderController::toResponse).toList();\n    }",
+      "expected": {
+        "behavior": "Cada usuario con sesión ve su propia lista de recordatorios.",
+        "contract_refs": [
+          "contracts/sbx-rem-list.openapi.yaml",
+          "pilot/runs/req-186/analysis.json"
+        ]
+      },
+      "defect": "La lista devuelve todos los recordatorios del repositorio (findAll), sin dueño; un recordatorio creado sin sesión aparece en la lista del usuario autenticado.",
+      "root_cause": "Reminder no tiene propietario; el pedido añadió el control de sesión pero no el alcance por usuario.",
+      "impact": [
+        "Con más de un usuario, cada uno vería los recordatorios de todos."
+      ],
+      "correction": {
+        "code": "Añadir propietario (username de la sesión) a Reminder y filtrar por él en lista, lectura y escritura.",
+        "targets": [
+          "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+          "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "Lo creado sin sesión aparece en la lista del usuario (medido).",
+        "evidence_ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/4",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "La lista sin sesión sigue en 401.",
+        "evidence_ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/0",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.reminder.AuditReproducer186 (fuentes de git archive 5b0430ef)",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-186/audit/evidence/backend_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "GET/POST/PUT/DELETE /api/reminders y pantalla /sbx-rem-list",
+        "effect": "ninguno (solo lectura)",
+        "evidence_refs": [
+          "pilot/runs/req-186/audit/evidence/backend_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "MEDIUM",
+      "confidence_reason": "Ejecutado; el sandbox tiene un solo usuario, por eso se demuestra con un recordatorio anónimo y no con dos cuentas.",
+      "current_audit_evidence_refs": [
+        "EV-CTRL",
+        "EV-BE-RUN"
+      ]
+    },
+    {
+      "id": "F-ERR-NOT-GENERIC",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-R-ERR",
+      "location": {
+        "file": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+        "function": "get",
+        "start_line": 168,
+        "end_line": 171,
+        "commit": "5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
+        "sha256": "7cf51d06dcbba1d0b9e76018c04df4307abd3d2a839a3a73e2c0316c5df18d5f"
+      },
+      "found_code": "        return repository\n                .findById(value)\n                .<ResponseEntity<Object>>map(r -> ResponseEntity.ok(toResponse(r)))\n                .orElseGet(() -> ResponseEntity.notFound().build());",
+      "expected": {
+        "behavior": "Todos los fallos responden el mismo error genérico {error: SBX-E-GENERIC}.",
+        "contract_refs": [
+          "pilot/runs/req-186/analysis.json",
+          "contracts/sbx-rem-list.openapi.yaml"
+        ]
+      },
+      "defect": "Solo el 401 de la lista trae el cuerpo genérico; 404 y 400 responden sin cuerpo, y 400/404/409 distinguen causas (formato, inexistente, conflicto).",
+      "root_cause": "El requisito backend REQ-SBX-R-ERR no llegó a ningún lote (ver F-ANALYSIS-REQUIREMENTS-WITHOUT-LOT); solo se implementó su variante de pantalla.",
+      "impact": [
+        "Respuestas distinguibles revelan si un recordatorio existe."
+      ],
+      "correction": {
+        "code": "Respuesta de error común {error: SBX-E-GENERIC} para todos los fallos del recurso.",
+        "targets": [
+          "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "401, 404 y 400 devuelven cuerpos distintos (medido).",
+        "evidence_ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/10",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "El 401 de la lista sí trae el cuerpo genérico.",
+        "evidence_ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/0",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.reminder.AuditReproducer186 (fuentes de git archive 5b0430ef)",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-186/audit/evidence/backend_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "GET/POST/PUT/DELETE /api/reminders y pantalla /sbx-rem-list",
+        "effect": "ninguno (solo lectura)",
+        "evidence_refs": [
+          "pilot/runs/req-186/audit/evidence/backend_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "HIGH",
+      "confidence_reason": "Ejecutado contra los tres endpoints.",
+      "current_audit_evidence_refs": [
+        "EV-CTRL",
+        "EV-BE-RUN"
+      ]
+    },
+    {
+      "id": "F-FILTER-400-BODY",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-R-PRIORITY-FILTER",
+      "location": {
+        "file": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+        "function": "listFiltered",
+        "start_line": 150,
+        "end_line": 152,
+        "commit": "5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
+        "sha256": "7cf51d06dcbba1d0b9e76018c04df4307abd3d2a839a3a73e2c0316c5df18d5f"
+      },
+      "found_code": "        } catch (IllegalArgumentException e) {\n            return ResponseEntity.badRequest().build();\n        }",
+      "expected": {
+        "behavior": "Un filtro de prioridad inválido responde 400 con GenericError {error: SBX-E-GENERIC}, como declara el contrato.",
+        "contract_refs": [
+          "contracts/sbx-rem-list.openapi.yaml"
+        ]
+      },
+      "defect": "Responde 400 con cuerpo vacío.",
+      "root_cause": "El catch construye badRequest() sin cuerpo.",
+      "impact": [
+        "El cliente generado no recibe el esquema declarado."
+      ],
+      "correction": {
+        "code": "return ResponseEntity.badRequest().body(Map.of(\"error\", \"SBX-E-GENERIC\"));",
+        "targets": [
+          "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "priority=URGENT responde 400 sin cuerpo (medido).",
+        "evidence_ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/7",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "priority=HIGH filtra correctamente (medido).",
+        "evidence_ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/6",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.reminder.AuditReproducer186 (fuentes de git archive 5b0430ef)",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-186/audit/evidence/backend_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "GET/POST/PUT/DELETE /api/reminders y pantalla /sbx-rem-list",
+        "effect": "ninguno (solo lectura)",
+        "evidence_refs": [
+          "pilot/runs/req-186/audit/evidence/backend_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "HIGH",
+      "confidence_reason": "Ejecutado; contrato leído.",
+      "current_audit_evidence_refs": [
+        "EV-CTRL",
+        "EV-OAS",
+        "EV-BE-RUN"
+      ]
+    },
+    {
+      "id": "F-ANALYSIS-REQUIREMENTS-WITHOUT-LOT",
+      "kind": "GOVERNANCE_GAP",
+      "code": "RULE:SBX-R-LOG",
+      "location": {
+        "file": "pilot/runs/req-186/lots.json",
+        "function": "lots",
+        "start_line": 1,
+        "end_line": 1,
+        "commit": "5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
+        "sha256": "05874812e76bbd33c810ae16c0598595b1a18980da026fc9b0b14f285410abee"
+      },
+      "found_code": "{\"analysis_sha256\":\"2878212a6342bc30d351fc89d141e503e242e3907ec75dc3fc1e4c155df7a9f5\",\"atomized_inputs_sha256\":\"246b50a2d1c924194e2ddcd74a29ca48c76189c2e05e87d2f2857c0cfac7ab40\",\"handoff_allowed\":false,\"lots\":[{\"area\":\"CONTRATO\",\"contract_module\":\"sbx-rem-list\",\"contract_source_refs\":[\"supabase://lf_ops.pantallas/SBX-REM-LIST#contract/errors/0\",\"supabase://lf_ops.pantallas/SBX-REM-LIST#contract/visual/variants/0\"],\"depends_on\":[],\"handoff_allowed\":false,\"id\":\"SOL-Ca97f5811893a\",\"producer_route\":\"T2_ORCHESTRATOR_NOT_PG04_PG05\",\"production_authority\":false,\"profile_code\":\"PERFIL-PROG-BACKEND-SPRING-EXP\",\"profile_resolution_ref\":\"pilot/orchestrator/atomize_rules_v1.json\",\"requirement_ids\":[\"REQ-SBX-R-ERR-FRONTEND\",\"REQ-SBX-R-PRIORITY-FILTER\",\"REQ-SBX-R-SESSION-REQUIRED\",\"REQ-SBX-R-SESSION-REQUIRED-FRONTEND\"],\"write_paths\":[\"contracts/sbx-rem-list.openapi.yaml\"]},{\"affected_tests\":[\"apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerDeleteSearchVisibleTest.java\",\"apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java\"],\"area\":\"BACKEND\",\"bridge_lot_sha256\":\"ad0e4db94eacb40e7bc9527de4cfdaf840c29131f1f54a64d9ee89ff67b6eec7\",\"contract_context_ref\":\"contracts/sbx-rem-list.openapi.yaml\",\"depends_on\":[\"SOL-Ca97f5811893a\"],\"handoff_allowed\":false,\"id\":\"SOL-002\",\"pg04_exit_sha256\":\"f396ec8f9b64ca153f4eb5f19a999fd0c64def0b2b57f251b9af31b80036c9e7\",\"pg05_c2_sha256\":\"1680405da0a644973665a496d8762f2458044c801984f989fa2450de86c3ba27\",\"production_authority\":false,\"profile_assignment_sha256\":\"05ed53a941a03ab221fba88822976f19f636620636075f58622b2a58382a187d\",\"profile_code\":\"PERFIL-PROG-BACKEND-SPRING-EXP\",\"profile_currentness_sha256\":\"79aeb78b0344eda9b5703825fdc365a5e7e57d2ffbc49850e3a414ac3a8ace88\",\"requirement_ids\":[\"REQ-SBX-R-SESSION-REQUIRED\"],\"write_paths\":[\"apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java\",\"apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerDeleteSearchVisibleTest.java\",\"apps/time-service/src/test/java/lf/sandbox/time/reminder/ReminderControllerVisibleTest.java\"]},{\"area\":\"FRONTEND\",\"bridge_lot_sha256\":\"6dbc0baec9a1059b79fa5932e602ecaee0ce709debd844343238a25d4c2f3521\",\"contract_context_ref\":\"contracts/sbx-rem-list.openapi.yaml\",\"depends_on\":[\"SOL-002\",\"SOL-Ca97f5811893a\"],\"handoff_allowed\":false,\"id\":\"SOL-001\",\"pg04_exit_sha256\":\"f396ec8f9b64ca153f4eb5f19a999fd0c64def0b2b57f251b9af31b80036c9e7\",\"pg05_c2_sha256\":\"1680405da0a644973665a496d8762f2458044c801984f989fa2450de86c3ba27\",\"production_authority\":false,\"profile_assignment_sha256\":\"a2bc00db781671d2217fbadaf0f83b8000d584c4cf00c22a3255d76ace50a4f3\",\"profile_code\":\"PERFIL-PROG-FRONTEND-EXP\",\"profile_currentness_sha256\":\"35311c87ce4f6216db0458dd3ad978f894dfeafd6a703f1dd828a2976f2eb6ac\",\"requirement_ids\":[\"REQ-SBX-R-ERR-FRONTEND\",\"REQ-SBX-R-PRIORITY-FILTER\",\"REQ-SBX-R-SESSION-REQUIRED-FRONTEND\"],\"write_paths\":[\"frontend/src/app/sbx-rem-list/page.tsx\",\"frontend/src/lib/sbx-rem-list.ts\"]}],\"pg01_status\":\"FIXTURE_UNATTESTED\",\"pg07_projection_status\":\"PENDING_ROLE_AND_SKILL_BINDING_CP3_4\",\"producer_outputs_sha256\":{\"PG02\":\"0c65479bfa4fd57e3dc68fd9077b19b4139a4e8735512be8fa971b7efff3ce66\",\"PG03\":\"919ffc1f3bc5341ed11e4e291057bc1c73f653089ad93b118263ca4814b29f09\",\"PG04\":\"14b28a12b8513885fbceddf76326bf1eaed6f393461b4913e6395eb0b1d6b37d\",\"PG04_AREA_OVERLAY\":\"8cf804ae83c122cb4b7b7db91806660b37c5e141f316696ad9d25206031e69f0\",\"PG04_C7\":\"e2a21d2a829eedcc038232f416e797a3a7f8b3d08849f8a0d2d3684c70c5eb27\",\"PG04_DOD\":\"cf9a22899b2c56557cfbf7c4644e554caf603b76428e50d6d8edcdecc47463c2\",\"PG04_EXIT\":\"716140ed916a4e5952f0692c648ec45a1fe0f33b2d2e6f617cab10a181ee74d9\",\"PG04_REVIEW\":\"d1913f256a221173c70cd9c5e603d1e18082565576b81b743fac58b69957d715\",\"PG05_C1\":\"fcbfcfa4223701480de71408468ef243da7df9dd789f441033af3aa726076cf0\",\"PG05_C2\":\"795d6715d848e22eeb8b47f5af88799f6474a4887d5647bcdc3df35524ace709\",\"PG05_C3\":\"113714b2f0f494bb695737363e95e5637eca2d18306ec18f906104fafbafcede\",\"PG05_C4\":\"a2cddaa92eef72ba547ce595f7ee910df54e52968e5a6c8339a4796533b0f39b\",\"PG05_C5\":\"78dd186ca8c7a6440f88868413dbc410e80d6b46d66b3798ee3c45730db6d9ad\",\"PG05_EXIT\":\"1467eb455b1d2e871eadc8a1b7fd99b11bfafbdd3dbb847e0140eb0bcbc2857b\"},\"production_authority\":false,\"profile_assignments_sha256\":{\"SOL-001\":\"a2bc00db781671d2217fbadaf0f83b8000d584c4cf00c22a3255d76ace50a4f3\",\"SOL-002\":\"05ed53a941a03ab221fba88822976f19f636620636075f58622b2a58382a187d\"},\"profile_currentness_sha256\":{\"SOL-001\":\"35311c87ce4f6216db0458dd3ad978f894dfeafd6a703f1dd828a2976f2eb6ac\",\"SOL-002\":\"79aeb78b0344eda9b5703825fdc365a5e7e57d2ffbc49850e3a414ac3a8ace88\"},\"request_id\":\"req-186\",\"request_sha256\":\"8015b24946327c352ca1d4612feb0853e5b189dcb9639069655e31547d06344d\",\"schema_version\":\"CP33_LOTS_CANDIDATE_V1\",\"topological_order\":[\"SOL-Ca97f5811893a\",\"SOL-002\",\"SOL-001\"],\"worker_invoked\":false}",
+      "expected": {
+        "behavior": "Cada requisito analizado queda asignado a al menos un lote, o se justifica por qué no.",
+        "contract_refs": [
+          "pilot/runs/req-186/analysis.json",
+          "pilot/runs/req-186/lots.json"
+        ]
+      },
+      "defect": "De 7 requisitos analizados, 3 no llegaron a ningún lote: REQ-SBX-R-ERR, REQ-SBX-R-LOG y REQ-SBX-R-PRIORITY-FILTER-BACKEND. El frente BACKEND del análisis sí citaba las reglas 5 y 105, pero el lote BACKEND solo recibió REQ-SBX-R-SESSION-REQUIRED.",
+      "root_cause": "La construcción de lotes descarta requisitos del frente sin registrar el motivo; no hay control de cobertura análisis→lotes.",
+      "impact": [
+        "Reglas sin implementación exigida ni examen (aquí, error genérico y no registrar secretos).",
+        "Aplica a cualquier proyecto."
+      ],
+      "correction": {
+        "code": "Control en la ruta: todo requirement_id del análisis debe aparecer en algún lote o en una lista de exclusiones justificadas; si no, bloquear la emisión de lotes.",
+        "targets": [
+          "pilot/runs/req-186/lots.json",
+          "pilot/orchestrator"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "3 requisitos sin lote (medido).",
+        "evidence_ref": "pilot/runs/req-186/audit/evidence/lots_repro.json#/0",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "REQ-SBX-R-SESSION-REQUIRED sí está asignado (control).",
+        "evidence_ref": "pilot/runs/req-186/audit/evidence/lots_repro.json#/3",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "python3 lots_repro.py 5b0430ef7b2bc5497ef48fe8b7996e4447a31829 lots_repro_args.json",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-186/audit/evidence/lots_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "GET/POST/PUT/DELETE /api/reminders y pantalla /sbx-rem-list",
+        "effect": "ninguno (solo lectura)",
+        "evidence_refs": [
+          "pilot/runs/req-186/audit/evidence/lots_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "HIGH",
+      "confidence_reason": "Comparación ejecutada sobre analysis.json y lots.json del commit de cierre.",
+      "current_audit_evidence_refs": [
+        "EV-LOTS",
+        "EV-ANA",
+        "EV-ST-RUN"
+      ]
+    }
+  ],
+  "limitations": [
+    "Reproductor Java sobre las clases del commit de cierre sin levantar Spring Boot ni HTTP.",
+    "La pantalla no se ejecutó: su comportamiento (redirección al login en 401) se revisó por lectura; page.tsx cambió después del cierre (#286) en la ruta del login.",
+    "Sandbox de un solo usuario: el alcance por usuario se demuestra con un recordatorio anónimo.",
+    "Códigos EKB del checklist validados en vivo por el CI.",
+    "Modo SHADOW: no bloquea ni autoriza efectos."
+  ],
+  "completion": {
+    "lot_coverage_percent": 100.0,
+    "flow_verdict": "FLOW_NOT_ACCREDITED",
+    "flow_reasons": [
+      "NO_NEW_E2E_EXECUTION",
+      "STEP_NOT_ACCREDITED:0",
+      "STEP_NOT_ACCREDITED:10",
+      "STEP_NOT_ACCREDITED:20",
+      "STEP_NOT_ACCREDITED:30",
+      "STEP_NOT_ACCREDITED:40",
+      "STEP_NOT_ACCREDITED:45",
+      "STEP_NOT_ACCREDITED:47",
+      "STEP_NOT_ACCREDITED:50",
+      "STEP_NOT_ACCREDITED:60",
+      "STEP_NOT_ACCREDITED:70",
+      "STEP_NOT_ACCREDITED:80",
+      "HOP_RUN_NOT_ACCREDITED:HOP-0-10",
+      "HOP_RUN_NOT_ACCREDITED:HOP-10-20",
+      "HOP_RUN_NOT_ACCREDITED:HOP-20-30",
+      "HOP_RUN_NOT_ACCREDITED:HOP-30-40",
+      "HOP_RUN_NOT_ACCREDITED:HOP-40-45",
+      "HOP_RUN_NOT_ACCREDITED:HOP-45-47",
+      "HOP_RUN_NOT_ACCREDITED:HOP-47-50",
+      "HOP_RUN_NOT_ACCREDITED:HOP-50-60",
+      "HOP_RUN_NOT_ACCREDITED:HOP-60-70",
+      "HOP_RUN_NOT_ACCREDITED:HOP-70-80"
+    ],
+    "unknown_scope": [
+      "Ejecución en navegador real",
+      "Backend desplegado con Spring Boot"
+    ]
+  }
+}
