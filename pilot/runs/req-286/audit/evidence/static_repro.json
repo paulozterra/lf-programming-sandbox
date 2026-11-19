@@ -22,8 +22,9 @@
  },
  {
   "case": "AREA_control_api_rule",
-  "AUTH-ENVELOPE_in_backend": true,
-  "AUTH-ENVELOPE_in_frontend": false
+  "rule": "REQ-SBX-B2B-R-AUTH-ENVELOPE",
+  "in_backend": true,
+  "in_frontend": false
  },
  {
   "case": "HEX_lib",

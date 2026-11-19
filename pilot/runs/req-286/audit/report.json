@@ -57,7 +57,7 @@
   "audit_context": {
     "audit_id": "AUDIT-req-286-E2E-2026-11-19",
     "source_revision": "ae20aeb29142b215233215dbd25523d4d10fc970",
-    "started_at": "2026-11-19T15:50:57Z",
+    "started_at": "2026-11-19T15:54:38Z",
     "source_execution_id": null,
     "source_run_started_at": null,
     "new_e2e_executed": false,
@@ -395,7 +395,7 @@
       "capture_ref": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Controlador de login leído línea a línea en el commit de cierre.",
       "capture_sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937"
     },
@@ -406,7 +406,7 @@
       "capture_ref": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Servicio de autenticación existente (bloqueo, sesión) leído.",
       "capture_sha256": "402d1c7fe84c5315ee1af41ddc39c02086e6ac02a6e9e0ca876c0e8769722100"
     },
@@ -417,7 +417,7 @@
       "capture_ref": "frontend/src/app/sbx-b2b-login/page.tsx",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Pantalla /sbx-b2b-login leída línea a línea.",
       "capture_sha256": "0a0dbfe44f3562cbbce78145ee3e67258f025b58c37a87ba3ded76b7162efd83"
     },
@@ -428,7 +428,7 @@
       "capture_ref": "frontend/src/lib/sbx-b2b-login.ts",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Cliente, catálogo de errores y objeto de tokens leídos.",
       "capture_sha256": "07faec9d3a30ded70f5b7294c1a835ff081218d8e57b312c4dd508de3073f6e0"
     },
@@ -439,7 +439,7 @@
       "capture_ref": "contracts/sbx-b2b-login.openapi.yaml",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Contrato OpenAPI del login B2B leído.",
       "capture_sha256": "39c4feb54aebbdf892113cc557fde751742fd859dcdec51ff994706c9d609dc0"
     },
@@ -450,7 +450,7 @@
       "capture_ref": "frontend/src/app/sbx-rem-list/page.tsx",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Pantalla protegida existente: redirección a login.",
       "capture_sha256": "86ad1e64a4fcc973c98a7643c6d627ad43795c3f1f37353ce674eca388d9a27a"
     },
@@ -461,7 +461,7 @@
       "capture_ref": "analysis/a9/area_rules_v1.json",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Reglas de área de Análisis (A9) que asignan secciones a lotes.",
       "capture_sha256": "ce002e046750fefa46bc1701fdd3806305dbdfeead07cca0855be52f56d4a42c"
     },
@@ -472,7 +472,7 @@
       "capture_ref": "pilot/runs/req-286/lots.json",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Lotes del pedido con requirement_ids por área.",
       "capture_sha256": "4b409f94b9e960f7d6a1a5133fc2570396b6b986f100095982b8d5d80ecc9604"
     },
@@ -483,7 +483,7 @@
       "capture_ref": "pilot/runs/req-286/analysis.json",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Análisis del pedido con valor_config de cada regla.",
       "capture_sha256": "3e842ff51164ebc25d8a25c56dd599b8a613c9fde92790e95bd8bced75e56c4f"
     },
@@ -494,7 +494,7 @@
       "capture_ref": "pilot/runs/req-286/audit/evidence/backend_repro.json",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Salida del reproductor Java ejecutado en esta auditoría contra el código del commit de cierre.",
       "capture_sha256": "f6ce5cf6d9299731b53144a42e548b14d75f24508e185aba733172c42eb4bd35"
     },
@@ -505,7 +505,7 @@
       "capture_ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Salida del reproductor de la pantalla (React + jsdom) ejecutado en esta auditoría.",
       "capture_sha256": "41971ebaf5d009ff3c5ae640f686c92dbf452ab9f22d6cc8b7ebb91c013e3289"
     },
@@ -516,9 +516,9 @@
       "capture_ref": "pilot/runs/req-286/audit/evidence/static_repro.json",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Salida del reproductor de la tabla de áreas y HEX ejecutado en esta auditoría.",
-      "capture_sha256": "5d500db564ec041d92e3b3dab104d9f27fe65e3c131dd76bb90d931aa1127064"
+      "capture_sha256": "79297a8981ca5d6f4b60d48b26063130640903340494b0cf3c18b5af84162b0d"
     },
     {
       "id": "EV-BE-SRC",
@@ -527,7 +527,7 @@
       "capture_ref": "pilot/runs/req-286/audit/evidence/AuditReproducer.java",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Código del reproductor backend.",
       "capture_sha256": "968d98a1d63491f40d470b090765269ecaf62ae366022e1ab7bf0699745bbf32"
     },
@@ -538,7 +538,7 @@
       "capture_ref": "pilot/runs/req-286/audit/evidence/frontend_reproducer.mjs",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Código del reproductor de pantalla.",
       "capture_sha256": "aaff49a53bb5fec7b5674450a950e72e5e3c635857e73d44c4db885ac130f1ad"
     },
@@ -549,9 +549,9 @@
       "capture_ref": "pilot/runs/req-286/audit/evidence/static_repro.py",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Código del reproductor estático.",
-      "capture_sha256": "eb68e05654e8662e2b6a02fe316b52d5a1cc71496134662effddeece19c1732a"
+      "capture_sha256": "52afb4d59981f9026c8f3243a72636e2063bb00e52b9066bde21ef746b121fea"
     },
     {
       "id": "EV-COHORT",
@@ -560,7 +560,7 @@
       "capture_ref": "pilot/runs/req-286/audit/cohort_sample.json#/rows",
       "source_execution_id": null,
       "observed_at": null,
-      "collected_at": "2026-11-19T15:50:57Z",
+      "collected_at": "2026-11-19T15:54:38Z",
       "claim": "Sin corridas del pipeline LF de 11 pasos para este pedido: cohorte vacía.",
       "capture_sha256": "31851727f99a25b3937454c6cf95bd6ec9f602351ca1572375f7f1bdd3baef64"
     }
