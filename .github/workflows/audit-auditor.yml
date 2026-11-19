@@ -1,8 +1,9 @@
 name: A5 auditor on audit request
-run-name: A5 auditor issue ${{ github.event.issue.number || inputs.issue }}
+run-name: A5 auditor issue ${{ inputs.issue }}
+# A6: on demand only. The project's auditor is declared in
+# pilot/audit/projects/<project>.json; this API-billed path runs only when the
+# owner dispatches it for one issue.
 on:
-  issues:
-    types: [opened, labeled]
   workflow_dispatch:
     inputs:
       issue:
@@ -15,19 +16,15 @@ permissions:
   actions: write
   checks: read
 concurrency:
-  group: audit-auditor-${{ github.event.issue.number || inputs.issue }}
+  group: audit-auditor-${{ inputs.issue }}
   cancel-in-progress: false
 jobs:
   audit:
     # Only issues opened by the route's own bot with the audit-request label.
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.issue.user.login == 'github-actions[bot]' &&
-       contains(github.event.issue.labels.*.name, 'audit-request'))
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     env:
-      ISSUE: ${{ github.event.issue.number || inputs.issue }}
+      ISSUE: ${{ inputs.issue }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262

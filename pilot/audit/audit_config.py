@@ -22,7 +22,8 @@ IDENT = re.compile(r"[a-z_][a-z0-9_]{0,62}(?:\.[a-z_][a-z0-9_]{0,62})?\Z")
 SECRET = re.compile(r"[A-Z][A-Z0-9_]{0,99}\Z")
 MODES = {"SHADOW", "GATE"}
 TRIGGERS = {"REQUEST_CLOSED"}
-AUDITORS = {"CLAUDE_ROUTINE"}
+# GPT_ISOLATED_SESSION: owner decision 2026-11-19 (cost); must run in a chat that did not build the request.
+AUDITORS = {"CLAUDE_ROUTINE", "GPT_ISOLATED_SESSION"}
 EKB_SOURCES = {"NONE", "POSTGRES_READONLY"}
 
 
