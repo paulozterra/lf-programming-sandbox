@@ -42,7 +42,7 @@ from t4_admission import AdmissionBlocked, require_green_base, missing_exam, pub
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pilot/worker_v08"))
 
 ROOT = Path(__file__).resolve().parents[2]
-from pilot.config.project_config import storage, storage_path, template_path_pattern
+from pilot.config.project_config import ProjectConfigError, storage, storage_path, template_path_pattern
 REPO = "paulozterra/lf-programming-sandbox"
 TRAIN = ".github/workflows/sandbox-train.yml"
 NATIVE = ".github/workflows/worker-native.yml"
@@ -812,6 +812,8 @@ def exam_key(request: str, binding: dict) -> str:
                   or not re.fullmatch(r"[0-9a-f]{64}", stamped)
                   or not isinstance(recorded.get("template_path"), str)):
                 deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+    except ProjectConfigError:
+        raise
     except (OSError, ValueError, TypeError):
         deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
     return f"LF_EXAM_REQUEST_KEY:{request}:{task}:{version}"
