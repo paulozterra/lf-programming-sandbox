@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 
 from pilot.orchestrator.request_finalize import verified_chain_complete
-from pilot.config.project_config import storage, storage_path, template_path_pattern
+from pilot.config.project_config import ProjectConfigError, storage, storage_path, template_path_pattern
 
 ROOT = Path(__file__).resolve().parents[2]
 REQUEST = re.compile(r"req-([1-9][0-9]*)\Z")
@@ -128,6 +128,8 @@ def request_for_task(task: str, *, root: Path = ROOT) -> str:
         if len(owners) != 1:
             unresolved()
         return owners[0]
+    except ProjectConfigError:
+        raise
     except (OSError, ValueError, TypeError, KeyError, UnicodeError) as exc:
         raise RequestStateError(CODE) from exc
 
