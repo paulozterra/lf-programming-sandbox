@@ -17,6 +17,10 @@ Any failure stops before writing to the repository. Plaintext never enters
 the repository; only ciphertext and metadata do.
 """
 from __future__ import annotations
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
 
 import argparse
