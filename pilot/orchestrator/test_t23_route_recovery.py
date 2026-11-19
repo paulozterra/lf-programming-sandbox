@@ -36,6 +36,7 @@ EVENT = {"id": RUN, "event": "workflow_dispatch", "head_branch": "main",
 
 
 def fixture(tmp_path, registration=OLD):
+    install_project_config(tmp_path)
     record = tmp_path / "pilot/worker_v08/native_tasks" / (TASK + ".json")
     record.parent.mkdir(parents=True)
     record.write_bytes(canonical(registration))
