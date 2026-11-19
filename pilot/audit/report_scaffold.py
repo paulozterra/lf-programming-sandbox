@@ -73,7 +73,11 @@ def assemble(draft: dict, audit_input: dict, skill_dir: Path, root: Path = ROOT,
     findings = []
     for f in draft["findings"]:
         data = _at_commit(root, base, f["file"])
-        if (root / f["file"]).read_bytes() != data:
+        local = (root / f["file"]).read_bytes()
+        if local != data:
+            # A9: same content, CRLF on disk = a checkout with core.autocrlf (Windows).
+            if local.replace(b"\r\n", b"\n") == data and b"\r\n" not in data:
+                raise ScaffoldError("SCAFFOLD_CHECKOUT_EOL_CONVERTED:" + f["file"])
             raise ScaffoldError("SCAFFOLD_FILE_CHANGED_SINCE_CLOSE:" + f["file"])
         lines = data.decode().splitlines()
         executed = bool(f.get("command"))

@@ -311,3 +311,45 @@ def test_close_done_closes_only_requests_with_merged_report(tmp_path, monkeypatc
     assert [c["issue"] for c in closed] == [1]
     patches = [c for c in calls if c[0][0] == "-X"]
     assert len(patches) == 1 and patches[0][0][2].endswith("/issues/1") and patches[0][1]["state"] == "closed"
+
+
+# ---- A7 skill bytes independent of the environment's git settings -------
+def test_fetch_ignores_autocrlf_and_attributes(tmp_path, monkeypatch):
+    import hashlib
+    src = tmp_path / "src"
+    (src / "skills/s").mkdir(parents=True)
+    (src / "skills/s/SKILL.md").write_bytes(b"linea uno\nlinea dos\n")
+    (src / "skills/s/.gitattributes").write_bytes(b"* text eol=crlf\n")
+    for c in (["init", "-q"], ["add", "."], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "s"]):
+        subprocess.run(["git", "-C", str(src), *c], check=True, capture_output=True)
+    sha = subprocess.run(["git", "-C", str(src), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    subprocess.run(["git", "-C", str(src), "config", "uploadpack.allowReachableSHA1InWant", "true"], check=True)
+    hostile = tmp_path / "gitconfig"
+    hostile.write_text("[core]\n\tautocrlf = true\n\teol = crlf\n")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(hostile))
+    files = {n: hashlib.sha256((src / "skills/s" / n).read_bytes()).hexdigest() for n in ("SKILL.md", ".gitattributes")}
+    man = tmp_path / "m.json"
+    man.write_text(json.dumps({"schema_version": "LF_AUDIT_SKILL_MANIFEST_V1", "repository": "o/r", "commit": sha,
+                               "path": "skills/s", "files": files}))
+    config = {"audit": {"skill": {"repository": "o/r", "commit": sha, "path": "skills/s", "manifest": "m.json"}}}
+    out = pin.fetch(config, tmp_path / "dest", root=tmp_path, source_url=str(src))
+    assert (out / "SKILL.md").read_bytes() == b"linea uno\nlinea dos\n"
+
+
+def test_mismatch_reports_counts(tmp_path):
+    d, files = _tree(tmp_path)
+    (d / "SKILL.md").write_text("otro")
+    with pytest.raises(pin.SkillPinError, match="counts=missing:0/extra:0/changed:1"):
+        pin.verify_tree(d, files)
+
+
+def test_remove_tree_handles_readonly_files(tmp_path):
+    import stat
+    d = tmp_path / "skill/.git/objects/pack"
+    d.mkdir(parents=True)
+    f = d / "pack-x.idx"
+    f.write_text("x")
+    os.chmod(f, stat.S_IREAD)
+    os.chmod(d, stat.S_IREAD | stat.S_IEXEC | stat.S_IWRITE)
+    pin._remove_tree(tmp_path / "skill")
+    assert not (tmp_path / "skill").exists()
