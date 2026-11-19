@@ -1,5 +1,6 @@
 """F4 A9 real intake compatibility and fail-closed negative evidence."""
 from __future__ import annotations
+from pilot.config.testing import install_project_config
 
 from copy import deepcopy
 import hashlib
@@ -35,6 +36,7 @@ def assert_rejected(package, raw, expected, *, from_a9=False):
 
 
 def test_login_real_intake_validate_and_accept(tmp_path):
+    install_project_config(tmp_path)
     result = run_f4(tmp_path)
     package = result["package"]
     state = result["state"]
