@@ -7,6 +7,18 @@ la auditoría se hace en un **chat nuevo** de GPT, sin el historial del chat que
 pedido; en el PR se declara `Auditor: GPT (sesión aislada)` como límite de independencia. La skill se usa desde el repositorio de su dueño, en el
 commit fijado: no se copia ni se modifica.
 
+## 0. Preparar la copia del repositorio (Windows)
+La auditoría compara bytes exactos con `base_commit`. En Windows, git convierte LF a CRLF al
+extraer los archivos y todo parece cambiado (`SCAFFOLD_CHECKOUT_EOL_CONVERTED`). Antes de
+auditar, en la copia del repo:
+```
+git config core.autocrlf false
+git config core.eol lf
+git rm -r --cached -q .
+git reset --hard
+```
+`git status` debe quedar limpio. No modifica el contenido del repo.
+
 ## 1. Tomar el pedido
 1. Elegir el issue abierto `audit-request` más antiguo que **no** tenga ya un PR
    abierto con la rama `audit-<pedido>`. Uno por corrida.
