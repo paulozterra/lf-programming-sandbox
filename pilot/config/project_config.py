@@ -20,14 +20,25 @@ REQUIRED_STORAGE = frozenset({
     "requests_root", "registrations_root", "chain_plans_root",
     "task_template_pattern",
 })
-REQUIRED_COMPONENTS = {
-    "backend": frozenset({"root", "build_file", "test_roots"}),
-    "frontend": frozenset({"root", "manifest", "test_roots"}),
-}
+# T54 phase 3a: components are an open map (a project may have no frontend,
+# or several services). Every component declares the same complete shape;
+# optional facts are explicit null / [] rather than absent keys.
+COMPONENT_KEYS = frozenset({
+    "kind", "root", "build_file", "lock_file", "source_roots", "resource_roots",
+    "test_roots", "migrations_root", "config_files", "generated_client",
+})
+COMPONENT_KINDS = frozenset({"maven", "npm"})
+COMPONENT_NAME = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
+GENERATED_CLIENT_KEYS = frozenset({"dir", "script", "generator"})
+NPM_SCRIPT = re.compile(r"[a-z][a-z0-9:_-]{0,63}\Z")
+# Lot areas are route vocabulary (CP3.x); their roots are project facts.
+AREAS = frozenset({"CONTRATO", "INFRA", "DATA", "BACKEND", "FRONTEND"})
+AREA_KEYS = frozenset({"write_prefixes", "project_roots"})
 REQUIRED_TOP = frozenset({
-    "schema_version", "project_id", "storage", "components",
+    "schema_version", "project_id", "storage", "components", "areas",
     "protected_paths", "write_roots",
 })
+SCHEMA_VERSION = "LF_PROJECT_CONFIG_V2"
 
 
 class ProjectConfigError(ValueError):
@@ -84,11 +95,75 @@ def _within(path: str, parent: str) -> bool:
     return path == parent or path.startswith(parent + "/")
 
 
+def _optional_path(value: object, root: Path, parent: str) -> str | None:
+    if value is None:
+        return None
+    path = _path(value, root)
+    if not _within(path, parent):
+        _deny()
+    return path
+
+
+def _list_within(value: object, root: Path, parent: str, *, allow_empty: bool) -> list[str]:
+    if type(value) is not list or (not value and not allow_empty):
+        _deny()
+    paths = [_path(v, root) for v in value]
+    if len(paths) != len(set(paths)) or any(not _within(p, parent) for p in paths):
+        _deny()
+    return paths
+
+
+def _component(item: object, root: Path) -> str:
+    item = _object(item, COMPONENT_KEYS)
+    if item["kind"] not in COMPONENT_KINDS:
+        _deny()
+    base = _path(item["root"], root)
+    if not _within(_path(item["build_file"], root), base):
+        _deny()
+    _optional_path(item["lock_file"], root, base)
+    _list_within(item["source_roots"], root, base, allow_empty=False)
+    _list_within(item["resource_roots"], root, base, allow_empty=True)
+    _list_within(item["test_roots"], root, base, allow_empty=True)
+    _optional_path(item["migrations_root"], root, base)
+    _list_within(item["config_files"], root, base, allow_empty=True)
+    client = item["generated_client"]
+    if client is not None:
+        client = _object(client, GENERATED_CLIENT_KEYS)
+        _optional_path(client["dir"], root, base)
+        _optional_path(client["generator"], root, base)
+        if not isinstance(client["script"], str) or not NPM_SCRIPT.fullmatch(client["script"]):
+            _deny()
+        if item["kind"] != "npm":
+            _deny()
+    return base
+
+
+def _prefix(value: object, root: Path) -> str:
+    if not isinstance(value, str) or not value.endswith("/"):
+        _deny()
+    _path(value[:-1], root)
+    return value
+
+
+def _areas(value: object, root: Path) -> None:
+    if type(value) is not dict or set(value) != AREAS:
+        _deny()
+    for area in value.values():
+        area = _object(area, AREA_KEYS)
+        for key in AREA_KEYS:
+            prefixes = area[key]
+            if type(prefixes) is not list or not prefixes:
+                _deny()
+            checked = [_prefix(v, root) for v in prefixes]
+            if len(checked) != len(set(checked)):
+                _deny()
+
+
 def validate(data: object, *, root: Path = ROOT, project: str | None = None) -> dict:
-    """Validate the complete v1 schema, including explicit write boundaries."""
+    """Validate the complete schema, including explicit write boundaries."""
     root = Path(root)
     obj = _object(data, REQUIRED_TOP)
-    if obj["schema_version"] != "LF_PROJECT_CONFIG_V1":
+    if obj["schema_version"] != SCHEMA_VERSION:
         _deny()
     name = obj["project_id"]
     if not isinstance(name, str) or not PROJECT_ID.fullmatch(name):
@@ -105,25 +180,34 @@ def validate(data: object, *, root: Path = ROOT, project: str | None = None) -> 
     if match is None or match["root"] != storage["requests_root"]:
         _deny()
     _path(match["root"] + "/req-1/templates/example.task.json", root)
-    components = _object(obj["components"], frozenset(REQUIRED_COMPONENTS))
-    for component, required in REQUIRED_COMPONENTS.items():
-        item = _object(components[component], required)
-        component_root = _path(item["root"], root)
-        for key in required - {"root", "test_roots"}:
-            path = _path(item[key], root)
-            if not _within(path, component_root):
-                _deny()
-        for path in _paths(item["test_roots"], root):
-            if not _within(path, component_root):
-                _deny()
+    components = obj["components"]
+    if type(components) is not dict or not components:
+        _deny()
+    component_roots = []
+    for name, item in components.items():
+        if not isinstance(name, str) or not COMPONENT_NAME.fullmatch(name):
+            _deny()
+        component_roots.append(_component(item, root))
+    if len(set(component_roots)) != len(component_roots):
+        _deny()
+    _areas(obj["areas"], root)
     _paths(obj["protected_paths"], root, glob=True)
     write_roots = _paths(obj["write_roots"], root)
     # Every storage and component root must have explicit write authorization.
-    for path in [storage[k] for k in REQUIRED_STORAGE - {"task_template_pattern"}] + [
-        components[k]["root"] for k in REQUIRED_COMPONENTS
-    ]:
+    for path in [storage[k] for k in REQUIRED_STORAGE - {"task_template_pattern"}] + component_roots:
         if not any(_within(path, allowed) for allowed in write_roots):
             _deny()
+    # Area project roots are writable product roots; a coarse write prefix
+    # ("apps/") must at least contain an authorized root.
+    for area in obj["areas"].values():
+        for prefix in area["project_roots"]:
+            if not any(_within(prefix.rstrip("/"), allowed) for allowed in write_roots):
+                _deny()
+        for prefix in area["write_prefixes"]:
+            bare = prefix.rstrip("/")
+            if not any(_within(bare, allowed) or _within(allowed, bare)
+                       for allowed in write_roots):
+                _deny()
     return obj
 
 
@@ -236,3 +320,43 @@ def reuse_assessment_pattern(*, root: Path = ROOT,
                              project: str | None = None) -> re.Pattern[str]:
     prefix = re.escape(repo_storage(project)["requests_root"])
     return re.compile(prefix + r"/[a-z][a-z0-9_-]{0,63}/reuse_assessment[.]json\Z")
+
+
+# T54 phase 3a accessors: configuration always from the code repository.
+def _repo_config(project: str | None = None) -> dict:
+    name = active_project(root=CONFIG_ROOT) if project is None else project
+    return load(name, root=CONFIG_ROOT)
+
+
+def components(project: str | None = None) -> dict[str, dict]:
+    return _repo_config(project)["components"]
+
+
+def component(name: str, project: str | None = None) -> dict:
+    found = components(project).get(name)
+    if found is None:
+        _deny()
+    return found
+
+
+def area_write_prefixes(area: str, project: str | None = None) -> tuple[str, ...]:
+    if area not in AREAS:
+        _deny()
+    return tuple(_repo_config(project)["areas"][area]["write_prefixes"])
+
+
+def area_project_roots(area: str, project: str | None = None) -> tuple[str, ...]:
+    if area not in AREAS:
+        _deny()
+    return tuple(_repo_config(project)["areas"][area]["project_roots"])
+
+
+def protected_paths(project: str | None = None) -> tuple[str, ...]:
+    return tuple(_repo_config(project)["protected_paths"])
+
+
+def all_test_roots(project: str | None = None) -> tuple[str, ...]:
+    roots: list[str] = []
+    for item in components(project).values():
+        roots.extend(item["test_roots"])
+    return tuple(roots)

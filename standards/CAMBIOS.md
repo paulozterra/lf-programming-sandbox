@@ -228,3 +228,4 @@
 | CHG-0234 | EDITORIAL | A10: auditor de lf vuelve a CLAUDE_ROUTINE (tarea programada cada 4 h con salida temprana) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/356 |
 | CHG-0235 | ADDITIVE | T54 fase 2b: completar rutas configuradas y proyecto activo validado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/352 |
 | CHG-0236 | EDITORIAL | T53: cerrar B.8; excepción documentada de la regla 3 para las fichas sbx_* |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/358 |
+| CHG-0237 | ADDITIVE | T54 fase 3a: componentes como mapa abierto y raíces por área en la configuración del proyecto |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/359 |

@@ -13,7 +13,7 @@ FIXTURE = json.loads((ROOT / "pilot/config/projects/sandbox.json").read_text("ut
 
 class ProjectConfigTests(unittest.TestCase):
     def test_real_sandbox_config(self):
-        self.assertEqual(load("sandbox")["schema_version"], "LF_PROJECT_CONFIG_V1")
+        self.assertEqual(load("sandbox")["schema_version"], "LF_PROJECT_CONFIG_V2")
         self.assertEqual(load("sandbox")["storage"]["requests_root"], "pilot/runs")
 
     def test_valid_synthetic_project(self):
@@ -42,9 +42,13 @@ class ProjectConfigTests(unittest.TestCase):
             (lambda c: c.pop("write_roots")),
             (lambda c: c["storage"].pop("requests_root")),
             (lambda c: c["storage"].pop("task_template_pattern")),
-            (lambda c: c["components"].pop("frontend")),
+            (lambda c: c.pop("components")),
+            (lambda c: c.pop("areas")),
+            (lambda c: c["areas"].pop("DATA")),
+            (lambda c: c["areas"]["BACKEND"].pop("project_roots")),
             (lambda c: c["components"]["backend"].pop("test_roots")),
-            (lambda c: c["components"]["frontend"].pop("manifest")),
+            (lambda c: c["components"]["frontend"].pop("lock_file")),
+            (lambda c: c["components"]["frontend"]["generated_client"].pop("script")),
         ]
         for mutate in cases:
             cfg = copy.deepcopy(FIXTURE)
