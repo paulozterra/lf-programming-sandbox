@@ -8,6 +8,17 @@ from pilot.orchestrator import intake
 from pilot.orchestrator import package_to_lots as bridge
 
 
+@pytest.fixture(autouse=True)
+def configured_project(tmp_path):
+    import shutil
+    source = Path(__file__).resolve().parents[2] / "pilot/config"
+    target = tmp_path / "pilot/config"
+    (target / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source / "active_project.json", target / "active_project.json")
+    shutil.copy2(source / "projects/sandbox.json", target / "projects/sandbox.json")
+
+
+
 def test_current_a9_be_fe_is_not_legacy_owner_packet(tmp_path):
     run = run_f4(tmp_path, slug="f5-login")
     assert run["state"]["stage"] == "INTAKE_ACCEPTED"
