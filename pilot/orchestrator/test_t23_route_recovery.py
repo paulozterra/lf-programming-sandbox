@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+from pilot.config.testing import install_project_config
+from pilot.config.project_config import ProjectConfigError
 from pilot.orchestrator import native_route_recovery as recovery
 from pilot.worker_v08.native_route_defect import (
     canonical, convert, migration, sha, verified_migration,
