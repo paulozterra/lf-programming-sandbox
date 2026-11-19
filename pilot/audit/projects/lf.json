@@ -18,7 +18,7 @@
       "code_column": "codigo",
       "store_content": false
     },
-    "auditor": "GPT_ISOLATED_SESSION",
+    "auditor": "CLAUDE_ROUTINE",
     "sample_n": 1,
     "performance_budget_ms": null,
     "freshness_budget_ms": null,
