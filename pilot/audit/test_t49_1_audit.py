@@ -86,7 +86,7 @@ def test_audit_second_live_check_prevents_issue(tmp_path, monkeypatch):
     monkeypatch.setattr(rt.bi, "build", lambda *_: {
         "base_commit": "a"*40, "evidence_destination": "pilot/runs/req-275/audit"})
     (tmp_path / "pilot/runs/req-275/analysis.json").write_text("{}")
-    states = iter(["closed", "closed", "open"])
+    states = iter(["closed", "open"])
     def gh(endpoint, data=None):
         if endpoint.endswith("/issues/275"):
             return json.dumps({"number": 275, "state": next(states)})
