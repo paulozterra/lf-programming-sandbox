@@ -41,6 +41,7 @@
       "pilot/orchestrator/t7_entry.py",
       "pilot/orchestrator/test_chain_lots.py",
       "pilot/orchestrator/test_intake.py",
+      "pilot/orchestrator/test_package_to_lots.py",
       "pilot/orchestrator/test_plan_lots.py",
       "pilot/orchestrator/test_t72_dependencies.py",
       "pilot/request_failure_notify.py",
