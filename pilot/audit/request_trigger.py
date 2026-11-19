@@ -27,6 +27,7 @@ sys.path.insert(0, str(HERE))
 import build_input as bi  # noqa: E402
 from audit_config import AuditConfigError, load  # noqa: E402
 from pilot.orchestrator.request_lifecycle import request_state, RequestStateError, CLOSED_FINALIZED
+from pilot.config.project_config import storage, storage_path
 
 LABEL = "audit-request"
 MARK = "<!-- audit-request:{request} -->"
@@ -67,13 +68,13 @@ def close_done(repo: str, root: Path = ROOT) -> list[dict]:
         if "<!-- audit-request:" not in body:
             continue
         req = body.split("<!-- audit-request:", 1)[1].split(" -->", 1)[0]
-        report = root / "pilot/runs" / req / "audit/report.json"
+        report = storage_path("requests_root", req, root=root) / "audit/report.json"
         if not report.is_file():
             continue
         head = subprocess.run(["git", "-C", str(root), "log", "-1", "--format=%H", "--", str(report)],
                               capture_output=True, text=True).stdout.strip()
         gh(f"repos/{repo}/issues/{item['number']}/comments",
-           data={"body": f"Informe de auditoría fusionado: `pilot/runs/{req}/audit/report.json` (commit `{head}`). Se cierra."})
+           data={"body": f"Informe de auditoría fusionado: `{storage(root=root)['requests_root']}/{req}/audit/report.json` (commit `{head}`). Se cierra."})
         gh("-X", "PATCH", f"repos/{repo}/issues/{item['number']}", data={"state": "closed", "state_reason": "completed"})
         closed.append({"request": req, "issue": item["number"], "commit": head})
     return closed
@@ -112,7 +113,7 @@ def candidates(config: dict, plans, root: Path = ROOT, *, repository: str = "", 
         close = bi.closing_merge([r["merge_sha"] for r in done.values()], root)
         if since and not is_ancestor(since, close, root):
             continue
-        if (root / "pilot/runs" / req / "audit").exists():
+        if (storage_path("requests_root", req, root=root) / "audit").exists():
             continue
         out.append(req)
     return sorted(out)
@@ -165,7 +166,7 @@ def main() -> int:
                 skipped.append({"request": req, "reason": "AUDIT_SKIPPED:REQUEST_NOT_FINALIZED"})
                 continue
             lots, done = bi.completed_from_history(req)
-            analysis = json.loads((ROOT / "pilot/runs" / req / "analysis.json").read_text("utf-8"))
+            analysis = json.loads((storage_path("requests_root", req) / "analysis.json").read_text("utf-8"))
             data = bi.build(req, a.project, a.repository, done, lots, analysis)
             if a.dry_run:
                 opened.append({"request": req, "base_commit": data["base_commit"]})
