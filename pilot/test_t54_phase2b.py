@@ -51,6 +51,17 @@ class Phase2b(unittest.TestCase):
             self.assertTrue(template_path_any_request(root=root).fullmatch(
                 "pilot/runs/req-901/templates/task202.task.json"))
 
+    def test_unconfigured_temporary_repo_is_denied_even_with_real_config_available(self):
+        from pilot.config.testing import install_project_config
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
+                storage(root=root)
+            with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
+                template_path_any_request(root=root)
+            install_project_config(root)
+            self.assertEqual(storage(root=root)["requests_root"], storage(root=ROOT)["requests_root"])
+
     def test_exact_worker_template_regex(self):
         old = re.compile(r"pilot/runs/req-[1-9][0-9]*/templates/[a-z][a-z0-9_-]{0,31}[.]task[.]json")
         new = template_path_any_request(root=ROOT, project="sandbox")
