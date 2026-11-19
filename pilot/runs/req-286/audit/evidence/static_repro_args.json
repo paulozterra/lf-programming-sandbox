@@ -1,0 +1,11 @@
+{
+ "screen_rules": [
+  "REQ-SBX-B2B-R-ERROR-SAFE-MESSAGE",
+  "REQ-SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+  "REQ-SBX-B2B-R-UX-PASSWORD-MANAGERS"
+ ],
+ "api_control_rule": "REQ-SBX-B2B-R-AUTH-ENVELOPE",
+ "lots": "pilot/runs/req-286/lots.json",
+ "page": "frontend/src/app/sbx-b2b-login/page.tsx",
+ "lib": "frontend/src/lib/sbx-b2b-login.ts"
+}

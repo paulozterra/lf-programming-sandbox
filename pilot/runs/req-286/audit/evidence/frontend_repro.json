@@ -1,0 +1,21 @@
+[
+ {
+  "case": "CTA_on_E_NETWORK",
+  "alert_text_has_cta": true,
+  "cta_actionable": false
+ },
+ {
+  "case": "CTA_control_submit_is_button",
+  "value": true
+ },
+ {
+  "case": "PENDING_state",
+  "disabled": true,
+  "button_text": "Acceder",
+  "live_region": "Acceder"
+ },
+ {
+  "case": "PENDING_control_after_response",
+  "disabled": false
+ }
+]

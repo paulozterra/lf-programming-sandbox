@@ -1,0 +1,1517 @@
+{
+  "schema_version": "LF_DEEP_AUDIT_REPORT_V2",
+  "phases": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "checklist": [
+    {
+      "ekb_code": "LF-PE-STEP70-RUN-CLOSED-EKB-ENFORCEMENT-OPEN-20261031-005",
+      "applies": true,
+      "reason": "Los exámenes del pedido pasaron (PASS) pero 15 reglas no tienen verificación trazada: un PASS no sustituye cubrir cada regla.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-LOTS",
+        "EV-PAGE",
+        "EV-CTRL"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    },
+    {
+      "ekb_code": "IG-M1013-REPOSITORY-REPAIR-POLICY-054",
+      "applies": true,
+      "reason": "El gate de cada lote debe corresponder al trabajo del lote: reglas de pantalla quedaron en el gate BACKEND.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-AREA",
+        "EV-LOTS"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    },
+    {
+      "ekb_code": "LF-PE10A-ASSERTION-CONTRACT-PASSWHEN-NULL-READY-20261027-001",
+      "applies": true,
+      "reason": "Campos obligatorios del contrato: RATE_LIMITED y error_code E-RATE declarados pero sin productor.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-OAS",
+        "EV-CTRL"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    },
+    {
+      "ekb_code": "LF-PROMO-INDEPENDENT-JUDGE-OWNER-20261114-001",
+      "applies": true,
+      "reason": "Esta auditoría no concede promoción: promotion_authorized=false; autoridad del owner separada.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-LOTS"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    }
+  ],
+  "audit_context": {
+    "audit_id": "AUDIT-req-286-E2E-2026-11-19",
+    "source_revision": "ae20aeb29142b215233215dbd25523d4d10fc970",
+    "started_at": "2026-11-19T15:54:38Z",
+    "source_execution_id": null,
+    "source_run_started_at": null,
+    "new_e2e_executed": false,
+    "ig_execution_required": false,
+    "ig_invocation_verified": false,
+    "promotion_authorized": false,
+    "authority_ref": null
+  },
+  "audit_tasks": [
+    {
+      "id": "RULE:SBX-B2B-R-A11Y-CONTRAST",
+      "description": "Ningún estado depende únicamente del color.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: errores con rol alert y texto (líneas 112, 134, 141-147); ningún estado depende solo del color. Contraste AA no medido."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-A11Y-FORCED-COLORS",
+      "description": "En modo de colores forzados o alto contraste la pantalla conserva toda su funcionalidad, foco y estados.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE parcial: regla @media (forced-colors: active) con foco Highlight y bordes ButtonText (85-88). Sin prueba en navegador."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-A11Y-INTERACTION",
+      "description": "Controles con área táctil mínima, foco visible, navegación por teclado y etiquetas.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: labels htmlFor, foco visible (81), botón mostrar/ocultar 48px con aria-label/aria-pressed (127-130), aria-live (154)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-A11Y-MOTION",
+      "description": "Se respeta la preferencia de movimiento reducido del usuario. Cuando esté activa, las animaciones y transiciones no esenciales se reducen o eliminan; ningún estado, error, progreso ni acción depende exclusivamente del movimiento.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: @media (prefers-reduced-motion: reduce) anula transiciones (89-91); ningún estado depende de animación."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-AUTH-DENY-DEFAULT",
+      "description": "Toda acción operativa posterior a autenticación completa se deniega por defecto y requiere autorización del lado servidor. El login nunca concede por sí mismo permisos operativos.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC"
+      ],
+      "reason": "CUMPLE: el login solo emite token de sesión; no concede permisos operativos. La autorización posterior depende de la sesión existente."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-AUTH-ENVELOPE",
+      "description": "La respuesta expone únicamente el outcome funcional, un correlation_id generado por servidor y, cuando corresponda, el código de error canónico. No se exponen errores crudos, credenciales, tokens internos ni razones sensibles.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-OAS"
+      ],
+      "reason": "CUMPLE: éxito {outcome, correlation_id, token}; fallo {outcome, correlation_id, error_code} (121-123); sin errores crudos."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-AUTH-FAIL-CLOSED",
+      "description": "El Login se comunica exclusivamente con una capa de autenticación del lado servidor. El navegador no verifica credenciales por sí mismo. Si la identidad no puede verificarse válidamente, no se crea sesión ni se concede acceso.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE: RuntimeException -> 503 SERVICE_UNAVAILABLE sin token (80-83); token solo con AUTHENTICATED."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-AUTH-GENERIC",
+      "description": "Ante fallos de credencial o denegaciones relacionadas con la cuenta, el Login no debe revelar si el correo existe, si el usuario está activo/restringido ni qué credencial falló. Las respuestas externas de estos fallos deben ser funcionalmente indistinguibles en mensaje y comportamiento observable, mitigando diferencias de tiempo. Estados no equivalentes como rate limit o indisponibilidad del servicio conservan su tratamiento específico.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC"
+      ],
+      "reason": "INCUMPLE (mitigación de tiempo): con la cuenta bloqueada o contraseña en blanco, AuthService responde sin calcular el hash, mientras un correo inexistente sí lo calcula. Ver F-AUTH-TIMING-LOCKED."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-AUTH-OUTCOMES",
+      "description": "La capa de autenticación traduce cualquier resultado a un outcome funcional estable. Para outcomes no exitosos se utiliza exclusivamente un código del catálogo de errores; el HTTP y los mensajes visibles se resuelven desde ese catálogo.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC",
+        "EV-OAS"
+      ],
+      "reason": "INCUMPLE: RATE_LIMITED está declarado en el contrato pero nunca se emite; el bloqueo responde INVALID_CREDENTIALS. Ver F-RATE-LIMITED-UNREACHABLE."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-AUTH-REQUEST",
+      "description": "La solicitud de login viaja por HTTPS en el cuerpo, nunca en la URL, query string ni headers de logging. La contraseña no se recorta, normaliza ni transforma; el correo puede recortarse por fuera. El servidor genera el correlation_id. Un resultado de éxito declarado por el cliente no es autoritativo.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-LIB",
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE: POST con cuerpo JSON (lib 74); la contraseña no se recorta (page 61 solo recorta el correo); correlation_id lo genera el servidor (58)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+      "description": "La contraseña ingresada en Login solo existe durante la autenticación. No se persiste en tablas funcionales, logs, analytics, session replay ni payloads de diseño.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LIB",
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE: la contraseña vive en estado React y en el cuerpo de la solicitud; no se persiste ni se registra."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+      "description": "Solo se crea o confirma una sesión autenticada cuando el resultado funcional sea AUTHENTICATED. La creación y rotación de sesión se ejecutan del lado servidor y consumen la política central de sesión; el cliente no decide TTL, concurrencia, rotación ni elevación de privilegios.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC"
+      ],
+      "reason": "CUMPLE: la sesión se crea en AuthService.login solo con contraseña válida (75-81); el cliente no fija TTL."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-AUTH-TIMEOUT",
+      "description": "La autenticación consume la política central de timeout. Ante timeout o indisponibilidad se mantiene fail-closed y la respuesta funcional se normaliza como SERVICE_UNAVAILABLE; nunca se reclasifica como credenciales inválidas.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-LIB"
+      ],
+      "reason": "CUMPLE parcial: fallo técnico -> SERVICE_UNAVAILABLE y en cliente E-NETWORK; no hay política de timeout configurada (SBX-B2B-P-TIMEOUT no aparece en el código)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-DESIGN-NO-HARDCODE",
+      "description": "Pantallas y componentes no almacenan HEX, RGB ni medidas directas; los consumen desde los tokens.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-LIB",
+        "EV-PAGE"
+      ],
+      "reason": "INCUMPLE parcial: la página no tiene HEX, pero el objeto de tokens con HEX/px vive en lib (9-36) y la página usa px directos en el SVG (22). Ver F-HEX-IN-LIB-TOKENS."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-DESIGN-TOKENS",
+      "description": "Toda definición visual consume los tokens del sistema de diseño de la pantalla (color, tipografía, espaciado, componentes). Está prohibido gobernar la pantalla mediante valores locales no registrados.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LIB"
+      ],
+      "reason": "CUMPLE: estilos de la página consumen tokens (t.*)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-ERROR-CODE",
+      "description": "Todo error se relaciona con el catálogo de errores de la pantalla mediante su código canónico estable.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-LIB"
+      ],
+      "reason": "CUMPLE: cada fallo lleva código canónico SBX-B2B-E-*; el cliente lo resuelve contra el catálogo."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-ERROR-SAFE-MESSAGE",
+      "description": "Mostrar qué ocurrió, acción sugerida, CTA y código de referencia; ocultar detalles técnicos.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LIB",
+        "EV-LOTS",
+        "EV-AREA"
+      ],
+      "reason": "INCUMPLE: se muestran título, mensaje, acción sugerida y etiqueta, pero el CTA es texto y no acción (page 146). Además la regla se asignó solo al lote BACKEND. Ver F-ERROR-CTA-NOT-ACTIONABLE y F-ANALYSIS-SCREEN-RULES-TO-BACKEND."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-ERROR-TRACE",
+      "description": "Cada ocurrencia de error se registra del lado servidor con trace_code y correlation_id. El cliente nunca inserta ocurrencias directamente. En errores pre-autenticación solo se conserva contexto redactado y no identificante.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL"
+      ],
+      "reason": "INCUMPLE: ningún error se registra del lado servidor con trace_code (formato SBX-YYYYMMDD-XXXXXXXX); solo se devuelve correlation_id. Ver F-ERROR-TRACE-MISSING."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-INT-EMAIL-LOGIN",
+      "description": "Integración del sandbox (no es regla de LF): el servicio de login existente (POST /api/auth/login) acepta el correo electrónico como identificador; el usuario de prueba tiene el correo demo@sandbox.test. No se crea un segundo servicio de login; el acceso por usuario existente sigue funcionando.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE: mismo POST /api/auth/login acepta email (42-44) y conserva username (45-54)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-INT-RETURN",
+      "description": "Integración del sandbox (no es regla de LF): tras iniciar sesión se navega a la ruta interna indicada en el parámetro next de /login; si no hay next o no es una ruta interna del sitio, se navega a /sbx-rem-list. Nunca se redirige a un dominio externo.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-LIB"
+      ],
+      "reason": "CUMPLE: returnPath acepta solo rutas internas y por defecto /sbx-rem-list (91-95)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-INT-ROUTE",
+      "description": "Integración del sandbox (no es regla de LF): la pantalla de login vive en la ruta /sbx-b2b-login. La pantalla protegida existente /sbx-rem-list, cuando no hay sesión, redirige a /sbx-b2b-login?next=/sbx-rem-list en vez de a /login.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-REM",
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: /sbx-rem-list redirige a /sbx-b2b-login?next=/sbx-rem-list (rem-list 10)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-INT-SESSION-STORE",
+      "description": "Integración del sandbox (no es regla de LF): tras un resultado AUTHENTICATED, el token devuelto por el backend se guarda en sessionStorage con la clave sbx-session-token, que es la que leen las pantallas protegidas existentes. Nunca se guarda la contraseña.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LIB"
+      ],
+      "reason": "CUMPLE: sessionStorage['sbx-session-token'] = token tras AUTHENTICATED (page 63)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-PRIVACY-TELEMETRY",
+      "description": "Analytics, logs, replay y errores no reciben PII.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE: no hay analytics ni logs con PII en el código del pedido."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-RATE-LIMIT",
+      "description": "Todo límite de frecuencia o cantidad de solicitudes se obtiene de la política central. En el sandbox rige la política del login existente (sesión de 30 minutos y bloqueo tras 5 fallos durante 15 minutos); los valores de sesión y rate limit B2B no aplican (decisión del owner 2026-11-16).",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-SVC",
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE la política reutilizada (5 fallos / 15 min), pero el resultado no se comunica como E-RATE. Ver F-RATE-LIMITED-UNREACHABLE."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-RESP-BREAKPOINTS",
+      "description": "La pantalla tiene variantes desktop, tablet y móvil.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE parcial: un solo punto de quiebre por contenedor (84); no hay variante tablet diferenciada."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-SESSION-CONCURRENCY",
+      "description": "La rotación de sesión y los límites de concurrencia se obtienen de la política central de sesión. En el sandbox rige la política del login existente (sesión de 30 minutos y bloqueo tras 5 fallos durante 15 minutos); los valores de sesión y rate limit B2B no aplican (decisión del owner 2026-11-16).",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-SVC"
+      ],
+      "reason": "CUMPLE: reutiliza la política existente; sin cambios en el pedido."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-SESSION-IDLE",
+      "description": "La expiración de la sesión se rige por la política central de sesión. En el sandbox rige la política del login existente (sesión de 30 minutos y bloqueo tras 5 fallos durante 15 minutos); los valores de sesión y rate limit B2B no aplican (decisión del owner 2026-11-16).",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-SVC"
+      ],
+      "reason": "CUMPLE: reutiliza la sesión existente (sessionMinutes)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-THEME-LIGHT",
+      "description": "La pantalla usa el tema claro del sistema de diseño (el modo noche queda fuera de alcance en este sandbox).",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: solo tema claro."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-UX-ACTIONS",
+      "description": "Las acciones del Login son: iniciar sesión, mostrar u ocultar contraseña, recuperación de contraseña, Términos y condiciones, Política de privacidad y Contáctanos. Recuperación, Términos, Privacidad y Contáctanos se muestran como enlaces sin destino funcional en esta pantalla.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: acciones visibles; recuperación, términos, privacidad y contacto como enlaces sin destino (136, 160-163)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-UX-PASSWORD-MANAGERS",
+      "description": "El Login permite gestores de contraseñas y pegado de credenciales mediante controles estándar. El correo usa autocomplete=username y la contraseña autocomplete=current-password, en el mismo formulario. El valor de la contraseña nunca se envía a telemetría.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LOTS"
+      ],
+      "reason": "CUMPLE en la pantalla (autocomplete username/current-password, 108/123), aunque Análisis la asignó a BACKEND."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+      "description": "El campo Contraseña permite alternar entre contenido visible y enmascarado mediante control de visibilidad, sin modificar el valor ni enviarlo a telemetría.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LOTS"
+      ],
+      "reason": "CUMPLE en la pantalla (127-131), aunque Análisis la asignó a BACKEND."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-UX-RECOVERY",
+      "description": "El Login muestra una acción visible de recuperación inmediatamente asociada al campo Contraseña. La recuperación se resuelve en un flujo separado (fuera de alcance de esta pantalla) y no se ejecuta dentro del formulario de Login.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: enlace junto a la contraseña, sin flujo dentro del formulario (135-139)."
+    },
+    {
+      "id": "RULE:SBX-B2B-R-UX-SINGLE-FLIGHT",
+      "description": "Mientras exista una solicitud de autenticación pendiente, se ignoran envíos duplicados y el CTA permanece en estado procesando.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE parcial: envíos duplicados ignorados (51) y botón deshabilitado (148), pero no muestra estado 'procesando': el texto sigue 'Acceder' (152, 155). Ver F-SINGLE-FLIGHT-NO-PROCESSING-LABEL."
+    }
+  ],
+  "evidence_catalog": [
+    {
+      "id": "EV-CTRL",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Controlador de login leído línea a línea en el commit de cierre.",
+      "capture_sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937"
+    },
+    {
+      "id": "EV-SVC",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Servicio de autenticación existente (bloqueo, sesión) leído.",
+      "capture_sha256": "402d1c7fe84c5315ee1af41ddc39c02086e6ac02a6e9e0ca876c0e8769722100"
+    },
+    {
+      "id": "EV-PAGE",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "frontend/src/app/sbx-b2b-login/page.tsx",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Pantalla /sbx-b2b-login leída línea a línea.",
+      "capture_sha256": "0a0dbfe44f3562cbbce78145ee3e67258f025b58c37a87ba3ded76b7162efd83"
+    },
+    {
+      "id": "EV-LIB",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "frontend/src/lib/sbx-b2b-login.ts",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Cliente, catálogo de errores y objeto de tokens leídos.",
+      "capture_sha256": "07faec9d3a30ded70f5b7294c1a835ff081218d8e57b312c4dd508de3073f6e0"
+    },
+    {
+      "id": "EV-OAS",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "contracts/sbx-b2b-login.openapi.yaml",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Contrato OpenAPI del login B2B leído.",
+      "capture_sha256": "39c4feb54aebbdf892113cc557fde751742fd859dcdec51ff994706c9d609dc0"
+    },
+    {
+      "id": "EV-REM",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "frontend/src/app/sbx-rem-list/page.tsx",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Pantalla protegida existente: redirección a login.",
+      "capture_sha256": "86ad1e64a4fcc973c98a7643c6d627ad43795c3f1f37353ce674eca388d9a27a"
+    },
+    {
+      "id": "EV-AREA",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "analysis/a9/area_rules_v1.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Reglas de área de Análisis (A9) que asignan secciones a lotes.",
+      "capture_sha256": "ce002e046750fefa46bc1701fdd3806305dbdfeead07cca0855be52f56d4a42c"
+    },
+    {
+      "id": "EV-LOTS",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-286/lots.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Lotes del pedido con requirement_ids por área.",
+      "capture_sha256": "4b409f94b9e960f7d6a1a5133fc2570396b6b986f100095982b8d5d80ecc9604"
+    },
+    {
+      "id": "EV-ANA",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-286/analysis.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Análisis del pedido con valor_config de cada regla.",
+      "capture_sha256": "3e842ff51164ebc25d8a25c56dd599b8a613c9fde92790e95bd8bced75e56c4f"
+    },
+    {
+      "id": "EV-BE-RUN",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "capture_ref": "pilot/runs/req-286/audit/evidence/backend_repro.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Salida del reproductor Java ejecutado en esta auditoría contra el código del commit de cierre.",
+      "capture_sha256": "f6ce5cf6d9299731b53144a42e548b14d75f24508e185aba733172c42eb4bd35"
+    },
+    {
+      "id": "EV-FE-RUN",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "capture_ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Salida del reproductor de la pantalla (React + jsdom) ejecutado en esta auditoría.",
+      "capture_sha256": "41971ebaf5d009ff3c5ae640f686c92dbf452ab9f22d6cc8b7ebb91c013e3289"
+    },
+    {
+      "id": "EV-ST-RUN",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "capture_ref": "pilot/runs/req-286/audit/evidence/static_repro.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Salida del reproductor de la tabla de áreas y HEX ejecutado en esta auditoría.",
+      "capture_sha256": "79297a8981ca5d6f4b60d48b26063130640903340494b0cf3c18b5af84162b0d"
+    },
+    {
+      "id": "EV-BE-SRC",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-286/audit/evidence/AuditReproducer.java",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Código del reproductor backend.",
+      "capture_sha256": "968d98a1d63491f40d470b090765269ecaf62ae366022e1ab7bf0699745bbf32"
+    },
+    {
+      "id": "EV-FE-SRC",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-286/audit/evidence/frontend_reproducer.mjs",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Código del reproductor de pantalla.",
+      "capture_sha256": "aaff49a53bb5fec7b5674450a950e72e5e3c635857e73d44c4db885ac130f1ad"
+    },
+    {
+      "id": "EV-ST-SRC",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-286/audit/evidence/static_repro.py",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Código del reproductor estático.",
+      "capture_sha256": "52afb4d59981f9026c8f3243a72636e2063bb00e52b9066bde21ef746b121fea"
+    },
+    {
+      "id": "EV-COHORT",
+      "kind": "NOT_MEASURED",
+      "origin": "NONE",
+      "capture_ref": "pilot/runs/req-286/audit/cohort_sample.json#/rows",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-19T15:54:38Z",
+      "claim": "Sin corridas del pipeline LF de 11 pasos para este pedido: cohorte vacía.",
+      "capture_sha256": "31851727f99a25b3937454c6cf95bd6ec9f602351ca1572375f7f1bdd3baef64"
+    }
+  ],
+  "steps": [
+    {
+      "order": 0,
+      "name": "Paso LF 0",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 10,
+      "name": "Paso LF 10",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 20,
+      "name": "Paso LF 20",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 30,
+      "name": "Paso LF 30",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 40,
+      "name": "Paso LF 40",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 45,
+      "name": "Paso LF 45",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 47,
+      "name": "Paso LF 47",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 50,
+      "name": "Paso LF 50",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 60,
+      "name": "Paso LF 60",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 70,
+      "name": "Paso LF 70",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 80,
+      "name": "Paso LF 80",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_SANDBOX",
+      "what_worked": "No aplica: el pedido no se ejecutó por el pipeline LF de 11 pasos; se auditó el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta del sandbox no ejecuta los pasos LF.",
+      "receipt_ref": null
+    }
+  ],
+  "hops": [
+    {
+      "id": "HOP-0-10",
+      "from_step": 0,
+      "to_step": 10,
+      "sender": "paso 0",
+      "receiver": "paso 10",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "Sin corrida del pipeline LF en este pedido.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-10-20",
+      "from_step": 10,
+      "to_step": 20,
+      "sender": "paso 10",
+      "receiver": "paso 20",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "Sin corrida del pipeline LF en este pedido.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-20-30",
+      "from_step": 20,
+      "to_step": 30,
+      "sender": "paso 20",
+      "receiver": "paso 30",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "Sin corrida del pipeline LF en este pedido.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-30-40",
+      "from_step": 30,
+      "to_step": 40,
+      "sender": "paso 30",
+      "receiver": "paso 40",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "Sin corrida del pipeline LF en este pedido.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-40-45",
+      "from_step": 40,
+      "to_step": 45,
+      "sender": "paso 40",
+      "receiver": "paso 45",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "Sin corrida del pipeline LF en este pedido.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-45-47",
+      "from_step": 45,
+      "to_step": 47,
+      "sender": "paso 45",
+      "receiver": "paso 47",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "Sin corrida del pipeline LF en este pedido.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-47-50",
+      "from_step": 47,
+      "to_step": 50,
+      "sender": "paso 47",
+      "receiver": "paso 50",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "Sin corrida del pipeline LF en este pedido.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-50-60",
+      "from_step": 50,
+      "to_step": 60,
+      "sender": "paso 50",
+      "receiver": "paso 60",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "Sin corrida del pipeline LF en este pedido.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-60-70",
+      "from_step": 60,
+      "to_step": 70,
+      "sender": "paso 60",
+      "receiver": "paso 70",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "Sin corrida del pipeline LF en este pedido.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-70-80",
+      "from_step": 70,
+      "to_step": 80,
+      "sender": "paso 70",
+      "receiver": "paso 80",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "Sin corrida del pipeline LF en este pedido.",
+      "evidence_refs": [],
+      "unverified": []
+    }
+  ],
+  "sql_queries": [],
+  "pass_emitters": [],
+  "pass_scan_scope": {
+    "files": [
+      "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "frontend/src/app/sbx-b2b-login/page.tsx",
+      "frontend/src/lib/sbx-b2b-login.ts"
+    ],
+    "literal_scan_complete": false,
+    "dynamic_emissions_complete": false,
+    "limitations": [
+      "Inventario de emisores PASS no aplicable al código de producto del pedido."
+    ]
+  },
+  "run_sample": {
+    "query": "corridas LF del pedido req-286",
+    "requested_n": 1,
+    "sampled_runs": 0,
+    "metrics": {
+      "sampled_runs": 0,
+      "run_status_counts": {},
+      "persisted_pass_steps": 0,
+      "pass_missing_evidence_ref": 0,
+      "pass_missing_evidence_ref_percent": null,
+      "pass_empty_payload": 0,
+      "ig_reported_runs": 0,
+      "ig_reported_without_invocation": 0,
+      "ig_reported_without_invocation_percent": null,
+      "confirmed_false_pass_rate": null,
+      "interpretation": "Pointer presence and naming anomalies are indicators, not semantic false-PASS classification. IG may be optional."
+    },
+    "evidence_refs": [
+      "EV-COHORT"
+    ],
+    "limitations": [
+      "El pedido no tiene corridas del pipeline LF."
+    ]
+  },
+  "contracts": [],
+  "findings": [
+    {
+      "id": "F-ERROR-CTA-NOT-ACTIONABLE",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-ERROR-SAFE-MESSAGE",
+      "location": {
+        "file": "frontend/src/app/sbx-b2b-login/page.tsx",
+        "function": "SbxB2bLoginPage",
+        "start_line": 146,
+        "end_line": 146,
+        "commit": "ae20aeb29142b215233215dbd25523d4d10fc970",
+        "sha256": "0a0dbfe44f3562cbbce78145ee3e67258f025b58c37a87ba3ded76b7162efd83"
+      },
+      "found_code": "            <p>{currentError.actionLabel}{error?.correlationId ? ` · ${error.correlationId}` : \"\"}</p>",
+      "expected": {
+        "behavior": "El bloque de error muestra un CTA accionable (botón o enlace) con la etiqueta del catálogo y el código de referencia.",
+        "contract_refs": [
+          "frontend/src/app/sbx-b2b-login/page.tsx",
+          "frontend/src/lib/sbx-b2b-login.ts"
+        ]
+      },
+      "defect": "El CTA del catálogo (actionLabel) se pinta como texto dentro de un <p>; no es botón ni enlace.",
+      "root_cause": "La regla ERROR-SAFE-MESSAGE se asignó al lote BACKEND (ver F-ANALYSIS-SCREEN-RULES-TO-BACKEND); al FRONTEND nunca se le exigió y el examen FE solo verificó los textos.",
+      "impact": [
+        "El usuario no puede ejecutar la acción sugerida (Reintentar, Contactar soporte) desde el error."
+      ],
+      "correction": {
+        "code": "Renderizar actionLabel como <button type=\"button\"> (Reintentar/Revisar datos: reenfocar o reenviar) o enlace (Contactar soporte), manteniendo el código de referencia al lado.",
+        "targets": [
+          "frontend/src/app/sbx-b2b-login/page.tsx"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "Con E-NETWORK, el error muestra un botón 'Reintentar' operable con teclado.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json#/0",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "Con E-CREDENTIALS, ningún CTA queda como texto plano.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json#/1",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "esbuild page.tsx (git show ae20aeb) + node frontend_reproducer.mjs",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/frontend_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+        "effect": "ninguno (solo lectura y reproducción local)",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/frontend_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "HIGH",
+      "confidence_reason": "Literal leído en el commit de cierre; coincide con la revisión manual del 17/11.",
+      "current_audit_evidence_refs": [
+        "EV-PAGE",
+        "EV-LIB",
+        "EV-FE-RUN"
+      ]
+    },
+    {
+      "id": "F-ANALYSIS-SCREEN-RULES-TO-BACKEND",
+      "kind": "GOVERNANCE_GAP",
+      "code": "RULE:SBX-B2B-R-ERROR-SAFE-MESSAGE",
+      "location": {
+        "file": "analysis/a9/area_rules_v1.json",
+        "function": "section_areas",
+        "start_line": 3,
+        "end_line": 9,
+        "commit": "ae20aeb29142b215233215dbd25523d4d10fc970",
+        "sha256": "ce002e046750fefa46bc1701fdd3806305dbdfeead07cca0855be52f56d4a42c"
+      },
+      "found_code": "  \"section_areas\": {\n    \"fields\": [\n      \"BACKEND\"\n    ],\n    \"errors\": [\n      \"BACKEND\"\n    ],",
+      "expected": {
+        "behavior": "Las secciones de la pantalla que se muestran al usuario (errors, fields) se asignan también a FRONTEND.",
+        "contract_refs": [
+          "analysis/a9/area_rules_v1.json",
+          "pilot/runs/req-286/lots.json"
+        ]
+      },
+      "defect": "A9 asigna las secciones 'fields' y 'errors' solo a BACKEND; por eso ERROR-SAFE-MESSAGE, UX-PASSWORD-VISIBILITY y UX-PASSWORD-MANAGERS quedaron en el lote BACKEND y fuera del FRONTEND.",
+      "root_cause": "La tabla de áreas de Análisis trata errores y campos como contrato de API, no como contenido de pantalla.",
+      "impact": [
+        "Reglas de pantalla sin exigencia ni examen en el lote que las implementa.",
+        "Aplica a cualquier proyecto que use A9."
+      ],
+      "correction": {
+        "code": "section_areas: fields -> [BACKEND, FRONTEND]; errors -> [BACKEND, FRONTEND]; y regla de categoría UX/ERROR visible -> FRONTEND.",
+        "targets": [
+          "analysis/a9/area_rules_v1.json",
+          "analysis/a9/front_bindings.py"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "Re-análisis de req-286: ERROR-SAFE-MESSAGE aparece en el lote FRONTEND.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/static_repro.json#/1",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "Una regla solo de API (AUTH-ENVELOPE) no se duplica en FRONTEND.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/static_repro.json#/2",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "python3 static_repro.py ae20aeb29142b215233215dbd25523d4d10fc970",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/static_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+        "effect": "ninguno (solo lectura y reproducción local)",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/static_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "HIGH",
+      "confidence_reason": "Mapeo literal en el archivo de reglas y requirement_ids del lote BACKEND en lots.json.",
+      "current_audit_evidence_refs": [
+        "EV-AREA",
+        "EV-LOTS",
+        "EV-ANA",
+        "EV-ST-RUN"
+      ]
+    },
+    {
+      "id": "F-ERROR-TRACE-MISSING",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-ERROR-TRACE",
+      "location": {
+        "file": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+        "function": "loginWithEmail",
+        "start_line": 80,
+        "end_line": 83,
+        "commit": "ae20aeb29142b215233215dbd25523d4d10fc970",
+        "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937"
+      },
+      "found_code": "        } catch (RuntimeException exception) {\n            return ResponseEntity.status(503)\n                    .body(new B2bLoginFailure(\"SERVICE_UNAVAILABLE\", correlationId, \"SBX-B2B-E-NETWORK\"));\n        }",
+      "expected": {
+        "behavior": "Cada error se registra en servidor con trace_code SBX-YYYYMMDD-XXXXXXXX y correlation_id, con contexto redactado.",
+        "contract_refs": [
+          "pilot/runs/req-286/analysis.json",
+          "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java"
+        ]
+      },
+      "defect": "El fallo técnico devuelve 503 sin registrar ninguna ocurrencia; tampoco los 401. No existe trace_code en el código.",
+      "root_cause": "La regla quedó en BACKEND pero ningún examen la verificó y el lote no la implementó.",
+      "impact": [
+        "Soporte no puede correlacionar el código de referencia que ve el usuario con una ocurrencia registrada."
+      ],
+      "correction": {
+        "code": "Registrar la ocurrencia (trace_code generado en servidor, correlation_id, outcome, sin email ni contraseña) antes de responder, y devolver trace_code como código de referencia.",
+        "targets": [
+          "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "Un 503 deja una ocurrencia con trace_code y correlation_id.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/4",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "La ocurrencia no contiene el correo ni la contraseña.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/1",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.auth.AuditReproducer (fuentes de git show ae20aeb)",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/backend_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+        "effect": "ninguno (solo lectura y reproducción local)",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/backend_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "HIGH",
+      "confidence_reason": "Ausencia verificada en el controlador y el servicio; sin logger ni almacén de ocurrencias.",
+      "current_audit_evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC",
+        "EV-BE-RUN"
+      ]
+    },
+    {
+      "id": "F-AUTH-TIMING-LOCKED",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-AUTH-GENERIC",
+      "location": {
+        "file": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+        "function": "login",
+        "start_line": 59,
+        "end_line": 61,
+        "commit": "ae20aeb29142b215233215dbd25523d4d10fc970",
+        "sha256": "402d1c7fe84c5315ee1af41ddc39c02086e6ac02a6e9e0ca876c0e8769722100"
+      },
+      "found_code": "        if (lockedUntil != null) {\n            if (now.isBefore(lockedUntil)) {\n                return Optional.empty();",
+      "expected": {
+        "behavior": "Correo inexistente, contraseña errónea y cuenta bloqueada son indistinguibles también en tiempo de respuesta.",
+        "contract_refs": [
+          "pilot/runs/req-286/analysis.json",
+          "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java"
+        ]
+      },
+      "defect": "Con la cuenta bloqueada, AuthService.login devuelve antes de calcular BCrypt; un correo inexistente sí lo calcula (AuthController 72). La diferencia de tiempo revela que el correo existe y está bloqueado. Lo mismo ocurre con contraseña solo de espacios (línea 51).",
+      "root_cause": "El controlador nuevo igualó el costo solo para el correo que no coincide; reutilizó AuthService sin revisar sus salidas tempranas.",
+      "impact": [
+        "Enumeración de la cuenta real durante el bloqueo (valor_config.timing_discrepancy_mitigation=REQUIRED)."
+      ],
+      "correction": {
+        "code": "En loginWithEmail, calcular passwordEncoder.matches siempre que AuthService devuelva vacío sin haber hasheado, o mover la igualación de costo dentro de AuthService antes de cualquier return.",
+        "targets": [
+          "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+          "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "Tiempos de respuesta comparables (misma magnitud) para correo inexistente y cuenta bloqueada.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/2",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "Contraseña '   ' con el correo real tarda lo mismo que con un correo inexistente.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/3",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.auth.AuditReproducer (fuentes de git show ae20aeb)",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/backend_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+        "effect": "ninguno (solo lectura y reproducción local)",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/backend_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "HIGH",
+      "confidence_reason": "Medido en esta auditoría: cuenta bloqueada 0,067 ms frente a 85,9 ms con correo inexistente (promedio de 20).",
+      "current_audit_evidence_refs": [
+        "EV-SVC",
+        "EV-CTRL",
+        "EV-ANA",
+        "EV-BE-RUN"
+      ]
+    },
+    {
+      "id": "F-RATE-LIMITED-UNREACHABLE",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-AUTH-OUTCOMES",
+      "location": {
+        "file": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+        "function": "loginWithEmail",
+        "start_line": 75,
+        "end_line": 79,
+        "commit": "ae20aeb29142b215233215dbd25523d4d10fc970",
+        "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937"
+      },
+      "found_code": "            return authService\n                    .login(authUser.username(), password)\n                    .<ResponseEntity<?>>map(login ->\n                            ResponseEntity.ok(new B2bLoginResponse(\"AUTHENTICATED\", correlationId, login.token())))\n                    .orElseGet(() -> invalidCredentials(correlationId));",
+      "expected": {
+        "behavior": "Con el bloqueo activo se responde RATE_LIMITED con SBX-B2B-E-RATE (429), como declaran el contrato y el catálogo.",
+        "contract_refs": [
+          "contracts/sbx-b2b-login.openapi.yaml",
+          "pilot/runs/req-286/analysis.json"
+        ]
+      },
+      "defect": "Cualquier respuesta vacía de AuthService (incluido el bloqueo) se traduce a INVALID_CREDENTIALS; RATE_LIMITED y E-RATE nunca se emiten.",
+      "root_cause": "AuthService.login devuelve Optional vacío sin distinguir la causa.",
+      "impact": [
+        "El usuario bloqueado recibe 'revisa tus datos' en vez de 'espera unos minutos'.",
+        "Código E-RATE muerto en contrato y catálogo."
+      ],
+      "correction": {
+        "code": "Exponer desde AuthService un resultado tipado (LOCKED | INVALID | OK) y mapear LOCKED a 429 RATE_LIMITED/SBX-B2B-E-RATE, decidiendo con el owner cómo conciliarlo con AUTH-GENERIC.",
+        "targets": [
+          "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+          "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "Tras 5 fallos, la sexta solicitud recibe 429 RATE_LIMITED.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/0",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "Un correo inexistente nunca recibe RATE_LIMITED.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/1",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.auth.AuditReproducer (fuentes de git show ae20aeb)",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/backend_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+        "effect": "ninguno (solo lectura y reproducción local)",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/backend_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "HIGH",
+      "confidence_reason": "Mapeo literal en el controlador; el contrato declara RATE_LIMITED.",
+      "current_audit_evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC",
+        "EV-OAS",
+        "EV-BE-RUN"
+      ]
+    },
+    {
+      "id": "F-HEX-IN-LIB-TOKENS",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-DESIGN-NO-HARDCODE",
+      "location": {
+        "file": "frontend/src/lib/sbx-b2b-login.ts",
+        "function": "tokens",
+        "start_line": 9,
+        "end_line": 19,
+        "commit": "ae20aeb29142b215233215dbd25523d4d10fc970",
+        "sha256": "07faec9d3a30ded70f5b7294c1a835ff081218d8e57b312c4dd508de3073f6e0"
+      },
+      "found_code": "export const tokens = {\n  navy_core: \"#0F172A\",\n  navy_muted: \"#334155\",\n  warm_surface: \"#FDFCFA\",\n  card_surface: \"#FFFFFF\",\n  border_soft: \"#E2E8F0\",\n  error_bg: \"#FEE2E2\",\n  error_text: \"#991B1B\",\n  green_action: \"#109044\",\n  green_action_hover: \"#0d7336\",\n  blue_brand_accent: \"#2563EB\",",
+      "expected": {
+        "behavior": "Los valores visuales vienen del sistema de diseño; pantallas y componentes no guardan HEX.",
+        "contract_refs": [
+          "frontend/src/lib/sbx-b2b-login.ts",
+          "pilot/runs/req-286/analysis.json"
+        ]
+      },
+      "defect": "Los 10 colores HEX y las medidas viven en un objeto local de lib/, no en un paquete de tokens registrado.",
+      "root_cause": "El sandbox no tiene paquete de diseño; el lote creó tokens locales.",
+      "impact": [
+        "Valores visuales no gobernados; cambian por pantalla."
+      ],
+      "correction": {
+        "code": "Mover el objeto a un módulo de tokens compartido (o al contrato visual) y consumirlo por nombre.",
+        "targets": [
+          "frontend/src/lib/sbx-b2b-login.ts"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "La página solo referencia nombres de token.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/static_repro.json#/3",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "Un HEX nuevo en la pantalla hace fallar un chequeo de estilo.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/static_repro.json#/4",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "python3 static_repro.py ae20aeb29142b215233215dbd25523d4d10fc970",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/static_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+        "effect": "ninguno (solo lectura y reproducción local)",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/static_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "MEDIUM",
+      "confidence_reason": "Literal leído; el alcance de 'sistema de diseño' en el sandbox lo decide el owner.",
+      "current_audit_evidence_refs": [
+        "EV-LIB",
+        "EV-PAGE",
+        "EV-ST-RUN"
+      ]
+    },
+    {
+      "id": "F-SINGLE-FLIGHT-NO-PROCESSING-LABEL",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-UX-SINGLE-FLIGHT",
+      "location": {
+        "file": "frontend/src/app/sbx-b2b-login/page.tsx",
+        "function": "SbxB2bLoginPage",
+        "start_line": 154,
+        "end_line": 156,
+        "commit": "ae20aeb29142b215233215dbd25523d4d10fc970",
+        "sha256": "0a0dbfe44f3562cbbce78145ee3e67258f025b58c37a87ba3ded76b7162efd83"
+      },
+      "found_code": "          <span role=\"status\" aria-live=\"polite\" style={{ ...t.text_body_small, color: t.navy_muted }}>\n            {pending ? \"Acceder\" : \"\"}\n          </span>",
+      "expected": {
+        "behavior": "Mientras la solicitud está en vuelo, el CTA y el anuncio para lectores de pantalla indican 'procesando'.",
+        "contract_refs": [
+          "frontend/src/app/sbx-b2b-login/page.tsx",
+          "pilot/runs/req-286/analysis.json"
+        ]
+      },
+      "defect": "El botón se deshabilita pero conserva el texto 'Acceder', y la región aria-live anuncia 'Acceder' en lugar de un estado de proceso.",
+      "root_cause": "Texto del estado pending copiado del CTA.",
+      "impact": [
+        "Quien usa lector de pantalla no sabe que la solicitud está en curso."
+      ],
+      "correction": {
+        "code": "Con pending: texto del botón 'Ingresando…' y aria-live 'Validando tus datos'.",
+        "targets": [
+          "frontend/src/app/sbx-b2b-login/page.tsx"
+        ],
+        "proposed_only": true
+      },
+      "positive_test": {
+        "description": "Con pending=true el botón muestra el texto de proceso.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json#/2",
+        "executed": true
+      },
+      "negative_test": {
+        "description": "Sin pending, el botón vuelve a 'Acceder'.",
+        "evidence_ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json#/3",
+        "executed": true
+      },
+      "observed_result": {
+        "executed": true,
+        "command": "esbuild page.tsx (git show ae20aeb) + node frontend_reproducer.mjs",
+        "exit_code": 0,
+        "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/frontend_repro.json"
+        ],
+        "scope": "LOCAL_REAL_LF_HELPER"
+      },
+      "readback": {
+        "verified": true,
+        "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+        "effect": "ninguno (solo lectura y reproducción local)",
+        "evidence_refs": [
+          "pilot/runs/req-286/audit/evidence/frontend_repro.json"
+        ]
+      },
+      "status": "CONFIRMED",
+      "before_ref": null,
+      "after_ref": null,
+      "fix_scope": "NONE",
+      "evidence_kind": "MEASURED_THIS_AUDIT",
+      "confidence": "MEDIUM",
+      "confidence_reason": "Literal leído; la redacción exacta del estado no está en el contrato de pantalla.",
+      "current_audit_evidence_refs": [
+        "EV-PAGE",
+        "EV-FE-RUN"
+      ]
+    }
+  ],
+  "limitations": [
+    "Reproductores locales sobre el código del commit de cierre ae20aeb (Java sin Spring Boot levantado; pantalla en jsdom, no en navegador real).",
+    "Tiempos medidos en el equipo del auditor; sirven para comparar rutas, no como latencia de producción.",
+    "Códigos EKB del checklist validados en vivo por el CI (audit-stage.yml), no por el auditor.",
+    "Modo SHADOW: el informe no bloquea el pedido ni autoriza efectos."
+  ],
+  "completion": {
+    "lot_coverage_percent": 100.0,
+    "flow_verdict": "FLOW_NOT_ACCREDITED",
+    "flow_reasons": [
+      "NO_NEW_E2E_EXECUTION",
+      "STEP_NOT_ACCREDITED:0",
+      "STEP_NOT_ACCREDITED:10",
+      "STEP_NOT_ACCREDITED:20",
+      "STEP_NOT_ACCREDITED:30",
+      "STEP_NOT_ACCREDITED:40",
+      "STEP_NOT_ACCREDITED:45",
+      "STEP_NOT_ACCREDITED:47",
+      "STEP_NOT_ACCREDITED:50",
+      "STEP_NOT_ACCREDITED:60",
+      "STEP_NOT_ACCREDITED:70",
+      "STEP_NOT_ACCREDITED:80",
+      "HOP_RUN_NOT_ACCREDITED:HOP-0-10",
+      "HOP_RUN_NOT_ACCREDITED:HOP-10-20",
+      "HOP_RUN_NOT_ACCREDITED:HOP-20-30",
+      "HOP_RUN_NOT_ACCREDITED:HOP-30-40",
+      "HOP_RUN_NOT_ACCREDITED:HOP-40-45",
+      "HOP_RUN_NOT_ACCREDITED:HOP-45-47",
+      "HOP_RUN_NOT_ACCREDITED:HOP-47-50",
+      "HOP_RUN_NOT_ACCREDITED:HOP-50-60",
+      "HOP_RUN_NOT_ACCREDITED:HOP-60-70",
+      "HOP_RUN_NOT_ACCREDITED:HOP-70-80"
+    ],
+    "unknown_scope": [
+      "Ejecución en navegador real",
+      "Backend desplegado con Spring Boot"
+    ]
+  }
+}
