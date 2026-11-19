@@ -1,0 +1,25 @@
+[
+ {
+  "case": "RATE_after_5_failures",
+  "response": "401 B2bLoginFailure[outcome=INVALID_CREDENTIALS, correlation_id=47788c53-9ece-4ddd-9e3e-1daf0991eef0, error_code=SBX-B2B-E-CREDENTIALS]"
+ },
+ {
+  "case": "RATE_control_fresh_correct",
+  "status": 200
+ },
+ {
+  "case": "TIMING",
+  "locked_real_ms": 0.067,
+  "unknown_email_ms": 85.901,
+  "blank_password_real_ms": 0.051
+ },
+ {
+  "case": "TIMING_control_unlocked_wrong_ms",
+  "value": 86.024
+ },
+ {
+  "case": "TRACE_on_503",
+  "response": "503 B2bLoginFailure[outcome=SERVICE_UNAVAILABLE, correlation_id=8fc712d1-27b2-446d-8633-bb7a363dbb23, error_code=SBX-B2B-E-NETWORK]",
+  "trace_code_in_body": false
+ }
+]

@@ -1,0 +1,87 @@
+{
+  "acceptance_criteria": [
+    "RULE:SBX-B2B-R-A11Y-CONTRAST :: Ningún estado depende únicamente del color.",
+    "RULE:SBX-B2B-R-A11Y-FORCED-COLORS :: En modo de colores forzados o alto contraste la pantalla conserva toda su funcionalidad, foco y estados.",
+    "RULE:SBX-B2B-R-A11Y-INTERACTION :: Controles con área táctil mínima, foco visible, navegación por teclado y etiquetas.",
+    "RULE:SBX-B2B-R-A11Y-MOTION :: Se respeta la preferencia de movimiento reducido del usuario. Cuando esté activa, las animaciones y transiciones no esenciales se reducen o eliminan; ningún estado, error, progreso ni acción depende exclusivamente del movimiento.",
+    "RULE:SBX-B2B-R-AUTH-DENY-DEFAULT :: Toda acción operativa posterior a autenticación completa se deniega por defecto y requiere autorización del lado servidor. El login nunca concede por sí mismo permisos operativos.",
+    "RULE:SBX-B2B-R-AUTH-ENVELOPE :: La respuesta expone únicamente el outcome funcional, un correlation_id generado por servidor y, cuando corresponda, el código de error canónico. No se exponen errores crudos, credenciales, tokens internos ni razones sensibles.",
+    "RULE:SBX-B2B-R-AUTH-FAIL-CLOSED :: El Login se comunica exclusivamente con una capa de autenticación del lado servidor. El navegador no verifica credenciales por sí mismo. Si la identidad no puede verificarse válidamente, no se crea sesión ni se concede acceso.",
+    "RULE:SBX-B2B-R-AUTH-GENERIC :: Ante fallos de credencial o denegaciones relacionadas con la cuenta, el Login no debe revelar si el correo existe, si el usuario está activo/restringido ni qué credencial falló. Las respuestas externas de estos fallos deben ser funcionalmente indistinguibles en mensaje y comportamiento observable, mitigando diferencias de tiempo. Estados no equivalentes como rate limit o indisponibilidad del servicio conservan su tratamiento específico.",
+    "RULE:SBX-B2B-R-AUTH-OUTCOMES :: La capa de autenticación traduce cualquier resultado a un outcome funcional estable. Para outcomes no exitosos se utiliza exclusivamente un código del catálogo de errores; el HTTP y los mensajes visibles se resuelven desde ese catálogo.",
+    "RULE:SBX-B2B-R-AUTH-REQUEST :: La solicitud de login viaja por HTTPS en el cuerpo, nunca en la URL, query string ni headers de logging. La contraseña no se recorta, normaliza ni transforma; el correo puede recortarse por fuera. El servidor genera el correlation_id. Un resultado de éxito declarado por el cliente no es autoritativo.",
+    "RULE:SBX-B2B-R-AUTH-RUNTIME-PASSWORD :: La contraseña ingresada en Login solo existe durante la autenticación. No se persiste en tablas funcionales, logs, analytics, session replay ni payloads de diseño.",
+    "RULE:SBX-B2B-R-AUTH-SESSION-AFTER-AUTH :: Solo se crea o confirma una sesión autenticada cuando el resultado funcional sea AUTHENTICATED. La creación y rotación de sesión se ejecutan del lado servidor y consumen la política central de sesión; el cliente no decide TTL, concurrencia, rotación ni elevación de privilegios.",
+    "RULE:SBX-B2B-R-AUTH-TIMEOUT :: La autenticación consume la política central de timeout. Ante timeout o indisponibilidad se mantiene fail-closed y la respuesta funcional se normaliza como SERVICE_UNAVAILABLE; nunca se reclasifica como credenciales inválidas.",
+    "RULE:SBX-B2B-R-DESIGN-NO-HARDCODE :: Pantallas y componentes no almacenan HEX, RGB ni medidas directas; los consumen desde los tokens.",
+    "RULE:SBX-B2B-R-DESIGN-TOKENS :: Toda definición visual consume los tokens del sistema de diseño de la pantalla (color, tipografía, espaciado, componentes). Está prohibido gobernar la pantalla mediante valores locales no registrados.",
+    "RULE:SBX-B2B-R-ERROR-CODE :: Todo error se relaciona con el catálogo de errores de la pantalla mediante su código canónico estable.",
+    "RULE:SBX-B2B-R-ERROR-SAFE-MESSAGE :: Mostrar qué ocurrió, acción sugerida, CTA y código de referencia; ocultar detalles técnicos.",
+    "RULE:SBX-B2B-R-ERROR-TRACE :: Cada ocurrencia de error se registra del lado servidor con trace_code y correlation_id. El cliente nunca inserta ocurrencias directamente. En errores pre-autenticación solo se conserva contexto redactado y no identificante.",
+    "RULE:SBX-B2B-R-INT-EMAIL-LOGIN :: Integración del sandbox (no es regla de LF): el servicio de login existente (POST /api/auth/login) acepta el correo electrónico como identificador; el usuario de prueba tiene el correo demo@sandbox.test. No se crea un segundo servicio de login; el acceso por usuario existente sigue funcionando.",
+    "RULE:SBX-B2B-R-INT-RETURN :: Integración del sandbox (no es regla de LF): tras iniciar sesión se navega a la ruta interna indicada en el parámetro next de /login; si no hay next o no es una ruta interna del sitio, se navega a /sbx-rem-list. Nunca se redirige a un dominio externo.",
+    "RULE:SBX-B2B-R-INT-ROUTE :: Integración del sandbox (no es regla de LF): la pantalla de login vive en la ruta /sbx-b2b-login. La pantalla protegida existente /sbx-rem-list, cuando no hay sesión, redirige a /sbx-b2b-login?next=/sbx-rem-list en vez de a /login.",
+    "RULE:SBX-B2B-R-INT-SESSION-STORE :: Integración del sandbox (no es regla de LF): tras un resultado AUTHENTICATED, el token devuelto por el backend se guarda en sessionStorage con la clave sbx-session-token, que es la que leen las pantallas protegidas existentes. Nunca se guarda la contraseña.",
+    "RULE:SBX-B2B-R-PRIVACY-TELEMETRY :: Analytics, logs, replay y errores no reciben PII.",
+    "RULE:SBX-B2B-R-RATE-LIMIT :: Todo límite de frecuencia o cantidad de solicitudes se obtiene de la política central. En el sandbox rige la política del login existente (sesión de 30 minutos y bloqueo tras 5 fallos durante 15 minutos); los valores de sesión y rate limit B2B no aplican (decisión del owner 2026-11-16).",
+    "RULE:SBX-B2B-R-RESP-BREAKPOINTS :: La pantalla tiene variantes desktop, tablet y móvil.",
+    "RULE:SBX-B2B-R-SESSION-CONCURRENCY :: La rotación de sesión y los límites de concurrencia se obtienen de la política central de sesión. En el sandbox rige la política del login existente (sesión de 30 minutos y bloqueo tras 5 fallos durante 15 minutos); los valores de sesión y rate limit B2B no aplican (decisión del owner 2026-11-16).",
+    "RULE:SBX-B2B-R-SESSION-IDLE :: La expiración de la sesión se rige por la política central de sesión. En el sandbox rige la política del login existente (sesión de 30 minutos y bloqueo tras 5 fallos durante 15 minutos); los valores de sesión y rate limit B2B no aplican (decisión del owner 2026-11-16).",
+    "RULE:SBX-B2B-R-THEME-LIGHT :: La pantalla usa el tema claro del sistema de diseño (el modo noche queda fuera de alcance en este sandbox).",
+    "RULE:SBX-B2B-R-UX-ACTIONS :: Las acciones del Login son: iniciar sesión, mostrar u ocultar contraseña, recuperación de contraseña, Términos y condiciones, Política de privacidad y Contáctanos. Recuperación, Términos, Privacidad y Contáctanos se muestran como enlaces sin destino funcional en esta pantalla.",
+    "RULE:SBX-B2B-R-UX-PASSWORD-MANAGERS :: El Login permite gestores de contraseñas y pegado de credenciales mediante controles estándar. El correo usa autocomplete=username y la contraseña autocomplete=current-password, en el mismo formulario. El valor de la contraseña nunca se envía a telemetría.",
+    "RULE:SBX-B2B-R-UX-PASSWORD-VISIBILITY :: El campo Contraseña permite alternar entre contenido visible y enmascarado mediante control de visibilidad, sin modificar el valor ni enviarlo a telemetría.",
+    "RULE:SBX-B2B-R-UX-RECOVERY :: El Login muestra una acción visible de recuperación inmediatamente asociada al campo Contraseña. La recuperación se resuelve en un flujo separado (fuera de alcance de esta pantalla) y no se ejecuta dentro del formulario de Login.",
+    "RULE:SBX-B2B-R-UX-SINGLE-FLIGHT :: Mientras exista una solicitud de autenticación pendiente, se ignoran envíos duplicados y el CTA permanece en estado procesando."
+  ],
+  "authority_refs": [
+    {
+      "expected_sha256": "3e842ff51164ebc25d8a25c56dd599b8a613c9fde92790e95bd8bced75e56c4f",
+      "resolution_status": "DECLARED_ONLY",
+      "resolved_revision": "ae20aeb29142b215233215dbd25523d4d10fc970",
+      "uri": "github://paulozterra/lf-programming-sandbox@ae20aeb29142b215233215dbd25523d4d10fc970/pilot/runs/req-286/analysis.json"
+    },
+    {
+      "expected_sha256": "4b409f94b9e960f7d6a1a5133fc2570396b6b986f100095982b8d5d80ecc9604",
+      "resolution_status": "DECLARED_ONLY",
+      "resolved_revision": "ae20aeb29142b215233215dbd25523d4d10fc970",
+      "uri": "github://paulozterra/lf-programming-sandbox@ae20aeb29142b215233215dbd25523d4d10fc970/pilot/runs/req-286/lots.json"
+    }
+  ],
+  "base_commit": "ae20aeb29142b215233215dbd25523d4d10fc970",
+  "consumer_targets": [
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+    "frontend/src/app/sbx-b2b-login/page.tsx",
+    "frontend/src/app/sbx-rem-list/page.tsx",
+    "frontend/src/lib/sbx-b2b-login.ts"
+  ],
+  "entrypoints": [
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+    "contracts/sbx-b2b-login.openapi.yaml",
+    "frontend/src/app/sbx-b2b-login/page.tsx",
+    "frontend/src/app/sbx-rem-list/page.tsx",
+    "frontend/src/lib/sbx-b2b-login.ts"
+  ],
+  "evidence_destination": "pilot/runs/req-286/audit",
+  "freshness_budget_ms": null,
+  "ig_execution_required": false,
+  "new_e2e_requested": false,
+  "objective": "Auditar la implementación integrada del pedido req-286 contra su ficha (reglas) y sus contratos, leyendo el código real en ae20aeb29142.",
+  "performance_budget_ms": null,
+  "read_scope": [
+    "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+    "contracts/sbx-b2b-login.openapi.yaml",
+    "frontend/src/app/sbx-b2b-login/page.tsx",
+    "frontend/src/app/sbx-rem-list/page.tsx",
+    "frontend/src/lib/sbx-b2b-login.ts",
+    "pilot/runs/req-286/analysis.json",
+    "pilot/runs/req-286/lots.json"
+  ],
+  "repository": "paulozterra/lf-programming-sandbox",
+  "sample_n": 1,
+  "schema_version": "LF_DEEP_AUDIT_INPUT_V2",
+  "write_scope": [
+    "TEST_LOCAL",
+    "UPDATE_DRAFT_PR"
+  ]
+}

@@ -1,0 +1,36 @@
+[
+ {
+  "case": "AREA_errors_fields",
+  "errors": [
+   "BACKEND"
+  ],
+  "fields": [
+   "BACKEND"
+  ],
+  "visual.variants": [
+   "FRONTEND"
+  ]
+ },
+ {
+  "case": "AREA_screen_rules_lot",
+  "in_backend": [
+   "REQ-SBX-B2B-R-ERROR-SAFE-MESSAGE",
+   "REQ-SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+   "REQ-SBX-B2B-R-UX-PASSWORD-MANAGERS"
+  ],
+  "in_frontend": []
+ },
+ {
+  "case": "AREA_control_api_rule",
+  "AUTH-ENVELOPE_in_backend": true,
+  "AUTH-ENVELOPE_in_frontend": false
+ },
+ {
+  "case": "HEX_lib",
+  "count": 10
+ },
+ {
+  "case": "HEX_control_page",
+  "count": 0
+ }
+]
