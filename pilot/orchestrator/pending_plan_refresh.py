@@ -13,7 +13,7 @@ The refreshed files are written into the registration worktree, so they enter
 main in the same governed registration PR as the task itself.
 """
 from __future__ import annotations
-from pilot.config.project_config import storage_path, storage
+from pilot.config.project_config import ProjectConfigError, storage_path, storage
 
 import hashlib
 import json
@@ -59,6 +59,8 @@ def refresh(root: Path, request: str, completed: dict) -> list[str]:
     try:
         result = generate_chain.generate(str(root), request, refreshed,
                                          persist=False, allow_source_drift=drift)
+    except ProjectConfigError:
+        raise
     except ValueError as exc:
         raise PlanRefreshBlocked("PLAN_REFRESH_GENERATION_FAILED:"
                                  + str(exc).split(":", 1)[0]) from exc
