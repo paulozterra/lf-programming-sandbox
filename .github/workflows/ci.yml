@@ -277,6 +277,8 @@ jobs:
           python3 -m unittest discover -s pilot/orchestrator -p 'test_intervention_report.py' -v
           python3 -m unittest discover -s pilot -p 'test_sandbox_train_recovery.py' -v
           python3 -m pytest -q pilot/test_t52_bot_ci.py -p no:cacheprovider
+      - name: T54 phase 1 project configuration safety tests
+        run: python3 -m unittest discover -s pilot -p 'test_t54_project_config.py' -v
       - run: python3 standards/tools/changes.py render --check
       - run: python3 standards/tools/changes.py validate
       - name: "Circuito C9: clasificación y versiones (solo PR)"

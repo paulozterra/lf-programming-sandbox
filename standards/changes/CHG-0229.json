@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0229",
+  "title": "T54 fase 1: cargador y validación de configuración por proyecto sin cambiar consumidores",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (19/11): T54 fase 1, configuración por proyecto, validación fail-closed y pruebas sin migrar consumidores."
+  },
+  "reason": "Añade sandbox.json versionado LF_PROJECT_CONFIG_V1 y project_config.py. El cargador exige todas las claves, rutas relativas sin traversal ni enlaces simbólicos y raíces de escritura explícitas; cualquier entrada ausente o inválida bloquea con PROJECT_CONFIG_INVALID. CI de estándares ejecuta pruebas positivas y negativas. Los consumidores actuales, marcadores técnicos y T53 no cambian.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/config/projects/sandbox.json",
+      "pilot/config/project_config.py",
+      "pilot/test_t54_project_config.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0229.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/350"
+  }
+}
