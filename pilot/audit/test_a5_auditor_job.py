@@ -57,4 +57,7 @@ def test_workflow_strips_github_credentials_from_the_model_step():
     step = wf.split("- name: Audit with Claude", 1)[1].split("- name:", 1)[0]
     assert "unset GH_TOKEN GITHUB_TOKEN" in step and "github.token" not in step
     assert "ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}" in step
-    assert "persist-credentials: false" in wf and "github-actions[bot]" in wf
+    assert "persist-credentials: false" in wf
+    # A6: API-billed path is owner-dispatched only, never fired by issue events.
+    on = wf.split("\non:", 1)[1].split("\npermissions:", 1)[0]
+    assert "workflow_dispatch" in on and "issues" not in on

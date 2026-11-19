@@ -2,7 +2,9 @@
 
 Instructivo genérico (cualquier proyecto) para el auditor declarado en
 `pilot/audit/projects/<proyecto>.json` (`audit.auditor`). El auditor **nunca** es
-el constructor del pedido. La skill se usa desde el repositorio de su dueño, en el
+el constructor del pedido. Con `GPT_ISOLATED_SESSION` (decisión del owner, 19/11, por costo)
+la auditoría se hace en un **chat nuevo** de GPT, sin el historial del chat que construyó el
+pedido; en el PR se declara `Auditor: GPT (sesión aislada)` como límite de independencia. La skill se usa desde el repositorio de su dueño, en el
 commit fijado: no se copia ni se modifica.
 
 ## 1. Tomar el pedido

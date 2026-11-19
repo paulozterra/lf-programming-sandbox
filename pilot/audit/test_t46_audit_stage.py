@@ -284,7 +284,7 @@ def test_trigger_issue_carries_marker_and_input():
     import request_trigger as rt
     config = cfg.load("lf")
     body = rt.issue_body("req-9", {"base_commit": "c" * 40, "evidence_destination": "pilot/runs/req-9/audit"}, config)
-    assert body.startswith("<!-- audit-request:req-9 -->") and "CLAUDE_ROUTINE" in body and "```json" in body
+    assert body.startswith("<!-- audit-request:req-9 -->") and config["audit"]["auditor"] in body and "```json" in body
 
 
 # ---- A4 issue lifecycle --------------------------------------------------
