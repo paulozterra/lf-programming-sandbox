@@ -285,3 +285,23 @@ def test_trigger_issue_carries_marker_and_input():
     config = cfg.load("lf")
     body = rt.issue_body("req-9", {"base_commit": "c" * 40, "evidence_destination": "pilot/runs/req-9/audit"}, config)
     assert body.startswith("<!-- audit-request:req-9 -->") and "CLAUDE_ROUTINE" in body and "```json" in body
+
+
+# ---- A4 issue lifecycle --------------------------------------------------
+def test_close_done_closes_only_requests_with_merged_report(tmp_path, monkeypatch):
+    import request_trigger as rt
+    (tmp_path / "pilot/runs/req-a/audit").mkdir(parents=True)
+    (tmp_path / "pilot/runs/req-a/audit/report.json").write_text("{}")
+    calls = []
+    issues = [{"number": 1, "body": "<!-- audit-request:req-a -->"},
+              {"number": 2, "body": "<!-- audit-request:req-b -->"},
+              {"number": 3, "body": "sin marca"}]
+
+    def fake_gh(*args, data=None):
+        calls.append((args, data))
+        return json.dumps(issues) if args[0].endswith("state=open&per_page=100") else "{}"
+    monkeypatch.setattr(rt, "gh", fake_gh)
+    closed = rt.close_done("o/r", root=tmp_path)
+    assert [c["issue"] for c in closed] == [1]
+    patches = [c for c in calls if c[0][0] == "-X"]
+    assert len(patches) == 1 and patches[0][0][2].endswith("/issues/1") and patches[0][1]["state"] == "closed"

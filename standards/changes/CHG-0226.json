@@ -1,0 +1,42 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0226",
+  "title": "A4: adaptador de auditor para la ruta (instructivo + ensamblador del informe) y ciclo de vida de los issues audit-request",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (19/11): adaptar la skill de auditoría a la ruta, conectar la tarea programada y cerrar el ciclo de los issues audit-request. Sigue al E2E de #286 (PR #346)."
+  },
+  "reason": "pilot/audit/AUDITOR.md: instructivo genérico para el auditor (cualquier proyecto) que atiende un issue audit-request con la skill fijada, sin copiarla. report_scaffold.py: el auditor escribe solo el juicio (draft LF_ROUTE_AUDIT_DRAFT_V1) y la ruta completa lo mecánico (hashes, código literal por línea en base_commit, libro de 11 pasos no aplicable, cobertura y veredicto con las funciones de la skill). Probado reconstruyendo el informe real de req-286 y validándolo con la skill (en audit-stage.yml). request_trigger: nunca salta un pedido en silencio (AUDIT_SKIPPED:REQUEST_NOT_FINALIZED|ALREADY_REQUESTED) y cierra el issue cuando su report.json ya está en main. Restituye en ci.yml las pruebas test_t46_audit_stage.py que se perdieron en una fusión.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/audit/AUDITOR.md",
+      "pilot/audit/report_scaffold.py",
+      "pilot/audit/test_a4_report_scaffold.py",
+      "pilot/audit/request_trigger.py",
+      "pilot/audit/test_t46_audit_stage.py",
+      "pilot/runs/req-286/audit/draft.json",
+      ".github/workflows/audit-stage.yml",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0226.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/347"
+  }
+}

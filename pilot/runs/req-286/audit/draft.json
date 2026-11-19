@@ -1,0 +1,732 @@
+{
+  "schema_version": "LF_ROUTE_AUDIT_DRAFT_V1",
+  "evidence": [
+    {
+      "id": "EV-CTRL",
+      "ref": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Controlador de login leído línea a línea en el commit de cierre."
+    },
+    {
+      "id": "EV-SVC",
+      "ref": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Servicio de autenticación existente (bloqueo, sesión) leído."
+    },
+    {
+      "id": "EV-PAGE",
+      "ref": "frontend/src/app/sbx-b2b-login/page.tsx",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Pantalla /sbx-b2b-login leída línea a línea."
+    },
+    {
+      "id": "EV-LIB",
+      "ref": "frontend/src/lib/sbx-b2b-login.ts",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Cliente, catálogo de errores y objeto de tokens leídos."
+    },
+    {
+      "id": "EV-OAS",
+      "ref": "contracts/sbx-b2b-login.openapi.yaml",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Contrato OpenAPI del login B2B leído."
+    },
+    {
+      "id": "EV-REM",
+      "ref": "frontend/src/app/sbx-rem-list/page.tsx",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Pantalla protegida existente: redirección a login."
+    },
+    {
+      "id": "EV-AREA",
+      "ref": "analysis/a9/area_rules_v1.json",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Reglas de área de Análisis (A9) que asignan secciones a lotes."
+    },
+    {
+      "id": "EV-LOTS",
+      "ref": "pilot/runs/req-286/lots.json",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Lotes del pedido con requirement_ids por área."
+    },
+    {
+      "id": "EV-ANA",
+      "ref": "pilot/runs/req-286/analysis.json",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Análisis del pedido con valor_config de cada regla."
+    },
+    {
+      "id": "EV-BE-RUN",
+      "ref": "pilot/runs/req-286/audit/evidence/backend_repro.json",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "claim": "Salida del reproductor Java ejecutado en esta auditoría contra el código del commit de cierre."
+    },
+    {
+      "id": "EV-FE-RUN",
+      "ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "claim": "Salida del reproductor de la pantalla (React + jsdom) ejecutado en esta auditoría."
+    },
+    {
+      "id": "EV-ST-RUN",
+      "ref": "pilot/runs/req-286/audit/evidence/static_repro.json",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "claim": "Salida del reproductor de la tabla de áreas y HEX ejecutado en esta auditoría."
+    },
+    {
+      "id": "EV-BE-SRC",
+      "ref": "pilot/runs/req-286/audit/evidence/AuditReproducer.java",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Código del reproductor backend."
+    },
+    {
+      "id": "EV-FE-SRC",
+      "ref": "pilot/runs/req-286/audit/evidence/frontend_reproducer.mjs",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Código del reproductor de pantalla."
+    },
+    {
+      "id": "EV-ST-SRC",
+      "ref": "pilot/runs/req-286/audit/evidence/static_repro.py",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Código del reproductor estático."
+    }
+  ],
+  "cohort_ref": "pilot/runs/req-286/audit/cohort_sample.json#/rows",
+  "tasks": {
+    "RULE:SBX-B2B-R-A11Y-CONTRAST": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: errores con rol alert y texto (líneas 112, 134, 141-147); ningún estado depende solo del color. Contraste AA no medido."
+    },
+    "RULE:SBX-B2B-R-A11Y-FORCED-COLORS": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE parcial: regla @media (forced-colors: active) con foco Highlight y bordes ButtonText (85-88). Sin prueba en navegador."
+    },
+    "RULE:SBX-B2B-R-A11Y-INTERACTION": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: labels htmlFor, foco visible (81), botón mostrar/ocultar 48px con aria-label/aria-pressed (127-130), aria-live (154)."
+    },
+    "RULE:SBX-B2B-R-A11Y-MOTION": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: @media (prefers-reduced-motion: reduce) anula transiciones (89-91); ningún estado depende de animación."
+    },
+    "RULE:SBX-B2B-R-AUTH-DENY-DEFAULT": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC"
+      ],
+      "reason": "CUMPLE: el login solo emite token de sesión; no concede permisos operativos. La autorización posterior depende de la sesión existente."
+    },
+    "RULE:SBX-B2B-R-AUTH-ENVELOPE": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-OAS"
+      ],
+      "reason": "CUMPLE: éxito {outcome, correlation_id, token}; fallo {outcome, correlation_id, error_code} (121-123); sin errores crudos."
+    },
+    "RULE:SBX-B2B-R-AUTH-FAIL-CLOSED": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE: RuntimeException -> 503 SERVICE_UNAVAILABLE sin token (80-83); token solo con AUTHENTICATED."
+    },
+    "RULE:SBX-B2B-R-AUTH-GENERIC": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC"
+      ],
+      "reason": "INCUMPLE (mitigación de tiempo): con la cuenta bloqueada o contraseña en blanco, AuthService responde sin calcular el hash, mientras un correo inexistente sí lo calcula. Ver F-AUTH-TIMING-LOCKED."
+    },
+    "RULE:SBX-B2B-R-AUTH-OUTCOMES": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC",
+        "EV-OAS"
+      ],
+      "reason": "INCUMPLE: RATE_LIMITED está declarado en el contrato pero nunca se emite; el bloqueo responde INVALID_CREDENTIALS. Ver F-RATE-LIMITED-UNREACHABLE."
+    },
+    "RULE:SBX-B2B-R-AUTH-REQUEST": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-LIB",
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE: POST con cuerpo JSON (lib 74); la contraseña no se recorta (page 61 solo recorta el correo); correlation_id lo genera el servidor (58)."
+    },
+    "RULE:SBX-B2B-R-AUTH-RUNTIME-PASSWORD": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LIB",
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE: la contraseña vive en estado React y en el cuerpo de la solicitud; no se persiste ni se registra."
+    },
+    "RULE:SBX-B2B-R-AUTH-SESSION-AFTER-AUTH": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC"
+      ],
+      "reason": "CUMPLE: la sesión se crea en AuthService.login solo con contraseña válida (75-81); el cliente no fija TTL."
+    },
+    "RULE:SBX-B2B-R-AUTH-TIMEOUT": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-LIB"
+      ],
+      "reason": "CUMPLE parcial: fallo técnico -> SERVICE_UNAVAILABLE y en cliente E-NETWORK; no hay política de timeout configurada (SBX-B2B-P-TIMEOUT no aparece en el código)."
+    },
+    "RULE:SBX-B2B-R-DESIGN-NO-HARDCODE": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-LIB",
+        "EV-PAGE"
+      ],
+      "reason": "INCUMPLE parcial: la página no tiene HEX, pero el objeto de tokens con HEX/px vive en lib (9-36) y la página usa px directos en el SVG (22). Ver F-HEX-IN-LIB-TOKENS."
+    },
+    "RULE:SBX-B2B-R-DESIGN-TOKENS": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LIB"
+      ],
+      "reason": "CUMPLE: estilos de la página consumen tokens (t.*)."
+    },
+    "RULE:SBX-B2B-R-ERROR-CODE": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-LIB"
+      ],
+      "reason": "CUMPLE: cada fallo lleva código canónico SBX-B2B-E-*; el cliente lo resuelve contra el catálogo."
+    },
+    "RULE:SBX-B2B-R-ERROR-SAFE-MESSAGE": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LIB",
+        "EV-LOTS",
+        "EV-AREA"
+      ],
+      "reason": "INCUMPLE: se muestran título, mensaje, acción sugerida y etiqueta, pero el CTA es texto y no acción (page 146). Además la regla se asignó solo al lote BACKEND. Ver F-ERROR-CTA-NOT-ACTIONABLE y F-ANALYSIS-SCREEN-RULES-TO-BACKEND."
+    },
+    "RULE:SBX-B2B-R-ERROR-TRACE": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL"
+      ],
+      "reason": "INCUMPLE: ningún error se registra del lado servidor con trace_code (formato SBX-YYYYMMDD-XXXXXXXX); solo se devuelve correlation_id. Ver F-ERROR-TRACE-MISSING."
+    },
+    "RULE:SBX-B2B-R-INT-EMAIL-LOGIN": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE: mismo POST /api/auth/login acepta email (42-44) y conserva username (45-54)."
+    },
+    "RULE:SBX-B2B-R-INT-RETURN": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-LIB"
+      ],
+      "reason": "CUMPLE: returnPath acepta solo rutas internas y por defecto /sbx-rem-list (91-95)."
+    },
+    "RULE:SBX-B2B-R-INT-ROUTE": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-REM",
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: /sbx-rem-list redirige a /sbx-b2b-login?next=/sbx-rem-list (rem-list 10)."
+    },
+    "RULE:SBX-B2B-R-INT-SESSION-STORE": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LIB"
+      ],
+      "reason": "CUMPLE: sessionStorage['sbx-session-token'] = token tras AUTHENTICATED (page 63)."
+    },
+    "RULE:SBX-B2B-R-PRIVACY-TELEMETRY": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE: no hay analytics ni logs con PII en el código del pedido."
+    },
+    "RULE:SBX-B2B-R-RATE-LIMIT": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-SVC",
+        "EV-CTRL"
+      ],
+      "reason": "CUMPLE la política reutilizada (5 fallos / 15 min), pero el resultado no se comunica como E-RATE. Ver F-RATE-LIMITED-UNREACHABLE."
+    },
+    "RULE:SBX-B2B-R-RESP-BREAKPOINTS": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE parcial: un solo punto de quiebre por contenedor (84); no hay variante tablet diferenciada."
+    },
+    "RULE:SBX-B2B-R-SESSION-CONCURRENCY": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-SVC"
+      ],
+      "reason": "CUMPLE: reutiliza la política existente; sin cambios en el pedido."
+    },
+    "RULE:SBX-B2B-R-SESSION-IDLE": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-SVC"
+      ],
+      "reason": "CUMPLE: reutiliza la sesión existente (sessionMinutes)."
+    },
+    "RULE:SBX-B2B-R-THEME-LIGHT": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: solo tema claro."
+    },
+    "RULE:SBX-B2B-R-UX-ACTIONS": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: acciones visibles; recuperación, términos, privacidad y contacto como enlaces sin destino (136, 160-163)."
+    },
+    "RULE:SBX-B2B-R-UX-PASSWORD-MANAGERS": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LOTS"
+      ],
+      "reason": "CUMPLE en la pantalla (autocomplete username/current-password, 108/123), aunque Análisis la asignó a BACKEND."
+    },
+    "RULE:SBX-B2B-R-UX-PASSWORD-VISIBILITY": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LOTS"
+      ],
+      "reason": "CUMPLE en la pantalla (127-131), aunque Análisis la asignó a BACKEND."
+    },
+    "RULE:SBX-B2B-R-UX-RECOVERY": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE: enlace junto a la contraseña, sin flujo dentro del formulario (135-139)."
+    },
+    "RULE:SBX-B2B-R-UX-SINGLE-FLIGHT": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-PAGE"
+      ],
+      "reason": "CUMPLE parcial: envíos duplicados ignorados (51) y botón deshabilitado (148), pero no muestra estado 'procesando': el texto sigue 'Acceder' (152, 155). Ver F-SINGLE-FLIGHT-NO-PROCESSING-LABEL."
+    }
+  },
+  "findings": [
+    {
+      "id": "F-ERROR-CTA-NOT-ACTIONABLE",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-ERROR-SAFE-MESSAGE",
+      "file": "frontend/src/app/sbx-b2b-login/page.tsx",
+      "function": "SbxB2bLoginPage",
+      "start_line": 146,
+      "end_line": 146,
+      "behavior": "El bloque de error muestra un CTA accionable (botón o enlace) con la etiqueta del catálogo y el código de referencia.",
+      "contract_refs": [
+        "frontend/src/app/sbx-b2b-login/page.tsx",
+        "frontend/src/lib/sbx-b2b-login.ts"
+      ],
+      "defect": "El CTA del catálogo (actionLabel) se pinta como texto dentro de un <p>; no es botón ni enlace.",
+      "root_cause": "La regla ERROR-SAFE-MESSAGE se asignó al lote BACKEND (ver F-ANALYSIS-SCREEN-RULES-TO-BACKEND); al FRONTEND nunca se le exigió y el examen FE solo verificó los textos.",
+      "impact": [
+        "El usuario no puede ejecutar la acción sugerida (Reintentar, Contactar soporte) desde el error."
+      ],
+      "correction": "Renderizar actionLabel como <button type=\"button\"> (Reintentar/Revisar datos: reenfocar o reenviar) o enlace (Contactar soporte), manteniendo el código de referencia al lado.",
+      "targets": [
+        "frontend/src/app/sbx-b2b-login/page.tsx"
+      ],
+      "positive": {
+        "description": "Con E-NETWORK, el error muestra un botón 'Reintentar' operable con teclado.",
+        "ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json#/0"
+      },
+      "negative": {
+        "description": "Con E-CREDENTIALS, ningún CTA queda como texto plano.",
+        "ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json#/1"
+      },
+      "command": "esbuild page.tsx (git show ae20aeb) + node frontend_reproducer.mjs",
+      "run_file": "pilot/runs/req-286/audit/evidence/frontend_repro.json",
+      "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+      "effect": "ninguno (solo lectura y reproducción local)",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-LIB",
+        "EV-FE-RUN"
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "Literal leído en el commit de cierre; coincide con la revisión manual del 17/11."
+    },
+    {
+      "id": "F-ANALYSIS-SCREEN-RULES-TO-BACKEND",
+      "kind": "GOVERNANCE_GAP",
+      "code": "RULE:SBX-B2B-R-ERROR-SAFE-MESSAGE",
+      "file": "analysis/a9/area_rules_v1.json",
+      "function": "section_areas",
+      "start_line": 3,
+      "end_line": 9,
+      "behavior": "Las secciones de la pantalla que se muestran al usuario (errors, fields) se asignan también a FRONTEND.",
+      "contract_refs": [
+        "analysis/a9/area_rules_v1.json",
+        "pilot/runs/req-286/lots.json"
+      ],
+      "defect": "A9 asigna las secciones 'fields' y 'errors' solo a BACKEND; por eso ERROR-SAFE-MESSAGE, UX-PASSWORD-VISIBILITY y UX-PASSWORD-MANAGERS quedaron en el lote BACKEND y fuera del FRONTEND.",
+      "root_cause": "La tabla de áreas de Análisis trata errores y campos como contrato de API, no como contenido de pantalla.",
+      "impact": [
+        "Reglas de pantalla sin exigencia ni examen en el lote que las implementa.",
+        "Aplica a cualquier proyecto que use A9."
+      ],
+      "correction": "section_areas: fields -> [BACKEND, FRONTEND]; errors -> [BACKEND, FRONTEND]; y regla de categoría UX/ERROR visible -> FRONTEND.",
+      "targets": [
+        "analysis/a9/area_rules_v1.json",
+        "analysis/a9/front_bindings.py"
+      ],
+      "positive": {
+        "description": "Re-análisis de req-286: ERROR-SAFE-MESSAGE aparece en el lote FRONTEND.",
+        "ref": "pilot/runs/req-286/audit/evidence/static_repro.json#/1"
+      },
+      "negative": {
+        "description": "Una regla solo de API (AUTH-ENVELOPE) no se duplica en FRONTEND.",
+        "ref": "pilot/runs/req-286/audit/evidence/static_repro.json#/2"
+      },
+      "command": "python3 static_repro.py ae20aeb29142b215233215dbd25523d4d10fc970",
+      "run_file": "pilot/runs/req-286/audit/evidence/static_repro.json",
+      "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+      "effect": "ninguno (solo lectura y reproducción local)",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-AREA",
+        "EV-LOTS",
+        "EV-ANA",
+        "EV-ST-RUN"
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "Mapeo literal en el archivo de reglas y requirement_ids del lote BACKEND en lots.json."
+    },
+    {
+      "id": "F-ERROR-TRACE-MISSING",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-ERROR-TRACE",
+      "file": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "function": "loginWithEmail",
+      "start_line": 80,
+      "end_line": 83,
+      "behavior": "Cada error se registra en servidor con trace_code SBX-YYYYMMDD-XXXXXXXX y correlation_id, con contexto redactado.",
+      "contract_refs": [
+        "pilot/runs/req-286/analysis.json",
+        "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java"
+      ],
+      "defect": "El fallo técnico devuelve 503 sin registrar ninguna ocurrencia; tampoco los 401. No existe trace_code en el código.",
+      "root_cause": "La regla quedó en BACKEND pero ningún examen la verificó y el lote no la implementó.",
+      "impact": [
+        "Soporte no puede correlacionar el código de referencia que ve el usuario con una ocurrencia registrada."
+      ],
+      "correction": "Registrar la ocurrencia (trace_code generado en servidor, correlation_id, outcome, sin email ni contraseña) antes de responder, y devolver trace_code como código de referencia.",
+      "targets": [
+        "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java"
+      ],
+      "positive": {
+        "description": "Un 503 deja una ocurrencia con trace_code y correlation_id.",
+        "ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/4"
+      },
+      "negative": {
+        "description": "La ocurrencia no contiene el correo ni la contraseña.",
+        "ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/1"
+      },
+      "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.auth.AuditReproducer (fuentes de git show ae20aeb)",
+      "run_file": "pilot/runs/req-286/audit/evidence/backend_repro.json",
+      "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+      "effect": "ninguno (solo lectura y reproducción local)",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC",
+        "EV-BE-RUN"
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "Ausencia verificada en el controlador y el servicio; sin logger ni almacén de ocurrencias."
+    },
+    {
+      "id": "F-AUTH-TIMING-LOCKED",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-AUTH-GENERIC",
+      "file": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+      "function": "login",
+      "start_line": 59,
+      "end_line": 61,
+      "behavior": "Correo inexistente, contraseña errónea y cuenta bloqueada son indistinguibles también en tiempo de respuesta.",
+      "contract_refs": [
+        "pilot/runs/req-286/analysis.json",
+        "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java"
+      ],
+      "defect": "Con la cuenta bloqueada, AuthService.login devuelve antes de calcular BCrypt; un correo inexistente sí lo calcula (AuthController 72). La diferencia de tiempo revela que el correo existe y está bloqueado. Lo mismo ocurre con contraseña solo de espacios (línea 51).",
+      "root_cause": "El controlador nuevo igualó el costo solo para el correo que no coincide; reutilizó AuthService sin revisar sus salidas tempranas.",
+      "impact": [
+        "Enumeración de la cuenta real durante el bloqueo (valor_config.timing_discrepancy_mitigation=REQUIRED)."
+      ],
+      "correction": "En loginWithEmail, calcular passwordEncoder.matches siempre que AuthService devuelva vacío sin haber hasheado, o mover la igualación de costo dentro de AuthService antes de cualquier return.",
+      "targets": [
+        "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java"
+      ],
+      "positive": {
+        "description": "Tiempos de respuesta comparables (misma magnitud) para correo inexistente y cuenta bloqueada.",
+        "ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/2"
+      },
+      "negative": {
+        "description": "Contraseña '   ' con el correo real tarda lo mismo que con un correo inexistente.",
+        "ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/3"
+      },
+      "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.auth.AuditReproducer (fuentes de git show ae20aeb)",
+      "run_file": "pilot/runs/req-286/audit/evidence/backend_repro.json",
+      "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+      "effect": "ninguno (solo lectura y reproducción local)",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-SVC",
+        "EV-CTRL",
+        "EV-ANA",
+        "EV-BE-RUN"
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "Medido en esta auditoría: cuenta bloqueada 0,067 ms frente a 85,9 ms con correo inexistente (promedio de 20)."
+    },
+    {
+      "id": "F-RATE-LIMITED-UNREACHABLE",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-AUTH-OUTCOMES",
+      "file": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "function": "loginWithEmail",
+      "start_line": 75,
+      "end_line": 79,
+      "behavior": "Con el bloqueo activo se responde RATE_LIMITED con SBX-B2B-E-RATE (429), como declaran el contrato y el catálogo.",
+      "contract_refs": [
+        "contracts/sbx-b2b-login.openapi.yaml",
+        "pilot/runs/req-286/analysis.json"
+      ],
+      "defect": "Cualquier respuesta vacía de AuthService (incluido el bloqueo) se traduce a INVALID_CREDENTIALS; RATE_LIMITED y E-RATE nunca se emiten.",
+      "root_cause": "AuthService.login devuelve Optional vacío sin distinguir la causa.",
+      "impact": [
+        "El usuario bloqueado recibe 'revisa tus datos' en vez de 'espera unos minutos'.",
+        "Código E-RATE muerto en contrato y catálogo."
+      ],
+      "correction": "Exponer desde AuthService un resultado tipado (LOCKED | INVALID | OK) y mapear LOCKED a 429 RATE_LIMITED/SBX-B2B-E-RATE, decidiendo con el owner cómo conciliarlo con AUTH-GENERIC.",
+      "targets": [
+        "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java"
+      ],
+      "positive": {
+        "description": "Tras 5 fallos, la sexta solicitud recibe 429 RATE_LIMITED.",
+        "ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/0"
+      },
+      "negative": {
+        "description": "Un correo inexistente nunca recibe RATE_LIMITED.",
+        "ref": "pilot/runs/req-286/audit/evidence/backend_repro.json#/1"
+      },
+      "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.auth.AuditReproducer (fuentes de git show ae20aeb)",
+      "run_file": "pilot/runs/req-286/audit/evidence/backend_repro.json",
+      "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+      "effect": "ninguno (solo lectura y reproducción local)",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-SVC",
+        "EV-OAS",
+        "EV-BE-RUN"
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "Mapeo literal en el controlador; el contrato declara RATE_LIMITED."
+    },
+    {
+      "id": "F-HEX-IN-LIB-TOKENS",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-DESIGN-NO-HARDCODE",
+      "file": "frontend/src/lib/sbx-b2b-login.ts",
+      "function": "tokens",
+      "start_line": 9,
+      "end_line": 19,
+      "behavior": "Los valores visuales vienen del sistema de diseño; pantallas y componentes no guardan HEX.",
+      "contract_refs": [
+        "frontend/src/lib/sbx-b2b-login.ts",
+        "pilot/runs/req-286/analysis.json"
+      ],
+      "defect": "Los 10 colores HEX y las medidas viven en un objeto local de lib/, no en un paquete de tokens registrado.",
+      "root_cause": "El sandbox no tiene paquete de diseño; el lote creó tokens locales.",
+      "impact": [
+        "Valores visuales no gobernados; cambian por pantalla."
+      ],
+      "correction": "Mover el objeto a un módulo de tokens compartido (o al contrato visual) y consumirlo por nombre.",
+      "targets": [
+        "frontend/src/lib/sbx-b2b-login.ts"
+      ],
+      "positive": {
+        "description": "La página solo referencia nombres de token.",
+        "ref": "pilot/runs/req-286/audit/evidence/static_repro.json#/3"
+      },
+      "negative": {
+        "description": "Un HEX nuevo en la pantalla hace fallar un chequeo de estilo.",
+        "ref": "pilot/runs/req-286/audit/evidence/static_repro.json#/4"
+      },
+      "command": "python3 static_repro.py ae20aeb29142b215233215dbd25523d4d10fc970",
+      "run_file": "pilot/runs/req-286/audit/evidence/static_repro.json",
+      "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+      "effect": "ninguno (solo lectura y reproducción local)",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-LIB",
+        "EV-PAGE",
+        "EV-ST-RUN"
+      ],
+      "confidence": "MEDIUM",
+      "confidence_reason": "Literal leído; el alcance de 'sistema de diseño' en el sandbox lo decide el owner."
+    },
+    {
+      "id": "F-SINGLE-FLIGHT-NO-PROCESSING-LABEL",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-B2B-R-UX-SINGLE-FLIGHT",
+      "file": "frontend/src/app/sbx-b2b-login/page.tsx",
+      "function": "SbxB2bLoginPage",
+      "start_line": 154,
+      "end_line": 156,
+      "behavior": "Mientras la solicitud está en vuelo, el CTA y el anuncio para lectores de pantalla indican 'procesando'.",
+      "contract_refs": [
+        "frontend/src/app/sbx-b2b-login/page.tsx",
+        "pilot/runs/req-286/analysis.json"
+      ],
+      "defect": "El botón se deshabilita pero conserva el texto 'Acceder', y la región aria-live anuncia 'Acceder' en lugar de un estado de proceso.",
+      "root_cause": "Texto del estado pending copiado del CTA.",
+      "impact": [
+        "Quien usa lector de pantalla no sabe que la solicitud está en curso."
+      ],
+      "correction": "Con pending: texto del botón 'Ingresando…' y aria-live 'Validando tus datos'.",
+      "targets": [
+        "frontend/src/app/sbx-b2b-login/page.tsx"
+      ],
+      "positive": {
+        "description": "Con pending=true el botón muestra el texto de proceso.",
+        "ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json#/2"
+      },
+      "negative": {
+        "description": "Sin pending, el botón vuelve a 'Acceder'.",
+        "ref": "pilot/runs/req-286/audit/evidence/frontend_repro.json#/3"
+      },
+      "command": "esbuild page.tsx (git show ae20aeb) + node frontend_reproducer.mjs",
+      "run_file": "pilot/runs/req-286/audit/evidence/frontend_repro.json",
+      "consumer": "pantalla /sbx-b2b-login y POST /api/auth/login",
+      "effect": "ninguno (solo lectura y reproducción local)",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-PAGE",
+        "EV-FE-RUN"
+      ],
+      "confidence": "MEDIUM",
+      "confidence_reason": "Literal leído; la redacción exacta del estado no está en el contrato de pantalla."
+    }
+  ],
+  "checklist": [
+    {
+      "ekb_code": "LF-PE-STEP70-RUN-CLOSED-EKB-ENFORCEMENT-OPEN-20261031-005",
+      "applies": true,
+      "reason": "Los exámenes del pedido pasaron (PASS) pero 15 reglas no tienen verificación trazada: un PASS no sustituye cubrir cada regla.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-LOTS",
+        "EV-PAGE",
+        "EV-CTRL"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    },
+    {
+      "ekb_code": "IG-M1013-REPOSITORY-REPAIR-POLICY-054",
+      "applies": true,
+      "reason": "El gate de cada lote debe corresponder al trabajo del lote: reglas de pantalla quedaron en el gate BACKEND.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-AREA",
+        "EV-LOTS"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    },
+    {
+      "ekb_code": "LF-PE10A-ASSERTION-CONTRACT-PASSWHEN-NULL-READY-20261027-001",
+      "applies": true,
+      "reason": "Campos obligatorios del contrato: RATE_LIMITED y error_code E-RATE declarados pero sin productor.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-OAS",
+        "EV-CTRL"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    },
+    {
+      "ekb_code": "LF-PROMO-INDEPENDENT-JUDGE-OWNER-20261114-001",
+      "applies": true,
+      "reason": "Esta auditoría no concede promoción: promotion_authorized=false; autoridad del owner separada.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-LOTS"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    }
+  ],
+  "limitations": [
+    "Reproductores locales sobre el código del commit de cierre ae20aeb (Java sin Spring Boot levantado; pantalla en jsdom, no en navegador real).",
+    "Tiempos medidos en el equipo del auditor; sirven para comparar rutas, no como latencia de producción.",
+    "Códigos EKB del checklist validados en vivo por el CI (audit-stage.yml), no por el auditor.",
+    "Modo SHADOW: el informe no bloquea el pedido ni autoriza efectos."
+  ],
+  "unknown_scope": [
+    "Ejecución en navegador real",
+    "Backend desplegado con Spring Boot"
+  ]
+}
