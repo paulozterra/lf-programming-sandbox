@@ -1,4 +1,6 @@
 name: T9.1 request route failure watchdog
+# T52: the source run id in the title lets measure_watchdog.py count arrival paths.
+run-name: "T9.1 watchdog ${{ github.event_name }} source=${{ github.event.workflow_run.id || inputs.source_run_id || 'sweep' }}"
 on:
   workflow_run:
     workflows:
