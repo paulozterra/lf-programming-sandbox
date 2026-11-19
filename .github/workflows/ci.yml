@@ -748,6 +748,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/p4/pilot/config/projects"
+          cp pilot/config/active_project.json "$RUNNER_TEMP/p4/pilot/config/"
+          cp pilot/config/projects/sandbox.json "$RUNNER_TEMP/p4/pilot/config/projects/"
           mkdir -p "$RUNNER_TEMP/p4/pilot/runs/p4-prioridad"
           cp pilot/runs/p4-prioridad/request.md pilot/runs/p4-prioridad/analysis.json pilot/runs/p4-prioridad/planning_fixture.json "$RUNNER_TEMP/p4/pilot/runs/p4-prioridad/"
           python3 -m pilot.workflow_entrypoint pilot/orchestrator/intake.py --root "$RUNNER_TEMP/p4" --request-id p4-prioridad
@@ -775,6 +778,9 @@ jobs:
         run: |
           set -euo pipefail
           for name in sample-three-area-notes sample-reminder-note; do
+            mkdir -p "$RUNNER_TEMP/cp33/pilot/config/projects"
+            cp pilot/config/active_project.json "$RUNNER_TEMP/cp33/pilot/config/"
+            cp pilot/config/projects/sandbox.json "$RUNNER_TEMP/cp33/pilot/config/projects/"
             mkdir -p "$RUNNER_TEMP/cp33/pilot/runs/$name"
             cp "pilot/runs/$name/request.md" "pilot/runs/$name/analysis.json" "pilot/runs/$name/planning_fixture.json" "$RUNNER_TEMP/cp33/pilot/runs/$name/"
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/intake.py --root "$RUNNER_TEMP/cp33" --request-id "$name"
