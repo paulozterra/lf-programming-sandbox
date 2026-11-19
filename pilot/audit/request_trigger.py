@@ -72,7 +72,6 @@ def candidates(config: dict, plans, root: Path = ROOT, *, repository: str = "", 
     """Closed requests whose close is at or after since_commit."""
     import chain_lots as cl
     since = config["audit"].get("since_commit")
-    history = cl.first_parent_merges()
     out = []
     for req, lots, _state, bindings in plans:
         # Integrated lots alone do not prove the issue was closed by T9.
@@ -80,7 +79,7 @@ def candidates(config: dict, plans, root: Path = ROOT, *, repository: str = "", 
             continue
         ids = {lot["id"] for lot in lots.get("lots", [])}
         try:
-            done = cl.completed_lots(lots, bindings, history)
+            done = cl.completed_lots(lots, bindings, cl.first_parent_merges(req, root=root))
         except (SystemExit, ValueError, RuntimeError) as exc:  # one bad request never blocks the rest
             print(json.dumps({"event": "audit_trigger_skip", "request": req, "reason": str(exc)[:120]}),
                   file=sys.stderr)
