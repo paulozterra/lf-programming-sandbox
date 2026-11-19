@@ -82,6 +82,63 @@ def test_historical_run_437834_classified_only_with_original_proof_and_visible_t
             assert inspect(lambda *_: "", lambda *_: {}, REPO, root, EVENT) is None
 
 
+def test_inspect_equivalence_to_main_with_sandbox_project(tmp_path):
+    """Compare T54 inspection against main's pre-config root-relative storage.
+
+    Main's issue_for_task checks the same registration and unique proposal
+    envelope. Keep the legacy resolver independent of project_config so a
+    changed storage root cannot make both sides agree by accident.
+    """
+    digest = fixture(tmp_path)
+    def main_issue_for_task(root, task):
+        record = root / "pilot/worker_v08/native_tasks" / (task + ".json")
+        assert record.is_file() and not record.is_symlink()
+        matches = []
+        for file in sorted((root / "pilot/runs").glob(
+                "req-*/proposal_requests/" + task + ".proposal-request.json")):
+            folder = file.parent.parent
+            meta = json.loads((folder / "request_meta.json").read_text())
+            envelope = json.loads(file.read_text())
+            if (meta["issue"] == int(folder.name[4:])
+                    and envelope["branch"] == "lf/native-proposal/" + task):
+                matches.append(meta["issue"])
+        if len(matches) != 1:
+            raise ValueError("ISSUE_FOR_TASK_7")
+        return matches[0]
+
+    def main_storage_path(kind, *, root):
+        paths = {"registrations_root": "pilot/worker_v08/native_tasks",
+                 "requests_root": "pilot/runs"}
+        return root / paths[kind]
+
+    proof = {"task_id": TASK, "run_id": RUN, "attempt": 1,
+             "task_pack_sha256": digest}
+    with patch.object(recovery, "_source_record", return_value=OLD), \\
+         patch.object(recovery, "_artifact_payload", return_value=(proof, VISIBLE)):
+        migrated = recovery.inspect(lambda *_: "", lambda *_: {}, REPO, tmp_path, EVENT)
+        with patch.object(recovery, "issue_for_task", side_effect=main_issue_for_task), \\
+             patch.object(recovery, "storage_path", side_effect=main_storage_path):
+            baseline = recovery.inspect(lambda *_: "", lambda *_: {}, REPO, tmp_path, EVENT)
+    assert migrated == baseline == evidence(digest)
+
+
+def test_inspect_missing_project_config_is_visible(tmp_path):
+    # Populate a plausible registration and request, but deliberately omit
+    # the project selector and definition. Never collapse this into None.
+    record = tmp_path / "pilot/worker_v08/native_tasks" / (TASK + ".json")
+    record.parent.mkdir(parents=True)
+    record.write_bytes(canonical(OLD))
+    req = tmp_path / "pilot/runs/req-901/proposal_requests"
+    req.mkdir(parents=True)
+    (req.parent / "request_meta.json").write_text('{"issue":901,"author":"origin"}')
+    (req / (TASK + ".proposal-request.json")).write_text(
+        json.dumps({"branch": "lf/native-proposal/" + TASK,
+                    "task_pack_sha256": "0" * 64}))
+    import pytest
+    with pytest.raises(ProjectConfigError, match="PROJECT_CONFIG_INVALID"):
+        recovery.inspect(lambda *_: "", lambda *_: {}, REPO, tmp_path, EVENT)
+
+
 def test_route_defect_issue_comment_is_single_and_excludes_spent_attempt(tmp_path):
     fixture(tmp_path)
     comments = []
