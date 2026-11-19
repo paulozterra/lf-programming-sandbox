@@ -103,6 +103,8 @@ def inspect(run, api, repo: str, root: Path, event: dict):
     task, sha = identity
     try:
         issue_for_task(root, task)
+    except ProjectConfigError:
+        raise
     except ValueError:
         return None
     record = storage_path("registrations_root", root=root) / (task + ".json")
