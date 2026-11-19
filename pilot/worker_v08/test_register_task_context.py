@@ -282,6 +282,11 @@ class PinnedSource(unittest.TestCase):
     def test_native_fail_closed_paths_sha_historic_and_existing(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            import shutil
+            target = root / "pilot/config"
+            (target / "projects").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / "pilot/config/active_project.json", target / "active_project.json")
+            shutil.copy2(ROOT / "pilot/config/projects/sandbox.json", target / "projects/sandbox.json")
             safe = root / "pilot/worker_v08/native_tasks/newtask.json"
             spec = {"max_attempts": 1, "base_head_sha": "a" * 40}
             with self.assertRaisesRegex(mod.ContextBlocked, "NATIVE_TASK_PATH_INVALID"):
