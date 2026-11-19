@@ -83,3 +83,24 @@ def test_missing_rule_task_blocks():
 def test_wrong_draft_schema_blocks(tmp_path):
     with pytest.raises(rs.ScaffoldError, match="SCAFFOLD_DRAFT_SCHEMA"):
         rs.assemble({"schema_version": "X"}, {}, tmp_path)
+
+
+def test_crlf_checkout_is_named_not_reported_as_drift(tmp_path):
+    import subprocess
+    r = tmp_path / "repo"
+    r.mkdir()
+    (r / "a.txt").write_bytes(b"uno\ndos\n")
+    for c in (["init", "-q"], ["add", "."], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "x"]):
+        subprocess.run(["git", "-C", str(r), *c], check=True, capture_output=True)
+    sha = subprocess.run(["git", "-C", str(r), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    (r / "a.txt").write_bytes(b"uno\r\ndos\r\n")
+    draft = {"schema_version": rs.DRAFT_SCHEMA, "evidence": [], "tasks": {},
+             "findings": [{"id": "F", "file": "a.txt", "start_line": 1, "end_line": 1}]}
+    skill = tmp_path / "skill/scripts"
+    skill.mkdir(parents=True)
+    (skill / "audit_v2.py").write_text("STEP_ORDERS=[]\ndef flow_verdict(r): pass\ndef lot_coverage(t): pass\n"
+                                       "def sample_metrics(r): pass\n")
+    sys.modules.pop("audit_v2", None)
+    with pytest.raises(rs.ScaffoldError, match="SCAFFOLD_CHECKOUT_EOL_CONVERTED:a.txt"):
+        rs.assemble(draft, {"base_commit": sha, "acceptance_criteria": []}, skill.parent, root=r)
+    sys.modules.pop("audit_v2", None)

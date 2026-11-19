@@ -224,3 +224,4 @@
 | CHG-0230 | ADDITIVE | T54 fase 2: rutas de almacenamiento configuradas con equivalencia de sandbox |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/351 |
 | CHG-0231 | EDITORIAL | A7: la skill fijada se extrae byte a byte del almacén de git (inmune a core.autocrlf, eol, filtros y atributos del entorno) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/353 |
 | CHG-0232 | EDITORIAL | A8: skill_pin funciona en Windows (borra la copia previa aunque git deje archivos de solo lectura) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/354 |
+| CHG-0233 | EDITORIAL | A9: auditar desde Windows — preparación LF en AUDITOR.md y error explícito SCAFFOLD_CHECKOUT_EOL_CONVERTED |  | paulozterra | PENDING |
