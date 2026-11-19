@@ -343,8 +343,8 @@ def first_parent_merges(request: str, *, root: Path = ROOT,
         max_commits = int(raw)
     if type(max_commits) is not int or not 1 <= max_commits <= 10000:
         deny("CHAIN_HISTORY_INCOMPLETE")
-    paths = [f"{storage(root=root)['requests_root']}/{request}/chain_plan.json",
-             f"{storage(root=root)['chain_plans_root']}/{request}.json"]
+    paths = [f"{storage()['requests_root']}/{request}/chain_plan.json",
+             f"{storage()['chain_plans_root']}/{request}.json"]
     origins = []
     for path in paths:
         if not (root / path).is_file():
@@ -1523,7 +1523,7 @@ def verify_new_plan(request: str, merge_pr: int, sha: str) -> None:
                                 pr.get("head", {}).get("ref", ""))):
         deny("EXAM_PLAN_PROVENANCE_INVALID")
     changed = set(run("git", "diff", "--name-only", sha + "^1", sha).splitlines())
-    if f"{storage(root=root)['requests_root']}/{request}/chain_plan.json" not in changed:
+    if f"{storage()['requests_root']}/{request}/chain_plan.json" not in changed:
         deny("EXAM_PLAN_PROVENANCE_INVALID")
     metadata = json.loads((storage_path("requests_root") / request /
                            "request_meta.json").read_text("utf-8"))
