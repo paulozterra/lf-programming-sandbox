@@ -406,10 +406,10 @@ def completed_lots(lots: dict, bindings: dict, history: list[tuple]) -> dict:
         if not set(lot["depends_on"]).issubset(result):
             deny("OUT_OF_ORDER_MERGE")
         for path in receipt["expected_files"]:
-            # Keep file location, never leak git stderr into the route result.
-            exists = subprocess.run(["git", "cat-file", "-e", sha + ":" + path],
-                                    cwd=ROOT, capture_output=True, timeout=120)
-            if exists.returncode:
+            # Preserve the injectable git seam for hermetic tests.
+            try:
+                run("git", "cat-file", "-e", sha + ":" + path)
+            except (ChainBlocked, OSError, ValueError):
                 deny("CHAIN_EXPECTED_FILE_MISSING:" + path)
         result[lot_id] = receipt
     return result
