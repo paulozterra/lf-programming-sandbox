@@ -77,3 +77,80 @@ def request_state(request: str, api, *, root: Path = ROOT,
 def require_open(request: str, api, *, root: Path = ROOT) -> None:
     if request_state(request, api, root=root) != OPEN:
         raise RequestStateError("REQUEST_CLOSED")
+
+
+def request_for_task(task: str, *, root: Path = ROOT) -> str:
+    """Resolve a task against unique, trusted main chain plans; never proposal data.
+
+    Both historical and per-request plans are supported. Duplicate copies for
+    the same request must match byte-for-byte. Zero or multiple owners deny.
+    """
+    if not isinstance(task, str) or not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task):
+        unresolved()
+    registration = root / "pilot/worker_v08/native_tasks" / (task + ".json")
+    if registration.is_symlink() or not registration.is_file():
+        unresolved()
+    sources: dict[str, Path] = {}
+    try:
+        folders = [
+            (p.stem, p) for p in sorted((root / "pilot/orchestrator/chain_plans").glob("*.json"))
+        ] + [
+            (p.parent.name, p) for p in sorted((root / "pilot/runs").glob("*/chain_plan.json"))
+        ]
+        for request, path in folders:
+            if (path.is_symlink() or path.parent.is_symlink()
+                    or not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", request)):
+                unresolved()
+            if request in sources:
+                if sources[request].read_bytes() != path.read_bytes():
+                    unresolved()
+                continue
+            sources[request] = path
+        owners = []
+        for request, path in sources.items():
+            obj = json.loads(path.read_text(encoding="utf-8"))
+            bindings = obj["bindings"]
+            if (not isinstance(obj, dict) or obj.get("request_id") != request
+                    or not isinstance(bindings, list)):
+                unresolved()
+            hits = [entry for entry in bindings if isinstance(entry, dict)
+                    and entry.get("task_name") == task]
+            if len(hits) > 1:
+                unresolved()
+            if hits:
+                entry = hits[0]
+                if (not isinstance(entry.get("lot_id"), str)
+                        or not isinstance(entry.get("template_path"), str)
+                        or not entry["template_path"].startswith("pilot/runs/" + request + "/")):
+                    unresolved()
+                owners.append(request)
+        if len(owners) != 1:
+            unresolved()
+        return owners[0]
+    except (OSError, ValueError, TypeError, KeyError, UnicodeError) as exc:
+        raise RequestStateError(CODE) from exc
+
+
+def github_issue_api(path: str) -> dict:
+    """Read GitHub state with the trusted job token, never an input-provided token."""
+    import os
+    import subprocess
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    if not token or not repo or not re.fullmatch(r"[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+", repo):
+        unresolved()
+    result = subprocess.run(
+        ["gh", "api", "repos/" + repo + "/" + path],
+        env={**os.environ, "GH_TOKEN": token},
+        capture_output=True, text=True, timeout=30, check=True)
+    response = json.loads(result.stdout)
+    if not isinstance(response, dict):
+        unresolved()
+    return response
+
+
+def require_task_open(task: str, *, root: Path = ROOT, api=None) -> str:
+    """Typed fail-closed gate shared by Worker and CP3.5."""
+    request = request_for_task(task, root=root)
+    require_open(request, api or github_issue_api, root=root)
+    return request

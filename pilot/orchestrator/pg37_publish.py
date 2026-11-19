@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse,json,os
 from pathlib import Path
 import chain_lots
+from pilot.orchestrator.request_lifecycle import request_state, RequestStateError, OPEN
 from pg37_evidence import generate,render,canonical,digest
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -14,6 +15,14 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
  history=chain_lots.first_parent_merges()
  results=[]
  for request,lots,state,bindings in chain_lots.plans():
+  try:
+   if request_state(request,chain_lots.api,root=root)!=OPEN:
+    results.append({"request":request,"status":"REQUEST_CLOSED"});continue
+  except RequestStateError:
+   results.append({"request":request,"status":"REQUEST_STATE_UNRESOLVED"});continue
+  existing=root/"pilot"/"runs"/request/"H_REPORT.md"
+  if existing.exists() or existing.is_symlink():
+   results.append({"request":request,"status":"REPORT_ALREADY_PRESENT"});continue
   completed=chain_lots.completed_lots(lots,bindings,history)
   if not completed:continue
   records=[]
@@ -44,6 +53,9 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
    results.append({"request":request,"status":"REPORT_DRAFT_ALREADY_PRESENT"});continue
   report=render(request,records)
   def prepare(work):
+   # A request may close during worktree setup; deny before writing evidence.
+   if request_state(request,chain_lots.api,root=root)!=OPEN:
+    raise RequestStateError("REQUEST_CLOSED")
    paths=[]
    for row in records:
     target=work/"pilot"/"runs"/request/"evidence"/(row["lot_id"]+"-"+row["merge_sha"][:12]+".json")
@@ -55,11 +67,20 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
    target.write_text(report,encoding="utf-8")
    paths.append(target.relative_to(work).as_posix())
    create=publisher or chain_lots.draft
+   # Last observation before any PR/publication side effect.
+   if request_state(request,chain_lots.api,root=root)!=OPEN:
+    raise RequestStateError("REQUEST_CLOSED")
    info=create(work,branch,request,paths,
      f"CP3.7 pinned source-only evidence for verified integration merges at {head}; no production authority",
      f"H_REPORT {request} PG06-PG14")
    return {"request":request,"status":"EVIDENCE_DRAFT_CREATED","lot_count":len(records),
            "all_candidates_complete":all(row["complete"] for row in records),**info}
+  # Recheck immediately before the worktree publishes a draft evidence PR.
+  try:
+   if request_state(request,chain_lots.api,root=root)!=OPEN:
+    results.append({"request":request,"status":"REQUEST_CLOSED"});continue
+  except RequestStateError:
+   results.append({"request":request,"status":"REQUEST_STATE_UNRESOLVED"});continue
   results.append(chain_lots.worktree(head,branch,prepare))
  return results or [{"status":"NO_MERGED_LOTS_FOR_REPORT"}]
 

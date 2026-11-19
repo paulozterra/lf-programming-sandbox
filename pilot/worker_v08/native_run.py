@@ -16,6 +16,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
+# Direct script entrypoints and isolated dry-runs must resolve trusted package imports.
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "vendor/programming-agent/src"))
 
 from programming_agent_runner.hashutil import canonical_json_bytes, source_snapshot_sha256, strict_json_loads
@@ -28,6 +30,7 @@ import programming_agent_runner.verified_worker as verified_module
 from native_proposal_client import NativeProposalClient, read_proposal_envelope
 from lot_preflight import check_task, LotBlocked
 from holdout_age import holdout_ref
+from pilot.orchestrator.request_lifecycle import require_task_open, RequestStateError
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
@@ -91,6 +94,7 @@ def registration_holdout_ref(control: Path, task: str) -> str | None:
 
 
 def preflight(control: Path, task: str, output: Path) -> None:
+    require_task_open(task, root=control)
     obj, expected = load_registration(control, task)
     spec = parse_worker_task(obj)
     # Legacy ex6/ex7/ex8 registrations are byte-identical and predated CP1.3.
@@ -165,8 +169,8 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     # Check the proposal using the vendored schema/scope before consuming an attempt.
     proposal = parse_patch_proposal(submitted["proposal"], spec)
     inspect_patch(proposal, spec)
-    # No preflight, missing oracle, invalid proposal, or scope failure is charged.
-    # A later Worker failure does consume this attempt.
+    # The trusted lifecycle step authorizes this job immediately before execute.
+    # Do not read GitHub state here: acceptance commands run in this token-free step.
     _write(public / "attempt-proof.json", _proof(submitted, task, attempt, run_id))
     # T7 duplicate detection is a trusted pre-acceptance gate, after the
     # attempt proof has been emitted: a rejection is a spent FAIL, never PASS.
@@ -437,6 +441,10 @@ def main() -> None:
                            a.task, a.attempt, a.run_id,
                            route_retry=a.route_retry, proposal_sha=a.proposal_sha):
                 raise ValueError("NATIVE_VERIFIED_NONPASS")
+    except RequestStateError as exc:
+        # Machine-readable lifecycle refusal; no attempt proof or feedback.
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1)
     except Exception:
         # No exception messages: they may contain untrusted stdout or secrets.
         print("NATIVE_RUN_BLOCKED_OR_FAILED", file=sys.stderr)
