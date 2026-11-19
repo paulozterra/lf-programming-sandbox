@@ -19,6 +19,11 @@ FIXTURE = ROOT / "pilot/runs" / NAME
 
 
 def setup(tmp_path):
+    config_source = ROOT / "pilot/config"
+    config_target = tmp_path / "pilot/config"
+    (config_target / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
+    shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
     folder = tmp_path / "pilot/runs" / NAME
     folder.mkdir(parents=True)
     for name in ("request.md", "analysis.json"):
