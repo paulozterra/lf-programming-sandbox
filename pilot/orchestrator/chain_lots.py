@@ -384,7 +384,7 @@ def first_parent_merges(request: str, *, root: Path = ROOT,
             continue
         pr = api(f"pulls/{int(match.group(1))}")
         if pr.get("head", {}).get("ref", "").startswith("lf/native-integration/"):
-            parents = run("git", "rev-list", "--parents", "-n", "1", sha).split()
+            parents = run("git", "rev-list", "--parents", "-n", "1", sha, cwd=root).split()
             if len(parents) != 3 or parents[0] != sha:
                 deny("MERGE_PARENT_INVALID")
             changes = set(run("git", "diff", "--name-only",
