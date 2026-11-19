@@ -1,0 +1,46 @@
+[
+ {
+  "case": "LIST_without_session",
+  "response": "401 {error=SBX-E-GENERIC}"
+ },
+ {
+  "case": "CREATE_without_session",
+  "response": "201 ReminderResponse[id=1, text=anonimo, at=09:00:00, priority=HIGH]"
+ },
+ {
+  "case": "GET_BY_ID_without_session",
+  "response": "200 ReminderResponse[id=1, text=anonimo, at=09:00:00, priority=HIGH]"
+ },
+ {
+  "case": "SNOOZE_without_session",
+  "response": "200 ReminderResponse[id=1, text=anonimo, at=09:05:00, priority=HIGH]"
+ },
+ {
+  "case": "LIST_with_session_includes_anonymous",
+  "response": "200 [ReminderResponse[id=1, text=anonimo, at=09:05:00, priority=HIGH]]"
+ },
+ {
+  "case": "DELETE_without_session",
+  "response": "204 null"
+ },
+ {
+  "case": "FILTER_HIGH_with_session",
+  "response": "200 [ReminderResponse[id=2, text=alta, at=10:00:00, priority=HIGH]]"
+ },
+ {
+  "case": "FILTER_invalid_with_session",
+  "response": "400 null"
+ },
+ {
+  "case": "SESSION_at_29_min",
+  "status": "200"
+ },
+ {
+  "case": "SESSION_at_30_min",
+  "response": "401 {error=SBX-E-GENERIC}"
+ },
+ {
+  "case": "ERR_bodies",
+  "list401|get404|create400": "401 {error=SBX-E-GENERIC} | 404 null | 400 null"
+ }
+]

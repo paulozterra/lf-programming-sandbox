@@ -1,0 +1,388 @@
+{
+  "schema_version": "LF_ROUTE_AUDIT_DRAFT_V1",
+  "evidence": [
+    {
+      "id": "EV-CTRL",
+      "ref": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Controlador de recordatorios leído línea a línea en el commit de cierre."
+    },
+    {
+      "id": "EV-AUTH",
+      "ref": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Servicio de sesión existente (expiración) leído."
+    },
+    {
+      "id": "EV-OAS",
+      "ref": "contracts/sbx-rem-list.openapi.yaml",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Contrato OpenAPI de la lista leído."
+    },
+    {
+      "id": "EV-LIB",
+      "ref": "frontend/src/lib/sbx-rem-list.ts",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Cliente de la lista (token y 401) leído."
+    },
+    {
+      "id": "EV-LOTS",
+      "ref": "pilot/runs/req-186/lots.json",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Lotes del pedido con requirement_ids."
+    },
+    {
+      "id": "EV-ANA",
+      "ref": "pilot/runs/req-186/analysis.json",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Análisis del pedido: requisitos y frentes."
+    },
+    {
+      "id": "EV-BE-RUN",
+      "ref": "pilot/runs/req-186/audit/evidence/backend_repro.json",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "claim": "Salida del reproductor Java ejecutado en esta auditoría contra el commit de cierre."
+    },
+    {
+      "id": "EV-ST-RUN",
+      "ref": "pilot/runs/req-186/audit/evidence/lots_repro.json",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "claim": "Salida del reproductor de lotes ejecutado en esta auditoría."
+    },
+    {
+      "id": "EV-BE-SRC",
+      "ref": "pilot/runs/req-186/audit/evidence/AuditReproducer186.java",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Código del reproductor backend."
+    },
+    {
+      "id": "EV-ST-SRC",
+      "ref": "pilot/runs/req-186/audit/evidence/lots_repro.py",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "claim": "Código del reproductor de lotes."
+    }
+  ],
+  "cohort_ref": "pilot/runs/req-186/audit/cohort_sample.json#/rows",
+  "tasks": {
+    "RULE:SBX-R-ERR": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-AUTH",
+        "EV-BE-RUN",
+        "EV-ST-RUN"
+      ],
+      "reason": "INCUMPLE parcial: la sesión expira a los 30 minutos (medido: 200 a los 29, 401 a los 30), pero los fallos no son un error genérico indistinguible: 401 devuelve {error: SBX-E-GENERIC} y 400/404 cuerpo vacío. Además el requisito backend no llegó a ningún lote. Ver F-ERR-NOT-GENERIC y F-ANALYSIS-REQUIREMENTS-WITHOUT-LOT."
+    },
+    "RULE:SBX-R-LOG": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-AUTH",
+        "EV-ST-RUN"
+      ],
+      "reason": "CUMPLE por ausencia: no hay logger ni impresión en el servicio; pero el requisito no se asignó a ningún lote ni se examinó. Ver F-ANALYSIS-REQUIREMENTS-WITHOUT-LOT."
+    },
+    "RULE:SBX-R-PRIORITY-FILTER": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-OAS",
+        "EV-BE-RUN"
+      ],
+      "reason": "CUMPLE parcial: HIGH/MEDIUM/LOW y 'todas' funcionan (medido), y un valor distinto da 400, pero sin el cuerpo GenericError que exige el contrato. Ver F-FILTER-400-BODY."
+    },
+    "RULE:SBX-R-SESSION-REQUIRED": {
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-LIB",
+        "EV-BE-RUN"
+      ],
+      "reason": "INCUMPLE: la lista exige sesión, pero sin sesión se puede leer un recordatorio por id, crearlo, posponerlo y borrarlo; y la lista no es 'su' lista: incluye lo creado por anónimos. Ver F-SESSION-ONLY-ON-LIST y F-LIST-NOT-SCOPED-TO-USER."
+    }
+  },
+  "findings": [
+    {
+      "id": "F-SESSION-ONLY-ON-LIST",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-R-SESSION-REQUIRED",
+      "file": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "function": "get",
+      "start_line": 160,
+      "end_line": 172,
+      "behavior": "Ningún recordatorio de la lista se puede leer ni modificar sin sesión válida: sin sesión, 401 con el error genérico.",
+      "contract_refs": [
+        "contracts/sbx-rem-list.openapi.yaml",
+        "pilot/runs/req-186/analysis.json"
+      ],
+      "defect": "Solo GET /api/reminders valida la sesión. Sin sesión: GET /api/reminders/{id} devuelve el recordatorio (200), POST crea (201), snooze pospone (200) y DELETE borra (204). Tampoco /api/reminders/stats ni PUT validan sesión.",
+      "root_cause": "El lote BACKEND recibió solo REQ-SBX-R-SESSION-REQUIRED aplicado al endpoint de listado del contrato; el resto de endpoints del recurso quedó fuera del contrato del pedido.",
+      "impact": [
+        "Cualquiera sin sesión lee, altera o borra los recordatorios que la pantalla protege.",
+        "El 401 de la lista da una falsa sensación de protección."
+      ],
+      "correction": "Validar la sesión en todos los endpoints de /api/reminders (filtro o interceptor común) y responder 401 {error: SBX-E-GENERIC}.",
+      "targets": [
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+      ],
+      "positive": {
+        "description": "Sin sesión, GET /api/reminders/1 responde 401.",
+        "ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/2"
+      },
+      "negative": {
+        "description": "Con sesión, GET /api/reminders/1 sigue respondiendo 200.",
+        "ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/0"
+      },
+      "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.reminder.AuditReproducer186 (fuentes de git archive 5b0430ef)",
+      "run_file": "pilot/runs/req-186/audit/evidence/backend_repro.json",
+      "consumer": "GET/POST/PUT/DELETE /api/reminders y pantalla /sbx-rem-list",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-BE-RUN"
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "Ejecutado: GET por id 200, crear 201, posponer 200 y borrar 204 sin sesión; la lista sí da 401."
+    },
+    {
+      "id": "F-LIST-NOT-SCOPED-TO-USER",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-R-SESSION-REQUIRED",
+      "file": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "function": "list",
+      "start_line": 155,
+      "end_line": 158,
+      "behavior": "Cada usuario con sesión ve su propia lista de recordatorios.",
+      "contract_refs": [
+        "contracts/sbx-rem-list.openapi.yaml",
+        "pilot/runs/req-186/analysis.json"
+      ],
+      "defect": "La lista devuelve todos los recordatorios del repositorio (findAll), sin dueño; un recordatorio creado sin sesión aparece en la lista del usuario autenticado.",
+      "root_cause": "Reminder no tiene propietario; el pedido añadió el control de sesión pero no el alcance por usuario.",
+      "impact": [
+        "Con más de un usuario, cada uno vería los recordatorios de todos."
+      ],
+      "correction": "Añadir propietario (username de la sesión) a Reminder y filtrar por él en lista, lectura y escritura.",
+      "targets": [
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/Reminder.java"
+      ],
+      "positive": {
+        "description": "Lo creado sin sesión aparece en la lista del usuario (medido).",
+        "ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/4"
+      },
+      "negative": {
+        "description": "La lista sin sesión sigue en 401.",
+        "ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/0"
+      },
+      "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.reminder.AuditReproducer186 (fuentes de git archive 5b0430ef)",
+      "run_file": "pilot/runs/req-186/audit/evidence/backend_repro.json",
+      "consumer": "GET/POST/PUT/DELETE /api/reminders y pantalla /sbx-rem-list",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-BE-RUN"
+      ],
+      "confidence": "MEDIUM",
+      "confidence_reason": "Ejecutado; el sandbox tiene un solo usuario, por eso se demuestra con un recordatorio anónimo y no con dos cuentas."
+    },
+    {
+      "id": "F-ERR-NOT-GENERIC",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-R-ERR",
+      "file": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "function": "get",
+      "start_line": 168,
+      "end_line": 171,
+      "behavior": "Todos los fallos responden el mismo error genérico {error: SBX-E-GENERIC}.",
+      "contract_refs": [
+        "pilot/runs/req-186/analysis.json",
+        "contracts/sbx-rem-list.openapi.yaml"
+      ],
+      "defect": "Solo el 401 de la lista trae el cuerpo genérico; 404 y 400 responden sin cuerpo, y 400/404/409 distinguen causas (formato, inexistente, conflicto).",
+      "root_cause": "El requisito backend REQ-SBX-R-ERR no llegó a ningún lote (ver F-ANALYSIS-REQUIREMENTS-WITHOUT-LOT); solo se implementó su variante de pantalla.",
+      "impact": [
+        "Respuestas distinguibles revelan si un recordatorio existe."
+      ],
+      "correction": "Respuesta de error común {error: SBX-E-GENERIC} para todos los fallos del recurso.",
+      "targets": [
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+      ],
+      "positive": {
+        "description": "401, 404 y 400 devuelven cuerpos distintos (medido).",
+        "ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/10"
+      },
+      "negative": {
+        "description": "El 401 de la lista sí trae el cuerpo genérico.",
+        "ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/0"
+      },
+      "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.reminder.AuditReproducer186 (fuentes de git archive 5b0430ef)",
+      "run_file": "pilot/runs/req-186/audit/evidence/backend_repro.json",
+      "consumer": "GET/POST/PUT/DELETE /api/reminders y pantalla /sbx-rem-list",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-BE-RUN"
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "Ejecutado contra los tres endpoints."
+    },
+    {
+      "id": "F-FILTER-400-BODY",
+      "kind": "DEFECT",
+      "code": "RULE:SBX-R-PRIORITY-FILTER",
+      "file": "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+      "function": "listFiltered",
+      "start_line": 150,
+      "end_line": 152,
+      "behavior": "Un filtro de prioridad inválido responde 400 con GenericError {error: SBX-E-GENERIC}, como declara el contrato.",
+      "contract_refs": [
+        "contracts/sbx-rem-list.openapi.yaml"
+      ],
+      "defect": "Responde 400 con cuerpo vacío.",
+      "root_cause": "El catch construye badRequest() sin cuerpo.",
+      "impact": [
+        "El cliente generado no recibe el esquema declarado."
+      ],
+      "correction": "return ResponseEntity.badRequest().body(Map.of(\"error\", \"SBX-E-GENERIC\"));",
+      "targets": [
+        "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java"
+      ],
+      "positive": {
+        "description": "priority=URGENT responde 400 sin cuerpo (medido).",
+        "ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/7"
+      },
+      "negative": {
+        "description": "priority=HIGH filtra correctamente (medido).",
+        "ref": "pilot/runs/req-186/audit/evidence/backend_repro.json#/6"
+      },
+      "command": "javac + java -cp out:<classpath de time-service> lf.sandbox.time.reminder.AuditReproducer186 (fuentes de git archive 5b0430ef)",
+      "run_file": "pilot/runs/req-186/audit/evidence/backend_repro.json",
+      "consumer": "GET/POST/PUT/DELETE /api/reminders y pantalla /sbx-rem-list",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-CTRL",
+        "EV-OAS",
+        "EV-BE-RUN"
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "Ejecutado; contrato leído."
+    },
+    {
+      "id": "F-ANALYSIS-REQUIREMENTS-WITHOUT-LOT",
+      "kind": "GOVERNANCE_GAP",
+      "code": "RULE:SBX-R-LOG",
+      "file": "pilot/runs/req-186/lots.json",
+      "function": "lots",
+      "start_line": 1,
+      "end_line": 1,
+      "behavior": "Cada requisito analizado queda asignado a al menos un lote, o se justifica por qué no.",
+      "contract_refs": [
+        "pilot/runs/req-186/analysis.json",
+        "pilot/runs/req-186/lots.json"
+      ],
+      "defect": "De 7 requisitos analizados, 3 no llegaron a ningún lote: REQ-SBX-R-ERR, REQ-SBX-R-LOG y REQ-SBX-R-PRIORITY-FILTER-BACKEND. El frente BACKEND del análisis sí citaba las reglas 5 y 105, pero el lote BACKEND solo recibió REQ-SBX-R-SESSION-REQUIRED.",
+      "root_cause": "La construcción de lotes descarta requisitos del frente sin registrar el motivo; no hay control de cobertura análisis→lotes.",
+      "impact": [
+        "Reglas sin implementación exigida ni examen (aquí, error genérico y no registrar secretos).",
+        "Aplica a cualquier proyecto."
+      ],
+      "correction": "Control en la ruta: todo requirement_id del análisis debe aparecer en algún lote o en una lista de exclusiones justificadas; si no, bloquear la emisión de lotes.",
+      "targets": [
+        "pilot/runs/req-186/lots.json",
+        "pilot/orchestrator"
+      ],
+      "positive": {
+        "description": "3 requisitos sin lote (medido).",
+        "ref": "pilot/runs/req-186/audit/evidence/lots_repro.json#/0"
+      },
+      "negative": {
+        "description": "REQ-SBX-R-SESSION-REQUIRED sí está asignado (control).",
+        "ref": "pilot/runs/req-186/audit/evidence/lots_repro.json#/3"
+      },
+      "command": "python3 lots_repro.py 5b0430ef7b2bc5497ef48fe8b7996e4447a31829 lots_repro_args.json",
+      "run_file": "pilot/runs/req-186/audit/evidence/lots_repro.json",
+      "consumer": "GET/POST/PUT/DELETE /api/reminders y pantalla /sbx-rem-list",
+      "summary": "Reproductor ejecutado contra el código del commit de cierre; ver salida.",
+      "evidence_refs": [
+        "EV-LOTS",
+        "EV-ANA",
+        "EV-ST-RUN"
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "Comparación ejecutada sobre analysis.json y lots.json del commit de cierre."
+    }
+  ],
+  "checklist": [
+    {
+      "ekb_code": "LF-PE-STEP70-RUN-CLOSED-EKB-ENFORCEMENT-OPEN-20261031-005",
+      "applies": true,
+      "reason": "Los exámenes del pedido pasaron, pero 3 requisitos nunca se examinaron y la sesión solo protege un endpoint: un PASS no sustituye cubrir cada regla.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-ST-RUN",
+        "EV-BE-RUN"
+      ],
+      "evidence_kind": "MEASURED_THIS_AUDIT"
+    },
+    {
+      "ekb_code": "IG-M1013-REPOSITORY-REPAIR-POLICY-054",
+      "applies": true,
+      "reason": "El gate BACKEND no correspondía al trabajo: recibió 1 de 3 requisitos backend.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-LOTS",
+        "EV-ANA"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    },
+    {
+      "ekb_code": "LF-PE10A-ASSERTION-CONTRACT-PASSWHEN-NULL-READY-20261027-001",
+      "applies": true,
+      "reason": "Contrato declara GenericError en 400 y el productor responde sin cuerpo.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-OAS",
+        "EV-BE-RUN"
+      ],
+      "evidence_kind": "MEASURED_THIS_AUDIT"
+    },
+    {
+      "ekb_code": "LF-PROMO-INDEPENDENT-JUDGE-OWNER-20261114-001",
+      "applies": true,
+      "reason": "La auditoría no concede promoción: promotion_authorized=false.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-LOTS"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    }
+  ],
+  "scanned_files": [
+    "apps/time-service/src/main/java/lf/sandbox/time/reminder/ReminderController.java",
+    "frontend/src/lib/sbx-rem-list.ts",
+    "frontend/src/app/sbx-rem-list/page.tsx"
+  ],
+  "limitations": [
+    "Reproductor Java sobre las clases del commit de cierre sin levantar Spring Boot ni HTTP.",
+    "La pantalla no se ejecutó: su comportamiento (redirección al login en 401) se revisó por lectura; page.tsx cambió después del cierre (#286) en la ruta del login.",
+    "Sandbox de un solo usuario: el alcance por usuario se demuestra con un recordatorio anónimo.",
+    "Códigos EKB del checklist validados en vivo por el CI.",
+    "Modo SHADOW: no bloquea ni autoriza efectos."
+  ],
+  "unknown_scope": [
+    "Ejecución en navegador real",
+    "Backend desplegado con Spring Boot"
+  ]
+}
