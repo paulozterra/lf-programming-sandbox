@@ -14,6 +14,7 @@
     "term_ids": [],
     "paths": [
       ".github/workflows/ci.yml",
+      ".github/workflows/f5-package.yml",
       "pilot/audit/auditor_job.py",
       "pilot/audit/build_input.py",
       "pilot/auto_integrate.py",
