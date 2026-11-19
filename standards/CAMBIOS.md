@@ -220,3 +220,4 @@
 | CHG-0226 | ADDITIVE | A4: adaptador de auditor para la ruta (instructivo + ensamblador del informe) y ciclo de vida de los issues audit-request |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/347 |
 | CHG-0227 | ADDITIVE | A5: auditor por evento — cada issue audit-request se audita al abrirse (Claude sin credencial de GitHub; publicación determinista) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/348 |
 | CHG-0228 | EDITORIAL | A6: auditor del proyecto lf = GPT en sesión aislada (decisión del owner por costo); el auditor por API queda solo a demanda |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/349 |
+| CHG-0229 | ADDITIVE | T54 fase 1: cargador y validación de configuración por proyecto sin cambiar consumidores |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/350 |
