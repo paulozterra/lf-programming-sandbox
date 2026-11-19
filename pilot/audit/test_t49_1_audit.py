@@ -49,7 +49,8 @@ def test_forced_audit_creates_only_finalized_issue(tmp_path, monkeypatch,
     monkeypatch.setattr(rt, "ROOT", tmp_path)
     monkeypatch.setattr(rt, "load", lambda *_: {"audit": {
         "enabled": True, "trigger": "REQUEST_CLOSED",
-        "sample_n": 1, "mode": "SHADOW"}})
+        "sample_n": 1, "mode": "SHADOW", "auditor": "CLAUDE_ROUTINE",
+        "skill": {"repository": "o/r", "commit": "a"*40, "path": "skills/a"}}})
     monkeypatch.setitem(sys.modules, "chain_lots", SimpleNamespace(plans=lambda: []))
     monkeypatch.setattr(rt.bi, "completed_from_history", lambda *_: (
         {"lots": [{"id": "SOL-001"}]}, {"SOL-001": {"merge_sha": "a"*40}}))
