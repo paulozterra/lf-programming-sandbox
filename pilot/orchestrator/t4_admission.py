@@ -14,6 +14,7 @@ import re
 import sys
 import subprocess
 import tempfile
+from pilot.config.project_config import storage, storage_path
 
 TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
@@ -139,8 +140,8 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
     """
     try:
         from pathlib import PurePosixPath
-        request = PurePosixPath(template_path).parts[2]
-        chain = json.loads((root / "pilot/runs" / request / "chain_plan.json")
+        request = PurePosixPath(template_path).parts[len(storage(root=root)["requests_root"].split("/"))]
+        chain = json.loads((storage_path("requests_root", request, root=root) / "chain_plan.json")
                            .read_text("utf-8"))
         lots = json.loads((root / "pilot/runs" / request / "lots.json")
                           .read_text("utf-8"))
@@ -229,7 +230,7 @@ def registration_variant(root: Path, base_task: str, template_path: str,
     from fnmatch import fnmatch
     if not TASK.fullmatch(base_task):
         raise AdmissionBlocked("TASK_INVALID")
-    directory = root / "pilot/worker_v08/native_tasks"
+    directory = storage_path("registrations_root", root=root)
     if not directory.is_dir() or directory.is_symlink():
         raise AdmissionBlocked("TASK_DIRECTORY_INVALID")
     names = []
