@@ -717,6 +717,9 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note"
           cp pilot/runs/sample-reminder-note/request.md pilot/runs/sample-reminder-note/analysis.json "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note/"
+          mkdir -p "$RUNNER_TEMP/cp3-2/pilot/config/projects"
+          cp pilot/config/active_project.json "$RUNNER_TEMP/cp3-2/pilot/config/"
+          cp pilot/config/projects/sandbox.json "$RUNNER_TEMP/cp3-2/pilot/config/projects/"
           python3 -m pilot.workflow_entrypoint pilot/orchestrator/intake.py --root "$RUNNER_TEMP/cp3-2" --request-id sample-reminder-note
           test -f "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note/state.json"
   
