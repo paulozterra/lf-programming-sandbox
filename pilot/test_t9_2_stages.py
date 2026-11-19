@@ -85,6 +85,11 @@ class Stages(unittest.TestCase):
 
     def test_native_integration_retry_maps_to_existing_chain(self):
         with tempfile.TemporaryDirectory() as td:
+            import shutil
+            target = Path(td) / "pilot/config"
+            (target / "projects").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(HERE.parent / "pilot/config/active_project.json", target / "active_project.json")
+            shutil.copy2(HERE.parent / "pilot/config/projects/sandbox.json", target / "projects/sandbox.json")
             folder = Path(td) / "pilot/runs/req-987"
             folder.mkdir(parents=True)
             (folder / "chain_plan.json").write_text(
