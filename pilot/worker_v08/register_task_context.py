@@ -37,9 +37,15 @@ PROFILE = {"BACKEND": "prog_backend_exp", "FRONTEND": "prog_frontend_exp",
 PROFILE_CODE = {"BACKEND": "PERFIL-PROG-BACKEND-EXP",
                 "FRONTEND": "PERFIL-PROG-FRONTEND-EXP",
                 "DATA": "PERFIL-PROG-DATA-EXP"}
-def format_command() -> dict:
-    """STD-BE-05 formatting gate on the project's BACKEND maven build (T54 3c)."""
+def format_command() -> dict | None:
+    """STD-BE-05 formatting gate on the project's BACKEND maven build (T54 3c).
+
+    None when the project has no BACKEND maven component: there is nothing for
+    Spotless to check, and no other area may be blocked for its absence.
+    """
     from pilot.config import project_config as _project
+    if not [item for _, item in _project.area_components("BACKEND") if item["kind"] == "maven"]:
+        return None
     return {
         "name": "std-be-05-spotless-check",
         "argv": ["mvn", "-B", "-q", "-f",
@@ -494,6 +500,8 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         block("ACCEPTANCE_COMMANDS_INVALID")
     if area != "CONTRATO" and selected == "BACKEND" and any("SPRINGBOOT_EXP" == r["code"] for r in identities):
         expected_format = format_command()
+        if expected_format is None:
+            block("FORMAT_COMMAND_NOT_CONFIGURED")
         if expected_format not in commands:
             if any(c.get("name") == expected_format["name"] for c in commands if isinstance(c, dict)):
                 block("FORMAT_ACCEPTANCE_NAME_COLLISION")

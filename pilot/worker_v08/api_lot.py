@@ -119,8 +119,12 @@ def admit(root: Path, task: str) -> dict:
     commands = registered.get("acceptance_commands")
     # Registering a BACKEND alias can add only the existing pinned Spotless
     # command, never silently remove or replace a generated acceptance.
-    if commands not in (expected, expected + [format_command()]):
-        block("API_LOT_GENERATED_ACCEPTANCE_DRIFT")
+    # Only resolve the formatter when the registration differs from the
+    # generated acceptance (a non-BACKEND project never needs Maven).
+    if commands != expected:
+        formatter = format_command()
+        if formatter is None or commands != expected + [formatter]:
+            block("API_LOT_GENERATED_ACCEPTANCE_DRIFT")
     for key in ("task_id", "objective"):
         if registered.get(key) != template.get(key):
             block("API_LOT_TASK_CONTRACT_DRIFT")

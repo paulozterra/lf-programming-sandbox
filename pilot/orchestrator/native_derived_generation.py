@@ -90,4 +90,4 @@ def generate(root: Path, worker_paths: set[str], command) -> dict[str, object]:
     except (ValueError, OSError, UnicodeError, subprocess.CalledProcessError,
             DerivedGenerationBlocked) as exc:
         raise DerivedGenerationBlocked(
-            "INTEGRATION_DERIVED_GENERATION_FAILED:gen:api") from exc
+            "INTEGRATION_DERIVED_GENERATION_FAILED:" + client["script"]) from exc
