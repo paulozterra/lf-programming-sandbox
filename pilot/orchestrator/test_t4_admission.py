@@ -16,6 +16,16 @@ SHA = "a" * 40
 SOURCE = "b" * 64
 
 
+@pytest.fixture(autouse=True)
+def configured_project(tmp_path):
+    import shutil
+    source = Path(__file__).resolve().parents[2] / "pilot/config"
+    target = tmp_path / "pilot/config"
+    (target / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source / "active_project.json", target / "active_project.json")
+    shutil.copy2(source / "projects/sandbox.json", target / "projects/sandbox.json")
+
+
 def template_sha(spec):
     return hashlib.sha256((json.dumps(spec, sort_keys=True, separators=(",", ":"),
                                    ensure_ascii=True) + "\n").encode("utf-8")).hexdigest()
