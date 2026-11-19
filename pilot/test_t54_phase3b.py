@@ -108,6 +108,17 @@ class Equivalence(unittest.TestCase):
                     self.assertEqual(sorted(g.lot_protection(area, paths)),
                                      sorted(legacy_protected(area, paths)))
 
+    def test_full_acceptance_output_equals_base_commit(self):
+        """Review H3: the complete acceptance() output (names, argv, timeouts,
+        output limits) for 44 cases, generated from main@d108b77 before 3b."""
+        cases = json.loads((ROOT / "pilot/test_t54_phase3b_legacy_acceptance.json")
+                           .read_text("utf-8"))
+        self.assertEqual(len(cases), 44)
+        for case in cases:
+            with self.subTest(area=case["area"], paths=case["paths"], kw=case["kw"]):
+                self.assertEqual(g.acceptance(case["area"], case["paths"], **case["kw"]),
+                                 case["output"])
+
     def test_acceptance_commands_equal_legacy(self):
         for area in ("BACKEND", "FRONTEND", "INFRA"):
             for paths in PATH_SETS:
@@ -156,6 +167,26 @@ class Equivalence(unittest.TestCase):
 
 
 class LotPolicyValidation(unittest.TestCase):
+    def test_control_plane_protection_cannot_be_lifted_or_omitted(self):
+        """Review H1/H5: .github, .lf, pilot and vendor are a route invariant."""
+        base = json.loads((ROOT / "pilot/config/projects/sandbox.json").read_text("utf-8"))
+        for entry in pc.CONTROL_PLANE_PROTECTED:
+            for mutate in (
+                lambda c, e=entry: c["lot_policy"]["areas"]["BACKEND"]["unprotect"].append(e),
+                lambda c, e=entry: c["lot_policy"]["areas"]["INFRA"]["unprotect_if_written"].append(e),
+                lambda c, e=entry: c["lot_policy"]["protected_base"].remove(e),
+            ):
+                cfg = copy.deepcopy(base)
+                mutate(cfg)
+                with self.subTest(entry=entry), self.assertRaises(pc.ProjectConfigError):
+                    pc.validate(cfg, root=ROOT)
+
+    def test_lot_protection_always_keeps_control_plane(self):
+        for area in sorted(pc.AREAS):
+            for paths in PATH_SETS + [[".github/workflows/ci.yml", "pilot/x.py"]]:
+                self.assertTrue(set(pc.CONTROL_PLANE_PROTECTED)
+                                <= set(g.lot_protection(area, paths)))
+
     def test_rejections(self):
         base = json.loads((ROOT / "pilot/config/projects/sandbox.json").read_text("utf-8"))
         mutations = [
@@ -172,6 +203,42 @@ class LotPolicyValidation(unittest.TestCase):
             mutate(cfg)
             with self.subTest(index=index), self.assertRaises(pc.ProjectConfigError):
                 pc.validate(cfg, root=ROOT)
+
+
+class LazyResolution(unittest.TestCase):
+    """Review H2: importing needs no configuration; access resolves fresh."""
+
+    def test_import_without_configuration_then_access_denies(self):
+        import subprocess
+        code = (
+            "import sys; from pathlib import Path; from unittest.mock import patch\n"
+            f"sys.path[:0]=[{str(ROOT)!r},{str(ROOT / 'pilot/orchestrator')!r}]\n"
+            "from pilot.config import project_config as pc\n"
+            "pc.CONFIG_ROOT = Path('/nonexistent-config-root')\n"
+            "import native_write_scope, native_lot_binding, native_derived_generation\n"
+            "try:\n    native_write_scope.AREA_ROOTS['DATA']\nexcept pc.ProjectConfigError:\n"
+            "    print('DENIED_ON_ACCESS')\n")
+        out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
+                             timeout=60)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn("DENIED_ON_ACCESS", out.stdout)
+
+    def test_tables_follow_the_current_project(self):
+        before = dict(w.AREA_ROOTS)
+        cfg = json.loads((ROOT / "pilot/config/projects/sandbox.json").read_text("utf-8"))
+        cfg["areas"]["CONTRATO"]["write_prefixes"] = ["contracts/v2/"]
+        cfg["areas"]["CONTRATO"]["project_roots"] = ["contracts/v2/"]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "pilot/config/projects").mkdir(parents=True)
+            (root / "pilot/config/projects/sandbox.json").write_text(json.dumps(cfg))
+            (root / "pilot/config/active_project.json").write_text(json.dumps(
+                {"schema_version": "LF_ACTIVE_PROJECT_V1", "project_id": "sandbox"}))
+            with patch.object(pc, "CONFIG_ROOT", root):
+                self.assertEqual(w.AREA_ROOTS["CONTRATO"], ("contracts/v2/",))
+                self.assertEqual(b.REAL_ROOTS["CONTRATO"], ("contracts/v2/",))
+                self.assertIn("contracts/v2/", w.PRODUCT_ROOTS)
+        self.assertEqual(dict(w.AREA_ROOTS), before)
 
 
 class OtherProjects(unittest.TestCase):
@@ -200,6 +267,29 @@ class OtherProjects(unittest.TestCase):
         self.assertEqual(cmds("BACKEND", [])[0], ["mvn", "-B", "-q", "-f", PB, "package"])
         infra = cmds("INFRA", ["frontend/package.json"])
         self.assertFalse(any(x[0] == "npm" for x in infra))
+
+    def test_project_base_nested_and_overlapping_roots(self):
+        """Review H4: the most specific owner wins; otherwise the longest area root."""
+        def nested(c):
+            sub = copy.deepcopy(c["components"]["backend"])
+            sub.update(root="apps/time-service/modules/billing",
+                       build_file="apps/time-service/modules/billing/pom.xml",
+                       source_roots=["apps/time-service/modules/billing/src/main/java"],
+                       resource_roots=[], test_roots=[], migrations_root=None, config_files=[])
+            c["components"]["billing"] = sub
+            c["areas"]["BACKEND"]["project_roots"] = [
+                "apps/time-service/src/main/java/", "apps/time-service/modules/billing/src/main/java/",
+                "backend/src/main/java/"]
+            c["areas"]["DATA"]["project_roots"] = ["db/", "db/legacy/"]
+        self._with_config(nested)
+        self.assertEqual(b._project_base("BACKEND", "apps/time-service/modules/billing/src/main/java/X.java"),
+                         "apps/time-service/modules/billing")
+        self.assertEqual(b._project_base("BACKEND", "apps/time-service/src/main/java/X.java"),
+                         "apps/time-service")
+        self.assertEqual(b._project_base("DATA", "db/legacy/1.sql"), "db/legacy")
+        self.assertEqual(b._project_base("DATA", "db/1.sql"), "db")
+        with self.assertRaises(b.NativeLotBlocked):
+            b._project_base("DATA", "elsewhere/1.sql")
 
     def test_renamed_backend_build_file_flows_into_commands(self):
         def rename(c):

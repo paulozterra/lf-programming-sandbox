@@ -13,14 +13,11 @@ from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config import project_config as _project  # noqa: E402
 
-# T54 phase 3b: area write prefixes come from the project configuration
-# (validated, fail-closed at import). Insertion order is the route's area order.
-AREA_ROOTS: dict[str, tuple[str, ...]] = {
-    area: _project.area_write_prefixes(area)
-    for area in ("CONTRATO", "INFRA", "DATA", "BACKEND", "FRONTEND")
-}
-AREAS = frozenset(AREA_ROOTS)
-PRODUCT_ROOTS = frozenset(root for roots in AREA_ROOTS.values() for root in roots)
+# T54 phase 3b: area write prefixes come from the project configuration,
+# resolved on access (importing this module reads no configuration).
+AREA_ROOTS = _project.AreaTable(_project.area_write_prefixes)
+AREAS = _project.AREAS
+PRODUCT_ROOTS = _project.ProductRoots()
 FORBIDDEN_ROOTS = (".github/", "vendor/", "pilot/", "standards/")
 MAX_PATHS = 6
 

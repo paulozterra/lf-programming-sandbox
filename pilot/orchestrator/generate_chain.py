@@ -55,6 +55,10 @@ def lot_protection(area, paths):
     for entry in rules["unprotect"]:
         protected.remove(entry)
     protected += rules["protect"]
+    # Defense in depth: control-plane protection is unconditional.
+    for entry in _project.CONTROL_PLANE_PROTECTED:
+        if entry not in protected:
+            protected.append(entry)
     return protected
 
 

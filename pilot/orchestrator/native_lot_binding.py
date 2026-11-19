@@ -19,11 +19,8 @@ SELECTOR_BINDINGS = {
     "PERFIL-PROG-FRONTEND-EXP": ("FRONTEND", "PERFIL-PROG-FRONTEND-EXP", "prog_frontend_exp"),
     "PERFIL-PROG-DATA-EXP": ("DATA", "PERFIL-PROG-DATA-EXP", "prog_data_exp"),
 }
-REAL_ROOTS = {
-    # T54 phase 3b: real product roots per area from the project configuration.
-    area: _project.area_project_roots(area)
-    for area in ("BACKEND", "FRONTEND", "DATA", "INFRA", "CONTRATO")
-}
+# T54 phase 3b: real product roots per area, resolved on access.
+REAL_ROOTS = _project.AreaTable(_project.area_project_roots)
 FAKE_PREFIXES = ("src/main/java/com/lf/", "web/src/app/")
 
 
@@ -51,9 +48,14 @@ def _infra_allowed_paths():
 def _project_base(area: str, path: str) -> str:
     """Directory that must already exist for a new file at `path` (T54 3b).
 
-    The owning component root when the path is inside one; otherwise the
-    area's matched project root (top directory for the conventional
-    "<dir>/src/main/java/" layout). Never invents an absent project.
+    Precedence (generalizes the former fixed if-chain):
+    1. the most specific (longest) configured component root containing the
+       path — with nested components the inner project must exist;
+    2. otherwise the longest matching project root of the area, cut before a
+       conventional "/src/main/java" layout ("backend/src/main/java/" ->
+       "backend"), as the old chain did for backend/ and apps/web/.
+    For the sandbox this reproduces every branch of the old chain exactly.
+    The caller still requires the directory to exist (never invents a project).
     """
     owners = [item["root"] for item in _project.components().values()
               if path.startswith(item["root"] + "/")]

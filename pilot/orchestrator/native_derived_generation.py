@@ -14,7 +14,6 @@ from native_write_scope import AREA_ROOTS
 
 GENERATOR = "npm run gen:api"
 GENERATED_ROOT = "frontend/src/lib/api/generated/"
-SOURCE_ROOT = AREA_ROOTS["CONTRATO"][0]
 NAME = re.compile(r"frontend/src/lib/api/generated/(?:index|[a-z][a-z0-9-]*)\.ts\Z")
 
 
@@ -28,7 +27,7 @@ def generated_output(path: str) -> bool:
 
 def needs_contract_derivatives(paths: object) -> bool:
     return isinstance(paths, (set, list, tuple)) and any(
-        isinstance(path, str) and path.startswith(SOURCE_ROOT)
+        isinstance(path, str) and path.startswith(AREA_ROOTS["CONTRATO"][0])
         and path.endswith(".openapi.yaml") for path in paths)
 
 

@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "T54 fase 3 (B.7) aprobada 2026-11-19; construida por Claude, revisión de GPT"
   },
-  "reason": "La ruta deja de tener escrito el layout del sandbox en la planificación y admisión de lotes. generate_chain arma los comandos de aceptación desde el componente maven/npm que sirve a cada área (build_file, raíz, script del cliente generado) y la protección de cada lote desde lot_policy (protected_base menos unprotect/unprotect_if_written, más protect; context_files de INFRA). native_write_scope.AREA_ROOTS y native_lot_binding.REAL_ROOTS salen de areas; la raíz que debe existir para un archivo nuevo se resuelve por el componente dueño o la raíz del área. t4_admission deriva los directorios de producto de las áreas; atomize e infra_validate toman la carpeta de migraciones del componente maven de DATA. Se agrega lot_policy al esquema V2 (aún sin consumidores externos) con validación: un área solo puede desproteger entradas de la base, sin solaparse, y context_files no admite globs. Equivalencia: copias congeladas del código anterior dan exactamente lo mismo con la configuración del sandbox (protección por área y conjunto escrito, comandos de aceptación, tablas de áreas, raíz de proyecto, directorios de producto, migraciones). Un proyecto sin frontend bloquea lotes FRONTEND y sigue planificando BACKEND; renombrar el backend fluye a los comandos. Fuera de alcance (fase 3c): t4_admission línea de pruebas protegidas en conflicto, affected_tests, reuse_assessment, el lado del Worker. Congelados: selector_db (semilla SQL fijada) y package_to_lots (decisión del owner F5.1).",
+  "reason": "La ruta deja de tener escrito el layout del sandbox en la planificación y admisión de lotes. generate_chain arma los comandos de aceptación desde el componente maven/npm que sirve a cada área (build_file, raíz, script del cliente generado) y la protección de cada lote desde lot_policy (protected_base menos unprotect/unprotect_if_written, más protect; context_files de INFRA). native_write_scope.AREA_ROOTS y native_lot_binding.REAL_ROOTS salen de areas; la raíz que debe existir para un archivo nuevo se resuelve por el componente dueño o la raíz del área. t4_admission deriva los directorios de producto de las áreas; atomize e infra_validate toman la carpeta de migraciones del componente maven de DATA. Se agrega lot_policy al esquema V2 (aún sin consumidores externos) con validación: un área solo puede desproteger entradas de la base, sin solaparse, y context_files no admite globs. Equivalencia: copias congeladas del código anterior dan exactamente lo mismo con la configuración del sandbox (protección por área y conjunto escrito, comandos de aceptación, tablas de áreas, raíz de proyecto, directorios de producto, migraciones). Un proyecto sin frontend bloquea lotes FRONTEND y sigue planificando BACKEND; renombrar el backend fluye a los comandos. Fuera de alcance (fase 3c): t4_admission línea de pruebas protegidas en conflicto, affected_tests, reuse_assessment, el lado del Worker. Congelados: selector_db (semilla SQL fijada) y package_to_lots (decisión del owner F5.1). Revisión independiente de GPT (H1-H5) incorporada: CONTROL_PLANE_PROTECTED (.github, .lf, pilot, vendor) es invariante de la ruta, obligatorio en protected_base, no se puede desproteger y lot_protection lo reagrega siempre; AREA_ROOTS, REAL_ROOTS y PRODUCT_ROOTS se resuelven en cada acceso (importar no lee configuración y siguen al proyecto vigente); la salida completa de acceptance() se compara con 44 casos generados desde main@d108b77; _project_base documenta y prueba la precedencia con componentes anidados y raíces solapadas.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -19,11 +19,13 @@
       "pilot/orchestrator/atomize.py",
       "pilot/orchestrator/generate_chain.py",
       "pilot/orchestrator/infra_validate.py",
+      "pilot/orchestrator/native_derived_generation.py",
       "pilot/orchestrator/native_lot_binding.py",
       "pilot/orchestrator/native_write_scope.py",
       "pilot/orchestrator/t4_admission.py",
       "pilot/test_t54_phase3a.py",
       "pilot/test_t54_phase3b.py",
+      "pilot/test_t54_phase3b_legacy_acceptance.json",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0239.json"
     ]

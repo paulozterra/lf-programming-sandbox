@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path, PurePosixPath
+from collections.abc import Mapping, Set as AbcSet
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = "pilot/config/projects"
@@ -32,7 +33,11 @@ COMPONENT_NAME = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 GENERATED_CLIENT_KEYS = frozenset({"dir", "script", "generator"})
 NPM_SCRIPT = re.compile(r"[a-z][a-z0-9:_-]{0,63}\Z")
 # Lot areas are route vocabulary (CP3.x); their roots are project facts.
-AREAS = frozenset({"CONTRATO", "INFRA", "DATA", "BACKEND", "FRONTEND"})
+AREA_ORDER = ("CONTRATO", "INFRA", "DATA", "BACKEND", "FRONTEND")
+AREAS = frozenset(AREA_ORDER)
+# Control-plane protections are a route invariant, not a project choice: no
+# project configuration may omit or lift them (review of PR #361, H1/H5).
+CONTROL_PLANE_PROTECTED = (".github/**", ".lf/**", "pilot/**", "vendor/**")
 AREA_KEYS = frozenset({"write_prefixes", "project_roots"})
 LOT_POLICY_AREA_KEYS = frozenset({"unprotect", "unprotect_if_written", "protect", "context_files"})
 REQUIRED_TOP = frozenset({
@@ -168,6 +173,8 @@ def _lot_policy(value: object, root: Path) -> None:
     """
     value = _object(value, frozenset({"protected_base", "areas"}))
     base = _paths(value["protected_base"], root, glob=True)
+    if not set(CONTROL_PLANE_PROTECTED) <= set(base):
+        _deny()
     areas = value["areas"]
     if type(areas) is not dict or set(areas) != AREAS:
         _deny()
@@ -179,7 +186,8 @@ def _lot_policy(value: object, root: Path) -> None:
             checked = [_path(v, root, glob=key != "context_files") for v in area[key]]
             if len(checked) != len(set(checked)):
                 _deny()
-        if not set(area["unprotect"]) | set(area["unprotect_if_written"]) <= set(base):
+        lifted = set(area["unprotect"]) | set(area["unprotect_if_written"])
+        if not lifted <= set(base) or lifted & set(CONTROL_PLANE_PROTECTED):
             _deny()
         if set(area["unprotect"]) & set(area["unprotect_if_written"]):
             _deny()
@@ -420,3 +428,51 @@ def product_top_dirs(project: str | None = None) -> tuple[str, ...]:
             if top not in tops:
                 tops.append(top)
     return tuple(tops)
+
+
+class AreaTable(Mapping):
+    """Read-only area -> roots table resolved on every access (never at import).
+
+    Importing a consumer needs no configuration; an operation that reads a
+    root resolves the *current* active project, fail-closed.
+    """
+
+    def __init__(self, resolve):
+        self._resolve = resolve
+
+    def __getitem__(self, area):
+        if area not in AREAS:
+            raise KeyError(area)
+        return self._resolve(area)
+
+    def __iter__(self):
+        return iter(AREA_ORDER)
+
+    def __len__(self):
+        return len(AREA_ORDER)
+
+    def __eq__(self, other):
+        return isinstance(other, Mapping) and dict(self.items()) == dict(other.items())
+
+    __hash__ = None
+
+
+class ProductRoots(AbcSet):
+    """Every area write prefix of the current project, resolved on access."""
+
+    def _values(self):
+        roots = []
+        for area in AREA_ORDER:
+            for prefix in area_write_prefixes(area):
+                if prefix not in roots:
+                    roots.append(prefix)
+        return roots
+
+    def __contains__(self, value):
+        return value in self._values()
+
+    def __iter__(self):
+        return iter(self._values())
+
+    def __len__(self):
+        return len(self._values())
