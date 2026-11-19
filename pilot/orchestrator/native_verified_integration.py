@@ -398,6 +398,7 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
                           cwd=root).decode().strip()
     if expected_tree != remote_tree:
         block("BRANCH_EXISTS_DIFFERENT")
+    _require_live_task(root, task)
     command(["git", "switch", "-c", branch, remote_sha], cwd=root)
     return number, changed, parent
 
@@ -450,6 +451,7 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
                  f"[CP3.5][CHG-{num:04d}] verified native patch {task} run {run_id}"],
                 cwd=root)
         confirm_class_after_commit(root, chg)
+        _require_live_task(root, task)
         command(["git", "push", "--set-upstream", "origin", branch], cwd=root)
         check_base = "origin/main"
     else:
@@ -476,6 +478,7 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
                 chg_file=chg.relative_to(root).as_posix())
     command(["python3", "standards/tools/changes.py", "check", "--base", check_base], cwd=root)
     command(["git", "commit", "-m", f"[CP3.5][CHG-{num:04d}] record PR evidence"], cwd=root)
+    _require_live_task(root, task)
     command(["git", "push", "origin", branch], cwd=root)
     final_head = command(["git", "rev-parse", "HEAD"], cwd=root).decode().strip()
     # GITHUB_TOKEN-created PR events do not reliably start CI. Dispatch exactly
