@@ -1,8 +1,9 @@
 """T50: CP3.7 isolates one blocked request from an otherwise healthy chain."""
 import json
 
-from pilot.orchestrator import chain_lots as cl
 from pilot.orchestrator import pg37_publish as pub
+
+cl = pub.chain_lots
 from chain_contract import ChainBlocked
 
 
