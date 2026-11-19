@@ -47,7 +47,6 @@ def test_forced_audit_creates_only_finalized_issue(tmp_path, monkeypatch,
                                                    state, complete, expected):
     proof(tmp_path, complete)
     monkeypatch.setattr(rt, "ROOT", tmp_path)
-    monkeypatch.setattr(rt.load, "__call__", rt.load, raising=False) if False else None
     monkeypatch.setattr(rt, "load", lambda *_: {"audit": {
         "enabled": True, "trigger": "REQUEST_CLOSED",
         "sample_n": 1, "mode": "SHADOW"}})
