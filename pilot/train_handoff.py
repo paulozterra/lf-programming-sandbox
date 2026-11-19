@@ -4,6 +4,7 @@
 Never execute a merged PR's source, never dispatch from a push-only event.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import json
@@ -297,7 +298,7 @@ def merged_request_slug(pr: dict, sha: str) -> str:
             if len(metadata) != 1 or set(changed) != exact | {metadata[0]}:
                 raise HandoffBlocked("HANDOFF_EXAM_PATH_DRIFT")
         slugs = set()
-        for plan in Path("pilot/runs").glob("*/chain_plan.json"):
+        for plan in storage_path("requests_root", root=Path.cwd()).glob("*/chain_plan.json"):
             if plan.is_symlink() or plan.parent.is_symlink():
                 continue
             data = json.loads(plan.read_text(encoding="utf-8"))
