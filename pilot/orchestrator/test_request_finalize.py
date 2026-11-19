@@ -6,6 +6,8 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
+from pilot.config.testing import install_project_config
+
 HERE = Path(__file__).resolve().parent
 
 
@@ -22,6 +24,7 @@ class FinalizeTests(unittest.TestCase):
         mod = load()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            install_project_config(root)
             folder = root / "pilot/runs/req-17"
             folder.mkdir(parents=True)
             (folder / "request_meta.json").write_text(
@@ -40,6 +43,7 @@ class FinalizeTests(unittest.TestCase):
         mod = load()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            install_project_config(root)
             folder = root / "pilot/runs/req-17"
             folder.mkdir(parents=True)
             ledger = root / "pilot/registry/implemented.json"
