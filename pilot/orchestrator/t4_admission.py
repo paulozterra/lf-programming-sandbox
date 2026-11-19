@@ -18,7 +18,7 @@ import tempfile
 import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
-from pilot.config.project_config import storage, storage_path, repo_storage
+from pilot.config.project_config import storage, storage_path, repo_storage, product_top_dirs as _product_top_dirs
 
 TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
@@ -302,8 +302,7 @@ def registration_variant(root: Path, base_task: str, template_path: str,
     meaningful.update(desired.get("context_path_patterns", []))
     meaningful.update(p for p in desired.get("protected_path_patterns", [])
                       if isinstance(p, str)
-                      and p.startswith(("apps/", "frontend/", "backend/", "db/",
-                                        "contracts/", "supabase/")))
+                      and p.startswith(_product_top_dirs()))
     for path in changed:
         if any(fnmatch(path, pattern) for pattern in meaningful
                if isinstance(pattern, str)):

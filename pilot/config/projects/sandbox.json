@@ -101,6 +101,75 @@
       ]
     }
   },
+  "lot_policy": {
+    "protected_base": [
+      ".github/**",
+      ".lf/**",
+      "pilot/**",
+      "vendor/**",
+      "apps/time-service/src/test/**",
+      "apps/time-service/visible-tests/**",
+      "apps/time-service/pom.xml",
+      "apps/time-service/src/main/resources/**",
+      "frontend/package.json",
+      "frontend/package-lock.json",
+      "frontend/src/**/__tests__/**",
+      "db/**"
+    ],
+    "areas": {
+      "CONTRATO": {
+        "unprotect": [],
+        "unprotect_if_written": [],
+        "protect": [],
+        "context_files": []
+      },
+      "BACKEND": {
+        "unprotect": [],
+        "unprotect_if_written": [],
+        "protect": [],
+        "context_files": []
+      },
+      "FRONTEND": {
+        "unprotect": [],
+        "unprotect_if_written": [],
+        "protect": [],
+        "context_files": []
+      },
+      "INFRA": {
+        "unprotect": [
+          "apps/time-service/pom.xml",
+          "apps/time-service/src/main/resources/**"
+        ],
+        "unprotect_if_written": [
+          "frontend/package.json",
+          "frontend/package-lock.json"
+        ],
+        "protect": [
+          "apps/time-service/src/main/resources/db/**",
+          "frontend/src/**",
+          "apps/time-service/src/main/java/**"
+        ],
+        "context_files": [
+          "apps/time-service/pom.xml",
+          "apps/time-service/src/main/resources/application.properties"
+        ]
+      },
+      "DATA": {
+        "unprotect": [
+          "apps/time-service/src/main/resources/**",
+          "db/**"
+        ],
+        "unprotect_if_written": [],
+        "protect": [
+          "apps/time-service/src/main/resources/application.properties",
+          "apps/time-service/src/main/resources/static/**",
+          "db/**/test/**",
+          "db/**/fixtures/**"
+        ],
+        "context_files": []
+      }
+    }
+  },
   "protected_paths": [
     "apps/time-service/src/test/**",
     "apps/time-service/visible-tests/**",

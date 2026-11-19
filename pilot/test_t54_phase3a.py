@@ -34,10 +34,14 @@ class Equivalence(unittest.TestCase):
             self.assertEqual(pc.area_write_prefixes(area, "sandbox"), roots, area)
 
     def test_area_project_roots_equal_native_lot_binding(self):
-        source = (ROOT / "pilot/orchestrator/native_lot_binding.py").read_text("utf-8")
-        start = source.index("REAL_ROOTS = {")
-        table = source[start:source.index("}", start) + 1].split("=", 1)[1]
-        real_roots = eval(table, {})  # literal table of tuples, no names
+        # Frozen literal of native_lot_binding.REAL_ROOTS before phase 3b.
+        real_roots = {
+            "BACKEND": ("apps/time-service/src/main/java/", "backend/src/main/java/"),
+            "FRONTEND": ("apps/web/", "frontend/"),
+            "DATA": ("db/", "supabase/migrations/", "apps/time-service/src/main/resources/db/migration/"),
+            "INFRA": ("apps/time-service/", "frontend/"),
+            "CONTRATO": ("contracts/",),
+        }
         self.assertEqual(set(real_roots), pc.AREAS)
         for area, roots in real_roots.items():
             self.assertEqual(pc.area_project_roots(area, "sandbox"), roots, area)
