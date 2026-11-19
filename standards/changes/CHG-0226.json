@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0226",
   "title": "A4: adaptador de auditor para la ruta (instructivo + ensamblador del informe) y ciclo de vida de los issues audit-request",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo (19/11): adaptar la skill de auditoría a la ruta, conectar la tarea programada y cerrar el ciclo de los issues audit-request. Sigue al E2E de #286 (PR #346)."
