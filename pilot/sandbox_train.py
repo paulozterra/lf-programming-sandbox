@@ -23,9 +23,12 @@ WAIT_SECONDS = 1500
 POLL_SECONDS = 20
 POST_PUSH_VISIBILITY_SECONDS = 60
 CI_MISSING_GRACE_SECONDS = 60
-# T52: an approved action_required run gets this long to start before the
-# single fallback dispatch for the same SHA.
+# T52: an approved action_required run gets this long, counted from when the
+# Train first saw it pending, to start before the single fallback dispatch.
 CI_APPROVAL_GRACE_SECONDS = 180
+# T52 (review H2): only runs of workflows whose checks the Train requires are
+# approved; any other pull_request workflow stays waiting and cannot block.
+APPROVABLE_WORKFLOWS = (".github/workflows/ci.yml", ".github/workflows/exam-rehearsal.yml")
 
 
 class TrainError(Exception):
@@ -252,6 +255,7 @@ def approve_pending_runs(sha):
         return
     for run in result.get("workflow_runs", []):
         if (run.get("head_sha") == sha and run.get("event") == "pull_request"
+                and (run.get("path") or "").split("@")[0] in APPROVABLE_WORKFLOWS
                 and run.get("head_repository", {}).get("full_name") == os.environ["GITHUB_REPOSITORY"]):
             try:
                 api("POST", f"/actions/runs/{run['id']}/approve", {}, expected=(200, 201, 204))
@@ -346,6 +350,7 @@ def await_checks(number, sha, dispatched_heads=None):
     required = REQUIRED + ((REHEARSAL_CHECK,) if needs_rehearsal(number) else ())
     start = time.monotonic()
     deadline = start + WAIT_SECONDS
+    pending_since = None  # first time an approvable CI run was seen (review H1)
     while time.monotonic() < deadline:
         pr = pr_data(number)
         check_pr(pr)
@@ -360,7 +365,10 @@ def await_checks(number, sha, dispatched_heads=None):
             # Dispatch once per SHA only if nothing is usable and nothing is
             # approvable, or an approved run never started within its grace.
             pending = ci_workflow_runs_for_head(sha, pending_approval=True)
-            if not pending or elapsed >= CI_MISSING_GRACE_SECONDS + CI_APPROVAL_GRACE_SECONDS:
+            now = time.monotonic()
+            if pending and pending_since is None:
+                pending_since = now
+            if not pending or now - pending_since >= CI_APPROVAL_GRACE_SECONDS:
                 dispatch_updated_head_ci(pr["head"]["ref"], sha)
                 dispatched_heads.add(sha)
                 print(json.dumps({"event": "ci_missing_fallback_dispatch", "head": sha,

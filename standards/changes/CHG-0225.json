@@ -15,6 +15,7 @@
     "paths": [
       ".github/workflows/ci.yml",
       "pilot/sandbox_train.py",
+      "pilot/test_sandbox_train_retry.py",
       "pilot/test_t52_bot_ci.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0225.json"

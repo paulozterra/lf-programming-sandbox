@@ -24,30 +24,37 @@ def pr():
             "user": {"login": "github-actions[bot]"}}
 
 
-def ci_run(run_id, status, sha=SHA, event="pull_request", repo=REPO):
+def ci_run(run_id, status, sha=SHA, event="pull_request", repo=REPO,
+           path=".github/workflows/ci.yml"):
     return {"id": run_id, "head_sha": sha, "event": event, "status": status,
-            "conclusion": None, "head_repository": {"full_name": repo}}
+            "conclusion": None, "head_repository": {"full_name": repo}, "path": path}
 
 
 class Clock:
-    def __init__(self):
+    def __init__(self, first_sleep=None):
         self.now = 0
+        self.first_sleep = first_sleep
 
     def monotonic(self):
         return self.now
 
     def sleep(self, seconds):
+        if self.first_sleep is not None:
+            seconds, self.first_sleep = self.first_sleep, None  # one slow poll
         self.now += seconds
 
 
 class GitHub:
     """`timeline(now)` returns the ci.yml runs visible at that moment."""
 
-    def __init__(self, clock, timeline, green_at=None):
+    def __init__(self, clock, timeline, green_at=None, on_dispatch=None):
         self.clock, self.timeline, self.green_at = clock, timeline, green_at
+        self.on_dispatch = on_dispatch
         self.posts, self.order = [], []
 
     def api(self, method, path, body=None, expected=(200,)):
+        if method == "POST" and path.endswith("/ci.yml/dispatches") and self.on_dispatch:
+            self.on_dispatch(self.clock.now)
         if method == "POST":
             self.posts.append(path)
             self.order.append(("POST", path))
@@ -69,9 +76,9 @@ class GitHub:
         return {}
 
 
-def run(timeline, green_at=None):
-    clock = Clock()
-    gh = GitHub(clock, timeline, green_at)
+def run(timeline, green_at=None, first_sleep=None, on_dispatch=None):
+    clock = Clock(first_sleep)
+    gh = GitHub(clock, timeline, green_at, on_dispatch)
     with patch.dict(os.environ, {"GITHUB_REPOSITORY": REPO}), \
          patch.object(train, "api", side_effect=gh.api), \
          patch.object(train, "pr_data", return_value=pr()), \
@@ -149,3 +156,41 @@ def test_pending_approval_listing_is_exact_and_same_repo_only():
          patch.object(train, "api", return_value={"workflow_runs": rows}):
         assert [r["id"] for r in train.ci_workflow_runs_for_head(SHA, pending_approval=True)] == [1]
         assert [r["id"] for r in train.ci_workflow_runs_for_head(SHA)] == [5]
+
+
+def test_pending_first_seen_late_gets_full_approval_grace():
+    """Review H1: if the first look after the 60s grace happens late (slow API,
+    t=300) and finds a pending run, the Train must still wait
+    CI_APPROVAL_GRACE_SECONDS from that sighting, not dispatch at once."""
+    def timeline(now):
+        return [ci_run(20, "action_required" if now < 400 else "in_progress")]
+    result, gh = run(timeline, green_at=450, first_sleep=300)
+    assert set(result) == set(train.REQUIRED)
+    assert dispatches(gh) == []
+
+
+def test_pending_never_starting_dispatches_after_grace_from_first_sight():
+    def timeline(now):
+        return [ci_run(21, "action_required")]
+    clock_at_dispatch = []
+    result, gh = run(timeline, green_at=None, first_sleep=300,
+                     on_dispatch=clock_at_dispatch.append)
+    assert dispatches(gh) == ["/actions/workflows/ci.yml/dispatches"]
+    assert clock_at_dispatch[0] >= 300 + train.CI_APPROVAL_GRACE_SECONDS
+
+
+def test_only_required_workflows_are_approved():
+    rows = [ci_run(30, "action_required"),
+            ci_run(31, "action_required", path=".github/workflows/exam-rehearsal.yml"),
+            ci_run(32, "action_required", path=".github/workflows/analysis-f0.yml")]
+    posts = []
+
+    def api(method, path, body=None, expected=(200,)):
+        if method == "POST":
+            posts.append(path)
+            return {}
+        return {"workflow_runs": rows}
+    with patch.dict(os.environ, {"GITHUB_REPOSITORY": REPO}), \
+         patch.object(train, "api", side_effect=api):
+        train.approve_pending_runs(SHA)
+    assert posts == ["/actions/runs/30/approve", "/actions/runs/31/approve"]
