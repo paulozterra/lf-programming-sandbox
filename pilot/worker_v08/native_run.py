@@ -16,6 +16,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
+# Direct script entrypoints and isolated dry-runs must resolve trusted package imports.
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "vendor/programming-agent/src"))
 
 from programming_agent_runner.hashutil import canonical_json_bytes, source_snapshot_sha256, strict_json_loads
