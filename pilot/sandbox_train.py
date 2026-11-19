@@ -23,6 +23,12 @@ WAIT_SECONDS = 1500
 POLL_SECONDS = 20
 POST_PUSH_VISIBILITY_SECONDS = 60
 CI_MISSING_GRACE_SECONDS = 60
+# T52: an approved action_required run gets this long, counted from when the
+# Train first saw it pending, to start before the single fallback dispatch.
+CI_APPROVAL_GRACE_SECONDS = 180
+# T52 (review H2): only runs of workflows whose checks the Train requires are
+# approved; any other pull_request workflow stays waiting and cannot block.
+APPROVABLE_WORKFLOWS = (".github/workflows/ci.yml", ".github/workflows/exam-rehearsal.yml")
 
 
 class TrainError(Exception):
@@ -249,6 +255,7 @@ def approve_pending_runs(sha):
         return
     for run in result.get("workflow_runs", []):
         if (run.get("head_sha") == sha and run.get("event") == "pull_request"
+                and (run.get("path") or "").split("@")[0] in APPROVABLE_WORKFLOWS
                 and run.get("head_repository", {}).get("full_name") == os.environ["GITHUB_REPOSITORY"]):
             try:
                 api("POST", f"/actions/runs/{run['id']}/approve", {}, expected=(200, 201, 204))
@@ -291,16 +298,30 @@ def dispatch_rehearsal(branch, sha):
                       "head_sha": sha}), flush=True)
 
 
-def ci_workflow_runs_for_head(sha):
-    """Only an actual ci.yml run on the exact commit can suppress dispatch."""
+def ci_workflow_runs_for_head(sha, pending_approval=False):
+    """Exact-commit ci.yml runs.
+
+    By default, only runs that can supply checks (never action_required).
+    With pending_approval=True, only same-repo pull_request runs waiting in
+    action_required: approvable, so they suppress the fallback dispatch (T52).
+    """
     runs = []
     page = 1
     while True:
         result = api("GET", f"/actions/workflows/ci.yml/runs?head_sha={sha}&per_page=100&page={page}")
         batch = result["workflow_runs"]
-        runs.extend(run for run in batch if run.get("head_sha") == sha
-                    and run.get("event") in ("pull_request", "push", "workflow_dispatch")
-                    and run.get("status") != "action_required")
+        for run in batch:
+            if run.get("head_sha") != sha:
+                continue
+            waiting = run.get("status") == "action_required"
+            if pending_approval:
+                if (waiting and run.get("event") == "pull_request"
+                        and run.get("head_repository", {}).get("full_name")
+                        == os.environ["GITHUB_REPOSITORY"]):
+                    runs.append(run)
+            elif (not waiting and run.get("event")
+                  in ("pull_request", "push", "workflow_dispatch")):
+                runs.append(run)
         if len(batch) < 100:
             break
         page += 1
@@ -329,25 +350,38 @@ def await_checks(number, sha, dispatched_heads=None):
     required = REQUIRED + ((REHEARSAL_CHECK,) if needs_rehearsal(number) else ())
     start = time.monotonic()
     deadline = start + WAIT_SECONDS
+    pending_since = None  # first time an approvable CI run was seen (review H1)
     while time.monotonic() < deadline:
         pr = pr_data(number)
         check_pr(pr)
         if pr["head"]["sha"] != sha:
             return None  # changed: restart against new SHA
-        # Bot pushes may create only an action_required run, which cannot supply
-        # the six checks. After a bounded grace period, dispatch once per SHA.
-        if (sha not in dispatched_heads
-                and time.monotonic() - start >= CI_MISSING_GRACE_SECONDS
+        # T52: approve first. A bot push may create an action_required run; once
+        # approved it supplies the checks, so it must not trigger a second CI.
+        approve_pending_runs(sha)
+        elapsed = time.monotonic() - start
+        if (sha not in dispatched_heads and elapsed >= CI_MISSING_GRACE_SECONDS
                 and not ci_workflow_runs_for_head(sha)):
-            dispatch_updated_head_ci(pr["head"]["ref"], sha)
-            dispatched_heads.add(sha)
-            print(json.dumps({"event": "ci_missing_fallback_dispatch", "head": sha}), flush=True)
+            # Dispatch once per SHA only if nothing is usable and nothing is
+            # approvable, or an approved run never started within its grace.
+            pending = ci_workflow_runs_for_head(sha, pending_approval=True)
+            now = time.monotonic()
+            if pending and pending_since is None:
+                pending_since = now
+            if not pending or now - pending_since >= CI_APPROVAL_GRACE_SECONDS:
+                dispatch_updated_head_ci(pr["head"]["ref"], sha)
+                dispatched_heads.add(sha)
+                print(json.dumps({"event": "ci_missing_fallback_dispatch", "head": sha,
+                                  "pending_approval": [r.get("id") for r in pending]}),
+                      flush=True)
+            else:
+                print(json.dumps({"event": "ci_pending_approval_awaited", "head": sha,
+                                  "runs": [r.get("id") for r in pending]}), flush=True)
         if (REHEARSAL_CHECK in required and ("rehearsal", sha) not in dispatched_heads
                 and time.monotonic() - start >= CI_MISSING_GRACE_SECONDS
                 and not rehearsal_runs_for_head(sha)):
             dispatch_rehearsal(pr["head"]["ref"], sha)
             dispatched_heads.add(("rehearsal", sha))
-        approve_pending_runs(sha)
         found = {name: value for name, value in checks_for_head(sha).items()
                  if name not in TRAIN_OWN_CHECKS}
         failed = [name for name in required if name in found and found[name]["conclusion"] not in (None, "success")]

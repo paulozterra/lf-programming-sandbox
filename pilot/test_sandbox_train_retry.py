@@ -59,6 +59,7 @@ class OwnChecksAndApproval(unittest.TestCase):
             calls.append((method, path))
             if path.startswith("/actions/runs?head_sha="):
                 return {"workflow_runs": [{"id": 7, "head_sha": HEAD, "event": "pull_request",
+                                           "path": ".github/workflows/ci.yml",
                                            "head_repository": {"full_name": "o/r"}}]}
             return {}
 
