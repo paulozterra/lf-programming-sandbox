@@ -46,7 +46,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # not from the caller's working directory or PYTHONPATH.
 import sys as _project_sys
 from pathlib import Path as _project_Path
-_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[1]))
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import ProjectConfigError, storage, storage_path, template_path_pattern
 REPO = "paulozterra/lf-programming-sandbox"
 TRAIN = ".github/workflows/sandbox-train.yml"
