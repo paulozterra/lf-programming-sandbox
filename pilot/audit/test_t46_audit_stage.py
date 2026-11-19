@@ -335,3 +335,15 @@ def test_mismatch_reports_counts(tmp_path):
     (d / "SKILL.md").write_text("otro")
     with pytest.raises(pin.SkillPinError, match="counts=missing:0/extra:0/changed:1"):
         pin.verify_tree(d, files)
+
+
+def test_remove_tree_handles_readonly_files(tmp_path):
+    import stat
+    d = tmp_path / "skill/.git/objects/pack"
+    d.mkdir(parents=True)
+    f = d / "pack-x.idx"
+    f.write_text("x")
+    os.chmod(f, stat.S_IREAD)
+    os.chmod(d, stat.S_IREAD | stat.S_IEXEC | stat.S_IWRITE)
+    pin._remove_tree(tmp_path / "skill")
+    assert not (tmp_path / "skill").exists()

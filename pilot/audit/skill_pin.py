@@ -12,6 +12,8 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import stat
+import os
 import subprocess
 import sys
 
@@ -40,13 +42,24 @@ def verify_tree(skill_dir: Path, files: dict) -> None:
         raise SkillPinError("AUDIT_SKILL_PIN_MISMATCH:" + ",".join(detail))
 
 
+def _remove_tree(path: Path) -> None:
+    """A8: git marks pack files read-only; Windows refuses to delete them."""
+    def clear_readonly(func, target, _exc):
+        os.chmod(target, stat.S_IWRITE)
+        func(target)
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=clear_readonly)
+    else:
+        shutil.rmtree(path, onerror=clear_readonly)
+
+
 def fetch(config: dict, dest: Path, root: Path = ROOT, source_url: str | None = None) -> Path:
     """Checkout <repository>@<commit> into dest (depth 1) and verify the skill path."""
     skill = config["audit"]["skill"]
     files = manifest(config, root)
     url = source_url or f"https://github.com/{skill['repository']}"
     if dest.exists():
-        shutil.rmtree(dest)
+        _remove_tree(dest)
     dest.mkdir(parents=True)
     git = ["git", "-C", str(dest)]
     try:
