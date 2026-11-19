@@ -351,10 +351,19 @@ jobs:
             --control control --task "$NATIVE_TASK" \
             --private "$RUNNER_TEMP/native-private" \
             --age-bin "$RUNNER_TEMP/age-bin/age"
+      - name: Recheck request lifecycle (trusted control only; no proposal execution)
+        id: lifecycle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 control/pilot/worker_v08/request_lifecycle_gate.py \
+            --control control --task "$NATIVE_TASK"
       - name: Execute original run_verified_worker using native proposal (single attempt)
         id: worker
         env:
-          GH_TOKEN: ${{ github.token }}
           NATIVE_TASK: ${{ steps.source.outputs.task }}
           NATIVE_ATTEMPT: ${{ steps.history.outputs.attempt }}
           NATIVE_RUN_ID: ${{ github.run_id }}
