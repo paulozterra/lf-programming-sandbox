@@ -17,6 +17,11 @@ Any failure stops before writing to the repository. Plaintext never enters
 the repository; only ciphertext and metadata do.
 """
 from __future__ import annotations
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import hashlib
@@ -265,7 +270,7 @@ def main() -> int:
         ref_cipher = ROOT / "pilot/holdouts" / f"{a.task}.reference.json.age"
         recipient = ROOT / "pilot/holdouts/recipient.txt"
         if a.add_reference:
-            meta_file = ROOT / "pilot/runs" / a.request / "claude_meta" / f"{a.task}.json"
+            meta_file = storage_path("requests_root", root=ROOT) / a.request / "claude_meta" / f"{a.task}.json"
             try:
                 published = json.loads(meta_file.read_text("utf-8"))["holdout_sha256"]
             except (OSError, ValueError, KeyError):
@@ -283,7 +288,7 @@ def main() -> int:
             raise ExamBlocked("EXAM_ALREADY_PUBLISHED_USE_NEW_VERSION_PR")
         encrypt_roundtrip(raw, recipient, a.identity, cipher)
         encrypt_roundtrip(package, recipient, a.identity, ref_cipher)
-        meta = ROOT / "pilot/runs" / a.request / "claude_meta" / f"{a.task}.json"
+        meta = storage_path("requests_root", root=ROOT) / a.request / "claude_meta" / f"{a.task}.json"
         meta.parent.mkdir(parents=True, exist_ok=True)
         meta.write_text(json.dumps({
             "holdout_ref": f"pilot/holdouts/{a.task}.oracle.json.age",

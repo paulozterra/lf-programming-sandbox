@@ -4,6 +4,11 @@ Only runs with a unique, valid Actions-produced proof consume attempts.
 Runs stopped before a proof exists are ignored; tampered or duplicated proofs block.
 """
 from __future__ import annotations
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import storage_path, storage
 
 import io
 import json
@@ -162,7 +167,7 @@ def admit_attempt(
     # spent proof. The immutable source run and original pack must still match.
     from native_route_defect import verified_migration
     control = Path(__file__).resolve().parents[2]
-    registration = control / "pilot/worker_v08/native_tasks" / (task + ".json")
+    registration = storage_path("registrations_root", root=control) / (task + ".json")
     try:
         record = json.loads(registration.read_text("utf-8"))
     except (OSError, ValueError):

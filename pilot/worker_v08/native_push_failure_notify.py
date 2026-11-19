@@ -1,5 +1,10 @@
 """Trusted-main bot issue notifier for a rejected native proposal push."""
 from __future__ import annotations
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import storage_path, storage
 import argparse
 import json
 from pathlib import Path
@@ -19,7 +24,7 @@ def find_issue(control, task):
     if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task):
         return None
     paths = command("git", "-C", str(control), "ls-tree", "-r", "--name-only",
-                    "HEAD", "--", "pilot/runs").splitlines()
+                    "HEAD", "--", storage()["requests_root"]).splitlines()
     pattern = r"pilot/runs/req-[1-9][0-9]*/proposal_requests/" + re.escape(task) + r"\.proposal-request\.json"
     matches = [p for p in paths if re.fullmatch(pattern, p)]
     if len(matches) != 1:

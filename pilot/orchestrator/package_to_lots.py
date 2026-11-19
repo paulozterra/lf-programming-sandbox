@@ -7,6 +7,11 @@ obligation explicitly bound to its DATA_CONTRACT fronts. This adapter blocks
 instead of inventing a DATA requirement or silently assigning UNKNOWN fronts.
 """
 from __future__ import annotations
+# Resolve the trusted repository package when executed as a script.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 from copy import deepcopy
@@ -45,7 +50,7 @@ def blocked(code):
 
 
 def read_package(root, slug):
-    folder = root / "pilot/runs" / slug
+    folder = storage_path("requests_root", root=root) / slug
     if folder.is_symlink():
         blocked("F51_RUN_PATH_INVALID")
     paths = [folder / name for name in ("request.md", "analysis.json", "state.json")]
@@ -272,7 +277,7 @@ def _write_once(path, value):
 def prepare_legacy(root, slug, *, base_head_sha=None):
     package, state = read_package(root, slug)
     assessment = derive(package)
-    folder = Path(root) / "pilot/runs" / slug
+    folder = storage_path("requests_root", root=Path(root)) / slug
     owner = _decision(package, folder, slug)
     if owner is None:
         # Preserve the original exact fail-closed code and behavior.
@@ -317,7 +322,7 @@ def prepare_legacy(root, slug, *, base_head_sha=None):
 
 def read_accepted_package(root, slug):
     """T1 accepts the shared intake contract, not F5-specific screen fields."""
-    folder = Path(root) / "pilot/runs" / slug
+    folder = storage_path("requests_root", root=Path(root)) / slug
     paths = [folder / name for name in ("request.md", "analysis.json", "state.json")]
     if any(p.is_symlink() or not p.is_file() for p in paths):
         blocked("ATOM_INTAKE_INPUT_MISSING")
@@ -346,7 +351,7 @@ def prepare(root, slug, *, base_head_sha=None, legacy=False):
     import generate_chain
     root = Path(root)
     package, state = read_accepted_package(root, slug)
-    folder = root / "pilot/runs" / slug
+    folder = storage_path("requests_root", root=root) / slug
     # Detect pre-T1 owner intervention, but never read or grant authority to it.
     report = {"schema_version": "T1_INTERVENTION_REPORT_V1", "request_id": slug,
               "INTERVENCION_MANUAL": "SI" if (folder/"owner_area_decision.json").exists() else "NO",

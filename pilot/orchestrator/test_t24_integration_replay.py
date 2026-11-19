@@ -4,6 +4,7 @@ No Worker, proposal branch, secret oracle, source patch or label is modified.
 The CP3.5 replay workflow itself must verify the original PASS/proof/patch.
 """
 from __future__ import annotations
+from pilot.config.testing import install_project_config
 
 import json
 from pathlib import Path
@@ -45,6 +46,7 @@ def failure(**updates):
 
 
 def fixture(tmp_path, *, paths=None):
+    install_project_config(tmp_path)
     file = tmp_path / "pilot/worker_v08/native_tasks" / (TASK + ".json")
     file.parent.mkdir(parents=True, exist_ok=True)
     file.write_text(json.dumps({

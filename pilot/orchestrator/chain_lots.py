@@ -9,6 +9,12 @@ write). Missing manifests, evidence and encrypted holdouts fail closed.
 """
 from __future__ import annotations
 
+# Direct-script entrypoint: resolve the trusted repository root from this file,
+# not from the caller's working directory or PYTHONPATH.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+
 import argparse
 from datetime import datetime, timezone
 import time
@@ -42,7 +48,7 @@ from t4_admission import AdmissionBlocked, require_green_base, missing_exam, pub
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pilot/worker_v08"))
 
 ROOT = Path(__file__).resolve().parents[2]
-from pilot.config.project_config import storage, storage_path, template_path_pattern
+from pilot.config.project_config import ProjectConfigError, storage, storage_path, template_path_pattern, repo_storage
 REPO = "paulozterra/lf-programming-sandbox"
 TRAIN = ".github/workflows/sandbox-train.yml"
 NATIVE = ".github/workflows/worker-native.yml"
@@ -343,8 +349,8 @@ def first_parent_merges(request: str, *, root: Path = ROOT,
         max_commits = int(raw)
     if type(max_commits) is not int or not 1 <= max_commits <= 10000:
         deny("CHAIN_HISTORY_INCOMPLETE")
-    paths = [f"{storage()['requests_root']}/{request}/chain_plan.json",
-             f"{storage()['chain_plans_root']}/{request}.json"]
+    paths = [f"{repo_storage()['requests_root']}/{request}/chain_plan.json",
+             f"{repo_storage()['chain_plans_root']}/{request}.json"]
     origins = []
     for path in paths:
         if not (root / path).is_file():
@@ -641,7 +647,7 @@ def conflicted_request(row: dict, all_plans: list) -> str | None:
             deny("CONFLICT_T7_FILES_INVALID")
         slugs = {match.group(1) for file in files if isinstance(file, dict)
                  if (match := re.fullmatch(
-                     r"pilot/runs/(req-[1-9][0-9]*)/"
+                     re.escape(storage()["requests_root"]) + r"/(req-[1-9][0-9]*)/"
                      r"(?:analysis|state|lots|chain_plan)[.]json",
                      str(file.get("filename", ""))))}
         return next(iter(slugs)) if len(slugs) == 1 else None
@@ -786,7 +792,7 @@ def exam_key(request: str, binding: dict) -> str:
         deny("EXAM_REQUEST_KEY_INVALID")
     path = binding.get("template_path")
     if not isinstance(path, str) or not re.fullmatch(
-            template_path_pattern(request).pattern, path):
+            template_path_pattern(request, root=ROOT).pattern, path):
         deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
     template = ROOT / path
     if template.is_symlink() or not template.is_file():
@@ -812,6 +818,8 @@ def exam_key(request: str, binding: dict) -> str:
                   or not re.fullmatch(r"[0-9a-f]{64}", stamped)
                   or not isinstance(recorded.get("template_path"), str)):
                 deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
+    except ProjectConfigError:
+        raise
     except (OSError, ValueError, TypeError):
         deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
     return f"LF_EXAM_REQUEST_KEY:{request}:{task}:{version}"
@@ -1397,7 +1405,7 @@ def publish_legacy_submission_contract(request: str, task: str, head: str) -> di
     relative = f"{storage()['requests_root']}/{request}/proposal_requests/{task}.proposal-request.json"
     source = ROOT / relative
     record_path = ROOT / f"{storage()['registrations_root']}/{task}.json"
-    pack_path = ROOT / f"pilot/runs/{request}/proposal_requests/{task}.task-pack.json"
+    pack_path = ROOT / f"{storage()['requests_root']}/{request}/proposal_requests/{task}.task-pack.json"
     if not source.is_file() or source.is_symlink() or not pack_path.is_file() or pack_path.is_symlink():
         return None  # T18's missing-package repair handles this case.
     if record_path.is_symlink() or not record_path.is_file():

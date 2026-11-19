@@ -13,6 +13,11 @@ The refreshed files are written into the registration worktree, so they enter
 main in the same governed registration PR as the task itself.
 """
 from __future__ import annotations
+# Resolve the trusted repository package when executed as a script.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import ProjectConfigError, storage_path, storage
 
 import hashlib
 import json
@@ -40,7 +45,7 @@ def _read(path: Path) -> dict:
 def refresh(root: Path, request: str, completed: dict) -> list[str]:
     """Return the repository paths rewritten (empty when already current)."""
     root = Path(root)
-    folder = root / "pilot/runs" / request
+    folder = storage_path("requests_root", root=root) / request
     lots = _read(folder / "lots.json")
     state = _read(folder / "state.json")
     if state.get("lots_sha256") != hashlib.sha256(canonical(lots)).hexdigest():
@@ -58,6 +63,8 @@ def refresh(root: Path, request: str, completed: dict) -> list[str]:
     try:
         result = generate_chain.generate(str(root), request, refreshed,
                                          persist=False, allow_source_drift=drift)
+    except ProjectConfigError:
+        raise
     except ValueError as exc:
         raise PlanRefreshBlocked("PLAN_REFRESH_GENERATION_FAILED:"
                                  + str(exc).split(":", 1)[0]) from exc

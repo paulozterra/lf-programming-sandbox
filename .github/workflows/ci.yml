@@ -172,6 +172,8 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt
           python3 -m pilot.workflow_entrypoint pilot/test_workflow_yaml_policy.py
+      - name: T54 phase 2b active project and storage path completeness
+        run: python3 -m unittest discover -s pilot -p 'test_t54_phase2b.py' -v
       - name: T9.1 permissions for all workflows and synthetic regressions
         run: |
           python3 -m pilot.workflow_entrypoint pilot/test_workflow_permissions.py
@@ -715,6 +717,9 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note"
           cp pilot/runs/sample-reminder-note/request.md pilot/runs/sample-reminder-note/analysis.json "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note/"
+          mkdir -p "$RUNNER_TEMP/cp3-2/pilot/config/projects"
+          cp pilot/config/active_project.json "$RUNNER_TEMP/cp3-2/pilot/config/"
+          cp pilot/config/projects/sandbox.json "$RUNNER_TEMP/cp3-2/pilot/config/projects/"
           python3 -m pilot.workflow_entrypoint pilot/orchestrator/intake.py --root "$RUNNER_TEMP/cp3-2" --request-id sample-reminder-note
           test -f "$RUNNER_TEMP/cp3-2/pilot/runs/sample-reminder-note/state.json"
   
@@ -746,6 +751,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/p4/pilot/config/projects"
+          cp pilot/config/active_project.json "$RUNNER_TEMP/p4/pilot/config/"
+          cp pilot/config/projects/sandbox.json "$RUNNER_TEMP/p4/pilot/config/projects/"
           mkdir -p "$RUNNER_TEMP/p4/pilot/runs/p4-prioridad"
           cp pilot/runs/p4-prioridad/request.md pilot/runs/p4-prioridad/analysis.json pilot/runs/p4-prioridad/planning_fixture.json "$RUNNER_TEMP/p4/pilot/runs/p4-prioridad/"
           python3 -m pilot.workflow_entrypoint pilot/orchestrator/intake.py --root "$RUNNER_TEMP/p4" --request-id p4-prioridad
@@ -773,6 +781,9 @@ jobs:
         run: |
           set -euo pipefail
           for name in sample-three-area-notes sample-reminder-note; do
+            mkdir -p "$RUNNER_TEMP/cp33/pilot/config/projects"
+            cp pilot/config/active_project.json "$RUNNER_TEMP/cp33/pilot/config/"
+            cp pilot/config/projects/sandbox.json "$RUNNER_TEMP/cp33/pilot/config/projects/"
             mkdir -p "$RUNNER_TEMP/cp33/pilot/runs/$name"
             cp "pilot/runs/$name/request.md" "pilot/runs/$name/analysis.json" "pilot/runs/$name/planning_fixture.json" "$RUNNER_TEMP/cp33/pilot/runs/$name/"
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/intake.py --root "$RUNNER_TEMP/cp33" --request-id "$name"

@@ -14,6 +14,11 @@ import re
 import sys
 import subprocess
 import tempfile
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import storage, storage_path, repo_storage
 
 TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
@@ -139,10 +144,10 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
     """
     try:
         from pathlib import PurePosixPath
-        request = PurePosixPath(template_path).parts[2]
-        chain = json.loads((root / "pilot/runs" / request / "chain_plan.json")
+        request = PurePosixPath(template_path).parts[len(repo_storage()["requests_root"].split("/"))]
+        chain = json.loads((storage_path("requests_root", request, root=root) / "chain_plan.json")
                            .read_text("utf-8"))
-        lots = json.loads((root / "pilot/runs" / request / "lots.json")
+        lots = json.loads((storage_path("requests_root", request, root=root) / "lots.json")
                           .read_text("utf-8"))
         bindings = [b for b in chain.get("bindings", [])
                     if b.get("template_path") == template_path]
@@ -178,6 +183,23 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                            timeout=45)
             try:
+                # Historical commits predate project configuration. Supply the
+                # current *validated* project contract to this detached,
+                # disposable replay checkout, without changing its git tree.
+                from pilot.config.project_config import active_project, load
+                import shutil
+                project_id = active_project(root=root)
+                load(project_id, root=root)
+                for relative in ("pilot/config/active_project.json",
+                                 f"pilot/config/projects/{project_id}.json"):
+                    original = root / relative
+                    target = historical / relative
+                    if target.exists() or target.is_symlink():
+                        if target.is_symlink() or target.read_bytes() != original.read_bytes():
+                            return False
+                    else:
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(original, target)
                 receipt_path = historical / ".lf/worker-context" / newest / "receipt.json"
                 if receipt_path.is_symlink() or not receipt_path.is_file():
                     return False
@@ -229,7 +251,7 @@ def registration_variant(root: Path, base_task: str, template_path: str,
     from fnmatch import fnmatch
     if not TASK.fullmatch(base_task):
         raise AdmissionBlocked("TASK_INVALID")
-    directory = root / "pilot/worker_v08/native_tasks"
+    directory = storage_path("registrations_root", root=root)
     if not directory.is_dir() or directory.is_symlink():
         raise AdmissionBlocked("TASK_DIRECTORY_INVALID")
     names = []

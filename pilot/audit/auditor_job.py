@@ -14,6 +14,12 @@ GitHub or changes it is here, as code, not as model decisions:
                        ready-to-merge and dispatch the train; otherwise comment
 """
 from __future__ import annotations
+# Direct-script entrypoint: resolve the trusted repository root from this file,
+# not from the caller's working directory or PYTHONPATH.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import json
@@ -94,7 +100,7 @@ def finalize(request: str, project: str, skill_dir: Path) -> dict:
     outside = changed_outside(request, status)
     if outside:
         raise JobError("AUDITOR_WROTE_OUTSIDE_AUDIT_DIR:" + outside[0])
-    audit = ROOT / "pilot/runs" / request / "audit"
+    audit = storage_path("requests_root", root=ROOT) / request / "audit"
     import report_scaffold as rs
     report = rs.assemble(json.loads((audit / "draft.json").read_text()),
                          json.loads((audit / "audit_input_v2.json").read_text()), skill_dir)

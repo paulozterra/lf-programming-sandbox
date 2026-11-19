@@ -12,6 +12,17 @@ from pilot import request_duplicate as dup, auto_integrate as policy
 from pilot.orchestrator import issue_intake, chain_lots
 
 
+def configured_root(root: Path) -> Path:
+    """Explicit project fixture for synthetic checkout roots."""
+    import shutil
+    source = Path(__file__).resolve().parents[1] / "pilot/config"
+    target = root / "pilot/config"
+    (target / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source / "active_project.json", target / "active_project.json")
+    shutil.copy2(source / "projects/sandbox.json", target / "projects/sandbox.json")
+    return root
+
+
 class IssueAPI:
     def __init__(self, recent):
         self.recent = recent
@@ -148,7 +159,7 @@ class Tests(unittest.TestCase):
 
     def test_exam_two_serialized_calls_create_only_one_marked_issue(self):
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp)
+            root=configured_root(Path(temp))
             template=root/"pilot/runs/req-901/templates/task202.task.json"
             template.parent.mkdir(parents=True, exist_ok=True)
             template.write_text(json.dumps({"task_spec":{
@@ -175,7 +186,7 @@ class Tests(unittest.TestCase):
         from concurrent.futures import ThreadPoolExecutor
         from threading import Lock, Barrier
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp)
+            root=configured_root(Path(temp))
             path=root/"pilot/runs/req-901/templates/task202.task.json"
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps({"task_spec":{
@@ -216,7 +227,7 @@ class Tests(unittest.TestCase):
                     "<!-- LF_EXAM_REQUEST_TASK:task202 -->",
              "state":"CLOSED","stateReason":"COMPLETED"}
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp)
+            root=configured_root(Path(temp))
             template=root/"pilot/runs/req-901/templates/task202.task.json"
             template.parent.mkdir(parents=True, exist_ok=True)
             template.write_text(json.dumps({"task_spec":{

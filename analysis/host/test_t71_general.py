@@ -1,5 +1,6 @@
 """T7.1: offline multi-screen catalogue, real requests, conservative traceability."""
 from __future__ import annotations
+from pilot.config.testing import install_project_config
 
 import hashlib
 import json
@@ -68,6 +69,7 @@ def prepare(tmp_path):
 
 
 def launch(root,run,phrase):
+    install_project_config(root)
     path=root/"pilot/runs"/run
     path.mkdir(parents=True)
     (path/"request.md").write_text(phrase+"\n",encoding="utf-8")

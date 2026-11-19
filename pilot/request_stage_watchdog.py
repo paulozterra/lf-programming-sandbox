@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """T9.2 bounded per-merge watchdog; no reliance on GitHub schedule delivery."""
 from __future__ import annotations
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[1]))
+from pilot.config.project_config import storage_path, storage
 import argparse
 from datetime import datetime, timezone
 import json
@@ -57,7 +62,7 @@ def request_slugs(pr: dict, merge_sha: str) -> tuple[str, list[str]] | None:
         return None
     task = m.group(1)
     slugs = []
-    for plan in (SRC / "pilot/runs").glob("req-*/chain_plan.json"):
+    for plan in (storage_path("requests_root", root=SRC)).glob("req-*/chain_plan.json"):
         if plan.is_symlink() or plan.parent.is_symlink():
             continue
         if not re.fullmatch(r"req-[1-9][0-9]*", plan.parent.name):

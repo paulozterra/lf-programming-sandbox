@@ -38,6 +38,9 @@ jobs:
           # A9 now has source-derived BE/FE scopes, while F5.1 is an
           # intentionally preserved ONE-scope owner-decision artifact.
           # Validate BOTH independently; never compare different schemas by bytes.
+          mkdir -p "$RUNNER_TEMP/f5-current/pilot/config/projects"
+          cp pilot/config/active_project.json "$RUNNER_TEMP/f5-current/pilot/config/"
+          cp pilot/config/projects/sandbox.json "$RUNNER_TEMP/f5-current/pilot/config/projects/"
           python3 -m analysis.host.run_a1_a9_fixture --root "$RUNNER_TEMP/f5-current" --slug f5-login
           cmp "$RUNNER_TEMP/f5-current/pilot/runs/f5-login/request.md" pilot/runs/f5-login/request.md
           python3 -m pilot.orchestrator.intake --root "$RUNNER_TEMP/f5-current" --request-id f5-login
@@ -53,6 +56,9 @@ jobs:
           assert len(current["scope_proposals"]) == 2 and len(frozen["scope_proposals"]) == 1
           print("F5_HISTORICAL_PACKET_AND_CURRENT_A9_SEPARATE_PASS")
           PY
+          mkdir -p "$RUNNER_TEMP/f5/pilot/config/projects"
+          cp pilot/config/active_project.json "$RUNNER_TEMP/f5/pilot/config/"
+          cp pilot/config/projects/sandbox.json "$RUNNER_TEMP/f5/pilot/config/projects/"
           mkdir -p "$RUNNER_TEMP/f5/pilot/runs/f5-login"
           cp pilot/runs/f5-login/request.md pilot/runs/f5-login/analysis.json "$RUNNER_TEMP/f5/pilot/runs/f5-login/"
           python3 -m pilot.orchestrator.intake --root "$RUNNER_TEMP/f5" --request-id f5-login

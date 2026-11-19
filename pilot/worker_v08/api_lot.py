@@ -6,6 +6,11 @@ pilot/orchestrator/generate_chain.py, not copied into the API workflow.
 All missing/ambiguous evidence blocks before private oracle or API access.
 """
 from __future__ import annotations
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 from decimal import Decimal
@@ -49,8 +54,8 @@ def read(root: Path, relative: str) -> dict:
 
 
 def find_binding(root: Path, task: str):
-    plans = list((root / "pilot/runs").glob("*/chain_plan.json"))
-    plans.extend((root / "pilot/orchestrator/chain_plans").glob("*.json"))
+    plans = list((storage_path("requests_root", root=root)).glob("*/chain_plan.json"))
+    plans.extend((storage_path("chain_plans_root", root=root)).glob("*.json"))
     found = []
     for file in sorted(plans):
         if file.is_symlink():

@@ -108,6 +108,11 @@ def test_new_optional_ref_and_unmodified_legacy_registration(tmp_path):
         result, sha = load_registration(HERE, task)
         assert result == record["task_spec"] and sha == record["holdout_sha256"]
         assert registration_holdout_ref(HERE, task) is None
+    import shutil
+    config_target = tmp_path / "pilot/config"
+    (config_target / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(HERE / "pilot/config/active_project.json", config_target / "active_project.json")
+    shutil.copy2(HERE / "pilot/config/projects/sandbox.json", config_target / "projects/sandbox.json")
     out = tmp_path / "pilot/worker_v08/native_tasks/sample.json"
     write_native_registration(tmp_path, "sample", out, spec, "a" * 64,
                               "pilot/holdouts/sample.oracle.json.age")

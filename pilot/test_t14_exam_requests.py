@@ -24,6 +24,12 @@ def issue(number, *, state="open", reason=None):
 
 
 def fixture(root):
+    import shutil
+    source_config = Path(__file__).resolve().parents[1] / "pilot/config"
+    target_config = root / "pilot/config"
+    (target_config / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source_config / "active_project.json", target_config / "active_project.json")
+    shutil.copy2(source_config / "projects/sandbox.json", target_config / "projects/sandbox.json")
     source = root / "pilot/runs/req-901/templates/lotexample1.task.json"
     source.parent.mkdir(parents=True, exist_ok=True)
     source.write_text(json.dumps({"task_spec": {

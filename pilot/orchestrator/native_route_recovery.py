@@ -6,6 +6,11 @@ generated Draft PR changes only public registrations, package and provenance;
 the original proposal branch and encrypted exam remain untouched.
 """
 from __future__ import annotations
+# Resolve the trusted repository package when executed as a script.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import ProjectConfigError, storage_path, storage
 
 import hashlib
 import json
@@ -102,9 +107,11 @@ def inspect(run, api, repo: str, root: Path, event: dict):
     task, sha = identity
     try:
         issue_for_task(root, task)
+    except ProjectConfigError:
+        raise
     except ValueError:
         return None
-    record = root / "pilot/worker_v08/native_tasks" / (task + ".json")
+    record = storage_path("registrations_root", root=root) / (task + ".json")
     if not record.is_file() or record.is_symlink():
         return None
     original = _source_record(run, event, task)
@@ -287,7 +294,7 @@ def replay_corrected(head, run, api, repo: str, root: Path,
             continue
         if not TASK.fullmatch(task):
             raise ValueError("ROUTE_DEFECT_MIGRATION_PATH_INVALID")
-        reg = root / "pilot/worker_v08/native_tasks" / (task + ".json")
+        reg = storage_path("registrations_root", root=root) / (task + ".json")
         if reg.is_symlink() or not reg.is_file():
             raise ValueError("ROUTE_DEFECT_REGISTRATION_MISSING")
         record = json.loads(reg.read_text("utf-8"))

@@ -120,6 +120,12 @@ def _repo_with_merges(tmp_path):
         g("add", ".")
         g("commit", "-qm", str(i))
         shas.append(g("rev-parse", "HEAD"))
+    import shutil
+    config_source = ROOT / "pilot/config"
+    config_target = r / "pilot/config"
+    (config_target / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
+    shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
     (r / "pilot/runs/req-9").mkdir(parents=True)
     (r / "pilot/runs/req-9/analysis.json").write_text("{}")
     (r / "pilot/runs/req-9/lots.json").write_text("{}")

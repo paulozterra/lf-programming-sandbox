@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """T1 deterministic chain-plan and task-template generation, no registration."""
 from __future__ import annotations
+# Resolve the trusted repository package when executed as a script.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import storage_path
 
 import hashlib
 import json
@@ -162,7 +167,7 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
     re-checked when regenerating later lots.
     """
     allow_source_drift=frozenset(allow_source_drift)
-    folder=Path(root)/"pilot/runs"/run
+    folder=storage_path("requests_root", root=Path(root))/run
     report_path=folder/"reuse_assessment.json"
     reuse_rows=[]
     package_for_reuse=None
@@ -380,5 +385,5 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
         return {"plan": plan, "templates": output}
     for path,data in sorted(output.items()):
         save(Path(root)/path,data)
-    save(Path(root)/"pilot/orchestrator/chain_plans"/(run+".json"),plan)
+    save(storage_path("chain_plans_root", root=Path(root))/(run+".json"),plan)
     return plan

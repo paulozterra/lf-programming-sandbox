@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """T9.1 independent failed-run watchdog; no execution of code from failed runs."""
 from __future__ import annotations
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[1]))
+from pilot.config.project_config import storage_path, storage
 import argparse
 import json
 import os
@@ -131,7 +136,7 @@ def request_for_task(task: str) -> set[str]:
         return set()
     root = Path(__file__).resolve().parents[1]
     slugs = set()
-    for plan in (root / "pilot/runs").glob("req-*/chain_plan.json"):
+    for plan in (storage_path("requests_root", root=root)).glob("req-*/chain_plan.json"):
         if plan.is_symlink() or plan.parent.is_symlink():
             continue
         try:

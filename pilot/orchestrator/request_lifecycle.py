@@ -5,11 +5,17 @@ allowlist. Closed GitHub issues are never active, independently of state_reason.
 """
 from __future__ import annotations
 
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+
 import json
 from pathlib import Path
 import re
 
 from pilot.orchestrator.request_finalize import verified_chain_complete
+from pilot.config.project_config import ProjectConfigError, storage, storage_path, template_path_pattern, repo_storage
 
 ROOT = Path(__file__).resolve().parents[2]
 REQUEST = re.compile(r"req-([1-9][0-9]*)\Z")
@@ -46,7 +52,7 @@ def _synthetic_allowed(request: str, allowlist: Path) -> bool:
 
 def _finalized(request: str, root: Path) -> bool:
     """Use the canonical finalization proof, never a second implementation."""
-    folder = root / "pilot/runs" / request
+    folder = storage_path("requests_root", request, root=root)
     return verified_chain_complete(folder, root=root)
 
 
@@ -87,15 +93,15 @@ def request_for_task(task: str, *, root: Path = ROOT) -> str:
     """
     if not isinstance(task, str) or not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task):
         unresolved()
-    registration = root / "pilot/worker_v08/native_tasks" / (task + ".json")
+    registration = storage_path("registrations_root", task + ".json", root=root)
     if registration.is_symlink() or not registration.is_file():
         unresolved()
     sources: dict[str, Path] = {}
     try:
         folders = [
-            (p.stem, p) for p in sorted((root / "pilot/orchestrator/chain_plans").glob("*.json"))
+            (p.stem, p) for p in sorted((storage_path("chain_plans_root", root=root)).glob("*.json"))
         ] + [
-            (p.parent.name, p) for p in sorted((root / "pilot/runs").glob("*/chain_plan.json"))
+            (p.parent.name, p) for p in sorted((storage_path("requests_root", root=root)).glob("*/chain_plan.json"))
         ]
         for request, path in folders:
             if (path.is_symlink() or path.parent.is_symlink()
@@ -121,12 +127,14 @@ def request_for_task(task: str, *, root: Path = ROOT) -> str:
                 entry = hits[0]
                 if (not isinstance(entry.get("lot_id"), str)
                         or not isinstance(entry.get("template_path"), str)
-                        or not entry["template_path"].startswith("pilot/runs/" + request + "/")):
+                        or not entry["template_path"].startswith(repo_storage()["requests_root"] + "/" + request + "/")):
                     unresolved()
                 owners.append(request)
         if len(owners) != 1:
             unresolved()
         return owners[0]
+    except ProjectConfigError:
+        raise
     except (OSError, ValueError, TypeError, KeyError, UnicodeError) as exc:
         raise RequestStateError(CODE) from exc
 

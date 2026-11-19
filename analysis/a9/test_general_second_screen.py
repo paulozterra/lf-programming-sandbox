@@ -4,6 +4,7 @@ This screen is a deliberately simulated A9 intake candidate. It does not
 claim its A1-A8 stage trace is an attested Analysis run.
 """
 from __future__ import annotations
+from pilot.config.testing import install_project_config
 
 from copy import deepcopy
 import hashlib
@@ -142,6 +143,7 @@ def test_second_screen_missing_link_blocks_with_exact_reason():
                     or not os.getenv("SELECTOR_EXP_TEST_DSN"),
                     reason="Requires disposable SQL profile selector")
 def test_second_screen_produces_two_lots_without_manual_decision(tmp_path):
+    install_project_config(tmp_path)
     source = second_screen()
     raw = b"Create a notes editor with independently sourced rules and policies\n"
     package = make_package(source, raw)

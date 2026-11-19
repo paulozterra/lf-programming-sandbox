@@ -6,6 +6,11 @@ Task ex6 is intentionally NOT registered here; Claude registers it after S2.
 """
 from __future__ import annotations
 
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+
 import argparse
 import hashlib
 import json
@@ -31,6 +36,7 @@ from native_proposal_client import NativeProposalClient, read_proposal_envelope
 from lot_preflight import check_task, LotBlocked
 from holdout_age import holdout_ref
 from pilot.orchestrator.request_lifecycle import require_task_open, RequestStateError
+from pilot.config.project_config import storage_path, template_path_any_request, reuse_assessment_pattern
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
@@ -50,7 +56,7 @@ def _write(path: Path, value: dict) -> None:
 
 def load_registration(control: Path, task: str) -> tuple[dict, str]:
     proposal_path(task)
-    path = control / "pilot/worker_v08/native_tasks" / (task + ".json")
+    path = storage_path("registrations_root", task + ".json", root=control)
     if not path.is_file() or path.is_symlink():
         raise ValueError("NATIVE_TASK_UNREGISTERED")
     obj = strict_json_loads(path.read_text(encoding="utf-8"))
@@ -89,7 +95,7 @@ def load_registration(control: Path, task: str) -> tuple[dict, str]:
 def registration_holdout_ref(control: Path, task: str) -> str | None:
     """Optional private locator; preserve legacy load_registration's two-tuple."""
     load_registration(control, task)
-    file = control / "pilot/worker_v08/native_tasks" / (task + ".json")
+    file = storage_path("registrations_root", task + ".json", root=control)
     return strict_json_loads(file.read_text("utf-8")).get("holdout_ref")
 
 
@@ -264,8 +270,7 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     compatibility = None
     if route_retry:
         from native_route_defect import verified_migration
-        registration = strict_json_loads((control / "pilot/worker_v08/native_tasks" /
-                                          (task + ".json")).read_text("utf-8"))
+        registration = strict_json_loads(storage_path("registrations_root", task + ".json", root=control).read_text("utf-8"))
         compatibility = verified_migration(control, task, registration,
                                            proposal_sha=proposal_sha)
         if compatibility is None or attempt != 1:

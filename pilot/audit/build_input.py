@@ -11,6 +11,12 @@ Derived only from route artifacts and git history, never typed by hand:
   check AUDIT_CRITERIA_UNCOVERED).
 """
 from __future__ import annotations
+# Direct-script entrypoint: resolve the trusted repository root from this file,
+# not from the caller's working directory or PYTHONPATH.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import hashlib
@@ -127,7 +133,7 @@ def main() -> int:
     a = ap.parse_args()
     try:
         lots, done = completed_from_history(a.request)
-        analysis = json.loads((ROOT / "pilot/runs" / a.request / "analysis.json").read_text("utf-8"))
+        analysis = json.loads((storage_path("requests_root", root=ROOT) / a.request / "analysis.json").read_text("utf-8"))
         data = build(a.request, a.project, a.repository, done, lots, analysis)
     except (AuditConfigError, AuditInputError, OSError, ValueError) as exc:
         print(json.dumps({"status": "BLOCKED", "reason": str(exc)}))

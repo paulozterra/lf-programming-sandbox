@@ -226,3 +226,4 @@
 | CHG-0232 | EDITORIAL | A8: skill_pin funciona en Windows (borra la copia previa aunque git deje archivos de solo lectura) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/354 |
 | CHG-0233 | EDITORIAL | A9: auditar desde Windows — preparación LF en AUDITOR.md y error explícito SCAFFOLD_CHECKOUT_EOL_CONVERTED |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/355 |
 | CHG-0234 | EDITORIAL | A10: auditor de lf vuelve a CLAUDE_ROUTINE (tarea programada cada 4 h con salida temprana) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/356 |
+| CHG-0235 | ADDITIVE | T54 fase 2b: completar rutas configuradas y proyecto activo validado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/352 |

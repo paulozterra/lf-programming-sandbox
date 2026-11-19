@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Policy C: bot-only Train admission from trusted main; no PR code execution."""
 from __future__ import annotations
+# Direct-script entrypoint: resolve the trusted repository root from this file,
+# not from the caller's working directory or PYTHONPATH.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[1]))
+from pilot.config.project_config import storage_path, storage
 
 import base64
 import io
@@ -402,7 +408,7 @@ def verify_generated_content(api, pr, paths, kind):
                 block("GENERATED_CONTENT_DRIFT")
             _, fixture = resolve(root, original.stdout)
             with tempfile.TemporaryDirectory(prefix="t7-content-check-") as temp:
-                staging = Path(temp) / "pilot/runs" / slug
+                staging = Path(temp) / storage()["requests_root"] / slug
                 staging.mkdir(parents=True)
                 (staging / "request.md").write_bytes(original.stdout)
                 run_f4(Path(temp), slug=slug, fixtures=fixture)

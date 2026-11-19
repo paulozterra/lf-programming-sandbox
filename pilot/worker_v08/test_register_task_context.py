@@ -230,6 +230,12 @@ class PinnedSource(unittest.TestCase):
         from native_run import load_registration
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            import shutil
+            config_source = ROOT / "pilot/config"
+            config_target = root / "pilot/config"
+            (config_target / "projects").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
+            shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
             head = init_git_fixture(root)
             source = json.loads((ROOT / "pilot/worker_v08/native_tasks/ex8.json").read_text())
             task = copy.deepcopy(source["task_spec"])
@@ -276,6 +282,11 @@ class PinnedSource(unittest.TestCase):
     def test_native_fail_closed_paths_sha_historic_and_existing(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            import shutil
+            target = root / "pilot/config"
+            (target / "projects").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / "pilot/config/active_project.json", target / "active_project.json")
+            shutil.copy2(ROOT / "pilot/config/projects/sandbox.json", target / "projects/sandbox.json")
             safe = root / "pilot/worker_v08/native_tasks/newtask.json"
             spec = {"max_attempts": 1, "base_head_sha": "a" * 40}
             with self.assertRaisesRegex(mod.ContextBlocked, "NATIVE_TASK_PATH_INVALID"):
