@@ -96,6 +96,50 @@ class Measure(unittest.TestCase):
                           out["runs_without_source_title"]), (1, 0, 1))
 
 
+class Results(unittest.TestCase):
+    def logs(self, texts):
+        def page_fn(endpoint):
+            run_id = int(endpoint.split("/runs/")[1].split("/")[0])
+            return {"jobs": [{"id": run_id * 10}]}
+
+        def text_fn(endpoint):
+            job = int(endpoint.split("/jobs/")[1].split("/")[0])
+            value = texts[job // 10]
+            if isinstance(value, Exception):
+                raise value
+            return value
+        return page_fn, text_fn
+
+    @staticmethod
+    def line(source, arrival, klass):
+        record = {"schema": "LF_WATCHDOG_ARRIVAL_V1", "source_run_id": source,
+                  "arrival": arrival, "result_class": klass}
+        return "2026-11-19T05:01:00Z LF_WATCHDOG_ARRIVAL " + json.dumps(record) + "\n"
+
+    def test_counts_result_classes_and_both_paths_from_logs(self):
+        texts = {1: self.line(9, "workflow_run", "PROCESSED"),
+                 2: self.line(9, "workflow_dispatch", "DEDUPED"),
+                 3: self.line(8, "workflow_run", "RUTA_SOURCE_NOT_FAILED"),
+                 4: self.line(None, "schedule", "SWEEP")}
+        page_fn, text_fn = self.logs(texts)
+        runs = [{"id": i} for i in texts]
+        records, complete = measure.arrival_records(runs, page_fn, text_fn)
+        self.assertTrue(complete)
+        out = measure.summarize_results(records)
+        self.assertEqual(out["by_result_class"],
+                         {"DEDUPED": 1, "PROCESSED": 1,
+                          "RUTA_SOURCE_NOT_FAILED": 1, "SWEEP": 1})
+        self.assertEqual(out["sources_both_paths_by_record"], 1)
+
+    def test_missing_ambiguous_or_unreadable_log_is_incomplete(self):
+        for value in ("no record here", self.line(1, "workflow_run", "PROCESSED") * 2,
+                      OSError("log gone")):
+            page_fn, text_fn = self.logs({1: value})
+            records, complete = measure.arrival_records([{"id": 1}], page_fn, text_fn)
+            self.assertFalse(complete)
+            self.assertEqual(records, [])
+
+
 class Arrival(unittest.TestCase):
     def test_record_has_watchdog_and_source_ids_and_summary(self):
         with tempfile.TemporaryDirectory() as tmp:

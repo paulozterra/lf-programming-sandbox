@@ -7,7 +7,12 @@ and conclusion, and reads the source run id from the run title
 arrived by workflow_run, by dispatch, or by both.
 
 A listing that cannot be proven complete is reported as INCOMPLETE, never as
-zero activations.
+zero activations. Pages are requested one by one (not `gh api --paginate`)
+so the tool can check total_count, duplicates and a page cap itself.
+
+With --with-results it also reads each run's job log and counts the
+LF_WATCHDOG_ARRIVAL records (PROCESSED / DEDUPED / RUTA_SOURCE_NOT_FAILED /
+SWEEP). A run whose record cannot be read makes the result INCOMPLETE.
 
     python3 pilot/tools/measure_watchdog.py \
         --start 2026-11-19T05:41:48Z --end 2026-11-19T05:56:48Z
@@ -70,6 +75,49 @@ def fetch(start: str, end: str, page_fn=gh_page, repo: str = REPO,
     return runs, False
 
 
+ARRIVAL = re.compile(r"LF_WATCHDOG_ARRIVAL (\{.*\})")
+
+
+def gh_text(endpoint: str) -> str:
+    return subprocess.run(["gh", "api", endpoint], check=True, text=True,
+                          capture_output=True, timeout=60).stdout
+
+
+def arrival_records(runs: list[dict], page_fn=gh_page, text_fn=gh_text,
+                    repo: str = REPO) -> tuple[list[dict], bool]:
+    """Read the T52 arrival line from every run's job log."""
+    records, complete = [], True
+    for row in runs:
+        try:
+            jobs = page_fn(f"repos/{repo}/actions/runs/{row['id']}/jobs?per_page=100")
+            found = []
+            for job in jobs.get("jobs", []):
+                log = text_fn(f"repos/{repo}/actions/jobs/{job['id']}/logs")
+                for match in ARRIVAL.finditer(log):
+                    found.append(json.loads(match.group(1)))
+        except (subprocess.SubprocessError, OSError, ValueError, KeyError, TypeError):
+            complete = False
+            continue
+        if len(found) != 1 or found[0].get("schema") != "LF_WATCHDOG_ARRIVAL_V1":
+            complete = False  # no record (pre-T52 or failed run) or ambiguous
+            continue
+        records.append(found[0])
+    return records, complete
+
+
+def summarize_results(records: list[dict]) -> dict:
+    by_class = Counter(str(r.get("result_class")) for r in records)
+    paths: dict[str, set[str]] = {}
+    for r in records:
+        if r.get("source_run_id") is not None:
+            paths.setdefault(str(r["source_run_id"]), set()).add(str(r.get("arrival")))
+    return {
+        "by_result_class": dict(sorted(by_class.items())),
+        "sources_both_paths_by_record": sum(
+            1 for e in paths.values() if {"workflow_run", "workflow_dispatch"} <= e),
+    }
+
+
 def summarize(runs: list[dict], start: str, end: str, complete: bool) -> dict:
     lo, hi = parse_time(start), parse_time(end)
     inside = []
@@ -116,6 +164,8 @@ def main(argv=None) -> int:
     parser.add_argument("--start", required=True)
     parser.add_argument("--end", required=True)
     parser.add_argument("--repo", default=REPO)
+    parser.add_argument("--with-results", action="store_true",
+                        help="also read each run's log for PROCESSED/DEDUPED/... counts")
     args = parser.parse_args(argv)
     if parse_time(args.start) >= parse_time(args.end):
         print(json.dumps({"status": "INVALID_WINDOW"}))
@@ -126,6 +176,16 @@ def main(argv=None) -> int:
         print(json.dumps({"status": "INCOMPLETE", "error": type(exc).__name__}))
         return 1
     result = summarize(runs, args.start, args.end, complete)
+    if args.with_results:
+        lo, hi = parse_time(args.start), parse_time(args.end)
+        inside = [r for r in runs
+                  if lo <= parse_time(str(r.get("created_at"))) < hi]
+        records, read_all = arrival_records(inside, repo=args.repo)
+        result.update(summarize_results(records))
+        result["records_read"] = len(records)
+        if not read_all:
+            result["status"] = "INCOMPLETE"
+            complete = False
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if complete else 1
 

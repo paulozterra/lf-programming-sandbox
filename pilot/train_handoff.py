@@ -227,13 +227,16 @@ def _follow_main_ci(api: Github, sha: str, config: dict, event: str,
 
 
 def ensure_main_ci(api: Github, sha: str, *, required: bool,
-                   config: dict | None = None, sleep=time.sleep) -> dict:
+                   config: dict | None = None, sleep=time.sleep,
+                   clock=time.monotonic) -> dict:
     """Validate the exact merge SHA on main; dispatch CI only as a fallback.
 
     T52: a Train merge pushed with TRAIN_PUSH_TOKEN (PR #337) already starts
     ci.yml on push. Reuse that run for the exact SHA; dispatch once only if no
-    push run appears within push_wait_seconds (e.g. a GITHUB_TOKEN merge,
-    the CHG-0113 case). A failed push CI blocks; it is never replaced.
+    push run appears by a real push_wait_seconds deadline (e.g. a GITHUB_TOKEN
+    merge, the CHG-0113 case). A failed push CI blocks; it is never replaced.
+    Renaming a job in ci.yml requires updating required_jobs in the gate
+    config (test_t52_main_ci enforces the correspondence).
     """
     config = config or main_ci_gate_config()
     if not SHA.fullmatch(sha):
@@ -243,17 +246,17 @@ def ensure_main_ci(api: Github, sha: str, *, required: bool,
     tip = api.call("GET", "/git/ref/heads/main")
     if tip.get("object", {}).get("sha") != sha:
         raise HandoffBlocked("BASE_NO_VERDE:MAIN_MOVED")
-    push_polls = max(1, (config["push_wait_seconds"] + config["poll_seconds"] - 1)
-                     // config["poll_seconds"])
-    if not required:
-        push_polls = 1
-    push_run = None
-    for poll in range(push_polls):
+    # Monotonic deadline: the last probe happens at or after the deadline,
+    # never one poll early (review H3).
+    deadline = clock() + (config["push_wait_seconds"] if required else 0)
+    while True:
         push_run = main_ci_run(api, sha, config, ("push",))
         if push_run is not None:
             break
-        if poll + 1 < push_polls:
-            sleep(config["poll_seconds"])
+        remaining = deadline - clock()
+        if remaining <= 0:
+            break
+        sleep(min(config["poll_seconds"], remaining))
     if push_run is not None:
         if not required:
             return {"status": "MAIN_CI_PUSH_OBSERVED", "sha": sha,

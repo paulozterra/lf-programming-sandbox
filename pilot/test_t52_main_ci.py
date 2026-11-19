@@ -76,9 +76,23 @@ class API:
         return [p for m, p, _ in self.calls if m == "POST"]
 
 
-def ensure(api, cfg=CFG, required=True):
+class Clock:
+    def __init__(self):
+        self.now = 0.0
+        self.sleeps = []
+
+    def __call__(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+
+def ensure(api, cfg=CFG, required=True, clock=None):
+    clock = clock or Clock()
     return handoff.ensure_main_ci(api, SHA, required=required, config=cfg,
-                                  sleep=lambda _: None)
+                                  sleep=clock.sleep, clock=clock)
 
 
 class Tests(unittest.TestCase):
@@ -95,8 +109,8 @@ class Tests(unittest.TestCase):
         self.assertEqual(api.posts(), [])
 
     def test_no_push_ci_dispatches_once_and_requires_new_dispatch_run(self):
-        # 4 push probes (60s / 15s) see nothing; previous lookup; then dispatch run.
-        api = API([[], [], [], [], [], [run("workflow_dispatch", run_id=601)]])
+        # 5 push probes (t=0..60s, last one at the deadline); previous; dispatch run.
+        api = API([[], [], [], [], [], [], [run("workflow_dispatch", run_id=601)]])
         result = ensure(api)
         self.assertEqual(result["event"], "workflow_dispatch")
         self.assertEqual(result["run_id"], 601)
@@ -115,6 +129,30 @@ class Tests(unittest.TestCase):
                    [run(attempt=2)]])
         self.assertEqual(ensure(api)["status"], "MAIN_CI_GREEN")
         self.assertNotIn("/actions/workflows/ci.yml/dispatches", api.posts())
+
+    def test_push_wait_is_a_real_deadline_with_final_probe(self):
+        """Review H3: no fallback before push_wait_seconds; a probe at the deadline."""
+        clock = Clock()
+        api = API([[], [], [], [], [], [], [run("workflow_dispatch", run_id=601)]])
+        ensure(api, clock=clock)
+        probes = [i for i, (m, p, _) in enumerate(api.calls)
+                  if p.startswith("/actions/workflows/ci.yml/runs?")]
+        dispatch = next(i for i, (m, p, _) in enumerate(api.calls)
+                        if p == "/actions/workflows/ci.yml/dispatches")
+        self.assertGreaterEqual(sum(clock.sleeps[:4]), CFG["push_wait_seconds"])
+        self.assertLess(probes[4], dispatch)  # probe at t=60 precedes dispatch
+
+    def test_push_run_seen_only_at_deadline_is_reused(self):
+        api = API([[], [], [], [], [run()]])
+        self.assertEqual(ensure(api)["event"], "push")
+        self.assertEqual(api.posts(), [])
+
+    def test_uneven_poll_never_overshoots_or_undershoots_deadline(self):
+        cfg = {**CFG, "push_wait_seconds": 50, "poll_seconds": 15}
+        clock = Clock()
+        api = API([[], [], [], [], [], [], [run("workflow_dispatch", run_id=601)]])
+        ensure(api, cfg=cfg, clock=clock)
+        self.assertEqual(clock.sleeps[:4], [15, 15, 15, 5])
 
     def test_skipped_required_job_never_approves(self):
         name = GATE["required_jobs"][0]
@@ -141,14 +179,14 @@ class Tests(unittest.TestCase):
 
     def test_dispatch_run_also_needs_required_jobs(self):
         name = GATE["required_jobs"][2]
-        api = API([[], [], [], [], [], [run("workflow_dispatch", run_id=601)]],
+        api = API([[], [], [], [], [], [], [run("workflow_dispatch", run_id=601)]],
                   jobs({name: {"conclusion": "skipped"}}))
         with self.assertRaisesRegex(handoff.HandoffBlocked, "REQUIRED_JOBS"):
             ensure(api)
 
     def test_push_ci_of_another_sha_is_ignored(self):
         foreign = run(sha=OTHER, run_id=400)
-        api = API([[foreign]] * 5 + [[foreign, run("workflow_dispatch", run_id=601)]])
+        api = API([[foreign]] * 6 + [[foreign, run("workflow_dispatch", run_id=601)]])
         self.assertEqual(ensure(api)["run_id"], 601)
         self.assertEqual(api.posts(), ["/actions/workflows/ci.yml/dispatches"])
 
