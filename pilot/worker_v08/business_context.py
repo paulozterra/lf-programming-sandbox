@@ -9,6 +9,7 @@ copied from the run's own A9 package, and a missing or ambiguous source
 fails closed.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import json
 from pathlib import Path
@@ -63,7 +64,7 @@ def material(root: Path, slug: str, requirement_ids: list[str], area: str) -> di
     if (not isinstance(requirement_ids, list) or not requirement_ids
             or any(not isinstance(r, str) or not REQ.fullmatch(r) for r in requirement_ids)):
         _fail("CONTEXTO_NEGOCIO_REQUISITOS_INVALIDOS")
-    file = Path(root) / "pilot/runs" / slug / "analysis.json"
+    file = storage_path("requests_root", root=Path(root)) / slug / "analysis.json"
     if not file.exists():
         return {}
     if file.is_symlink() or not file.is_file():
