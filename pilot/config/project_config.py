@@ -154,7 +154,7 @@ def storage(*, root: Path = ROOT, project: str = "sandbox") -> dict[str, str]:
 def storage_path(kind: str, *parts: str, root: Path = ROOT,
                  project: str = "sandbox") -> Path:
     """Resolve a configured storage root and checked identifier segments."""
-    cfg = storage(root=root, project=project)
+    cfg = storage(root=ROOT, project=project)
     if kind not in ("requests_root", "registrations_root", "chain_plans_root"):
         _deny()
     for part in parts:
@@ -168,7 +168,7 @@ def template_path_pattern(request: str, *, root: Path = ROOT,
     """Exact-match regex derived from validated configuration, never loosened."""
     if not isinstance(request, str) or not re.fullmatch(r"req-[1-9][0-9]*", request):
         _deny()
-    template = storage(root=root, project=project)["task_template_pattern"]
+    template = storage(root=ROOT, project=project)["task_template_pattern"]
     escaped = re.escape(template)
     escaped = escaped.replace(re.escape("{request}"), re.escape(request))
     escaped = escaped.replace(re.escape("{task}"), r"[a-z][a-z0-9_-]{0,31}")
