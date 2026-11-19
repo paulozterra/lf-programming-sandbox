@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0238",
+  "title": "T57: espejo de Maven Central con Central como respaldo en CI, Worker, exámenes y PG37",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "T57 aprobado 2026-11-19 (pendiente de infraestructura del 16/11: espejo de Maven)"
+  },
+  "reason": "Maven Central limita (HTTP 429 / artefacto 'absent') a las IP compartidas de los runners de GitHub: el 16/11 el CI de main falló o tardó más de 25 minutos y el 19/11 fallaron tres corridas resolviendo spring-boot-starter-parent:4.1.1 y spring-boot-maven-plugin:4.1.1. Cada job vivo que configura Java escribe, justo después de setup-java, la configuración global de Maven ($MAVEN_HOME/conf/settings.xml) con un perfil activo que agrega el espejo de Google (maven-central.storage-download.googleapis.com) como repositorio y repositorio de plugins. Es global para que también aplique al Worker vendorizado y a los exámenes, que ejecutan mvn con HOME aislado. No se usa <mirrors> (mirrorOf=central quitaría el respaldo): Central sigue disponible después del espejo. El paso es idéntico en ci.yml (3 jobs), worker-native.yml, exam-rehearsal.yml y pg37-evidence.yml, por lo que el entorno del ensayo de exámenes sigue siendo el del Worker (T40). Los workflows de experimentos históricos no cambian. Prueba estructural test_t57_maven_mirror.py.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/exam-rehearsal.yml",
+      ".github/workflows/pg37-evidence.yml",
+      ".github/workflows/worker-native.yml",
+      "pilot/test_t57_maven_mirror.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0238.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/360"
+  }
+}

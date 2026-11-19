@@ -87,6 +87,43 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - name: Maven Central mirror with Central fallback (T57)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Global settings apply to every mvn on this runner, including the
+          # vendored Worker and exams that run with an isolated, empty HOME.
+          maven_home="$(mvn -v | sed -n 's/^Maven home: //p')"
+          test -n "$maven_home" && test -d "$maven_home/conf"
+          sudo tee "$maven_home/conf/settings.xml" >/dev/null <<'XML'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
+            <profiles>
+              <profile>
+                <id>lf-maven-mirror</id>
+                <repositories>
+                  <repository>
+                    <id>google-maven-central</id>
+                    <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>google-maven-central</id>
+                    <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>lf-maven-mirror</activeProfile>
+            </activeProfiles>
+          </settings>
+          XML
+          grep -q "maven-central.storage-download.googleapis.com" "$maven_home/conf/settings.xml"
 
       - name: Link JDK 21 and Maven into the vendored Worker's fixed PATH (EX6)
         shell: bash
