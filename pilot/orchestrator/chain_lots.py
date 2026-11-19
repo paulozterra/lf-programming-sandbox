@@ -293,13 +293,13 @@ def plans() -> list[tuple[str, dict, dict, dict]]:
     # evidence PRs are restricted to pilot/runs/<slug>/, so they publish
     # chain_plan.json inside their own request folder.
     sources = {}
-    legacy = storage_path("chain_plans_root")
+    legacy = storage_path("chain_plans_root", root=ROOT)
     if legacy.exists():
         for file in sorted(legacy.glob("*.json")):
             if file.is_symlink() or not SAFE_ID.fullmatch(file.stem):
                 deny("CHAIN_PLAN_PATH_INVALID")
             sources[file.stem] = file
-    runs = storage_path("requests_root")
+    runs = storage_path("requests_root", root=ROOT)
     if runs.exists():
         for file in sorted(runs.glob("*/chain_plan.json")):
             request = file.parent.name
@@ -310,7 +310,7 @@ def plans() -> list[tuple[str, dict, dict, dict]]:
             sources.setdefault(request, file)
     rows = []
     for request, file in sorted(sources.items()):
-        folder = storage_path("requests_root") / request
+        folder = storage_path("requests_root", root=ROOT) / request
         if folder.is_symlink():
             deny("CHAIN_RUN_SYMLINK")
         for path in (folder / "lots.json", folder / "state.json"):
@@ -449,7 +449,7 @@ def failed_lots(bindings: dict) -> dict[str, list[int]]:
         for entry in failures:
             proof = _artifact_json(REPO, token, entry["id"])
             proofs[entry["id"]] = proof
-        registration = storage_path("registrations_root") / (task + ".json")
+        registration = storage_path("registrations_root", root=ROOT) / (task + ".json")
         migration = None
         if registration.is_file() and not registration.is_symlink():
             try:
@@ -798,7 +798,7 @@ def exam_key(request: str, binding: dict) -> str:
             deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
         version = hashlib.sha256(canonical(spec)).hexdigest()
         # Pre-T47 registrations lack a verifiable original-template stamp.
-        legacy_record = storage_path("registrations_root") / (task + ".json")
+        legacy_record = storage_path("registrations_root", root=ROOT) / (task + ".json")
         if legacy_record.is_symlink():
             deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
         if legacy_record.is_file():
@@ -927,7 +927,7 @@ def complete_registered_exam_requests(request: str, bindings: dict) -> list[int]
     registered = []
     for binding in bindings.values():
         task = binding["task_name"]
-        record = storage_path("registrations_root") / (task + ".json")
+        record = storage_path("registrations_root", root=ROOT) / (task + ".json")
         if record.is_symlink():
             deny("EXAM_REGISTRATION_SYMLINK")
         if record.is_file() and not missing_exam(ROOT, task):
@@ -970,7 +970,7 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
     body += "\n\n" + exam_issue_marker(task) + "\n<!-- " + key + " -->\n"
     try:
         matches = exam_request_matches(listed_exam_requests(), task, request, key)
-        registration = storage_path("registrations_root") / (task + ".json")
+        registration = storage_path("registrations_root", root=ROOT) / (task + ".json")
         if registration.is_symlink():
             deny("EXAM_REGISTRATION_SYMLINK")
         outcome, found = choose_exam_issue(matches, registration.is_file())
@@ -1226,7 +1226,7 @@ def route_request_metadata(request: str) -> bool:
     """Only T9 bot-registered req-N inputs may receive T18 repair."""
     if not re.fullmatch(r"req-[1-9][0-9]*", request):
         return False
-    path = storage_path("requests_root") / request / "request_meta.json"
+    path = storage_path("requests_root", root=ROOT) / request / "request_meta.json"
     if path.is_symlink() or not path.is_file():
         return False
     try:
@@ -1352,10 +1352,10 @@ def publish_missing_registered_pack(request: str, task: str, head: str) -> dict 
     if (not re.fullmatch(r"req-[1-9][0-9]*", request)
             or not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task)):
         deny("TASK_PACK_SCOPE_INVALID")
-    record = storage_path("registrations_root") / (task + ".json")
+    record = storage_path("registrations_root", root=ROOT) / (task + ".json")
     if record.is_symlink() or not record.is_file():
         return None
-    pack_dir = storage_path("requests_root") / request / "proposal_requests"
+    pack_dir = storage_path("requests_root", root=ROOT) / request / "proposal_requests"
     paths = [f"{storage()['requests_root']}/{request}/proposal_requests/{task}{suffix}"
              for suffix in (".task-pack.json", ".proposal-request.json")]
     existing = [(ROOT / path).exists() or (ROOT / path).is_symlink()
@@ -1525,7 +1525,7 @@ def verify_new_plan(request: str, merge_pr: int, sha: str) -> None:
     changed = set(run("git", "diff", "--name-only", sha + "^1", sha).splitlines())
     if f"{storage()['requests_root']}/{request}/chain_plan.json" not in changed:
         deny("EXAM_PLAN_PROVENANCE_INVALID")
-    metadata = json.loads((storage_path("requests_root") / request /
+    metadata = json.loads((storage_path("requests_root", root=ROOT) / request /
                            "request_meta.json").read_text("utf-8"))
     if metadata.get("issue") != int(request[4:]):
         deny("EXAM_PLAN_PROVENANCE_INVALID")
@@ -1783,7 +1783,7 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
         task = bindings[lot_id]["task_name"]
         # Only public/source and template drift can require a new attempt.
         # Never overwrite a registered task or reuse an old examiner SHA.
-        registered = storage_path("registrations_root") / (task + ".json")
+        registered = storage_path("registrations_root", root=ROOT) / (task + ".json")
         if registered.exists() or registered.is_symlink():
             def relevant_base_diff(base_sha: str) -> set[str]:
                 run("git", "merge-base", "--is-ancestor", base_sha, head)
