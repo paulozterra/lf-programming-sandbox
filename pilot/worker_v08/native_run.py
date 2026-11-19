@@ -90,7 +90,7 @@ def load_registration(control: Path, task: str) -> tuple[dict, str]:
 def registration_holdout_ref(control: Path, task: str) -> str | None:
     """Optional private locator; preserve legacy load_registration's two-tuple."""
     load_registration(control, task)
-    file = control / "pilot/worker_v08/native_tasks" / (task + ".json")
+    file = storage_path("registrations_root", task + ".json", root=control)
     return strict_json_loads(file.read_text("utf-8")).get("holdout_ref")
 
 
