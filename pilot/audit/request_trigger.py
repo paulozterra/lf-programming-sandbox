@@ -74,7 +74,7 @@ def close_done(repo: str, root: Path = ROOT) -> list[dict]:
         head = subprocess.run(["git", "-C", str(root), "log", "-1", "--format=%H", "--", str(report)],
                               capture_output=True, text=True).stdout.strip()
         gh(f"repos/{repo}/issues/{item['number']}/comments",
-           data={"body": f"Informe de auditoría fusionado: `{storage(root=root)['requests_root']}/{req}/audit/report.json` (commit `{head}`). Se cierra."})
+           data={"body": f"Informe de auditoría fusionado: `{storage()['requests_root']}/{req}/audit/report.json` (commit `{head}`). Se cierra."})
         gh("-X", "PATCH", f"repos/{repo}/issues/{item['number']}", data={"state": "closed", "state_reason": "completed"})
         closed.append({"request": req, "issue": item["number"], "commit": head})
     return closed
