@@ -16,9 +16,9 @@ sys.path.insert(0, str(ROOT))
 from pilot.orchestrator.request_lifecycle import RequestStateError, require_task_open
 
 
-def recheck(control: Path, task: str, *, checker=require_task_open) -> str:
+def recheck(control: Path, task: str, *, checker=None) -> str:
     """Reject unknown/closed tasks before any attempt proof or model invocation."""
-    return checker(task, root=control)
+    return (checker or require_task_open)(task, root=control)
 
 
 def main() -> int:
