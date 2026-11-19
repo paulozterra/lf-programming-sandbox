@@ -188,6 +188,7 @@ def test_a9_stage_trace_exact_order(payload):
 
 
 def test_byte_exact_replay(tmp_path):
+    install_project_config(tmp_path)
     from pilot.orchestrator.intake import canonical
     import shutil
     # A replay with submitted request.md resolves the screen from the same
