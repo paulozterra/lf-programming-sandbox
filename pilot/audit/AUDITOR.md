@@ -2,9 +2,10 @@
 
 Instructivo genérico (cualquier proyecto) para el auditor declarado en
 `pilot/audit/projects/<proyecto>.json` (`audit.auditor`). El auditor **nunca** es
-el constructor del pedido. Con `GPT_ISOLATED_SESSION` (decisión del owner, 19/11, por costo)
-la auditoría se hace en un **chat nuevo** de GPT, sin el historial del chat que construyó el
-pedido; en el PR se declara `Auditor: GPT (sesión aislada)` como límite de independencia. La skill se usa desde el repositorio de su dueño, en el
+el constructor del pedido. Para `lf` el auditor es `CLAUDE_ROUTINE`: una tarea programada
+de Claude (suscripción del owner) que cada 4 horas revisa si hay issues `audit-request`
+abiertos y, si no hay, termina sin hacer nada. Una sesión que no puede ejecutar reproductores
+(p. ej. un chat sin entorno) no sirve como auditor: sin ejecución no hay `CONFIRMED`. La skill se usa desde el repositorio de su dueño, en el
 commit fijado: no se copia ni se modifica.
 
 ## 0. Preparar la copia del repositorio (Windows)

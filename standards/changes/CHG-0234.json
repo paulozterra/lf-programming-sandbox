@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0234",
+  "title": "A10: auditor de lf vuelve a CLAUDE_ROUTINE (tarea programada cada 4 h con salida temprana)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (19/11): Codex sin reproductores es solo un barrido barato; volver a la tarea programada de Claude cada 4 horas."
+  },
+  "reason": "lf.json declara CLAUDE_ROUTINE; AUDITOR.md describe la tarea programada y deja escrito que una sesión sin ejecución no sirve como auditor (sin reproductor no hay CONFIRMED). GPT_ISOLATED_SESSION sigue admitido para otros proyectos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/audit/projects/lf.json",
+      "pilot/audit/AUDITOR.md",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0234.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}
