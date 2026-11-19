@@ -49,14 +49,14 @@ class StorageEquivalence(unittest.TestCase):
         }
         for consumer, (kind, parts, expected) in cases.items():
             with self.subTest(consumer=consumer):
-                self.assertEqual(storage_path(kind, *parts, root=ROOT), ROOT / expected)
+                self.assertEqual(storage_path(kind, *parts, root=ROOT, project="sandbox"), ROOT / expected)
 
     def test_regex_exact_equivalence_and_security(self):
         req = "req-286"
         old = re.compile(
             rf"pilot/runs/{re.escape(req)}/templates/[a-z][a-z0-9_-]{{0,31}}[.]task[.]json"
         )
-        new = template_path_pattern(req)
+        new = template_path_pattern(req, root=ROOT, project="sandbox")
         samples = [
             "pilot/runs/req-286/templates/abc.task.json",
             "pilot/runs/req-286/templates/a.task.json",
@@ -86,7 +86,7 @@ class StorageEquivalence(unittest.TestCase):
         for kind, parts in [("unknown", ()), ("requests_root", ("..",)),
                             ("requests_root", ("x/y",)), ("requests_root", (".",))]:
             with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
-                storage_path(kind, *parts)
+                storage_path(kind, *parts, root=ROOT, project="sandbox")
 
 
 if __name__ == "__main__":
