@@ -1255,6 +1255,15 @@ GLOBAL_SWEEP_ERRORS = frozenset({
 def safe_failure_code(exc: Exception) -> str:
     """Preserve machine-readable detail, never a URL, path, token or response body."""
     raw = str(exc)
+    # T50: only this trusted, bounded relative path may appear in a code.
+    prefix = "CP36_CHAIN_EXPECTED_FILE_MISSING:"
+    if raw.startswith(prefix):
+        path = raw[len(prefix):]
+        if (len(path) <= 180
+                and re.fullmatch(r"[A-Za-z0-9_./-]+", path)
+                and not path.startswith("/")
+                and ".." not in Path(path).parts):
+            return raw
     if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw):
         return raw
     # CP3.6's own command wrapper emits a trusted basename plus a bounded
