@@ -169,14 +169,8 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     # Check the proposal using the vendored schema/scope before consuming an attempt.
     proposal = parse_patch_proposal(submitted["proposal"], spec)
     inspect_patch(proposal, spec)
-    # Recheck the trusted issue immediately before emitting the attempt proof.
-    # A closed/unresolved request must not charge, run a model, or publish feedback.
-    try:
-        require_task_open(task, root=control)
-    except RequestStateError:
-        for name in ("feedback.json", "cost.json"):
-            (public / name).unlink(missing_ok=True)
-        raise
+    # The trusted lifecycle step authorizes this job immediately before execute.
+    # Do not read GitHub state here: acceptance commands run in this token-free step.
     _write(public / "attempt-proof.json", _proof(submitted, task, attempt, run_id))
     # T7 duplicate detection is a trusted pre-acceptance gate, after the
     # attempt proof has been emitted: a rejection is a spent FAIL, never PASS.
@@ -287,13 +281,6 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
         seen.append(result.receipt)
         return result
 
-    # The final authorization boundary before any vendor/model invocation.
-    try:
-        require_task_open(task, root=control)
-    except RequestStateError:
-        for name in ("attempt-proof.json", "feedback.json", "cost.json", "status.json"):
-            (public / name).unlink(missing_ok=True)
-        raise
     with patch.object(verified_module, "run_worker", side_effect=collect):
         outcome = run_verified_worker(source, spec, client, oracle, work_parent=private)
     if validate_verified_worker_receipt(outcome.receipt, outcome.patch):
