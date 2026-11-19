@@ -1,5 +1,5 @@
 {
-  "schema_version": "LF_PROJECT_CONFIG_V1",
+  "schema_version": "LF_PROJECT_CONFIG_V2",
   "project_id": "sandbox",
   "storage": {
     "requests_root": "pilot/runs",
@@ -9,14 +9,96 @@
   },
   "components": {
     "backend": {
+      "kind": "maven",
       "root": "apps/time-service",
       "build_file": "apps/time-service/pom.xml",
-      "test_roots": ["apps/time-service/src/test", "apps/time-service/visible-tests"]
+      "lock_file": null,
+      "source_roots": [
+        "apps/time-service/src/main/java"
+      ],
+      "resource_roots": [
+        "apps/time-service/src/main/resources"
+      ],
+      "test_roots": [
+        "apps/time-service/src/test",
+        "apps/time-service/visible-tests"
+      ],
+      "migrations_root": "apps/time-service/src/main/resources/db/migration",
+      "config_files": [
+        "apps/time-service/src/main/resources/application.properties"
+      ],
+      "generated_client": null
     },
     "frontend": {
+      "kind": "npm",
       "root": "frontend",
-      "manifest": "frontend/package.json",
-      "test_roots": ["frontend/src"]
+      "build_file": "frontend/package.json",
+      "lock_file": "frontend/package-lock.json",
+      "source_roots": [
+        "frontend/src"
+      ],
+      "resource_roots": [],
+      "test_roots": [
+        "frontend/src"
+      ],
+      "migrations_root": null,
+      "config_files": [],
+      "generated_client": {
+        "dir": "frontend/src/lib/api/generated",
+        "script": "gen:api",
+        "generator": "frontend/scripts/gen-api.mjs"
+      }
+    }
+  },
+  "areas": {
+    "CONTRATO": {
+      "write_prefixes": [
+        "contracts/"
+      ],
+      "project_roots": [
+        "contracts/"
+      ]
+    },
+    "INFRA": {
+      "write_prefixes": [
+        "apps/",
+        "frontend/"
+      ],
+      "project_roots": [
+        "apps/time-service/",
+        "frontend/"
+      ]
+    },
+    "DATA": {
+      "write_prefixes": [
+        "db/",
+        "supabase/migrations/",
+        "apps/time-service/src/main/resources/db/migration/"
+      ],
+      "project_roots": [
+        "db/",
+        "supabase/migrations/",
+        "apps/time-service/src/main/resources/db/migration/"
+      ]
+    },
+    "BACKEND": {
+      "write_prefixes": [
+        "apps/",
+        "backend/"
+      ],
+      "project_roots": [
+        "apps/time-service/src/main/java/",
+        "backend/src/main/java/"
+      ]
+    },
+    "FRONTEND": {
+      "write_prefixes": [
+        "frontend/"
+      ],
+      "project_roots": [
+        "apps/web/",
+        "frontend/"
+      ]
     }
   },
   "protected_paths": [
@@ -25,12 +107,15 @@
     "frontend/src/**/__tests__/**"
   ],
   "write_roots": [
+    "apps/time-service",
+    "apps/web",
+    "backend",
+    "contracts",
+    "db",
+    "frontend",
+    "pilot/orchestrator/chain_plans",
     "pilot/runs",
     "pilot/worker_v08/native_tasks",
-    "pilot/orchestrator/chain_plans",
-    "apps/time-service",
-    "frontend",
-    "db",
-    "contracts"
+    "supabase/migrations"
   ]
 }

@@ -320,6 +320,8 @@ jobs:
         run: python3 -m unittest discover -s pilot -p 'test_t54_project_config.py' -v
       - name: T54 phase 2 storage equivalence and safety tests
         run: python3 -m unittest discover -s pilot -p 'test_t54_storage_equivalence.py' -v
+      - name: T54 phase 3a component map and area roots
+        run: python3 -m unittest discover -s pilot -p 'test_t54_phase3a.py' -v
       - run: python3 standards/tools/changes.py render --check
       - run: python3 standards/tools/changes.py validate
       - name: "Circuito C9: clasificación y versiones (solo PR)"
