@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0228",
   "title": "A6: auditor del proyecto lf = GPT en sesión aislada (decisión del owner por costo); el auditor por API queda solo a demanda",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo (19/11): usar GPT como auditor por ahora (opción 3) para no gastar API."
