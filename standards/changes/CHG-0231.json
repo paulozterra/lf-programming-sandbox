@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0231",
+  "title": "A7: la skill fijada se extrae byte a byte del almacén de git (inmune a core.autocrlf, eol, filtros y atributos del entorno)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Codex (19/11): skill_pin dio AUDIT_SKILL_PIN_MISMATCH en README.md, SKILL.md y un adaptador; reproducido con core.autocrlf=true."
+  },
+  "reason": "skill_pin hacía checkout, que aplica la configuración git del entorno y cambia los bytes fijados por el manifiesto (en Codex, core.autocrlf). Ahora lista el árbol del commit y escribe cada blob con git cat-file; rechaza entradas que no sean archivos regulares. El error de discrepancia informa además los conteos totales. Prueba con una configuración global hostil (autocrlf=true, eol=crlf y .gitattributes) que exige bytes idénticos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/audit/skill_pin.py",
+      "pilot/audit/test_t46_audit_stage.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0231.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}
