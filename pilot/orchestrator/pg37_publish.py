@@ -50,6 +50,9 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
    results.append({"request":request,"status":"REPORT_DRAFT_ALREADY_PRESENT"});continue
   report=render(request,records)
   def prepare(work):
+   # A request may close during worktree setup; deny before writing evidence.
+   if request_state(request,chain_lots.api,root=root)!=OPEN:
+    raise RequestStateError("REQUEST_CLOSED")
    paths=[]
    for row in records:
     target=work/"pilot"/"runs"/request/"evidence"/(row["lot_id"]+"-"+row["merge_sha"][:12]+".json")
@@ -61,6 +64,9 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
    target.write_text(report,encoding="utf-8")
    paths.append(target.relative_to(work).as_posix())
    create=publisher or chain_lots.draft
+   # Last observation before any PR/publication side effect.
+   if request_state(request,chain_lots.api,root=root)!=OPEN:
+    raise RequestStateError("REQUEST_CLOSED")
    info=create(work,branch,request,paths,
      f"CP3.7 pinned source-only evidence for verified integration merges at {head}; no production authority",
      f"H_REPORT {request} PG06-PG14")
