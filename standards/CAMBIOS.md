@@ -212,3 +212,4 @@
 | CHG-0218 | ADDITIVE | T48: la ruta abre una solicitud de auditoría (issue audit-request) al cerrarse cada pedido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/338 |
 | CHG-0219 | ADDITIVE | T48: idempotencia de solicitudes EXAM_REQUEST dentro de CP3.6 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/339 |
 | CHG-0220 | ADDITIVE | T49: estado central del pedido y bloqueo de efectos CP3.6 para pedidos cerrados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/340 |
+| CHG-0221 | ADDITIVE | T49.1: bloqueo de pedidos cerrados en Worker, CP3.5, CP3.7 y auditoría T48 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/341 |
