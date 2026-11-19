@@ -113,11 +113,11 @@ def test_inspect_equivalence_to_main_with_sandbox_project(tmp_path):
 
     proof = {"task_id": TASK, "run_id": RUN, "attempt": 1,
              "task_pack_sha256": digest}
-    with patch.object(recovery, "_source_record", return_value=OLD), \\
-         patch.object(recovery, "_artifact_payload", return_value=(proof, VISIBLE)):
+    with (patch.object(recovery, "_source_record", return_value=OLD),
+          patch.object(recovery, "_artifact_payload", return_value=(proof, VISIBLE))):
         migrated = recovery.inspect(lambda *_: "", lambda *_: {}, REPO, tmp_path, EVENT)
-        with patch.object(recovery, "issue_for_task", side_effect=main_issue_for_task), \\
-             patch.object(recovery, "storage_path", side_effect=main_storage_path):
+        with (patch.object(recovery, "issue_for_task", side_effect=main_issue_for_task),
+              patch.object(recovery, "storage_path", side_effect=main_storage_path)):
             baseline = recovery.inspect(lambda *_: "", lambda *_: {}, REPO, tmp_path, EVENT)
     assert migrated == baseline == evidence(digest)
 
