@@ -12,6 +12,7 @@ Examiner-owned visible checks (``*/visible-tests/*``) are never affected:
 they are not project tests and remain protected.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import json
 import re
@@ -101,7 +102,7 @@ def affected_for_lot(root: Path, lot: dict, reuse_rows: list, scope_by_requireme
 
 
 def load_reuse(root: Path, run: str) -> tuple[list, dict]:
-    folder = Path(root) / "pilot/runs" / run
+    folder = storage_path("requests_root", root=Path(root)) / run
     report = folder / "reuse_assessment.json"
     if not report.exists():
         return [], {}
