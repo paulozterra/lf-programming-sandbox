@@ -6,6 +6,7 @@ without the original native PASS artifacts. The CP3.5 workflow reattests the
 source run, proof, patch and exact attempt on every replay.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import json
 from pathlib import Path
@@ -124,7 +125,7 @@ def recover(head: str, run, api, repo: str, root: Path,
         # belonging to another request, nor replay it twice in one sweep.
         if allowed_tasks is not None and task not in allowed_tasks:
             continue
-        registration = root / "pilot/worker_v08/native_tasks" / (task + ".json")
+        registration = storage_path("registrations_root", root=root) / (task + ".json")
         if not registration.is_file() or registration.is_symlink():
             continue
         try:
