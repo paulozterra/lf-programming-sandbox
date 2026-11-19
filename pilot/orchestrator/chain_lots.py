@@ -357,9 +357,14 @@ def first_parent_merges(request: str, *, root: Path = ROOT,
         deny("CHAIN_HISTORY_INCOMPLETE")
     origin = origins[0]
     # origin^..HEAD includes origin; never silently truncate a valid chain.
+    parents = run("git", "rev-list", "--parents", "-n", "1", origin,
+                  cwd=root).split()
+    if not parents or parents[0] != origin:
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    since = f"{origin}^..HEAD" if len(parents) > 1 else "HEAD"
     revisions = run("git", "log", "--first-parent",
                     f"--max-count={max_commits + 1}",
-                    "--format=%H%x09%s", f"{origin}^..HEAD", cwd=root).splitlines()
+                    "--format=%H%x09%s", since, cwd=root).splitlines()
     if not revisions or len(revisions) > max_commits:
         deny("CHAIN_HISTORY_INCOMPLETE")
     if not any(record.startswith(origin + "\t") for record in revisions):
