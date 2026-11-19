@@ -5,6 +5,7 @@ No model, Supabase, network, vendor modification or production profile activatio
 The caller commits generated context into the task's base tree before dispatch.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import copy
@@ -589,11 +590,11 @@ def native_path(root: Path, task_name: str, native_out: Path) -> Path:
         block("NATIVE_TASK_ID_INVALID")
     if task_name in {"ex6", "ex7", "ex8"}:
         block("HISTORICAL_TASK_IMMUTABLE")
-    expected = root / "pilot/worker_v08/native_tasks" / (task_name + ".json")
+    expected = storage_path("registrations_root", root=root) / (task_name + ".json")
     if native_out != expected and native_out.resolve() != expected.resolve():
         block("NATIVE_TASK_PATH_INVALID")
     destination = expected
-    base = root / "pilot/worker_v08/native_tasks"
+    base = storage_path("registrations_root", root=root)
     if base.is_symlink() or destination.is_symlink() or not destination.resolve().is_relative_to(base.resolve()):
         block("NATIVE_TASK_PATH_INVALID")
     return destination
