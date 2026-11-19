@@ -40,6 +40,7 @@ class Phase2b(unittest.TestCase):
             with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
                 storage(root=root, project="sandbox")
             import shutil
+            (root / "pilot/config/projects").mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / "pilot/config/projects/sandbox.json",
                          root / "pilot/config/projects/sandbox.json")
             selector.write_text(json.dumps({"schema_version": "LF_ACTIVE_PROJECT_V1",
