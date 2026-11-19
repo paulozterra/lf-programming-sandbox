@@ -7,6 +7,10 @@ obligation explicitly bound to its DATA_CONTRACT fronts. This adapter blocks
 instead of inventing a DATA requirement or silently assigning UNKNOWN fronts.
 """
 from __future__ import annotations
+# Resolve the trusted repository package when executed as a script.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
 
 import argparse
