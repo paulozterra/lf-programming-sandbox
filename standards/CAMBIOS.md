@@ -222,3 +222,4 @@
 | CHG-0228 | EDITORIAL | A6: auditor del proyecto lf = GPT en sesión aislada (decisión del owner por costo); el auditor por API queda solo a demanda |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/349 |
 | CHG-0229 | ADDITIVE | T54 fase 1: cargador y validación de configuración por proyecto sin cambiar consumidores |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/350 |
 | CHG-0230 | ADDITIVE | T54 fase 2: rutas de almacenamiento configuradas con equivalencia de sandbox |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/351 |
+| CHG-0231 | ADDITIVE | T54 fase 2b: completar rutas configuradas y proyecto activo validado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/352 |
