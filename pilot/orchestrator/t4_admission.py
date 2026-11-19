@@ -143,7 +143,7 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
         request = PurePosixPath(template_path).parts[len(storage(root=root)["requests_root"].split("/"))]
         chain = json.loads((storage_path("requests_root", request, root=root) / "chain_plan.json")
                            .read_text("utf-8"))
-        lots = json.loads((root / "pilot/runs" / request / "lots.json")
+        lots = json.loads((storage_path("requests_root", request, root=root) / "lots.json")
                           .read_text("utf-8"))
         bindings = [b for b in chain.get("bindings", [])
                     if b.get("template_path") == template_path]
