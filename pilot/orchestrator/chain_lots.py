@@ -281,7 +281,7 @@ def validated_manual_integration(number: int, head: str) -> str:
     if run("git", "log", "-1", "--format=%s", sha) != (
             f"Merge PR #{number} via sandbox-train"):
         deny("MANUAL_INTEGRATION_NOT_TRAIN")
-    parents = run("git", "rev-list", "--parents", "-n", "1", sha, cwd=root).split()
+    parents = run("git", "rev-list", "--parents", "-n", "1", sha).split()
     if len(parents) != 3 or parents[0] != sha:
         deny("MANUAL_INTEGRATION_NOT_TRAIN")
     return sha
