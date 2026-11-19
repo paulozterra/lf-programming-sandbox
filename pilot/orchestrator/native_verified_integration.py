@@ -22,6 +22,8 @@ import sys
 import tempfile
 import zipfile
 
+from pilot.orchestrator.request_lifecycle import require_task_open, RequestStateError
+
 REPOSITORY = "paulozterra/lf-programming-sandbox"
 WORKFLOW = ".github/workflows/worker-native.yml"
 ARTIFACTS = {"native-verified-patch": ("worker.patch", 1_000_000),
@@ -400,8 +402,18 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
     return number, changed, parent
 
 
+def _require_live_task(root: Path, task: str) -> None:
+    try:
+        require_task_open(task, root=root,
+                          api=lambda path: obj(gh_api(f"repos/{REPOSITORY}/" + path)))
+    except RequestStateError as exc:
+        code = str(exc)
+        block("REQUEST_CLOSED" if code == "REQUEST_CLOSED" else "REQUEST_STATE_UNRESOLVED")
+
+
 def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) -> dict:
     task = status["task_id"]
+    _require_live_task(root, task)
     reg_path = root / f"pilot/worker_v08/native_tasks/{task}.json"
     if reg_path.is_symlink() or not reg_path.is_file():
         block("NATIVE_TASK_UNREGISTERED")
@@ -415,10 +427,13 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
         block("MAIN_NOT_CURRENT")
     branch = f"lf/native-integration/{task}-run-{run_id}"
     patch_hash = hashlib.sha256(patch).hexdigest()
+    # Replay (including T46 source_run_id) never bypasses live authorization.
+    _require_live_task(root, task)
     resumed = reconstruct_existing_branch(root, branch, patch, base, allowed, task, run_id)
     if resumed is None:
         changed = validate_patch_against_repo(root, patch, base, allowed)
         derived = mechanical_derivatives(root, set(changed))
+        _require_live_task(root, task)
         num = next_chg(root)
         chg = record_change(root, num, task, run_id, patch_hash,
                             list(changed), derived)
@@ -429,6 +444,7 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
                                  cwd=root).decode().split()[0]
         if current_remote != main:
             block("MAIN_MOVED_BEFORE_PUBLICATION")
+        _require_live_task(root, task)
         command(["git", "switch", "-c", branch], cwd=root)
         command(["git", "commit", "-m",
                  f"[CP3.5][CHG-{num:04d}] verified native patch {task} run {run_id}"],
@@ -448,6 +464,7 @@ def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) ->
             + f"- Derived by CP3.5, not Worker: {json.dumps(derived, sort_keys=True)}\\n"
             f"- CHG-{num:04d}; sin etiquetado ni merge automático. "
             f"Claude revisa; Paulo aplica ready-to-merge.\n")
+    _require_live_task(root, task)
     url = command(["gh", "pr", "create", "--repo", REPOSITORY, "--base", "main",
                    "--head", branch, "--draft",
                    "--title", f"[DRAFT][CP3.5][CHG-{num:04d}] Verified native {task} run {run_id}",
