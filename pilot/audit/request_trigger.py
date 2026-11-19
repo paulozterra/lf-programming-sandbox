@@ -26,6 +26,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 import build_input as bi  # noqa: E402
 from audit_config import AuditConfigError, load  # noqa: E402
+from pilot.orchestrator.request_lifecycle import request_state, RequestStateError, CLOSED_FINALIZED
 
 LABEL = "audit-request"
 MARK = "<!-- audit-request:{request} -->"
@@ -60,13 +61,23 @@ def is_ancestor(older: str, newer: str, root: Path = ROOT) -> bool:
                           capture_output=True).returncode == 0
 
 
-def candidates(config: dict, plans, root: Path = ROOT) -> list[str]:
+def _finalized_request(request: str, repo: str, root: Path, api=None) -> bool:
+    if not isinstance(repo, str) or "/" not in repo:
+        raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+    transport = api or (lambda endpoint: json.loads(gh(f"repos/{repo}/" + endpoint)))
+    return request_state(request, transport, root=root) == CLOSED_FINALIZED
+
+
+def candidates(config: dict, plans, root: Path = ROOT, *, repository: str = "", api=None) -> list[str]:
     """Closed requests whose close is at or after since_commit."""
     import chain_lots as cl
     since = config["audit"].get("since_commit")
     history = cl.first_parent_merges()
     out = []
     for req, lots, _state, bindings in plans:
+        # Integrated lots alone do not prove the issue was closed by T9.
+        if not _finalized_request(req, repository, root, api):
+            continue
         ids = {lot["id"] for lot in lots.get("lots", [])}
         try:
             done = cl.completed_lots(lots, bindings, history)
@@ -121,21 +132,26 @@ def main() -> int:
         if a.request:
             reqs = [a.request]
         else:
-            reqs = candidates(config, plans)
+            reqs = candidates(config, plans, repository=a.repository)
         seen = set() if a.dry_run else existing_requests(a.repository)
         opened = []
         for req in [r for r in reqs if r not in seen][: max(1, int(audit.get("sample_n") or 1))]:
+            if not _finalized_request(req, a.repository, ROOT):
+                continue
             lots, done = bi.completed_from_history(req)
             analysis = json.loads((ROOT / "pilot/runs" / req / "analysis.json").read_text("utf-8"))
             data = bi.build(req, a.project, a.repository, done, lots, analysis)
             if a.dry_run:
                 opened.append({"request": req, "base_commit": data["base_commit"]})
                 continue
+            # The issue can change while evidence is derived: recheck at publication.
+            if not _finalized_request(req, a.repository, ROOT):
+                continue
             issue = json.loads(gh(f"repos/{a.repository}/issues", data={
                 "title": f"[AUDIT][{a.project}] {req}", "labels": [LABEL],
                 "body": issue_body(req, data, config)}))
             opened.append({"request": req, "issue": issue["number"]})
-    except (AuditConfigError, bi.AuditInputError, OSError, ValueError, RuntimeError) as exc:
+    except (AuditConfigError, bi.AuditInputError, RequestStateError, OSError, ValueError, RuntimeError) as exc:
         print(json.dumps({"status": "BLOCKED", "reason": str(exc)}))
         return 1
     print(json.dumps({"status": "AUDIT_TRIGGER_DONE", "opened": opened}))
