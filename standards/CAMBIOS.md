@@ -219,4 +219,4 @@
 | CHG-0225 | ADDITIVE | T52 A: el Train aprueba el CI action_required del bot antes de despachar un CI de respaldo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/345 |
 | CHG-0226 | ADDITIVE | A4: adaptador de auditor para la ruta (instructivo + ensamblador del informe) y ciclo de vida de los issues audit-request |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/347 |
 | CHG-0227 | ADDITIVE | A5: auditor por evento — cada issue audit-request se audita al abrirse (Claude sin credencial de GitHub; publicación determinista) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/348 |
-| CHG-0228 | ADDITIVE | A6: auditor del proyecto lf = GPT en sesión aislada (decisión del owner por costo); el auditor por API queda solo a demanda |  | paulozterra | PENDING |
+| CHG-0228 | ADDITIVE | A6: auditor del proyecto lf = GPT en sesión aislada (decisión del owner por costo); el auditor por API queda solo a demanda |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/349 |
