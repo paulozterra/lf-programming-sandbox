@@ -31,6 +31,7 @@ from native_proposal_client import NativeProposalClient, read_proposal_envelope
 from lot_preflight import check_task, LotBlocked
 from holdout_age import holdout_ref
 from pilot.orchestrator.request_lifecycle import require_task_open, RequestStateError
+from pilot.config.project_config import storage_path, template_path_any_request, reuse_assessment_pattern
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
@@ -50,7 +51,7 @@ def _write(path: Path, value: dict) -> None:
 
 def load_registration(control: Path, task: str) -> tuple[dict, str]:
     proposal_path(task)
-    path = control / "pilot/worker_v08/native_tasks" / (task + ".json")
+    path = storage_path("registrations_root", task + ".json", root=control)
     if not path.is_file() or path.is_symlink():
         raise ValueError("NATIVE_TASK_UNREGISTERED")
     obj = strict_json_loads(path.read_text(encoding="utf-8"))
