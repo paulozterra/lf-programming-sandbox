@@ -1,5 +1,6 @@
 """Close exam-request only after verified Train registration merge, idempotently."""
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import json
 from pathlib import Path
@@ -44,7 +45,7 @@ def close_registered(api, sha: str, branch: str, git, root: Path) -> str:
     registered = f"pilot/worker_v08/native_tasks/{task}.json"
     if registered not in changes:
         raise LifecycleBlocked("EXAM_REGISTRATION_NOT_MERGED")
-    paths = list((root / "pilot/runs").glob("*/chain_plan.json"))
+    paths = list((storage_path("requests_root", root=root)).glob("*/chain_plan.json"))
     scopes = []
     for plan in paths:
         if plan.is_symlink() or plan.parent.is_symlink():
