@@ -343,8 +343,8 @@ def first_parent_merges(request: str, *, root: Path = ROOT,
         max_commits = int(raw)
     if type(max_commits) is not int or not 1 <= max_commits <= 10000:
         deny("CHAIN_HISTORY_INCOMPLETE")
-    paths = [f"{storage()['requests_root']}/{request}/chain_plan.json",
-             f"{storage()['chain_plans_root']}/{request}.json"]
+    paths = [f"{storage(root=root)['requests_root']}/{request}/chain_plan.json",
+             f"{storage(root=root)['chain_plans_root']}/{request}.json"]
     origins = []
     for path in paths:
         if not (root / path).is_file():
@@ -786,7 +786,7 @@ def exam_key(request: str, binding: dict) -> str:
         deny("EXAM_REQUEST_KEY_INVALID")
     path = binding.get("template_path")
     if not isinstance(path, str) or not re.fullmatch(
-            template_path_pattern(request).pattern, path):
+            template_path_pattern(request, root=ROOT).pattern, path):
         deny("EXAM_REQUEST_TEMPLATE_UNRESOLVED")
     template = ROOT / path
     if template.is_symlink() or not template.is_file():
