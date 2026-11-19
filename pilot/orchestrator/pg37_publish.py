@@ -20,6 +20,9 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
     results.append({"request":request,"status":"REQUEST_CLOSED"});continue
   except RequestStateError:
    results.append({"request":request,"status":"REQUEST_STATE_UNRESOLVED"});continue
+  existing=root/"pilot"/"runs"/request/"H_REPORT.md"
+  if existing.exists() or existing.is_symlink():
+   results.append({"request":request,"status":"REPORT_ALREADY_PRESENT"});continue
   completed=chain_lots.completed_lots(lots,bindings,history)
   if not completed:continue
   records=[]
