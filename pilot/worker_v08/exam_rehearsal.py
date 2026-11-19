@@ -11,6 +11,7 @@ comes from trusted main (--control). Output is a verdict per task, never exam
 content.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import hashlib
@@ -36,7 +37,7 @@ def changed_tasks(data: Path, base_ref: str) -> list[str]:
             tasks.add(m.group(1) or m.group(2))
     # only tasks that still exist as exam-backed registrations at HEAD
     return sorted(t for t in tasks
-                  if (data / "pilot/worker_v08/native_tasks" / (t + ".json")).is_file())
+                  if (storage_path("registrations_root", root=data) / (t + ".json")).is_file())
 
 
 def rehearse(control: Path, data: Path, task: str, private: Path, age_bin: str,
@@ -51,7 +52,7 @@ def rehearse(control: Path, data: Path, task: str, private: Path, age_bin: str,
     from programming_agent_runner.worker_oracle import load_hidden_oracle
 
     raw_task, holdout_sha = load_registration(data, task)
-    reg = json.loads((data / "pilot/worker_v08/native_tasks" / (task + ".json")).read_text("utf-8"))
+    reg = json.loads((storage_path("registrations_root", root=data) / (task + ".json")).read_text("utf-8"))
     if "holdout_ref" not in reg:
         return "REHEARSAL_SKIPPED_LEGACY"
     spec = replace(parse_worker_task(raw_task), max_attempts=1)
