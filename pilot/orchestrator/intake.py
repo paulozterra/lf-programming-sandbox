@@ -6,6 +6,7 @@ shape, with CP3.2's explicit simulation marker and request-byte binding.
 PG-01 uses the unmodified pinned C4/V3 preflight and remains UNATTESTED.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import hashlib
@@ -183,7 +184,7 @@ def _pg01_fixture_readback(package: dict, digest: str) -> dict:
 def accept(root: Path, slug: str) -> dict:
     if not SLUG.fullmatch(slug):
         block("RUN_ID_INVALID")
-    directory = root / "pilot/runs" / slug
+    directory = storage_path("requests_root", root=root) / slug
     if directory.is_symlink():
         block("RUN_PATH_INVALID")
     request = directory / "request.md"
