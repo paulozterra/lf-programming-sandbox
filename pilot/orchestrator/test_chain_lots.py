@@ -29,6 +29,12 @@ def git(root, *args):
 
 
 def fixtures(tmp_path):
+    import shutil
+    config_source = Path(__file__).resolve().parents[2] / "pilot/config"
+    config_target = tmp_path / "pilot/config"
+    (config_target / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
+    shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
     data = "db/migration/V001__cp36.sql"
     backend = "apps/time-service/src/main/java/lf/sandbox/time/Auth.java"
     lots = {
