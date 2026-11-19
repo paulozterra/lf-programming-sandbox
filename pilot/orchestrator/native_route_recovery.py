@@ -6,7 +6,7 @@ generated Draft PR changes only public registrations, package and provenance;
 the original proposal branch and encrypted exam remain untouched.
 """
 from __future__ import annotations
-from pilot.config.project_config import storage_path, storage
+from pilot.config.project_config import ProjectConfigError, storage_path, storage
 
 import hashlib
 import json
