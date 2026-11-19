@@ -39,13 +39,18 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install the validator's only dependency
-        run: python3 -m pip install --quiet --break-system-packages 'jsonschema==4.23.0'
+        run: python3 -m pip install --quiet --break-system-packages 'jsonschema==4.23.0' 'pytest==8.3.4'
       - name: Fetch and verify the pinned audit skill
         run: python3 -m pilot.workflow_entrypoint pilot/audit/skill_pin.py --project "$PROJECT" --dest "$RUNNER_TEMP/audit-skill"
       - name: Probe the project's EKB (codes only)
         env:
           LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}
         run: python3 -m pilot.workflow_entrypoint pilot/audit/ekb_reader.py --project "$PROJECT"
+      - name: Route adapter rebuilds a valid report from an auditor draft (A4)
+        run: |
+          set -euo pipefail
+          LF_AUDIT_SKILL_DIR="$RUNNER_TEMP/audit-skill/$(python3 -c "import json;print(json.load(open('pilot/audit/projects/$PROJECT.json'))['audit']['skill']['path'])")" \
+            python3 -m pytest -q -p no:cacheprovider pilot/audit/test_a4_report_scaffold.py
       - name: Validate every audit report (skill validator + route checks + EKB codes)
         env:
           LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}

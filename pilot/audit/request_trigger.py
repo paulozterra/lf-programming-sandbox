@@ -56,6 +56,29 @@ def existing_requests(repo: str) -> set[str]:
     raise RuntimeError("AUDIT_TRIGGER_PAGINATION")
 
 
+def close_done(repo: str, root: Path = ROOT) -> list[dict]:
+    """A4: close each open audit-request whose report is already on main."""
+    closed = []
+    items = json.loads(gh(f"repos/{repo}/issues?labels={LABEL}&state=open&per_page=100"))
+    if len(items) >= 100:
+        raise RuntimeError("AUDIT_TRIGGER_PAGINATION")
+    for item in items:
+        body = item.get("body") or ""
+        if "<!-- audit-request:" not in body:
+            continue
+        req = body.split("<!-- audit-request:", 1)[1].split(" -->", 1)[0]
+        report = root / "pilot/runs" / req / "audit/report.json"
+        if not report.is_file():
+            continue
+        head = subprocess.run(["git", "-C", str(root), "log", "-1", "--format=%H", "--", str(report)],
+                              capture_output=True, text=True).stdout.strip()
+        gh(f"repos/{repo}/issues/{item['number']}/comments",
+           data={"body": f"Informe de auditoría fusionado: `pilot/runs/{req}/audit/report.json` (commit `{head}`). Se cierra."})
+        gh("-X", "PATCH", f"repos/{repo}/issues/{item['number']}", data={"state": "closed", "state_reason": "completed"})
+        closed.append({"request": req, "issue": item["number"], "commit": head})
+    return closed
+
+
 def is_ancestor(older: str, newer: str, root: Path = ROOT) -> bool:
     return subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", older, newer],
                           capture_output=True).returncode == 0
@@ -132,10 +155,14 @@ def main() -> int:
             reqs = [a.request]
         else:
             reqs = candidates(config, plans, repository=a.repository)
+        closed = [] if a.dry_run else close_done(a.repository)
         seen = set() if a.dry_run else existing_requests(a.repository)
-        opened = []
+        opened, skipped = [], []
+        # A4: a forced or candidate request that is not opened always says why.
+        skipped += [{"request": r, "reason": "AUDIT_SKIPPED:ALREADY_REQUESTED"} for r in reqs if r in seen]
         for req in [r for r in reqs if r not in seen][: max(1, int(audit.get("sample_n") or 1))]:
             if not _finalized_request(req, a.repository, ROOT):
+                skipped.append({"request": req, "reason": "AUDIT_SKIPPED:REQUEST_NOT_FINALIZED"})
                 continue
             lots, done = bi.completed_from_history(req)
             analysis = json.loads((ROOT / "pilot/runs" / req / "analysis.json").read_text("utf-8"))
@@ -145,6 +172,7 @@ def main() -> int:
                 continue
             # The issue can change while evidence is derived: recheck at publication.
             if not _finalized_request(req, a.repository, ROOT):
+                skipped.append({"request": req, "reason": "AUDIT_SKIPPED:REQUEST_NOT_FINALIZED"})
                 continue
             issue = json.loads(gh(f"repos/{a.repository}/issues", data={
                 "title": f"[AUDIT][{a.project}] {req}", "labels": [LABEL],
@@ -153,7 +181,7 @@ def main() -> int:
     except (AuditConfigError, bi.AuditInputError, RequestStateError, OSError, ValueError, RuntimeError) as exc:
         print(json.dumps({"status": "BLOCKED", "reason": str(exc)}))
         return 1
-    print(json.dumps({"status": "AUDIT_TRIGGER_DONE", "opened": opened}))
+    print(json.dumps({"status": "AUDIT_TRIGGER_DONE", "opened": opened, "skipped": skipped, "closed": closed}))
     return 0
 
 
