@@ -28,6 +28,7 @@ import programming_agent_runner.verified_worker as verified_module
 from native_proposal_client import NativeProposalClient, read_proposal_envelope
 from lot_preflight import check_task, LotBlocked
 from holdout_age import holdout_ref
+from pilot.orchestrator.request_lifecycle import require_task_open, RequestStateError
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
@@ -91,6 +92,7 @@ def registration_holdout_ref(control: Path, task: str) -> str | None:
 
 
 def preflight(control: Path, task: str, output: Path) -> None:
+    require_task_open(task, root=control)
     obj, expected = load_registration(control, task)
     spec = parse_worker_task(obj)
     # Legacy ex6/ex7/ex8 registrations are byte-identical and predated CP1.3.
@@ -165,8 +167,14 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     # Check the proposal using the vendored schema/scope before consuming an attempt.
     proposal = parse_patch_proposal(submitted["proposal"], spec)
     inspect_patch(proposal, spec)
-    # No preflight, missing oracle, invalid proposal, or scope failure is charged.
-    # A later Worker failure does consume this attempt.
+    # Recheck the trusted issue immediately before emitting the attempt proof.
+    # A closed/unresolved request must not charge, run a model, or publish feedback.
+    try:
+        require_task_open(task, root=control)
+    except RequestStateError:
+        for name in ("feedback.json", "cost.json"):
+            (public / name).unlink(missing_ok=True)
+        raise
     _write(public / "attempt-proof.json", _proof(submitted, task, attempt, run_id))
     # T7 duplicate detection is a trusted pre-acceptance gate, after the
     # attempt proof has been emitted: a rejection is a spent FAIL, never PASS.
@@ -277,6 +285,13 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
         seen.append(result.receipt)
         return result
 
+    # The final authorization boundary before any vendor/model invocation.
+    try:
+        require_task_open(task, root=control)
+    except RequestStateError:
+        for name in ("attempt-proof.json", "feedback.json", "cost.json", "status.json"):
+            (public / name).unlink(missing_ok=True)
+        raise
     with patch.object(verified_module, "run_worker", side_effect=collect):
         outcome = run_verified_worker(source, spec, client, oracle, work_parent=private)
     if validate_verified_worker_receipt(outcome.receipt, outcome.patch):
@@ -437,6 +452,10 @@ def main() -> None:
                            a.task, a.attempt, a.run_id,
                            route_retry=a.route_retry, proposal_sha=a.proposal_sha):
                 raise ValueError("NATIVE_VERIFIED_NONPASS")
+    except RequestStateError as exc:
+        # Machine-readable lifecycle refusal; no attempt proof or feedback.
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1)
     except Exception:
         # No exception messages: they may contain untrusted stdout or secrets.
         print("NATIVE_RUN_BLOCKED_OR_FAILED", file=sys.stderr)
