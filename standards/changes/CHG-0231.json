@@ -50,6 +50,7 @@
       "pilot/orchestrator/test_native_lot_registration.py",
       "pilot/orchestrator/test_package_to_lots.py",
       "pilot/orchestrator/test_plan_lots.py",
+      "pilot/orchestrator/test_t23_route_recovery.py",
       "pilot/orchestrator/test_t24_integration_replay.py",
       "pilot/orchestrator/test_t4_admission.py",
       "pilot/orchestrator/test_t72_dependencies.py",
