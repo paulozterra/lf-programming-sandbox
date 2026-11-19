@@ -6,6 +6,11 @@ Task ex6 is intentionally NOT registered here; Claude registers it after S2.
 """
 from __future__ import annotations
 
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
+
 import argparse
 import hashlib
 import json
@@ -31,10 +36,6 @@ from native_proposal_client import NativeProposalClient, read_proposal_envelope
 from lot_preflight import check_task, LotBlocked
 from holdout_age import holdout_ref
 from pilot.orchestrator.request_lifecycle import require_task_open, RequestStateError
-# Resolve the trusted repository package for direct script execution.
-import sys as _project_sys
-from pathlib import Path as _project_Path
-_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, template_path_any_request, reuse_assessment_pattern
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
