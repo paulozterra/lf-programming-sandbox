@@ -1,9 +1,12 @@
 """T49.1 CP3.5: direct and recovered native PASS cannot integrate a closed request."""
 import json
 from pathlib import Path
+import sys
 
 import pytest
-from pilot.orchestrator import native_verified_integration as cp35
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'pilot/orchestrator'))
+import native_verified_integration as cp35
 
 
 def setup(tmp_path):
