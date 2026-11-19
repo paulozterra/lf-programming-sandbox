@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo (19/11): completar fase 2b antes de fase 3, eliminar rutas fijas, selector activo y equivalencia Worker."
   },
-  "reason": "Consolida rutas de storage en project_config para lifecycle, T4, Worker, cierre y CP3.6. El proyecto activo se declara en active_project.json y se valida; ausencia o inconsistencia bloquea con PROJECT_CONFIG_INVALID. storage_path y regex usan el root recibido. CI verifica equivalencia y rechaza literales fijos fuera de config. Firmas públicas preservadas. Deuda del patrón fijo de plantillas continúa registrada en CHG-0230. Se amplía la migración a todos los consumidores con literales detectados por la prueba estática, incluidos helpers de auditoría, Worker, intake y orquestación. No se migran componentes ni rutas protegidas (fase 3). Fase 2b de fixtures: helper compartido explícito para repos temporales; 11 fallas de CI por PROJECT_CONFIG_INVALID en pruebas sintéticas, sin fallback de configuración. Archivos de Análisis modificados únicamente en pruebas, sin cambiar su implementación.",
+  "reason": "Consolida rutas de storage en project_config para lifecycle, T4, Worker, cierre y CP3.6. El proyecto activo se declara en active_project.json y se valida; ausencia o inconsistencia bloquea con PROJECT_CONFIG_INVALID. storage_path y regex usan el root recibido. CI verifica equivalencia y rechaza literales fijos fuera de config. Firmas públicas preservadas. Deuda del patrón fijo de plantillas continúa registrada en CHG-0230. Se amplía la migración a todos los consumidores con literales detectados por la prueba estática, incluidos helpers de auditoría, Worker, intake y orquestación. No se migran componentes ni rutas protegidas (fase 3). Fase 2b de fixtures: helper compartido explícito para repos temporales; 11 fallas de CI por PROJECT_CONFIG_INVALID en pruebas sintéticas, sin fallback de configuración. Archivos de Análisis modificados únicamente en pruebas, sin cambiar su implementación. Corrige importación de project_config al ejecutar scripts directamente desde sus directorios (sin PYTHONPATH de cwd), con bootstrap de raíz derivada de __file__; prueba estática de todos los consumidores y smoke aislado de Policy C, CP3.6, Worker y auditoría.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -60,6 +60,7 @@
       "pilot/test_t12_concurrency.py",
       "pilot/test_t14_exam_requests.py",
       "pilot/test_t15_sweep.py",
+      "pilot/test_t54_entrypoint_imports.py",
       "pilot/test_t54_phase2b.py",
       "pilot/test_t54_storage_equivalence.py",
       "pilot/test_t9_2_stages.py",
