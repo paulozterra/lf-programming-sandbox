@@ -6,6 +6,7 @@ backfill uses the same routine; never infer missing lot, rule or contract data.
 No external model, manual mapping, or private oracle.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import hashlib
@@ -57,7 +58,7 @@ def json_at(root: Path, commit: str, path: str) -> dict | None:
 def _plans(root: Path, commit: str) -> list[tuple[str, dict, dict]]:
     """Enumerate pinned lot files at the merge being examined."""
     paths = command(root, "git", "ls-tree", "-r", "--name-only", commit,
-                    "pilot/runs").splitlines()
+                    storage()["requests_root"]).splitlines()
     results = []
     for path in sorted(p for p in paths if p.endswith("/lots.json")):
         slug = path.split("/")[2]
