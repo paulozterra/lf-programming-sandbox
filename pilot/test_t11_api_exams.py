@@ -146,6 +146,12 @@ class Tests(TestCase):
     def test_new_plan_requires_exact_generated_t7_merge(self):
         with TemporaryDirectory() as temp:
             root = Path(temp)
+            import shutil
+            config_source = Path(__file__).resolve().parents[1] / "pilot/config"
+            config_target = root / "pilot/config"
+            (config_target / "projects").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
+            shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
             folder = root / "pilot/runs/req-901"
             folder.mkdir(parents=True)
             (folder / "request_meta.json").write_text(json.dumps(
