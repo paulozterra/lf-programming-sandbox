@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0232",
+  "title": "A8: skill_pin funciona en Windows (borra la copia previa aunque git deje archivos de solo lectura)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Codex local en Windows (19/11): PermissionError WinError 5 al reemplazar audit-skill/.git/objects/pack."
+  },
+  "reason": "Al reemplazar el destino, rmtree reintenta tras quitar el atributo de solo lectura (onexc en Python 3.12+, onerror antes). Prueba con un pack de solo lectura.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/audit/skill_pin.py",
+      "pilot/audit/test_t46_audit_stage.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0232.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}
