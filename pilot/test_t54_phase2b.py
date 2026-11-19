@@ -39,6 +39,16 @@ class Phase2b(unittest.TestCase):
             # An explicit project still needs its config under the supplied root.
             with self.assertRaisesRegex(ProjectConfigError, "PROJECT_CONFIG_INVALID"):
                 storage(root=root, project="sandbox")
+            import shutil
+            shutil.copy2(ROOT / "pilot/config/projects/sandbox.json",
+                         root / "pilot/config/projects/sandbox.json")
+            selector.write_text(json.dumps({"schema_version": "LF_ACTIVE_PROJECT_V1",
+                                            "project_id": "sandbox"}))
+            self.assertEqual(active_project(root=root), "sandbox")
+            self.assertEqual(storage_path("requests_root", "req-901", root=root),
+                             root / "pilot/runs/req-901")
+            self.assertTrue(template_path_any_request(root=root).fullmatch(
+                "pilot/runs/req-901/templates/task202.task.json"))
 
     def test_exact_worker_template_regex(self):
         old = re.compile(r"pilot/runs/req-[1-9][0-9]*/templates/[a-z][a-z0-9_-]{0,31}[.]task[.]json")
