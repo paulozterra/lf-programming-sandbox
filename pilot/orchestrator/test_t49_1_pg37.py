@@ -77,3 +77,28 @@ def test_cp37_api_failure_does_not_create_pr(tmp_path, monkeypatch):
                         lambda *_: pytest.fail("published despite API failure"))
     assert stage.reconcile(42, root=tmp_path) == [
         {"request": "req-275", "status": "REQUEST_STATE_UNRESOLVED"}]
+
+
+def test_cp37_finalized_keeps_existing_evidence_untouched(tmp_path, monkeypatch):
+    folder = setup(tmp_path, monkeypatch, "closed")
+    (folder / "H_REPORT.md").write_text("# prior published report")
+    registry = tmp_path / "pilot/registry/implemented.json"
+    registry.parent.mkdir(parents=True)
+    registry.write_text(json.dumps({"entries": [{
+        "request": "req-275", "lot": "SOL-001",
+        "status": "ATTESTED", "merge_sha": "a"*40}]}))
+    monkeypatch.setattr(stage.chain_lots, "worktree",
+                        lambda *_: pytest.fail("modified finalized evidence"))
+    result = stage.reconcile(42, root=tmp_path)
+    assert result == [{"request": "req-275", "status": "REQUEST_CLOSED"}]
+    assert (folder / "H_REPORT.md").read_text() == "# prior published report"
+
+
+def test_cp37_reopened_request_never_overwrites_existing_report(tmp_path, monkeypatch):
+    folder = setup(tmp_path, monkeypatch, "open")
+    (folder / "H_REPORT.md").write_text("# existing report")
+    monkeypatch.setattr(stage.chain_lots, "worktree",
+                        lambda *_: pytest.fail("overwrote historical evidence"))
+    assert stage.reconcile(42, root=tmp_path) == [
+        {"request": "req-275", "status": "REPORT_ALREADY_PRESENT"}]
+    assert (folder / "H_REPORT.md").read_text() == "# existing report"
