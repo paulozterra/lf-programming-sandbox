@@ -20,7 +20,7 @@ def setup(tmp_path, monkeypatch, state):
     monkeypatch.setattr(stage.chain_lots, "check_main", lambda: "b" * 40)
     monkeypatch.setattr(stage.chain_lots, "event_kind", lambda *_: "TRAIN")
     monkeypatch.setattr(stage.chain_lots, "first_parent_merges",
-                        lambda: [(merge, {}, {"src/main.py"})])
+                        lambda *_a, **_kw: [(merge, {}, {"src/main.py"})])
     monkeypatch.setattr(stage.chain_lots, "plans",
                         lambda: [("req-275", lots, {}, {})])
     monkeypatch.setattr(stage.chain_lots, "completed_lots",
