@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse,json,os
 from pathlib import Path
 import chain_lots
+from pilot.orchestrator.request_lifecycle import request_state, RequestStateError, OPEN
 from pg37_evidence import generate,render,canonical,digest
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -14,6 +15,11 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
  history=chain_lots.first_parent_merges()
  results=[]
  for request,lots,state,bindings in chain_lots.plans():
+  try:
+   if request_state(request,chain_lots.api,root=root)!=OPEN:
+    results.append({"request":request,"status":"REQUEST_CLOSED"});continue
+  except RequestStateError:
+   results.append({"request":request,"status":"REQUEST_STATE_UNRESOLVED"});continue
   completed=chain_lots.completed_lots(lots,bindings,history)
   if not completed:continue
   records=[]
@@ -60,6 +66,12 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
      f"H_REPORT {request} PG06-PG14")
    return {"request":request,"status":"EVIDENCE_DRAFT_CREATED","lot_count":len(records),
            "all_candidates_complete":all(row["complete"] for row in records),**info}
+  # Recheck immediately before the worktree publishes a draft evidence PR.
+  try:
+   if request_state(request,chain_lots.api,root=root)!=OPEN:
+    results.append({"request":request,"status":"REQUEST_CLOSED"});continue
+  except RequestStateError:
+   results.append({"request":request,"status":"REQUEST_STATE_UNRESOLVED"});continue
   results.append(chain_lots.worktree(head,branch,prepare))
  return results or [{"status":"NO_MERGED_LOTS_FOR_REPORT"}]
 
