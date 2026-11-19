@@ -8,6 +8,7 @@ Two-stage process:
 No GitHub push, merge or approval is performed by this script.
 """
 from __future__ import annotations
+from pilot.config.project_config import storage_path, storage
 
 import argparse
 import hashlib
@@ -90,7 +91,7 @@ def verify_handoffs(root: Path, lots: dict, proofs: list[dict]) -> set[str]:
 
 
 def choose(root: Path, request: str, lot_id: str, proofs: list[dict]):
-    folder = root / "pilot/runs" / request
+    folder = storage_path("requests_root", root=root) / request
     if folder.is_symlink() or not folder.is_dir():
         blocked("CP34_RUN_INVALID")
     state, lots = load(folder, "state.json"), load(folder, "lots.json")
@@ -173,7 +174,7 @@ def register_lot(root: Path, folder: Path, lot: dict, mapped: dict,
     if template_path is not None:
         candidate = root / template_path
         if (candidate.is_symlink() or not candidate.is_file()
-                or not candidate.resolve().is_relative_to((root / "pilot/runs").resolve())):
+                or not candidate.resolve().is_relative_to((storage_path("requests_root", root=root)).resolve())):
             blocked("CP34_TEMPLATE_PROVENANCE_INVALID")
         origin = json.loads(candidate.read_text("utf-8"))
         source_spec = origin.get("task_spec") if isinstance(origin, dict) else None
