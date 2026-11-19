@@ -14,6 +14,10 @@ import re
 import sys
 import subprocess
 import tempfile
+# Resolve the trusted repository package for direct script execution.
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage, storage_path
 
 TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
