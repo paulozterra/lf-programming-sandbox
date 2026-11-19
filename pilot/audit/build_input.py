@@ -112,7 +112,7 @@ def completed_from_history(request: str) -> tuple[dict, dict]:
     import chain_lots as cl
     for req, lots, _state, bindings in cl.plans():
         if req == request:
-            done = cl.completed_lots(lots, bindings, cl.first_parent_merges())
+            done = cl.completed_lots(lots, bindings, cl.first_parent_merges(req))
             return lots, {lot_id: dict(r)
                           for lot_id, r in done.items()}
     raise AuditInputError("AUDIT_REQUEST_UNKNOWN")
