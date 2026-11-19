@@ -68,6 +68,12 @@ class SweepTests(unittest.TestCase):
         state = {"stage": "LOTS_PLANNED"}
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
+            import shutil
+            source_config = Path(__file__).resolve().parents[1] / "pilot/config"
+            target_config = root / "pilot/config"
+            (target_config / "projects").mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_config / "active_project.json", target_config / "active_project.json")
+            shutil.copy2(source_config / "projects/sandbox.json", target_config / "projects/sandbox.json")
             hidden = root / "pilot/holdouts/sample1.oracle.json.age"
             hidden.parent.mkdir(parents=True)
             hidden.write_bytes(b"opaque")
