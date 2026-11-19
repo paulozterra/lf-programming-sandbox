@@ -198,7 +198,7 @@ def template_path_pattern(request: str, *, root: Path = ROOT,
     escaped = re.escape(template)
     escaped = escaped.replace(re.escape("{request}"), re.escape(request))
     escaped = escaped.replace(re.escape("{task}"), r"[a-z][a-z0-9_-]{0,31}")
-    return re.compile(escaped + r"\\Z")
+    return re.compile(escaped + r"\Z")
 
 
 def template_path_any_request(*, root: Path = ROOT,
@@ -208,7 +208,7 @@ def template_path_any_request(*, root: Path = ROOT,
     escaped = re.escape(template)
     escaped = escaped.replace(re.escape("{request}"), r"req-[1-9][0-9]*")
     escaped = escaped.replace(re.escape("{task}"), r"[a-z][a-z0-9_-]{0,31}")
-    return re.compile(escaped + r"\\Z")
+    return re.compile(escaped + r"\Z")
 
 
 def request_context_pattern(*, root: Path = ROOT,
