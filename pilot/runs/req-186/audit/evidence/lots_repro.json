@@ -1,0 +1,31 @@
+[
+ {
+  "case": "REQUIREMENTS_WITHOUT_LOT",
+  "analysed": 7,
+  "missing": [
+   "REQ-SBX-R-ERR",
+   "REQ-SBX-R-LOG",
+   "REQ-SBX-R-PRIORITY-FILTER-BACKEND"
+  ]
+ },
+ {
+  "case": "BACKEND_FRONT_RULE_REFS",
+  "refs": [
+   "supabase://lf_ops.reglas/105",
+   "supabase://lf_ops.reglas/201",
+   "supabase://lf_ops.reglas/202",
+   "supabase://lf_ops.reglas/5"
+  ]
+ },
+ {
+  "case": "BACKEND_LOT_REQUIREMENTS",
+  "ids": [
+   "REQ-SBX-R-SESSION-REQUIRED"
+  ]
+ },
+ {
+  "case": "CONTROL_ASSIGNED",
+  "rule": "REQ-SBX-R-SESSION-REQUIRED",
+  "assigned": true
+ }
+]
