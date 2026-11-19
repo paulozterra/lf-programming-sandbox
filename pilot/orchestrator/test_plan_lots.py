@@ -22,6 +22,11 @@ PREFS={"DATA":"PERFIL-PROG-DATA-EXP",
 
 
 def fixture(temp,slug):
+    config_source = ROOT / "pilot/config"
+    config_target = temp / "pilot/config"
+    (config_target / "projects").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
+    shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
     folder=temp/"pilot/runs"/slug
     folder.mkdir(parents=True)
     source=ROOT/"pilot/runs"/slug
