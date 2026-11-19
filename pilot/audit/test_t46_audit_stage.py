@@ -265,7 +265,7 @@ def test_trigger_selects_closed_requests_after_cutoff(tmp_path, monkeypatch):
     import request_trigger as rt
     r, shas = _repo_with_merges(tmp_path)
     fake = types.SimpleNamespace(
-        first_parent_merges=lambda: [],
+        first_parent_merges=lambda *_a, **_kw: [],
         completed_lots=lambda lots, b, h: b)
     monkeypatch.setitem(sys.modules, "chain_lots", fake)
     lots = {"lots": [{"id": "A"}, {"id": "B"}]}

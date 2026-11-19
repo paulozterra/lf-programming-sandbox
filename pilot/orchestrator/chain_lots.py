@@ -327,11 +327,48 @@ def plans() -> list[tuple[str, dict, dict, dict]]:
     return rows
 
 
-def first_parent_merges() -> list[tuple[str, dict, set[str]]]:
-    # Bound history. Chains must be short-lived and owner-enrolled. A chain
-    # whose origin is outside the window needs manual review, not inferred PASS.
-    revisions = run("git", "log", "--first-parent", "-n", "75",
-                    "--format=%H%x09%s").splitlines()
+def first_parent_merges(request: str, *, root: Path = ROOT,
+                        max_commits: int | None = None) -> list[tuple[str, dict, set[str]]]:
+    """All first-parent integrations since this request's plan was introduced.
+
+    A truncated or ambiguous history is never evidence of dependency disorder.
+    """
+    if not SAFE_ID.fullmatch(request):
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    if max_commits is None:
+        raw = os.environ.get("CP36_CHAIN_HISTORY_MAX_COMMITS", "2000")
+        if not raw.isdecimal() or not 1 <= int(raw) <= 10000:
+            deny("CHAIN_HISTORY_INCOMPLETE")
+        max_commits = int(raw)
+    if type(max_commits) is not int or not 1 <= max_commits <= 10000:
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    paths = [f"pilot/runs/{request}/chain_plan.json",
+             f"pilot/orchestrator/chain_plans/{request}.json"]
+    origins = []
+    for path in paths:
+        if not (root / path).is_file():
+            continue
+        candidates = run("git", "log", "--first-parent", "--diff-filter=A",
+                         "--format=%H", "--", path, cwd=root).splitlines()
+        if len(candidates) != 1:
+            deny("CHAIN_HISTORY_INCOMPLETE")
+        origins.append(candidates[0])
+    if len(origins) != 1:
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    origin = origins[0]
+    # origin^..HEAD includes origin; never silently truncate a valid chain.
+    parents = run("git", "rev-list", "--parents", "-n", "1", origin,
+                  cwd=root).split()
+    if not parents or parents[0] != origin:
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    since = f"{origin}^..HEAD" if len(parents) > 1 else "HEAD"
+    revisions = run("git", "log", "--first-parent",
+                    f"--max-count={max_commits + 1}",
+                    "--format=%H%x09%s", since, cwd=root).splitlines()
+    if not revisions or len(revisions) > max_commits:
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    if not any(record.startswith(origin + "\t") for record in revisions):
+        deny("CHAIN_HISTORY_INCOMPLETE")
     results = []
     for record in revisions:
         try:
@@ -342,16 +379,16 @@ def first_parent_merges() -> list[tuple[str, dict, set[str]]]:
         if not match:
             continue
         # Avoid unaudited broad PR scans and unnecessary GitHub API calls.
-        body = run("git", "log", "-1", "--format=%B", sha)
+        body = run("git", "log", "-1", "--format=%B", sha, cwd=root)
         if "[CP3.5]" not in body or "Verified native" not in body:
             continue
         pr = api(f"pulls/{int(match.group(1))}")
         if pr.get("head", {}).get("ref", "").startswith("lf/native-integration/"):
-            parents = run("git", "rev-list", "--parents", "-n", "1", sha).split()
+            parents = run("git", "rev-list", "--parents", "-n", "1", sha, cwd=root).split()
             if len(parents) != 3 or parents[0] != sha:
                 deny("MERGE_PARENT_INVALID")
             changes = set(run("git", "diff", "--name-only",
-                              parents[1], sha).splitlines())
+                              parents[1], sha, cwd=root).splitlines())
             results.append((sha, pr, changes))
     return list(reversed(results))
 
@@ -374,7 +411,11 @@ def completed_lots(lots: dict, bindings: dict, history: list[tuple]) -> dict:
         if not set(lot["depends_on"]).issubset(result):
             deny("OUT_OF_ORDER_MERGE")
         for path in receipt["expected_files"]:
-            run("git", "cat-file", "-e", sha + ":" + path)
+            # Preserve the injectable git seam for hermetic tests.
+            try:
+                run("git", "cat-file", "-e", sha + ":" + path)
+            except (ChainBlocked, OSError, ValueError):
+                deny("CHAIN_EXPECTED_FILE_MISSING:" + path)
         result[lot_id] = receipt
     return result
 
@@ -1214,6 +1255,15 @@ GLOBAL_SWEEP_ERRORS = frozenset({
 def safe_failure_code(exc: Exception) -> str:
     """Preserve machine-readable detail, never a URL, path, token or response body."""
     raw = str(exc)
+    # T50: only this trusted, bounded relative path may appear in a code.
+    prefix = "CP36_CHAIN_EXPECTED_FILE_MISSING:"
+    if raw.startswith(prefix):
+        path = raw[len(prefix):]
+        if (len(path) <= 180
+                and re.fullmatch(r"[A-Za-z0-9_./-]+", path)
+                and not path.startswith("/")
+                and ".." not in Path(path).parts):
+            return raw
     if re.fullmatch(r"[A-Z][A-Z0-9_:]{1,100}", raw):
         return raw
     # CP3.6's own command wrapper emits a trusted basename plus a bounded
@@ -1666,9 +1716,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     if not all_plans:
         return conflict_outcomes or [{"status": "NO_OWNER_REGISTERED_CHAIN_PLANS",
                  **({"registry": registry_status} if registry_status else {})}]
-    history = first_parent_merges()
-    if manual_sha is not None and not any(sha == manual_sha for sha, _, _ in history):
-        deny("MANUAL_INTEGRATION_OUTSIDE_HISTORY")
+    # History must be scoped to each plan; one damaged plan must not
+    # prevent independent requests from proceeding.
     # Historical first-parent commits are the proof. Reconcile all merged
     # native integrations so an unrelated Train merge between the source
     # event and this job cannot silently lose a successor.
@@ -1684,7 +1733,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         try:
             outcomes.extend(process_one_plan(
                 request, lots, state, bindings, head, kind, sweep,
-                new_plan_request, manual_sha, history))
+                new_plan_request, manual_sha, first_parent_merges(request)))
         except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
                 OSError, ValueError, KeyError) as exc:
             outcomes.append(per_request_block(request, "CHAIN", exc))
