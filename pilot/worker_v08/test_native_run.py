@@ -143,7 +143,7 @@ def test_feedback_only_visible_commands():
 def test_unregistered_ex6_is_fail_closed(tmp_path):
     import shutil
     target = tmp_path / "pilot/config"
-    (target / "projects").mkdir(parents=True)
+    (target / "projects").mkdir(parents=True, exist_ok=True)
     shutil.copy2(ROOT / "pilot/config/active_project.json", target / "active_project.json")
     shutil.copy2(ROOT / "pilot/config/projects/sandbox.json", target / "projects/sandbox.json")
     with pytest.raises(ValueError, match="NATIVE_TASK_UNREGISTERED"):
