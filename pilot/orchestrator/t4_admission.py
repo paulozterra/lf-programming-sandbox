@@ -179,6 +179,23 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                            timeout=45)
             try:
+                # Historical commits predate project configuration. Supply the
+                # current *validated* project contract to this detached,
+                # disposable replay checkout, without changing its git tree.
+                from pilot.config.project_config import active_project, load
+                import shutil
+                project_id = active_project(root=root)
+                load(project_id, root=root)
+                for relative in ("pilot/config/active_project.json",
+                                 f"pilot/config/projects/{project_id}.json"):
+                    original = root / relative
+                    target = historical / relative
+                    if target.exists() or target.is_symlink():
+                        if target.is_symlink() or target.read_bytes() != original.read_bytes():
+                            return False
+                    else:
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(original, target)
                 receipt_path = historical / ".lf/worker-context" / newest / "receipt.json"
                 if receipt_path.is_symlink() or not receipt_path.is_file():
                     return False
