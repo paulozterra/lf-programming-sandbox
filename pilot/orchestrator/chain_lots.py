@@ -641,7 +641,7 @@ def conflicted_request(row: dict, all_plans: list) -> str | None:
             deny("CONFLICT_T7_FILES_INVALID")
         slugs = {match.group(1) for file in files if isinstance(file, dict)
                  if (match := re.fullmatch(
-                     r"pilot/runs/(req-[1-9][0-9]*)/"
+                     re.escape(storage()["requests_root"]) + r"/(req-[1-9][0-9]*)/"
                      r"(?:analysis|state|lots|chain_plan)[.]json",
                      str(file.get("filename", ""))))}
         return next(iter(slugs)) if len(slugs) == 1 else None
@@ -1397,7 +1397,7 @@ def publish_legacy_submission_contract(request: str, task: str, head: str) -> di
     relative = f"{storage()['requests_root']}/{request}/proposal_requests/{task}.proposal-request.json"
     source = ROOT / relative
     record_path = ROOT / f"{storage()['registrations_root']}/{task}.json"
-    pack_path = ROOT / f"pilot/runs/{request}/proposal_requests/{task}.task-pack.json"
+    pack_path = ROOT / f"{storage()['requests_root']}/{request}/proposal_requests/{task}.task-pack.json"
     if not source.is_file() or source.is_symlink() or not pack_path.is_file() or pack_path.is_symlink():
         return None  # T18's missing-package repair handles this case.
     if record_path.is_symlink() or not record_path.is_file():
