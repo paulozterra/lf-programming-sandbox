@@ -6,6 +6,8 @@ an existing retry and never submits the same SHA again.
 """
 from __future__ import annotations
 
+from pilot.orchestrator.request_lifecycle import RequestStateError
+
 import re
 
 from pilot.worker_v08.native_proposal_push_guard import (
@@ -45,7 +47,13 @@ def retry_native_infra(head, run, api, repo, control, *, allowed_task=None):
             candidates.setdefault(key, []).append(item)
     outcomes = []
     for (task, sha), originals in sorted(candidates.items()):
-        if allowed_task is not None and not allowed_task(task):
+        try:
+            live = allowed_task(task) if allowed_task is not None else True
+        except RequestStateError:
+            outcomes.append({"task": task, "status": "BLOCKED",
+                             "reason": "REQUEST_STATE_UNRESOLVED"})
+            continue
+        if not live:
             outcomes.append({"task": task, "status": "REQUEST_CLOSED"})
             continue
         if (task, sha) in done or not SHA.fullmatch(sha):
