@@ -30,6 +30,7 @@
       "pilot/orchestrator/test_r1_t7_reconcile.py",
       "pilot/orchestrator/test_t17_4_conflict_recovery.py",
       "pilot/orchestrator/test_t17_recovery_watchdog.py",
+      "pilot/orchestrator/test_t25_1_github_lists_isolation.py",
       "pilot/request_stage_watchdog.py",
       "pilot/test_t15_sweep.py",
       "pilot/test_t20_runner_pin.py",
