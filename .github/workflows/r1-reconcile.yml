@@ -1,0 +1,31 @@
+name: R1 state-derived route reconciliation
+run-name: R1 reconcile main
+on:
+  schedule:
+    - cron: '3,13,23,33,43,53 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+# Dispatch-only. The actual mutations stay under CP3.6's global lock.
+concurrency:
+  group: r1-state-reconcile-trigger
+  cancel-in-progress: false
+
+jobs:
+  wake:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch authenticated current-main CP3.6 state sweep
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          base_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]]
+          gh workflow run chain-lots.yml --repo "$GITHUB_REPOSITORY" --ref main \
+            -f sweep=true -f base_sha="$base_sha"

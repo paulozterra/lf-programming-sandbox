@@ -4,6 +4,8 @@ on:
   workflow_run:
     workflows: [sandbox-train]
     types: [completed]
+  schedule:
+    - cron: '9,29,49 * * * *'
   workflow_dispatch:
     inputs:
       source_run_id:
@@ -31,7 +33,7 @@ jobs:
        github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.head_repository.full_name == github.repository &&
        github.event.workflow_run.run_attempt == 1) ||
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      ((github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -123,7 +125,12 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Original PG producers and per-request draft H_REPORT
-        run: python3 -m pilot.workflow_entrypoint pilot/orchestrator/pg37_publish.py --source-run-id "$SOURCE_RUN_ID"
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/pg37_publish.py --sweep
+          else
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/pg37_publish.py --source-run-id "$SOURCE_RUN_ID"
+          fi
       - name: Stop local PostgreSQL
         if: always()
         run: docker stop cp37-disposable-db || true

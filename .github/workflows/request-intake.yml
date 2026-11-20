@@ -3,6 +3,8 @@ run-name: T9 intake req-${{ github.event.issue.number }}
 on:
   issues:
     types: [opened, labeled, unlabeled]
+  schedule:
+    - cron: '6,16,26,36,46,56 * * * *'
 permissions:
   contents: write
   pull-requests: write
@@ -14,6 +16,7 @@ concurrency:
 jobs:
   intake:
     if: >-
+      github.event_name == 'schedule' ||
       github.event.action == 'opened' ||
       (github.event.action == 'labeled' && github.event.label.name == 'lf-request') ||
       (github.event.action == 'unlabeled' && github.event.label.name == 'lf-request-duplicate')
@@ -33,6 +36,11 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/issue_intake.py --sweep
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           result="$(python3 -m pilot.workflow_entrypoint pilot/orchestrator/issue_intake.py)"
           printf '%s\n' "$result"
           # opened + labeled both fire; only the run that created the PR dispatches ci.

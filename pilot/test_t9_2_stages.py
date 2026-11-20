@@ -39,6 +39,7 @@ class API:
             return {"workflow_runs": [{"name": CONFIG["REQUEST_MERGED" if is_t7
                                    else "ANALYSIS_MERGED"]["expected_workflow"],
                                      "display_title": title,
+                                     "status": "completed", "conclusion": "success",
                                      "created_at": "2026-11-14T16:01:00Z"}]
                     if self.seen else []}
         raise AssertionError((method, path))
@@ -64,6 +65,38 @@ class Stages(unittest.TestCase):
                                   datetime(2026, 11, 14, 17, tzinfo=timezone.utc), CONFIG)
             self.assertEqual(result[0], "STAGE_NEXT_RUN_FOUND")
             notify.assert_not_called()
+
+    def test_cancelled_expected_title_does_not_count_as_seen(self):
+        class Cancelled(API):
+            def api(self, method, path, body=None):
+                result = super().api(method, path, body)
+                if path.startswith("/actions/workflows/"):
+                    for row in result["workflow_runs"]:
+                        row["status"] = "completed"
+                        row["conclusion"] = "cancelled"
+                return result
+        with patch.object(mod, "emit", return_value="RUTA_NOTIFIED") as notify:
+            result = mod.evaluate(Cancelled(seen=True), 777, MERGE_SHA, 12345,
+                                  datetime(2026, 11, 14, 17, tzinfo=timezone.utc), CONFIG)
+            self.assertEqual(result[0], "STAGE_STALLED_NOTIFIED")
+            notify.assert_called_once()
+
+    def test_skipped_does_not_count_but_queued_does(self):
+        class Variant(API):
+            def __init__(self, status, conclusion):
+                super().__init__(seen=True)
+                self.status, self.conclusion = status, conclusion
+
+            def api(self, method, path, body=None):
+                result = super().api(method, path, body)
+                if path.startswith("/actions/workflows/"):
+                    for row in result["workflow_runs"]:
+                        row.update(status=self.status, conclusion=self.conclusion)
+                return result
+        self.assertFalse(mod.next_run_seen(Variant("completed", "skipped"),
+                                           "REQUEST_MERGED", 777, "req-987", MERGED, CONFIG))
+        self.assertTrue(mod.next_run_seen(Variant("queued", None),
+                                          "REQUEST_MERGED", 777, "req-987", MERGED, CONFIG))
 
     def test_discarded_issue_is_never_touched(self):
         with patch.object(mod, "emit") as notify:

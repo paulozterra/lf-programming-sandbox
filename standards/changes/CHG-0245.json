@@ -1,0 +1,56 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0245",
+  "title": "R1: reconciliar pendientes de GitHub Actions cancelados antes de iniciar",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (20/11/2026): auditoría y corrección R1 de reemplazo de pending runs"
+  },
+  "reason": "GitHub Actions mantiene un único pending por concurrency y puede cancelar ejecuciones sin ejecutar pasos. Se corrige T9.2 y se añaden barridos basados en estado persistido para CP3.6, CP3.5, Worker P1, Intake, T7 y CP3.7; se conserva configuración T54, control de intentos y gobierno Train.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/pg37-evidence.yml",
+      ".github/workflows/r1-reconcile.yml",
+      ".github/workflows/request-intake.yml",
+      ".github/workflows/t7-request.yml",
+      ".github/workflows/worker-native.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/issue_intake.py",
+      "pilot/orchestrator/native_integration_replay.py",
+      "pilot/orchestrator/native_pending_recovery.py",
+      "pilot/orchestrator/pg37_publish.py",
+      "pilot/orchestrator/t7_pending_reconcile.py",
+      "pilot/orchestrator/test_r1_pending_recovery.py",
+      "pilot/orchestrator/test_r1_pg37_intake.py",
+      "pilot/orchestrator/test_r1_t7_reconcile.py",
+      "pilot/orchestrator/test_t17_4_conflict_recovery.py",
+      "pilot/orchestrator/test_t17_recovery_watchdog.py",
+      "pilot/request_stage_watchdog.py",
+      "pilot/test_t15_sweep.py",
+      "pilot/test_t20_runner_pin.py",
+      "pilot/test_t9_2_stages.py",
+      "pilot/worker_v08/native_run_history.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0245.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/367"
+  }
+}

@@ -38,8 +38,10 @@ from pilot.orchestrator.native_submission_contract import enrich_request, is_cur
 from generated_conflict_recovery import retire_conflicted_generated
 from pilot.orchestrator.bot_ci_retry import retry_failed_bot_prs
 from pilot.orchestrator.native_infra_retry import retry_native_infra
+from pilot.orchestrator.native_pending_recovery import recover as recover_pending_worker
 from pilot.orchestrator.native_route_recovery import sweep as recover_route_defects
 from pilot.orchestrator.native_integration_replay import recover as replay_native_integration
+from pilot.orchestrator.native_integration_replay import recover_unstarted as recover_unstarted_integration
 from pilot.worker_v08.native_feedback_delivery import recover_sweep as recover_native_feedback
 from pilot.generated_ci_selection import last_executed_ci_run
 from native_lot_binding import next_ready
@@ -1601,9 +1603,12 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
                 OSError, ValueError, KeyError, TypeError) as exc:
             recovery_failures.append(sweep_recovery_block("T17_4_RETIRE", exc))
-    # A sweep must not create unrelated registry drafts when idle.
+    # R1: a periodic sweep can replace the event that would have published
+    # the first-parent registry. Recover that same idempotent draft from main,
+    # but preserve the no-op guarantee when there are no owner chain plans.
     registry_status = (sync_implemented_registry(head)
-                       if kind == "TRAIN" and not sweep else None)
+                       if kind == "TRAIN" and (not sweep or bool(all_plans))
+                       else None)
     # Each recovery is a separate trust boundary. A local failure may not
     # short-circuit later recoveries or per-request planning.
     repair_outcomes = list(recovery_failures) + kept
@@ -1622,6 +1627,9 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                          "integration" if branch.startswith(
                              "lf/native-integration/") else
                          "implemented-registry")}))),
+            ("R1_WORKER_PENDING",
+             lambda: recover_pending_worker(
+                 head, run, api, REPO, ROOT, allowed_task=task_live)),
             ("T20_NATIVE_INFRA",
              lambda: retry_native_infra(
                  head, run, api, REPO, ROOT, allowed_task=task_live)),
@@ -1664,6 +1672,9 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                          if isinstance(value, dict)
                          and isinstance(value.get("task_name"), str)} - ci_retired_tasks
                 for outcome in replay_native_integration(
+                        head, run, api, REPO, ROOT, allowed_tasks=tasks):
+                    repair_outcomes.append({"request": request, **outcome})
+                for outcome in recover_unstarted_integration(
                         head, run, api, REPO, ROOT, allowed_tasks=tasks):
                     repair_outcomes.append({"request": request, **outcome})
             except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,

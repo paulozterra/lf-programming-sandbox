@@ -30,13 +30,27 @@ WORKER_TITLE = re.compile(
 
 
 def _listed(api, workflow: str) -> list[dict]:
+    """Complete bounded run history; a truncated first page cannot prove absence."""
     response = api(f"actions/workflows/{workflow}/runs?per_page=100")
     rows = response.get("workflow_runs")
-    if (not isinstance(rows, list) or type(response.get("total_count")) is not int
-            or len(rows) > 100
-            or any(not isinstance(row, dict) for row in rows)):
-        raise ValueError("NATIVE_INTEGRATION_REPLAY_HISTORY_INVALID")
-    return rows
+    total = response.get("total_count")
+    if (not isinstance(rows, list) or type(total) is not int or
+            total < 0 or total > 1000 or len(rows) > 100 or
+            len(rows) != min(total, 100) or
+            any(not isinstance(row, dict) for row in rows)):
+        raise ValueError("R1_CP35_HISTORY_INCOMPLETE")
+    found = list(rows)
+    for page in range(2, (total + 99) // 100 + 1):
+        response = api(f"actions/workflows/{workflow}/runs?per_page=100&page={page}")
+        chunk = response.get("workflow_runs")
+        if (not isinstance(chunk, list) or response.get("total_count") != total
+                or len(chunk) != min(100, total - len(found))
+                or any(not isinstance(row, dict) for row in chunk)):
+            raise ValueError("R1_CP35_HISTORY_INCOMPLETE")
+        found.extend(chunk)
+    if len(found) != total or len({row.get("id") for row in found}) != len(found):
+        raise ValueError("R1_CP35_HISTORY_INCOMPLETE")
+    return found
 
 
 def _trusted_worker(run: dict, repo: str) -> bool:
@@ -152,3 +166,56 @@ def recover(head: str, run, api, repo: str, root: Path,
                         "source_run_id": source_id, "failed_integration_run_id": failure["id"],
                         "task": task})
     return results
+
+
+def recover_unstarted(head: str, run, api, repo: str, root: Path,
+                      *, allowed_tasks: set[str]) -> list[dict]:
+    """R1: reconcile immutable PASS Worker runs missing a CP3.5 execution.
+
+    Cancelled/skipped CP3.5 runs are not delivery receipts. This reads only
+    trusted run history and registered tasks; never re-runs the Worker.
+    """
+    if not re.fullmatch(r"[0-9a-f]{40}", head):
+        raise ValueError("R1_CP35_BASE_INVALID")
+    workers = _listed(api, WORKER)
+    integrations = _listed(api, INTEGRATION)
+    outcomes = []
+    for source in sorted(workers, key=lambda row: row.get("id", 0)):
+        if not _trusted_worker(source, repo):
+            continue
+        match = WORKER_TITLE.fullmatch(source["display_title"])
+        task = match.group(1)
+        if task not in allowed_tasks:
+            continue
+        registration = storage_path("registrations_root", root=root) / (task + ".json")
+        if registration.is_symlink() or not registration.is_file():
+            raise ValueError("R1_CP35_REGISTRATION_MISSING")
+        source_id = source["id"]
+        branch = "lf/native-integration/" + task + "-run-" + str(source_id)
+        remote = run("git", "ls-remote", "origin", "refs/heads/" + branch)
+        if remote.strip():
+            continue
+        title = "CP3.5 " + source["display_title"]
+        retry_title = "CP3.5 recovery native-run-" + str(source_id)
+        matching = [row for row in integrations
+                    if row.get("display_title") in (title, retry_title)
+                    and (row.get("path") or "").split("@")[0] == INTEGRATION_PATH
+                    and (row.get("repository") or {}).get("full_name") == repo]
+        delivered = [row for row in matching
+                     if row.get("status") in ("queued", "in_progress")
+                     or (row.get("status") == "completed"
+                         and row.get("conclusion") in ("success", "failure"))]
+        if delivered:
+            # A completed failure needs the existing typed T24 recovery, not
+            # an unbounded generic retry. A concurrent in-flight run is left alone.
+            if all(row.get("status") == "completed" for row in delivered) and any(
+                    row.get("conclusion") == "failure" for row in delivered):
+                outcomes.append({"status": "BLOCKED", "task": task,
+                                 "reason": "R1_CP35_COMPLETED_FAILURE",
+                                 "source_run_id": source_id})
+            continue
+        run("gh", "workflow", "run", INTEGRATION, "--repo", repo,
+            "--ref", "main", "-f", "source_run_id=" + str(source_id))
+        outcomes.append({"status": "R1_CP35_REDISPATCHED",
+                         "task": task, "source_run_id": source_id})
+    return outcomes

@@ -1,5 +1,5 @@
 name: LF Worker native (trusted workflow_run or manual, no API)
-run-name: ${{ inputs.route_retry && format('lf-native-route-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.infra_retry && format('lf-native-infra-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || inputs.request_slug && format('lf-native-{0}-{1}-a{2}', inputs.request_slug, inputs.task, inputs.attempt) || format('lf-native-{0}-a{1}', inputs.task, inputs.attempt) }}
+run-name: ${{ inputs.pending_retry && format('lf-native-pending-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.route_retry && format('lf-native-route-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.infra_retry && format('lf-native-infra-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || inputs.request_slug && format('lf-native-{0}-{1}-a{2}', inputs.request_slug, inputs.task, inputs.attempt) || format('lf-native-{0}-a{1}', inputs.task, inputs.attempt) }}
 
 on:
   workflow_run:
@@ -19,6 +19,11 @@ on:
         description: "Immutable 40-hex Git commit; read proposal JSON only"
         required: true
         type: string
+      pending_retry:
+        description: "R1 authorized re-dispatch of a cancelled/unstarted proposal HEAD (CP3.6 sweep only)"
+        required: false
+        type: boolean
+        default: false
       route_retry:
         description: "T23 authorized route-defect replay of exact preexisting proposal (CP3.6 only)"
         required: false
@@ -92,6 +97,7 @@ jobs:
           MANUAL_ATTEMPT: ${{ inputs.attempt }}
           MANUAL_INFRA_RETRY: ${{ inputs.infra_retry }}
           MANUAL_ROUTE_RETRY: ${{ inputs.route_retry }}
+          MANUAL_PENDING_RETRY: ${{ inputs.pending_retry }}
           REPO_NAME: ${{ github.repository }}
         shell: bash
         run: |
@@ -119,7 +125,8 @@ jobs:
             args+=(--branch "$branch")
           fi
           test "$MANUAL_INFRA_RETRY" != "true" || test "$MANUAL_ROUTE_RETRY" != "true"
-          if [ "$EVENT_NAME" = "workflow_dispatch" ] && { [ "$MANUAL_INFRA_RETRY" = "true" ] || [ "$MANUAL_ROUTE_RETRY" = "true" ]; }; then
+          test "$MANUAL_PENDING_RETRY" != "true" || { test "$MANUAL_INFRA_RETRY" != "true" && test "$MANUAL_ROUTE_RETRY" != "true"; }
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && { [ "$MANUAL_INFRA_RETRY" = "true" ] || [ "$MANUAL_ROUTE_RETRY" = "true" ] || [ "$MANUAL_PENDING_RETRY" = "true" ]; }; then
             args+=(--allow-historical-base)
           fi
           python3 control/pilot/worker_v08/native_proposal_push_guard.py "${args[@]}"
