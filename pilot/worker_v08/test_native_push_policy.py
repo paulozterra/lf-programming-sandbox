@@ -8,7 +8,7 @@ from native_run_history import admit_attempt
 def run(n, *, task="ex6", event="workflow_run", sha=None, title=None, status="completed"):
     sha=sha or ("%040x"%(n+30))
     display=(f"lf-native-auto-lf/native-proposal/{task}-{sha}"
-             if event=="workflow_run" else f"lf-native-{task}-a{n}")
+             if event=="workflow_run" else f"lf-native-{task}-a{n}-{sha}")
     return {"id":900+n,"event":event,"head_branch":"main",
             "head_sha":"f"*40,"display_title":title or display,
             "status":status,"run_attempt":1}
@@ -20,13 +20,21 @@ def call(tmp_path,runs,proofs,*,task="ex6",attempt=None,current=None,sha=None,
     cur=current or runs[-1]
     if sha is None:
         name=cur["display_title"]
-        sha=name[-40:] if event=="workflow_run" else "a"*40
+        sha=name[-40:]
     if branch is None and event=="workflow_run":
         branch="lf/native-proposal/"+task
-    with (patch("native_run_history._api",
-                return_value={"total_count":len(runs),"workflow_runs":runs}),
+    def api(_repo, _token, route):
+        if "/jobs?" in route:
+            return {"total_count": 1, "jobs": [{"name": "native", "steps": [
+                {"name": "Execute original run_verified_worker using native proposal (single attempt)",
+                 "status": "completed", "conclusion": "skipped"}]}]}
+        if "/artifacts?" in route:
+            return {"total_count": 0, "artifacts": []}
+        return {"total_count": len(runs), "workflow_runs": runs}
+    with (patch("native_run_history._api", side_effect=api),
           patch("native_run_history._artifact_json",
-                side_effect=lambda repo,token,rid:proofs.get(rid))):
+                side_effect=lambda repo,token,rid, **kw:
+                    None if kw.get("artifact_name") else proofs.get(rid))):
         return admit_attempt(repository="paulozterra/lf-programming-sandbox",
             token="offline",task=task,attempt=attempt,run_id=cur["id"],
             run_attempt=1,sha=sha,output=tmp_path/"history.json",
