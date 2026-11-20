@@ -53,8 +53,8 @@ def verify_runner_pins(folder: Path = WORKFLOWS) -> list[str]:
 
 
 class RunnerPins(unittest.TestCase):
-    def test_all_26_workflows_pinned(self):
-        self.assertEqual(len(list(WORKFLOWS.glob("*.yml"))), 26)  # T40: + exam-rehearsal.yml; T46: + audit-stage.yml; T48: + audit-request.yml; A5: + audit-auditor.yml
+    def test_all_27_workflows_pinned(self):
+        self.assertEqual(len(list(WORKFLOWS.glob("*.yml"))), 27)  # T40: + exam-rehearsal.yml; T46: + audit-stage.yml; T48: + audit-request.yml; A5: + audit-auditor.yml; T56: + route-ekb-probe.yml
         self.assertEqual(verify_runner_pins(), [])
 
     def test_train_exception_never_applies_to_synthetic_folder(self):

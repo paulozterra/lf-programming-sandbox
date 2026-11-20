@@ -13,6 +13,7 @@
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      "pilot/test_t20_runner_pin.py",
       ".github/workflows/route-ekb-probe.yml",
       "pilot/ekb/route_ekb.py",
       "pilot/ekb/test_t56_route_ekb.py",
