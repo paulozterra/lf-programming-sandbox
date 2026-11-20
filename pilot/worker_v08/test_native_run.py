@@ -51,7 +51,7 @@ def admission(tmp_path: Path, attempt: int, runs: list[dict],
         return _github_response(rows)
     with (patch("native_run_history._api", side_effect=api),
           patch("native_run_history._artifact_json",
-                side_effect=lambda repo, token, rid: receipts.get(rid))):
+                side_effect=lambda repo, token, rid, **kw: (None if kw.get("artifact_name") else receipts.get(rid)))):
         admit_attempt(repository="paulozterra/lf-programming-sandbox",
                       token="offline-test", task="ex6", attempt=attempt,
                       run_id=current_id if current_id is not None else 700 + attempt,
