@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0241",
+  "title": "A11: regla 3 del CLAUDE.md — contenido de LF derivado sí, real no (permitido / prohibido / ante la duda)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (20/11): la regla 3 debe ser más flexible: usar LF derivado sin referencias ni datos reales."
+  },
+  "reason": "La regla decía \"ningún dato real de LF\", pero la práctica ya usa fichas derivadas de LF reescritas como SBX-. Se precisa qué está permitido (derivados con ids SBX-, recortados, datos ficticios; métodos y plantillas genéricas) y qué está prohibido (datos reales, credenciales, URLs, project_ref, tablas/funciones reales, código de negocio literal, contenido del EKB, fotos o lecturas SQL). Se conserva la excepción de CHG-0236 y se declara la de la configuración de auditoría (vista y columna de códigos del EKB). El control automático queda anotado como pendiente.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "CLAUDE.md",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0241.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "PENDING"
+  }
+}

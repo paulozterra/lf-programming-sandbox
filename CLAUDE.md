@@ -4,7 +4,12 @@ Este repo es el entorno de calificación de la Fase 2 (Programación). **No es p
 
 1. Todo cambio entra por PR a `main`; nunca commit directo.
 2. Ningún secreto ni credencial en el repo; solo `.env.example`. No leer ni imprimir `.env`.
-3. Ningún código de negocio ni dato real de LF. Los casos de prueba son ficticios.
+3. Contenido de LF: derivado sí, real no.
+   - Permitido: reglas, pantallas y criterios **derivados** de LF, reescritos con identificadores del sandbox (`SBX-…`), recortados al alcance del ejercicio y con datos de prueba ficticios; métodos y plantillas genéricas (fases, taxonomías, esquemas). La procedencia se anota como referencia de documento (p. ej. "derivada de B2B-AUTH-001 v0.5"), sin enlaces internos.
+   - Prohibido: datos reales (clientes, montos, usuarios, correos, documentos); credenciales, URLs, `project_ref`, nombres de tablas o funciones reales de Supabase; código de negocio de LF copiado tal cual; contenido literal del EKB (solo sus códigos); fotos de datos o lecturas SQL de LF.
+   - Ante la duda, se pregunta al owner antes de subirlo: el repo es público.
+   Excepción conocida (A11): `pilot/audit/projects/<proyecto>.json` nombra la vista y la columna de códigos del EKB
+   que lee la etapa de auditoría (solo lectura, con el secreto del repo); nunca su contenido.
    Excepción conocida (decisión del owner, 19/11/2026, CHG-0236): las fichas `analysis/fixtures/sbx_*` y sus derivados
    (`.lf/worker-context/req186*`, `req286*`) contienen texto derivado de reglas LF B2B-AUTH. Se dejan como están; no se
    agregan más textos reales. Sus IDs `supabase://lf_ops.*` son simulados (`"simulation": true`) y pueden coincidir con
