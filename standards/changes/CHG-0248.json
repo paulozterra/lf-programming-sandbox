@@ -15,14 +15,15 @@
     "paths": [
       ".github/workflows/ci.yml",
       ".github/workflows/worker-native.yml",
+      "pilot/orchestrator/native_integration_replay.py",
+      "pilot/orchestrator/native_pending_recovery.py",
+      "pilot/request_failure_notify.py",
+      "pilot/worker_v08/native_feedback_delivery.py",
       "pilot/worker_v08/native_run.py",
       "pilot/worker_v08/native_run_history.py",
-      "pilot/worker_v08/native_feedback_delivery.py",
+      "pilot/worker_v08/test_native_push_policy.py",
       "pilot/worker_v08/test_native_run.py",
       "pilot/worker_v08/test_r3_native_proof_sha.py",
-      "pilot/orchestrator/native_pending_recovery.py",
-      "pilot/orchestrator/native_integration_replay.py",
-      "pilot/request_failure_notify.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0248.json"
     ]
