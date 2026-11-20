@@ -34,7 +34,7 @@ def test_five_completed_workflow_events_are_primary_and_cron_is_retained():
     events = r1["on"]["workflow_run"]
     assert set(events["workflows"]) == EXPECTED
     assert events["types"] == ["completed"]
-    assert r1["on"]["workflow_dispatch"] is None
+    assert r1["on"]["workflow_dispatch"] == ""
     assert r1["on"]["schedule"]
     assert r1["concurrency"]["group"] == "r1-state-reconcile-trigger"
     assert r1["concurrency"]["cancel-in-progress"] == "false"
