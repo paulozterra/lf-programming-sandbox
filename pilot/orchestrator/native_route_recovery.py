@@ -6,6 +6,8 @@ generated Draft PR changes only public registrations, package and provenance;
 the original proposal branch and encrypted exam remain untouched.
 """
 from __future__ import annotations
+
+from pilot.orchestrator.request_lifecycle import RequestStateError
 # Resolve the trusted repository package when executed as a script.
 import sys as _project_sys
 from pathlib import Path as _project_Path
@@ -289,7 +291,13 @@ def replay_corrected(head, run, api, repo: str, root: Path,
         return []
     for file in sorted(migrations.glob("*.json")):
         task = file.stem
-        if allowed_task is not None and not allowed_task(task):
+        try:
+            live = allowed_task(task) if allowed_task is not None else True
+        except RequestStateError:
+            results.append({"task": task, "status": "BLOCKED",
+                            "reason": "REQUEST_STATE_UNRESOLVED"})
+            continue
+        if not live:
             results.append({"task": task, "status": "REQUEST_CLOSED"})
             continue
         if not TASK.fullmatch(task):
@@ -368,7 +376,13 @@ def sweep(head, run, api, repo, root, worktree, draft, pending_draft,
         evidence = inspect(run, api, repo, root, item)
         if evidence is None:
             continue
-        if allowed_task is not None and not allowed_task(evidence["task"]):
+        try:
+            live = allowed_task(evidence["task"]) if allowed_task is not None else True
+        except RequestStateError:
+            results.append({"task": evidence["task"], "status": "BLOCKED",
+                            "reason": "REQUEST_STATE_UNRESOLVED"})
+            continue
+        if not live:
             results.append({"task": evidence["task"], "status": "REQUEST_CLOSED"})
             continue
         results.append({"status": comment_defect(run, api, repo, evidence,
