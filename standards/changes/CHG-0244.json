@@ -1,0 +1,44 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0244",
+  "title": "T56 fase 2: ekb.md en el paquete de cada lote y registro de fallos de la ruta en el EKB",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (20/11): procede con la 2da parte de T56."
+  },
+  "reason": "Fase 2 de T56. (a) Al registrar un lote (chain-lots, paso confiable con el secreto de solo lectura) la ruta consulta el EKB con el área, las skills y las rutas del lote; si hay coincidencias agrega .lf/worker-context/<tarea>/ekb.md (saneado, protegido y con su sha en el receipt). Sin secreto, sin coincidencias o con el EKB caído no se agrega nada y el registro es idéntico al anterior; nunca bloquea. La reproducción histórica (t4_admission) usa los bytes comprometidos de ekb.md. (b) El watchdog, al notificar un fallo nuevo, deja el código en un archivo; un paso aparte, no bloqueante y con el secreto de escritura, lo registra por el writer gobernado solo si está en pilot/ekb/route_error_catalog.json (curado); los demás se informan como UNCATALOGUED.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/chain-lots.yml",
+      ".github/workflows/ci.yml",
+      ".github/workflows/request-failure-watchdog.yml",
+      "pilot/ekb/route_ekb.py",
+      "pilot/ekb/route_error_catalog.json",
+      "pilot/ekb/test_t56_phase2.py",
+      "pilot/orchestrator/native_lot_registration.py",
+      "pilot/orchestrator/t4_admission.py",
+      "pilot/request_failure_notify.py",
+      "pilot/worker_v08/register_task_context.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0244.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/366"
+  }
+}

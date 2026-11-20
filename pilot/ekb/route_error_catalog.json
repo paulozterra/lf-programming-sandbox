@@ -1,0 +1,106 @@
+{
+  "schema_version": "LF_ROUTE_ERROR_CATALOG_V1",
+  "note": "Route failure codes (from pilot/request_failure_notify.py) that the watchdog may register in the EKB. Only listed codes are written; any other code is reported as UNCATALOGUED for a person to curate. Codes become LF-ROUTE-<CODE with - instead of _>.",
+  "entries": {
+    "BASE_NO_VERDE": {
+      "categoria": "CI_GOVERNANCE", "severidad": "High", "lifecycle_phase": "CI_VALIDATION",
+      "consumer_role": ["Builder", "DevOps"], "root_cause_family": "R5_EROSION_PROCESO", "detectability": "LOUD_EARLY",
+      "titulo": "La cadena o el relevo arrancan sobre un main sin CI verde",
+      "descripcion": "Una etapa posterior al Train se detuvo porque el CI exacto del commit de main no estaba en verde o no existía.",
+      "patron": "CP3.6 o el relevo del Train fallan con BASE_NO_VERDE tras una fusión",
+      "causa_raiz": "Se fusionó un cambio cuyo CI de push en main falló, quedó pendiente o nunca se disparó",
+      "prevencion": "Fusionar solo con el CI del PR en verde y esperar el CI de push en main antes de encadenar; el Train ya reutiliza ese CI (T52)",
+      "validacion": "pilot/test_t52_main_ci.py y el gate pilot/train_main_ci_gate_v1.json"
+    },
+    "PEDIDO_CI_NO_DISPARADO": {
+      "categoria": "CI_GOVERNANCE", "severidad": "High", "lifecycle_phase": "CI_VALIDATION",
+      "consumer_role": ["Builder", "DevOps"], "root_cause_family": "R2_NO_VE", "detectability": "SILENT",
+      "titulo": "El PR del pedido quedó sin CI",
+      "descripcion": "El bot creó el PR del pedido pero ningún workflow de CI llegó a ejecutarse en el intervalo esperado.",
+      "patron": "PR de lf/request sin corridas de ci tras el intervalo de intake",
+      "causa_raiz": "Eventos creados con el token del bot no disparan workflows, o el PR tenía conflictos, o la corrida quedó en action_required",
+      "prevencion": "Despachar el CI explícitamente desde el paso de confianza y aprobar action_required (T52 A); resolver conflictos antes de esperar CI",
+      "validacion": "Barrido del watchdog: audit_undispatched_requests en pilot/request_failure_notify.py"
+    },
+    "PEDIDO_WORKFLOW_SIN_AVANCE": {
+      "categoria": "CI_GOVERNANCE", "severidad": "Medium", "lifecycle_phase": "EXECUTION",
+      "consumer_role": ["DevOps"], "root_cause_family": "R2_NO_VE", "detectability": "SILENT",
+      "titulo": "Un workflow de la ruta quedó colgado sin terminar",
+      "descripcion": "Una corrida de la ruta siguió en curso más allá de su tiempo máximo sin concluir.",
+      "patron": "Corrida en in_progress o queued más allá de TIMEOUT_MINUTES",
+      "causa_raiz": "Cola de runners saturada, espera de aprobación o paso bloqueado en red",
+      "prevencion": "Fijar timeout-minutes en cada job y reintentos acotados para llamadas de red",
+      "validacion": "stalled_run en pilot/request_failure_notify.py"
+    },
+    "PEDIDO_WORKFLOW_TIMEOUT": {
+      "categoria": "CI_GOVERNANCE", "severidad": "Medium", "lifecycle_phase": "EXECUTION",
+      "consumer_role": ["DevOps", "Builder"], "root_cause_family": "R2_NO_VE", "detectability": "LOUD_LATE",
+      "titulo": "Un job de la ruta excedió su tiempo máximo",
+      "descripcion": "Un job terminó por timeout en lugar de pasar o fallar con un código propio.",
+      "patron": "conclusion timed_out en un job de la ruta",
+      "causa_raiz": "Descarga lenta o limitada de dependencias, pruebas sin límite de tiempo o espera de un servicio externo",
+      "prevencion": "Usar el espejo de Maven (T57), cachear dependencias y poner límites de tiempo a las pruebas",
+      "validacion": "pilot/test_t57_maven_mirror.py"
+    },
+    "PEDIDO_CI_FALLIDO": {
+      "categoria": "CI_GOVERNANCE", "severidad": "Medium", "lifecycle_phase": "CI_VALIDATION",
+      "consumer_role": ["Builder", "Judge"], "root_cause_family": "UNCLASSIFIED_WITH_REASON", "detectability": "LOUD_EARLY",
+      "titulo": "El CI de un PR generado por la ruta falló",
+      "descripcion": "El CI del PR de un pedido o lote generado terminó en failure.",
+      "patron": "ci en failure sobre lf/request, lf/native-integration o lf/generated-t7",
+      "causa_raiz": "Variable: revisar el job fallido; las causas repetidas deben catalogarse con su propio código",
+      "prevencion": "Correr localmente las pruebas del área del lote antes de entregar y revisar el CHG (número libre, render, check)",
+      "validacion": "CI del repo en verde sobre el mismo commit"
+    },
+    "PEDIDO_CADENA_FALLIDA": {
+      "categoria": "ENGINEERING_ORCHESTRATION", "severidad": "High", "lifecycle_phase": "EXECUTION",
+      "consumer_role": ["Builder", "DevOps"], "root_cause_family": "UNCLASSIFIED_WITH_REASON", "detectability": "LOUD_EARLY",
+      "titulo": "La cadena de lotes (CP3.6) falló",
+      "descripcion": "El encadenamiento posterior a la fusión no pudo preparar el siguiente lote.",
+      "patron": "CP3.6 chain after Train merge en failure",
+      "causa_raiz": "Variable: conflicto de contexto, examen faltante, base no verde o intentos agotados",
+      "prevencion": "Revisar el código BLOCKED de la salida de chain_lots y resolver la precondición antes de reintentar",
+      "validacion": "Pruebas de pilot/orchestrator/test_t27_*, test_t46_*, test_t49_*"
+    },
+    "PEDIDO_WORKER_FALLIDO": {
+      "categoria": "ENGINEERING_ORCHESTRATION", "severidad": "Medium", "lifecycle_phase": "E2E_EXECUTION",
+      "consumer_role": ["Builder"], "root_cause_family": "UNCLASSIFIED_WITH_REASON", "detectability": "LOUD_EARLY",
+      "titulo": "La verificación nativa de la propuesta del worker falló",
+      "descripcion": "La propuesta del constructor no pasó la verificación nativa (pruebas visibles, examen oculto o reglas).",
+      "patron": "LF Worker native en failure para una tarea registrada",
+      "causa_raiz": "La propuesta no cumple las pruebas o reglas del lote, o tocó rutas fuera de su alcance",
+      "prevencion": "Leer el feedback visible publicado en el pedido, revisar ekb.md y lf_rules.md del lote, y respetar write_path_patterns",
+      "validacion": "Feedback visible del worker y CI del PR de integración"
+    },
+    "PEDIDO_INTEGRACION_FALLIDA": {
+      "categoria": "ENGINEERING_ORCHESTRATION", "severidad": "Medium", "lifecycle_phase": "EXECUTION",
+      "consumer_role": ["DevOps"], "root_cause_family": "UNCLASSIFIED_WITH_REASON", "detectability": "LOUD_EARLY",
+      "titulo": "No se pudo convertir el parche verificado en PR",
+      "descripcion": "CP3.5 no logró crear el PR borrador a partir del parche verificado.",
+      "patron": "CP3.5 native verified patch to draft PR en failure",
+      "causa_raiz": "Conflicto con main posterior, rama existente o artefacto de parche ausente",
+      "prevencion": "Integrar pronto tras la verificación y regenerar sobre el main actual cuando haya conflicto",
+      "validacion": "pilot/orchestrator/test_t45_generated_index_conflict.py"
+    },
+    "PEDIDO_RELEVO_FALLIDO": {
+      "categoria": "CI_GOVERNANCE", "severidad": "Medium", "lifecycle_phase": "EXECUTION",
+      "consumer_role": ["DevOps"], "root_cause_family": "R5_EROSION_PROCESO", "detectability": "LOUD_EARLY",
+      "titulo": "El relevo posterior al Train falló",
+      "descripcion": "El despacho confiable de la siguiente etapa tras una fusión del Train no se completó.",
+      "patron": "T9.2 trusted Train handoff dispatch en failure",
+      "causa_raiz": "CI de push en main ausente o fallido, o error transitorio de la API",
+      "prevencion": "Esperar el CI de push con el gate de T52 y reintentar solo errores transitorios",
+      "validacion": "pilot/test_t52_main_ci.py"
+    },
+    "PEDIDO_POLITICA_C_FALLIDA": {
+      "categoria": "CI_GOVERNANCE", "severidad": "Medium", "lifecycle_phase": "EXECUTION",
+      "consumer_role": ["DevOps"], "root_cause_family": "UNCLASSIFIED_WITH_REASON", "detectability": "LOUD_EARLY",
+      "titulo": "La política C de autointegración falló",
+      "descripcion": "La política C no pudo verificar o etiquetar un PR generado para el Train.",
+      "patron": "LF policy C auto-integrate en failure",
+      "causa_raiz": "PR con contenido distinto al esperado, CI no verde o permisos insuficientes",
+      "prevencion": "No editar a mano los PR generados y mantener el CI del PR en verde",
+      "validacion": "Pruebas de política C en pilot/"
+    }
+  }
+}
