@@ -169,4 +169,6 @@ def test_workflow_requires_either_proof_or_same_job_no_attempt_marker():
     assert "steps.worker.outcome" in required["if"]
     assert "native-no-attempt" in [s.get("with", {}).get("name") for s in steps]
     assert "inputs.proposal_commit_sha" in workflow["run-name"]
+    assert "inputs.request_slug" not in workflow["run-name"]
+    assert "MANUAL_REQUEST_SLUG: ${{ inputs.request_slug }}" in WORKFLOW.read_text(encoding="utf-8")
     assert workflow["concurrency"]["cancel-in-progress"] == "false"
