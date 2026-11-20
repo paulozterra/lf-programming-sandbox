@@ -163,6 +163,78 @@ def test_expired_artifact_rejected_without_legacy_grandfather():
             h._artifact_json(REPO, "offline", 800)
 
 
+def test_native_job_skipped_without_steps_is_definitely_not_an_attempt():
+    old = {"id": 745, "status": "completed", "conclusion": "skipped",
+           "event": "workflow_run", "head_branch": "main", "run_attempt": 1,
+           "display_title": "lf-native-auto-lf/native-proposal/ex6-" + OTHER}
+    with patch.object(h, "_artifact_json", return_value=None), patch.object(
+            h, "_api", return_value={"total_count": 1, "jobs": [
+                {"name": "native", "conclusion": "skipped"}]}):
+        assert h._no_attempt_attested(REPO, "offline", old, TASK)
+
+
+def test_pr370_merge_sha_is_immutable_cutover_reference():
+    from datetime import datetime, timezone
+    data = {"merged": True, "merge_commit_sha": "f" * 40,
+            "merged_at": "2026-11-21T10:00:00Z"}
+    with patch.object(h, "_api", return_value=data):
+        sha, cutover = h._r3_merge_cutover(REPO, "offline")
+    assert sha == "f" * 40
+    assert cutover == datetime(2026, 11, 21, 10, tzinfo=timezone.utc)
+    with patch.object(h, "_api", return_value={**data, "merged": False}):
+        with pytest.raises(ValueError, match="NATIVE_PROOF_CUTOFF_UNRESOLVED"):
+            h._r3_merge_cutover(REPO, "offline")
+
+
+def test_old_missing_proof_worker_failure_is_legacy_but_new_fails(tmp_path):
+    from datetime import datetime, timezone
+    prior = run(800, title(sha=OTHER))
+    prior["created_at"] = "2026-11-19T10:00:00Z"
+    cut = ("f" * 40, datetime(2026, 11, 20, 12, tzinfo=timezone.utc))
+    with patch.object(h, "_r3_merge_cutover", return_value=cut):
+        assert admission(tmp_path, prior, worker_conclusion="failure") == 1
+    prior["created_at"] = "2026-11-21T10:00:00Z"
+    with patch.object(h, "_r3_merge_cutover", return_value=cut):
+        with pytest.raises(ValueError, match="^NATIVE_PRIOR_PROOF_MISSING$"):
+            admission(tmp_path, prior, worker_conclusion="failure")
+
+
+def test_expired_proof_old_is_legacy_new_is_blocked(tmp_path):
+    from datetime import datetime, timezone
+    prior = run(800, title(sha=OTHER))
+    prior["created_at"] = "2026-11-19T10:00:00Z"
+    current = run(900, title(), completed=False)
+    cut = ("f" * 40, datetime(2026, 11, 20, 12, tzinfo=timezone.utc))
+    def api(_repo, _token, route):
+        if "/runs?per_page=" in route:
+            return {"total_count": 2, "workflow_runs": [current, prior]}
+        raise AssertionError(route)
+    def artifact(_repo, _token, rid):
+        assert rid == 800
+        raise ValueError("NATIVE_PRIOR_PROOF_MISSING")
+    with patch.object(h, "_api", side_effect=api), patch.object(
+            h, "_artifact_json", side_effect=artifact), patch.object(
+            h, "_r3_merge_cutover", return_value=cut):
+        assert h.admit_attempt(repository=REPO, token="offline", task=TASK,
+                               attempt=1, run_id=900, run_attempt=1,
+                               sha=SHA, output=tmp_path / "old.json") == 1
+        prior["created_at"] = "2026-11-21T10:00:00Z"
+        with pytest.raises(ValueError, match="^NATIVE_PRIOR_PROOF_MISSING$"):
+            h.admit_attempt(repository=REPO, token="offline", task=TASK,
+                            attempt=1, run_id=900, run_attempt=1,
+                            sha=SHA, output=tmp_path / "new.json")
+
+
+def test_historical_exception_disables_legacy_skip():
+    from datetime import datetime, timezone
+    prior = {"id": 800, "created_at": "2026-11-19T10:00:00Z"}
+    cut = ("f" * 40, datetime(2026, 11, 20, 12, tzinfo=timezone.utc))
+    with patch.object(h, "_r3_historical_exceptions", return_value=frozenset()):
+        assert h._r3_pre_cutover(REPO, "offline", prior, cut)
+    with patch.object(h, "_r3_historical_exceptions", return_value=frozenset({800})):
+        assert not h._r3_pre_cutover(REPO, "offline", prior, cut)
+
+
 def test_workflow_requires_either_proof_or_same_job_no_attempt_marker():
     # This job deliberately runs without optional PyYAML installed.
     content = WORKFLOW.read_text(encoding="utf-8")
