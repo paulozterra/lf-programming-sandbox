@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "worker_v08"))
 
 from pilot.config.project_config import storage_path
+from pilot.orchestrator.request_lifecycle import RequestStateError
 from pilot.worker_v08.native_proposal_push_guard import (
     validate_proposal_only, ProposalPushBlocked,
 )
@@ -87,9 +88,9 @@ def recover(head: str, run, api, repo: str, root: Path, *, allowed_task) -> list
         if match is None:
             raise ValueError("R1_WORKER_REF_INVALID")
         task = match.group(1)
-        if not allowed_task(task):
-            continue
         try:
+            if not allowed_task(task):
+                continue
             path = storage_path("registrations_root", root=root) / (task + ".json")
             if path.is_symlink() or not path.is_file():
                 raise ValueError("R1_WORKER_REGISTRATION_MISSING")
@@ -136,7 +137,7 @@ def recover(head: str, run, api, repo: str, root: Path, *, allowed_task) -> list
                                  "task": task, "proposal_sha": sha})
         except (ValueError, ProposalPushBlocked, OSError, KeyError) as exc:
             code = str(exc)
-            if not re.fullmatch(r"R1_[A-Z0-9_]+", code):
+            if not re.fullmatch(r"(?:R1_[A-Z0-9_]+|REQUEST_STATE_UNRESOLVED)", code):
                 code = "R1_WORKER_TASK_RECOVERY_FAILED"
             outcomes.append({"status": "BLOCKED", "task": task, "reason": code})
     return outcomes
