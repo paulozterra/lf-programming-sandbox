@@ -36,7 +36,15 @@ def _proof(i: int, *, run_id: int | None = None) -> dict:
 
 def admission(tmp_path: Path, attempt: int, runs: list[dict],
               receipts: dict[int, dict | None], *, current_id: int | None = None) -> None:
-    with (patch("native_run_history._api", return_value=_github_response(runs)),
+    def api(_repo, _token, route):
+        if "/jobs?" in route:
+            return {"total_count": 1, "jobs": [{"name": "native", "steps": [
+                {"name": "Execute original run_verified_worker using native proposal (single attempt)",
+                 "status": "completed", "conclusion": "skipped"}]}]}
+        if "/artifacts?" in route:
+            return {"total_count": 0, "artifacts": []}
+        return _github_response(runs)
+    with (patch("native_run_history._api", side_effect=api),
           patch("native_run_history._artifact_json",
                 side_effect=lambda repo, token, rid: receipts.get(rid))):
         admit_attempt(repository="paulozterra/lf-programming-sandbox",
