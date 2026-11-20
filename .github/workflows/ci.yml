@@ -790,7 +790,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PYTHONDONTWRITEBYTECODE: "1"
-        run: python3 pilot/worker_v08/r3_live_dry_run.py
+        run: python3 -m pilot.workflow_entrypoint pilot/worker_v08/r3_live_dry_run.py
 
   lf-producers-pinned:
     name: LF pinned producer integrity and offline suites (no Supabase)
