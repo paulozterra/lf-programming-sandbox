@@ -212,6 +212,26 @@ class Register(unittest.TestCase):
                            psql=fake_psql(Path(tempfile.mkdtemp()), out))
 
 
+class Probe(unittest.TestCase):
+    def test_probe_reads_and_checks_grant_without_writing(self):
+        tmp = Path(tempfile.mkdtemp())
+        psql = fake_psql(tmp, doc([]) + "\nt\n")
+        res = r.probe(env={"LF_EKB_READONLY_URL": URL, "LF_EKB_ROUTE_WRITE_URL": URL + "w"}, psql=psql)
+        self.assertEqual(res, {"read_ok": True, "route_rows": 0, "write_granted": True})
+        second = calls(tmp)[1]
+        self.assertIn(URL + "w", second["argv"])
+        self.assertIn("transaction read only", second["stdin"])
+        self.assertIn("has_function_privilege", second["stdin"])
+        self.assertNotIn("lf_write_pipeline_ekb_v1(:'op'", second["stdin"])
+
+    def test_probe_fails_when_writer_not_granted(self):
+        tmp = Path(tempfile.mkdtemp())
+        with self.assertRaises(r.EkbError) as c:
+            r.probe(env={"LF_EKB_READONLY_URL": URL, "LF_EKB_ROUTE_WRITE_URL": URL},
+                    psql=fake_psql(tmp, doc([]) + "\nf\n"))
+        self.assertEqual(str(c.exception), "ROUTE_EKB_UNAVAILABLE:WRITER_NOT_GRANTED")
+
+
 import unittest.mock  # noqa: E402
 
 if __name__ == "__main__":

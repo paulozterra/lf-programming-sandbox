@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0243",
+  "title": "T56: probe sin escritura de los secretos del EKB de la ruta",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (20/11): secreto LF_EKB_ROUTE_WRITE_URL creado; verificarlo."
+  },
+  "reason": "No hay forma de verificar desde fuera que los secretos del EKB de la ruta conectan y tienen los permisos correctos. Se agrega route_ekb.py probe y el workflow route-ekb-probe.yml: con el secreto de lectura hace una consulta de solo lectura; con el de escritura, en transacción de solo lectura, solo pregunta has_function_privilege sobre el writer gobernado. Nunca escribe; imprime solo conteos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/route-ekb-probe.yml",
+      "pilot/ekb/route_ekb.py",
+      "pilot/ekb/test_t56_route_ekb.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0243.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {}
+}

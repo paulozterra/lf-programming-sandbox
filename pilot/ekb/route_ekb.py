@@ -277,6 +277,21 @@ def register(entry: dict, *, execution_id: str, cfg: dict | None = None, env: di
             "frequency_after": receipt.get("frequency_after"), "event_id": receipt.get("event_id")}
 
 
+def probe(*, cfg: dict | None = None, env: dict | None = None, psql: str = "psql") -> dict:
+    """Connectivity and permission check for both secrets; never writes."""
+    cfg = cfg or load_config()
+    env = dict(os.environ if env is None else env)
+    read = lookup(["LF-ROUTE"], cfg=cfg, env=env, psql=psql)
+    script = ("begin transaction read only;\n"
+              f"select has_function_privilege(current_user, '{cfg['writer_function']}(text, jsonb, text)', 'execute');\n"
+              "rollback;\n")
+    out = _psql(_url(env, cfg["write_secret"]), script, {}, psql, env)
+    can_write = [x.strip() for x in out.splitlines() if x.strip() in ("t", "f")]
+    if can_write != ["t"]:
+        raise EkbError("ROUTE_EKB_UNAVAILABLE:WRITER_NOT_GRANTED")
+    return {"read_ok": True, "route_rows": len(read["entries"]), "write_granted": True}
+
+
 def _inside_repo(path: Path) -> bool:
     repo = Path(__file__).resolve().parents[2]
     try:
@@ -295,6 +310,7 @@ def main(argv: list[str] | None = None) -> int:
     lk.add_argument("--out", required=True, help="markdown file outside the repo checkout")
     lk.add_argument("--allow-missing", action="store_true",
                     help="secret absent → empty context instead of BLOCKED")
+    sub.add_parser("probe")
     rg = sub.add_parser("register")
     rg.add_argument("--entry", required=True, help="JSON file with the new route error")
     rg.add_argument("--execution-id", required=True, help="gha-<run_id>-<attempt>")
@@ -316,6 +332,8 @@ def main(argv: list[str] | None = None) -> int:
                               "codes": [e["codigo"] for e in result["entries"]],
                               "redactions": result["redactions"], "dropped": result["dropped"],
                               **({"unavailable": result["unavailable"]} if "unavailable" in result else {})}))
+        elif a.cmd == "probe":
+            print(json.dumps({"status": "EKB_PROBE_OK", **probe()}))
         else:
             try:
                 entry = json.loads(Path(a.entry).read_text("utf-8"))
