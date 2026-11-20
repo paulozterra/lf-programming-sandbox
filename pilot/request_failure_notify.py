@@ -166,7 +166,9 @@ def task_stage_issue(run: dict) -> int | None:
     elif path != ".github/workflows/worker-native.yml":
         return None
     task = None
-    if (m := re.fullmatch(r"lf-native-(?:req-[1-9][0-9]*-)?([a-z][a-z0-9_-]{0,31})-a[123](?:-[0-9a-f]{40})?", title)):
+    if (m := re.fullmatch(r"lf-native-([a-z][a-z0-9_-]{0,31})-a[123]-[0-9a-f]{40}", title)):
+        task = m.group(1)
+    elif (m := re.fullmatch(r"lf-native-(?:req-[1-9][0-9]*-)?([a-z][a-z0-9_-]{0,31})-a[123]", title)):
         task = m.group(1)
     elif (m := re.fullmatch(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-[0-9a-f]{40}", title)):
         task = m.group(1)
