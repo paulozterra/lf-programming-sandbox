@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0249",
   "title": "R3: retirar dry-run temporal y fijar corte histórico de PR #370 en archivo versionado",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo (20/11/2026): limpieza post-merge de CHG-0248; pin local SHA+merged_at"
