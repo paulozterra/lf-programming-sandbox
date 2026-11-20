@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo (20/11/2026): auditoría y corrección R1 de reemplazo de pending runs"
   },
-  "reason": "GitHub Actions mantiene un único pending por concurrency y puede cancelar ejecuciones sin ejecutar pasos. Se corrige T9.2 y se añaden barridos basados en estado persistido para CP3.6, CP3.5, Worker P1, Intake, T7 y CP3.7; se conserva configuración T54, control de intentos y gobierno Train.",
+  "reason": "GitHub Actions mantiene un único pending por concurrency y puede cancelar ejecuciones sin ejecutar pasos. Se corrige T9.2 y se añaden barridos basados en estado persistido para CP3.6, CP3.5, Worker P1, Intake, T7 y CP3.7; se conserva configuración T54, control de intentos y gobierno Train. El barrido no ejecuta el Worker ni consume intentos: el workflow pending_retry autorizado, cuando finalmente se ejecuta, genera attempt-proof y consume el intento que la ejecución cancelada nunca gastó; ante historial previo ambiguo, BLOCKED tipado. Un run skipped por job if falso no es pérdida por concurrencia y no se relanza.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
