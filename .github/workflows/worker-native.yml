@@ -1,5 +1,5 @@
 name: LF Worker native (trusted workflow_run or manual, no API)
-run-name: ${{ inputs.pending_retry && format('lf-native-pending-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.route_retry && format('lf-native-route-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.infra_retry && format('lf-native-infra-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || inputs.request_slug && format('lf-native-{0}-{1}-a{2}-{3}', inputs.request_slug, inputs.task, inputs.attempt, inputs.proposal_commit_sha) || format('lf-native-{0}-a{1}-{2}', inputs.task, inputs.attempt, inputs.proposal_commit_sha) }}
+run-name: ${{ inputs.pending_retry && format('lf-native-pending-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.route_retry && format('lf-native-route-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.infra_retry && format('lf-native-infra-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || format('lf-native-{0}-a{1}-{2}', inputs.task, inputs.attempt, inputs.proposal_commit_sha) }}
 
 on:
   workflow_run:
@@ -94,6 +94,7 @@ jobs:
           TRIGGER_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           MANUAL_SHA: ${{ inputs.proposal_commit_sha }}
           MANUAL_TASK: ${{ inputs.task }}
+          MANUAL_REQUEST_SLUG: ${{ inputs.request_slug }}
           MANUAL_ATTEMPT: ${{ inputs.attempt }}
           MANUAL_INFRA_RETRY: ${{ inputs.infra_retry }}
           MANUAL_ROUTE_RETRY: ${{ inputs.route_retry }}
@@ -115,6 +116,9 @@ jobs:
           else
             test "$EVENT_NAME" = "workflow_dispatch"
             [[ "$MANUAL_ATTEMPT" =~ ^[123]$ ]]
+            # Scope metadata is validated, but never inserted into the title:
+            # req-N task names would otherwise be ambiguous in run history.
+            [[ -z "$MANUAL_REQUEST_SLUG" || "$MANUAL_REQUEST_SLUG" =~ ^req-[1-9][0-9]*$ ]]
             sha="$MANUAL_SHA"
             branch=""
           fi
