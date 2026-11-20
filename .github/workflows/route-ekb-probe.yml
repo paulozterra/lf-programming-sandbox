@@ -1,0 +1,34 @@
+name: LF route EKB probe (T56)
+# Checks that both route EKB secrets connect and have the right grants.
+# Never writes: the read secret runs a read-only lookup, the write secret only
+# asks whether its role may execute the governed writer. Only codes and
+# counts are printed; never EKB content nor the connection strings.
+
+on:
+  pull_request:
+    paths:
+      - "pilot/ekb/**"
+      - ".github/workflows/route-ekb-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lf-route-ekb-probe-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Probe route EKB secrets (read-only)
+        env:
+          LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}
+          LF_EKB_ROUTE_WRITE_URL: ${{ secrets.LF_EKB_ROUTE_WRITE_URL }}
+        run: python3 -I pilot/ekb/route_ekb.py probe
