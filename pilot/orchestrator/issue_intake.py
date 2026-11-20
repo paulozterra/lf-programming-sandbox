@@ -216,7 +216,7 @@ def sweep(api: API) -> list[dict]:
         if page == 11:
             raise Blocked("R1_INTAKE_HISTORY_INCOMPLETE")
         rows = api.call("GET",
-                        f"/issues?state=open&labels=lf-request&per_page=100&page={page}")
+                        f"/issues?state=open&per_page=100&page={page}")
         if not isinstance(rows, list) or len(rows) > 100:
             raise Blocked("R1_INTAKE_HISTORY_INVALID")
         if any(not isinstance(item, dict) for item in rows):
@@ -233,11 +233,33 @@ def sweep(api: API) -> list[dict]:
     outcomes = []
     for number in sorted(issues):
         issue = issues[number]
-        if "lf-request" not in {x.get("name") for x in issue.get("labels", [])
-                                if isinstance(x, dict)}:
+        # The opened event can be lost before lf-request is applied. Only
+        # issue-form-shaped entries are candidates; intake reattests author,
+        # exact bytes, and duplicate policy before any mutation.
+        if not (str(issue.get("body") or "").startswith(FIELD + "\\n")
+                and str(issue.get("title") or "").startswith("Pedido:")):
             continue
         try:
-            result = intake(api, {"action": "opened", "issue": issue})
+            # An intentional removal of the duplicate marker is an override
+            # event. Rebuild it only from the actual latest GitHub label event.
+            action = "opened"
+            current_labels = {x.get("name") for x in issue.get("labels", [])
+                              if isinstance(x, dict)}
+            if "lf-request-duplicate" not in current_labels:
+                events = api.call("GET", f"/issues/{number}/events?per_page=100")
+                if (not isinstance(events, list) or len(events) >= 100
+                        or any(not isinstance(x, dict) for x in events)):
+                    raise Blocked("R1_INTAKE_EVENTS_INCOMPLETE")
+                markers = [x for x in events if
+                           (x.get("event") in ("labeled", "unlabeled")
+                            and isinstance(x.get("label"), dict)
+                            and x["label"].get("name") == "lf-request-duplicate")]
+                if markers and markers[-1]["event"] == "unlabeled":
+                    action = "unlabeled"
+            event = {"action": action, "issue": issue}
+            if action == "unlabeled":
+                event["label"] = {"name": "lf-request-duplicate"}
+            result = intake(api, event)
             if isinstance(result, str) and result.startswith("https://github.com/"):
                 branch = f"lf/request/req-{number}"
                 prs = api.call("GET",
