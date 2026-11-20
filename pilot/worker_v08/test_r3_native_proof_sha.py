@@ -104,6 +104,16 @@ def test_request_slug_prefix_does_not_change_task_identity():
     assert not h._recognized_run(old, TASK, attempt=1, allow_legacy_manual=False)
 
 
+
+def test_req_prefixed_task_name_is_resolved_from_registered_task_not_greedy_slug():
+    ambiguous_task = "req-286-test"
+    candidate = run(810, title(task=ambiguous_task, sha=SHA))
+    assert h._recognized_run(
+        candidate, ambiguous_task, attempt=1, sha=SHA, allow_legacy_manual=False)
+    assert not h._recognized_run(candidate, TASK, attempt=1, sha=SHA)
+
+
+
 def test_duplicate_manual_sha_is_rejected_even_with_valid_prior_proof(tmp_path):
     prior = run(800, title())
     proof = {"task_id": TASK, "attempt": 1, "task_pack_sha256": "c" * 64,
