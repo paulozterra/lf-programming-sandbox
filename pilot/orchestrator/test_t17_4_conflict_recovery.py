@@ -154,9 +154,10 @@ def test_two_branches_same_chg_first_merges_second_regenerates_same_sweep(tmp_pa
          patch.object(chain_lots, "retry_native_infra", return_value=[]), \
          patch.object(chain_lots, "recover_native_feedback", return_value=[]), \
          patch.object(chain_lots, "recover_route_defects", return_value=[]), \
-          patch.object(chain_lots, "replay_native_integration", return_value=[]), \
-         patch.object(chain_lots, "recover_pending_worker", return_value=[]), \
-         patch.object(chain_lots, "recover_unstarted_integration", return_value=[]), \
+          patch.multiple(chain_lots,
+                        replay_native_integration=lambda *a, **k: [],
+                        recover_pending_worker=lambda *a, **k: [],
+                        recover_unstarted_integration=lambda *a, **k: []), \
          patch.object(chain_lots, "api", side_effect=api), \
          patch.object(chain_lots, "admit_registration", return_value=None), \
          patch.object(chain_lots, "prepare_successor", side_effect=prepare):
