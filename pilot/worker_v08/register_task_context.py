@@ -330,7 +330,8 @@ def expanded_context_size(root: Path, patterns: list[str], excluded: set[str]) -
 def register(task: dict, *, project: str, area: str, lot_paths: list[str],
              task_name: str, budget: int, root: Path = ROOT,
              pinned: Path = PINROOT, persist: bool = True,
-             requirement_ids: list[str] | None = None) -> tuple[dict, dict[str, bytes]]:
+             requirement_ids: list[str] | None = None,
+             ekb_markdown: bytes | None = None) -> tuple[dict, dict[str, bytes]]:
     if not ID.fullmatch(task_name):
         block("TASK_ID_UNSAFE")
     if task_name.lower() in {"ex6", "ex7"}:
@@ -466,6 +467,12 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     if reuse_markdown is not None:
         names.append("reutilizar.md")
     names.extend(sorted(business))
+    # T56: known errors from the EKB, looked up by a trusted step (already
+    # sanitised). Absent → byte-identical to registrations before T56.
+    if ekb_markdown is not None:
+        if not isinstance(ekb_markdown, bytes) or not ekb_markdown or len(ekb_markdown) > 64_000:
+            block("EKB_CONTEXT_INVALID")
+        names.append("ekb.md")
     if lf_rules is not None:
         names.extend(["lf_rules.md", "lf_rules.receipt.json"])
     names.append("receipt.json")
@@ -531,6 +538,7 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
                            **({"reutilizar.md": digest(reuse_markdown)}
                               if reuse_markdown is not None else {}),
                            **{k: digest(v) for k, v in sorted(business.items())},
+                           **({"ekb.md": digest(ekb_markdown)} if ekb_markdown is not None else {}),
                            **({"lf_rules.md": digest(lf_rules),
                                "lf_rules.receipt.json": digest(canonical(lf_rule_receipt))}
                               if lf_rules is not None else {})},
@@ -547,6 +555,8 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     if reuse_markdown is not None:
         values.append(reuse_markdown)
     values.extend(business[k] for k in sorted(business))
+    if ekb_markdown is not None:
+        values.append(ekb_markdown)
     if lf_rules is not None:
         values.extend([lf_rules, canonical(lf_rule_receipt)])
     values.append(receipt_raw)

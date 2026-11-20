@@ -149,6 +149,23 @@ def common(root: Path, folder: Path, lot: dict, mapped: dict,
     return spec, head
 
 
+def _lot_ekb_context(area: str, artifacts: dict[str, bytes], task_name: str,
+                     paths: list[str]) -> tuple[bytes | None, str]:
+    try:
+        receipt = json.loads(artifacts[f".lf/worker-context/{task_name}/receipt.json"])
+        skills = [s.get("code") for s in receipt.get("skills", []) if isinstance(s, dict)]
+    except (KeyError, ValueError, AttributeError):
+        skills = []
+    ekb_dir = Path(__file__).resolve().parents[1] / "ekb"
+    if str(ekb_dir) not in sys.path:
+        sys.path.insert(0, str(ekb_dir))
+    try:
+        from route_ekb import context_for_lot
+    except ImportError:
+        return None, "EKB_CONTEXT_SKIPPED:CLIENT_MISSING"
+    return context_for_lot(area, skills, paths)
+
+
 def register_lot(root: Path, folder: Path, lot: dict, mapped: dict,
                  paths: list[str], task_name: str, template: dict,
                  holdout: dict, *, template_path: str | None = None) -> dict:
@@ -160,6 +177,17 @@ def register_lot(root: Path, folder: Path, lot: dict, mapped: dict,
         budget=spec.get("max_context_bytes", 240000),
         root=root, persist=False,
         requirement_ids=lot.get("requirement_ids"))
+    # T56: consult the EKB for this lot (area, its skills, its paths). Only
+    # a trusted step with the read secret adds ekb.md; it never blocks.
+    ekb, ekb_status = _lot_ekb_context(lot["area"], artifacts, task_name, paths)
+    print(json.dumps({"route_ekb": ekb_status, "task_name": task_name}), file=sys.stderr)
+    if ekb is not None:
+        output, artifacts = register(
+            template, project=holdout.get("project_ref", "lf_java"),
+            area=lot["area"], lot_paths=paths, task_name=task_name,
+            budget=spec.get("max_context_bytes", 240000),
+            root=root, persist=False,
+            requirement_ids=lot.get("requirement_ids"), ekb_markdown=ekb)
     enriched = output["task_spec"]
     validate_template_worker({"task_spec": enriched}, lot["area"])
     native_registration_bytes(enriched, sha, ref, task_name)

@@ -31,6 +31,10 @@ import subprocess
 import sys
 
 CONFIG = Path(__file__).resolve().parent / "route_ekb.json"
+CATALOG = Path(__file__).resolve().parent / "route_error_catalog.json"
+ROUTE_CODE = re.compile(r"[A-Z][A-Z0-9_]{2,60}")
+CATALOG = Path(__file__).resolve().parent / "route_error_catalog.json"
+ROUTE_CODE = re.compile(r"[A-Z][A-Z0-9_]{2,60}")
 IDENT = re.compile(r"[a-z_][a-z0-9_]{0,62}(\.[a-z_][a-z0-9_]{0,62})?")
 SECRET_NAME = re.compile(r"[A-Z][A-Z0-9_]{2,63}")
 CODE = re.compile(r"LF-ROUTE-[A-Z0-9][A-Z0-9-]{2,78}")
@@ -277,6 +281,96 @@ def register(entry: dict, *, execution_id: str, cfg: dict | None = None, env: di
             "frequency_after": receipt.get("frequency_after"), "event_id": receipt.get("event_id")}
 
 
+def load_catalog(path: Path = CATALOG) -> dict[str, dict]:
+    try:
+        data = json.loads(path.read_text("utf-8"))
+    except (OSError, ValueError):
+        raise EkbError("ROUTE_EKB_CATALOG_INVALID") from None
+    entries = data.get("entries") if data.get("schema_version") == "LF_ROUTE_ERROR_CATALOG_V1" else None
+    if not isinstance(entries, dict) or not all(ROUTE_CODE.fullmatch(k) for k in entries):
+        raise EkbError("ROUTE_EKB_CATALOG_INVALID")
+    return entries
+
+
+def catalog_entry(code: str, *, run_id: int, request: str | None, cfg: dict,
+                  catalog: dict | None = None) -> dict | None:
+    catalog = load_catalog() if catalog is None else catalog
+    if code not in catalog:
+        return None
+    entry = {**catalog[code], "codigo": "LF-ROUTE-" + code.replace("_", "-"),
+             "evidencia": f"run {run_id}" + (f"; lote {request}" if request else "")}
+    if request:
+        entry["lote_origen"] = request
+    validate_entry(entry, cfg)
+    return entry
+
+
+def record(candidates: list[dict], *, execution_id: str, cfg: dict | None = None,
+           env: dict | None = None, psql: str = "psql") -> list[dict]:
+    """Register catalogued route failures; never raises (observability only)."""
+    cfg = cfg or load_config()
+    env = dict(os.environ if env is None else env)
+    out = []
+    try:
+        catalog = load_catalog()
+    except EkbError as exc:
+        return [{"status": "SKIPPED", "reason": str(exc)}]
+    for cand in candidates[:20]:
+        cand = cand if isinstance(cand, dict) else {}
+        code, run_id, request = cand.get("code"), cand.get("run_id"), cand.get("request")
+        if not (isinstance(code, str) and ROUTE_CODE.fullmatch(code)
+                and isinstance(run_id, int) and not isinstance(run_id, bool) and 0 < run_id < 10**14
+                and (request is None or (isinstance(request, str)
+                                         and re.fullmatch(r"req-[1-9][0-9]{0,6}", request)))):
+            out.append({"status": "SKIPPED", "reason": "ROUTE_EKB_CANDIDATE_INVALID"})
+            continue
+        try:
+            entry = catalog_entry(code, run_id=run_id, request=request, cfg=cfg, catalog=catalog)
+            if entry is None:
+                out.append({"status": "UNCATALOGUED", "code": code})
+                continue
+            out.append(register(entry, execution_id=execution_id, cfg=cfg, env=env, psql=psql))
+        except EkbError as exc:
+            out.append({"status": "SKIPPED", "code": code, "reason": str(exc)})
+    return out
+
+
+def lot_terms(area: str, skill_codes: list[str], paths: list[str]) -> list[str]:
+    """Terms that describe a lot: its skills and its path stems (area is added by lookup)."""
+    stems: list[str] = []
+    generic = {"main", "java", "test", "tests", "src", "resources", "com", "sbx", "json",
+               "app", "apps", "lib", "index", "spec", "tsx", "jsx"}
+    for path in paths:
+        # The top directory names the component, not the problem: skip it.
+        for part in re.split(r"[._-]+|/", path.split("/", 1)[-1]):
+            low = part.lower()
+            if len(low) >= 4 and low not in stems and not low.isdigit() and low not in generic:
+                stems.append(low)
+    skills = [c for c in skill_codes if isinstance(c, str) and TERM.fullmatch(c)]
+    return sorted(set(skills[:8] + stems[:8]))
+
+
+def context_for_lot(area: str, skill_codes: list[str], paths: list[str], *,
+                    env: dict | None = None, psql: str = "psql") -> tuple[bytes | None, str]:
+    """Never blocks the route: no secret / no match / EKB down -> no ekb.md."""
+    env = dict(os.environ if env is None else env)
+    if not env.get(load_config()["read_secret"], "").strip():
+        return None, "EKB_CONTEXT_SKIPPED:SECRET_MISSING"
+    try:
+        result = lookup(lot_terms(area, skill_codes, paths), area=area, env=env, psql=psql)
+    except EkbError as exc:
+        return None, "EKB_CONTEXT_SKIPPED:" + str(exc)
+    if not result["entries"]:
+        return None, "EKB_CONTEXT_EMPTY"
+    text = to_markdown(result)
+    if not all(is_clean(line) for line in text.splitlines()):
+        return None, "EKB_CONTEXT_SKIPPED:UNSANITISED"   # defence in depth
+    raw = text.encode("utf-8")
+    if len(raw) > 64_000:
+        return None, "EKB_CONTEXT_SKIPPED:TOO_LARGE"
+    return raw, "EKB_CONTEXT_ADDED:" + str(len(result["entries"]))
+
+
 def probe(*, cfg: dict | None = None, env: dict | None = None, psql: str = "psql") -> dict:
     """Connectivity and permission check for both secrets; never writes."""
     cfg = cfg or load_config()
@@ -311,6 +405,8 @@ def main(argv: list[str] | None = None) -> int:
     lk.add_argument("--allow-missing", action="store_true",
                     help="secret absent → empty context instead of BLOCKED")
     sub.add_parser("probe")
+    rc = sub.add_parser("record")
+    rc.add_argument("--candidates", required=True, help="JSONL from the failure watchdog")
     rg = sub.add_parser("register")
     rg.add_argument("--entry", required=True, help="JSON file with the new route error")
     rg.add_argument("--execution-id", required=True, help="gha-<run_id>-<attempt>")
@@ -332,6 +428,20 @@ def main(argv: list[str] | None = None) -> int:
                               "codes": [e["codigo"] for e in result["entries"]],
                               "redactions": result["redactions"], "dropped": result["dropped"],
                               **({"unavailable": result["unavailable"]} if "unavailable" in result else {})}))
+        elif a.cmd == "record":
+            path = Path(a.candidates)
+            rows = []
+            if path.is_file() and not path.is_symlink():
+                for line in path.read_text("utf-8").splitlines()[:20]:
+                    try:
+                        rows.append(json.loads(line))
+                    except ValueError:
+                        rows.append({})
+            run = os.environ.get("GITHUB_RUN_ID", "")
+            attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
+            for result in record(rows, execution_id=f"gha-{run}-{attempt}"):
+                print(json.dumps(result))
+            return 0
         elif a.cmd == "probe":
             print(json.dumps({"status": "EKB_PROBE_OK", **probe()}))
         else:

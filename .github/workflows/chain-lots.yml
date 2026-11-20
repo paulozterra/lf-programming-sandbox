@@ -77,7 +77,7 @@ jobs:
       NEW_PLAN_REQUEST: ${{ inputs.new_plan_request || '' }}
       MERGE_PR: ${{ inputs.merge_pr || '' }}
     steps:
-      - name: Checkout trusted main control; no proposals, no secrets
+      - name: Checkout trusted main control; no proposals (only the read-only EKB secret, T56)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: refs/heads/main
@@ -112,6 +112,9 @@ jobs:
       - name: Reconcile trusted merge, DAG, attempts; prepare draft successors only
         env:
           CP36_PACK_OUT: ${{ runner.temp }}/cp36-proposal-packs
+          # T56: read-only EKB secret for the lot's ekb.md. Only trusted main
+          # code runs here (no proposal is executed); it never prints content.
+          LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}
         run: |
           set -o pipefail
           if [ "${{ inputs.sweep }}" = "true" ]; then

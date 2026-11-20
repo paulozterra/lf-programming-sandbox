@@ -462,7 +462,24 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
     api.api("POST", f"/issues/{number}/comments",
             {"body": f"{marker}\nRuta bloqueada: `{code}`.\nCorrida: {url}\n"
                      + extra + "El pedido permanece abierto para revisión."})
+    ekb_candidate(code, run, number)
     return "RUTA_NOTIFIED"
+
+
+def ekb_candidate(code: str, run: dict, number: int) -> None:
+    """T56: hand the notified failure to the trusted EKB step (file only).
+
+    Written once per newly notified run (the marker above is idempotent), so
+    the EKB recurrence count follows real failures. Never blocks notifying."""
+    path = os.environ.get("LF_ROUTE_EKB_CANDIDATES")
+    if not path or not isinstance(run.get("id"), int):
+        return
+    try:
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"code": code, "run_id": run["id"],
+                                     "request": f"req-{number}"}) + "\n")
+    except OSError:
+        pass
 
 
 def notify_global_cp36_sweep(api: Github, run: dict) -> str:

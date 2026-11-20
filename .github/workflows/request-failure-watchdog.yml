@@ -50,6 +50,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           SOURCE_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.source_run_id || '' }}
           PYTHONDONTWRITEBYTECODE: '1'
+          LF_ROUTE_EKB_CANDIDATES: ${{ runner.temp }}/route-ekb-candidates.jsonl
         run: |
           set -euo pipefail
           if [ -n "$SOURCE_RUN_ID" ]; then
@@ -61,3 +62,12 @@ jobs:
             test "${{ github.event_name }}" = "schedule" -o "${{ github.event_name }}" = "workflow_dispatch"
             python3 -m pilot.workflow_entrypoint pilot/request_failure_notify.py --sweep
           fi
+      - name: Record notified route failures in the EKB (T56, catalogued codes only)
+        if: always()
+        continue-on-error: true
+        env:
+          LF_EKB_ROUTE_WRITE_URL: ${{ secrets.LF_EKB_ROUTE_WRITE_URL }}
+        run: |
+          file="$RUNNER_TEMP/route-ekb-candidates.jsonl"
+          test -s "$file" || { echo "no notified failures"; exit 0; }
+          python3 -I pilot/ekb/route_ekb.py record --candidates "$file"

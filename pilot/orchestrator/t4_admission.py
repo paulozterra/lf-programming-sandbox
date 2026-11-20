@@ -223,12 +223,21 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
                     return False
                 requirements = (lot.get("requirement_ids")
                                 if present == business else None)
+                # T56: ekb.md is a looked-up input, not derivable offline.
+                # Replay with the exact committed bytes the receipt attests.
+                ekb = None
+                if prefix + "ekb.md" in context_paths:
+                    ekb_path = historical / (prefix + "ekb.md")
+                    if ekb_path.is_symlink() or not ekb_path.is_file():
+                        return False
+                    ekb = ekb_path.read_bytes()
                 rebuilt, _ = register(
                     {"task_spec": expected}, project=project, area=lot["area"],
                     lot_paths=list(lot["write_paths"]), task_name=newest,
                     budget=expected.get("max_context_bytes", 240000),
                     root=historical, pinned=historical / "pilot/lf_profiles_pinned",
-                    persist=False, requirement_ids=requirements)
+                    persist=False, requirement_ids=requirements,
+                    **({"ekb_markdown": ekb} if ekb is not None else {}))
                 return rebuilt.get("task_spec") == registered
             finally:
                 subprocess.run(["git", "-C", str(root), "worktree", "remove",
