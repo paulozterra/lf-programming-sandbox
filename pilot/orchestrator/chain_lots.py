@@ -1572,6 +1572,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
 
     def task_live(task: str) -> bool:
         candidates = owners.get(task, set())
+        # An old proposal branch with no active plan is not a route failure.
+        # Ambiguous ownership must still fail closed for this task alone.
+        if not candidates:
+            return False
         if len(candidates) != 1:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
         return request_state(next(iter(candidates)), api, root=ROOT) == OPEN
