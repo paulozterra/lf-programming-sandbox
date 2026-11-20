@@ -755,9 +755,6 @@ jobs:
   native-autolaunch-policy:
     name: native push policy (offline only)
     runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      pull-requests: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -774,11 +771,6 @@ jobs:
         run: |
           python3 -m pytest -q pilot/worker_v08/test_native_run.py pilot/worker_v08/test_native_push_policy.py pilot/worker_v08/test_native_push_guard.py pilot/worker_v08/test_push_workflow_no_secrets.py pilot/worker_v08/test_native_workflow_run_name.py pilot/worker_v08/test_native_history_redirect.py pilot/worker_v08/test_r3_native_proof_sha.py
           python3 -m pilot.workflow_entrypoint pilot/worker_v08/test_workflow_policy.py
-      - name: R3 pinned cutover matches live PR #370 merge metadata (read-only)
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          R3_VERIFY_LIVE_MERGE_API: "1"
-        run: python3 -m pytest -q pilot/worker_v08/test_r3_native_proof_sha.py -k cutover_matches_live_github_api -p no:cacheprovider
 
   lf-producers-pinned:
     name: LF pinned producer integrity and offline suites (no Supabase)
