@@ -116,13 +116,19 @@ def test_new_manual_title_is_sha_bound_and_legacy_only_history():
     assert not h._recognized_run(old, TASK, attempt=1, allow_legacy_manual=False)
 
 
-def test_request_slug_prefix_does_not_change_task_identity():
-    new = run(800, title(request="req-286"))
-    assert h._recognized_run(new, TASK, attempt=1, sha=SHA, allow_legacy_manual=False)
-    assert not h._recognized_run(new, "req", attempt=1, sha=SHA)
+def test_request_slug_is_metadata_and_legacy_prefix_is_history_only():
+    canonical = run(800, title())
+    assert h._recognized_run(canonical, TASK, attempt=1, sha=SHA,
+                             allow_legacy_manual=False)
+    # No post-R3 manual run may use a scoped SHA title: it would be
+    # indistinguishable from a registered task named req-286-ex6.
+    scoped = run(801, title(request="req-286"))
+    assert not h._recognized_run(scoped, TASK, attempt=1, sha=SHA,
+                                 allow_legacy_manual=False)
     old = run(700, f"lf-native-req-286-{TASK}-a1")
     assert h._recognized_run(old, TASK, attempt=1)
-    assert not h._recognized_run(old, TASK, attempt=1, allow_legacy_manual=False)
+    assert not h._recognized_run(old, TASK, attempt=1,
+                                 allow_legacy_manual=False)
 
 
 
