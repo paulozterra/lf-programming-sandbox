@@ -234,4 +234,4 @@
 | CHG-0240 | ADDITIVE | T54 fase 3c: el lado del Worker lee componentes desde la configuración del proyecto |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/362 |
 | CHG-0241 | EDITORIAL | A11: regla 3 del CLAUDE.md — contenido de LF derivado sí, real no (permitido / prohibido / ante la duda) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/363 |
 | CHG-0242 | ADDITIVE | T56 fase 1: la ruta consulta el EKB antes de implementar y registra sus errores (misma tabla, source_context LF_ROUTE*) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/364 |
-| CHG-0243 | ADDITIVE | T56: probe sin escritura de los secretos del EKB de la ruta |  | paulozterra |  |
+| CHG-0243 | ADDITIVE | T56: probe sin escritura de los secretos del EKB de la ruta |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/365 |
