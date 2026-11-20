@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0246",
+  "title": "R1/T20/T23: aislar propiedad de tarea huérfana o ambigua en cada barrido",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: bug confirmado en main 8707cbc, sweep 44804740079 (20/11/2026)"
+  },
+  "reason": "Una rama nativa sin plan no puede detener el barrido; task_live retorna False para 0 propietarios. Si una tarea pertenece a varios planes, permanece fail-closed con REQUEST_STATE_UNRESOLVED, pero el error se comunica por tarea en R1, T20 y T23 (clasificación y replay), sin impedir la recuperación de otras tareas. No relaja serialización, no consume intentos, no llama modelos ni cambia main.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/native_pending_recovery.py",
+      "pilot/orchestrator/native_infra_retry.py",
+      "pilot/orchestrator/native_route_recovery.py",
+      "pilot/orchestrator/test_r1_orphan_task_isolation.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0246.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/368"
+  }
+}
