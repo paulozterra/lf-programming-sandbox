@@ -9,6 +9,7 @@ on:
       - "CP3.5 native verified patch to draft PR"
       - "T7 main request auto-admission (trusted, no model)"
       - "T9 issue request intake"
+      - "CP3.6 chain after Train merge or spent native failure"
     types: [completed]
   schedule:
     - cron: '3,13,23,33,43,53 * * * *'
