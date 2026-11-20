@@ -149,6 +149,13 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
             *, route_retry: bool = False, proposal_sha: str | None = None) -> bool:
     public = private / "public"
     public.mkdir(parents=True, exist_ok=True)
+    # This marker is written by trusted runner code before any possibility of
+    # spending an attempt. The proof replaces it immediately before acceptance.
+    # Either artifact is tied to this Actions run by its immutable job archive.
+    no_attempt = public / "no-attempt.json"
+    _write(no_attempt, {"schema_version": "LF_NATIVE_NO_ATTEMPT_V1",
+                        "task_id": task, "run_id": run_id, "attempt": attempt,
+                        "reason": "PRE_ATTEMPT"})
     raw_task, expected_sha = load_registration(control, task)
     spec = replace(parse_worker_task(raw_task), max_attempts=1)
     proposal_file = proposal_checkout / proposal_path(task)
@@ -178,6 +185,7 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     # The trusted lifecycle step authorizes this job immediately before execute.
     # Do not read GitHub state here: acceptance commands run in this token-free step.
     _write(public / "attempt-proof.json", _proof(submitted, task, attempt, run_id))
+    no_attempt.unlink()
     # T7 duplicate detection is a trusted pre-acceptance gate, after the
     # attempt proof has been emitted: a rejection is a spent FAIL, never PASS.
     # Legacy registrations without a reuse assessment remain untouched.
@@ -343,6 +351,10 @@ def _examiner_control(source, spec, oracle, private, public, task, run_id,
     proof = public / "attempt-proof.json"
     if proof.is_file() and not proof.is_symlink():
         proof.unlink()  # no proof artifact: the run is not an attempt
+    _write(public / "no-attempt.json", {
+        "schema_version": "LF_NATIVE_NO_ATTEMPT_V1",
+        "task_id": task, "run_id": run_id, "attempt": attempt,
+        "reason": "EXAMINER_CONTROL"})
     write_json(public / "examiner-control.json",
                defect_record(task, run_id, expected_sha, control))
     feedback = _visible_feedback(visible, attempt)
