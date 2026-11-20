@@ -1,5 +1,5 @@
 name: LF Worker native (trusted workflow_run or manual, no API)
-run-name: ${{ inputs.pending_retry && format('lf-native-pending-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.route_retry && format('lf-native-route-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.infra_retry && format('lf-native-infra-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || inputs.request_slug && format('lf-native-{0}-{1}-a{2}', inputs.request_slug, inputs.task, inputs.attempt) || format('lf-native-{0}-a{1}', inputs.task, inputs.attempt) }}
+run-name: ${{ inputs.pending_retry && format('lf-native-pending-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.route_retry && format('lf-native-route-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || inputs.infra_retry && format('lf-native-infra-retry-{0}-{1}', inputs.task, inputs.proposal_commit_sha) || github.event_name == 'workflow_run' && format('lf-native-auto-{0}-{1}', github.event.workflow_run.head_branch, github.event.workflow_run.head_sha) || inputs.request_slug && format('lf-native-{0}-{1}-a{2}-{3}', inputs.request_slug, inputs.task, inputs.attempt, inputs.proposal_commit_sha) || format('lf-native-{0}-a{1}-{2}', inputs.task, inputs.attempt, inputs.proposal_commit_sha) }}
 
 on:
   workflow_run:
@@ -423,12 +423,36 @@ jobs:
             args+=(--route-retry --proposal-sha "$NATIVE_PROPOSAL_SHA")
           fi
           python3 control/pilot/worker_v08/native_run.py execute "${args[@]}"
+      - name: Require durable attempt or trusted NO_ATTEMPT evidence after Worker execution
+        if: ${{ always() && (steps.worker.outcome == 'success' || steps.worker.outcome == 'failure') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          public="$RUNNER_TEMP/native-private/public"
+          proof="$public/attempt-proof.json"
+          marker="$public/no-attempt.json"
+          test ! -L "$proof" && test ! -L "$marker"
+          if { test -s "$proof" && test ! -e "$marker"; } ||
+             { test -s "$marker" && test ! -e "$proof"; }; then
+            echo NATIVE_PROOF_OR_NO_ATTEMPT_PRESENT
+          else
+            echo NATIVE_ATTEMPT_EVIDENCE_MISSING >&2
+            exit 1
+          fi
       - name: Upload CI-generated attempt proof for future run admission
-        if: always()
+        if: ${{ always() && (steps.worker.outcome == 'success' || steps.worker.outcome == 'failure') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: native-attempt-proof
           path: ${{ runner.temp }}/native-private/public/attempt-proof.json
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Upload CI-generated signed NO_ATTEMPT marker for forgivable pre-attempt refusal
+        if: ${{ always() && (steps.worker.outcome == 'success' || steps.worker.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-no-attempt
+          path: ${{ runner.temp }}/native-private/public/no-attempt.json
           if-no-files-found: ignore
           retention-days: 90
       - name: Upload cost and visible-only feedback
