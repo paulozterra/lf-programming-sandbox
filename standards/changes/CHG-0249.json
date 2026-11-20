@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0249",
+  "title": "R3: retirar dry-run temporal y fijar corte histórico de PR #370 en archivo versionado",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (20/11/2026): limpieza post-merge de CHG-0248; pin local SHA+merged_at"
+  },
+  "reason": "El dry-run de PR #370 solo tenía utilidad pre-merge. El corte histórico ya está fijado por el merge commit 549d50b1ec6eb21fb520aad643094fb133ca66bd y merged_at 2026-11-20T22:18:45Z. El runtime deja de consultar GET /pulls/370 en cada admisión y lee la misma referencia inmutable de r3_cutover.json, validada en test offline y contrastada en CI con la API real una vez por corrida. Se elimina el job temporal y el script de dry-run. No cambia la política de conteo ni de perdones, orden ni clasificación.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/worker_v08/r3_live_dry_run.py",
+      "pilot/worker_v08/r3_cutover.json",
+      "pilot/worker_v08/native_run_history.py",
+      "pilot/worker_v08/test_r3_native_proof_sha.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0249.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pulls"
+  }
+}
