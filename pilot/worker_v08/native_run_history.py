@@ -1,8 +1,10 @@
 """GitHub-run-backed attempt admission; history is never read from a proposal branch.
 
 Only runs with a unique, valid Actions-produced proof consume attempts.
-An absent or expired proof is fail-closed unless the same job attests NO_ATTEMPT
-or the Worker execution step was explicitly skipped.
+For Workers created after PR #370's merge, absent or expired evidence is
+fail-closed unless the job attests NO_ATTEMPT or is provably unstarted.
+Pre-merge historical runs preserve old missing/expired behavior unless denied
+in the explicit governed exception list.
 """
 from __future__ import annotations
 # Resolve the trusted repository package for direct script execution.
@@ -12,6 +14,7 @@ _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
 
 import io
+from datetime import datetime, timezone
 import json
 import os
 import re
@@ -35,6 +38,12 @@ _WORKFLOW = "worker-native.yml"
 _ARTIFACT = "native-attempt-proof"
 _NO_ATTEMPT_ARTIFACT = "native-no-attempt"
 _WORKER_STEP = "Execute original run_verified_worker using native proposal (single attempt)"
+# CHG-0248: the immutable cutover is the *merge commit of PR #370*,
+# resolved from GitHub's trusted merge metadata. The first Worker run
+# created after merged_at is treated as post-cutover, even if a runner was
+# queued before it obtained a slot.
+_CUTOVER_PR = 370
+_HISTORIC_EXCEPTIONS = Path(__file__).with_name("r3_historical_proof_exceptions.json")
 
 def _api(base: str, token: str, route: str) -> dict:
     url = f"https://api.github.com/repos/{base}/{route}"
@@ -113,6 +122,64 @@ def _artifact_json(base: str, token: str, run_id: int, *,
     return json.loads(raw)
 
 
+def _r3_merge_cutover(base: str, token: str) -> tuple[str, datetime]:
+    """The immutable PR #370 merge SHA is the historical proof boundary."""
+    obj = _api(base, token, f"pulls/{_CUTOVER_PR}")
+    sha = obj.get("merge_commit_sha")
+    stamp = obj.get("merged_at")
+    if (obj.get("merged") is not True or not isinstance(sha, str)
+            or _SHA40.fullmatch(sha) is None or not isinstance(stamp, str)):
+        raise ValueError("NATIVE_PROOF_CUTOFF_UNRESOLVED")
+    try:
+        parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("NATIVE_PROOF_CUTOFF_UNRESOLVED") from exc
+    if parsed.tzinfo is None:
+        raise ValueError("NATIVE_PROOF_CUTOFF_UNRESOLVED")
+    return sha, parsed.astimezone(timezone.utc)
+
+
+def _r3_historical_exceptions() -> frozenset[int]:
+    """Explicit, reviewed exceptions to pre-cutover forgiveness."""
+    try:
+        document = json.loads(_HISTORIC_EXCEPTIONS.read_text("utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError("NATIVE_PROOF_EXCEPTIONS_INVALID") from exc
+    entries = document.get("blocked_run_ids") if isinstance(document, dict) else None
+    if (not isinstance(document, dict)
+            or set(document) != {"schema_version", "blocked_run_ids"}
+            or document["schema_version"] != "LF_R3_HISTORIC_PROOF_EXCEPTIONS_V1"
+            or not isinstance(entries, list)
+            or any(type(item) is not int or item <= 0 for item in entries)
+            or len(entries) != len(set(entries))):
+        raise ValueError("NATIVE_PROOF_EXCEPTIONS_INVALID")
+    return frozenset(entries)
+
+
+def _r3_pre_cutover(base: str, token: str, run: dict,
+                    merge: tuple[str, datetime] | None = None) -> bool:
+    """Only runs created strictly before CHG-0248's merged_at are historical.
+
+    When the PR is unmerged or run metadata is missing, fail closed. It
+    is never permissible to infer 'historical' from a missing proof alone.
+    """
+    if type(run.get("id")) is not int or run["id"] <= 0:
+        raise ValueError("NATIVE_PRIOR_RUN_DATE_INVALID")
+    if run["id"] in _r3_historical_exceptions():
+        return False
+    _, merged_at = merge if merge is not None else _r3_merge_cutover(base, token)
+    stamp = run.get("created_at")
+    if not isinstance(stamp, str):
+        raise ValueError("NATIVE_PRIOR_RUN_DATE_INVALID")
+    try:
+        created = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("NATIVE_PRIOR_RUN_DATE_INVALID") from exc
+    if created.tzinfo is None:
+        raise ValueError("NATIVE_PRIOR_RUN_DATE_INVALID")
+    return created.astimezone(timezone.utc) < merged_at
+
+
 def _no_attempt_attested(base: str, token: str, run: dict, task: str) -> bool:
     """Only the same Actions job can justify an absent attempt proof."""
     run_id = run["id"]
@@ -134,6 +201,10 @@ def _no_attempt_attested(base: str, token: str, run: dict, task: str) -> bool:
     if (not isinstance(rows, list) or jobs.get("total_count") != 1
             or len(rows) != 1 or rows[0].get("name") != "native"):
         return False
+    # A job skipped by its own 'if' never executed a Worker step; GitHub
+    # often returns an empty steps list (or omits the steps field entirely).
+    if rows[0].get("conclusion") == "skipped":
+        return True
     steps = rows[0].get("steps")
     if not isinstance(steps, list):
         return False
@@ -248,13 +319,26 @@ def admit_attempt(
         # The run title/branch must match the requested task BEFORE download.
         if not _recognized_run(run, task):
             continue
-        proof = _artifact_json(repository, token, run["id"])
+        # A missing OR expired proof is grandfathered only before the
+        # immutable PR #370 merge, except for explicitly blocked run IDs.
+        # Post-cutover proof absence always requires authentic NO_ATTEMPT
+        # evidence or a provably unstarted Worker job.
+        try:
+            proof = _artifact_json(repository, token, run["id"])
+        except ValueError as exc:
+            if str(exc) != "NATIVE_PRIOR_PROOF_MISSING":
+                raise
+            if not _r3_pre_cutover(repository, token, run):
+                raise
+            continue  # pre-merge expired proof: legacy never counted
         if proof is None:
             if run.get("status") != "completed":
                 continue
-            if not _no_attempt_attested(repository, token, run, task):
-                raise ValueError("NATIVE_PRIOR_PROOF_MISSING")
-            continue
+            if _no_attempt_attested(repository, token, run, task):
+                continue
+            if _r3_pre_cutover(repository, token, run):
+                continue  # pre-merge missing proof, legacy non-attempt
+            raise ValueError("NATIVE_PRIOR_PROOF_MISSING")
         if (run["id"] >= run_id or run.get("status") != "completed" or
             not isinstance(proof, dict) or
             set(proof) != {"task_id", "attempt", "task_pack_sha256", "run_id"} or
