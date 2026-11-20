@@ -195,7 +195,11 @@ def test_next_sweep_repairs_registered_task_without_reregistering(tmp_path):
          patch.object(chain_lots, "worktree", side_effect=fake_worktree), \
          patch.object(chain_lots, "draft", side_effect=fake_draft), \
          patch.object(chain_lots, "api", return_value={"number": 901, "state": "open"}), \
-         patch.object(chain_lots, "sweep_request_enabled", return_value=False):
+         patch.object(chain_lots, "sweep_request_enabled", return_value=False), \
+         patch.multiple(chain_lots,
+                        recover_pending_worker=lambda *a, **kw: [],
+                        recover_unstarted_integration=lambda *a, **kw: [],
+                        sync_implemented_registry=lambda *a, **kw: {"status": "REGISTRY_CURRENT"}):
         results = chain_lots.process(sweep=True, base_sha=head)
     assert len(drafts) == 1
     assert any(x.get("status") == "TASK_PACK_REPAIR_DRAFT" for x in results)
