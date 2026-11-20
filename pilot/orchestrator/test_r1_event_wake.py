@@ -20,6 +20,7 @@ EXPECTED = {
     "CP3.5 native verified patch to draft PR",
     "T7 main request auto-admission (trusted, no model)",
     "T9 issue request intake",
+    "CP3.6 chain after Train merge or spent native failure",
 }
 
 
@@ -29,7 +30,7 @@ def workflow(path):
     return yaml.load(path.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
 
 
-def test_five_completed_workflow_events_are_primary_and_cron_is_retained():
+def test_six_completed_workflow_events_are_primary_and_cron_is_retained():
     r1 = workflow(R1)
     events = r1["on"]["workflow_run"]
     assert set(events["workflows"]) == EXPECTED
@@ -148,4 +149,33 @@ def test_old_or_absent_sweep_dispatches_exact_current_main(tmp_path, rows):
 def test_unreadable_chain_history_fails_closed(tmp_path):
     result, dispatches = execute_gate(tmp_path, malformed=True)
     assert result.returncode != 0
+    assert dispatches == []
+
+
+# CP3.6 completion must wake a fresh state sweep when no other chain owns
+# the serialized slot. The step is executed with a fake gh, as above.
+def test_cp36_non_sweep_completion_dispatches_fresh_sweep(tmp_path):
+    assert "CP3.6 chain after Train merge or spent native failure" in EXPECTED
+    result, dispatches = execute_gate(
+        tmp_path, rows=[completed(age_seconds=30,
+                                  title="CP3.6 req286backend2 PR 42")])
+    assert result.returncode == 0, result.stderr
+    assert len(dispatches) == 1
+    assert "sweep=true" in dispatches[0]
+    assert "base_sha=" + "b" * 40 in dispatches[0]
+
+
+def test_cp36_completed_sweep_does_not_loop(tmp_path):
+    result, dispatches = execute_gate(
+        tmp_path, rows=[completed(age_seconds=30,
+                                  title="CP3.6 sweep 123456")])
+    assert result.returncode == 0, result.stderr
+    assert "R1_SWEEP_RECENT" in result.stdout
+    assert dispatches == []
+
+
+def test_cp36_completion_with_other_chain_queued_does_not_dispatch(tmp_path):
+    result, dispatches = execute_gate(tmp_path, queued=1)
+    assert result.returncode == 0, result.stderr
+    assert "R1_SWEEP_RECENT" in result.stdout
     assert dispatches == []
