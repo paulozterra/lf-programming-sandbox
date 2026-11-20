@@ -772,6 +772,26 @@ jobs:
           python3 -m pytest -q pilot/worker_v08/test_native_run.py pilot/worker_v08/test_native_push_policy.py pilot/worker_v08/test_native_push_guard.py pilot/worker_v08/test_push_workflow_no_secrets.py pilot/worker_v08/test_native_workflow_run_name.py pilot/worker_v08/test_native_history_redirect.py pilot/worker_v08/test_r3_native_proof_sha.py
           python3 -m pilot.workflow_entrypoint pilot/worker_v08/test_workflow_policy.py
 
+  r3-real-history-dry-run:
+    name: R3 real Worker history admission dry-run (READ ONLY)
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 370 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout PR test code (not a Worker executor)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Inspect real native history with memory-only admission (NO DISPATCH)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 pilot/worker_v08/r3_live_dry_run.py
+
   lf-producers-pinned:
     name: LF pinned producer integrity and offline suites (no Supabase)
     runs-on: ubuntu-24.04
