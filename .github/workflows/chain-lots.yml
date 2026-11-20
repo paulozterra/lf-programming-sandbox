@@ -1,5 +1,5 @@
 name: CP3.6 chain after Train merge or spent native failure
-run-name: CP3.6 ${{ inputs.request_slug && format('{0} PR {1}', inputs.request_slug, inputs.merge_pr || inputs.integration_pr) || inputs.merge_pr && format('PR {0}', inputs.merge_pr) || inputs.integration_pr && format('PR {0}', inputs.integration_pr) || github.event.workflow_run.head_branch || inputs.source_run_id || github.run_id }}
+run-name: CP3.6 ${{ inputs.sweep && format('sweep {0}', github.run_id) || inputs.request_slug && format('{0} PR {1}', inputs.request_slug, inputs.merge_pr || inputs.integration_pr) || inputs.merge_pr && format('PR {0}', inputs.merge_pr) || inputs.integration_pr && format('PR {0}', inputs.integration_pr) || github.event.workflow_run.head_branch || inputs.source_run_id || github.run_id }}
 
 on:
   workflow_run:
