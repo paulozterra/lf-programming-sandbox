@@ -6,6 +6,9 @@ runs it for either visible commands or an independent encrypted oracle.
 No examiner material is read here. No model and no external browser traffic.
 """
 from __future__ import annotations
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 
 import argparse
 import ipaddress
@@ -103,20 +106,23 @@ def _stop(proc: subprocess.Popen) -> None:
 def verify(root: Path, *, path: str, selector: str, text: str | None,
            title: str | None, timeout_ms: int = 15000) -> None:
     path = check_path(path)
-    if not root.is_dir() or not (root / "apps/time-service/pom.xml").is_file() \
-            or not (root / "frontend/package.json").is_file():
+    from pilot.config import project_config as _project
+    pom = _project.area_component("BACKEND", "maven")["build_file"]
+    web = _project.area_component("FRONTEND", "npm")
+    if not root.is_dir() or not (root / pom).is_file() \
+            or not (root / web["build_file"]).is_file():
         raise BrowserBlocked("APP_NO_ARRANCA")
     if not selector or len(selector) > 512 or timeout_ms < 1000 or timeout_ms > 30000:
         raise BrowserBlocked("BROWSER_CASE_INVALID")
     available()
     running = []
     try:
-        backend = _spawn(["mvn", "-B", "-q", "-f", "apps/time-service/pom.xml",
+        backend = _spawn(["mvn", "-B", "-q", "-f", pom,
                           "spring-boot:run", "-Dspring-boot.run.arguments=--server.address=127.0.0.1"],
                          root)
         running.append(backend)
         wait_local(BACKEND_PORT, backend)
-        frontend = _spawn(["npm", "--prefix", "frontend", "run", "dev",
+        frontend = _spawn(["npm", "--prefix", web["root"], "run", "dev",
                            "--", "--hostname", "127.0.0.1", "--port", str(FRONTEND_PORT)], root)
         running.append(frontend)
         wait_local(FRONTEND_PORT, frontend)

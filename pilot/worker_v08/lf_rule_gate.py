@@ -139,8 +139,8 @@ def verified_visible_commands(rows: list[dict], visible: dict | None,
         return table
     # Only the pinned full formatter can attest complete formatting.
     # A command merely named std-XX-YY is not proof (it might run "true").
-    from register_task_context import FORMAT_COMMAND
     successful = set()
+    FORMAT_COMMAND = None  # resolved only if a STD-BE-05 command is presented
     for attempt in visible.get("attempts",[]):
         if not isinstance(attempt,dict):
             continue
@@ -151,6 +151,9 @@ def verified_visible_commands(rows: list[dict], visible: dict | None,
             if not isinstance(name,str) or not isinstance(argv,list):
                 continue
             marker=re.match(r"(std-[a-z]+-[0-9]+)(?:-|$)",name)
+            if marker and marker.group(1).upper() == "STD-BE-05" and FORMAT_COMMAND is None:
+                from register_task_context import format_command
+                FORMAT_COMMAND = format_command() or {"name": None, "argv": None}
             if (marker and marker.group(1).upper() == "STD-BE-05"
                     and name == FORMAT_COMMAND["name"]
                     and argv == FORMAT_COMMAND["argv"]

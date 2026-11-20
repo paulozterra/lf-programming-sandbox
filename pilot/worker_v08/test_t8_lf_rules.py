@@ -133,7 +133,8 @@ def test_format_is_machine_verified_only_with_pinned_successful_visible_command(
     from pilot.worker_v08.lf_rule_gate import verified_visible_commands
     table=[{"rule_id":"STD-BE-05","coverage":"NO_VERIFICADO",
             "reason":"SIN_VERIFICADOR_COMPLETO"}]
-    from pilot.worker_v08.register_task_context import FORMAT_COMMAND
+    from pilot.worker_v08.register_task_context import format_command
+    FORMAT_COMMAND = format_command()
     command={"name":FORMAT_COMMAND["name"],"argv":FORMAT_COMMAND["argv"]}
     visible={"attempts":[{"acceptance":[{
         **command,"status":"PASS","returncode":0}]}]}

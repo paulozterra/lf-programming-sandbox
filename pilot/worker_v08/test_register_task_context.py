@@ -90,7 +90,7 @@ class PinnedSource(unittest.TestCase):
         self.assertEqual(mod.canonical(a), mod.canonical(b))
         self.assertEqual(sources_a, sources_b)
         self.assertEqual(a["holdout_sha256"], native["holdout_sha256"])
-        self.assertEqual(a["task_spec"]["acceptance_commands"][-1], mod.FORMAT_COMMAND)
+        self.assertEqual(a["task_spec"]["acceptance_commands"][-1], mod.format_command())
         api, _ = run(task_spec())
         self.assertEqual(api["context_path_patterns"], a["task_spec"]["context_path_patterns"])
         self.assertEqual(api["protected_path_patterns"], a["task_spec"]["protected_path_patterns"])

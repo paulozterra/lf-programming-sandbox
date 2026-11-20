@@ -66,10 +66,12 @@ def all_generated_commands():
     sys.path.insert(0, str(ROOT / 'pilot/orchestrator'))
     from generate_chain import acceptance
     for area in AREAS:
+        sys.path.insert(0, str(ROOT))
+        from pilot.config import project_config as _project
         paths = (["contracts/example.openapi.yaml"] if area == "CONTRATO"
-                 else ["apps/time-service/src/main/resources/db/migration/V1__example.sql"]
-                 if area == "DATA" else ["apps/time-service/pom.xml"]
-                 if area == "INFRA" else ["frontend/src/app/page.tsx"])
+                 else [_project.area_component("DATA", "maven")["migrations_root"] + "/V1__example.sql"]
+                 if area == "DATA" else [_project.area_component("BACKEND", "maven")["build_file"]]
+                 if area == "INFRA" else [_project.area_component("FRONTEND", "npm")["source_roots"][0] + "/app/page.tsx"])
         yield area, acceptance(
             area, paths, run="example", module="example",
             skeleton_path="pilot/runs/example/templates/example.skeleton.json",

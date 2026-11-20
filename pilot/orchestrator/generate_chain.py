@@ -15,7 +15,7 @@ from pathlib import Path
 from chain_contract import validate_plan
 from worker_template_contract import validate_template_worker
 from native_write_scope import validate_write_paths
-from affected_tests import is_project_test, project_test_files, PROJECT_TEST_GLOBS
+from affected_tests import is_project_test, project_test_files, project_test_globs
 
 def canonical(value):
     return (json.dumps(value,sort_keys=True,separators=(",",":"),ensure_ascii=False)+"\n").encode("utf-8")
@@ -183,8 +183,9 @@ def _existing_behavior_tests(root, source_path, endpoints):
 def _unprotect_affected(root, protected, affected):
     """Make exactly the lot's affected tests writable; keep every other test protected."""
     result = [p for p in protected if p not in affected]
-    if any(g in result for g in PROJECT_TEST_GLOBS):
-        result = [p for p in result if p not in PROJECT_TEST_GLOBS]
+    test_globs = project_test_globs()
+    if any(g in result for g in test_globs):
+        result = [p for p in result if p not in test_globs]
         result.extend(f.relative_to(root).as_posix() for f in project_test_files(Path(root))
                       if f.relative_to(root).as_posix() not in affected)
     return result

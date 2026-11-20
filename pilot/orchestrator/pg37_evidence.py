@@ -81,8 +81,12 @@ def trace_requirements(analysis,packet,paths):
  if matched!=set(paths):raise ValueError("CP37_ORPHAN_DIFF_PATH")
  return {"requirements_from_analysis":ids,"links":sorted(result,key=lambda x:x["path"]),"trace_candidate_only":True,"requirements_approved":False}
 def build_lint(root,area):
+ import sys as _s
+ _s.path.insert(0,str(Path(__file__).resolve().parents[2]))
+ from pilot.config import project_config as _project
+ pom=_project.area_component("BACKEND","maven")["build_file"] if area=="BACKEND" else None
  commands={
- "BACKEND":[(["mvn","-B","-q","-f","apps/time-service/pom.xml","spotless:check"],"palantir"),(["mvn","-B","-q","-f","apps/time-service/pom.xml","test"],"maven-test")],
+ "BACKEND":[(["mvn","-B","-q","-f",pom,"spotless:check"],"palantir"),(["mvn","-B","-q","-f",pom,"test"],"maven-test")],
  "FRONTEND":[(["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-lint"],"next-lint"),(["python3","standards/tools/stack_checks.py","run","--set","nextjs","--check-id","next-build"],"next-build")],
  "DATA":[(["python3","standards/tools/stack_checks.py","run","--set","postgres-flyway","--check-id","db-catalog-files"],"db-catalog")]}
  if area not in commands:raise ValueError("CP37_AREA_UNKNOWN")

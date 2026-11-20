@@ -4,6 +4,9 @@ Only API metadata and trusted-main workflow logs are inspected; never checkout
 or execute a generated branch. Train evidence must bind BOTH PR and head SHA.
 """
 from __future__ import annotations
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 
 import json
 import re
@@ -38,8 +41,13 @@ def _train_conflict(log: str, number: int, sha: str) -> bool:
 # retirement; other red checks must remain for ordinary owner inspection.
 CI_DERIVED_T2 = re.compile(
     r"T2_CONCRETE_CASE_IN_PRODUCTION:contracts/[a-z][a-z0-9-]*\.openapi\.yaml:")
-CI_DERIVED_GEN = re.compile(
-    r"git diff --exit-code -- frontend/src/lib/api/generated")
+def _generated_dir() -> str:
+    from pilot.config import project_config as _project
+    return _project.generated_client_component()["generated_client"]["dir"]
+
+
+def _ci_derived_gen() -> re.Pattern[str]:
+    return re.compile(r"git diff --exit-code -- " + re.escape(_generated_dir()))
 
 
 def _provably_stale_generated_client(number: int, api_list) -> bool:
@@ -58,7 +66,7 @@ def _provably_stale_generated_client(number: int, api_list) -> bool:
                               row["filename"])}
     touched = {row.get("filename") for row in response if isinstance(row, dict)}
     # An added product contract *always* changes the official generated index.
-    return bool(added) and "frontend/src/lib/api/generated/index.ts" not in touched
+    return bool(added) and _generated_dir() + "/index.ts" not in touched
 
 
 def _ci_derived_failure(number: int, branch: str, sha: str, run, api, repo: str) -> str | None:
@@ -99,7 +107,7 @@ def _ci_derived_failure(number: int, branch: str, sha: str, run, api, repo: str)
                 and CI_DERIVED_T2.search(log)):
             return "CI_DERIVED_T2 run " + str(candidate["id"])
         if ("frontend (lint, tipos, build)" in failed
-                and CI_DERIVED_GEN.search(log)
+                and _ci_derived_gen().search(log)
                 and "Process completed with exit code 1" in log):
             return "CI_DERIVED_GEN_API run " + str(candidate["id"])
     return None

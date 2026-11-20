@@ -37,12 +37,22 @@ PROFILE = {"BACKEND": "prog_backend_exp", "FRONTEND": "prog_frontend_exp",
 PROFILE_CODE = {"BACKEND": "PERFIL-PROG-BACKEND-EXP",
                 "FRONTEND": "PERFIL-PROG-FRONTEND-EXP",
                 "DATA": "PERFIL-PROG-DATA-EXP"}
-FORMAT_COMMAND = {
-    "name": "std-be-05-spotless-check",
-    "argv": ["mvn", "-B", "-q", "-f", "apps/time-service/pom.xml", "spotless:check"],
-    "timeout_seconds": 600,
-    "max_output_bytes": 16000,
-}
+def format_command() -> dict | None:
+    """STD-BE-05 formatting gate on the project's BACKEND maven build (T54 3c).
+
+    None when the project has no BACKEND maven component: there is nothing for
+    Spotless to check, and no other area may be blocked for its absence.
+    """
+    from pilot.config import project_config as _project
+    if not [item for _, item in _project.area_components("BACKEND") if item["kind"] == "maven"]:
+        return None
+    return {
+        "name": "std-be-05-spotless-check",
+        "argv": ["mvn", "-B", "-q", "-f",
+                 _project.area_component("BACKEND", "maven")["build_file"], "spotless:check"],
+        "timeout_seconds": 600,
+        "max_output_bytes": 16000,
+    }
 
 
 class ContextBlocked(ValueError):
@@ -117,13 +127,12 @@ def classify_path(value: str) -> str:
     safe_rel(value)
     from pathlib import PurePosixPath
     import re
-    if re.fullmatch(
-            r"apps/time-service/src/main/resources/db/migration/V[0-9]+__[a-z][a-z0-9_]*[.]sql",
-            value):
+    from pilot.config import project_config as _project
+    migrations = _project.area_component("DATA", "maven")["migrations_root"]
+    if migrations and re.fullmatch(
+            re.escape(migrations) + r"/V[0-9]+__[a-z][a-z0-9_]*[.]sql", value):
         return "DATA"
-    if (value.startswith("apps/time-service/src/main/java/") or
-        value.startswith("backend/src/main/java/") or
-        value.startswith("backend/")):
+    if value.startswith(_project.area_project_roots("BACKEND")):
         return "BACKEND"
     # T26.3: existing project tests planned into a backend lot ("pruebas afectadas"),
     # same classifier as the planner.
@@ -135,9 +144,9 @@ def classify_path(value: str) -> str:
     from affected_tests import is_project_test
     if is_project_test(value):
         return "BACKEND"
-    if value.startswith(("frontend/", "apps/web/")):
+    if value.startswith(_project.area_project_roots("FRONTEND")):
         return "FRONTEND"
-    if value.startswith(("db/", "supabase/migrations/", "standards/kit-base/")):
+    if value.startswith(_project.free_project_roots("DATA") + ("standards/kit-base/",)):
         return "DATA"
     block("UNCLASSIFIED_LOT_PATH:" + value)
 
@@ -490,10 +499,13 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
     if not isinstance(commands, list):
         block("ACCEPTANCE_COMMANDS_INVALID")
     if area != "CONTRATO" and selected == "BACKEND" and any("SPRINGBOOT_EXP" == r["code"] for r in identities):
-        if FORMAT_COMMAND not in commands:
-            if any(c.get("name") == FORMAT_COMMAND["name"] for c in commands if isinstance(c, dict)):
+        expected_format = format_command()
+        if expected_format is None:
+            block("FORMAT_COMMAND_NOT_CONFIGURED")
+        if expected_format not in commands:
+            if any(c.get("name") == expected_format["name"] for c in commands if isinstance(c, dict)):
                 block("FORMAT_ACCEPTANCE_NAME_COLLISION")
-            commands.append(copy.deepcopy(FORMAT_COMMAND))
+            commands.append(copy.deepcopy(expected_format))
     existing = expanded_context_size(root, list(dest.get("context_path_patterns", [])), set(paths))
     receipt = {
         "schema_version": "LF_WORKER_PINNED_CONTEXT_RECEIPT_V1",

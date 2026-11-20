@@ -23,8 +23,14 @@ import re
 from pathlib import Path
 
 # Project test roots per writable product root (same roots as T24 scope).
-PROJECT_TEST_ROOTS = ("apps/time-service/src/test",)
-PROJECT_TEST_GLOBS = tuple(root + "/**" for root in PROJECT_TEST_ROOTS)
+def project_test_roots() -> tuple[str, ...]:
+    """T54 3c: affected (updatable) test roots of the project's maven components."""
+    from pilot.config import project_config as _project
+    return _project.affected_test_roots("maven")
+
+
+def project_test_globs() -> tuple[str, ...]:
+    return tuple(root + "/**" for root in project_test_roots())
 TEST_SUFFIXES = (".java",)
 
 
@@ -38,7 +44,7 @@ def _blocked() -> None:
 
 def project_test_files(root: Path) -> list[Path]:
     found = []
-    for name in PROJECT_TEST_ROOTS:
+    for name in project_test_roots():
         directory = Path(root) / name
         if directory.is_symlink():
             _blocked()
@@ -53,7 +59,7 @@ def project_test_files(root: Path) -> list[Path]:
 
 
 def is_project_test(path: str) -> bool:
-    return any(path.startswith(root + "/") for root in PROJECT_TEST_ROOTS)
+    return any(path.startswith(root + "/") for root in project_test_roots())
 
 
 def _references_route(text: str, route: str) -> bool:

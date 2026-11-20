@@ -275,7 +275,7 @@ class OtherProjects(unittest.TestCase):
             sub.update(root="apps/time-service/modules/billing",
                        build_file="apps/time-service/modules/billing/pom.xml",
                        source_roots=["apps/time-service/modules/billing/src/main/java"],
-                       resource_roots=[], test_roots=[], migrations_root=None, config_files=[])
+                       resource_roots=[], test_roots=[], affected_test_roots=[], migrations_root=None, config_files=[])
             c["components"]["billing"] = sub
             c["areas"]["BACKEND"]["project_roots"] = [
                 "apps/time-service/src/main/java/", "apps/time-service/modules/billing/src/main/java/",
@@ -296,7 +296,7 @@ class OtherProjects(unittest.TestCase):
             c["components"]["backend"]["root"] = "services/core"
             c["components"]["backend"].update(
                 build_file="services/core/pom.xml", source_roots=["services/core/src/main/java"],
-                resource_roots=[], test_roots=["services/core/src/test"],
+                resource_roots=[], test_roots=["services/core/src/test"], affected_test_roots=[],
                 migrations_root="services/core/db", config_files=[])
             c["areas"]["BACKEND"]["project_roots"] = ["services/core/src/main/java/"]
             c["areas"]["DATA"]["project_roots"] = ["services/core/db/"]

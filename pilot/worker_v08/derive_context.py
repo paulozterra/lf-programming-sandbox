@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import posixpath
+import functools
 import re
 from pathlib import Path, PurePosixPath
 
@@ -39,9 +40,40 @@ def _safe_name(value: str) -> str:
     return value
 
 
+def _product_scope() -> tuple[tuple[str, ...], tuple[str, ...], frozenset[str]]:
+    import sys as _sys
+    from pathlib import Path as _P
+    _sys.path.insert(0, str(_P(__file__).resolve().parents[2]))
+    from pilot.config import project_config as _project
+    return _product_scope_for(str(_project.CONFIG_ROOT))
+
+
+@functools.lru_cache(maxsize=8)
+def _product_scope_for(config_root: str) -> tuple[tuple[str, ...], tuple[str, ...], frozenset[str]]:
+    """T54 3c: writable product tops, free DATA roots and allowed env examples.
+
+    Top directories of the configured components plus the DATA area roots
+    outside components (in the sandbox: db/ and supabase/migrations/); each maven
+    component's .env.example is the only readable .env* file.
+    """
+    import sys as _sys
+    from pathlib import Path as _P
+    _sys.path.insert(0, str(_P(__file__).resolve().parents[2]))
+    from pilot.config import project_config as _project
+    comps = _project.components().values()
+    free_all = _project.free_project_roots("DATA")
+    # A one-segment free root ("db/") is a whole top directory, as before.
+    tops = tuple(sorted({item["root"].split("/", 1)[0] for item in comps}
+                        | {r.rstrip("/") for r in free_all if r.count("/") == 1}))
+    free = tuple(r for r in free_all if r.count("/") > 1)
+    envs = frozenset(item["root"] + "/.env.example" for item in comps if item["kind"] == "maven")
+    return tops, free, envs
+
+
 def denial(name: str, is_spec: bool = False) -> str | None:
     parts = PurePosixPath(name).parts
-    if any(p.startswith(".env") for p in parts) and name != "apps/time-service/.env.example":
+    tops, free_data, env_examples = _product_scope()
+    if any(p.startswith(".env") for p in parts) and name not in env_examples:
         return "DENIED_ENV"
     if parts and parts[0] == "vendor":
         return "DENIED_VENDOR"
@@ -59,8 +91,8 @@ def denial(name: str, is_spec: bool = False) -> str | None:
         return "DENIED_SENSITIVE_NAME"
     contract_write = bool(re.fullmatch(r"contracts/[a-z][a-z0-9-]*[.]openapi[.]yaml", name))
     if not is_spec and not contract_write and (
-            not parts or parts[0] not in ("apps", "frontend", "db")
-            and not name.startswith("supabase/migrations/")):
+            not parts or parts[0] not in tops
+            and not name.startswith(free_data)):
         return "DENIED_OUTSIDE_APPS"
     return None
 

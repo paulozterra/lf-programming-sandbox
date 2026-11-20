@@ -5,6 +5,9 @@ regenerates and stages generated TypeScript from every OpenAPI contract, with
 no authority to modify any other source or build infrastructure.
 """
 from __future__ import annotations
+import sys as _project_sys
+from pathlib import Path as _project_Path
+_project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 
 from pathlib import Path
 import re
@@ -12,9 +15,19 @@ import subprocess
 
 from native_write_scope import AREA_ROOTS
 
-GENERATOR = "npm run gen:api"
-GENERATED_ROOT = "frontend/src/lib/api/generated/"
-NAME = re.compile(r"frontend/src/lib/api/generated/(?:index|[a-z][a-z0-9-]*)\.ts\Z")
+def _client() -> dict:
+    """T54 3c: generated client (dir, script, generator) of the FRONTEND npm component."""
+    from pilot.config import project_config as _project
+    web = _project.generated_client_component()
+    return {"root": web["root"], **web["generated_client"]}
+
+
+def generator_label() -> str:
+    return "npm run " + _client()["script"]
+
+
+def generated_root() -> str:
+    return _client()["dir"] + "/"
 
 
 class DerivedGenerationBlocked(ValueError):
@@ -22,7 +35,7 @@ class DerivedGenerationBlocked(ValueError):
 
 
 def generated_output(path: str) -> bool:
-    return bool(NAME.fullmatch(path))
+    return bool(re.fullmatch(re.escape(generated_root()) + r"(?:index|[a-z][a-z0-9-]*)\.ts\Z", path))
 
 
 def needs_contract_derivatives(paths: object) -> bool:
@@ -40,10 +53,11 @@ def generate(root: Path, worker_paths: set[str], command) -> dict[str, object]:
     """
     if not needs_contract_derivatives(worker_paths):
         return {"generator": None, "paths": []}
-    if not (root / "frontend/scripts/gen-api.mjs").is_file():
-        raise DerivedGenerationBlocked("INTEGRATION_DERIVED_GENERATION_FAILED:gen:api")
+    client = _client()
+    if not client["generator"] or not (root / client["generator"]).is_file():
+        raise DerivedGenerationBlocked("INTEGRATION_DERIVED_GENERATION_FAILED:" + client["script"])
     try:
-        command(["npm", "run", "gen:api"], cwd=root / "frontend")
+        command(["npm", "run", client["script"]], cwd=root / client["root"])
         raw = command(["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"], cwd=root)
         # The staged native patch is already in the index. Check *new*
         # unstaged or untracked paths, including deletions and renames.
@@ -63,7 +77,7 @@ def generate(root: Path, worker_paths: set[str], command) -> dict[str, object]:
                 if status[1] not in (" ", "M", "D", "?"):
                     raise ValueError("DERIVED_RENAME_OUT_OF_SCOPE")
                 unstaged.add(path)
-        command(["git", "add", "-A", "--", GENERATED_ROOT], cwd=root)
+        command(["git", "add", "-A", "--", generated_root()], cwd=root)
         # Only allow files already present in the worker's staged set or
         # newly staged generated TypeScript. No generated file is attributed
         # to the Worker itself.
@@ -72,8 +86,8 @@ def generate(root: Path, worker_paths: set[str], command) -> dict[str, object]:
         extras = sorted(set(filter(None, changes)) - set(worker_paths))
         if any(not generated_output(path) for path in extras):
             raise ValueError("DERIVED_STAGED_OUT_OF_SCOPE")
-        return {"generator": GENERATOR, "paths": extras}
+        return {"generator": generator_label(), "paths": extras}
     except (ValueError, OSError, UnicodeError, subprocess.CalledProcessError,
             DerivedGenerationBlocked) as exc:
         raise DerivedGenerationBlocked(
-            "INTEGRATION_DERIVED_GENERATION_FAILED:gen:api") from exc
+            "INTEGRATION_DERIVED_GENERATION_FAILED:" + client["script"]) from exc
