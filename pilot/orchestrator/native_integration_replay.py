@@ -187,7 +187,8 @@ def recover_unstarted(head: str, run, api, repo: str, root: Path,
     for source in sorted(workers, key=lambda row: row.get("id", 0)):
         if not _trusted_worker(source, repo):
             continue
-        match = WORKER_TITLE.fullmatch(source["display_title"])
+        match = (WORKER_TITLE.fullmatch(source["display_title"]) or
+                 MANUAL_WORKER_TITLE.fullmatch(source["display_title"]))
         task = match.group(1)
         if task not in allowed_tasks:
             continue
