@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo (20/11/2026): limpieza post-merge de CHG-0248; pin local SHA+merged_at"
   },
-  "reason": "El dry-run de PR #370 solo tenía utilidad pre-merge. El corte histórico ya está fijado por el merge commit 549d50b1ec6eb21fb520aad643094fb133ca66bd y merged_at 2026-11-20T22:18:45Z. El runtime deja de consultar GET /pulls/370 en cada admisión y lee la misma referencia inmutable de r3_cutover.json, validada en test offline y contrastada en CI con la API real una vez por corrida. Se elimina el job temporal y el script de dry-run. No cambia la política de conteo ni de perdones, orden ni clasificación.",
+  "reason": "El dry-run de PR #370 solo tenía utilidad pre-merge. El corte histórico ya está fijado por el merge commit 549d50b1ec6eb21fb520aad643094fb133ca66bd y merged_at 2026-11-20T22:18:45Z. El runtime deja de consultar GET /pulls/370 en cada admisión y lee la misma referencia inmutable de r3_cutover.json, validada en test offline y contrastada exitosamente con API real en el run CI 44829231556; el test de comparación live queda opt-in para evitar dependencia de red en cada CI. Se elimina el job temporal y el script de dry-run. No cambia la política de conteo ni de perdones, orden ni clasificación.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
