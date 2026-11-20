@@ -1,7 +1,8 @@
 """GitHub-run-backed attempt admission; history is never read from a proposal branch.
 
 Only runs with a unique, valid Actions-produced proof consume attempts.
-Runs stopped before a proof exists are ignored; tampered or duplicated proofs block.
+An absent or expired proof is fail-closed unless the same job attests NO_ATTEMPT
+or the Worker execution step was explicitly skipped.
 """
 from __future__ import annotations
 # Resolve the trusted repository package for direct script execution.
@@ -24,7 +25,7 @@ from native_attempt_guard import validate_attempt_history
 from github_network_retry import transport_read
 
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
-_MANUAL_TITLE = re.compile(r"lf-native-([a-z][a-z0-9_-]{0,31})-a([1-3])\Z")
+_MANUAL_TITLE = re.compile(r"lf-native-(?:(req-[1-9][0-9]*)-)?([a-z][a-z0-9_-]{0,31})-a([1-3])(?:-([0-9a-f]{40}))?\Z")
 _INFRA_TITLE = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _ROUTE_TITLE = re.compile(r"lf-native-route-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _PENDING_TITLE = re.compile(r"lf-native-pending-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
@@ -32,6 +33,8 @@ _AUTO_TITLE = re.compile(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,
 _TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 _WORKFLOW = "worker-native.yml"
 _ARTIFACT = "native-attempt-proof"
+_NO_ATTEMPT_ARTIFACT = "native-no-attempt"
+_WORKER_STEP = "Execute original run_verified_worker using native proposal (single attempt)"
 
 def _api(base: str, token: str, route: str) -> dict:
     url = f"https://api.github.com/repos/{base}/{route}"
@@ -46,17 +49,19 @@ def _api(base: str, token: str, route: str) -> dict:
     return transport_read(read, "ARTIFACT_API")
 
 
-def _artifact_json(base: str, token: str, run_id: int) -> dict | None:
+def _artifact_json(base: str, token: str, run_id: int, *,
+                   artifact_name: str = _ARTIFACT) -> dict | None:
     obj = _api(base, token, f"actions/runs/{run_id}/artifacts?per_page=100")
     items = obj.get("artifacts")
     if not isinstance(items, list) or obj.get("total_count", len(items)) > 100:
         raise ValueError("NATIVE_PRIOR_ARTIFACT_LIST_INCOMPLETE")
-    matches = [a for a in items if a.get("name") == _ARTIFACT]
+    matches = [a for a in items if a.get("name") == artifact_name]
     if not matches:
-        return None  # Preflight/checkout failure is not an attempt.
-    if (len(matches) != 1 or matches[0].get("expired") or
-        matches[0].get("workflow_run", {}).get("id", run_id) != run_id):
+        return None  # Caller must attest absence; no implicit forgiveness.
+    if len(matches) != 1 or matches[0].get("workflow_run", {}).get("id", run_id) != run_id:
         raise ValueError("NATIVE_PRIOR_PROOF_DUPLICATE_OR_EXPIRED")
+    if matches[0].get("expired"):
+        raise ValueError("NATIVE_PRIOR_PROOF_MISSING")
     # GitHub artifact API redirects to signed storage. Strip GitHub credentials
     # before requesting the signed URL (Azure rejects forwarded Authorization).
     class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -98,17 +103,44 @@ def _artifact_json(base: str, token: str, run_id: int) -> dict | None:
     archive = transport_read(read_archive, "ARTIFACT_DOWNLOAD")
     if len(archive) > 1_000_000:
         raise ValueError("NATIVE_PRIOR_PROOF_ARCHIVE_SIZE_INVALID")
+    filename = "attempt-proof.json" if artifact_name == _ARTIFACT else "no-attempt.json"
     with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
-        if zipped.namelist() != ["attempt-proof.json"]:
+        if zipped.namelist() != [filename]:
             raise ValueError("NATIVE_PRIOR_PROOF_ARCHIVE_INVALID")
-        raw = zipped.read("attempt-proof.json")
+        raw = zipped.read(filename)
         if len(raw) > 4096:
             raise ValueError("NATIVE_PRIOR_PROOF_SIZE_INVALID")
     return json.loads(raw)
 
 
+def _no_attempt_attested(base: str, token: str, run: dict, task: str) -> bool:
+    """Only the same Actions job can justify an absent attempt proof."""
+    run_id = run["id"]
+    marker = _artifact_json(base, token, run_id, artifact_name=_NO_ATTEMPT_ARTIFACT)
+    if marker is not None:
+        return (isinstance(marker, dict)
+                and set(marker) == {"schema_version", "task_id", "run_id", "attempt", "reason"}
+                and marker["schema_version"] == "LF_NATIVE_NO_ATTEMPT_V1"
+                and marker["task_id"] == task and marker["run_id"] == run_id
+                and type(marker["attempt"]) is int and 1 <= marker["attempt"] <= 3
+                and marker["reason"] in ("PRE_ATTEMPT", "EXAMINER_CONTROL"))
+    jobs = _api(base, token, f"actions/runs/{run_id}/jobs?per_page=100")
+    rows = jobs.get("jobs")
+    if (not isinstance(rows, list) or jobs.get("total_count") != 1
+            or len(rows) != 1 or rows[0].get("name") != "native"):
+        return False
+    steps = rows[0].get("steps")
+    if not isinstance(steps, list):
+        return False
+    worker_steps = [step for step in steps if isinstance(step, dict)
+                    and step.get("name") == _WORKER_STEP]
+    return (len(worker_steps) == 1 and worker_steps[0].get("status") == "completed"
+            and worker_steps[0].get("conclusion") == "skipped")
+
+
 def _recognized_run(run: dict, task: str, *, attempt: int | None = None,
-                    sha: str | None = None, branch: str | None = None) -> bool:
+                    sha: str | None = None, branch: str | None = None,
+                    allow_legacy_manual: bool = True) -> bool:
     if run.get("head_branch") != "main" or run.get("run_attempt") != 1:
         return False
     title = run.get("display_title") or ""
@@ -116,8 +148,10 @@ def _recognized_run(run: dict, task: str, *, attempt: int | None = None,
     if event == "workflow_dispatch":
         match = _MANUAL_TITLE.fullmatch(title)
         if match is not None:
-            return match.group(1) == task and (
-                attempt is None or int(match.group(2)) == attempt)
+            return (match.group(2) == task
+                    and (attempt is None or int(match.group(3)) == attempt)
+                    and (match.group(4) is not None or allow_legacy_manual)
+                    and (sha is None or match.group(4) is None or match.group(4) == sha))
         recovery = (_INFRA_TITLE.fullmatch(title) or _ROUTE_TITLE.fullmatch(title)
                     or _PENDING_TITLE.fullmatch(title))
         return (recovery is not None and recovery.group(1) == task
@@ -163,7 +197,8 @@ def admit_attempt(
     if (len(current) != 1 or current[0].get("event") != event or
         not _recognized_run(current[0], task, attempt=attempt,
                             sha=sha,
-                            branch=proposal_branch)):
+                            branch=proposal_branch,
+                            allow_legacy_manual=False)):
         raise ValueError("NATIVE_CURRENT_RUN_NOT_ATTESTED")
     # Only a trusted, merged launcher-only migration may forgive a previously
     # spent proof. The immutable source run and original pack must still match.
@@ -202,6 +237,10 @@ def admit_attempt(
             continue
         proof = _artifact_json(repository, token, run["id"])
         if proof is None:
+            if run.get("status") != "completed":
+                continue
+            if not _no_attempt_attested(repository, token, run, task):
+                raise ValueError("NATIVE_PRIOR_PROOF_MISSING")
             continue
         if (run["id"] >= run_id or run.get("status") != "completed" or
             not isinstance(proof, dict) or
@@ -234,9 +273,13 @@ def admit_attempt(
         match = (_AUTO_TITLE.fullmatch(title)
                  if run.get("event") == "workflow_run"
                  else (_INFRA_TITLE.fullmatch(title) or
-                      _ROUTE_TITLE.fullmatch(title) or
-                      _PENDING_TITLE.fullmatch(title)))
-        if match is not None and match.group(2) == sha:
+                       _ROUTE_TITLE.fullmatch(title) or
+                       _PENDING_TITLE.fullmatch(title)))
+        manual = (_MANUAL_TITLE.fullmatch(title)
+                  if run.get("event") == "workflow_dispatch" else None)
+        prior_sha = (match.group(2) if match is not None else
+                     manual.group(4) if manual is not None else None)
+        if prior_sha == sha:
             raise ValueError("NATIVE_DUPLICATE_PROPOSAL_SHA")
         prior.append(proof)
     computed = len(prior) + 1
