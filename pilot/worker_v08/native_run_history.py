@@ -126,6 +126,11 @@ def _no_attempt_attested(base: str, token: str, run: dict, task: str) -> bool:
                 and marker["reason"] in ("PRE_ATTEMPT", "EXAMINER_CONTROL"))
     jobs = _api(base, token, f"actions/runs/{run_id}/jobs?per_page=100")
     rows = jobs.get("jobs")
+    # GitHub can cancel a pending run before assigning any job. No executed
+    # job exists, hence no attempt can have been spent.
+    if (rows == [] and jobs.get("total_count") == 0
+            and run.get("conclusion") in ("cancelled", "skipped")):
+        return True
     if (not isinstance(rows, list) or jobs.get("total_count") != 1
             or len(rows) != 1 or rows[0].get("name") != "native"):
         return False
