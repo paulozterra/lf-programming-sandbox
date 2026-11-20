@@ -94,6 +94,11 @@ def next_run_seen(api: Github, stage: str, number: int,
         and row.get("display_title") in
             ((title, historical) if stage != "REQUEST_MERGED" else (title,))
         and row.get("created_at", "") >= merged_at
+        # A pending run displaced by GitHub concurrency never executed.
+        # Only genuinely running/queued or completed success/failure count.
+        and (row.get("status") in ("queued", "in_progress")
+             or (row.get("status") == "completed"
+                 and row.get("conclusion") in ("success", "failure")))
         for row in result.get("workflow_runs", []))
 
 

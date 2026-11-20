@@ -166,7 +166,11 @@ def test_full_sweep_isolates_t17_4_and_t23_errors_and_processes_healthy_request(
          patch.object(chain_lots, "recover_native_feedback", return_value=[]), \
          patch.object(chain_lots, "recover_route_defects",
                       side_effect=ValueError("LOCAL_ROUTE_BAD_READBACK")), \
-         patch.object(chain_lots, "replay_native_integration", return_value=[]), \
+         patch.multiple(chain_lots,
+                        replay_native_integration=lambda *a, **kw: [],
+                        recover_pending_worker=lambda *a, **kw: [],
+                        recover_unstarted_integration=lambda *a, **kw: [],
+                        sync_implemented_registry=lambda *a, **kw: {"status": "REGISTRY_CURRENT"}), \
          patch.object(chain_lots, "route_request_metadata", return_value=True), \
          patch.object(chain_lots, "publish_missing_registered_pack", return_value=None), \
          patch.object(chain_lots, "publish_legacy_submission_contract", return_value=None), \

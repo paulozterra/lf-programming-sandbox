@@ -89,10 +89,62 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
    results.append({'request':request,'status':'BLOCKED','code':code})
  return results or [{"status":"NO_MERGED_LOTS_FOR_REPORT"}]
 
+def sweep(*,root=ROOT):
+ """R1: derive missing evidence from persisted plans/main merges, not an event."""
+ from pilot.config.project_config import storage_path
+ head=chain_lots.check_main()
+ ready=[]
+ blocked=[]
+ for request,lots,state,bindings in chain_lots.plans():
+  try:
+   if request_state(request,chain_lots.api,root=root)!=OPEN:continue
+   report=storage_path("requests_root",root=root)/request/"H_REPORT.md"
+   if report.exists() or report.is_symlink():continue
+   if chain_lots.pending_draft(f"lf/evidence/{request}-"):continue
+   history=chain_lots.first_parent_merges(request,root=root)
+   if chain_lots.completed_lots(lots,bindings,history):ready.append(request)
+  except (RequestStateError,chain_lots.ChainBlocked,OSError,ValueError,KeyError) as exc:
+   blocked.append({"request":request,"status":"BLOCKED",
+                   "code":"R1_CP37_STATE_UNRESOLVED"})
+ if not ready:return blocked or [{"status":"R1_CP37_NO_MISSING_EVIDENCE"}]
+ history=chain_lots.api("actions/workflows/sandbox-train.yml/runs?per_page=100")
+ count=history.get("total_count")
+ if (type(count)is not int or count<0 or count>1000
+     or not isinstance(history.get("workflow_runs"),list)
+     or len(history["workflow_runs"])!=min(count,100)):
+  raise ValueError("R1_CP37_TRAIN_HISTORY_INCOMPLETE")
+ rows=list(history["workflow_runs"])
+ for page in range(2,(count+99)//100+1):
+  chunk=chain_lots.api(f"actions/workflows/sandbox-train.yml/runs?per_page=100&page={page}")
+  values=chunk.get("workflow_runs")
+  if (chunk.get("total_count")!=count or not isinstance(values,list)
+      or len(values)!=min(100,count-len(rows))):
+   raise ValueError("R1_CP37_TRAIN_HISTORY_INCOMPLETE")
+  rows.extend(values)
+ for row in sorted(rows,key=lambda item:item.get("id",0),reverse=True):
+  if not isinstance(row,dict) or type(row.get("id")) is not int:continue
+  if (row.get("status")!="completed" or row.get("conclusion")!="success"
+      or (row.get("path") or "").split("@")[0]!=".github/workflows/sandbox-train.yml"
+      or (row.get("repository") or {}).get("full_name")!=chain_lots.REPO):continue
+  try:
+   if chain_lots.event_kind(row["id"],head)=="TRAIN":
+    return blocked+reconcile(row["id"],root=root)
+  except (chain_lots.ChainBlocked,ValueError,KeyError):
+   continue
+ raise ValueError("R1_CP37_SOURCE_UNAVAILABLE")
+
+
 def main():
- p=argparse.ArgumentParser();p.add_argument("--source-run-id",type=int,required=True)
+ p=argparse.ArgumentParser();p.add_argument("--source-run-id",type=int);p.add_argument("--sweep",action="store_true")
  args=p.parse_args()
- if args.source_run_id<=0 or os.environ.get("GITHUB_REPOSITORY")!=chain_lots.REPO or not os.environ.get("GH_TOKEN"):
+ if (args.sweep==(args.source_run_id is not None)
+     or (args.source_run_id is not None and args.source_run_id<=0)
+     or os.environ.get("GITHUB_REPOSITORY")!=chain_lots.REPO
+     or not os.environ.get("GH_TOKEN")):
   raise SystemExit("CP37_TRUSTED_CONTEXT_REQUIRED")
- print(json.dumps(reconcile(args.source_run_id),sort_keys=True))
+ try:
+  result=sweep() if args.sweep else reconcile(args.source_run_id)
+ except (chain_lots.ChainBlocked,ValueError,KeyError,OSError) as exc:
+  raise SystemExit("R1_CP37_SWEEP_BLOCKED:"+str(exc)) from exc
+ print(json.dumps(result,sort_keys=True))
 if __name__=="__main__":main()

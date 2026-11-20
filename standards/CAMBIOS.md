@@ -236,3 +236,4 @@
 | CHG-0242 | ADDITIVE | T56 fase 1: la ruta consulta el EKB antes de implementar y registra sus errores (misma tabla, source_context LF_ROUTE*) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/364 |
 | CHG-0243 | EDITORIAL | T56: probe sin escritura de los secretos del EKB de la ruta |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/365 |
 | CHG-0244 | ADDITIVE | T56 fase 2: ekb.md en el paquete de cada lote y registro de fallos de la ruta en el EKB |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/366 |
+| CHG-0245 | ADDITIVE | R1: reconciliar pendientes de GitHub Actions cancelados antes de iniciar |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/367 |

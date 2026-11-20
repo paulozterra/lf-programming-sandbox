@@ -258,6 +258,12 @@ jobs:
         run: python3 -m pytest -q pilot/orchestrator/test_t25_1_github_lists_isolation.py -p no:cacheprovider
       - name: T25 guard T2 product exclusions and integration mechanical CI recovery (offline)
         run: python3 -m pytest -q pilot/orchestrator/test_t25_contract_derivatives.py -k "not real_npm_gen_api" -p no:cacheprovider
+      - name: R1 cancelled pending run recovery and synthetic concurrency (offline)
+        run: |
+          python3 -m unittest discover -s pilot -p 'test_t9_2_stages.py' -v
+          python3 -m pytest -q pilot/orchestrator/test_r1_pending_recovery.py -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_r1_pg37_intake.py -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_r1_t7_reconcile.py -p no:cacheprovider
       - name: T24.1 full CP3.6 replay, SHA-pinned route defect history and recovery wiring (offline)
         run: python3 -m pytest -q pilot/orchestrator/test_t24_1_sweep_and_attempts.py -p no:cacheprovider
       - name: T24 area write scope contract vs CP3.5 and immutable PASS replay (offline)

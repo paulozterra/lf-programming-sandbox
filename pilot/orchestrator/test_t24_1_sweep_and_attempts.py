@@ -163,7 +163,11 @@ def test_full_sweep_dispatches_immutable_pass_and_continues_other_request(tmp_pa
          patch.object(chain_lots, "route_request_metadata", return_value=True), \
          patch.object(chain_lots, "retire_conflicted_generated", return_value=[]), \
          patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]), \
-         patch.object(chain_lots, "retry_native_infra", return_value=[]), \
+         patch.multiple(chain_lots,
+                         retry_native_infra=lambda *a, **kw: [],
+                         recover_pending_worker=lambda *a, **kw: [],
+                         recover_unstarted_integration=lambda *a, **kw: [],
+                         sync_implemented_registry=lambda *a, **kw: {"status": "REGISTRY_CURRENT"}), \
          patch.object(chain_lots, "recover_native_feedback", return_value=[]), \
          patch.object(chain_lots, "recover_route_defects", return_value=[]), \
          patch.object(chain_lots, "publish_missing_registered_pack", return_value=None), \

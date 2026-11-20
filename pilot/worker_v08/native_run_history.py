@@ -27,6 +27,7 @@ _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 _MANUAL_TITLE = re.compile(r"lf-native-([a-z][a-z0-9_-]{0,31})-a([1-3])\Z")
 _INFRA_TITLE = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _ROUTE_TITLE = re.compile(r"lf-native-route-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
+_PENDING_TITLE = re.compile(r"lf-native-pending-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _AUTO_TITLE = re.compile(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 _WORKFLOW = "worker-native.yml"
@@ -117,7 +118,8 @@ def _recognized_run(run: dict, task: str, *, attempt: int | None = None,
         if match is not None:
             return match.group(1) == task and (
                 attempt is None or int(match.group(2)) == attempt)
-        recovery = _INFRA_TITLE.fullmatch(title) or _ROUTE_TITLE.fullmatch(title)
+        recovery = (_INFRA_TITLE.fullmatch(title) or _ROUTE_TITLE.fullmatch(title)
+                    or _PENDING_TITLE.fullmatch(title))
         return (recovery is not None and recovery.group(1) == task
                 and (attempt is None or attempt == 1)
                 and (sha is None or recovery.group(2) == sha))
@@ -232,7 +234,8 @@ def admit_attempt(
         match = (_AUTO_TITLE.fullmatch(title)
                  if run.get("event") == "workflow_run"
                  else (_INFRA_TITLE.fullmatch(title) or
-                      _ROUTE_TITLE.fullmatch(title)))
+                      _ROUTE_TITLE.fullmatch(title) or
+                      _PENDING_TITLE.fullmatch(title)))
         if match is not None and match.group(2) == sha:
             raise ValueError("NATIVE_DUPLICATE_PROPOSAL_SHA")
         prior.append(proof)

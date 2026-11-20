@@ -205,12 +205,99 @@ def intake(api: API, event: dict):
     return pr["html_url"]
 
 
+def sweep(api: API) -> list[dict]:
+    """R1: recover open issue requests whose intake event never ran.
+
+    Reuses intake() authorization and duplicate checks. Independent issues are
+    processed one at a time under lf-request-intake-global; no model calls.
+    """
+    candidates = []
+    for page in range(1, 12):
+        if page == 11:
+            raise Blocked("R1_INTAKE_HISTORY_INCOMPLETE")
+        rows = api.call("GET",
+                        f"/issues?state=open&per_page=100&page={page}")
+        if not isinstance(rows, list) or len(rows) > 100:
+            raise Blocked("R1_INTAKE_HISTORY_INVALID")
+        if any(not isinstance(item, dict) for item in rows):
+            raise Blocked("R1_INTAKE_HISTORY_INVALID")
+        candidates.extend(rows)
+        if len(rows) < 100:
+            break
+    issues = {row.get("number"): row for row in candidates
+              if not row.get("pull_request") and row.get("state") == "open"}
+    if (len(issues) != len([x for x in candidates if not x.get("pull_request")
+                            and x.get("state") == "open"])
+            or any(type(number) is not int or number < 1 for number in issues)):
+        raise Blocked("R1_INTAKE_HISTORY_INVALID")
+    outcomes = []
+    for number in sorted(issues):
+        issue = issues[number]
+        # The opened event can be lost before lf-request is applied. Only
+        # issue-form-shaped entries are candidates; intake reattests author,
+        # exact bytes, and duplicate policy before any mutation.
+        if not (str(issue.get("body") or "").startswith(FIELD + "\n")
+                and str(issue.get("title") or "").startswith("Pedido:")):
+            continue
+        try:
+            # An intentional removal of the duplicate marker is an override
+            # event. Rebuild it only from the actual latest GitHub label event.
+            action = "opened"
+            current_labels = {x.get("name") for x in issue.get("labels", [])
+                              if isinstance(x, dict)}
+            if "lf-request-duplicate" not in current_labels:
+                events = api.call("GET", f"/issues/{number}/events?per_page=100")
+                if (not isinstance(events, list) or len(events) >= 100
+                        or any(not isinstance(x, dict) for x in events)):
+                    raise Blocked("R1_INTAKE_EVENTS_INCOMPLETE")
+                markers = [x for x in events if
+                           (x.get("event") in ("labeled", "unlabeled")
+                            and isinstance(x.get("label"), dict)
+                            and x["label"].get("name") == "lf-request-duplicate")]
+                if markers and markers[-1]["event"] == "unlabeled":
+                    action = "unlabeled"
+            event = {"action": action, "issue": issue}
+            if action == "unlabeled":
+                event["label"] = {"name": "lf-request-duplicate"}
+            result = intake(api, event)
+            if isinstance(result, str) and result.startswith("https://github.com/"):
+                branch = f"lf/request/req-{number}"
+                prs = api.call("GET",
+                               f"/pulls?state=all&head=paulozterra:{branch}&per_page=100")
+                if (not isinstance(prs, list) or len(prs) != 1 or
+                        prs[0].get("head", {}).get("ref") != branch or
+                        type(prs[0].get("number")) is not int or
+                        not re.fullmatch(r"[0-9a-f]{40}",
+                                         prs[0].get("head", {}).get("sha") or "")):
+                    raise Blocked("R1_INTAKE_PR_UNRESOLVED")
+                pr = prs[0]
+                api.call("POST", "/actions/workflows/ci.yml/dispatches",
+                         {"ref": branch, "inputs": {
+                             "pr_number": str(pr["number"]),
+                             "pr_sha": pr["head"]["sha"]}})
+                outcomes.append({"issue": number, "status": "R1_INTAKE_PR_CREATED"})
+            else:
+                outcomes.append({"issue": number, "status": result})
+        except (Blocked, OSError, ValueError, KeyError, subprocess.CalledProcessError) as exc:
+            raw = str(exc)
+            code = raw if re.fullmatch(r"[A-Z][A-Z0-9_]{3,100}", raw) else (
+                "R1_INTAKE_RECONCILE_FAILED")
+            outcomes.append({"issue": number, "status": "BLOCKED", "code": code})
+    return outcomes
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--event", default=os.environ.get("GITHUB_EVENT_PATH"))
+    parser.add_argument("--sweep", action="store_true")
     args = parser.parse_args()
     if os.environ.get("GITHUB_REPOSITORY") != REPO:
         raise Blocked("PEDIDO_REPOSITORIO_INVALIDO")
+    if args.sweep:
+        if os.environ.get("GITHUB_EVENT_NAME") != "schedule":
+            raise Blocked("R1_INTAKE_SWEEP_EVENT_INVALID")
+        print(json.dumps(sweep(API(os.environ.get("GH_TOKEN", ""))), sort_keys=True))
+        return
     event = json.loads(Path(args.event).read_text(encoding="utf-8"))
     action = event.get("action")
     if action not in ("opened", "labeled", "unlabeled"):
