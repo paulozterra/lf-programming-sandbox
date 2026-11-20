@@ -28,7 +28,7 @@ TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 REQUEST = re.compile(r"req-[1-9][0-9]*\Z")
 AUTO = re.compile(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
-MANUAL = re.compile(r"lf-native-(?:req-[1-9][0-9]*-)?([a-z][a-z0-9_-]{0,31})-a[123]-([0-9a-f]{40})\\Z")
+MANUAL = re.compile(r"lf-native-(?:req-[1-9][0-9]*-)?([a-z][a-z0-9_-]{0,31})-a[123]-([0-9a-f]{40})\Z")
 ROUTE_REPLAY = re.compile(r"lf-native-route-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 INFRA = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 # T28.1: block exam material and real secret VALUES, not ordinary words.
