@@ -236,7 +236,7 @@ def sweep(api: API) -> list[dict]:
         # The opened event can be lost before lf-request is applied. Only
         # issue-form-shaped entries are candidates; intake reattests author,
         # exact bytes, and duplicate policy before any mutation.
-        if not (str(issue.get("body") or "").startswith(FIELD + "\\n")
+        if not (str(issue.get("body") or "").startswith(FIELD + "\n")
                 and str(issue.get("title") or "").startswith("Pedido:")):
             continue
         try:
