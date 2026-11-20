@@ -12,10 +12,11 @@ Este repo es el entorno de calificación de la Fase 2 (Programación). **No es p
    que lee la etapa de auditoría (solo lectura, con el secreto del repo); nunca su contenido.
    Excepción conocida (decisión del owner, 20/11/2026, T56, CHG-0242): la ruta **lee contenido** del EKB
    (código, categoría, título, patrón, causa raíz, prevención, validación, severidad, frecuencia; nunca `evidencia`)
-   solo a través de la función de consulta nombrada en `pilot/ekb/route_ekb.json`, saneado (URLs, correos, tokens,
-   claves y refs se reemplazan; filas mayormente sensibles se descartan) y únicamente para el contexto del lote del
-   worker. Escribe solo filas propias (`source_context` `LF_ROUTE*`, códigos `LF-ROUTE-*`) por la función de alta,
-   con un secreto aparte y desde un paso de confianza; un texto con datos sensibles se rechaza.
+   solo a través de la función de consulta existente nombrada en `pilot/ekb/route_ekb.json`, saneado (URLs, correos,
+   tokens, claves y refs se reemplazan; filas mayormente sensibles se descartan) y únicamente para el contexto del lote
+   del worker. Escribe solo filas propias (`source_context` `LF_ROUTE*`, códigos `LF-ROUTE-*`) por el writer gobernado
+   existente del EKB, con su operación propia, un secreto aparte y desde un paso de confianza; la evidencia es solo una
+   referencia (PR, run, CHG, lote) y un texto con datos sensibles se rechaza.
    Excepción conocida (decisión del owner, 19/11/2026, CHG-0236): las fichas `analysis/fixtures/sbx_*` y sus derivados
    (`.lf/worker-context/req186*`, `req286*`) contienen texto derivado de reglas LF B2B-AUTH. Se dejan como están; no se
    agregan más textos reales. Sus IDs `supabase://lf_ops.*` son simulados (`"simulation": true`) y pueden coincidir con

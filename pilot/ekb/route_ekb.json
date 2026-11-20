@@ -2,9 +2,11 @@
   "schema_version": "LF_ROUTE_EKB_V1",
   "read_secret": "LF_EKB_READONLY_URL",
   "write_secret": "LF_EKB_ROUTE_WRITE_URL",
-  "lookup_function": "public.fn_route_ekb_lookup",
-  "upsert_function": "public.fn_route_ekb_upsert",
+  "lookup_function": "programacion.fn_engineering_ekb_lookup_v1",
+  "writer_function": "public.lf_write_pipeline_ekb_v1",
+  "operation_code": "LF_ROUTE_SANDBOX_EKB",
   "source_context": "LF_ROUTE_SANDBOX",
+  "source_ref": "lf-programming-sandbox",
   "max_results": 12,
   "store_evidence": false
 }

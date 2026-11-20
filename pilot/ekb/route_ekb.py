@@ -6,9 +6,10 @@ route's own rows marked by ``source_context``; reading *content* is an
 explicit exception to CLAUDE.md rule 3 (see CHG-0242).
 
 Boundaries kept by this module:
-- Reads and writes go only through two database functions named in
-  ``pilot/ekb/route_ekb.json`` (lookup / upsert). The route never sends free
-  SQL and never names the table.
+- Reads and writes go only through the EKB's *existing* functions named in
+  ``pilot/ekb/route_ekb.json``: the engineering lookup and the governed
+  pipeline writer (which validates the catalogue, counts recurrences and
+  emits an auditable event). The route never sends free SQL nor names a table.
 - Only a fixed set of content columns is returned (never ``evidencia``) and
   every text is sanitised: URLs, e-mails, tokens, keys and Supabase refs are
   replaced by ``[REDACTADO]``. A row that would still look sensitive is
@@ -36,8 +37,17 @@ CODE = re.compile(r"LF-ROUTE-[A-Z0-9][A-Z0-9-]{2,78}")
 TERM = re.compile(r"[\w .:/#+-]{2,60}")
 CONTENT_FIELDS = ("codigo", "categoria", "titulo", "patron", "causa_raiz",
                   "prevencion", "validacion", "severidad", "frecuencia", "source_context")
-WRITE_TEXT = ("titulo", "patron", "causa_raiz", "prevencion", "validacion")
-SEVERITIES = ("BAJA", "MEDIA", "ALTA", "CRITICA")
+WRITE_TEXT = ("titulo", "descripcion", "patron", "causa_raiz", "prevencion", "validacion")
+# Catalogues enforced by the governed writer (kept identical here to fail early).
+SEVERITIES = ("Low", "Medium", "High", "Critical")
+ROOT_CAUSES = ("R1_NO_SABE", "R2_NO_VE", "R3_NO_PRIORIZA", "R4_NO_CUESTIONA",
+               "R5_EROSION_PROCESO", "UNCLASSIFIED_WITH_REASON")
+DETECTABILITY = ("LOUD_EARLY", "LOUD_LATE", "SILENT", "PROCESS_DEPENDENT")
+ROLES = ("Builder", "Judge", "Auditor", "DevOps", "Architect")
+PHASES = ("construction", "CI_VALIDATION", "E2E_EXECUTION", "EXECUTION", "governance")
+SEV_RANK = {"critical": 0, "critica": 0, "alta": 1, "high": 1, "media": 2, "medium": 2}
+EVIDENCE_REF = re.compile(r"(PR #\d{1,7}|run \d{6,14}|CHG-\d{4}|lote [\w.-]{1,60})(; (PR #\d{1,7}|run \d{6,14}|CHG-\d{4}|lote [\w.-]{1,60})){0,5}")
+EXECUTION_ID = re.compile(r"gha-\d{6,14}-\d{1,3}")
 MAX_TEXT = 2000
 REDACTED = "[REDACTADO]"
 SENSITIVE = [
@@ -65,7 +75,9 @@ def load_config(path: Path = CONFIG) -> dict:
           and isinstance(cfg.get("write_secret"), str) and SECRET_NAME.fullmatch(cfg["write_secret"])
           and cfg["read_secret"] != cfg["write_secret"]
           and all(isinstance(cfg.get(k), str) and IDENT.fullmatch(cfg[k])
-                  for k in ("lookup_function", "upsert_function"))
+                  for k in ("lookup_function", "writer_function"))
+          and isinstance(cfg.get("operation_code"), str) and re.fullmatch(r"[A-Z][A-Z0-9_]{2,62}", cfg["operation_code"])
+          and isinstance(cfg.get("source_ref"), str) and re.fullmatch(r"[\w.-]{3,80}", cfg["source_ref"])
           and isinstance(cfg.get("source_context"), str) and re.fullmatch(r"LF_ROUTE[A-Z_]*", cfg["source_context"])
           and isinstance(cfg.get("max_results"), int) and 1 <= cfg["max_results"] <= 50
           and cfg.get("store_evidence") is False)
@@ -136,23 +148,39 @@ def lookup(terms: list[str], *, area: str | None = None, cfg: dict | None = None
     if not clean_terms:
         raise EkbError("ROUTE_EKB_TERMS_EMPTY")
     env = dict(os.environ if env is None else env)
+    # The engineering lookup takes one phrase: ask once per term, in one
+    # read-only transaction, and merge by code (ranked by terms matched).
     script = ("begin transaction read only;\n"
-              f"select row_to_json(r) from {cfg['lookup_function']}("
-              "array(select jsonb_array_elements_text(:'terms'::jsonb)), :lim) r;\n"
+              f"select {cfg['lookup_function']}(t, null, :lim)::text "
+              "from jsonb_array_elements_text(:'terms'::jsonb) t;\n"
               "rollback;\n")
     raw = _psql(_url(env, cfg["read_secret"]), script,
                 {"terms": json.dumps(clean_terms), "lim": str(cfg["max_results"])}, psql, env)
-    entries, redactions, dropped = [], 0, 0
+    merged: dict[str, dict] = {}
     for line in raw.splitlines():
         line = line.strip()
         if not line.startswith("{"):
             continue
         try:
-            row = json.loads(line)
+            doc = json.loads(line)
         except ValueError:
             raise EkbError("ROUTE_EKB_UNAVAILABLE:SHAPE") from None
-        if not isinstance(row, dict) or not isinstance(row.get("codigo"), str):
+        rows = doc.get("rows") if isinstance(doc, dict) else None
+        if not isinstance(rows, list):
             raise EkbError("ROUTE_EKB_UNAVAILABLE:SHAPE")
+        for row in rows:
+            if not isinstance(row, dict) or not isinstance(row.get("codigo"), str):
+                raise EkbError("ROUTE_EKB_UNAVAILABLE:SHAPE")
+            if str(row.get("estado") or "").lower().startswith(("superseded", "candidate_rejected")):
+                continue
+            hit = merged.setdefault(row["codigo"], {"row": row, "hits": 0})
+            hit["hits"] += 1
+    ranked = sorted(merged.values(), key=lambda h: (
+        -h["hits"], SEV_RANK.get(str(h["row"].get("severidad") or "").lower(), 3),
+        -(h["row"].get("frecuencia") or 0), h["row"]["codigo"]))[:cfg["max_results"]]
+    entries, redactions, dropped = [], 0, 0
+    for item in ranked:
+        row = item["row"]
         entry, hits = {}, 0
         for field in CONTENT_FIELDS:            # never evidencia or other columns
             value = row.get(field)
@@ -192,7 +220,9 @@ def to_markdown(result: dict) -> str:
 def validate_entry(entry: dict, cfg: dict) -> dict:
     if not isinstance(entry, dict):
         raise EkbError("ROUTE_EKB_ENTRY_INVALID")
-    extra = set(entry) - {"codigo", "categoria", "severidad", "lote_origen", "pr", *WRITE_TEXT}
+    allowed = {"codigo", "categoria", "severidad", "lifecycle_phase", "consumer_role",
+               "root_cause_family", "detectability", "evidencia", "lote_origen", "pr", *WRITE_TEXT}
+    extra = set(entry) - allowed
     if extra:
         raise EkbError("ROUTE_EKB_ENTRY_FIELD:" + sorted(extra)[0])
     if not (isinstance(entry.get("codigo"), str) and CODE.fullmatch(entry["codigo"])):
@@ -201,31 +231,50 @@ def validate_entry(entry: dict, cfg: dict) -> dict:
         raise EkbError("ROUTE_EKB_ENTRY_SEVERITY")
     if not (isinstance(entry.get("categoria"), str) and re.fullmatch(r"[A-Z][A-Z0-9_]{2,40}", entry["categoria"])):
         raise EkbError("ROUTE_EKB_ENTRY_CATEGORY")
+    for field, catalogue in (("root_cause_family", ROOT_CAUSES), ("detectability", DETECTABILITY),
+                             ("lifecycle_phase", PHASES)):
+        if entry.get(field) not in catalogue:
+            raise EkbError("ROUTE_EKB_ENTRY_CATALOGUE:" + field)
+    roles = entry.get("consumer_role")
+    if not (isinstance(roles, list) and roles and len(set(roles)) == len(roles)
+            and all(r in ROLES for r in roles)):
+        raise EkbError("ROUTE_EKB_ENTRY_CATALOGUE:consumer_role")
     for field in WRITE_TEXT:
         value = entry.get(field)
         if not (isinstance(value, str) and 3 <= len(value.strip()) <= MAX_TEXT):
             raise EkbError("ROUTE_EKB_ENTRY_TEXT:" + field)
         if not is_clean(value):
             raise EkbError("ROUTE_EKB_ENTRY_SENSITIVE:" + field)
+    # Evidence is a *reference* only (PR, run, CHG, lote), never logs or data.
+    if not (isinstance(entry.get("evidencia"), str) and EVIDENCE_REF.fullmatch(entry["evidencia"])):
+        raise EkbError("ROUTE_EKB_ENTRY_EVIDENCE")
     for field, pattern in (("lote_origen", r"[\w.-]{1,80}"), ("pr", r"#?\d{1,7}")):
         if field in entry and not (isinstance(entry[field], str) and re.fullmatch(pattern, entry[field])):
             raise EkbError("ROUTE_EKB_ENTRY_FIELD:" + field)
     # The route can only ever write its own rows.
-    return {**entry, "source_context": cfg["source_context"]}
+    return {**entry, "source_context": cfg["source_context"], "source_ref": cfg["source_ref"]}
 
 
-def register(entry: dict, *, cfg: dict | None = None, env: dict | None = None,
+def register(entry: dict, *, execution_id: str, cfg: dict | None = None, env: dict | None = None,
              psql: str = "psql") -> dict:
     cfg = cfg or load_config()
+    if not (isinstance(execution_id, str) and EXECUTION_ID.fullmatch(execution_id)):
+        raise EkbError("ROUTE_EKB_EXECUTION_ID")
     payload = validate_entry(entry, cfg)
     env = dict(os.environ if env is None else env)
-    script = f"select {cfg['upsert_function']}(:'payload'::jsonb);\n"
+    script = f"select {cfg['writer_function']}(:'op', :'payload'::jsonb, :'exec')::text;\n"
     out = _psql(_url(env, cfg["write_secret"]), script,
-                {"payload": json.dumps(payload, ensure_ascii=False, sort_keys=True)}, psql, env)
-    status = out.strip().splitlines()[-1].strip() if out.strip() else ""
-    if status not in ("INSERTED", "UPDATED"):
+                {"op": cfg["operation_code"], "exec": execution_id,
+                 "payload": json.dumps(payload, ensure_ascii=False, sort_keys=True)}, psql, env)
+    try:
+        receipt = json.loads(out.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        raise EkbError("ROUTE_EKB_UNAVAILABLE:SHAPE") from None
+    if not (isinstance(receipt, dict) and receipt.get("classification") in ("NEW_ERROR", "RECURRENCE")
+            and receipt.get("error_code") == payload["codigo"]):
         raise EkbError("ROUTE_EKB_UNAVAILABLE:SHAPE")
-    return {"status": status, "codigo": payload["codigo"]}
+    return {"status": receipt["classification"], "codigo": payload["codigo"],
+            "frequency_after": receipt.get("frequency_after"), "event_id": receipt.get("event_id")}
 
 
 def _inside_repo(path: Path) -> bool:
@@ -248,6 +297,7 @@ def main(argv: list[str] | None = None) -> int:
                     help="secret absent → empty context instead of BLOCKED")
     rg = sub.add_parser("register")
     rg.add_argument("--entry", required=True, help="JSON file with the new route error")
+    rg.add_argument("--execution-id", required=True, help="gha-<run_id>-<attempt>")
     a = ap.parse_args(argv)
     try:
         if a.cmd == "lookup":
@@ -271,7 +321,7 @@ def main(argv: list[str] | None = None) -> int:
                 entry = json.loads(Path(a.entry).read_text("utf-8"))
             except (OSError, ValueError):
                 raise EkbError("ROUTE_EKB_ENTRY_INVALID") from None
-            print(json.dumps({"status": "EKB_REGISTERED", **register(entry)}))
+            print(json.dumps({"result": "EKB_REGISTERED", **register(entry, execution_id=a.execution_id)}))
     except EkbError as exc:
         print(json.dumps({"status": "BLOCKED", "reason": str(exc)}))
         return 1
