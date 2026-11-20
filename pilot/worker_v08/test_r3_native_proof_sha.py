@@ -59,9 +59,13 @@ def admission(tmp_path, past, *, old_proof=None, worker_conclusion="failure",
 
 
 def test_spent_worker_without_proof_must_fail_typed(tmp_path):
+    from datetime import datetime, timezone
     prior = run(800, title(sha=OTHER))
-    with pytest.raises(ValueError, match="^NATIVE_PRIOR_PROOF_MISSING$"):
-        admission(tmp_path, prior, worker_conclusion="failure")
+    prior["created_at"] = "2026-11-21T10:00:00Z"
+    cut = ("f" * 40, datetime(2026, 11, 20, tzinfo=timezone.utc))
+    with patch.object(h, "_r3_merge_cutover", return_value=cut):
+        with pytest.raises(ValueError, match="^NATIVE_PRIOR_PROOF_MISSING$"):
+            admission(tmp_path, prior, worker_conclusion="failure")
 
 
 def test_pre_attempt_rejection_with_skipped_worker_does_not_count(tmp_path):
@@ -99,11 +103,15 @@ def test_trusted_no_attempt_marker_is_accepted_without_spending(tmp_path):
 
 
 def test_mismatched_marker_does_not_erase_attempt(tmp_path):
+    from datetime import datetime, timezone
     prior = run(800, title(sha=OTHER))
+    prior["created_at"] = "2026-11-21T10:00:00Z"
     marker = {"schema_version": "LF_NATIVE_NO_ATTEMPT_V1", "task_id": TASK,
               "run_id": 799, "attempt": 1, "reason": "EXAMINER_CONTROL"}
-    with pytest.raises(ValueError, match="^NATIVE_PRIOR_PROOF_MISSING$"):
-        admission(tmp_path, prior, marker=marker)
+    cut = ("f" * 40, datetime(2026, 11, 20, tzinfo=timezone.utc))
+    with patch.object(h, "_r3_merge_cutover", return_value=cut):
+        with pytest.raises(ValueError, match="^NATIVE_PRIOR_PROOF_MISSING$"):
+            admission(tmp_path, prior, marker=marker)
 
 
 def test_new_manual_title_is_sha_bound_and_legacy_only_history():
