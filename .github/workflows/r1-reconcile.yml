@@ -69,7 +69,7 @@ jobs:
               if not isinstance(title, str):
                   raise ValueError("R1_CHAIN_HISTORY_INVALID")
               # A legacy unmarked manual run may be a sweep; fail closed.
-              if not (title.startswith("CP3.6 sweep ") or re.fullmatch(r"CP3\\.6 [0-9]+", title)):
+              if not (title.startswith("CP3.6 sweep ") or re.fullmatch(r"CP3\.6 [0-9]+", title)):
                   continue
               stamp = row.get("updated_at")
               if not isinstance(stamp, str):
