@@ -9,13 +9,15 @@ REPO = "paulozterra/lf-programming-sandbox"
 
 
 def test_intake_sweep_rebuilds_missing_request_and_dispatches_exact_ci(monkeypatch):
-    issue = {"number": 901, "state": "open", "labels": [{"name": "lf-request"}]}
+    issue = {"number": 901, "state": "open", "title": "Pedido: prueba", "body": "### Pedido\n\nPrueba", "labels": [{"name": "lf-request"}]}
     state = {"created": False, "dispatched": []}
 
     class API:
         def call(self, method, path, payload=None):
             if method == "GET" and path.startswith("/issues?"):
                 return [issue]
+            if method == "GET" and path == "/issues/901/events?per_page=100":
+                return []
             if method == "GET" and path.startswith("/pulls?"):
                 assert state["created"]
                 return [{"number": 321, "head": {
