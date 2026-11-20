@@ -22,7 +22,11 @@ def isolate_retries_in_historical_sweep_tests():
          patch.object(chain_lots, "retry_native_infra", return_value=[]), \
          patch.object(chain_lots, "recover_native_feedback", return_value=[]), \
          patch.object(chain_lots, "recover_route_defects", return_value=[]), \
-          patch.object(chain_lots, "replay_native_integration", return_value=[]):
+          patch.object(chain_lots, "replay_native_integration", return_value=[]), \
+         patch.multiple(chain_lots,
+                        recover_pending_worker=lambda *a, **kw: [],
+                        recover_unstarted_integration=lambda *a, **kw: [],
+                        sync_implemented_registry=lambda *a, **kw: {"status": "REGISTRY_CURRENT"}):
         yield
 
 
