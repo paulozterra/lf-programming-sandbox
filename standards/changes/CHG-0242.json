@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0242",
+  "title": "T56 fase 1: la ruta consulta el EKB antes de implementar y registra sus errores (misma tabla, source_context LF_ROUTE*)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (20/11): opción B — misma tabla del EKB con excepción para leer contenido."
+  },
+  "reason": "El worker repite errores ya conocidos porque no ve el EKB. Se agrega pilot/ekb/route_ekb.py: consulta solo por una función de base de datos (nunca SQL libre ni nombre de tabla), devuelve columnas fijas sin evidencia, sanea URLs/correos/tokens/claves/refs y descarta filas mayormente sensibles, escribe el contenido solo en un archivo fuera del checkout y en stdout solo códigos y conteos. El alta usa otro secreto, solo escribe filas LF-ROUTE-* con source_context forzado y rechaza textos sensibles. CLAUDE.md regla 3 recibe la excepción. Fase 2 (siguiente PR): inyectar ekb.md en el paquete del lote y registrar fallos de la ruta desde el paso de confianza.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "CLAUDE.md",
+      "pilot/ekb/__init__.py",
+      "pilot/ekb/route_ekb.py",
+      "pilot/ekb/route_ekb.json",
+      "pilot/ekb/test_t56_route_ekb.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0242.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {}
+}

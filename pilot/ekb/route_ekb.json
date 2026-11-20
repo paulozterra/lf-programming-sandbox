@@ -1,0 +1,10 @@
+{
+  "schema_version": "LF_ROUTE_EKB_V1",
+  "read_secret": "LF_EKB_READONLY_URL",
+  "write_secret": "LF_EKB_ROUTE_WRITE_URL",
+  "lookup_function": "public.fn_route_ekb_lookup",
+  "upsert_function": "public.fn_route_ekb_upsert",
+  "source_context": "LF_ROUTE_SANDBOX",
+  "max_results": 12,
+  "store_evidence": false
+}
