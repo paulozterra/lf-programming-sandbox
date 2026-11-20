@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0242",
   "title": "T56 fase 1: la ruta consulta el EKB antes de implementar y registra sus errores (misma tabla, source_context LF_ROUTE*)",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo (20/11): opción B — misma tabla del EKB con excepción para leer contenido."
