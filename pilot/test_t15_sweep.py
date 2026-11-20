@@ -43,6 +43,10 @@ class SweepTests(unittest.TestCase):
         integration = patch.object(chain_lots, "replay_native_integration", return_value=[])
         integration.start()
         self.addCleanup(integration.stop)
+        ledger = patch.object(chain_lots, "sync_implemented_registry",
+                              return_value={"status": "REGISTRY_CURRENT"})
+        ledger.start()
+        self.addCleanup(ledger.stop)
         r1_worker = patch.object(chain_lots, "recover_pending_worker", return_value=[])
         r1_worker.start()
         self.addCleanup(r1_worker.stop)
