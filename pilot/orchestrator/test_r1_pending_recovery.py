@@ -351,3 +351,49 @@ def test_b3_event_and_sweep_compete_on_same_lot_single_draft(tmp_path):
             assert not job.is_alive()
     assert created["count"] == 1
     assert sorted(outcomes) == ["ALREADY_PREPARED", "DRAFT_PREPARED"]
+
+
+def test_b3_whole_cp36_run_event_vs_sweep_reconciles_same_transition(monkeypatch):
+    """Integration harness: lost Train dispatch replaced by schedule sweep."""
+    from pilot.orchestrator import chain_lots as route
+    request = "req-901"
+    lots = {"lots": [{"id": "L1", "area": "CONTRATO", "depends_on": []}]}
+    bindings = {"L1": {"task_name": "fixture1", "lot_id": "L1"}}
+    data = [(request, lots, {"stage": "LOTS_PLANNED"}, bindings)]
+    actions = []
+    monkeypatch.setattr(route, "check_main", lambda: HEAD)
+    monkeypatch.setattr(route, "event_kind", lambda *a: "TRAIN")
+    monkeypatch.setattr(route, "main_ci_decision", lambda *a: "GREEN")
+    monkeypatch.setattr(route, "plans", lambda: data)
+    monkeypatch.setattr(route, "request_state", lambda *a, **kw: "OPEN")
+    monkeypatch.setattr(route, "route_request_metadata", lambda *a: True)
+    monkeypatch.setattr(route, "retire_conflicted_generated", lambda *a, **kw: [])
+    monkeypatch.setattr(route, "sync_implemented_registry",
+                        lambda *a: {"status": "REGISTRY_CURRENT"})
+    monkeypatch.setattr(route, "retry_failed_bot_prs", lambda *a, **kw: [])
+    monkeypatch.setattr(route, "retry_native_infra", lambda *a, **kw: [])
+    monkeypatch.setattr(route, "recover_pending_worker", lambda *a, **kw: [])
+    monkeypatch.setattr(route, "recover_native_feedback", lambda *a, **kw: [])
+    monkeypatch.setattr(route, "recover_route_defects", lambda *a, **kw: [])
+    monkeypatch.setattr(route, "replay_native_integration", lambda *a, **kw: [])
+    monkeypatch.setattr(route, "recover_unstarted_integration",
+                        lambda *a, **kw: [])
+    monkeypatch.setattr(route, "publish_missing_registered_pack", lambda *a: None)
+    monkeypatch.setattr(route, "publish_legacy_submission_contract",
+                        lambda *a: None)
+    monkeypatch.setattr(route, "first_parent_merges", lambda *a: [])
+    monkeypatch.setattr(route, "verify_new_plan", lambda *a: None)
+    monkeypatch.setattr(route, "run", lambda *a, **kw: "[]")
+
+    def process_plan(*a):
+        actions.append((a[0], a[5], a[6]))
+        return [{"request": request, "status": "DRAFT_PREPARED"}]
+    monkeypatch.setattr(route, "process_one_plan", process_plan)
+
+    by_event = route.process(event_run_id=123, new_plan_request=request,
+                             new_plan_pr=321, require_ci=True)
+    by_sweep = route.process(sweep=True, base_sha=HEAD, require_ci=True)
+    assert by_event == by_sweep == [
+        {"request": request, "status": "DRAFT_PREPARED"}]
+    assert actions == [(request, "TRAIN", False),
+                       (request, "TRAIN", True)]
