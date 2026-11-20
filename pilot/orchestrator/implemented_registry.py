@@ -15,9 +15,13 @@ from pilot.config.project_config import storage_path, storage
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
+import urllib.request
+
+from pilot.worker_v08.github_network_retry import transport_read
 
 SHA40 = re.compile(r"[a-f0-9]{40}\Z")
 MERGE = re.compile(r"Merge PR #([1-9][0-9]*) via sandbox-train\Z")
@@ -225,8 +229,29 @@ def main() -> int:
     p.add_argument("--main-sha", required=True)
     p.add_argument("--write", action="store_true")
     args = p.parse_args()
+    # Preserve the reader error across reconstruct's REGISTRY_PR_UNAVAILABLE
+    # conversion without exposing API response bodies or credentials.
+    reader_failure = None
+
     def reader(number):
-        return json.loads(command(ROOT, "gh", "api", f"repos/{REPO}/pulls/{number}"))
+        nonlocal reader_failure
+        token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+        try:
+            if not token:
+                raise RegistryBlocked("REGISTRY_GITHUB_TOKEN_MISSING")
+            request = urllib.request.Request(
+                f"https://api.github.com/repos/{REPO}/pulls/{number}",
+                headers={"Authorization": f"Bearer {token}",
+                         "Accept": "application/vnd.github+json",
+                         "X-GitHub-Api-Version": "2022-11-28"})
+            def read():
+                with urllib.request.urlopen(request, timeout=25) as response:
+                    return json.loads(response.read(5_000_001))
+            return transport_read(read, "REGISTRY_PR")
+        except Exception as exc:
+            reader_failure = (number, exc)
+            raise
+
     try:
         result = reconstruct(ROOT, args.main_sha, reader)
         if args.write:
@@ -235,8 +260,17 @@ def main() -> int:
                           "derivable": sum(x["status"] == "ATTESTED"
                                            for x in result["entries"])}))
         return 0
-    except (RegistryBlocked, OSError, ValueError):
-        print("REGISTRY_BUILD_BLOCKED")
+    except (RegistryBlocked, OSError, ValueError) as exc:
+        if reader_failure is not None:
+            number, reason = reader_failure
+            code = (str(reason) if isinstance(reason, RegistryBlocked)
+                    else str(reason) if isinstance(reason, ValueError)
+                    and str(reason).startswith("GITHUB_")
+                    else type(reason).__name__)
+            print(f"REGISTRY_BUILD_BLOCKED:{code}:PR#{number}")
+        else:
+            code = str(exc) if isinstance(exc, RegistryBlocked) else type(exc).__name__
+            print(f"REGISTRY_BUILD_BLOCKED:{code}")
         return 2
 
 
