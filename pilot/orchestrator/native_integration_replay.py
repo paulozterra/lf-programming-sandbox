@@ -28,7 +28,7 @@ WORKER_TITLE = re.compile(
     r"(?:lf-native-auto-lf/native-proposal/|lf-native-route-retry-|"
     r"lf-native-infra-retry-)([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 MANUAL_WORKER_TITLE = re.compile(
-    r"lf-native-(?:req-[1-9][0-9]*-)?([a-z][a-z0-9_-]{0,31})-a[123]-([0-9a-f]{40})\Z")
+    r"lf-native-([a-z][a-z0-9_-]{0,31})-a[123]-([0-9a-f]{40})\Z")
 
 
 def _listed(api, workflow: str) -> list[dict]:
