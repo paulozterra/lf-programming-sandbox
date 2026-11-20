@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0243",
   "title": "T56: probe sin escritura de los secretos del EKB de la ruta",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo (20/11): secreto LF_EKB_ROUTE_WRITE_URL creado; verificarlo."
