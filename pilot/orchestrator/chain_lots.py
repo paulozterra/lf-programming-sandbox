@@ -1629,7 +1629,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                          "implemented-registry")}))),
             ("R1_WORKER_PENDING",
              lambda: recover_pending_worker(
-                 head, run, api, REPO, ROOT, allowed_task=task_live)),
+                 head, run, api, REPO, ROOT, allowed_task=task_live)
+             if owners else []),
             ("T20_NATIVE_INFRA",
              lambda: retry_native_infra(
                  head, run, api, REPO, ROOT, allowed_task=task_live)),
