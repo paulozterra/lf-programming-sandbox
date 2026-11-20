@@ -71,6 +71,27 @@ def test_pre_attempt_rejection_with_skipped_worker_does_not_count(tmp_path):
     assert json.loads((tmp_path / "out.json").read_text())["prior_run_ids"] == []
 
 
+
+def test_cancelled_pending_run_without_any_job_is_not_an_attempt(tmp_path):
+    prior = run(800, title(sha=OTHER))
+    prior["conclusion"] = "cancelled"
+    current = run(900, title(), completed=False)
+    rows = [current, prior]
+    def api(_repo, _token, route):
+        if "/runs?per_page=" in route:
+            return {"total_count": 2, "workflow_runs": rows}
+        if "/jobs?" in route:
+            return {"total_count": 0, "jobs": []}
+        if "/artifacts?" in route:
+            return {"total_count": 0, "artifacts": []}
+        raise AssertionError(route)
+    with patch.object(h, "_api", side_effect=api):
+        assert h.admit_attempt(repository=REPO, token="offline", task=TASK,
+                               attempt=1, run_id=900, run_attempt=1, sha=SHA,
+                               output=tmp_path / "out.json") == 1
+
+
+
 def test_trusted_no_attempt_marker_is_accepted_without_spending(tmp_path):
     prior = run(800, title(sha=OTHER))
     marker = {"schema_version": "LF_NATIVE_NO_ATTEMPT_V1", "task_id": TASK,
