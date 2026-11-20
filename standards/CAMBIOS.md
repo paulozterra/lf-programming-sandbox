@@ -233,4 +233,4 @@
 | CHG-0239 | ADDITIVE | T54 fase 3b: planificación y admisión de lotes leen componentes, áreas y protección desde la configuración del proyecto |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/361 |
 | CHG-0240 | ADDITIVE | T54 fase 3c: el lado del Worker lee componentes desde la configuración del proyecto |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/362 |
 | CHG-0241 | EDITORIAL | A11: regla 3 del CLAUDE.md — contenido de LF derivado sí, real no (permitido / prohibido / ante la duda) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/363 |
-| CHG-0242 | EDITORIAL | T56 fase 1: la ruta consulta el EKB antes de implementar y registra sus errores (misma tabla, source_context LF_ROUTE*) |  | paulozterra |  |
+| CHG-0242 | EDITORIAL | T56 fase 1: la ruta consulta el EKB antes de implementar y registra sus errores (misma tabla, source_context LF_ROUTE*) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/364 |
