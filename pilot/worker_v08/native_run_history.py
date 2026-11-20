@@ -38,11 +38,10 @@ _WORKFLOW = "worker-native.yml"
 _ARTIFACT = "native-attempt-proof"
 _NO_ATTEMPT_ARTIFACT = "native-no-attempt"
 _WORKER_STEP = "Execute original run_verified_worker using native proposal (single attempt)"
-# CHG-0248: the immutable cutover is the *merge commit of PR #370*,
-# resolved from GitHub's trusted merge metadata. The first Worker run
-# created after merged_at is treated as post-cutover, even if a runner was
-# queued before it obtained a slot.
-_CUTOVER_PR = 370
+# CHG-0249: immutable PR #370 merge metadata is pinned in a trusted,
+# versioned file; admission never fetches GET /pulls/370.
+# A Worker run created at/after merged_at remains subject to strict proof.
+_R3_CUTOVER_FILE = Path(__file__).with_name("r3_cutover.json")
 _HISTORIC_EXCEPTIONS = Path(__file__).with_name("r3_historical_proof_exceptions.json")
 
 def _api(base: str, token: str, route: str) -> dict:
@@ -123,12 +122,19 @@ def _artifact_json(base: str, token: str, run_id: int, *,
 
 
 def _r3_merge_cutover(base: str, token: str) -> tuple[str, datetime]:
-    """The immutable PR #370 merge SHA is the historical proof boundary."""
-    obj = _api(base, token, f"pulls/{_CUTOVER_PR}")
-    sha = obj.get("merge_commit_sha")
-    stamp = obj.get("merged_at")
-    if (obj.get("merged") is not True or not isinstance(sha, str)
-            or _SHA40.fullmatch(sha) is None or not isinstance(stamp, str)):
+    """Read the fixed PR #370 historical boundary without any GitHub API call."""
+    try:
+        document = json.loads(_R3_CUTOVER_FILE.read_text("utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError("NATIVE_PROOF_CUTOFF_UNRESOLVED") from exc
+    if (not isinstance(document, dict)
+            or set(document) != {"schema_version", "pr_number", "merge_commit_sha", "merged_at"}
+            or document["schema_version"] != "LF_R3_CUTOVER_V1"
+            or type(document["pr_number"]) is not int or document["pr_number"] != 370):
+        raise ValueError("NATIVE_PROOF_CUTOFF_UNRESOLVED")
+    sha, stamp = document["merge_commit_sha"], document["merged_at"]
+    if (not isinstance(sha, str) or _SHA40.fullmatch(sha) is None
+            or not isinstance(stamp, str)):
         raise ValueError("NATIVE_PROOF_CUTOFF_UNRESOLVED")
     try:
         parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))

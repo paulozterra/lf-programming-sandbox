@@ -181,17 +181,42 @@ def test_native_job_skipped_without_steps_is_definitely_not_an_attempt():
         assert h._no_attempt_attested(REPO, "offline", old, TASK)
 
 
-def test_pr370_merge_sha_is_immutable_cutover_reference():
+def test_pr370_merge_sha_is_immutable_cutover_reference(tmp_path):
     from datetime import datetime, timezone
-    data = {"merged": True, "merge_commit_sha": "f" * 40,
-            "merged_at": "2026-11-21T10:00:00Z"}
-    with patch.object(h, "_api", return_value=data):
-        sha, cutover = h._r3_merge_cutover(REPO, "offline")
-    assert sha == "f" * 40
-    assert cutover == datetime(2026, 11, 21, 10, tzinfo=timezone.utc)
-    with patch.object(h, "_api", return_value={**data, "merged": False}):
-        with pytest.raises(ValueError, match="NATIVE_PROOF_CUTOFF_UNRESOLVED"):
+    pinned = {
+        "schema_version": "LF_R3_CUTOVER_V1",
+        "pr_number": 370,
+        "merge_commit_sha": "549d50b1ec6eb21fb520aad643094fb133ca66bd",
+        "merged_at": "2026-11-20T22:18:45Z",
+    }
+    assert json.loads(h._R3_CUTOVER_FILE.read_text("utf-8")) == pinned
+    with patch.object(h, "_api", side_effect=AssertionError("admission must not fetch PR #370")):
+        assert h._r3_merge_cutover(REPO, "offline") == (
+            pinned["merge_commit_sha"],
+            datetime(2026, 11, 20, 22, 18, 45, tzinfo=timezone.utc),
+        )
+    with patch.object(h, "_R3_CUTOVER_FILE", tmp_path / "missing.json"):
+        with pytest.raises(ValueError, match="^NATIVE_PROOF_CUTOFF_UNRESOLVED$"):
             h._r3_merge_cutover(REPO, "offline")
+    (tmp_path / "malformed.json").write_text(json.dumps({**pinned, "merged_at": "invalid"}))
+    with patch.object(h, "_R3_CUTOVER_FILE", tmp_path / "malformed.json"):
+        with pytest.raises(ValueError, match="^NATIVE_PROOF_CUTOFF_UNRESOLVED$"):
+            h._r3_merge_cutover(REPO, "offline")
+
+
+def test_r3_cutover_matches_live_github_api_when_requested():
+    """Explicit CI integration check; never runs during ordinary offline tests."""
+    import os
+    if os.environ.get("R3_VERIFY_LIVE_MERGE_API") != "1":
+        pytest.skip("live PR API comparison is opt-in")
+    token = os.environ.get("GITHUB_TOKEN")
+    assert token, "R3_LIVE_CUTOVER_API_TOKEN_MISSING"
+    live = h._api(REPO, token, "pulls/370")
+    pinned = json.loads(h._R3_CUTOVER_FILE.read_text("utf-8"))
+    assert live["merged"] is True
+    assert live["number"] == pinned["pr_number"]
+    assert live["merge_commit_sha"] == pinned["merge_commit_sha"]
+    assert live["merged_at"] == pinned["merged_at"]
 
 
 def test_old_missing_proof_worker_failure_is_legacy_but_new_fails(tmp_path):
