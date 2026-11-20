@@ -238,4 +238,4 @@
 | CHG-0244 | ADDITIVE | T56 fase 2: ekb.md en el paquete de cada lote y registro de fallos de la ruta en el EKB |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/366 |
 | CHG-0245 | ADDITIVE | R1: reconciliar pendientes de GitHub Actions cancelados antes de iniciar |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/367 |
 | CHG-0246 | ADDITIVE | R1/T20/T23: aislar propiedad de tarea huérfana o ambigua en cada barrido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/368 |
-| CHG-0247 | ADDITIVE | R1: disparadores por evento y guarda antidesborde de sweeps CP3.6 (cron de respaldo) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/369 |
+| CHG-0247 | ADDITIVE | R1: disparadores de reconciliación por evento y límite de barridos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/369 |
