@@ -148,10 +148,16 @@ def _recognized_run(run: dict, task: str, *, attempt: int | None = None,
     if event == "workflow_dispatch":
         match = _MANUAL_TITLE.fullmatch(title)
         if match is not None:
-            return (match.group(2) == task
-                    and (attempt is None or int(match.group(3)) == attempt)
-                    and (match.group(4) is not None or allow_legacy_manual)
-                    and (sha is None or match.group(4) is None or match.group(4) == sha))
+            # Resolve a request_slug against the *registered* task identity,
+            # not by greedily splitting a title that itself starts req-N.
+            bound = re.fullmatch(
+                r"lf-native-(?:req-[1-9][0-9]*-)?" + re.escape(task) +
+                r"-a([1-3])(?:-([0-9a-f]{40}))?\Z", title)
+            return (bound is not None
+                    and (attempt is None or int(bound.group(1)) == attempt)
+                    and (bound.group(2) is not None or allow_legacy_manual)
+                    and (sha is None or bound.group(2) is None
+                         or bound.group(2) == sha))
         recovery = (_INFRA_TITLE.fullmatch(title) or _ROUTE_TITLE.fullmatch(title)
                     or _PENDING_TITLE.fullmatch(title))
         return (recovery is not None and recovery.group(1) == task
