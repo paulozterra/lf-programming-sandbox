@@ -240,4 +240,4 @@
 | CHG-0246 | ADDITIVE | R1/T20/T23: aislar propiedad de tarea huérfana o ambigua en cada barrido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/368 |
 | CHG-0247 | ADDITIVE | R1: disparadores de reconciliación por evento y límite de barridos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/369 |
 | CHG-0248 | ADDITIVE | R3-b/R3-c: prueba de intento obligatoria y títulos manuales vinculados a SHA |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/370 |
-| CHG-0249 | EDITORIAL | R3: retirar dry-run temporal y fijar corte histórico de PR #370 en archivo versionado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/371 |
+| CHG-0249 | ADDITIVE | R3: retirar dry-run temporal y fijar corte histórico de PR #370 en archivo versionado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/371 |
