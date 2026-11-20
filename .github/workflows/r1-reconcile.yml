@@ -1,6 +1,16 @@
 name: R1 state-derived route reconciliation
 run-name: R1 reconcile main
 on:
+  # GitHub schedule delivery is sparse (~4-6h observed), so events are primary.
+  workflow_run:
+    workflows:
+      - sandbox-train
+      - "LF Worker native (trusted workflow_run or manual, no API)"
+      - "CP3.5 native verified patch to draft PR"
+      - "T7 main request auto-admission (trusted, no model)"
+      - "T9 issue request intake"
+      - "CP3.6 chain after Train merge or spent native failure"
+    types: [completed]
   schedule:
     - cron: '3,13,23,33,43,53 * * * *'
   workflow_dispatch:
@@ -16,15 +26,70 @@ concurrency:
 
 jobs:
   wake:
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name != 'workflow_run' ||
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Dispatch authenticated current-main CP3.6 state sweep
+      - name: Inspect CP3.6 queue and dispatch current-main sweep only when stale
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # A completed event may already be driving a chain. Do not put a
+          # second sweep in CP3.6's single pending concurrency slot.
+          queued="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/chain-lots.yml/runs?status=queued&per_page=1" --jq '.total_count')"
+          active="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/chain-lots.yml/runs?status=in_progress&per_page=1" --jq '.total_count')"
+          [[ "$queued" =~ ^[0-9]+$ && "$active" =~ ^[0-9]+$ ]]
+          if (( queued > 0 || active > 0 )); then
+            echo "R1_SWEEP_RECENT: chain queued=$queued in_progress=$active"
+            exit 0
+          fi
+          # The API omits workflow_dispatch inputs. New sweeps have an
+          # explicit run-name marker; legacy unmarked manual runs are treated
+          # conservatively as sweeps during the 5-minute transition window.
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/chain-lots.yml/runs?status=completed&event=workflow_dispatch&per_page=100" > "$RUNNER_TEMP/r1-chain-completed.json"
+          decision="$(python3 - "$RUNNER_TEMP/r1-chain-completed.json" <<'PY'
+          import datetime
+          import json
+          import re
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              response = json.load(handle)
+          rows = response.get("workflow_runs")
+          if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
+              raise ValueError("R1_CHAIN_HISTORY_INVALID")
+          now = datetime.datetime.now(datetime.timezone.utc)
+          for row in rows:
+              if row.get("status") != "completed" or row.get("event") != "workflow_dispatch":
+                  continue
+              title = row.get("display_title")
+              if not isinstance(title, str):
+                  raise ValueError("R1_CHAIN_HISTORY_INVALID")
+              # A legacy unmarked manual run may be a sweep; fail closed.
+              if not (title.startswith("CP3.6 sweep ") or re.fullmatch(r"CP3\.6 [0-9]+", title)):
+                  continue
+              stamp = row.get("updated_at")
+              if not isinstance(stamp, str):
+                  raise ValueError("R1_CHAIN_HISTORY_INVALID")
+              completed = datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+              if completed.tzinfo is None:
+                  raise ValueError("R1_CHAIN_HISTORY_INVALID")
+              if (now - completed).total_seconds() < 300:
+                  print("R1_SWEEP_RECENT")
+                  break
+          else:
+              print("R1_SWEEP_DISPATCH")
+          PY
+          )"
+          if [[ "$decision" == "R1_SWEEP_RECENT" ]]; then
+            echo "R1_SWEEP_RECENT: completed manual sweep within 5 minutes"
+            exit 0
+          fi
+          [[ "$decision" == "R1_SWEEP_DISPATCH" ]]
           base_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
           [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]]
           gh workflow run chain-lots.yml --repo "$GITHUB_REPOSITORY" --ref main \
