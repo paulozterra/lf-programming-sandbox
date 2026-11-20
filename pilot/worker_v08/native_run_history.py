@@ -1,7 +1,10 @@
 """GitHub-run-backed attempt admission; history is never read from a proposal branch.
 
 Only runs with a unique, valid Actions-produced proof consume attempts.
-Runs stopped before a proof exists are ignored; tampered or duplicated proofs block.
+For Workers created after PR #370's merge, absent or expired evidence is
+fail-closed unless the job attests NO_ATTEMPT or is provably unstarted.
+Pre-merge historical runs preserve old missing/expired behavior unless denied
+in the explicit governed exception list.
 """
 from __future__ import annotations
 # Resolve the trusted repository package for direct script execution.
@@ -11,6 +14,7 @@ _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
 
 import io
+from datetime import datetime, timezone
 import json
 import os
 import re
@@ -24,7 +28,7 @@ from native_attempt_guard import validate_attempt_history
 from github_network_retry import transport_read
 
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
-_MANUAL_TITLE = re.compile(r"lf-native-([a-z][a-z0-9_-]{0,31})-a([1-3])\Z")
+_MANUAL_TITLE = re.compile(r"lf-native-(?:(req-[1-9][0-9]*)-)?([a-z][a-z0-9_-]{0,31})-a([1-3])(?:-([0-9a-f]{40}))?\Z")
 _INFRA_TITLE = re.compile(r"lf-native-infra-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _ROUTE_TITLE = re.compile(r"lf-native-route-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 _PENDING_TITLE = re.compile(r"lf-native-pending-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
@@ -32,6 +36,14 @@ _AUTO_TITLE = re.compile(r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,
 _TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 _WORKFLOW = "worker-native.yml"
 _ARTIFACT = "native-attempt-proof"
+_NO_ATTEMPT_ARTIFACT = "native-no-attempt"
+_WORKER_STEP = "Execute original run_verified_worker using native proposal (single attempt)"
+# CHG-0248: the immutable cutover is the *merge commit of PR #370*,
+# resolved from GitHub's trusted merge metadata. The first Worker run
+# created after merged_at is treated as post-cutover, even if a runner was
+# queued before it obtained a slot.
+_CUTOVER_PR = 370
+_HISTORIC_EXCEPTIONS = Path(__file__).with_name("r3_historical_proof_exceptions.json")
 
 def _api(base: str, token: str, route: str) -> dict:
     url = f"https://api.github.com/repos/{base}/{route}"
@@ -46,17 +58,19 @@ def _api(base: str, token: str, route: str) -> dict:
     return transport_read(read, "ARTIFACT_API")
 
 
-def _artifact_json(base: str, token: str, run_id: int) -> dict | None:
+def _artifact_json(base: str, token: str, run_id: int, *,
+                   artifact_name: str = _ARTIFACT) -> dict | None:
     obj = _api(base, token, f"actions/runs/{run_id}/artifacts?per_page=100")
     items = obj.get("artifacts")
     if not isinstance(items, list) or obj.get("total_count", len(items)) > 100:
         raise ValueError("NATIVE_PRIOR_ARTIFACT_LIST_INCOMPLETE")
-    matches = [a for a in items if a.get("name") == _ARTIFACT]
+    matches = [a for a in items if a.get("name") == artifact_name]
     if not matches:
-        return None  # Preflight/checkout failure is not an attempt.
-    if (len(matches) != 1 or matches[0].get("expired") or
-        matches[0].get("workflow_run", {}).get("id", run_id) != run_id):
+        return None  # Caller must attest absence; no implicit forgiveness.
+    if len(matches) != 1 or matches[0].get("workflow_run", {}).get("id", run_id) != run_id:
         raise ValueError("NATIVE_PRIOR_PROOF_DUPLICATE_OR_EXPIRED")
+    if matches[0].get("expired"):
+        raise ValueError("NATIVE_PRIOR_PROOF_MISSING")
     # GitHub artifact API redirects to signed storage. Strip GitHub credentials
     # before requesting the signed URL (Azure rejects forwarded Authorization).
     class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -98,17 +112,111 @@ def _artifact_json(base: str, token: str, run_id: int) -> dict | None:
     archive = transport_read(read_archive, "ARTIFACT_DOWNLOAD")
     if len(archive) > 1_000_000:
         raise ValueError("NATIVE_PRIOR_PROOF_ARCHIVE_SIZE_INVALID")
+    filename = "attempt-proof.json" if artifact_name == _ARTIFACT else "no-attempt.json"
     with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
-        if zipped.namelist() != ["attempt-proof.json"]:
+        if zipped.namelist() != [filename]:
             raise ValueError("NATIVE_PRIOR_PROOF_ARCHIVE_INVALID")
-        raw = zipped.read("attempt-proof.json")
+        raw = zipped.read(filename)
         if len(raw) > 4096:
             raise ValueError("NATIVE_PRIOR_PROOF_SIZE_INVALID")
     return json.loads(raw)
 
 
+def _r3_merge_cutover(base: str, token: str) -> tuple[str, datetime]:
+    """The immutable PR #370 merge SHA is the historical proof boundary."""
+    obj = _api(base, token, f"pulls/{_CUTOVER_PR}")
+    sha = obj.get("merge_commit_sha")
+    stamp = obj.get("merged_at")
+    if (obj.get("merged") is not True or not isinstance(sha, str)
+            or _SHA40.fullmatch(sha) is None or not isinstance(stamp, str)):
+        raise ValueError("NATIVE_PROOF_CUTOFF_UNRESOLVED")
+    try:
+        parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("NATIVE_PROOF_CUTOFF_UNRESOLVED") from exc
+    if parsed.tzinfo is None:
+        raise ValueError("NATIVE_PROOF_CUTOFF_UNRESOLVED")
+    return sha, parsed.astimezone(timezone.utc)
+
+
+def _r3_historical_exceptions() -> frozenset[int]:
+    """Explicit, reviewed exceptions to pre-cutover forgiveness."""
+    try:
+        document = json.loads(_HISTORIC_EXCEPTIONS.read_text("utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError("NATIVE_PROOF_EXCEPTIONS_INVALID") from exc
+    entries = document.get("blocked_run_ids") if isinstance(document, dict) else None
+    if (not isinstance(document, dict)
+            or set(document) != {"schema_version", "blocked_run_ids"}
+            or document["schema_version"] != "LF_R3_HISTORIC_PROOF_EXCEPTIONS_V1"
+            or not isinstance(entries, list)
+            or any(type(item) is not int or item <= 0 for item in entries)
+            or len(entries) != len(set(entries))):
+        raise ValueError("NATIVE_PROOF_EXCEPTIONS_INVALID")
+    return frozenset(entries)
+
+
+def _r3_pre_cutover(base: str, token: str, run: dict,
+                    merge: tuple[str, datetime] | None = None) -> bool:
+    """Only runs created strictly before CHG-0248's merged_at are historical.
+
+    When the PR is unmerged or run metadata is missing, fail closed. It
+    is never permissible to infer 'historical' from a missing proof alone.
+    """
+    if type(run.get("id")) is not int or run["id"] <= 0:
+        raise ValueError("NATIVE_PRIOR_RUN_DATE_INVALID")
+    if run["id"] in _r3_historical_exceptions():
+        return False
+    _, merged_at = merge if merge is not None else _r3_merge_cutover(base, token)
+    stamp = run.get("created_at")
+    if not isinstance(stamp, str):
+        raise ValueError("NATIVE_PRIOR_RUN_DATE_INVALID")
+    try:
+        created = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("NATIVE_PRIOR_RUN_DATE_INVALID") from exc
+    if created.tzinfo is None:
+        raise ValueError("NATIVE_PRIOR_RUN_DATE_INVALID")
+    return created.astimezone(timezone.utc) < merged_at
+
+
+def _no_attempt_attested(base: str, token: str, run: dict, task: str) -> bool:
+    """Only the same Actions job can justify an absent attempt proof."""
+    run_id = run["id"]
+    marker = _artifact_json(base, token, run_id, artifact_name=_NO_ATTEMPT_ARTIFACT)
+    if marker is not None:
+        return (isinstance(marker, dict)
+                and set(marker) == {"schema_version", "task_id", "run_id", "attempt", "reason"}
+                and marker["schema_version"] == "LF_NATIVE_NO_ATTEMPT_V1"
+                and marker["task_id"] == task and marker["run_id"] == run_id
+                and type(marker["attempt"]) is int and 1 <= marker["attempt"] <= 3
+                and marker["reason"] in ("PRE_ATTEMPT", "EXAMINER_CONTROL"))
+    jobs = _api(base, token, f"actions/runs/{run_id}/jobs?per_page=100")
+    rows = jobs.get("jobs")
+    # GitHub can cancel a pending run before assigning any job. No executed
+    # job exists, hence no attempt can have been spent.
+    if (rows == [] and jobs.get("total_count") == 0
+            and run.get("conclusion") in ("cancelled", "skipped")):
+        return True
+    if (not isinstance(rows, list) or jobs.get("total_count") != 1
+            or len(rows) != 1 or rows[0].get("name") != "native"):
+        return False
+    # A job skipped by its own 'if' never executed a Worker step; GitHub
+    # often returns an empty steps list (or omits the steps field entirely).
+    if rows[0].get("conclusion") == "skipped":
+        return True
+    steps = rows[0].get("steps")
+    if not isinstance(steps, list):
+        return False
+    worker_steps = [step for step in steps if isinstance(step, dict)
+                    and step.get("name") == _WORKER_STEP]
+    return (len(worker_steps) == 1 and worker_steps[0].get("status") == "completed"
+            and worker_steps[0].get("conclusion") == "skipped")
+
+
 def _recognized_run(run: dict, task: str, *, attempt: int | None = None,
-                    sha: str | None = None, branch: str | None = None) -> bool:
+                    sha: str | None = None, branch: str | None = None,
+                    allow_legacy_manual: bool = True) -> bool:
     if run.get("head_branch") != "main" or run.get("run_attempt") != 1:
         return False
     title = run.get("display_title") or ""
@@ -116,8 +224,18 @@ def _recognized_run(run: dict, task: str, *, attempt: int | None = None,
     if event == "workflow_dispatch":
         match = _MANUAL_TITLE.fullmatch(title)
         if match is not None:
-            return match.group(1) == task and (
-                attempt is None or int(match.group(2)) == attempt)
+            # Resolve a request_slug against the *registered* task identity,
+            # not by greedily splitting a title that itself starts req-N.
+            bound = re.fullmatch(
+                r"lf-native-(?:req-[1-9][0-9]*-)?" + re.escape(task) +
+                r"-a([1-3])(?:-([0-9a-f]{40}))?\Z", title)
+            return (bound is not None
+                    and (attempt is None or int(bound.group(1)) == attempt)
+                    and (bound.group(2) is not None or allow_legacy_manual)
+                    and (allow_legacy_manual or
+                         title == f"lf-native-{task}-a{bound.group(1)}-{bound.group(2)}")
+                    and (sha is None or bound.group(2) is None
+                         or bound.group(2) == sha))
         recovery = (_INFRA_TITLE.fullmatch(title) or _ROUTE_TITLE.fullmatch(title)
                     or _PENDING_TITLE.fullmatch(title))
         return (recovery is not None and recovery.group(1) == task
@@ -163,7 +281,8 @@ def admit_attempt(
     if (len(current) != 1 or current[0].get("event") != event or
         not _recognized_run(current[0], task, attempt=attempt,
                             sha=sha,
-                            branch=proposal_branch)):
+                            branch=proposal_branch,
+                            allow_legacy_manual=False)):
         raise ValueError("NATIVE_CURRENT_RUN_NOT_ATTESTED")
     # Only a trusted, merged launcher-only migration may forgive a previously
     # spent proof. The immutable source run and original pack must still match.
@@ -200,9 +319,26 @@ def admit_attempt(
         # The run title/branch must match the requested task BEFORE download.
         if not _recognized_run(run, task):
             continue
-        proof = _artifact_json(repository, token, run["id"])
+        # A missing OR expired proof is grandfathered only before the
+        # immutable PR #370 merge, except for explicitly blocked run IDs.
+        # Post-cutover proof absence always requires authentic NO_ATTEMPT
+        # evidence or a provably unstarted Worker job.
+        try:
+            proof = _artifact_json(repository, token, run["id"])
+        except ValueError as exc:
+            if str(exc) != "NATIVE_PRIOR_PROOF_MISSING":
+                raise
+            if not _r3_pre_cutover(repository, token, run):
+                raise
+            continue  # pre-merge expired proof: legacy never counted
         if proof is None:
-            continue
+            if run.get("status") != "completed":
+                continue
+            if _no_attempt_attested(repository, token, run, task):
+                continue
+            if _r3_pre_cutover(repository, token, run):
+                continue  # pre-merge missing proof, legacy non-attempt
+            raise ValueError("NATIVE_PRIOR_PROOF_MISSING")
         if (run["id"] >= run_id or run.get("status") != "completed" or
             not isinstance(proof, dict) or
             set(proof) != {"task_id", "attempt", "task_pack_sha256", "run_id"} or
@@ -234,9 +370,13 @@ def admit_attempt(
         match = (_AUTO_TITLE.fullmatch(title)
                  if run.get("event") == "workflow_run"
                  else (_INFRA_TITLE.fullmatch(title) or
-                      _ROUTE_TITLE.fullmatch(title) or
-                      _PENDING_TITLE.fullmatch(title)))
-        if match is not None and match.group(2) == sha:
+                       _ROUTE_TITLE.fullmatch(title) or
+                       _PENDING_TITLE.fullmatch(title)))
+        manual = (_MANUAL_TITLE.fullmatch(title)
+                  if run.get("event") == "workflow_dispatch" else None)
+        prior_sha = (match.group(2) if match is not None else
+                     manual.group(4) if manual is not None else None)
+        if prior_sha == sha:
             raise ValueError("NATIVE_DUPLICATE_PROPOSAL_SHA")
         prior.append(proof)
     computed = len(prior) + 1

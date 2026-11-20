@@ -25,6 +25,7 @@ TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 AUTO = re.compile(
     r"lf-native-auto-lf/native-proposal/([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
+MANUAL = re.compile(r"lf-native-([a-z][a-z0-9_-]{0,31})-a[123]-([0-9a-f]{40})\Z")
 PENDING = re.compile(
     r"lf-native-pending-retry-([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
 INFRA = re.compile(
@@ -41,7 +42,8 @@ def replay_decision(task: str, sha: str, rows: list[dict]) -> str:
             raise ValueError("R1_WORKER_HISTORY_INVALID")
         title = str(item.get("display_title") or "")
         match = (AUTO.fullmatch(title) or PENDING.fullmatch(title)
-                 or INFRA.fullmatch(title) or ROUTE.fullmatch(title))
+                 or INFRA.fullmatch(title) or ROUTE.fullmatch(title)
+                 or MANUAL.fullmatch(title))
         if match is None or match.groups() != (task, sha):
             continue
         status, conclusion = item.get("status"), item.get("conclusion")

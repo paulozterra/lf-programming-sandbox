@@ -239,3 +239,4 @@
 | CHG-0245 | ADDITIVE | R1: reconciliar pendientes de GitHub Actions cancelados antes de iniciar |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/367 |
 | CHG-0246 | ADDITIVE | R1/T20/T23: aislar propiedad de tarea huérfana o ambigua en cada barrido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/368 |
 | CHG-0247 | ADDITIVE | R1: disparadores de reconciliación por evento y límite de barridos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/369 |
+| CHG-0248 | ADDITIVE | R3-b/R3-c: prueba de intento obligatoria y títulos manuales vinculados a SHA |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/370 |

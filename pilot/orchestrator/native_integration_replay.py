@@ -27,6 +27,8 @@ REPLAY_TITLE = re.compile(r"CP3[.]5 recovery native-run-([1-9][0-9]*)\Z")
 WORKER_TITLE = re.compile(
     r"(?:lf-native-auto-lf/native-proposal/|lf-native-route-retry-|"
     r"lf-native-infra-retry-)([a-z][a-z0-9_-]{0,31})-([0-9a-f]{40})\Z")
+MANUAL_WORKER_TITLE = re.compile(
+    r"lf-native-([a-z][a-z0-9_-]{0,31})-a[123]-([0-9a-f]{40})\Z")
 
 
 def _listed(api, workflow: str) -> list[dict]:
@@ -63,7 +65,8 @@ def _trusted_worker(run: dict, repo: str) -> bool:
         and run.get("run_attempt") == 1
         and (run.get("path") or "").split("@")[0] == WORKER_PATH
         and (run.get("repository") or {}).get("full_name") == repo
-        and WORKER_TITLE.fullmatch(str(run.get("display_title") or "")) is not None
+        and (WORKER_TITLE.fullmatch(str(run.get("display_title") or "")) is not None
+             or MANUAL_WORKER_TITLE.fullmatch(str(run.get("display_title") or "")) is not None)
     )
 
 
@@ -137,7 +140,8 @@ def recover(head: str, run, api, repo: str, root: Path,
         source_id = source["id"]
         if source_id in dispatched or source_id in scheduled:
             continue
-        identity = WORKER_TITLE.fullmatch(source["display_title"])
+        identity = (WORKER_TITLE.fullmatch(source["display_title"]) or
+                    MANUAL_WORKER_TITLE.fullmatch(source["display_title"]))
         task = identity.group(1)
         # A sweep invokes this once per request. Never dispatch a PASS
         # belonging to another request, nor replay it twice in one sweep.
@@ -183,7 +187,8 @@ def recover_unstarted(head: str, run, api, repo: str, root: Path,
     for source in sorted(workers, key=lambda row: row.get("id", 0)):
         if not _trusted_worker(source, repo):
             continue
-        match = WORKER_TITLE.fullmatch(source["display_title"])
+        match = (WORKER_TITLE.fullmatch(source["display_title"]) or
+                 MANUAL_WORKER_TITLE.fullmatch(source["display_title"]))
         task = match.group(1)
         if task not in allowed_tasks:
             continue
