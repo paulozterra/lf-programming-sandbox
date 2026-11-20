@@ -128,11 +128,11 @@ def test_t23_sweep_bad_owner_does_not_prevent_healthy_evidence(
     def prepare(*args):
         actions.append(("prepare", args[5]["task"]))
         return {"status": "ROUTE_DEFECT_REGISTRATION_DRAFT"}
-    with patch.object(t23, "history", return_value=rows), \\
-         patch.object(t23, "_run_identity", side_effect=lambda x, _: (x["display_title"], SHA)), \\
-         patch.object(t23, "inspect", side_effect=inspected), \\
-         patch.object(t23, "comment_defect", side_effect=comment), \\
-         patch.object(t23, "prepare_repair", side_effect=prepare), \\
+    with patch.object(t23, "history", return_value=rows), \
+         patch.object(t23, "_run_identity", side_effect=lambda x, _: (x["display_title"], SHA)), \
+         patch.object(t23, "inspect", side_effect=inspected), \
+         patch.object(t23, "comment_defect", side_effect=comment), \
+         patch.object(t23, "prepare_repair", side_effect=prepare), \
          patch.object(t23, "replay_corrected", return_value=[]):
         result = t23.sweep(HEAD, lambda *_: "", lambda *_: {}, REPO, tmp_path,
                            None, None, None,
@@ -169,14 +169,14 @@ def test_t23_replay_bad_owner_does_not_prevent_good_replay(
             dispatched.append(args)
             return ""
         raise AssertionError(args)
-    with patch.object(t23, "storage_path", return_value=folder), \\
+    with patch.object(t23, "storage_path", return_value=folder), \
          patch.object(t23, "verified_migration", return_value={
              "proposal_commit_sha": SHA, "source_run_id": 102,
-             "legacy_task_pack_sha256": "c" * 64}), \\
-         patch.object(t23, "_run_identity", return_value=(GOOD, SHA)), \\
-         patch.object(t23, "issue_for_task", return_value=286), \\
-         patch.object(t23, "comment_defect", return_value="ROUTE_DEFECT_ALREADY_RECORDED"), \\
-         patch.object(t23, "validate_proposal_only", return_value={"task": GOOD}), \\
+             "legacy_task_pack_sha256": "c" * 64}), \
+         patch.object(t23, "_run_identity", return_value=(GOOD, SHA)), \
+         patch.object(t23, "issue_for_task", return_value=286), \
+         patch.object(t23, "comment_defect", return_value="ROUTE_DEFECT_ALREADY_RECORDED"), \
+         patch.object(t23, "validate_proposal_only", return_value={"task": GOOD}), \
          patch.object(t23, "comment_resubmit", return_value="ROUTE_DEFECT_RESUBMIT_NOTIFIED"):
         result = t23.replay_corrected(
             HEAD, run, lambda _: {"conclusion": "failure"}, REPO, tmp_path, [],
