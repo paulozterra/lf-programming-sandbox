@@ -238,7 +238,8 @@ def test_one_sweep_closes_legacy_red_registration_and_regenerates_next_chg(tmp_p
           patch.multiple(chain_lots,
                         replay_native_integration=lambda *a, **k: [],
                         recover_pending_worker=lambda *a, **k: [],
-                        recover_unstarted_integration=lambda *a, **k: []), \
+                        recover_unstarted_integration=lambda *a, **k: [],
+                        sync_implemented_registry=lambda *a, **k: {"status": "REGISTRY_CURRENT"}), \
          patch.object(chain_lots, "api", side_effect=fake_api), \
          patch.object(chain_lots, "admit_registration", return_value=None), \
          patch.object(chain_lots, "prepare_successor", side_effect=fake_prepare):
