@@ -278,3 +278,76 @@ def test_b3_cp36_event_and_state_sweep_have_same_legitimate_transitions(tmp_path
     assert event == sweep
     assert event_effects == sweep_effects == [
         ("EXAM", request), ("PREPARE", request, "L1")]
+
+
+def test_b3_native_failure_event_vs_sweep_has_same_blocked_transition(tmp_path):
+    from pilot.orchestrator import chain_lots
+    request = "req-901"
+    lots = {"lots": [{"id": "L1", "area": "CONTRATO", "depends_on": []}]}
+    bindings = {"L1": {"task_name": "fixture1"}}
+    state = {"stage": "LOTS_PLANNED"}
+    with patch.object(chain_lots, "ROOT", tmp_path), \
+         patch.object(chain_lots, "request_state", return_value="OPEN"), \
+         patch.object(chain_lots, "complete_registered_exam_requests", return_value=[]), \
+         patch.object(chain_lots, "request_all_lot_exams", return_value=[]), \
+         patch.object(chain_lots, "completed_lots", return_value={}), \
+         patch.object(chain_lots, "failed_lots", return_value=[11, 12, 13]), \
+         patch.object(chain_lots, "progress", return_value={"stage": "BLOCKED"}), \
+         patch.object(chain_lots, "block_request",
+                      return_value={"status": "BLOCKED_PENDING_OWNER_MERGE"}):
+        event = chain_lots.process_one_plan(
+            request, lots, state, bindings, HEAD, "NATIVE_FAIL", False,
+            None, None, [])
+        sweep = chain_lots.process_one_plan(
+            request, lots, state, bindings, HEAD, "TRAIN", True,
+            None, None, [])
+    assert event == sweep == [
+        {"request": request, "status": "BLOCKED_PENDING_OWNER_MERGE"}]
+
+
+def test_b3_event_and_sweep_compete_on_same_lot_single_draft(tmp_path):
+    """Contending threads model two Actions arrivals under CP3.6 global lock."""
+    from pilot.orchestrator import chain_lots
+    import threading
+    request = "req-901"
+    lots = {"lots": [{"id": "L1", "area": "CONTRATO", "depends_on": []}]}
+    bindings = {"L1": {"task_name": "fixture1", "lot_id": "L1"}}
+    state = {"stage": "LOTS_PLANNED"}
+    gate = threading.Barrier(2)
+    serialized = threading.Lock()
+    created = {"count": 0}
+    outcomes = []
+
+    def prepare(*_args):
+        created["count"] += 1
+        return {"status": "DRAFT_PREPARED"}
+
+    with patch.object(chain_lots, "ROOT", tmp_path), \
+         patch.object(chain_lots, "request_state", return_value="OPEN"), \
+         patch.object(chain_lots, "complete_registered_exam_requests", return_value=[]), \
+         patch.object(chain_lots, "request_all_lot_exams", return_value=[]), \
+         patch.object(chain_lots, "completed_lots", return_value={}), \
+         patch.object(chain_lots, "failed_lots", return_value={}), \
+         patch.object(chain_lots, "progress", return_value={
+             "stage": "LOTS_PLANNED", "ready_lot_ids": ["L1"]}), \
+         patch.object(chain_lots, "storage_path", return_value=tmp_path), \
+         patch.object(chain_lots, "pending_draft", side_effect=lambda *_: created["count"] > 0), \
+         patch.object(chain_lots, "admit_registration", return_value=None), \
+         patch.object(chain_lots, "prepare_successor", side_effect=prepare), \
+         patch.object(chain_lots, "close_failed_old_registration_drafts", return_value=[]):
+        def worker(sweep):
+            gate.wait(timeout=5)
+            with serialized:
+                result = chain_lots.process_one_plan(
+                    request, lots, state, bindings, HEAD, "TRAIN", sweep,
+                    None if sweep else request, None, [])
+                outcomes.append(result[-1]["status"])
+        jobs = [threading.Thread(target=worker, args=(flag,))
+                for flag in (False, True)]
+        for job in jobs:
+            job.start()
+        for job in jobs:
+            job.join(timeout=5)
+            assert not job.is_alive()
+    assert created["count"] == 1
+    assert sorted(outcomes) == ["ALREADY_PREPARED", "DRAFT_PREPARED"]
