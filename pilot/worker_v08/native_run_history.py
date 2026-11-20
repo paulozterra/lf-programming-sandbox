@@ -161,6 +161,8 @@ def _recognized_run(run: dict, task: str, *, attempt: int | None = None,
             return (bound is not None
                     and (attempt is None or int(bound.group(1)) == attempt)
                     and (bound.group(2) is not None or allow_legacy_manual)
+                    and (allow_legacy_manual or
+                         title == f"lf-native-{task}-a{bound.group(1)}-{bound.group(2)}")
                     and (sha is None or bound.group(2) is None
                          or bound.group(2) == sha))
         recovery = (_INFRA_TITLE.fullmatch(title) or _ROUTE_TITLE.fullmatch(title)
