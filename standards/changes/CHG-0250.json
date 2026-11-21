@@ -15,6 +15,7 @@
     "paths": [
       "pilot/auto_integrate.py",
       "pilot/test_r4_policy_c_train_redispatch.py",
+      "pilot/test_t17_3_sweep_wake.py",
       ".github/workflows/ci.yml",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0250.json"
