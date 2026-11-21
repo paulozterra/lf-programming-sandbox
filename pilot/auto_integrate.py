@@ -559,6 +559,58 @@ def owner_labeled_after_last_train(api, number):
     return True
 
 
+
+TRAIN_REDISPATCH_LIMIT = 3  # Train dispatches per label before human review
+
+
+def _last_ready_label(api, number):
+    events = api.pages(f"/issues/{number}/events", None)
+    labels = [e for e in events if isinstance(e, dict) and e.get("event") == "labeled"
+              and (e.get("label") or {}).get("name") == READY_LABEL]
+    return labels[-1] if labels else None
+
+
+def _train_runs_since(api, number, since):
+    runs = api.request("GET", "/actions/workflows/sandbox-train.yml/runs?event=workflow_dispatch&per_page=100")
+    rows = [run for run in runs.get("workflow_runs", [])
+            if isinstance(run, dict) and run.get("created_at", "") >= since
+            and run.get("display_title") == f"sandbox-train PR #{number}"
+            and type(run.get("id")) is int]
+    return sorted(rows, key=lambda run: run["id"])
+
+
+def labeled_train_recovery(api, number):
+    """R4 (CHG-0250): a ready-to-merge label applied by policy C must reach a
+    Train run. The Train concurrency group keeps one pending run, so a later
+    dispatch can REPLACE (cancel) the pending one; a failed dispatch POST also
+    leaves the label behind. Without this, policy C answers ALREADY_LABELED
+    forever. Decision only from the Train history since the latest label:
+    none -> dispatch; queued/in progress -> wait; cancelled -> re-dispatch
+    (bounded); failure/other -> typed block for human review. The Train
+    re-verifies PR HEAD, checks and mergeability before merging."""
+    last = _last_ready_label(api, number)
+    if last is None:
+        return "ALREADY_LABELED"
+    actor = (last.get("actor") or {}).get("login", "")
+    if actor != BOT:
+        return "ALREADY_LABELED"  # human labels keep the T42 owner path
+    runs = _train_runs_since(api, number, last.get("created_at", ""))
+    if runs:
+        latest = runs[-1]
+        if latest.get("status") != "completed":
+            return "ALREADY_LABELED"
+        conclusion = latest.get("conclusion")
+        if conclusion == "success":
+            block("TRAIN_SUCCEEDED_PR_STILL_OPEN")
+        if conclusion != "cancelled":
+            block("TRAIN_FAILED_REQUIRES_REVIEW")
+        if len(runs) >= TRAIN_REDISPATCH_LIMIT:
+            block("TRAIN_REDISPATCH_LIMIT")
+    api.request("POST", "/actions/workflows/sandbox-train.yml/dispatches",
+                {"ref": "main", "inputs": {"pr_number": str(number)}})
+    return "TRAIN_REDISPATCHED_CANCELLED" if runs else "TRAIN_REDISPATCHED_MISSING"
+
+
 def evaluate_one(api, number):
     pr = api.request("GET", f"/pulls/{number}")
     paths = pr_files(api, number)
@@ -577,7 +629,7 @@ def evaluate_one(api, number):
             api.request("POST", "/actions/workflows/sandbox-train.yml/dispatches",
                         {"ref": "main", "inputs": {"pr_number": str(number)}})
             return "OWNER_LABEL_TRAIN_DISPATCHED"
-        return "ALREADY_LABELED"
+        return labeled_train_recovery(api, number)
     if kind in ("generated-t7", "implemented-registry"):
         verify_generated_content(api, pr, paths, kind)
     if kind == "integration":
