@@ -241,3 +241,4 @@
 | CHG-0247 | ADDITIVE | R1: disparadores de reconciliación por evento y límite de barridos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/369 |
 | CHG-0248 | ADDITIVE | R3-b/R3-c: prueba de intento obligatoria y títulos manuales vinculados a SHA |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/370 |
 | CHG-0249 | ADDITIVE | R3: retirar dry-run temporal y fijar corte histórico de PR #370 en archivo versionado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/371 |
+| CHG-0250 | ADDITIVE | R4: Policy C re-despacha Train para etiqueta ready-to-merge del bot sin run efectivo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/372 |
