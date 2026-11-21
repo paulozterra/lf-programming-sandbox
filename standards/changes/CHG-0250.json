@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0250",
+  "title": "R4: Policy C re-despacha Train para etiqueta ready-to-merge del bot sin run efectivo",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (20/11/2026): auditoría de concurrencia R4/R6 de la ruta de programación"
+  },
+  "reason": "El grupo de concurrencia sandbox-train mantiene un solo run pendiente: un dispatch posterior reemplaza (cancela) al pendiente. Policy C etiqueta ready-to-merge y despacha el Train; si ese dispatch quedaba reemplazado o el POST fallaba, la etiqueta permanecía y Policy C respondía ALREADY_LABELED indefinidamente, dejando el PR atascado sin Train. auto_integrate.labeled_train_recovery decide solo desde el historial de runs sandbox-train (workflow_dispatch, título 'sandbox-train PR #N') creados desde la última etiqueta aplicada por el bot: sin run -> despacha (TRAIN_REDISPATCHED_MISSING); run en cola/en curso -> espera; último cancelled -> re-despacha (TRAIN_REDISPATCHED_CANCELLED) hasta TRAIN_REDISPATCH_LIMIT=3 runs por etiqueta; failure u otra conclusión -> TRAIN_FAILED_REQUIRES_REVIEW; success con PR abierto -> TRAIN_SUCCEEDED_PR_STILL_OPEN. Etiquetas humanas conservan la ruta T42. El Train sigue siendo la única autoridad de fusión y re-verifica HEAD exacto, checks del SHA y mergeabilidad. R6 auditado sin cambios: Policy C (latest_executed_checks) y Train (checks_for_head) filtran por head_sha exacto y app github-actions, Policy C relee el PR antes de etiquetar, Train fusiona con sha=HEAD y reinicia si HEAD o main se mueven; train_handoff filtra CI por head_sha y rama.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/auto_integrate.py",
+      "pilot/test_r4_policy_c_train_redispatch.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0250.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/0"
+  }
+}
