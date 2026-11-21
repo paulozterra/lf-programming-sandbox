@@ -59,6 +59,7 @@ class PreviouslyGreenBotAPI:
     def __init__(self, with_candidate=True):
         self.writes = []
         self.candidate = with_candidate
+        self.train_dispatched = False
         self.item = {
             "number": 205, "state": "open", "draft": True,
             "changed_files": 2, "labels": [], "body": "registered task",
@@ -71,6 +72,10 @@ class PreviouslyGreenBotAPI:
     def pages(self, path, field):
         if path == "/pulls?state=open":
             return [deepcopy(self.item)] if self.candidate else []
+        if path == "/issues/205/events":
+            return [{"event": "labeled", "label": {"name": policy.READY_LABEL},
+                     "actor": {"login": policy.BOT},
+                     "created_at": "2026-11-20T20:00:00Z"}] if self.train_dispatched else []
         if path == "/pulls/205/files":
             return [
                 {"filename": "standards/changes/CHG-0123.json"},
@@ -86,8 +91,14 @@ class PreviouslyGreenBotAPI:
     def request(self, method, path, data=None):
         if method == "GET" and path == "/pulls/205":
             return deepcopy(self.item)
+        if method == "GET" and path.startswith("/actions/workflows/sandbox-train.yml/runs"):
+            return {"workflow_runs": [{"id": 1001, "created_at": "2026-11-20T20:01:00Z",
+                                      "display_title": "sandbox-train PR #205",
+                                      "status": "queued", "conclusion": None}]}
         if method == "POST":
             self.writes.append((path, data))
+            if path == "/actions/workflows/sandbox-train.yml/dispatches":
+                self.train_dispatched = True
             if path == "/issues/205/labels":
                 self.item["labels"].append({"name": policy.READY_LABEL})
             return {}
