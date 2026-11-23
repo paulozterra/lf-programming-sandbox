@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0260",
   "title": "CP3.6: superar candidatos CHAIN_COMPLETE del bot anclados a un main viejo",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo (23/11/2026): #376-#378 con conflicto quedaban pendientes para siempre"
