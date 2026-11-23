@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Owner 2026-11-23: req-186 y req-286 integrados pero aún abiertos; intentos 3/T32"
   },
-  "reason": "CP3.6 no persistía CHAIN_COMPLETE_CANDIDATE al verificar todos los lotes en el historial Train y dejaba drafts BLOCKED anteriores al último PASS. El sweep ahora prioriza la completitud histórica antes de releer fallos o pedir exámenes, retira únicamente drafts BLOCKED del bot superados y publica estado candidato por PR Draft gobernado (sin escribir directo a main). T9 sigue exigiendo H_REPORT.md y registro completo en main antes de cerrar; no se convierte un candidato en cierre sin pruebas. Los H_REPORT existentes requieren revisión y fusión gobernadas; no se cierran manualmente.",
+  "reason": "CP3.6 no persistía CHAIN_COMPLETE_CANDIDATE al verificar todos los lotes en el historial Train y dejaba drafts BLOCKED anteriores al último PASS. El sweep ahora prioriza la completitud histórica antes de releer fallos o pedir exámenes, retira únicamente drafts BLOCKED del bot superados y publica estado candidato por PR Draft gobernado (sin escribir directo a main). T9 sigue exigiendo H_REPORT.md y registro completo en main antes de cerrar; no se convierte un candidato en cierre sin pruebas. Los H_REPORT existentes requieren revisión y fusión gobernadas; no se cierran manualmente. CP3.7 ahora regenera en sweep únicamente drafts H_REPORT del bot con anclaje de main obsoleto, sin tocar revisiones humanas o actuales.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -15,6 +15,7 @@
     "paths": [
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/request_finalize.py",
+      "pilot/orchestrator/pg37_publish.py",
       "pilot/orchestrator/test_chain_completion_reconcile.py",
       "pilot/orchestrator/test_request_finalize.py",
       ".github/workflows/ci.yml",
