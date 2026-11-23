@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0291",
   "title": "CP3.6: origen vigente de cadena tras replanificación gobernada",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Pedido req-391, chain-lots.yml run 45267203092: CP36_CHAIN_HISTORY_INCOMPLETE por #397 -> #408 -> #411"
