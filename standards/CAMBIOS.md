@@ -247,3 +247,4 @@
 | CHG-0257 | EDITORIAL | CP3.6: aislar fixtures de cadena p4 frente a transiciones legítimas de estado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/381 |
 | CHG-0258 | EDITORIAL | Registro T7: diagnóstico tipado también para la lista de PRs cerrados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/382 |
 | CHG-0259 | ADDITIVE | CP3.6: medir y reutilizar lecturas de GitHub API por sweep |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/383 |
+| CHG-0260 | ADDITIVE | CP3.6: superar candidatos CHAIN_COMPLETE del bot anclados a un main viejo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/0 |

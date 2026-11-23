@@ -74,7 +74,20 @@ class CompletionTests(unittest.TestCase):
                 self.lots, self.receipts, "f" * 40, sweep=True)
         self.assertEqual(result["status"], "CHAIN_COMPLETE_DRAFT_PENDING")
         self.assertEqual(result["retired_blocked_prs"], [267])
-        close.assert_called_once_with("lf/chain-blocked/req-186-", "ffffffffffff")
+        self.assertEqual([c.args for c in close.call_args_list],
+                         [("lf/chain-blocked/req-186-", "ffffffffffff"),
+                          ("lf/chain-complete/req-186-", "ffffffffffff")])
+
+    def test_stale_completion_candidate_from_older_main_is_superseded(self):
+        with (patch.object(cl, "close_stale_drafts", side_effect=[[], [376]]) as close,
+              patch.object(cl, "pending_draft", return_value=False),
+              patch.object(cl, "worktree", return_value={"status": "CHAIN_COMPLETE_DRAFT"}) as wt):
+            result = cl.reconcile_complete_chain(
+                "req-186", {"stage": "LOTS_PLANNED"},
+                self.lots, self.receipts, "f" * 40, sweep=True)
+        self.assertEqual(result["status"], "CHAIN_COMPLETE_DRAFT")
+        self.assertEqual(close.call_args_list[1].args, ("lf/chain-complete/req-186-", "ffffffffffff"))
+        wt.assert_called_once()
 
     def test_pg37_sweep_retires_bot_draft_from_older_main(self):
         with tempfile.TemporaryDirectory() as directory:
