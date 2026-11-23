@@ -106,3 +106,92 @@ def test_encrypt_roundtrip(tmp_path):
     out = tmp_path / "x.age"
     pe.encrypt_roundtrip(b"{}\n", tmp_path / "recipient.txt", key, out)
     assert out.is_file()
+
+
+def test_exam_preflight_rejects_missing_fail_codes_and_asserts():
+    with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_NO_FAIL_CODES"):
+        pe.lint_script("print('untraceable')\n")
+    pe.lint_script('fail("EXAM_A")\n')
+    with pytest.raises(pe.ExamBlocked, match="EXAM_LINT_ASSERT"):
+        pe.lint_script('fail("EXAM_A")\nassert True\n')
+    # Assertions nested in a function are still exam assertions.
+    with pytest.raises(pe.ExamBlocked, match="EXAM_LINT_ASSERT"):
+        pe.lint_script('def exam():\n    assert True\nfail("EXAM_A")\n')
+
+
+def test_exam_timeout_uses_worker_validator_without_duplicate_limit():
+    pe.lint_timeout(300)
+    with pytest.raises(pe.ExamBlocked, match="EXAM_LINT_TIMEOUT"):
+        pe.lint_timeout(901)
+    with pytest.raises(pe.ExamBlocked, match="EXAM_LINT_TIMEOUT"):
+        pe.lint_timeout(0)
+
+
+def _scope_case(tmp_path, monkeypatch):
+    storage = tmp_path / "pilot/runs"
+    folder = storage / "req-9"
+    folder.mkdir(parents=True)
+    (folder / "lots.json").write_text(json.dumps({
+        "lots": [{"id": "SOL-001", "write_paths": ["src/value.txt"]},
+                 {"id": "SOL-002", "write_paths": ["src/other.txt"]}],
+    }))
+    (folder / "chain_plan.json").write_text(json.dumps({
+        "bindings": [{"lot_id": "SOL-001", "task_name": "req9frontend1"}],
+    }))
+    monkeypatch.setattr(pe, "storage_path", lambda kind, root=None: storage)
+    ref = tmp_path / "reference"
+    ref.mkdir()
+    mutants = tmp_path / "mutants"
+    mutants.mkdir()
+    case = mutants / "changed"
+    case.mkdir()
+    (ref / "src").mkdir()
+    (case / "src").mkdir()
+    (ref / "src/value.txt").write_text("reference")
+    (case / "src/value.txt").write_text("mutant")
+    return ref, case
+
+
+def test_exam_reference_and_mutant_scope_checked_before_build(tmp_path, monkeypatch):
+    ref, mutant = _scope_case(tmp_path, monkeypatch)
+    pe.lint_overlay_scope(tmp_path, "req-9", "req9frontend1", ref, [mutant])
+    (ref / "src/other.txt").write_text("outside lot")
+    with pytest.raises(pe.ExamBlocked, match="EXAM_REFERENCE_OUT_OF_SCOPE"):
+        pe.lint_overlay_scope(tmp_path, "req-9", "req9frontend1", ref, [mutant])
+    (ref / "src/other.txt").unlink()
+    (mutant / "src/other.txt").write_text("outside lot")
+    with pytest.raises(pe.ExamBlocked, match="EXAM_REFERENCE_OUT_OF_SCOPE"):
+        pe.lint_overlay_scope(tmp_path, "req-9", "req9frontend1", ref, [mutant])
+    with pytest.raises(pe.ExamBlocked, match="EXAM_REFERENCE_OUT_OF_SCOPE"):
+        pe.lint_overlay_scope(tmp_path, "req-9", "wrongtask", ref, [mutant])
+
+
+def test_main_worker_loader_precedes_reference_and_mutant_compilation(
+        tmp_path, monkeypatch, capsys):
+    work = tmp_path / "scratch"
+    work.mkdir()
+    script = tmp_path / "check.py"
+    script.write_text('fail("EXAM_A")\n')
+    ref = tmp_path / "reference"
+    ref.mkdir()
+    mutants = tmp_path / "mutants"
+    mutants.mkdir()
+    trace = tmp_path / "trace.json"
+    trace.write_text('{"EXAM_A": "env:build"}')
+    calls = []
+    def reject_at_loader(raw, root):
+        calls.append("worker_load")
+        raise pe.ExamBlocked("EXAM_WORKER_LOADER_REJECTED:fixture")
+    monkeypatch.setattr(pe, "worker_load", reject_at_loader)
+    monkeypatch.setattr(pe, "exercise",
+                        lambda *args: pytest.fail("exercise must not run"))
+    monkeypatch.setattr(sys, "argv", [
+        "publish_exam.py", "--task", "req9frontend1", "--request", "req-9",
+        "--script", str(script), "--family", "f", "--version", "v1",
+        "--worktree", str(work), "--reference", str(ref),
+        "--mutants", str(mutants), "--trace", str(trace),
+        "--derived-from", "test",
+    ])
+    assert pe.main() == 1
+    assert calls == ["worker_load"]
+    assert "EXAM_WORKER_LOADER_REJECTED" in capsys.readouterr().out
