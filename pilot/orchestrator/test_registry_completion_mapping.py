@@ -81,6 +81,35 @@ class RegistryMappingTests(unittest.TestCase):
                 binding)
         self.assertEqual(result["reasons"], ["LOT_MAPPING_MISSING"])
 
+    def test_real_first_parent_merges_resolve_to_their_planned_lots(self):
+        # Read-only historical fixtures; the repository CI checkout has full
+        # history. These are already-merged Train integrations, not proposals.
+        cases = [
+            ("2b376e85d79d4915a61f31f9c4838f9c261009e4",
+             "req186backend2", "req-186", "SOL-002"),
+            ("5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
+             "req186frontend3", "req-186", "SOL-001"),
+            ("639f720ea6ab33ff47135d015b840df8b664af1e",
+             "req286contrato1", "req-286", "SOL-Cf376a709e8a9"),
+            ("ef343d9d0868c689188e2175f6ac995541d86ee7",
+             "req286backend2", "req-286", "SOL-002"),
+            ("ae20aeb29142b215233215dbd25523d4d10fc970",
+             "req286frontend3", "req-286", "SOL-001"),
+        ]
+        for merge, task, request, lot_id in cases:
+            with self.subTest(merge=merge, task=task):
+                import subprocess
+                if subprocess.run(["git", "cat-file", "-e", merge + "^{commit}"],
+                                  cwd=registry.ROOT, capture_output=True).returncode:
+                    self.skipTest("historical merge unavailable in shallow fixture")
+                pr = {"merged": True, "merge_commit_sha": merge,
+                      "head": {"ref": f"lf/native-integration/{task}-run-1"},
+                      "base": {"ref": "main"}}
+                row = registry.record_merge(registry.ROOT, merge, pr,
+                                            current_sha=merge)
+                self.assertEqual((row["request"], row["lot"]),
+                                 (request, lot_id))
+
     def test_conflicting_legacy_and_local_plans_fail_closed(self):
         binding = {"bindings": [{"lot_id": "SOL-002", "task_name": TASK}]}
         with self.assertRaisesRegex(registry.RegistryBlocked,
