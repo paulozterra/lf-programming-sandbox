@@ -84,9 +84,11 @@ def recover(head: str, run, api, repo: str, root: Path, *, allowed_task) -> list
         try:
             if allowed_task(task):
                 eligible.append((task, sha))
-        except RequestStateError:
-            outcomes.append({"status": "BLOCKED", "task": task,
-                             "reason": "REQUEST_STATE_UNRESOLVED"})
+        except (ValueError, ProposalPushBlocked, OSError, KeyError) as exc:
+            code = str(exc)
+            if not re.fullmatch(r"(?:R1_[A-Z0-9_]+|REQUEST_STATE_UNRESOLVED)", code):
+                code = "R1_WORKER_TASK_RECOVERY_FAILED"
+            outcomes.append({"status": "BLOCKED", "task": task, "reason": code})
     if not eligible:
         return outcomes
     rows = []
