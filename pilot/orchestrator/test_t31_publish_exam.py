@@ -34,6 +34,16 @@ def test_worker_loader_rejects_single_oversized_argument():
         pe.worker_load(raw, ROOT)
 
 
+def test_worker_loader_rejects_probable_secret_in_oracle_chunk():
+    # Benign synthetic assignment, deliberately long enough to trip the
+    # vendor's secret scanner; no real credential is used.
+    raw = pe.build_oracle('password=abcdefghijklmnop\\nfail("EXAM_A")\\n',
+                          name="holdout", family="f", version="v1",
+                          timeout=30, max_output=8000)
+    with pytest.raises(pe.ExamBlocked, match="EXAM_WORKER_LOADER_REJECTED"):
+        pe.worker_load(raw, ROOT)
+
+
 def _case(tmp_path):
     work = tmp_path / "work"
     (work / "src").mkdir(parents=True)
