@@ -28,6 +28,7 @@ SECTIONS = {
     "BACKEND": ("fields", "errors"),
     "CONTRATO": ("fields", "errors"),
     "DATA": (),
+    "INFRA": (),
 }
 CONTRACT_PATH = ("programming_context_snapshot", "decision_context",
                  "material_ledger", "source_detail", "a3_material_contract",
