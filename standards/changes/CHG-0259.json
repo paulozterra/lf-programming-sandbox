@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0259",
+  "title": "CP3.6: medir y reutilizar lecturas de GitHub API por sweep",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 2026-11-23: GITHUB_TOKEN excede cuota horaria pese a CHG-0252; diagnóstico de 15:00–16:10 UTC"
+  },
+  "reason": "R1/CP3.6 repetía los listados de worker-native.yml en T20_INFRA, R1_WORKER_PENDING, T22_FEEDBACK y T23_ROUTE; también consultaba repetidamente PRs abiertos en fases de recuperación. Se añade instrumentación de consumo CLI/API por fase y caché estrictamente local al proceso de sweep para inventarios de runs, artifacts y PR abiertos, con invalidación de PR tras operaciones de escritura. La recuperación de ramas lf/native-proposal omite tareas sin plan activo o con estado CHAIN_COMPLETE_CANDIDATE. No se modifica la lógica de admisión ni concurrencia; la función _artifact_json conserva por defecto el transporte estricto original, admitiendo inyección únicamente en recuperación. El CI incluye una simulación con N=3 solicitudes de inventario/PR, un límite sintético que NO sustituye una medición real del sweep en main, aún pendiente tras merge.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/sweep_api_budget.py",
+      "pilot/orchestrator/native_pending_recovery.py",
+      "pilot/orchestrator/pg37_publish.py",
+      "pilot/worker_v08/native_run_history.py",
+      "pilot/orchestrator/test_cp36_sweep_api_budget.py",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0259.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/0"
+  }
+}
