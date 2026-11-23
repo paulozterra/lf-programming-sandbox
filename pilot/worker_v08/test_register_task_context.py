@@ -355,7 +355,6 @@ class PinnedSource(unittest.TestCase):
 
     def test_context_artifacts_pass_real_staged_git_diff_check(self):
         # The registration bytes must be mergeable by sandbox_train_merge.
-        from programming_agent_runner.hashutil import sha256_bytes
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             init_git_fixture(root)
@@ -372,6 +371,20 @@ class PinnedSource(unittest.TestCase):
             result = subprocess.run(["git", "diff", "--cached", "--check"],
                                     cwd=root, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_req391contrato3_registered_profile_receipt_consistent(self):
+        folder = ROOT / ".lf/worker-context/req391contrato3"
+        profile = (folder / "profile.md").read_bytes()
+        receipt = json.loads((folder / "receipt.json").read_text("utf-8"))
+        observed = hashlib.sha256(profile).hexdigest()
+        self.assertEqual(receipt["profile"]["sha256"], observed)
+        self.assertEqual(receipt["context_sha256"]["profile.md"], observed)
+        self.assertTrue(profile.endswith(b"\n"))
+        self.assertFalse(profile.endswith(b"\n\n"))
+        mod.assert_generated_context_clean({
+            p.name: p.read_bytes()
+            for p in folder.iterdir() if p.is_file()
+        })
 
     def test_assembled_markdown_normalization_and_all_artifact_fail_closed(self):
         pin, sources = mod.read_pins()
