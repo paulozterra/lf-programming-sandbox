@@ -137,19 +137,16 @@ def unresolved(package, atoms, root=ROOT):
 
 def expected_config_missing(root, config):
     db = config["database"]
+    # The Worker rejects .env.* paths. DB credentials are injected by the
+    # local/CI runner; T3 only owns the Maven manifest and properties file.
+    if len(db["config_files"]) != 2:
+        deny("T3_CONFIG_POLICY_INVALID")
     props_path = Path(root) / db["config_files"][1]
-    example_path = Path(root) / db["config_files"][2]
-    if props_path.is_symlink() or example_path.is_symlink():
-        deny("T3_CONFIG_UNSAFE")
-    if not props_path.is_file() or not example_path.is_file():
+    if props_path.is_symlink() or not props_path.is_file():
         return True
     props = props_path.read_text(encoding="utf-8")
-    example = example_path.read_text(encoding="utf-8")
-    for key, value in db["properties"].items():
-        if (key + "=" + value) not in props.splitlines():
-            return True
-    return any(not re.search(r"(?m)^" + re.escape(key) + r"=\s*$", example)
-               for key in db["env_vars"])
+    return any((key + "=" + value) not in props.splitlines()
+               for key, value in db["properties"].items())
 
 
 def infra_atom(package, atoms, root=ROOT):

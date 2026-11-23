@@ -73,6 +73,11 @@ jobs:
           --health-retries 10
     env:
       PYTHONDONTWRITEBYTECODE: "1"
+      # Credentials exist only for this job's disposable PostgreSQL service.
+      # Worker command subprocesses receive these through the trusted DB bridge.
+      DB_URL: jdbc:postgresql://127.0.0.1:5432/pilot
+      DB_USERNAME: pilot
+      DB_PASSWORD: pilot
     steps:
       - name: Checkout trusted main control code
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262

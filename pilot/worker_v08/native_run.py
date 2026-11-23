@@ -37,6 +37,7 @@ from lot_preflight import check_task, LotBlocked
 from holdout_age import holdout_ref
 from pilot.orchestrator.request_lifecycle import require_task_open, RequestStateError
 from pilot.config.project_config import storage_path, template_path_any_request, reuse_assessment_pattern
+from pilot.worker_v08.worker_db_env import worker_database_environment
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
@@ -294,7 +295,8 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
         seen.append(result.receipt)
         return result
 
-    with patch.object(verified_module, "run_worker", side_effect=collect):
+    with worker_database_environment(), patch.object(
+            verified_module, "run_worker", side_effect=collect):
         outcome = run_verified_worker(source, spec, client, oracle, work_parent=private)
     if validate_verified_worker_receipt(outcome.receipt, outcome.patch):
         raise ValueError("NATIVE_VERIFIED_RECEIPT_INVALID")

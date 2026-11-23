@@ -33,14 +33,12 @@ def check_infra(root, dependency_ids=None, database=True):
     if not database:
         return True
     db = config["database"]
-    if len(db["config_files"]) != 3:
+    if len(db["config_files"]) != 2:
         deny("T3_CONFIG_POLICY_INVALID")
     props_path = root / db["config_files"][1]
-    env_path = root / db["config_files"][2]
-    if any(p.is_symlink() or not p.is_file() for p in (props_path, env_path)):
+    if props_path.is_symlink() or not props_path.is_file():
         deny("T3_CONFIG_MISSING")
     props = props_path.read_text(encoding="utf-8")
-    example = env_path.read_text(encoding="utf-8")
     assignments = {}
     for line in props.splitlines():
         value = line.strip()
@@ -55,10 +53,6 @@ def check_infra(root, dependency_ids=None, database=True):
     for key, value in db["properties"].items():
         if assignments.get(key) != value:
             deny("T3_DATABASE_CONFIG_INVALID:" + key)
-    for key in db["env_vars"]:
-        match = re.search(r"(?m)^" + re.escape(key) + r"=(.*)$", example)
-        if not match or match.group(1).strip():
-            deny("T3_ENV_EXAMPLE_SECRET_OR_MISSING:" + key)
     if not db["migration_directory"].startswith(_migrations_prefix()):
         deny("T3_MIGRATION_LOCATION_INVALID")
     return True

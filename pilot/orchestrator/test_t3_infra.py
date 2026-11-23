@@ -128,8 +128,6 @@ def _constructor_infra_proposal(root):
     app.parent.mkdir(parents=True, exist_ok=True)
     app.write_text("app.time.zone=UTC\n" +
                    "".join(k + "=" + v + "\n" for k,v in db["properties"].items()))
-    env = root / db["config_files"][2]
-    env.write_text("".join(k + "=\n" for k in db["env_vars"]))
     return db
 
 
@@ -137,14 +135,35 @@ def test_constructor_db_proposal_follows_allowlist_and_no_secrets(tmp_path):
     db = _constructor_infra_proposal(tmp_path)
     assert infra_validate.check_infra(tmp_path)
     props = tmp_path / db["config_files"][1]
-    props.write_text(props.read_text().replace("${DB_PASSWORD}", "hard-coded-password"))
+    props.write_text(props.read_text().replace(
+        db["properties"]["spring.datasource.password"], "hard-coded-password"))
     with pytest.raises(infra_lot.DependencyBlocked, match="T3_DATABASE_CONFIG_INVALID"):
         infra_validate.check_infra(tmp_path)
     props.write_text("".join(k + "=" + v + "\n" for k,v in db["properties"].items()))
-    env = tmp_path / db["config_files"][2]
-    env.write_text("DB_URL=jdbc:postgresql://example\nDB_USERNAME=\nDB_PASSWORD=\n")
-    with pytest.raises(infra_lot.DependencyBlocked, match="T3_ENV_EXAMPLE_SECRET_OR_MISSING"):
-        infra_validate.check_infra(tmp_path)
+    # T3 never requires a .env.* file; the Worker cannot write that path.
+    assert not any(".env." in path for path in db["config_files"])
+    assert infra_validate.check_infra(tmp_path)
+
+
+def test_b2b_datasource_config_passes_real_worker_secret_scanner():
+    import sys
+    vendor = ROOT / "vendor/programming-agent/src"
+    if str(vendor) not in sys.path:
+        sys.path.insert(0, str(vendor))
+    from programming_agent_runner.worker_secrets import (
+        secret_text_reason, sensitive_path_reason,
+    )
+    lines = [key + "=" + value for key, value in
+             infra_lot.policy()["database"]["properties"].items()]
+    assert all(secret_text_reason(line) is None for line in lines)
+    assert secret_text_reason("spring.datasource.password=${DB_PASSWORD}") is None
+    assert secret_text_reason("spring.datasource.password=${DB_PASSWORD:}") is None
+    assert infra_lot.policy()["database"]["properties"]["spring.datasource.username"] == "${DB_USERNAME}"
+    assert infra_lot.policy()["database"]["properties"]["spring.datasource.password"] == "${DB_PASSWORD}"
+    assert sensitive_path_reason("apps/time-service/.env.example") == "SENSITIVE_PATH"
+    assert "apps/time-service/.env.example" not in (
+        infra_lot.policy()["database"]["config_files"]
+    )
 
 
 def test_native_scope_prevents_direct_other_area_config_edits(tmp_path):
