@@ -302,6 +302,14 @@ def main() -> int:
             raise
 
     def list_closed():
+        nonlocal reader_failure
+        try:
+            return _list_closed()
+        except Exception as exc:
+            reader_failure = ("LIST", exc)
+            raise
+
+    def _list_closed():
         token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
         if not token:
             raise RegistryBlocked("REGISTRY_GITHUB_TOKEN_MISSING")
