@@ -156,14 +156,10 @@ def test_b2b_datasource_config_passes_real_worker_secret_scanner():
     lines = [key + "=" + value for key, value in
              infra_lot.policy()["database"]["properties"].items()]
     assert all(secret_text_reason(line) is None for line in lines)
-    assert secret_text_reason("DB_PASSWORD=pilot") is None
-    password_line = ("spring.datasource.password=" +
-                     infra_lot.policy()["database"]["properties"][
-                         "spring.datasource.password"])
-    assert password_line.splitlines()[0].endswith(chr(92))
-    assert "${DB_PASSWORD:pilot}" in password_line
-    assert secret_text_reason(password_line) is None
-    assert secret_text_reason("spring.datasource.password=${DB_PASSWORD:pilot}") == "ASSIGNMENT_SECRET"
+    assert secret_text_reason("spring.datasource.password=${DB_PASSWORD}") is None
+    assert secret_text_reason("spring.datasource.password=${DB_PASSWORD:}") is None
+    assert infra_lot.policy()["database"]["properties"]["spring.datasource.username"] == "${DB_USERNAME}"
+    assert infra_lot.policy()["database"]["properties"]["spring.datasource.password"] == "${DB_PASSWORD}"
     assert sensitive_path_reason("apps/time-service/.env.example") == "SENSITIVE_PATH"
     assert "apps/time-service/.env.example" not in (
         infra_lot.policy()["database"]["config_files"]
