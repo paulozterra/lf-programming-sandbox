@@ -25,8 +25,11 @@ def git(root, *args, check=True, env=None):
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             env=no_token_env() if env is None else env)
     if check and result.returncode:
+        # git diff --check writes whitespace diagnostics to stdout, not
+        # stderr. Keep both streams so Train reports the actual path/line.
+        detail = (result.stdout + "\n" + result.stderr).strip()
         raise BranchConflict("BRANCH_CONFLICT git " + str(args[0]) +
-                             ": " + result.stderr.strip()[:350])
+                             ": " + detail[:700])
     return result
 
 
