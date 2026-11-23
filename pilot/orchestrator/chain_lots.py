@@ -327,7 +327,7 @@ def plans() -> list[tuple[str, dict, dict, dict]]:
         plan = json.loads(file.read_text("utf-8"))
         lots = json.loads((folder / "lots.json").read_text("utf-8"))
         state = json.loads((folder / "state.json").read_text("utf-8"))
-        if state.get("stage") not in ("LOTS_PLANNED", "BLOCKED"):
+        if state.get("stage") not in ("LOTS_PLANNED", "BLOCKED", "CHAIN_COMPLETE_CANDIDATE"):
             deny("CHAIN_STAGE_INVALID")
         if state.get("lots_sha256") != hashlib.sha256(canonical(lots)).hexdigest():
             deny("CHAIN_STATE_LOTS_DRIFT")
@@ -1458,6 +1458,49 @@ def comment_task_pack_mismatch(request: str, task: str) -> None:
         + "con el paquete original; requiere revisión. Sin re-registro ni etiquetas.")
 
 
+def complete_candidate_state(state: dict, completed: dict, lots: dict) -> dict:
+    """Persist source-verified completion, never a T9 terminal close by itself."""
+    expected = {lot["id"] for lot in lots["lots"]}
+    if (not expected or set(completed) != expected
+            or state.get("stage") not in ("LOTS_PLANNED", "BLOCKED", "CHAIN_COMPLETE_CANDIDATE")
+            or any(not isinstance(row.get("merge_sha"), str)
+                   or not re.fullmatch(r"[0-9a-f]{40}", row["merge_sha"])
+                   for row in completed.values())):
+        deny("CHAIN_COMPLETION_UNVERIFIED")
+    value = dict(state, stage="CHAIN_COMPLETE_CANDIDATE",
+                 completed_lot_ids=sorted(expected),
+                 completed_merge_shas={key: completed[key]["merge_sha"]
+                                       for key in sorted(expected)},
+                 production_authority=False, handoff_allowed=False,
+                 downstream_authorized=False)
+    value.pop("blocked_lot_ids", None)
+    value.pop("reason_code", None)
+    return value
+
+
+def reconcile_complete_chain(request: str, state: dict, lots: dict,
+                             completed: dict, head: str, *, sweep: bool) -> dict:
+    """Only the route retires superseded bot BLOCKED drafts; main changes via Train."""
+    if not sweep:
+        return {"status": "CHAIN_COMPLETE_CANDIDATE"}
+    retired = close_stale_drafts(f"lf/chain-blocked/{request}-", head[:12])
+    if state["stage"] == "CHAIN_COMPLETE_CANDIDATE":
+        return {"status": "CHAIN_COMPLETE_CANDIDATE", "retired_blocked_prs": retired}
+    prefix = f"lf/chain-complete/{request}-"
+    if pending_draft(prefix):
+        return {"status": "CHAIN_COMPLETE_DRAFT_PENDING", "retired_blocked_prs": retired}
+    branch = prefix + head[:12]
+    def prepare(root: Path):
+        target = storage_path("requests_root", root=root) / request / "state.json"
+        target.write_bytes(canonical(complete_candidate_state(state, completed, lots)))
+        review = draft(root, branch, request, [target.relative_to(root).as_posix()],
+                       "First-parent Train history verifies every lot integrated; "
+                       "candidate only until H_REPORT and registry on main",
+                       f"CHAIN_COMPLETE_CANDIDATE {request}")
+        return {"status": "CHAIN_COMPLETE_DRAFT", **review}
+    return {"retired_blocked_prs": retired, **worktree(head, branch, prepare)}
+
+
 def block_request(request: str, state: dict, result: dict, head: str) -> dict:
     branch = f"lf/chain-blocked/{request}-{head[:12]}"
     if pending_draft(f"lf/chain-blocked/{request}-") or run("git", "ls-remote", "--heads", "origin", branch):
@@ -1777,6 +1820,18 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                  "reason_code": "REQUEST_STATE_UNRESOLVED"}]
     if current != OPEN:
         return [{"request": request, "status": "REQUEST_CLOSED"}]
+    # Historical Train receipts take precedence over attempt exhaustion.
+    # Resolve completion before exam re-requests or the failed Worker ledger.
+    completed = completed_lots(lots, bindings, history)
+    if manual_sha is not None and not any(
+            proof["merge_sha"] == manual_sha for proof in completed.values()):
+        return outcomes
+    if len(completed) == len(lots["lots"]):
+        outcomes.append({"request": request, **reconcile_complete_chain(
+            request, state, lots, completed, head, sweep=sweep and kind == "TRAIN")})
+        return outcomes
+    if state.get("stage") == "CHAIN_COMPLETE_CANDIDATE":
+        deny("CHAIN_COMPLETION_HISTORY_REGRESSED")
     if state.get("stage") == "BLOCKED":
         outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
         return outcomes
@@ -1789,10 +1844,6 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                              "closed_exam_issues": closed})
     if request == new_plan_request or sweep:
         outcomes.extend(request_all_lot_exams(request, lots, bindings))
-    completed = completed_lots(lots, bindings, history)
-    if manual_sha is not None and not any(
-            proof["merge_sha"] == manual_sha for proof in completed.values()):
-        return outcomes  # Requested integration is for a different chain.
     failures = failed_lots(bindings)
     result = progress(lots, completed, failures, bindings)
     if result["stage"] == "BLOCKED":
