@@ -1,6 +1,6 @@
 {
   "schema_version": "LF_STANDARD_CHANGE_V1",
-  "change_id": "CHG-0253",
+  "change_id": "CHG-0256",
   "title": "Ficha SBX-B2B-LOGIN: datos persistidos, inicio, composición con medidas y activos de marca (excepción del owner)",
   "change_class": "EDITORIAL",
   "trigger": {
