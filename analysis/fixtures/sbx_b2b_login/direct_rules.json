@@ -783,7 +783,7 @@
         },
         "migration_runner": "EXTERNAL",
         "service_runs_migrations": "DENY",
-        "datasource_config": "spring.datasource.url/username/password (variables SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD)"
+        "datasource_config": "spring.datasource.url/username/password desde las variables DB_URL, DB_USERNAME y DB_PASSWORD (convención del CI del sandbox); el servicio no aplica migraciones: las aplica la infraestructura desde db/migration"
       }
     },
     {
