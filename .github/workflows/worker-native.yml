@@ -269,6 +269,17 @@ jobs:
               'postgresql://pilot:pilot@127.0.0.1:5432/pilot' \
               -Atqc 'SELECT 1' | grep -qx 1
           echo CP1_1_ISOLATED_TOOLCHAIN_PASS
+      - name: Apply trusted main db/migration to the disposable Worker database (CHG-0256)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # External migrations: the service never migrates; trusted main schema only.
+          shopt -s nullglob
+          files=(control/db/migration/V*__*.sql)
+          for f in $(printf '%s\n' "${files[@]}" | sort -V); do
+            PGPASSWORD=pilot psql -h 127.0.0.1 -U pilot -d pilot -X -q -v ON_ERROR_STOP=1 -f "$f"
+          done
+          echo "WORKER_DB_MIGRATIONS_APPLIED:${#files[@]}"
       - name: Install fixed Playwright Chromium headless for FRONTEND acceptance
         shell: bash
         run: |

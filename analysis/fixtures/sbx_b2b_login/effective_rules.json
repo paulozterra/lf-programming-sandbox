@@ -639,7 +639,7 @@
         },
         "migration_runner": "EXTERNAL",
         "service_runs_migrations": "DENY",
-        "datasource_config": "spring.datasource.url/username/password desde las variables DB_URL, DB_USERNAME y DB_PASSWORD (convención del CI del sandbox); el servicio no aplica migraciones: las aplica la infraestructura desde db/migration"
+        "datasource_config": "spring.datasource.url/username/password desde DB_URL, DB_USERNAME y DB_PASSWORD (convención del CI); sin esas variables, por defecto jdbc:postgresql://127.0.0.1:5432/pilot con pilot/pilot (base desechable local y del Worker). El servicio no aplica migraciones: la infraestructura aplica db/migration antes de pruebas y ejecución"
       },
       "categoria": "DATOS",
       "descripcion": "Las cuentas que pueden iniciar sesión viven en el almacén persistente del sandbox (base relacional, migraciones versionadas). Cada cuenta guarda correo, empresa, perfil y estado; la contraseña solo se guarda como hash. El correo es único sin distinguir mayúsculas. Los datos iniciales son ficticios y nunca incluyen contraseñas en claro. Las cuentas inactivas o restringidas no pueden autenticarse y se tratan como credenciales inválidas hacia afuera."

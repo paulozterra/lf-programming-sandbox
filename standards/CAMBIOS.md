@@ -243,4 +243,6 @@
 | CHG-0249 | ADDITIVE | R3: retirar dry-run temporal y fijar corte histórico de PR #370 en archivo versionado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/371 |
 | CHG-0250 | ADDITIVE | R4: Policy C re-despacha Train para etiqueta ready-to-merge del bot sin run efectivo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/372 |
 | CHG-0251 | ADDITIVE | CP3.6/T9: reconciliar cadenas completas tras PASS tardío y preservar cierre gobernado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/373 |
-| CHG-0256 | EDITORIAL | Ficha SBX-B2B-LOGIN: datos persistidos, inicio, composición con medidas y activos de marca (excepción del owner) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/379 |
+| CHG-0252 | ADDITIVE | Presupuesto de API: watchdog solo ante fallos y registro T7 con lectura agrupada de PRs |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/375 |
+| CHG-0256 | ADDITIVE | Ficha SBX-B2B-LOGIN: datos persistidos, inicio, composición con medidas y activos de marca (excepción del owner) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/379 |
+| CHG-0259 | ADDITIVE | CP3.6: medir y reutilizar lecturas de GitHub API por sweep |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/383 |
