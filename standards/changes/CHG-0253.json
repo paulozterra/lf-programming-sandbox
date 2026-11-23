@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0253",
+  "title": "Ficha SBX-B2B-LOGIN: cuentas, intentos y sesiones persistidos, pantalla de inicio y composición por regiones",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (23/11/2026): ejercicio de login integrado backend+frontend+datos con la composición de la pantalla 51"
+  },
+  "reason": "Excepción de la regla 3 decidida por el owner (Paulo, 23/11/2026): la composición de la pantalla 51 (regiones, orden, alineación, separaciones por token y comportamiento por variante) entra DERIVADA y reescrita con identificadores SBX; sin maquetas, sin IDs reales de Supabase y sin textos reales nuevos (sigue vigente CHG-0236; las refs supabase://lf_ops.* son simuladas). Se agregan 5 reglas (reglas simuladas 334-338): SBX-B2B-R-DATA-USER-STORE, SBX-B2B-R-DATA-ATTEMPTS, SBX-B2B-R-DATA-SESSIONS (categoría DATOS → área DATA), SBX-B2B-R-INT-HOME (pantalla /home con 'Welcome', requiere sesión validada por el servidor) y SBX-B2B-R-LAYOUT-COMPOSITION (screen_contract.visual.composition). SBX-B2B-R-INT-RETURN cambia su destino por defecto a /home. Nuevo elemento decorativo SBX-B2B-EL-DECORATIVE. SOURCE_PIN re-fijado. Solo cambia la ficha; no se toca código.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/fixtures/sbx_b2b_login/SOURCE_PIN.json",
+      "analysis/fixtures/sbx_b2b_login/direct_rules.json",
+      "analysis/fixtures/sbx_b2b_login/effective_rules.json",
+      "analysis/fixtures/sbx_b2b_login/elements.json",
+      "analysis/fixtures/sbx_b2b_login/screen_contract.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0253.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/0"
+  }
+}

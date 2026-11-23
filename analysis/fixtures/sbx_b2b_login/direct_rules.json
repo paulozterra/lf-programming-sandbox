@@ -310,7 +310,7 @@
       "source_ref": "supabase://lf_ops.reglas/331",
       "association_ref": "supabase://lf_ops.reglas_pantallas/71",
       "categoria": "UX",
-      "descripcion": "Integración del sandbox (no es regla de LF): tras iniciar sesión se navega a la ruta interna indicada en el parámetro next de /login; si no hay next o no es una ruta interna del sitio, se navega a /sbx-rem-list. Nunca se redirige a un dominio externo."
+      "descripcion": "Integración del sandbox (no es regla de LF): tras iniciar sesión se navega a la ruta interna indicada en el parámetro next de /sbx-b2b-login; si no hay next o no es una ruta interna del sitio, se navega a la pantalla de inicio /home. Nunca se redirige a un dominio externo."
     },
     {
       "code": "SBX-B2B-R-INT-EMAIL-LOGIN",
@@ -331,6 +331,56 @@
       "association_ref": "supabase://lf_ops.reglas_pantallas/73",
       "categoria": "THEME",
       "descripcion": "La pantalla usa el tema claro del sistema de diseño (el modo noche queda fuera de alcance en este sandbox)."
+    },
+    {
+      "code": "SBX-B2B-R-DATA-USER-STORE",
+      "title": "Cuentas en el almacén persistente",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/334",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/74",
+      "categoria": "DATOS",
+      "descripcion": "Las cuentas que pueden iniciar sesión viven en el almacén persistente del sandbox (base relacional, migraciones versionadas). Cada cuenta guarda correo, empresa, perfil y estado; la contraseña solo se guarda como hash. El correo es único sin distinguir mayúsculas. Los datos iniciales son ficticios y nunca incluyen contraseñas en claro. Las cuentas inactivas o restringidas no pueden autenticarse y se tratan como credenciales inválidas hacia afuera."
+    },
+    {
+      "code": "SBX-B2B-R-DATA-ATTEMPTS",
+      "title": "Registro persistente de intentos fallidos",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/335",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/75",
+      "categoria": "DATOS",
+      "descripcion": "Cada intento de inicio de sesión fallido queda registrado en el almacén persistente con la referencia de la cuenta o el correo normalizado, la hora, el resultado y el correlation id; nunca la contraseña. El bloqueo por intentos se calcula desde ese registro, de modo que se mantiene aunque el servicio se reinicie. Rige la política del login existente (bloqueo tras 5 fallos durante 15 minutos)."
+    },
+    {
+      "code": "SBX-B2B-R-DATA-SESSIONS",
+      "title": "Sesiones persistidas y revocables",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/336",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/76",
+      "categoria": "DATOS",
+      "descripcion": "La sesión emitida tras un resultado AUTHENTICATED se registra en el almacén persistente (solo el hash del token, la cuenta, creación, último uso, vencimiento y revocación). La inactividad y la concurrencia de sesiones se aplican desde ese registro. Cerrar sesión revoca el registro; un token revocado o vencido deja de ser válido aunque el servicio se reinicie."
+    },
+    {
+      "code": "SBX-B2B-R-INT-HOME",
+      "title": "Pantalla de inicio tras autenticarse",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/337",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/77",
+      "categoria": "UX",
+      "descripcion": "Integración del sandbox: existe una pantalla de inicio en /home que solo muestra el título Welcome. Requiere una sesión válida, verificada por el servidor; sin sesión válida se redirige a /sbx-b2b-login con next=/home."
+    },
+    {
+      "code": "SBX-B2B-R-LAYOUT-COMPOSITION",
+      "title": "Composición de la pantalla por regiones",
+      "status": "VIGENTE",
+      "pending_decision": false,
+      "source_ref": "supabase://lf_ops.reglas/338",
+      "association_ref": "supabase://lf_ops.reglas_pantallas/78",
+      "categoria": "RESPONSIVE",
+      "descripcion": "La pantalla se compone por regiones (cabecera, decorativa, principal y pie) según la composición registrada en el contrato visual, con orden, alineación y separaciones expresadas solo en tokens de espaciado. La región decorativa cambia de posición según la variante y se oculta en móvil. No se usa tarjeta contenedora ni barra lateral, y no se fijan medidas a mano."
     }
   ],
   "valor_config": [
@@ -652,7 +702,7 @@
       "valor_config": {
         "origin": "SANDBOX_INTEGRATION",
         "return_param": "next",
-        "default_route": "/sbx-rem-list",
+        "default_route": "/home",
         "external_redirect": "DENY"
       }
     },
@@ -671,6 +721,91 @@
       "code": "SBX-B2B-R-THEME-LIGHT",
       "valor_config": {
         "light": "SBX_B2B_THEME_LIGHT"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-DATA-USER-STORE",
+      "valor_config": {
+        "origin": "SANDBOX_INTEGRATION",
+        "store": "SANDBOX_RELATIONAL_DB",
+        "engine": "postgres",
+        "migrations_dir": "db/migration",
+        "account_fields": [
+          "email",
+          "password_hash",
+          "company_code",
+          "profile",
+          "status",
+          "created_at"
+        ],
+        "email_uniqueness": "NORMALIZED_CASE_INSENSITIVE",
+        "password_storage": "HASH_ONLY",
+        "allowed_status": [
+          "ACTIVE",
+          "INACTIVE",
+          "RESTRICTED"
+        ],
+        "seed": "FICTITIOUS_ONLY",
+        "plaintext_password_in_seed": "DENY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-DATA-ATTEMPTS",
+      "valor_config": {
+        "origin": "SANDBOX_INTEGRATION",
+        "store": "SANDBOX_RELATIONAL_DB",
+        "record": [
+          "account_ref_or_normalized_email",
+          "occurred_at",
+          "outcome",
+          "correlation_id"
+        ],
+        "password_in_record": "DENY",
+        "lockout_source": "PERSISTED_ATTEMPTS",
+        "survives_restart": true,
+        "sandbox_policy": "EXISTING_LOGIN_POLICY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-DATA-SESSIONS",
+      "valor_config": {
+        "origin": "SANDBOX_INTEGRATION",
+        "store": "SANDBOX_RELATIONAL_DB",
+        "record": [
+          "token_hash",
+          "account_ref",
+          "created_at",
+          "last_seen_at",
+          "expires_at",
+          "revoked_at"
+        ],
+        "token_storage": "HASH_ONLY",
+        "idle_and_concurrency_source": "PERSISTED_SESSIONS",
+        "logout": "REVOKE",
+        "sandbox_policy": "EXISTING_LOGIN_POLICY"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-INT-HOME",
+      "valor_config": {
+        "origin": "SANDBOX_INTEGRATION",
+        "route": "/home",
+        "content": {
+          "heading": "Welcome"
+        },
+        "requires_session": true,
+        "without_session": "REDIRECT_TO_LOGIN",
+        "session_check": "SERVER_VALIDATED"
+      }
+    },
+    {
+      "code": "SBX-B2B-R-LAYOUT-COMPOSITION",
+      "valor_config": {
+        "layout": "sbx_b2b_auth_login_layout",
+        "composition_source": "screen_contract.visual.composition",
+        "measures": "TOKENS_ONLY",
+        "form_container": "NONE",
+        "sidebar": "DENY"
       }
     }
   ]

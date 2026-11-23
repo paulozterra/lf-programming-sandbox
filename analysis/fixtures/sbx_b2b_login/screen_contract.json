@@ -400,7 +400,8 @@
           "rule_refs": [
             "supabase://lf_ops.reglas/326",
             "supabase://lf_ops.reglas/327",
-            "supabase://lf_ops.reglas/333"
+            "supabase://lf_ops.reglas/333",
+            "supabase://lf_ops.reglas/338"
           ]
         },
         {
@@ -414,7 +415,8 @@
           "rule_refs": [
             "supabase://lf_ops.reglas/326",
             "supabase://lf_ops.reglas/327",
-            "supabase://lf_ops.reglas/333"
+            "supabase://lf_ops.reglas/333",
+            "supabase://lf_ops.reglas/338"
           ]
         },
         {
@@ -428,10 +430,99 @@
           "rule_refs": [
             "supabase://lf_ops.reglas/326",
             "supabase://lf_ops.reglas/327",
-            "supabase://lf_ops.reglas/333"
+            "supabase://lf_ops.reglas/333",
+            "supabase://lf_ops.reglas/338"
           ]
         }
-      ]
+      ],
+      "composition": {
+        "layout": "sbx_b2b_auth_login_layout",
+        "measures": "TOKENS_ONLY",
+        "regions": [
+          {
+            "region": "HEADER",
+            "placement": {
+              "viewport_desktop": "TOP",
+              "viewport_tablet": "TOP",
+              "viewport_mobile": "TOP"
+            },
+            "elements": [
+              "SBX-B2B-EL-HEADER-CONTEXT"
+            ]
+          },
+          {
+            "region": "DECORATIVE",
+            "placement": {
+              "viewport_desktop": "LEFT_COLUMN",
+              "viewport_tablet": "BACKGROUND",
+              "viewport_mobile": "HIDDEN"
+            },
+            "elements": [
+              "SBX-B2B-EL-DECORATIVE"
+            ]
+          },
+          {
+            "region": "MAIN",
+            "placement": {
+              "viewport_desktop": "RIGHT_COLUMN",
+              "viewport_tablet": "CENTER",
+              "viewport_mobile": "STACK"
+            },
+            "gap": "space_24",
+            "elements": [
+              {
+                "code": "SBX-B2B-EL-HEADING",
+                "order": 1
+              },
+              {
+                "code": "SBX-B2B-EL-EMAIL",
+                "order": 2
+              },
+              {
+                "code": "SBX-B2B-EL-PASSWORD",
+                "order": 3
+              },
+              {
+                "code": "SBX-B2B-EL-RECOVERY-LINK",
+                "order": 4,
+                "align": "END"
+              },
+              {
+                "code": "SBX-B2B-EL-ERROR",
+                "order": 5
+              },
+              {
+                "code": "SBX-B2B-EL-SUBMIT",
+                "order": 6,
+                "align": "STRETCH",
+                "space_before": "space_24"
+              }
+            ]
+          },
+          {
+            "region": "FOOTER",
+            "placement": {
+              "viewport_desktop": "BOTTOM",
+              "viewport_tablet": "BOTTOM",
+              "viewport_mobile": "BOTTOM"
+            },
+            "gap": "space_32",
+            "align": {
+              "viewport_desktop": "START",
+              "viewport_tablet": "START",
+              "viewport_mobile": "CENTER"
+            },
+            "elements": [
+              "SBX-B2B-EL-TERMS",
+              "SBX-B2B-EL-PRIVACY",
+              "SBX-B2B-EL-SUPPORT"
+            ]
+          }
+        ],
+        "rule_refs": [
+          "supabase://lf_ops.reglas/338"
+        ]
+      }
     },
     "context": {
       "module_code": "SBX-M-B2B-AUTH",
@@ -529,6 +620,13 @@
           "role": "AUTH_LAYOUT",
           "label_visible": null,
           "component_token": "sbx_b2b_auth_login_layout"
+        },
+        {
+          "code": "SBX-B2B-EL-DECORATIVE",
+          "status": "VIGENTE",
+          "role": "DECORATIVE_SHAPE",
+          "label_visible": null,
+          "component_token": null
         }
       ],
       "states": [
@@ -816,6 +914,46 @@
         "pending_decision": false,
         "source_ref": "supabase://lf_ops.reglas/333",
         "association_ref": "supabase://lf_ops.reglas_pantallas/73"
+      },
+      {
+        "code": "SBX-B2B-R-DATA-USER-STORE",
+        "title": "Cuentas en el almacén persistente",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/334",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/74"
+      },
+      {
+        "code": "SBX-B2B-R-DATA-ATTEMPTS",
+        "title": "Registro persistente de intentos fallidos",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/335",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/75"
+      },
+      {
+        "code": "SBX-B2B-R-DATA-SESSIONS",
+        "title": "Sesiones persistidas y revocables",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/336",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/76"
+      },
+      {
+        "code": "SBX-B2B-R-INT-HOME",
+        "title": "Pantalla de inicio tras autenticarse",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/337",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/77"
+      },
+      {
+        "code": "SBX-B2B-R-LAYOUT-COMPOSITION",
+        "title": "Composición de la pantalla por regiones",
+        "status": "VIGENTE",
+        "pending_decision": false,
+        "source_ref": "supabase://lf_ops.reglas/338",
+        "association_ref": "supabase://lf_ops.reglas_pantallas/78"
       }
     ],
     "policies": [
