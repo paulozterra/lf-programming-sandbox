@@ -7,23 +7,29 @@
     "kind": "OWNER",
     "reference": "Owner 2026-11-23: req-391 INFRA bloqueado por falso positivo de secretos y .env.example; publicar examen falla tarde"
   },
-  "reason": "SBX-B2B-R-DATA-USER-STORE describe propiedades spring.datasource con DB_URL/DB_USERNAME y DB_PASSWORD, con fallback local pilot para base desechable. Una continuación Java Properties del valor de contraseña evita el falso positivo ASSIGNMENT_SECRET sobre ${DB_PASSWORD:pilot} sin cambiar el detector ni almacenar credenciales reales. La política T3 y sus validadores dejan de exigir .env.example: worker_secrets.sensitive_path_reason lo prohíbe, por lo que el tercer write_path era imposible de implementar. Se modifica solamente la política de generación futura; el plan histórico req-391 mantiene su write_path inmovilizado y necesitará reconciliación/replanificación gobernada; no se alteran pilot/runs/req-391 ni holdouts. T31 verifica AST sin assert, códigos fail, timeout derivado del validador vendorizado, carga del oracle y alcance estricto de referencia/mutantes antes de compilar. Los cambios de fichas se reflejan en direct_rules/effective_rules y hashes en SOURCE_PIN.",
+  "reason": "La regla SBX-B2B-R-DATA-USER-STORE se expresa como comportamiento: DB_URL/DB_USERNAME/DB_PASSWORD son variables de entorno, solo DB_URL admite una URL local por defecto sin credenciales. No existen usuarios ni contraseñas por defecto en la configuración versionada; se elimina la continuación de línea que evadía el escáner. Worker nativo y T40 suministran las tres variables para su Postgres efímero (como CI), y un adaptador LF de alcance reducido las añade solo a los comandos visibles y ocultos usando el entorno aislado del vendor, sin cambiar ni invalidar el vendor inmutable ni transmitir tokens. Se retiene la retirada de .env.example de T3 ya aprobada. T31 conserva preflight de códigos de fallo, AST assert, timeout vendor, loader del oráculo y alcance de referencia/mutantes. Quedan intactos pilot/runs/req-391 y pilot/holdouts; el plan histórico registrado todavía conserva .env.example y exige una modificación gobernada separada.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/exam-rehearsal.yml",
+      ".github/workflows/worker-native.yml",
+      "analysis/fixtures/sbx_b2b_login/SOURCE_PIN.json",
       "analysis/fixtures/sbx_b2b_login/direct_rules.json",
       "analysis/fixtures/sbx_b2b_login/effective_rules.json",
-      "analysis/fixtures/sbx_b2b_login/SOURCE_PIN.json",
       "pilot/orchestrator/dependency_allowlist_v1.json",
       "pilot/orchestrator/infra_lot.py",
       "pilot/orchestrator/infra_validate.py",
-      "pilot/orchestrator/test_t3_infra.py",
       "pilot/orchestrator/publish_exam.py",
       "pilot/orchestrator/test_t31_publish_exam.py",
-      "standards/changes/CHG-0287.json",
-      "standards/CAMBIOS.md"
+      "pilot/orchestrator/test_t3_infra.py",
+      "pilot/worker_v08/exam_rehearsal.py",
+      "pilot/worker_v08/native_run.py",
+      "pilot/worker_v08/test_worker_context_safety.py",
+      "pilot/worker_v08/worker_db_env.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0287.json"
     ]
   },
   "existing_code_impact": {
