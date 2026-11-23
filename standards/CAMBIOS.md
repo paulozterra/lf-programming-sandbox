@@ -243,4 +243,4 @@
 | CHG-0249 | ADDITIVE | R3: retirar dry-run temporal y fijar corte histórico de PR #370 en archivo versionado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/371 |
 | CHG-0250 | ADDITIVE | R4: Policy C re-despacha Train para etiqueta ready-to-merge del bot sin run efectivo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/372 |
 | CHG-0251 | ADDITIVE | CP3.6/T9: reconciliar cadenas completas tras PASS tardío y preservar cierre gobernado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/373 |
-| CHG-0253 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0253 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/376 |
