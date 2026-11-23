@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import chain_lots as cl
+import pg37_publish as pg37
 from chain_contract import progress
 
 
@@ -74,6 +75,54 @@ class CompletionTests(unittest.TestCase):
         self.assertEqual(result["status"], "CHAIN_COMPLETE_DRAFT_PENDING")
         self.assertEqual(result["retired_blocked_prs"], [267])
         close.assert_called_once_with("lf/chain-blocked/req-186-", "ffffffffffff")
+
+    def test_pg37_sweep_retires_bot_draft_from_older_main(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            from pilot.config.testing import install_project_config
+            install_project_config(root)
+            (root / "pilot/runs/req-186").mkdir(parents=True)
+            with (patch.object(pg37.chain_lots, "check_main",
+                               return_value="f" * 40),
+                  patch.object(pg37.chain_lots, "plans",
+                               return_value=[("req-186", self.lots,
+                                              {"stage": "LOTS_PLANNED"},
+                                              self.bindings)]),
+                  patch.object(pg37, "request_state", return_value=cl.OPEN),
+                  patch.object(pg37.chain_lots, "pending_draft",
+                               side_effect=[True, False]),
+                  patch.object(pg37.chain_lots, "close_stale_drafts",
+                               return_value=[237]) as close,
+                  patch.object(pg37.chain_lots, "first_parent_merges",
+                               return_value=[]),
+                  patch.object(pg37.chain_lots, "completed_lots",
+                               return_value={})):
+                self.assertEqual(pg37.sweep(root=root),
+                                 [{"status": "R1_CP37_NO_MISSING_EVIDENCE"}])
+            close.assert_called_once_with("lf/evidence/req-186-", "ffffffffffff")
+
+    def test_pg37_sweep_does_not_override_pending_current_review(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            from pilot.config.testing import install_project_config
+            install_project_config(root)
+            (root / "pilot/runs/req-286").mkdir(parents=True)
+            with (patch.object(pg37.chain_lots, "check_main",
+                               return_value="f" * 40),
+                  patch.object(pg37.chain_lots, "plans",
+                               return_value=[("req-286", self.lots,
+                                              {"stage": "LOTS_PLANNED"},
+                                              self.bindings)]),
+                  patch.object(pg37, "request_state", return_value=cl.OPEN),
+                  patch.object(pg37.chain_lots, "pending_draft",
+                               side_effect=[True, True]),
+                  patch.object(pg37.chain_lots, "close_stale_drafts",
+                               return_value=[]) as close,
+                  patch.object(pg37.chain_lots, "first_parent_merges",
+                               side_effect=AssertionError("must not scan"))):
+                self.assertEqual(pg37.sweep(root=root),
+                                 [{"status": "R1_CP37_NO_MISSING_EVIDENCE"}])
+            close.assert_called_once()
 
     def test_non_sweep_does_not_retire_any_pr(self):
         with patch.object(cl, "close_stale_drafts",
