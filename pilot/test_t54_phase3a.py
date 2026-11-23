@@ -38,7 +38,8 @@ class Equivalence(unittest.TestCase):
         real_roots = {
             "BACKEND": ("apps/time-service/src/main/java/", "backend/src/main/java/"),
             "FRONTEND": ("apps/web/", "frontend/"),
-            "DATA": ("db/", "supabase/migrations/", "apps/time-service/src/main/resources/db/migration/"),
+            "DATA": ("db/", "supabase/migrations/", "apps/time-service/src/main/resources/db/migration/",
+             "apps/time-service/src/main/resources/db/rollback/"),
             "INFRA": ("apps/time-service/", "frontend/"),
             "CONTRATO": ("contracts/",),
         }

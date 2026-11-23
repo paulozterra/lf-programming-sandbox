@@ -52,7 +52,9 @@
     "FRONTEND": [
       "frontend/src/app/{module}/page.tsx",
       "frontend/src/lib/{module}.ts"
-    ]
+    ],
+    "DATA_ROLLBACK": "apps/{service}/src/main/resources/db/rollback/U{next}__{module}.sql",
+    "FRONTEND_RULE_PAGE": "frontend/src/app/{route}/page.tsx"
   },
   "service": "time-service",
   "backend_classes": [
@@ -63,7 +65,7 @@
   "project_patterns": {
     "BACKEND": "apps/time-service/src/main/java/",
     "FRONTEND": "frontend/src/",
-    "DATA": "apps/time-service/src/main/resources/db/migration/"
+    "DATA":"apps/time-service/src/main/resources/db/"
   },
   "profile_resolution": {
     "source_ref": "pilot/lf_producers_pinned/selector_experimental/experimental/seed_profiles_exp.sql",

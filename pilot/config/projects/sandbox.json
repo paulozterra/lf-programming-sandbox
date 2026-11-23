@@ -79,12 +79,14 @@
       "write_prefixes": [
         "db/",
         "supabase/migrations/",
-        "apps/time-service/src/main/resources/db/migration/"
+        "apps/time-service/src/main/resources/db/migration/",
+        "apps/time-service/src/main/resources/db/rollback/"
       ],
       "project_roots": [
         "db/",
         "supabase/migrations/",
-        "apps/time-service/src/main/resources/db/migration/"
+        "apps/time-service/src/main/resources/db/migration/",
+        "apps/time-service/src/main/resources/db/rollback/"
       ]
     },
     "BACKEND": {

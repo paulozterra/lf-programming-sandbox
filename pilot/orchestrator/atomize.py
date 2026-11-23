@@ -117,8 +117,11 @@ def _class(module, suffix):
 def _route(area, module, rules, root, *, data_ordinal=0):
     service = rules["service"]
     if area == "DATA":
-        return [rules["routes"]["DATA"].format(
-            service=service, next=_next_version(root)+data_ordinal, module=module.replace("-", "_"))]
+        # CHG-0261: STD-DB-08 needs a rollback beside each new migration
+        # (outside the Flyway location, so it is never auto-applied).
+        version = _next_version(root) + data_ordinal
+        return [rules["routes"][key].format(service=service, next=version, module=module.replace("-", "_"))
+                for key in ("DATA", "DATA_ROLLBACK") if key in rules["routes"]]
     if area == "BACKEND":
         return [rules["routes"]["BACKEND"].format(
             service=service, service_java=service.split("-")[0],
@@ -127,6 +130,25 @@ def _route(area, module, rules, root, *, data_ordinal=0):
     if area == "FRONTEND":
         return [p.format(module=module) for p in rules["routes"]["FRONTEND"]]
     raise AtomBlocked("ATOM_AREA_UNRESOLVED")
+
+
+RULE_ROUTE = re.compile(r"/[a-z][a-z0-9-]{0,62}")
+
+
+def _rule_pages(related, business_rules, rules):
+    """CHG-0261: a FRONTEND rule that declares a new page route (valor_config.route,
+    e.g. /home) needs that page file; reuse of existing paths cannot supply it."""
+    template = rules["routes"].get("FRONTEND_RULE_PAGE")
+    if not template:
+        return []
+    ids = {r["requirement_id"] for r in related}
+    pages = set()
+    for rule in business_rules:
+        config = rule.get("valor_config") if isinstance(rule, dict) else None
+        route = config.get("route") if isinstance(config, dict) else None
+        if rule.get("requirement_id") in ids and isinstance(route, str) and RULE_ROUTE.fullmatch(route):
+            pages.add(template.format(route=route[1:]))
+    return sorted(pages)
 
 
 def _area(front, requirements, business_rules, rules):
@@ -247,6 +269,8 @@ def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
                             for p in existing):
                         raise AtomBlocked("REUTILIZACION_INDETERMINADA")
                     paths = sorted(set(existing + (paths if builds else [])))
+            if area == "FRONTEND":
+                paths = sorted(set(paths) | set(_rule_pages(related, business_rules, rules)))
             if area == "DATA":
                 data_ordinal += 1
             groups = [paths[i:i + rules["max_paths"]] for i in range(0, len(paths), rules["max_paths"])]

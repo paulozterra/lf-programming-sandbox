@@ -43,10 +43,11 @@ def test_synthetic_random_data_generates_infra_and_classpath_path(tmp_path):
     token = uuid.uuid4().hex[:12]
     module = "module-" + token
     data_path = atomize._route("DATA", module, atomize._rules(), tmp_path)
-    assert len(data_path) == 1
+    assert len(data_path) == 2  # CHG-0261: migration + STD-DB-08 rollback
     assert re.fullmatch(
         r"apps/time-service/src/main/resources/db/migration/V[0-9]+__module_[a-f0-9]+[.]sql",
         data_path[0])
+    assert data_path[1] == data_path[0].replace("/db/migration/V", "/db/rollback/U")
     data = {"atom_id": "ATOM-" + token, "area": "DATA", "functional_module": module,
             "front_id": "F3-" + token, "requirement_ids": ["REQ-R" + token.upper()],
             "paths": data_path, "depends_on": []}
@@ -207,3 +208,12 @@ def test_real_worker_area_admission_for_infra_and_data(tmp_path):
     assert select_area([migration], "DATA") == "DATA"
     with pytest.raises(Exception, match="DEPENDENCIA_NO_PERMITIDA"):
         select_area(["apps/time-service/src/main/java/Unsafe.java"], "INFRA")
+
+
+def test_rule_declared_route_adds_frontend_page():
+    rules = atomize._rules()
+    related = [{"requirement_id": "REQ-SBX-HOME"}]
+    business = [{"requirement_id": "REQ-SBX-HOME", "valor_config": {"route": "/home"}},
+                {"requirement_id": "REQ-OTHER", "valor_config": {"route": "/other"}},
+                {"requirement_id": "REQ-SBX-HOME", "valor_config": {"route": "https://evil.test"}}]
+    assert atomize._rule_pages(related, business, rules) == ["frontend/src/app/home/page.tsx"]

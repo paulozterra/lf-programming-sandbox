@@ -1,0 +1,44 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0270",
+  "title": "T7: rollback STD-DB-08 en lotes DATA, página para rutas declaradas por reglas y migraciones por Flyway en el ejercicio login",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (23/11/2026): el plan de req-391 no permitía crear /home ni el rollback"
+  },
+  "reason": "El plan T7 de req-391 reutilizó las rutas de req-286: el lote FRONTEND no podía crear la página /home que exige SBX-B2B-R-INT-HOME y el lote DATA no tenía ruta para el rollback de STD-DB-08. (1) atomize: el lote DATA agrega U<n>__<modulo>.sql en apps/<service>/src/main/resources/db/rollback (fuera de la ubicación de Flyway); register_task_context clasifica esa ruta como DATA. (2) atomize: un lote FRONTEND agrega frontend/src/app/<ruta>/page.tsx cuando una regla relacionada declara valor_config.route (/[a-z][a-z0-9-]*). (3) La ruta del sandbox ya diseña migraciones Flyway en classpath (lote INFRA con spring-flyway/flyway-postgresql); la ficha SBX-B2B-LOGIN pasa a Flyway al iniciar el servicio y se retiran los pasos de CHG-0256 que aplicaban db/migration de la raíz a la base del CI, del Worker y del ensayo T40 (habrían dejado un esquema no vacío sin historial de Flyway).",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/exam-rehearsal.yml",
+      ".github/workflows/worker-native.yml",
+      "analysis/fixtures/sbx_b2b_login/SOURCE_PIN.json",
+      "analysis/fixtures/sbx_b2b_login/direct_rules.json",
+      "analysis/fixtures/sbx_b2b_login/effective_rules.json",
+      "pilot/orchestrator/atomize.py",
+      "pilot/orchestrator/atomize_rules_v1.json",
+      "pilot/orchestrator/test_t3_infra.py",
+      "pilot/worker_v08/register_task_context.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0270.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/407"
+  }
+}
