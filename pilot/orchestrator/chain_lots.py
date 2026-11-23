@@ -361,8 +361,17 @@ def _active_plan_origin(request: str, path: str, additions: list[str],
     """Prove prior plans were retired by Train before native work began."""
     if len(additions) == 1:
         return additions[0]
+    if any(not re.fullmatch(r"[0-9a-f]{40}", sha) for sha in additions):
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    first = additions[-1]
+    first_parents = run("git", "rev-list", "--parents", "-n", "1", first,
+                        cwd=root).split()
+    if not first_parents or first_parents[0] != first:
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    since = f"{first}^..HEAD" if len(first_parents) > 1 else "HEAD"
     history = run("git", "rev-list", "--first-parent",
-                  f"--max-count={max_commits + 1}", "HEAD", cwd=root).splitlines()
+                  f"--max-count={max_commits + 1}", since,
+                  cwd=root).splitlines()
     if len(history) > max_commits or len(set(history)) != len(history):
         deny("CHAIN_HISTORY_INCOMPLETE")
     position = {sha: i for i, sha in enumerate(history)}
