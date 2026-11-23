@@ -252,4 +252,4 @@
 | CHG-0270 | ADDITIVE | T7: rollback STD-DB-08 en lotes DATA, página para rutas declaradas por reglas y migraciones por Flyway en el ejercicio login |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/407 |
 | CHG-0277 | EDITORIAL | T31: --identity opcional en publish_exam; la verificación de descifrado queda en el ensayo T40 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/407 |
 | CHG-0287 | EDITORIAL | SBX-B2B-LOGIN: datasource local compatible con Worker y lint temprano del examinador T31 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/434 |
-| CHG-0290 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0290 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/438 |
