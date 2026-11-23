@@ -1507,6 +1507,9 @@ def reconcile_complete_chain(request: str, state: dict, lots: dict,
     if state["stage"] == "CHAIN_COMPLETE_CANDIDATE":
         return {"status": "CHAIN_COMPLETE_CANDIDATE", "retired_blocked_prs": retired}
     prefix = f"lf/chain-complete/{request}-"
+    # Like CP3.7 evidence drafts: a bot candidate anchored to an older main
+    # (e.g. conflicting after other merges) is superseded, then regenerated.
+    close_stale_drafts(prefix, head[:12])
     if pending_draft(prefix):
         return {"status": "CHAIN_COMPLETE_DRAFT_PENDING", "retired_blocked_prs": retired}
     branch = prefix + head[:12]

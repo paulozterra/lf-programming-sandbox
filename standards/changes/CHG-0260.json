@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0260",
+  "title": "CP3.6: superar candidatos CHAIN_COMPLETE del bot anclados a un main viejo",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (23/11/2026): #376-#378 con conflicto quedaban pendientes para siempre"
+  },
+  "reason": "reconcile_complete_chain devolvía CHAIN_COMPLETE_DRAFT_PENDING mientras existiera un draft lf/chain-complete/<pedido>-*, aunque estuviera anclado a un main viejo y en conflicto (#376-#378 tras los merges de #375/#381/#382/#383). Ahora, igual que CP3.7 con sus evidencias, cierra los drafts del bot con otro HEAD (close_stale_drafts) y regenera el candidato sobre el main actual. No cambia la verificación de completitud ni toca drafts humanos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/test_chain_completion_reconcile.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0260.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/385"
+  }
+}
