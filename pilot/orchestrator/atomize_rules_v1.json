@@ -65,7 +65,7 @@
   "project_patterns": {
     "BACKEND": "apps/time-service/src/main/java/",
     "FRONTEND": "frontend/src/",
-    "DATA": "apps/time-service/src/main/resources/db/migration/"
+    "DATA":"apps/time-service/src/main/resources/db/"
   },
   "profile_resolution": {
     "source_ref": "pilot/lf_producers_pinned/selector_experimental/experimental/seed_profiles_exp.sql",
