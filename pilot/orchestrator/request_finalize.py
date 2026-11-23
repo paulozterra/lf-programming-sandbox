@@ -95,6 +95,13 @@ def close(out: Path):
                     f"Informe de intervención: {url} (artefacto t9-intervention-reports, "
                     f"archivo {row['slug']}-INTERVENTION_REPORT.md).")
         api.call("PATCH", f"/issues/{row['issue']}", {"state": "closed"})
+        # A historically blocked request may later complete via a verified
+        # Train integration. Only a successful completion clears that label.
+        if row["stage"] in ("CHAIN_COMPLETE_VERIFIED", "COMPLETED", "COMPLETE", "FINISHED"):
+            if "lf-request-blocked" in {
+                    item.get("name") for item in issue.get("labels", [])
+                    if isinstance(item, dict)}:
+                api.call("DELETE", f"/issues/{row['issue']}/labels/lf-request-blocked")
 
 
 if __name__ == "__main__":
