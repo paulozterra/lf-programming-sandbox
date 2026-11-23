@@ -65,6 +65,12 @@ class FinalizeTests(unittest.TestCase):
                      "status": "ATTESTED"} for n in ("SOL-001", "SOL-002")]}))
                 self.assertEqual(list(mod.terminal_requests())[0][2],
                                  "CHAIN_COMPLETE_VERIFIED")
+                (folder / "state.json").write_text(
+                    json.dumps({"stage": "CHAIN_COMPLETE_CANDIDATE"}))
+                self.assertEqual(list(mod.terminal_requests())[0][2],
+                                 "CHAIN_COMPLETE_VERIFIED")
+                (folder / "H_REPORT.md").unlink()
+                self.assertEqual(list(mod.terminal_requests()), [])
 
     def test_only_explicit_terminal_states(self):
         mod = load()
