@@ -782,7 +782,7 @@
             }
           ]
         },
-        "datasource_config": "spring.datasource.url/username/password desde DB_URL, DB_USERNAME y DB_PASSWORD (convención del CI); sin esas variables, jdbc:postgresql://127.0.0.1:5432/pilot con pilot/pilot (base desechable local y del Worker). Flyway aplica las migraciones al iniciar el servicio.",
+        "datasource_config": "Usar spring.datasource.url=${DB_URL:jdbc:postgresql://127.0.0.1:5432/pilot}, spring.datasource.username=${DB_USERNAME:pilot} y spring.datasource.password=${DB_PASSWORD}. En CI y Worker el entorno proporciona DB_PASSWORD; para la base local desechable usar DB_PASSWORD=pilot como valor de entorno por defecto del lanzador (no incrustarlo como fallback de una asignación de password en application.properties). En entornos no locales DB_PASSWORD es obligatorio y nunca se persiste la contraseña en archivos. Flyway aplica las migraciones al iniciar el servicio. No crear .env.example ni otros archivos .env.*.",
         "standards": [
           "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
         ],
