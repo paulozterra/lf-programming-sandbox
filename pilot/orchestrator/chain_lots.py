@@ -27,7 +27,7 @@ import subprocess
 import sys
 import tempfile
 from contextlib import nullcontext
-from pilot.orchestrator import sweep_api_budget as budget
+import pilot.orchestrator.sweep_api_budget as budget
 
 from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN
 from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_state,
