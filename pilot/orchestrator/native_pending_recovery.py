@@ -67,6 +67,28 @@ def recover(head: str, run, api, repo: str, root: Path, *, allowed_task) -> list
                "refs/heads/lf/native-proposal/*").splitlines()
     if len(refs) > 1000:
         raise ValueError("R1_WORKER_REFS_UNBOUNDED")
+    # Filter by authoritative live ownership BEFORE downloading Worker history.
+    # Branches without a plan, or with a completed plan, must not trigger
+    # expensive history/artifact inspection. Validate every ref first.
+    eligible = []
+    outcomes = []
+    for line in refs:
+        fields = line.split()
+        if len(fields) != 2 or not SHA.fullmatch(fields[0]):
+            raise ValueError("R1_WORKER_REF_INVALID")
+        sha, ref = fields
+        match = re.fullmatch(r"refs/heads/lf/native-proposal/([a-z][a-z0-9_-]{0,31})", ref)
+        if match is None:
+            raise ValueError("R1_WORKER_REF_INVALID")
+        task = match.group(1)
+        try:
+            if allowed_task(task):
+                eligible.append((task, sha))
+        except RequestStateError:
+            outcomes.append({"status": "BLOCKED", "task": task,
+                             "reason": "REQUEST_STATE_UNRESOLVED"})
+    if not eligible:
+        return outcomes
     rows = []
     for page in range(1, 11):
         response = api(f"actions/workflows/worker-native.yml/runs?per_page=100&page={page}")
@@ -80,19 +102,8 @@ def recover(head: str, run, api, repo: str, root: Path, *, allowed_task) -> list
             break
     else:
         raise ValueError("R1_WORKER_HISTORY_INCOMPLETE")
-    outcomes = []
-    for line in refs:
-        fields = line.split()
-        if len(fields) != 2 or not SHA.fullmatch(fields[0]):
-            raise ValueError("R1_WORKER_REF_INVALID")
-        sha, ref = fields
-        match = re.fullmatch(r"refs/heads/lf/native-proposal/([a-z][a-z0-9_-]{0,31})", ref)
-        if match is None:
-            raise ValueError("R1_WORKER_REF_INVALID")
-        task = match.group(1)
+    for task, sha in eligible:
         try:
-            if not allowed_task(task):
-                continue
             path = storage_path("registrations_root", root=root) / (task + ".json")
             if path.is_symlink() or not path.is_file():
                 raise ValueError("R1_WORKER_REGISTRATION_MISSING")
