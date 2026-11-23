@@ -100,7 +100,12 @@ def sweep(*,root=ROOT):
    if request_state(request,chain_lots.api,root=root)!=OPEN:continue
    report=storage_path("requests_root",root=root)/request/"H_REPORT.md"
    if report.exists() or report.is_symlink():continue
-   if chain_lots.pending_draft(f"lf/evidence/{request}-"):continue
+   prefix=f"lf/evidence/{request}-"
+   if chain_lots.pending_draft(prefix):
+    # Only supersede bot-authored drafts anchored to an older main; retain
+    # same-base or human-authored review branches without modification.
+    chain_lots.close_stale_drafts(prefix,head[:12])
+    if chain_lots.pending_draft(prefix):continue
    history=chain_lots.first_parent_merges(request,root=root)
    if chain_lots.completed_lots(lots,bindings,history):ready.append(request)
   except (RequestStateError,chain_lots.ChainBlocked,OSError,ValueError,KeyError) as exc:
