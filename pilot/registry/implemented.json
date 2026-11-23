@@ -107,16 +107,28 @@
       "status": "NO_DERIVABLE"
     },
     {
-      "area": null,
-      "endpoints": [],
-      "files": [],
-      "lot": null,
+      "area": "CONTRATO",
+      "endpoints": [
+        "GET /api/reminders"
+      ],
+      "files": [
+        {
+          "path": "contracts/sbx-rem-list.openapi.yaml",
+          "sha256": "ad391114304db0b19e9792c905907a23cd628be4fd8f15a1b9577477dbe2c7ae"
+        }
+      ],
+      "lot": "SOL-Ca97f5811893a",
       "merge_sha": "b2dc9b5b7a01768c06b16a9e3d99dbf3abee8107",
       "reasons": [
-        "LOT_MAPPING_NOT_UNIQUE"
+        "RULE_BINDING_MISSING"
       ],
-      "request": null,
-      "requirement_ids": [],
+      "request": "req-186",
+      "requirement_ids": [
+        "REQ-SBX-R-ERR-FRONTEND",
+        "REQ-SBX-R-PRIORITY-FILTER",
+        "REQ-SBX-R-SESSION-REQUIRED",
+        "REQ-SBX-R-SESSION-REQUIRED-FRONTEND"
+      ],
       "rule_codes": [],
       "status": "NO_DERIVABLE"
     },
@@ -152,62 +164,228 @@
       "status": "ATTESTED"
     },
     {
-      "area": null,
-      "endpoints": [],
-      "files": [],
-      "lot": null,
+      "area": "FRONTEND",
+      "endpoints": [
+        "GET /api/reminders"
+      ],
+      "files": [
+        {
+          "path": "frontend/src/app/sbx-rem-list/page.tsx",
+          "sha256": "2501338110b1f1bb41879324a16bae216d2644ea5fd2c93624802de29e2bc18b"
+        },
+        {
+          "path": "frontend/src/lib/sbx-rem-list.ts",
+          "sha256": "7da9814a82e2ad124b938c7fd28db9159f2e93ea84eb4f90dc72d8e747a4ca78"
+        }
+      ],
+      "lot": "SOL-001",
       "merge_sha": "5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
       "reasons": [
-        "LOT_MAPPING_NOT_UNIQUE"
+        "RULE_BINDING_MISSING"
       ],
-      "request": null,
-      "requirement_ids": [],
+      "request": "req-186",
+      "requirement_ids": [
+        "REQ-SBX-R-ERR-FRONTEND",
+        "REQ-SBX-R-PRIORITY-FILTER",
+        "REQ-SBX-R-SESSION-REQUIRED-FRONTEND"
+      ],
       "rule_codes": [],
       "status": "NO_DERIVABLE"
     },
     {
-      "area": null,
-      "endpoints": [],
-      "files": [],
-      "lot": null,
+      "area": "CONTRATO",
+      "endpoints": [
+        "POST /api/auth/login"
+      ],
+      "files": [
+        {
+          "path": "contracts/sbx-b2b-login.openapi.yaml",
+          "sha256": "39c4feb54aebbdf892113cc557fde751742fd859dcdec51ff994706c9d609dc0"
+        }
+      ],
+      "lot": "SOL-Cf376a709e8a9",
       "merge_sha": "639f720ea6ab33ff47135d015b840df8b664af1e",
-      "reasons": [
-        "LOT_MAPPING_NOT_UNIQUE"
+      "reasons": [],
+      "request": "req-286",
+      "requirement_ids": [
+        "REQ-SBX-B2B-R-A11Y-CONTRAST",
+        "REQ-SBX-B2B-R-A11Y-FORCED-COLORS",
+        "REQ-SBX-B2B-R-A11Y-INTERACTION",
+        "REQ-SBX-B2B-R-A11Y-MOTION",
+        "REQ-SBX-B2B-R-AUTH-DENY-DEFAULT",
+        "REQ-SBX-B2B-R-AUTH-ENVELOPE",
+        "REQ-SBX-B2B-R-AUTH-FAIL-CLOSED",
+        "REQ-SBX-B2B-R-AUTH-OUTCOMES",
+        "REQ-SBX-B2B-R-AUTH-REQUEST",
+        "REQ-SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+        "REQ-SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+        "REQ-SBX-B2B-R-AUTH-TIMEOUT",
+        "REQ-SBX-B2B-R-DESIGN-NO-HARDCODE",
+        "REQ-SBX-B2B-R-DESIGN-TOKENS",
+        "REQ-SBX-B2B-R-ERROR-CODE",
+        "REQ-SBX-B2B-R-ERROR-SAFE-MESSAGE",
+        "REQ-SBX-B2B-R-ERROR-TRACE",
+        "REQ-SBX-B2B-R-INT-EMAIL-LOGIN",
+        "REQ-SBX-B2B-R-INT-RETURN",
+        "REQ-SBX-B2B-R-INT-ROUTE",
+        "REQ-SBX-B2B-R-INT-SESSION-STORE",
+        "REQ-SBX-B2B-R-PRIVACY-TELEMETRY",
+        "REQ-SBX-B2B-R-RESP-BREAKPOINTS",
+        "REQ-SBX-B2B-R-THEME-LIGHT",
+        "REQ-SBX-B2B-R-UX-ACTIONS",
+        "REQ-SBX-B2B-R-UX-PASSWORD-MANAGERS",
+        "REQ-SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+        "REQ-SBX-B2B-R-UX-RECOVERY",
+        "REQ-SBX-B2B-R-UX-SINGLE-FLIGHT"
       ],
-      "request": null,
-      "requirement_ids": [],
-      "rule_codes": [],
-      "status": "NO_DERIVABLE"
+      "rule_codes": [
+        "SBX-B2B-R-A11Y-CONTRAST",
+        "SBX-B2B-R-A11Y-FORCED-COLORS",
+        "SBX-B2B-R-A11Y-INTERACTION",
+        "SBX-B2B-R-A11Y-MOTION",
+        "SBX-B2B-R-AUTH-DENY-DEFAULT",
+        "SBX-B2B-R-AUTH-ENVELOPE",
+        "SBX-B2B-R-AUTH-FAIL-CLOSED",
+        "SBX-B2B-R-AUTH-OUTCOMES",
+        "SBX-B2B-R-AUTH-REQUEST",
+        "SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+        "SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+        "SBX-B2B-R-AUTH-TIMEOUT",
+        "SBX-B2B-R-DESIGN-NO-HARDCODE",
+        "SBX-B2B-R-DESIGN-TOKENS",
+        "SBX-B2B-R-ERROR-CODE",
+        "SBX-B2B-R-ERROR-SAFE-MESSAGE",
+        "SBX-B2B-R-ERROR-TRACE",
+        "SBX-B2B-R-INT-EMAIL-LOGIN",
+        "SBX-B2B-R-INT-RETURN",
+        "SBX-B2B-R-INT-ROUTE",
+        "SBX-B2B-R-INT-SESSION-STORE",
+        "SBX-B2B-R-PRIVACY-TELEMETRY",
+        "SBX-B2B-R-RESP-BREAKPOINTS",
+        "SBX-B2B-R-THEME-LIGHT",
+        "SBX-B2B-R-UX-ACTIONS",
+        "SBX-B2B-R-UX-PASSWORD-MANAGERS",
+        "SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+        "SBX-B2B-R-UX-RECOVERY",
+        "SBX-B2B-R-UX-SINGLE-FLIGHT"
+      ],
+      "status": "ATTESTED"
     },
     {
-      "area": null,
-      "endpoints": [],
-      "files": [],
-      "lot": null,
+      "area": "BACKEND",
+      "endpoints": [
+        "POST /api/auth/login"
+      ],
+      "files": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+          "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937"
+        }
+      ],
+      "lot": "SOL-002",
       "merge_sha": "ef343d9d0868c689188e2175f6ac995541d86ee7",
       "reasons": [
-        "LOT_MAPPING_MISSING"
+        "INTEGRATED_FILES_MISSING"
       ],
-      "request": null,
-      "requirement_ids": [],
-      "rule_codes": [],
-      "status": "NO_DERIVABLE"
+      "request": "req-286",
+      "requirement_ids": [
+        "REQ-SBX-B2B-R-AUTH-DENY-DEFAULT",
+        "REQ-SBX-B2B-R-AUTH-ENVELOPE",
+        "REQ-SBX-B2B-R-AUTH-FAIL-CLOSED",
+        "REQ-SBX-B2B-R-AUTH-OUTCOMES",
+        "REQ-SBX-B2B-R-AUTH-REQUEST",
+        "REQ-SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+        "REQ-SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+        "REQ-SBX-B2B-R-AUTH-TIMEOUT",
+        "REQ-SBX-B2B-R-ERROR-CODE",
+        "REQ-SBX-B2B-R-ERROR-SAFE-MESSAGE",
+        "REQ-SBX-B2B-R-ERROR-TRACE",
+        "REQ-SBX-B2B-R-INT-EMAIL-LOGIN",
+        "REQ-SBX-B2B-R-PRIVACY-TELEMETRY",
+        "REQ-SBX-B2B-R-UX-PASSWORD-MANAGERS",
+        "REQ-SBX-B2B-R-UX-PASSWORD-VISIBILITY"
+      ],
+      "rule_codes": [
+        "SBX-B2B-R-AUTH-DENY-DEFAULT",
+        "SBX-B2B-R-AUTH-ENVELOPE",
+        "SBX-B2B-R-AUTH-FAIL-CLOSED",
+        "SBX-B2B-R-AUTH-OUTCOMES",
+        "SBX-B2B-R-AUTH-REQUEST",
+        "SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+        "SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+        "SBX-B2B-R-AUTH-TIMEOUT",
+        "SBX-B2B-R-ERROR-CODE",
+        "SBX-B2B-R-ERROR-SAFE-MESSAGE",
+        "SBX-B2B-R-ERROR-TRACE",
+        "SBX-B2B-R-INT-EMAIL-LOGIN",
+        "SBX-B2B-R-PRIVACY-TELEMETRY",
+        "SBX-B2B-R-UX-PASSWORD-MANAGERS",
+        "SBX-B2B-R-UX-PASSWORD-VISIBILITY"
+      ],
+      "status": "NO_DERIVABLE",
+      "unchanged_paths": [
+        "apps/time-service/src/main/java/lf/sandbox/time/sbxb2blogin/SbxB2bLoginController.java",
+        "apps/time-service/src/main/java/lf/sandbox/time/sbxb2blogin/SbxB2bLoginService.java"
+      ]
     },
     {
-      "area": null,
-      "endpoints": [],
-      "files": [],
-      "lot": null,
-      "merge_sha": "ae20aeb29142b215233215dbd25523d4d10fc970",
-      "reasons": [
-        "LOT_MAPPING_NOT_UNIQUE"
+      "area": "FRONTEND",
+      "endpoints": [
+        "POST /api/auth/login"
       ],
-      "request": null,
-      "requirement_ids": [],
-      "rule_codes": [],
-      "status": "NO_DERIVABLE"
+      "files": [
+        {
+          "path": "frontend/src/app/sbx-b2b-login/page.tsx",
+          "sha256": "0a0dbfe44f3562cbbce78145ee3e67258f025b58c37a87ba3ded76b7162efd83"
+        },
+        {
+          "path": "frontend/src/app/sbx-rem-list/page.tsx",
+          "sha256": "86ad1e64a4fcc973c98a7643c6d627ad43795c3f1f37353ce674eca388d9a27a"
+        },
+        {
+          "path": "frontend/src/lib/sbx-b2b-login.ts",
+          "sha256": "07faec9d3a30ded70f5b7294c1a835ff081218d8e57b312c4dd508de3073f6e0"
+        }
+      ],
+      "lot": "SOL-001",
+      "merge_sha": "ae20aeb29142b215233215dbd25523d4d10fc970",
+      "reasons": [],
+      "request": "req-286",
+      "requirement_ids": [
+        "REQ-SBX-B2B-R-A11Y-CONTRAST",
+        "REQ-SBX-B2B-R-A11Y-FORCED-COLORS",
+        "REQ-SBX-B2B-R-A11Y-INTERACTION",
+        "REQ-SBX-B2B-R-A11Y-MOTION",
+        "REQ-SBX-B2B-R-DESIGN-NO-HARDCODE",
+        "REQ-SBX-B2B-R-DESIGN-TOKENS",
+        "REQ-SBX-B2B-R-INT-RETURN",
+        "REQ-SBX-B2B-R-INT-ROUTE",
+        "REQ-SBX-B2B-R-INT-SESSION-STORE",
+        "REQ-SBX-B2B-R-RESP-BREAKPOINTS",
+        "REQ-SBX-B2B-R-THEME-LIGHT",
+        "REQ-SBX-B2B-R-UX-ACTIONS",
+        "REQ-SBX-B2B-R-UX-RECOVERY",
+        "REQ-SBX-B2B-R-UX-SINGLE-FLIGHT"
+      ],
+      "rule_codes": [
+        "SBX-B2B-R-A11Y-CONTRAST",
+        "SBX-B2B-R-A11Y-FORCED-COLORS",
+        "SBX-B2B-R-A11Y-INTERACTION",
+        "SBX-B2B-R-A11Y-MOTION",
+        "SBX-B2B-R-DESIGN-NO-HARDCODE",
+        "SBX-B2B-R-DESIGN-TOKENS",
+        "SBX-B2B-R-INT-RETURN",
+        "SBX-B2B-R-INT-ROUTE",
+        "SBX-B2B-R-INT-SESSION-STORE",
+        "SBX-B2B-R-RESP-BREAKPOINTS",
+        "SBX-B2B-R-THEME-LIGHT",
+        "SBX-B2B-R-UX-ACTIONS",
+        "SBX-B2B-R-UX-RECOVERY",
+        "SBX-B2B-R-UX-SINGLE-FLIGHT"
+      ],
+      "status": "ATTESTED"
     }
   ],
   "schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
-  "source_main_sha": "ae20aeb29142b215233215dbd25523d4d10fc970"
+  "source_main_sha": "1829b2e356a8788ec3ae01dc64f692b318534660"
 }
