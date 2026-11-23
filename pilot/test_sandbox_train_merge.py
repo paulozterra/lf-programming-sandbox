@@ -84,6 +84,15 @@ else:
         run(self.root, "checkout", "smoke")
         return head, main
 
+    def test_diff_check_reports_stdout_path_and_line(self):
+        target = self.root / "problem.md"
+        target.write_bytes(b"content\n\n")
+        run(self.root, "add", "problem.md")
+        with self.assertRaisesRegex(
+                merge.BranchConflict,
+                r"BRANCH_CONFLICT git diff: .*problem[.]md:2: new blank line at EOF"):
+            merge.git(self.root, "diff", "--cached", "--check")
+
     def test_only_cambios_conflict_regenerated_and_checked(self):
         head, main = self.diverge(conflict_cambios=True)
         merged = merge.prepare_merge(self.root, main, head)
