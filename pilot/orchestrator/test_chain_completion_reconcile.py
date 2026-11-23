@@ -11,9 +11,12 @@ from chain_contract import progress
 
 class CompletionTests(unittest.TestCase):
     def setUp(self):
-        self.lots = {"lots": [{"id": "A", "depends_on": []},
-                              {"id": "B", "depends_on": ["A"]},
-                              {"id": "C", "depends_on": ["B"]}]}
+        self.lots = {"schema_version": "CP33_LOTS_CANDIDATE_V1",
+                     "production_authority": False, "handoff_allowed": False,
+                     "worker_invoked": False,
+                     "lots": [{"id": "A", "area": "BACKEND", "depends_on": []},
+                              {"id": "B", "area": "BACKEND", "depends_on": ["A"]},
+                              {"id": "C", "area": "BACKEND", "depends_on": ["B"]}]}
         self.bindings = {key: {"task_name": "task" + key} for key in ("A", "B", "C")}
         self.receipts = {key: {"lot_id": key, "merge_sha": value * 40}
                          for key, value in (("A", "a"), ("B", "b"), ("C", "c"))}
