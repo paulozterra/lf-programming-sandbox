@@ -145,9 +145,7 @@ def expected_config_missing(root, config):
     if props_path.is_symlink() or not props_path.is_file():
         return True
     props = props_path.read_text(encoding="utf-8")
-    # Keep the literal continuation bytes for the benign local password
-    # fallback; they must be present as two physical .properties lines.
-    return any((key + "=" + value) not in props
+    return any((key + "=" + value) not in props.splitlines()
                for key, value in db["properties"].items())
 
 
