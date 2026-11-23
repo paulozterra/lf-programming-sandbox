@@ -14,7 +14,7 @@
     "term_ids": [],
     "paths": [
       "pilot/orchestrator/chain_lots.py",
-      "pilot/orchestrator/test_cp36_replanned_history.py",
+      "pilot/orchestrator/test_chain_lots.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0291.json"
     ]
