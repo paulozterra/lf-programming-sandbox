@@ -5,11 +5,13 @@ import json
 import subprocess
 from pathlib import Path
 from unittest.mock import patch
+import sys
 
 import pytest
 
-from pilot.orchestrator import chain_lots
-from pilot.orchestrator.chain_contract import ChainBlocked
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from chain_contract import ChainBlocked
+import chain_lots
 
 PLAN = "pilot/runs/req-391/chain_plan.json"
 OLD = "req391oldinfra"
