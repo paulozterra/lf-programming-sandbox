@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0253",
   "title": "Ficha SBX-B2B-LOGIN: cuentas, intentos y sesiones persistidos, pantalla de inicio y composición por regiones",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Paulo (23/11/2026): ejercicio de login integrado backend+frontend+datos con la composición de la pantalla 51"
