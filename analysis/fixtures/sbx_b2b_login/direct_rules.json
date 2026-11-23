@@ -340,7 +340,7 @@
       "source_ref": "supabase://lf_ops.reglas/334",
       "association_ref": "supabase://lf_ops.reglas_pantallas/74",
       "categoria": "DATOS",
-      "descripcion": "Las cuentas que pueden iniciar sesión viven en el almacén persistente del sandbox (base relacional, migraciones versionadas). Cada cuenta guarda correo, empresa, perfil y estado; la contraseña solo se guarda como hash. El correo es único sin distinguir mayúsculas. Los datos iniciales son ficticios y nunca incluyen contraseñas en claro. Las cuentas inactivas o restringidas no pueden autenticarse y se tratan como credenciales inválidas hacia afuera."
+      "descripcion": "Las cuentas que pueden iniciar sesión viven en el almacén persistente del sandbox (base relacional, migraciones Flyway versionadas que aplica el propio servicio al iniciar). Cada cuenta guarda correo, empresa, perfil y estado; la contraseña solo se guarda como hash. El correo es único sin distinguir mayúsculas. Los datos iniciales son ficticios y nunca incluyen contraseñas en claro. Las cuentas inactivas o restringidas no pueden autenticarse y se tratan como credenciales inválidas hacia afuera."
     },
     {
       "code": "SBX-B2B-R-DATA-ATTEMPTS",
@@ -729,7 +729,7 @@
         "origin": "SANDBOX_INTEGRATION",
         "store": "SANDBOX_RELATIONAL_DB",
         "engine": "postgres",
-        "migrations_dir": "db/migration",
+        "migrations_dir": "apps/time-service/src/main/resources/db/migration",
         "account_fields": [
           "email",
           "password_hash",
@@ -782,13 +782,14 @@
             }
           ]
         },
-        "migration_runner": "EXTERNAL",
-        "service_runs_migrations": "DENY",
-        "datasource_config": "spring.datasource.url/username/password desde DB_URL, DB_USERNAME y DB_PASSWORD (convención del CI); sin esas variables, por defecto jdbc:postgresql://127.0.0.1:5432/pilot con pilot/pilot (base desechable local y del Worker). El servicio no aplica migraciones: la infraestructura aplica db/migration antes de pruebas y ejecución",
+        "datasource_config": "spring.datasource.url/username/password desde DB_URL, DB_USERNAME y DB_PASSWORD (convención del CI); sin esas variables, jdbc:postgresql://127.0.0.1:5432/pilot con pilot/pilot (base desechable local y del Worker). Flyway aplica las migraciones al iniciar el servicio.",
         "standards": [
-          "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en db/rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+          "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
         ],
-        "rollback_dir": "db/rollback"
+        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+        "migration_runner": "FLYWAY_AT_SERVICE_STARTUP",
+        "service_runs_migrations": "ALLOW",
+        "migrations_location": "apps/time-service/src/main/resources/db/migration (classpath:db/migration)"
       }
     },
     {
@@ -836,9 +837,9 @@
         ],
         "reset_on": "AUTHENTICATED",
         "standards": [
-          "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en db/rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+          "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
         ],
-        "rollback_dir": "db/rollback"
+        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)"
       }
     },
     {
@@ -880,9 +881,9 @@
         "session_endpoint": "GET /api/auth/session",
         "token_hash": "SHA-256 hex del token",
         "standards": [
-          "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en db/rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+          "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
         ],
-        "rollback_dir": "db/rollback"
+        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)"
       }
     },
     {

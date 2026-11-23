@@ -132,6 +132,10 @@ def classify_path(value: str) -> str:
     if migrations and re.fullmatch(
             re.escape(migrations) + r"/V[0-9]+__[a-z][a-z0-9_]*[.]sql", value):
         return "DATA"
+    # CHG-0261: the STD-DB-08 rollback lives beside the Flyway location.
+    if migrations and re.fullmatch(
+            re.escape(str(PurePosixPath(migrations).parent)) + r"/rollback/U[0-9]+__[a-z][a-z0-9_]*[.]sql", value):
+        return "DATA"
     if value.startswith(_project.area_project_roots("BACKEND")):
         return "BACKEND"
     # T26.3: existing project tests planned into a backend lot ("pruebas afectadas"),

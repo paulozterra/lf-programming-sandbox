@@ -52,7 +52,9 @@
     "FRONTEND": [
       "frontend/src/app/{module}/page.tsx",
       "frontend/src/lib/{module}.ts"
-    ]
+    ],
+    "DATA_ROLLBACK": "apps/{service}/src/main/resources/db/rollback/U{next}__{module}.sql",
+    "FRONTEND_RULE_PAGE": "frontend/src/app/{route}/page.tsx"
   },
   "service": "time-service",
   "backend_classes": [
