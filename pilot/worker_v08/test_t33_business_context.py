@@ -52,6 +52,23 @@ def test_backend_lot_gets_its_rules_with_values_and_no_visual(tmp_path):
     assert set(screen) == {"fields", "errors"}
 
 
+
+def test_infra_lot_gets_requirements_without_screen_sections(tmp_path):
+    slug = _package(tmp_path)
+    out = bc.material(tmp_path, slug, ["REQ-SBX-R-A"], "INFRA")
+    assert set(out) == {"reglas_negocio.json"}
+    requirements = json.loads(out["reglas_negocio.json"])
+    assert requirements["area"] == "INFRA"
+    assert requirements["run"] == slug
+    assert [r["requirement_id"] for r in requirements["requirements"]] == ["REQ-SBX-R-A"]
+    rule = requirements["requirements"][0]
+    assert rule["outcome"] == "Texto de la regla A."
+    assert rule["acceptance_checks"] == ["Texto de la regla A."]
+    assert rule["rules"][0]["valor_config"] == {"max": 5}
+    assert "pantalla.json" not in out
+
+
+
 def test_frontend_lot_gets_copy_validations_and_tokens(tmp_path):
     slug = _package(tmp_path)
     out = bc.material(tmp_path, slug, ["REQ-SBX-R-B"], "FRONTEND")
