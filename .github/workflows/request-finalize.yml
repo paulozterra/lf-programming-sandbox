@@ -48,7 +48,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: '1'
         run: python3 -m pilot.workflow_entrypoint pilot/orchestrator/request_finalize.py --out "$RUNNER_TEMP/t9-reports" --close
       - name: Wake watchdog without relying on bot-triggered workflow_run
-        if: always()
+        if: failure() || cancelled()  # CHG-0252: success needs no watchdog
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run request-failure-watchdog.yml --repo "$GITHUB_REPOSITORY" --ref main -f source_run_id="$GITHUB_RUN_ID"

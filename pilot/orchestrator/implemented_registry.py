@@ -208,6 +208,36 @@ def record_merge(root: Path, merge_sha: str, pr: dict, *,
     return entries[0]
 
 
+CLOSED_PULLS = "pulls?state=closed&base=main"
+
+
+def batched_pr_reader(list_closed, read_one):
+    """API budget (CHG-0252): one paginated listing of closed PRs replaces one
+    GET /pulls/{n} per historical Train merge (~200 calls per rebuild, run in
+    every PR CI). The list rows carry the same head/base/merge_commit_sha
+    fields; `merged` is derived from merged_at. Any PR absent from the listing
+    or not merged falls back to the exact single read, so authority never
+    comes from a missing or partial page."""
+    cache = None
+
+    def reader(number):
+        nonlocal cache
+        if cache is None:
+            rows = list_closed()
+            if not isinstance(rows, list):
+                raise RegistryBlocked("REGISTRY_PR_LIST_INVALID")
+            cache = {}
+            for row in rows:
+                if isinstance(row, dict) and type(row.get("number")) is int:
+                    cache[row["number"]] = dict(row, merged=row.get("merged_at") is not None)
+        row = cache.get(number)
+        if row is None or row.get("merged") is not True:
+            return read_one(number)
+        return row
+
+    return reader
+
+
 def reconstruct(root: Path, current_sha: str, pr_reader) -> dict:
     if not SHA40.fullmatch(current_sha):
         raise RegistryBlocked("REGISTRY_BASE_INVALID")
@@ -271,8 +301,30 @@ def main() -> int:
             reader_failure = (number, exc)
             raise
 
+    def list_closed():
+        token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+        if not token:
+            raise RegistryBlocked("REGISTRY_GITHUB_TOKEN_MISSING")
+        rows = []
+        for page in range(1, 21):
+            request = urllib.request.Request(
+                f"https://api.github.com/repos/{REPO}/{CLOSED_PULLS}&per_page=100&page={page}",
+                headers={"Authorization": f"Bearer {token}",
+                         "Accept": "application/vnd.github+json",
+                         "X-GitHub-Api-Version": "2022-11-28"})
+            def read():
+                with urllib.request.urlopen(request, timeout=25) as response:
+                    return json.loads(response.read(50_000_001))
+            chunk = transport_read(read, "REGISTRY_PR_LIST")
+            if not isinstance(chunk, list):
+                raise RegistryBlocked("REGISTRY_PR_LIST_INVALID")
+            rows.extend(chunk)
+            if len(chunk) < 100:
+                return rows
+        raise RegistryBlocked("REGISTRY_PR_LIST_LIMIT")
+
     try:
-        result = reconstruct(ROOT, args.main_sha, reader)
+        result = reconstruct(ROOT, args.main_sha, batched_pr_reader(list_closed, reader))
         if args.write:
             save(ROOT, result)
         print(json.dumps({"entries": len(result["entries"]),

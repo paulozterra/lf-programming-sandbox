@@ -196,7 +196,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run auto-integrate.yml --repo "$GITHUB_REPOSITORY" --ref main
       - name: Wake stalled-request watchdog even on failure
-        if: always()
+        if: failure() || cancelled()  # CHG-0252: success needs no watchdog
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run request-failure-watchdog.yml --repo "$GITHUB_REPOSITORY" --ref main -f source_run_id="$GITHUB_RUN_ID"

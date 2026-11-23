@@ -70,7 +70,7 @@ jobs:
         run: |
           echo "CP35_OWNER_GATE_RETAINED: Claude reviews, Paulo labels, Train merges."
       - name: Wake request watchdog even for bot-created integration PR
-        if: always()
+        if: failure() || cancelled()  # CHG-0252: success needs no watchdog
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run request-failure-watchdog.yml --repo "$GITHUB_REPOSITORY" --ref main -f source_run_id="$GITHUB_RUN_ID"

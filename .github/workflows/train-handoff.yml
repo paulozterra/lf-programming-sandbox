@@ -50,7 +50,7 @@ jobs:
             --merge-sha "${{ inputs.merge_sha }}" \
             --train-run-id "${{ inputs.train_run_id }}"
       - name: Wake watchdog without relying on workflow_run or cron
-        if: always()
+        if: failure() || cancelled()  # CHG-0252: success needs no watchdog
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run request-failure-watchdog.yml --repo "$GITHUB_REPOSITORY" --ref main -f source_run_id="$GITHUB_RUN_ID"
