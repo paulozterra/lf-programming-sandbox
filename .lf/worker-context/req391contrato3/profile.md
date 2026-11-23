@@ -79,3 +79,4 @@ Missing project_ref, lot write paths, base HEAD, snapshot digest, protected test
 ## prog_backend_exp/checklists/priority_checklist.md
 # Prioridades rol BACKEND
 1. Autoridad y fuente; 2. skill vinculada y SHA correcto; 3. área/alcance; 4. pruebas visibles; 5. límites y aislamiento; 6. revisión independiente. Un fallo bloquea sin reparar automáticamente.
+
