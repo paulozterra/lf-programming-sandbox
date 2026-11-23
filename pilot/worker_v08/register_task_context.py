@@ -195,6 +195,31 @@ def select_area(paths: list[str], declared: str) -> str:
     return actual
 
 
+def clean_generated_markdown(raw: bytes) -> bytes:
+    """Produce a single final newline, without trailing whitespace in any line.
+
+    Source files and their pinned SHA-256 are not changed: only the assembled
+    context artifact is normalized before its receipt digest is computed.
+    """
+    try:
+        lines = raw.decode("utf-8").splitlines()
+    except UnicodeDecodeError:
+        block("CONTEXT_MARKDOWN_ENCODING_INVALID")
+    while lines and not lines[-1].strip():
+        lines.pop()
+    return ("\n".join(line.rstrip(" \t\r") for line in lines) + "\n").encode("utf-8")
+
+
+def assert_generated_context_clean(artifacts: dict[str, bytes]) -> None:
+    """Never persist an artifact whose bytes fail git diff --check hygiene."""
+    for path, raw in artifacts.items():
+        if not raw.endswith(b"\n") or raw.endswith(b"\n\n"):
+            block("CONTEXT_OUTPUT_WHITESPACE:" + path)
+        if any(line.endswith((b" ", b"\t", b"\r"))
+               for line in raw.splitlines()):
+            block("CONTEXT_OUTPUT_WHITESPACE:" + path)
+
+
 def source_text(files: dict[str, bytes], name: str) -> str:
     try:
         return files[name].decode("utf-8")
@@ -220,7 +245,7 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
                  "checklists/priority_checklist.md"):
         path = slug + "/" + name
         profile_parts.append("\n## " + path + "\n" + source_text(files, path))
-    profile_bytes = ("\n".join(profile_parts) + "\n").encode("utf-8")
+    profile_bytes = clean_generated_markdown(("\n".join(profile_parts) + "\n").encode("utf-8"))
 
     stackroot = "stack_skills_exp/"
     rows = json.loads(source_text(files, stackroot + "project_stack_binding_fixtures.json"))["rows"]
@@ -314,7 +339,7 @@ def build_material(files: dict[str, bytes], project: str, area: str) -> tuple[by
         skill_parts.extend("- " + r["id"] + " [" + r["status"] + "]: " + r["rule"]
                            for r in official if r["id"] != "STD-BE-05" or
                            not any("STD-BE-05" in part for part in skill_parts))
-    skills_bytes = ("\n".join(skill_parts) + "\n").encode("utf-8")
+    skills_bytes = clean_generated_markdown(("\n".join(skill_parts) + "\n").encode("utf-8"))
     return profile_bytes, skills_bytes, selected, source_manifest["source_sha256"]
 
 
@@ -565,6 +590,7 @@ def register(task: dict, *, project: str, area: str, lot_paths: list[str],
         values.extend([lf_rules, canonical(lf_rule_receipt)])
     values.append(receipt_raw)
     artifacts = dict(zip(paths, values))
+    assert_generated_context_clean(artifacts)
     cap = min(budget, dest.get("max_context_bytes", budget))
     if existing + sum(map(len, artifacts.values())) > cap:
         block("CONTEXT_BUDGET_EXCEEDED")
