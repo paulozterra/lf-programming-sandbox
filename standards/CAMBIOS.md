@@ -249,4 +249,4 @@
 | CHG-0258 | EDITORIAL | Registro T7: diagnóstico tipado también para la lista de PRs cerrados |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/382 |
 | CHG-0259 | ADDITIVE | CP3.6: medir y reutilizar lecturas de GitHub API por sweep |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/383 |
 | CHG-0260 | EDITORIAL | CP3.6: superar candidatos CHAIN_COMPLETE del bot anclados a un main viejo |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/385 |
-| CHG-0270 | ADDITIVE | T7: rollback STD-DB-08 en lotes DATA, página para rutas declaradas por reglas y migraciones por Flyway en el ejercicio login |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/0 |
+| CHG-0270 | ADDITIVE | T7: rollback STD-DB-08 en lotes DATA, página para rutas declaradas por reglas y migraciones por Flyway en el ejercicio login |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/407 |
