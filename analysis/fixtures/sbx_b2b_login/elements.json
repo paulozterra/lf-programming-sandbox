@@ -2,6 +2,10 @@
   "imitates": "lf_ops.pantalla_elementos",
   "elements": [
     {
+      "code": "SBX-B2B-EL-LOGO",
+      "status": "VIGENTE"
+    },
+    {
       "code": "SBX-B2B-EL-HEADER-CONTEXT",
       "status": "VIGENTE"
     },

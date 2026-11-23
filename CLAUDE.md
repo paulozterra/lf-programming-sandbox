@@ -21,6 +21,10 @@ Este repo es el entorno de calificación de la Fase 2 (Programación). **No es p
    (`.lf/worker-context/req186*`, `req286*`) contienen texto derivado de reglas LF B2B-AUTH. Se dejan como están; no se
    agregan más textos reales. Sus IDs `supabase://lf_ops.*` son simulados (`"simulation": true`) y pueden coincidir con
    filas reales de LF: nunca se resuelven contra el Supabase real.
+   Excepción conocida (decisión del owner, 23/11/2026, CHG-0253): para que el ejercicio del login integrado sea fiel a las
+   maquetas de la pantalla 51, se guardan en `frontend/public/brand/` el logo de dos líneas y la marca de agua (escudo)
+   de la marca, tal cual, y la ficha `sbx_b2b_login` incluye la composición y las medidas derivadas de las maquetas.
+   No se agregan las maquetas ni otros activos de marca.
 4. El oráculo de las pruebas ciegas vive fuera de este repo; no buscarlo ni reconstruirlo.
 5. Nada se despliega en la nube. Floci emula AWS en local; ningún endpoint de AWS en el código.
 6. Terminado = probado: el CI de este repo es la verificación; si no corrió, no está listo.

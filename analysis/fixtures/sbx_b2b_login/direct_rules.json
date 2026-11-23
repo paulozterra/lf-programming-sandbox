@@ -380,7 +380,7 @@
       "source_ref": "supabase://lf_ops.reglas/338",
       "association_ref": "supabase://lf_ops.reglas_pantallas/78",
       "categoria": "RESPONSIVE",
-      "descripcion": "La pantalla se compone por regiones (cabecera, decorativa, principal y pie) según la composición registrada en el contrato visual, con orden, alineación y separaciones expresadas solo en tokens de espaciado. La región decorativa cambia de posición según la variante y se oculta en móvil. No se usa tarjeta contenedora ni barra lateral, y no se fijan medidas a mano."
+      "descripcion": "La pantalla se compone por regiones (cabecera con logo y contexto, decorativa con marca de agua, principal y pie) según la composición del contrato visual: orden, alineación, anchos, alturas y separaciones salen de los tokens registrados (incluidos los de layout), con una tolerancia de 8 px respecto de los lienzos de referencia 1440×900, 834×1112 y 390×844. El logo y la marca de agua se usan desde los archivos registrados en brand_assets, nunca se recrean. La marca de agua cambia de posición según la variante y se oculta en móvil. No se usa tarjeta contenedora ni barra lateral."
     }
   ],
   "valor_config": [
@@ -805,7 +805,12 @@
         "composition_source": "screen_contract.visual.composition",
         "measures": "TOKENS_ONLY",
         "form_container": "NONE",
-        "sidebar": "DENY"
+        "sidebar": "DENY",
+        "brand_assets": "screen_contract.visual.brand_assets",
+        "recreate_brand_assets": "DENY",
+        "viewports": "screen_contract.visual.viewports",
+        "layout_tokens": "screen_contract.visual.layout_tokens",
+        "tolerance_px": 8
       }
     }
   ]

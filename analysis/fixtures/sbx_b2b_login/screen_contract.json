@@ -250,6 +250,13 @@
           "weight": 700,
           "size_px": 14,
           "line_height_px": 20
+        },
+        {
+          "token": "text_label",
+          "family": "Inter",
+          "weight": 600,
+          "size_px": 14,
+          "line_height_px": 20
         }
       ],
       "spacing_and_radius": [
@@ -296,6 +303,14 @@
         {
           "token": "radius_24",
           "px": 24
+        },
+        {
+          "token": "space_40",
+          "px": 40
+        },
+        {
+          "token": "space_128",
+          "px": 128
         }
       ],
       "components": [
@@ -447,8 +462,17 @@
               "viewport_mobile": "TOP"
             },
             "elements": [
+              "SBX-B2B-EL-LOGO",
               "SBX-B2B-EL-HEADER-CONTEXT"
-            ]
+            ],
+            "layout": {
+              "logo": "START",
+              "header_context": "END",
+              "padding_x": "sbx_page_padding_x",
+              "padding_top": "space_24",
+              "header_context_typography": "text_card_title",
+              "header_context_wrap_mobile": "TWO_LINES_END"
+            }
           },
           {
             "region": "DECORATIVE",
@@ -497,7 +521,31 @@
                 "align": "STRETCH",
                 "space_before": "space_24"
               }
-            ]
+            ],
+            "width": {
+              "viewport_desktop": "sbx_auth_form_max_width",
+              "viewport_tablet": "sbx_auth_form_width_tablet_ratio",
+              "viewport_mobile": "FILL_MINUS_PADDING"
+            },
+            "inset_end": {
+              "viewport_desktop": "sbx_auth_form_inset_end_desktop"
+            },
+            "offset_top": "sbx_main_offset_top",
+            "internal_spacing": {
+              "heading_to_subtitle": "space_8",
+              "subtitle_to_first_field": "space_40",
+              "label_to_input": "space_12",
+              "between_fields": "space_32",
+              "password_to_recovery": "space_24",
+              "recovery_to_submit": "space_24"
+            },
+            "controls": {
+              "height": "sbx_control_height",
+              "radius": "radius_12",
+              "input_padding_x": "space_16",
+              "icon_size_px": 20,
+              "label_typography": "text_label"
+            }
           },
           {
             "region": "FOOTER",
@@ -516,13 +564,140 @@
               "SBX-B2B-EL-TERMS",
               "SBX-B2B-EL-PRIVACY",
               "SBX-B2B-EL-SUPPORT"
-            ]
+            ],
+            "layout": {
+              "divider": "border_soft 1px a lo ancho del contenido",
+              "height": "sbx_footer_height",
+              "link_gap": {
+                "viewport_desktop": "space_32",
+                "viewport_tablet": "space_32",
+                "viewport_mobile": "space_12"
+              },
+              "link_typography": {
+                "viewport_desktop": "text_body_small",
+                "viewport_tablet": "text_body_small",
+                "viewport_mobile": "text_disclaimer"
+              }
+            }
           }
         ],
         "rule_refs": [
           "supabase://lf_ops.reglas/338"
-        ]
-      }
+        ],
+        "tolerance_px": 8
+      },
+      "layout_tokens": [
+        {
+          "token": "sbx_auth_form_max_width",
+          "px": 560
+        },
+        {
+          "token": "sbx_auth_form_inset_end_desktop",
+          "px": 200
+        },
+        {
+          "token": "sbx_auth_form_width_tablet_ratio",
+          "ratio": 0.6,
+          "max_token": "sbx_auth_form_max_width"
+        },
+        {
+          "token": "sbx_page_padding_x",
+          "by_viewport": {
+            "viewport_desktop": 40,
+            "viewport_tablet": 40,
+            "viewport_mobile": 24
+          }
+        },
+        {
+          "token": "sbx_control_height",
+          "by_viewport": {
+            "viewport_desktop": 64,
+            "viewport_tablet": 60,
+            "viewport_mobile": 56
+          }
+        },
+        {
+          "token": "sbx_brand_logo_height",
+          "by_viewport": {
+            "viewport_desktop": 72,
+            "viewport_tablet": 64,
+            "viewport_mobile": 52
+          }
+        },
+        {
+          "token": "sbx_footer_height",
+          "by_viewport": {
+            "viewport_desktop": 72,
+            "viewport_tablet": 92,
+            "viewport_mobile": 68
+          }
+        },
+        {
+          "token": "sbx_main_offset_top",
+          "by_viewport": {
+            "viewport_desktop": "space_64",
+            "viewport_tablet": "space_128",
+            "viewport_mobile": "space_48"
+          }
+        }
+      ],
+      "viewports": [
+        {
+          "viewport": "viewport_desktop",
+          "min_width": 1280,
+          "max_width": null,
+          "reference_canvas": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        {
+          "viewport": "viewport_tablet",
+          "min_width": 768,
+          "max_width": 1279,
+          "reference_canvas": {
+            "width": 834,
+            "height": 1112
+          }
+        },
+        {
+          "viewport": "viewport_mobile",
+          "min_width": 0,
+          "max_width": 767,
+          "reference_canvas": {
+            "width": 390,
+            "height": 844
+          }
+        }
+      ],
+      "brand_assets": [
+        {
+          "code": "SBX-B2B-ASSET-LOGO-2L-LIGHT",
+          "path": "frontend/public/brand/sbx-brand-logo-2l-light.png",
+          "public_url": "/brand/sbx-brand-logo-2l-light.png",
+          "sha256": "5e00be83f45a27a40e534f555c51157b698e87af68749ef09a746c19ccfe1171",
+          "size": [
+            635,
+            255
+          ],
+          "usage": "Logo de dos líneas en la cabecera, alineado a la izquierda; alto sbx_brand_logo_height; proporción original",
+          "recreate": "DENY",
+          "alt": "Libertad Financiera"
+        },
+        {
+          "code": "SBX-B2B-ASSET-SHIELD-WATERMARK",
+          "path": "frontend/public/brand/sbx-brand-shield-watermark.png",
+          "public_url": "/brand/sbx-brand-shield-watermark.png",
+          "sha256": "92b1c53250717283dc06c255a4d83e6575e5ff360424ba22985fbbae8c8b9836",
+          "size": [
+            315,
+            357
+          ],
+          "usage": "Marca de agua decorativa; opacidad 0.06; aria-hidden; desktop: columna izquierda ~25% del ancho y ~60% del alto, recortada en el borde izquierdo; tablet: fondo a la izquierda detrás del formulario; móvil: oculta",
+          "recreate": "DENY",
+          "alt": ""
+        }
+      ]
     },
     "context": {
       "module_code": "SBX-M-B2B-AUTH",
@@ -530,6 +705,14 @@
       "description": "Pantalla de acceso al Back Office Empresa mediante correo electrónico y contraseña.",
       "objective": "Autenticar a un usuario y habilitar el acceso según las políticas de seguridad.",
       "elements": [
+        {
+          "code": "SBX-B2B-EL-LOGO",
+          "status": "VIGENTE",
+          "role": "BRAND_LOGO",
+          "label_visible": null,
+          "component_token": null,
+          "asset": "SBX-B2B-ASSET-LOGO-2L-LIGHT"
+        },
         {
           "code": "SBX-B2B-EL-HEADER-CONTEXT",
           "status": "VIGENTE",
@@ -624,9 +807,10 @@
         {
           "code": "SBX-B2B-EL-DECORATIVE",
           "status": "VIGENTE",
-          "role": "DECORATIVE_SHAPE",
+          "role": "DECORATIVE_WATERMARK",
           "label_visible": null,
-          "component_token": null
+          "component_token": null,
+          "asset": "SBX-B2B-ASSET-SHIELD-WATERMARK"
         }
       ],
       "states": [
