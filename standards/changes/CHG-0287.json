@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0287",
   "title": "SBX-B2B-LOGIN: datasource local compatible con Worker y lint temprano del examinador T31",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Owner 2026-11-23: req-391 INFRA bloqueado por falso positivo de secretos y .env.example; publicar examen falla tarde"
