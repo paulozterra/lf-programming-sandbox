@@ -11,12 +11,12 @@
     },
     {
       "file": "direct_rules.json",
-      "sha256": "b44fe9ba780f872ccacf45aa8c653dab76b78fa08d343be7de73bc87e9fbeffc",
+      "sha256": "76a963a4f02202bd3c7dc5ff57b2eeba1af7ceef68bd3ef9441e711550905ee9",
       "imitates": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas"
     },
     {
       "file": "effective_rules.json",
-      "sha256": "040cacb74d4f02e06bd4e92d0dc465aee1cfc4ceb1b6560539ac7fe02d349dc5",
+      "sha256": "6169d6af0bd19066bb6639ab3347f2f135cae4acf29ecd0beb0ea64eda7e0c03",
       "imitates": "programacion.fn_input_effective_rule_links_v1"
     },
     {
