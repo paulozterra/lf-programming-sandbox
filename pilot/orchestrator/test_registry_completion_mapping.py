@@ -74,7 +74,7 @@ class RegistryMappingTests(unittest.TestCase):
     def test_fallback_full_diff_remains_eligible(self):
         def command_full(root, *args):
             if args[:3] == ("git", "diff", "--name-only"):
-                return "apps/a.java\\napps/b.java"
+                return "apps/a.java\napps/b.java"
             return fixture_command(root, *args)
         with (patch.object(registry, "command", side_effect=command_full),
               patch.object(registry, "_plans",
