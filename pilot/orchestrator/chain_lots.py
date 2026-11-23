@@ -356,6 +356,93 @@ def plans() -> list[tuple[str, dict, dict, dict]]:
     return rows
 
 
+def _active_plan_origin(request: str, path: str, additions: list[str],
+                        root: Path, max_commits: int) -> str:
+    """Prove prior plans were retired by Train before native work began."""
+    if len(additions) == 1:
+        return additions[0]
+    history = run("git", "rev-list", "--first-parent",
+                  f"--max-count={max_commits + 1}", "HEAD", cwd=root).splitlines()
+    if len(history) > max_commits or len(set(history)) != len(history):
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    position = {sha: i for i, sha in enumerate(history)}
+    if len(set(additions)) != len(additions) or any(sha not in position for sha in additions):
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    deletions = run("git", "log", "--first-parent", "--diff-filter=D",
+                    "--format=%H", "--", path, cwd=root).splitlines()
+    if len(set(deletions)) != len(deletions) or any(sha not in position for sha in deletions):
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    if any(position[sha] < position[additions[0]] for sha in deletions):
+        deny("CHAIN_HISTORY_INCOMPLETE")
+    for newer, older in zip(additions, additions[1:]):
+        n, o = position[newer], position[older]
+        if n >= o:
+            deny("CHAIN_HISTORY_INCOMPLETE")
+        retirements = [sha for sha in deletions if n < position[sha] < o]
+        if len(retirements) != 1:
+            deny("CHAIN_HISTORY_INCOMPLETE")
+        deleted = retirements[0]
+        message = run("git", "log", "-1", "--format=%s", deleted, cwd=root)
+        match = MERGE_MESSAGE.fullmatch(message)
+        parents = run("git", "rev-list", "--parents", "-n", "1", deleted,
+                      cwd=root).split()
+        if not match or len(parents) != 3 or parents[0] != deleted:
+            deny("CHAIN_HISTORY_INCOMPLETE")
+        pr = api(f"pulls/{int(match.group(1))}")
+        if (pr.get("merged") is not True or pr.get("merge_commit_sha") != deleted
+                or pr.get("base", {}).get("ref") != "main"):
+            deny("CHAIN_HISTORY_INCOMPLETE")
+        actual_diff = run("git", "diff", "--name-status", parents[1], deleted,
+                          "--", path, cwd=root).splitlines()
+        if actual_diff != ["D\t" + path]:
+            deny("CHAIN_HISTORY_INCOMPLETE")
+        try:
+            old_plan = json.loads(run("git", "show", f"{older}:{path}", cwd=root))
+            bindings = old_plan["bindings"]
+            if not isinstance(bindings, list) or not bindings:
+                deny("CHAIN_HISTORY_INCOMPLETE")
+            tasks = {item["task_name"] for item in bindings}
+            if (len(tasks) != len(bindings)
+                    or any(not SAFE_ID.fullmatch(task) for task in tasks)):
+                deny("CHAIN_HISTORY_INCOMPLETE")
+        except (ValueError, KeyError, TypeError, AttributeError):
+            deny("CHAIN_HISTORY_INCOMPLETE")
+        # Restrict checks to the old plan's life; a registration of the
+        # replacement plan must not invalidate its proven clean retirement.
+        interval = f"{older}^..{newer}^"
+        for task in tasks:
+            watched = [
+                f"pilot/worker_v08/native_tasks/{task}.json",
+                f"{repo_storage()['requests_root']}/{request}/proposal_requests/{task}.task-pack.json",
+                f"{repo_storage()['requests_root']}/{request}/proposal_requests/{task}.proposal-request.json",
+                f"pilot/native_proposals/{task}.json",
+            ]
+            touched = run("git", "log", "--first-parent", "--format=%H",
+                          interval, "--", *watched, cwd=root)
+            if touched:
+                deny("CHAIN_HISTORY_INCOMPLETE")
+        merges = run("git", "log", "--first-parent", "--format=%H%x09%s",
+                     interval, cwd=root).splitlines()
+        for entry in merges:
+            if "\t" not in entry:
+                deny("CHAIN_HISTORY_INCOMPLETE")
+            sha, subject = entry.split("\t", 1)
+            found = MERGE_MESSAGE.fullmatch(subject)
+            if not found:
+                continue
+            body = run("git", "log", "-1", "--format=%B", sha, cwd=root)
+            if "[CP3.5]" not in body or "Verified native" not in body:
+                continue
+            integration = api(f"pulls/{int(found.group(1))}")
+            branch = integration.get("head", {}).get("ref", "")
+            if not isinstance(branch, str):
+                deny("CHAIN_HISTORY_INCOMPLETE")
+            if any(branch.startswith(f"lf/native-integration/{task}-run-")
+                   for task in tasks):
+                deny("CHAIN_HISTORY_INCOMPLETE")
+    return additions[0]
+
+
 def first_parent_merges(request: str, *, root: Path = ROOT,
                         max_commits: int | None = None) -> list[tuple[str, dict, set[str]]]:
     """All first-parent integrations since this request's plan was introduced.
@@ -379,9 +466,10 @@ def first_parent_merges(request: str, *, root: Path = ROOT,
             continue
         candidates = run("git", "log", "--first-parent", "--diff-filter=A",
                          "--format=%H", "--", path, cwd=root).splitlines()
-        if len(candidates) != 1:
+        if not candidates:
             deny("CHAIN_HISTORY_INCOMPLETE")
-        origins.append(candidates[0])
+        origins.append(_active_plan_origin(request, path, candidates,
+                                           root, max_commits))
     if len(origins) != 1:
         deny("CHAIN_HISTORY_INCOMPLETE")
     origin = origins[0]
