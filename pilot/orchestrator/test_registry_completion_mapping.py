@@ -37,6 +37,8 @@ class RegistryMappingTests(unittest.TestCase):
         with (patch.object(registry, "command", side_effect=fixture_command),
               patch.object(registry, "_plans", return_value=plans),
               patch.object(registry, "json_at", side_effect=json_from_tree),
+              patch.object(registry, "_rules", return_value=["RULE-1"]),
+              patch.object(registry, "_contract_endpoints", return_value=["GET /a"]),
               patch.object(registry, "git_file", return_value=b"source")):
             return registry.record_merge(Path("/tmp"), MERGE, PR,
                                          current_sha=MERGE)
