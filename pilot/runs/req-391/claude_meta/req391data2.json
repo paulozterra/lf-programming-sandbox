@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/req391data2.oracle.json.age",
+  "holdout_sha256": "262b32445eb949f51b0825e96e119ccca30412b8bfe1d0d6c8f4b3aa4bfdf9d5",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "ficha sbx_b2b_login (SBX-B2B-R-DATA-USER-STORE, DATA-ATTEMPTS, DATA-SESSIONS; STD-DB)"
+}
