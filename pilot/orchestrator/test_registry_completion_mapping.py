@@ -85,6 +85,8 @@ class RegistryMappingTests(unittest.TestCase):
         # Read-only historical fixtures; the repository CI checkout has full
         # history. These are already-merged Train integrations, not proposals.
         cases = [
+            ("b2dc9b5b7a01768c06b16a9e3d99dbf3abee8107",
+             "req186contrato1", "req-186", "SOL-Ca97f5811893a"),
             ("2b376e85d79d4915a61f31f9c4838f9c261009e4",
              "req186backend2", "req-186", "SOL-002"),
             ("5b0430ef7b2bc5497ef48fe8b7996e4447a31829",
