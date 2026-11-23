@@ -69,7 +69,7 @@
     "properties": {
       "spring.datasource.url": "${DB_URL:jdbc:postgresql://127.0.0.1:5432/pilot}",
       "spring.datasource.username": "${DB_USERNAME:pilot}",
-      "spring.datasource.password": "${DB_PASSWORD}",
+      "spring.datasource.password": "\\\n  ${DB_PASSWORD:pilot}",
       "spring.flyway.enabled": "true",
       "spring.flyway.locations": "classpath:db/migration"
     }
