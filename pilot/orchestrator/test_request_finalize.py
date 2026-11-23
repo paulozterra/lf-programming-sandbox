@@ -72,6 +72,38 @@ class FinalizeTests(unittest.TestCase):
                 (folder / "H_REPORT.md").unlink()
                 self.assertEqual(list(mod.terminal_requests()), [])
 
+    def test_completion_clears_stale_block_label_only_after_close(self):
+        mod = load()
+        with tempfile.TemporaryDirectory() as directory:
+            out = Path(directory)
+            (out / "manifest.json").write_text(json.dumps([
+                {"issue": 186, "slug": "req-186", "stage": "CHAIN_COMPLETE_VERIFIED",
+                 "intervencion_manual": False},
+                {"issue": 286, "slug": "req-286", "stage": "FAILED_FINAL",
+                 "intervencion_manual": True}]))
+            class APIStub:
+                def __init__(self, token):
+                    self.ops = []
+                def issue(self, number):
+                    return {"state": "open", "labels": [
+                        {"name": "lf-request-blocked"}]}
+                def comment(self, number, body):
+                    self.ops.append(("COMMENT", number))
+                def call(self, method, path, payload=None):
+                    self.ops.append((method, path))
+            instance = APIStub("token")
+            with (patch.object(mod, "API", return_value=instance),
+                  patch.dict("os.environ", {"GH_TOKEN": "token",
+                            "GITHUB_RUN_ID": "123",
+                            "GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"})):
+                mod.close(out)
+            self.assertIn(("DELETE", "/issues/186/labels/lf-request-blocked"),
+                          instance.ops)
+            self.assertNotIn(("DELETE", "/issues/286/labels/lf-request-blocked"),
+                             instance.ops)
+            self.assertLess(instance.ops.index(("PATCH", "/issues/186")),
+                            instance.ops.index(("DELETE", "/issues/186/labels/lf-request-blocked")))
+
     def test_only_explicit_terminal_states(self):
         mod = load()
         self.assertNotIn("LOTS_PLANNED", mod.TERMINAL)
