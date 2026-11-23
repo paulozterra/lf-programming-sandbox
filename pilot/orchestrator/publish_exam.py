@@ -217,8 +217,12 @@ def reference_package(task: str, raw: bytes, patch: str) -> bytes:
                         "patch": patch}, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8")
 
 
-def encrypt_roundtrip(raw: bytes, recipient: Path, identity: Path, out: Path) -> None:
+def encrypt_roundtrip(raw: bytes, recipient: Path, identity: Path | None, out: Path) -> None:
     subprocess.run(["age", "-R", str(recipient), "-o", str(out)], input=raw, check=True)
+    if identity is None:
+        # The private key stays in GitHub (PILOT_HOLDOUT_AGE_KEY): the T40
+        # rehearsal in the real Worker decrypts and compares the SHA instead.
+        return
     back = subprocess.run(["age", "-d", "-i", str(identity), str(out)],
                           capture_output=True, check=True).stdout
     if back != raw:
@@ -241,7 +245,8 @@ def main() -> int:
     p.add_argument("--reference", type=Path, required=True)
     p.add_argument("--mutants", type=Path, required=True,
                    help="directory with one overlay directory per mutant")
-    p.add_argument("--identity", type=Path, required=True)
+    p.add_argument("--identity", type=Path, default=None,
+                   help="optional local round-trip; without it T40 verifies decryption")
     p.add_argument("--derived-from", required=True)
     p.add_argument("--python", default=sys.executable)
     p.add_argument("--project-ref", default="lf_java")

@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0277",
+  "title": "T31: --identity opcional en publish_exam; la verificación de descifrado queda en el ensayo T40",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (23/11/2026): publicar exámenes de req-391 sin sacar la llave privada de GitHub"
+  },
+  "reason": "publish_exam.py exigía la llave privada age solo para un descifrado de control local. La llave vive como secreto PILOT_HOLDOUT_AGE_KEY y el ensayo T40 en el Worker real ya descifra y compara el SHA del examen publicado. Sin --identity se cifra con la llave pública y la comprobación queda en T40; con --identity el comportamiento no cambia.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/publish_exam.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0277.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/407"
+  }
+}
