@@ -48,6 +48,47 @@ class RegistryMappingTests(unittest.TestCase):
         self.assertEqual(result["lot"], "SOL-002")
         self.assertEqual({file["path"] for file in result["files"]},
                          {"apps/a.java", "apps/b.java"})
+        self.assertEqual(result["status"], "ATTESTED")
+        self.assertEqual(result["unchanged_paths"], ["apps/b.java"])
+
+    def test_fallback_partial_diff_does_not_register(self):
+        # No exact binding, registration path set matches the lot but the
+        # merge changes only one of two declared paths.
+        with (patch.object(registry, "command", side_effect=fixture_command),
+              patch.object(registry, "_plans",
+                           return_value=[("req-286", {"lots": [lot()]}, {})]),
+              patch.object(registry, "json_at",
+                           side_effect=lambda root, commit, path:
+                           {"task_spec": {"write_path_patterns":
+                            ["apps/a.java", "apps/b.java"]}}
+                           if path.endswith("/native_tasks/" + TASK + ".json")
+                           else None),
+              patch.object(registry, "git_file", return_value=b"source")):
+            result = registry.record_merge(Path("/tmp"), MERGE, PR,
+                                           current_sha=MERGE)
+        self.assertEqual(result["reasons"], ["LOT_MAPPING_MISSING"])
+        self.assertIsNone(result["lot"])
+
+    def test_fallback_full_diff_remains_eligible(self):
+        def command_full(root, *args):
+            if args[:3] == ("git", "diff", "--name-only"):
+                return "apps/a.java\\napps/b.java"
+            return fixture_command(root, *args)
+        with (patch.object(registry, "command", side_effect=command_full),
+              patch.object(registry, "_plans",
+                           return_value=[("req-286", {"lots": [lot()]}, {})]),
+              patch.object(registry, "json_at",
+                           side_effect=lambda root, commit, path:
+                           {"task_spec": {"write_path_patterns":
+                            ["apps/a.java", "apps/b.java"]}}
+                           if path.endswith("/native_tasks/" + TASK + ".json")
+                           else None),
+              patch.object(registry, "git_file", return_value=b"source")):
+            result = registry.record_merge(Path("/tmp"), MERGE, PR,
+                                           current_sha=MERGE)
+        self.assertEqual((result["request"], result["lot"]),
+                         ("req-286", "SOL-002"))
+        self.assertNotIn("unchanged_paths", result)
 
     def test_explicit_binding_outweighs_legacy_path_collision(self):
         binding = {"bindings": [{"lot_id": "SOL-002", "task_name": TASK}]}
