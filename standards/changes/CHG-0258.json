@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0258",
+  "title": "Registro T7: diagnóstico tipado también para la lista de PRs cerrados",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (23/11/2026): REGISTRY_PR_UNAVAILABLE sin causa en el CI de #381"
+  },
+  "reason": "Si falla la lista agrupada de PRs cerrados (CHG-0252), el error se convertía en REGISTRY_PR_UNAVAILABLE sin causa. Ahora se imprime REGISTRY_BUILD_BLOCKED:<código>:PR#LIST con el código real (sin datos sensibles). Sin cambio de lógica.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/implemented_registry.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0258.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/0"
+  }
+}
