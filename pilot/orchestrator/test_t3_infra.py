@@ -135,7 +135,8 @@ def test_constructor_db_proposal_follows_allowlist_and_no_secrets(tmp_path):
     db = _constructor_infra_proposal(tmp_path)
     assert infra_validate.check_infra(tmp_path)
     props = tmp_path / db["config_files"][1]
-    props.write_text(props.read_text().replace("${DB_PASSWORD}", "hard-coded-password"))
+    props.write_text(props.read_text().replace(
+        db["properties"]["spring.datasource.password"], "hard-coded-password"))
     with pytest.raises(infra_lot.DependencyBlocked, match="T3_DATABASE_CONFIG_INVALID"):
         infra_validate.check_infra(tmp_path)
     props.write_text("".join(k + "=" + v + "\n" for k,v in db["properties"].items()))
@@ -156,6 +157,13 @@ def test_b2b_datasource_config_passes_real_worker_secret_scanner():
              infra_lot.policy()["database"]["properties"].items()]
     assert all(secret_text_reason(line) is None for line in lines)
     assert secret_text_reason("DB_PASSWORD=pilot") is None
+    password_line = ("spring.datasource.password=" +
+                     infra_lot.policy()["database"]["properties"][
+                         "spring.datasource.password"])
+    assert password_line.splitlines()[0].endswith(chr(92))
+    assert "${DB_PASSWORD:pilot}" in password_line
+    assert secret_text_reason(password_line) is None
+    assert secret_text_reason("spring.datasource.password=${DB_PASSWORD:pilot}") == "ASSIGNMENT_SECRET"
     assert sensitive_path_reason("apps/time-service/.env.example") == "SENSITIVE_PATH"
     assert "apps/time-service/.env.example" not in (
         infra_lot.policy()["database"]["config_files"]
