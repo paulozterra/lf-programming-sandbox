@@ -148,7 +148,12 @@ def main():
      or not os.environ.get("GH_TOKEN")):
   raise SystemExit("CP37_TRUSTED_CONTEXT_REQUIRED")
  try:
-  result=sweep() if args.sweep else reconcile(args.source_run_id)
+  if args.sweep:
+   from pilot.orchestrator import sweep_api_budget as budget
+   with budget.session(), budget.phase("PG37"):
+    result=sweep()
+  else:
+   result=reconcile(args.source_run_id)
  except (chain_lots.ChainBlocked,ValueError,KeyError,OSError) as exc:
   raise SystemExit("R1_CP37_SWEEP_BLOCKED:"+str(exc)) from exc
  print(json.dumps(result,sort_keys=True))

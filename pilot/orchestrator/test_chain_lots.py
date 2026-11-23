@@ -37,6 +37,38 @@ def configure_root(tmp_path):
     shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
 
 
+
+def isolated_p4_plan(tmp_path):
+    """Load a private pre-completion p4 scenario, never the evolving main state.
+
+    Only static plan/lot inputs are copied from the checkout; the stage is
+    explicitly created for this historical successor-release simulation.
+    """
+    import shutil
+    configure_root(tmp_path)
+    source = Path(__file__).resolve().parents[2]
+    folder = tmp_path / "pilot/runs/p4-prioridad"
+    folder.mkdir(parents=True, exist_ok=True)
+    source_folder = source / "pilot/runs/p4-prioridad"
+    shutil.copy2(source_folder / "lots.json", folder / "lots.json")
+    plan_path = tmp_path / "pilot/orchestrator/chain_plans/p4-prioridad.json"
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source / "pilot/orchestrator/chain_plans/p4-prioridad.json",
+                 plan_path)
+    plan = json.loads(plan_path.read_text("utf-8"))
+    (folder / "state.json").write_bytes(canonical({
+        "stage": "LOTS_PLANNED",
+        "lots_sha256": plan["lots_sha256"],
+        "production_authority": False,
+        "handoff_allowed": False,
+    }))
+    with patch.object(chain_lots, "ROOT", tmp_path):
+        selected = [row for row in chain_lots.plans()
+                    if row[0] == "p4-prioridad"]
+    assert len(selected) == 1
+    return selected[0]
+
+
 def fixtures(tmp_path):
     if tmp_path is not None:
         configure_root(tmp_path)
@@ -269,11 +301,8 @@ def test_cp36_event_dispatches_real_merge_successor_and_blocks_on_third_failure(
 
 
 def test_p4_priority_chain_plan_data_merge_releases_backend_offline(tmp_path):
-    configure_root(tmp_path)
-    """Actual owner-enrolled plan: a trusted p4data merge queues p4be only."""
-    plans = chain_lots.plans()
-    selected = [row for row in plans if row[0] == "p4-prioridad"]
-    assert len(selected) == 1
+    """Isolated pre-completion p4: a trusted p4data merge queues p4be only."""
+    selected = [isolated_p4_plan(tmp_path)]
     request, lots, state, bindings = selected[0]
     assert state["stage"] == "LOTS_PLANNED"
     assert bindings["SOL-002"]["task_name"] == "p4data"
@@ -343,11 +372,12 @@ def test_p4_priority_chain_plan_data_merge_releases_backend_offline(tmp_path):
     )]
 
 
-def test_p4_priority_plan_rejects_mixed_or_cross_request_binding_paths():
+def test_p4_priority_plan_rejects_mixed_or_cross_request_binding_paths(tmp_path):
     """P4 path enrollment is exact; unrelated or mixed metadata is denied."""
-    root = Path(__file__).resolve().parents[2]
-    lots = json.loads((root / "pilot/runs/p4-prioridad/lots.json").read_text("utf-8"))
-    plan = json.loads((root / "pilot/orchestrator/chain_plans/p4-prioridad.json")
+    isolated_p4_plan(tmp_path)
+    lots = json.loads((tmp_path / "pilot/runs/p4-prioridad/lots.json")
+                      .read_text("utf-8"))
+    plan = json.loads((tmp_path / "pilot/orchestrator/chain_plans/p4-prioridad.json")
                       .read_text("utf-8"))
     assert set(validate_plan(plan, lots, "p4-prioridad")) == {"SOL-001", "SOL-002"}
     for target in (
@@ -403,9 +433,7 @@ def test_cp36_manual_pr_requires_train_and_ancestry():
 
 
 def test_cp36_manual_recovery_releases_only_unregistered_pending_free_p4be(tmp_path):
-    configure_root(tmp_path)
-    selected = [row for row in chain_lots.plans() if row[0] == "p4-prioridad"]
-    assert len(selected) == 1
+    selected = [isolated_p4_plan(tmp_path)]
     sha, head = "a" * 40, "b" * 40
     pr = {"number": 110, "merged": True, "merge_commit_sha": sha,
           "base": {"ref": "main", "repo": {"full_name": chain_lots.REPO}},
