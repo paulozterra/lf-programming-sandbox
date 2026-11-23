@@ -24,6 +24,7 @@ _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
 
 import argparse
+import ast
 import hashlib
 import json
 import os
@@ -193,6 +194,73 @@ def check_trace(script: str, trace: dict, worktree: Path, reference: Path,
             raise ExamBlocked("EXAM_TRACE_REQUEST_MISMATCH:" + code)
 
 
+
+def lint_script(script: str) -> None:
+    """Reject untraceable exam failures without running any build."""
+    if not FAIL_CODE.findall(script):
+        raise ExamBlocked("EXAM_TRACE_NO_FAIL_CODES")
+    try:
+        syntax = ast.parse(script)
+    except SyntaxError:
+        raise ExamBlocked("EXAM_LINT_SYNTAX") from None
+    if any(isinstance(node, ast.Assert) for node in ast.walk(syntax)):
+        raise ExamBlocked("EXAM_LINT_ASSERT")
+
+
+def lint_timeout(seconds: int) -> None:
+    """Read accepted timeout bounds from the pinned Worker validator itself."""
+    from programming_agent_runner.worker_spec import TaskSpecError, _acceptance_commands
+    try:
+        _acceptance_commands([{
+            "name": "lint", "argv": ["lf-python", "-c", "pass"],
+            "timeout_seconds": seconds, "max_output_bytes": 1024,
+        }])
+    except TaskSpecError:
+        raise ExamBlocked("EXAM_LINT_TIMEOUT") from None
+
+
+def lint_overlay_scope(root: Path, request: str, task: str,
+                       reference: Path, mutants: list[Path]) -> None:
+    """An examiner control overlay may only modify its task's declared lot."""
+    def reject():
+        raise ExamBlocked("EXAM_REFERENCE_OUT_OF_SCOPE")
+
+    try:
+        folder = storage_path("requests_root", root=root) / request
+        if not folder.is_dir() or folder.is_symlink():
+            reject()
+        lots_path, plan_path = folder / "lots.json", folder / "chain_plan.json"
+        if any(p.is_symlink() or not p.is_file() for p in (lots_path, plan_path)):
+            reject()
+        lots = json.loads(lots_path.read_text("utf-8"))
+        plan = json.loads(plan_path.read_text("utf-8"))
+        bindings = [row for row in plan["bindings"]
+                    if row.get("task_name") == task]
+        if len(bindings) != 1:
+            reject()
+        lot_rows = [row for row in lots["lots"]
+                    if row.get("id") == bindings[0]["lot_id"]]
+        if len(lot_rows) != 1:
+            reject()
+        paths = lot_rows[0]["write_paths"]
+        if (not isinstance(paths, list) or not paths
+                or any(not isinstance(p, str) or not p
+                       or Path(p).is_absolute() or "\\" in p
+                       or ".." in Path(p).parts for p in paths)):
+            reject()
+        allowed = set(paths)
+        for folder in [reference, *mutants]:
+            if not folder.is_dir() or folder.is_symlink():
+                reject()
+            for item in folder.rglob("*"):
+                if item.is_symlink():
+                    reject()
+                if item.is_file() and item.relative_to(folder).as_posix() not in allowed:
+                    reject()
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        reject()
+
+
 def reference_patch(worktree: Path, reference: Path) -> str:
     """The reference as a unified diff against the base (git apply-able)."""
     with tempfile.TemporaryDirectory(prefix="lf-exam-ref-") as tmp:
@@ -260,15 +328,21 @@ def main() -> int:
             raise ExamBlocked("EXAM_TASK_INVALID")
         if a.worktree.resolve() == ROOT.resolve():
             raise ExamBlocked("EXAM_WORKTREE_MUST_BE_SCRATCH")
-        raw = build_oracle(a.script.read_text("utf-8"), name=a.name, family=a.family,
+        script = a.script.read_text("utf-8")
+        lint_script(script)
+        lint_timeout(a.timeout)
+        raw = build_oracle(script, name=a.name, family=a.family,
                            version=a.version, timeout=a.timeout, max_output=a.max_output)
+        # Load all chunks with the actual vendor oracle validator BEFORE
+        # reference/mutant builds or any worktree copy.
         worker_load(raw, ROOT)
         try:
             trace = json.loads(a.trace.read_text("utf-8"))
         except (OSError, ValueError):
             raise ExamBlocked("EXAM_TRACE_UNREADABLE") from None
-        check_trace(a.script.read_text("utf-8"), trace, a.worktree, a.reference, a.request)
+        check_trace(script, trace, a.worktree, a.reference, a.request)
         mutants = sorted(d for d in a.mutants.iterdir() if d.is_dir())
+        lint_overlay_scope(ROOT, a.request, a.task, a.reference, mutants)
         results = exercise(raw, a.worktree, a.reference, mutants, a.python)
         package = reference_package(a.task, raw, reference_patch(a.worktree, a.reference))
         cipher = ROOT / "pilot/holdouts" / f"{a.task}.oracle.json.age"
