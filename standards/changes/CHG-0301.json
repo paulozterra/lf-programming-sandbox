@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0301",
+  "title": "INFRA: contexto de requisitos sin secciones de pantalla",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "req-391: chain-lots.yml run 45282692622, CP36_COMMAND_FAILED:prepare_native_lot.py:CP35_BLOCKED:REGISTER_CONTEXT_BLOCK:CONTEXTO_NEGOCIO_AREA_INVALIDA"
+  },
+  "reason": "El contexto de negocio valida el área antes de proyectar requisitos A9. INFRA estaba omitida en SECTIONS y fallaba antes de registrar el lote; incorpora INFRA con tupla de secciones vacía como DATA. Se mantienen reglas_negocio.json, requisito vinculado y validaciones fail-closed; no se adjuntan campos, errores, tokens ni secciones de pantalla a INFRA.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/business_context.py",
+      "pilot/worker_v08/test_t33_business_context.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0301.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/454"
+  }
+}
