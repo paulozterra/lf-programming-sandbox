@@ -85,7 +85,11 @@ def prepare_merge(root, base_ref, expected_head):
     if check_conflicts(root):
         raise BranchConflict("BRANCH_CONFLICT UNRESOLVED")
     git(root, "diff", "--check")
-    git(root, "diff", "--cached", "--check")
+    # Check only changes introduced relative to trusted main. An older PR may
+    # legitimately inherit pre-existing whitespace in a file added on main;
+    # never attribute those unchanged main bytes to the PR under review.
+    # A PR that changes that file is still checked against main and blocked.
+    git(root, "diff", "--cached", "--check", base_ref)
     has_merge = (root / ".git" / "MERGE_HEAD").exists()
     dirty = git(root, "diff", "--cached", "--quiet", check=False).returncode != 0
     if has_merge or dirty:
