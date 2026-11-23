@@ -1547,7 +1547,9 @@ def sync_implemented_registry(head: str) -> dict:
     No labels or direct main writes. Historical seed uses the same derivation.
     """
     from implemented_registry import reconstruct, save
-    result = reconstruct(ROOT, head, lambda number: api(f"pulls/{number}"))
+    from implemented_registry import CLOSED_PULLS, batched_pr_reader
+    result = reconstruct(ROOT, head, batched_pr_reader(
+        lambda: api_list(CLOSED_PULLS, max_pages=10), lambda number: api(f"pulls/{number}")))
     current = ROOT / "pilot/registry/implemented.json"
     old = json.loads(current.read_text("utf-8")) if current.exists() else None
     if old is not None and old.get("entries") == result["entries"]:

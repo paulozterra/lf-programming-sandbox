@@ -1,0 +1,47 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0252",
+  "title": "Presupuesto de API: watchdog solo ante fallos y registro T7 con lectura agrupada de PRs",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo (23/11/2026): límite de API agotado tras el merge de #373"
+  },
+  "reason": "El 23/11 entre 15:01 y 15:04 UTC el token de Actions agotó su cuota (HTTP 403 rate limit): fallaron el barrido CP3.6 45200540011 y el CI del registro #374 (REGISTRY_BUILD_BLOCKED:GITHUB_HTTP_403:REGISTRY_PR:PR#232). Consumidores: el watchdog T9.1 corrió 49 veces en una hora (workflow_run de 11 workflows y 7 dispatches if: always()), aunque request_failure_notify no hace nada con fuentes exitosas; y la reconstrucción del registro T7 hacía un GET /pulls/{n} por cada merge del Train (~200) en cada CI de PR, en el sweep de CP3.6 y en la verificación de Policy C. Cambios: (1) los 7 dispatches al watchdog pasan a if: failure() || cancelled(); (2) el job del watchdog por workflow_run solo arranca con conclusión failure o timed_out; el cron y el dispatch manual de barrido se mantienen; (3) implemented_registry.batched_pr_reader lista una vez los PR cerrados contra main (≈4 llamadas) y sirve desde ahí los merges; merged se deriva de merged_at; un PR ausente o no fusionado vuelve a la lectura exacta individual. Misma autoridad, sin cambiar reconstruct() ni record_merge().",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/auto-integrate.yml",
+      ".github/workflows/chain-lots.yml",
+      ".github/workflows/ci.yml",
+      ".github/workflows/native-verified-integration.yml",
+      ".github/workflows/pg37-evidence.yml",
+      ".github/workflows/request-failure-watchdog.yml",
+      ".github/workflows/request-finalize.yml",
+      ".github/workflows/t7-request.yml",
+      ".github/workflows/train-handoff.yml",
+      "pilot/auto_integrate.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/implemented_registry.py",
+      "pilot/orchestrator/test_api_budget.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0252.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/375"
+  }
+}

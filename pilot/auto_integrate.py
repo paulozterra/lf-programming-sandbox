@@ -384,8 +384,11 @@ def verify_generated_content(api, pr, paths, kind):
         sys.path.insert(0, str(root))
     try:
         if kind == "implemented-registry":
-            from pilot.orchestrator.implemented_registry import reconstruct
-            ledger = reconstruct(root, main, lambda n: api.request("GET", f"/pulls/{n}"))
+            from pilot.orchestrator.implemented_registry import (
+                CLOSED_PULLS, batched_pr_reader, reconstruct)
+            ledger = reconstruct(root, main, batched_pr_reader(
+                lambda: api.pages("/" + CLOSED_PULLS, None),
+                lambda n: api.request("GET", f"/pulls/{n}")))
             expected = (json.dumps(ledger, sort_keys=True, ensure_ascii=False, indent=2)
                         + "\n").encode("utf-8")
             if _content(api, "pilot/registry/implemented.json", head) != expected:
