@@ -40,7 +40,15 @@ def check_infra(root, dependency_ids=None, database=True):
         deny("T3_CONFIG_MISSING")
     props = props_path.read_text(encoding="utf-8")
     assignments = {}
-    for line in props.splitlines():
+    physical_lines = iter(props.splitlines())
+    for line in physical_lines:
+        # The datasource password's benign local fallback is represented as
+        # an exact Java Properties continuation, not a long secret assignment.
+        if line.endswith(chr(92)):
+            try:
+                line += "\n" + next(physical_lines)
+            except StopIteration:
+                deny("T3_PROPERTIES_INVALID")
         value = line.strip()
         if not value or value.startswith(("#","!")):
             continue
