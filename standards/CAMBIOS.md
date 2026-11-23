@@ -254,4 +254,4 @@
 | CHG-0287 | EDITORIAL | SBX-B2B-LOGIN: datasource local compatible con Worker y lint temprano del examinador T31 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/434 |
 | CHG-0291 | EDITORIAL | CP3.6: origen vigente de cadena tras replanificación gobernada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/439 |
 | CHG-0301 | EDITORIAL | INFRA: contexto de requisitos sin secciones de pantalla |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/454 |
-| CHG-0304 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0304 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/458 |
