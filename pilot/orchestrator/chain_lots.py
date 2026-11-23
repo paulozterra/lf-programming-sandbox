@@ -1641,7 +1641,11 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     def pending_task_live(task: str) -> bool:
         # Do not inspect old proposal refs without a plan or after a verified
         # completion. Other recovery phases retain the normal task_live gate.
-        if task not in owners or task in complete_tasks:
+        if task not in owners:
+            return False
+        if len(owners[task]) != 1:
+            return task_live(task)  # preserve fail-closed ambiguous ownership
+        if task in complete_tasks:
             return False
         return task_live(task)
 
@@ -1687,9 +1691,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     # R1: a periodic sweep can replace the event that would have published
     # the first-parent registry. Recover that same idempotent draft from main,
     # but preserve the no-op guarantee when there are no owner chain plans.
-    registry_status = (sync_implemented_registry(head)
-                       if kind == "TRAIN" and (not sweep or bool(all_plans))
-                       else None)
+    with budget.phase("REGISTRY"):
+        registry_status = (sync_implemented_registry(head)
+                           if kind == "TRAIN" and (not sweep or bool(all_plans))
+                           else None)
     # Each recovery is a separate trust boundary. A local failure may not
     # short-circuit later recoveries or per-request planning.
     repair_outcomes = list(recovery_failures) + kept
@@ -1834,9 +1839,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     outcomes = list(conflict_outcomes)
     for request, lots, state, bindings in all_plans:
         try:
-            outcomes.extend(process_one_plan(
-                request, lots, state, bindings, head, kind, sweep,
-                new_plan_request, manual_sha, first_parent_merges(request)))
+            with budget.phase("CHAIN"):
+                outcomes.extend(process_one_plan(
+                    request, lots, state, bindings, head, kind, sweep,
+                    new_plan_request, manual_sha, first_parent_merges(request)))
         except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
                 OSError, ValueError, KeyError) as exc:
             outcomes.append(per_request_block(request, "CHAIN", exc))
