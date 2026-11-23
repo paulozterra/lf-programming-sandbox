@@ -136,25 +136,39 @@ def record_merge(root: Path, merge_sha: str, pr: dict, *,
         raise RegistryBlocked("REGISTRY_NOT_TRAIN_MERGE")
     changed = set(command(root, "git", "diff", "--name-only", parents[1], merge_sha).splitlines())
     entries = []
+    # CP3.6 supports historical legacy plans and T7 request-local plans.
+    # Prefer an exact plan binding; path-only matching is a legacy fallback,
+    # never allowed to create false ambiguity over an authoritative binding.
+    candidates = []
+    reg = json_at(root, merge_sha, f"pilot/worker_v08/native_tasks/{task}.json")
+    registered_paths = (reg or {}).get("task_spec", {}).get("write_path_patterns", [])
     for slug, lots, package in _plans(root, merge_sha):
+        legacy = json_at(root, merge_sha, f"pilot/orchestrator/chain_plans/{slug}.json")
+        local = json_at(root, merge_sha, f"pilot/runs/{slug}/chain_plan.json")
+        if local is not None and legacy is not None and local != legacy:
+            raise RegistryBlocked("REGISTRY_PLAN_AMBIGUOUS")
+        plan = local or legacy
         for lot in lots["lots"]:
             paths = lot.get("write_paths")
             if not isinstance(paths, list) or not paths:
                 continue
-            # Task is pinned either by CP3.6 binding or by the native task
-            # registration and a UNIQUE exact write-path set.
-            plan = json_at(root, merge_sha, f"pilot/orchestrator/chain_plans/{slug}.json")
-            binding = [b for b in (plan or {}).get("bindings", [])
-                       if b.get("lot_id") == lot.get("id")]
-            bound = bool(binding and any(re.fullmatch(
-                re.escape(b["task_name"]) + r"(?:[2-9]|[1-9][0-9]+)?", task)
-                for b in binding))
-            reg = json_at(root, merge_sha, f"pilot/worker_v08/native_tasks/{task}.json")
-            registered_paths = (reg or {}).get("task_spec", {}).get("write_path_patterns", [])
-            if not bound and set(paths) != set(registered_paths):
+            binding = [row for row in (plan or {}).get("bindings", [])
+                       if isinstance(row, dict) and row.get("lot_id") == lot.get("id")]
+            bound = any(isinstance(row.get("task_name"), str)
+                        and re.fullmatch(re.escape(row["task_name"])
+                                         + r"(?:[2-9]|[1-9][0-9]+)?", task)
+                        for row in binding)
+            fallback = set(paths) == set(registered_paths)
+            # Some legitimate verified integrations only change one file;
+            # the remaining declared lot files are read and hashed from the
+            # authenticated Train merge tree below.
+            if not changed.intersection(paths):
                 continue
-            if not set(paths).issubset(changed):
-                continue
+            if bound or fallback:
+                candidates.append((bound, slug, lot, package, paths))
+    authoritative = [row for row in candidates if row[0]]
+    selected = authoritative if authoritative else candidates
+    for _bound, slug, lot, package, paths in selected:
             ids = lot.get("requirement_ids", [])
             rule_codes = _rules(package, ids)
             endpoints = _contract_endpoints(root, merge_sha, lot)
