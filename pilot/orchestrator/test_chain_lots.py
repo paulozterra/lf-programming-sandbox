@@ -678,7 +678,8 @@ def test_second_add_without_first_parent_retirement_fails_closed(tmp_path: Path)
     older = git(tmp_path, "rev-parse", "HEAD^")
     with patch.object(chain_lots, "run") as command:
         command.side_effect = [
-            latest + "\n" + older,  # first-parent rev-list
+            older + " " + ("a" * 40),  # oldest addition's parent
+            latest + "\n" + older,  # bounded first-parent history
             "",                       # no first-parent deletions
         ]
         with pytest.raises(ChainBlocked, match="CHAIN_HISTORY_INCOMPLETE"):
@@ -696,3 +697,19 @@ def test_replan_with_untrusted_deletion_fails_closed(tmp_path: Path) -> None:
     with pytest.raises(ChainBlocked, match="CHAIN_HISTORY_INCOMPLETE"):
         chain_lots._active_plan_origin("req-391", PLAN, current_adds(tmp_path),
                                        tmp_path, 100)
+
+
+def test_replan_history_limit_excludes_commits_before_first_plan(tmp_path: Path) -> None:
+    init_repo(tmp_path)
+    for n in range(6):
+        (tmp_path / f"historical-{n}.txt").write_text(str(n))
+        git(tmp_path, "add", "-A")
+        git(tmp_path, "commit", "-m", f"Historical {n}")
+    train(tmp_path, 301, lambda: old_plan(tmp_path))
+    deleted = train(tmp_path, 302, lambda: (tmp_path / PLAN).unlink())
+    latest = train(tmp_path, 303, lambda: old_plan(tmp_path, "req391newinfra"))
+    # Only three first-parent merges belong to the request. Old unrelated
+    # commits must not cause the bounded safety check to reject a valid plan.
+    with patch.object(chain_lots, "api", side_effect=pr_receipt({302: deleted})):
+        assert chain_lots._active_plan_origin("req-391", PLAN, current_adds(tmp_path),
+                                               tmp_path, 4) == latest
