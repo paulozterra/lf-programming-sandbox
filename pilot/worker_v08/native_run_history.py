@@ -58,8 +58,11 @@ def _api(base: str, token: str, route: str) -> dict:
 
 
 def _artifact_json(base: str, token: str, run_id: int, *,
-                   artifact_name: str = _ARTIFACT) -> dict | None:
-    obj = _api(base, token, f"actions/runs/{run_id}/artifacts?per_page=100")
+                   artifact_name: str = _ARTIFACT, inventory_api=None) -> dict | None:
+    # Optional, recovery-only transport injection. The native admission path
+    # leaves inventory_api=None and retains its original strict API behavior.
+    route = f"actions/runs/{run_id}/artifacts?per_page=100"
+    obj = inventory_api(route) if inventory_api is not None else _api(base, token, route)
     items = obj.get("artifacts")
     if not isinstance(items, list) or obj.get("total_count", len(items)) > 100:
         raise ValueError("NATIVE_PRIOR_ARTIFACT_LIST_INCOMPLETE")
