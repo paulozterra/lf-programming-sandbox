@@ -162,10 +162,12 @@ def record_merge(root: Path, merge_sha: str, pr: dict, *,
             # Some legitimate verified integrations only change one file;
             # the remaining declared lot files are read and hashed from the
             # authenticated Train merge tree below.
-            if not changed.intersection(paths):
-                continue
-            if bound or fallback:
+            # An exact task/lot binding authorizes a partial EXTEND;
+            # fallback provenance still requires every declared path changed.
+            if bound and changed.intersection(paths):
                 candidates.append((bound, slug, lot, package, paths))
+            elif not bound and fallback and set(paths).issubset(changed):
+                candidates.append((False, slug, lot, package, paths))
     authoritative = [row for row in candidates if row[0]]
     selected = authoritative if authoritative else candidates
     for _bound, slug, lot, package, paths in selected:
@@ -186,14 +188,17 @@ def record_merge(root: Path, merge_sha: str, pr: dict, *,
             reasons.append("CONTRACT_ENDPOINTS_NOT_DERIVABLE")
         if len(files) != len(paths):
             reasons.append("INTEGRATED_FILES_MISSING")
-        entries.append({
+        entry = {
             "request": slug, "lot": lot.get("id"), "area": lot.get("area"),
             "requirement_ids": ids, "rule_codes": rule_codes or [],
             "endpoints": endpoints or [], "files": files,
             "merge_sha": merge_sha,
             "status": "NO_DERIVABLE" if reasons else "ATTESTED",
             "reasons": reasons,
-        })
+        }
+        if _bound and not set(paths).issubset(changed):
+            entry["unchanged_paths"] = sorted(set(paths) - changed)
+        entries.append(entry)
     if len(entries) != 1:
         return {"request": None, "lot": None, "area": None,
                 "requirement_ids": [], "rule_codes": [], "endpoints": [],
