@@ -780,7 +780,10 @@
               "status": "INACTIVE"
             }
           ]
-        }
+        },
+        "migration_runner": "EXTERNAL",
+        "service_runs_migrations": "DENY",
+        "datasource_config": "spring.datasource.url/username/password (variables SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD)"
       }
     },
     {
@@ -816,7 +819,16 @@
             "password_hash",
             "password_plain"
           ]
-        }
+        },
+        "locked_response": {
+          "http_status": 429,
+          "outcome": "RATE_LIMITED",
+          "error_code": "SBX-B2B-E-RATE"
+        },
+        "counted_outcomes": [
+          "INVALID_CREDENTIALS"
+        ],
+        "reset_on": "AUTHENTICATED"
       }
     },
     {
@@ -848,7 +860,14 @@
             "revoked_at": "timestamptz NULL"
           },
           "check": "expires_at > created_at"
-        }
+        },
+        "logout_endpoint": "POST /api/auth/logout",
+        "logout_auth": "Authorization: Bearer <token>",
+        "logout_response": {
+          "http_status": 204
+        },
+        "session_endpoint": "GET /api/auth/session",
+        "token_hash": "SHA-256 hex del token"
       }
     },
     {

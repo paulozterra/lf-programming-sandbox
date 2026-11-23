@@ -636,7 +636,10 @@
               "status": "INACTIVE"
             }
           ]
-        }
+        },
+        "migration_runner": "EXTERNAL",
+        "service_runs_migrations": "DENY",
+        "datasource_config": "spring.datasource.url/username/password (variables SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD)"
       },
       "categoria": "DATOS",
       "descripcion": "Las cuentas que pueden iniciar sesión viven en el almacén persistente del sandbox (base relacional, migraciones versionadas). Cada cuenta guarda correo, empresa, perfil y estado; la contraseña solo se guarda como hash. El correo es único sin distinguir mayúsculas. Los datos iniciales son ficticios y nunca incluyen contraseñas en claro. Las cuentas inactivas o restringidas no pueden autenticarse y se tratan como credenciales inválidas hacia afuera."
@@ -679,7 +682,16 @@
             "password_hash",
             "password_plain"
           ]
-        }
+        },
+        "locked_response": {
+          "http_status": 429,
+          "outcome": "RATE_LIMITED",
+          "error_code": "SBX-B2B-E-RATE"
+        },
+        "counted_outcomes": [
+          "INVALID_CREDENTIALS"
+        ],
+        "reset_on": "AUTHENTICATED"
       },
       "categoria": "DATOS",
       "descripcion": "Cada intento de inicio de sesión fallido queda registrado en el almacén persistente con la referencia de la cuenta o el correo normalizado, la hora, el resultado y el correlation id; nunca la contraseña. El bloqueo por intentos se calcula desde ese registro, de modo que se mantiene aunque el servicio se reinicie. Rige la política del login existente (bloqueo tras 5 fallos durante 15 minutos)."
@@ -718,7 +730,14 @@
             "revoked_at": "timestamptz NULL"
           },
           "check": "expires_at > created_at"
-        }
+        },
+        "logout_endpoint": "POST /api/auth/logout",
+        "logout_auth": "Authorization: Bearer <token>",
+        "logout_response": {
+          "http_status": 204
+        },
+        "session_endpoint": "GET /api/auth/session",
+        "token_hash": "SHA-256 hex del token"
       },
       "categoria": "DATOS",
       "descripcion": "La sesión emitida tras un resultado AUTHENTICATED se registra en el almacén persistente (solo el hash del token, la cuenta, creación, último uso, vencimiento y revocación). La inactividad y la concurrencia de sesiones se aplican desde ese registro. Cerrar sesión revoca el registro; un token revocado o vencido deja de ser válido aunque el servicio se reinicie."
