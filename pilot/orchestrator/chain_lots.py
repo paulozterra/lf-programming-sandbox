@@ -26,6 +26,8 @@ import re
 import subprocess
 import sys
 import tempfile
+from contextlib import nullcontext
+from pilot.orchestrator import sweep_api_budget as budget
 
 from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN
 from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_state,
@@ -60,11 +62,27 @@ SAFE_ID = re.compile(r"[a-z][a-z0-9_-]{0,63}\Z")
 
 
 def run(*args: str, cwd: Path = ROOT, check: bool = True) -> str:
+    # One consistent open-PR snapshot across recovery phases. Invalidate it
+    # after writes so newly generated drafts remain visible within this run.
+    active = budget.current()
+    budget.invalidate_prs(args)
+    if active is not None and not getattr(active, "_fetching_prs", False):
+        def fetch_pr_listing(query):
+            active._fetching_prs = True
+            try:
+                return run(*query, cwd=cwd, check=check)
+            finally:
+                active._fetching_prs = False
+        cached = budget.pr_list(args, fetch_pr_listing)
+        if cached is not None:
+            return cached
     # The existing run() seam stays injectable for offline T12/T25 tests.
     # Only idempotent gh api GETs are retried; POSTs must not be replayed.
     api_get = len(args) >= 3 and args[:2] == ("gh", "api") and args[2] != "-X"
     attempts = 3 if api_get else 1
     for attempt in range(attempts):
+        if active is not None and args and args[0] == "gh":
+            active.record()
         try:
             p = subprocess.run(list(args), cwd=cwd, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, text=True, timeout=120)
@@ -110,14 +128,16 @@ def github_api_raw(path: str) -> str:
 
 
 def api(path: str) -> dict:
-    raw = github_api_raw(path)
-    try:
-        parsed = json.loads(raw)
-    except ValueError:
-        deny("GITHUB_RESPONSE_INVALID")
-    if not isinstance(parsed, dict):
-        deny("GITHUB_RESPONSE_INVALID")
-    return parsed
+    def fetch():
+        raw = github_api_raw(path)
+        try:
+            parsed = json.loads(raw)
+        except ValueError:
+            deny("GITHUB_RESPONSE_INVALID")
+        if not isinstance(parsed, dict):
+            deny("GITHUB_RESPONSE_INVALID")
+        return parsed
+    return budget.read(path, fetch)
 
 
 def api_list(path: str, *, max_pages: int = 10) -> list[dict]:
@@ -1609,11 +1629,21 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             return [{"status": ci_status, "head_sha": head}]
     all_plans = plans()
     owners = {}
+    complete_tasks = set()
     for request, _lots, _state, bindings in all_plans:
         for binding in bindings.values():
             task = binding.get("task_name") if isinstance(binding, dict) else None
             if isinstance(task, str):
                 owners.setdefault(task, set()).add(request)
+                if _state.get("stage") == "CHAIN_COMPLETE_CANDIDATE":
+                    complete_tasks.add(task)
+
+    def pending_task_live(task: str) -> bool:
+        # Do not inspect old proposal refs without a plan or after a verified
+        # completion. Other recovery phases retain the normal task_live gate.
+        if task not in owners or task in complete_tasks:
+            return False
+        return task_live(task)
 
     def task_live(task: str) -> bool:
         candidates = owners.get(task, set())
@@ -1640,9 +1670,11 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     kept = []
     if sweep:
         try:
-            for entry in retire_conflicted_generated(
+            with budget.phase("T17_4_RETIRE"):
+                recovered = retire_conflicted_generated(
                     head, run, api, REPO, api_list,
-                    allow_candidate=candidate_live):
+                    allow_candidate=candidate_live)
+            for entry in recovered:
                 if entry.get("status") in ("BLOCKED", "REQUEST_CLOSED"):
                     recovery_failures.append(entry)
                 elif entry.get("status") == "KEPT":
@@ -1678,7 +1710,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                          "implemented-registry")}))),
             ("R1_WORKER_PENDING",
              lambda: recover_pending_worker(
-                 head, run, api, REPO, ROOT, allowed_task=task_live)
+                 head, run, api, REPO, ROOT, allowed_task=pending_task_live)
              if owners else []),
             ("T20_NATIVE_INFRA",
              lambda: retry_native_infra(
@@ -1692,7 +1724,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         )
         for phase, action in recoveries:
             try:
-                repair_outcomes.extend(action())
+                with budget.phase(phase):
+                    repair_outcomes.extend(action())
             except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
                     OSError, ValueError, KeyError, TypeError) as exc:
                 repair_outcomes.append(sweep_recovery_block(phase, exc))
@@ -1923,10 +1956,11 @@ def main() -> int:
                 or (not args.sweep and args.integration_pr is not None and
                     (args.integration_pr <= 0 or args.source_run_id is not None))):
             deny("TRUSTED_RUN_ENV_REQUIRED")
-        print(json.dumps(process(args.source_run_id, args.integration_pr,
-                                 args.new_plan_request, args.new_plan_pr,
-                                 sweep=args.sweep, base_sha=args.base_sha,
-                                 require_ci=True), sort_keys=True))
+        with (budget.session() if args.sweep else nullcontext()):
+            print(json.dumps(process(args.source_run_id, args.integration_pr,
+                                     args.new_plan_request, args.new_plan_pr,
+                                     sweep=args.sweep, base_sha=args.base_sha,
+                                     require_ci=True), sort_keys=True))
     except (ChainBlocked, IntegrationBlocked, AdmissionBlocked, OSError, ValueError, KeyError) as exc:
         code = safe_failure_code(exc)
         if args.sweep and code.startswith("GITHUB_TRANSITORIO:"):
