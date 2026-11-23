@@ -60,7 +60,7 @@ def terminal_requests():
         stage = state.get("stage")
         if stage in TERMINAL:
             yield folder.name, meta, stage
-        elif stage == "LOTS_PLANNED" and verified_chain_complete(folder, root=ROOT):
+        elif stage in ("LOTS_PLANNED", "CHAIN_COMPLETE_CANDIDATE") and verified_chain_complete(folder, root=ROOT):
             yield folder.name, meta, "CHAIN_COMPLETE_VERIFIED"
 
 
