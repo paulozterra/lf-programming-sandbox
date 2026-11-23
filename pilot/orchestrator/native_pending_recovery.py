@@ -136,7 +136,12 @@ def recover(head: str, run, api, repo: str, root: Path, *, allowed_task) -> list
                 token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
                 if not token:
                     raise ValueError("R1_WORKER_TOKEN_MISSING")
-                proof = _artifact_json(repo, token, item["id"])
+                # Reuse the sweep's artifact inventory snapshot; archive
+                # verification remains the existing strict proof reader.
+                from pilot.orchestrator import sweep_api_budget as budget
+                proof = (_artifact_json(repo, token, item["id"], inventory_api=api)
+                         if budget.current() is not None
+                         else _artifact_json(repo, token, item["id"]))
                 if proof is not None:
                     outcomes.append({"status": "BLOCKED", "task": task,
                                      "reason": "R1_WORKER_PRIOR_ATTEMPT_REQUIRES_REVIEW"})
