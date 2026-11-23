@@ -746,7 +746,41 @@
           "RESTRICTED"
         ],
         "seed": "FICTITIOUS_ONLY",
-        "plaintext_password_in_seed": "DENY"
+        "plaintext_password_in_seed": "DENY",
+        "schema": {
+          "table": "sbx_b2b_account",
+          "columns": {
+            "id": "bigint identidad, PK",
+            "email": "varchar(254) NOT NULL, guardado recortado y en minúsculas el dominio",
+            "password_hash": "text NOT NULL, hash bcrypt ($2a$/$2b$), nunca texto plano",
+            "company_code": "varchar(32) NOT NULL",
+            "profile": "varchar(40) NOT NULL, uno de allowed_profiles",
+            "status": "varchar(12) NOT NULL, uno de allowed_status, por defecto ACTIVE",
+            "created_at": "timestamptz NOT NULL DEFAULT now()"
+          },
+          "unique": "lower(email)",
+          "allowed_profiles": [
+            "SBX_B2B_ADMIN_EMPRESA",
+            "SBX_B2B_APROBADOR",
+            "SBX_B2B_OPERADOR",
+            "SBX_B2B_LECTOR_AUDITOR"
+          ],
+          "seed": [
+            {
+              "email": "demo@sandbox.test",
+              "password_hash_source": "app.auth.default-password-bcrypt",
+              "company_code": "SBX-EMP-001",
+              "profile": "SBX_B2B_OPERADOR",
+              "status": "ACTIVE"
+            },
+            {
+              "email": "inactivo@sandbox.test",
+              "company_code": "SBX-EMP-001",
+              "profile": "SBX_B2B_LECTOR_AUDITOR",
+              "status": "INACTIVE"
+            }
+          ]
+        }
       }
     },
     {
@@ -763,7 +797,26 @@
         "password_in_record": "DENY",
         "lockout_source": "PERSISTED_ATTEMPTS",
         "survives_restart": true,
-        "sandbox_policy": "EXISTING_LOGIN_POLICY"
+        "sandbox_policy": "EXISTING_LOGIN_POLICY",
+        "schema": {
+          "table": "sbx_b2b_login_attempt",
+          "columns": {
+            "id": "bigint identidad, PK",
+            "account_id": "bigint NULL, FK a sbx_b2b_account(id); NULL si el correo no existe",
+            "email_normalized": "varchar(254) NOT NULL",
+            "outcome": "varchar(24) NOT NULL, uno de INVALID_CREDENTIALS, RATE_LIMITED",
+            "correlation_id": "varchar(64) NOT NULL",
+            "occurred_at": "timestamptz NOT NULL DEFAULT now()"
+          },
+          "index": [
+            "(email_normalized, occurred_at)"
+          ],
+          "forbidden_columns": [
+            "password",
+            "password_hash",
+            "password_plain"
+          ]
+        }
       }
     },
     {
@@ -782,7 +835,20 @@
         "token_storage": "HASH_ONLY",
         "idle_and_concurrency_source": "PERSISTED_SESSIONS",
         "logout": "REVOKE",
-        "sandbox_policy": "EXISTING_LOGIN_POLICY"
+        "sandbox_policy": "EXISTING_LOGIN_POLICY",
+        "schema": {
+          "table": "sbx_b2b_session",
+          "columns": {
+            "id": "bigint identidad, PK",
+            "account_id": "bigint NOT NULL, FK a sbx_b2b_account(id)",
+            "token_hash": "char(64) NOT NULL UNIQUE, SHA-256 hex del token; el token nunca se guarda",
+            "created_at": "timestamptz NOT NULL DEFAULT now()",
+            "last_seen_at": "timestamptz NOT NULL DEFAULT now()",
+            "expires_at": "timestamptz NOT NULL",
+            "revoked_at": "timestamptz NULL"
+          },
+          "check": "expires_at > created_at"
+        }
       }
     },
     {
