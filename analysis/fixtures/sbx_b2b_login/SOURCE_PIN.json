@@ -6,17 +6,17 @@
   "files": [
     {
       "file": "screen_contract.json",
-      "sha256": "f71489db454deee79f3d22761ced8e17c82fc43d171840aac49f5d750c995338",
+      "sha256": "54e20ebd4be7244af9161d079864d80df5a5da994e1d8f0e72e84fb8f7944418",
       "imitates": "lf_ops.fn_screen_contract_v1"
     },
     {
       "file": "direct_rules.json",
-      "sha256": "a3f0e7c18d5ae52fcffcde241f230ae9d3e6af1d35f9fd79e92940240a0f5b3a",
+      "sha256": "3677e8d8a4e83a7ffa8d0e2ccbf0f550d4c739759d9a3b5328c2c02b26597845",
       "imitates": "lf_ops.pantallas + lf_ops.reglas_pantallas + lf_ops.reglas"
     },
     {
       "file": "effective_rules.json",
-      "sha256": "4370e90f1aed4e47d6c0eecdb17f125130b0a3ebbfcbebd802be31f1aab96d54",
+      "sha256": "89d035be1974d7edeb59b6ff30078b74a3aacb4e85bed09ba1c35ef2101b15bf",
       "imitates": "programacion.fn_input_effective_rule_links_v1"
     },
     {
@@ -26,7 +26,7 @@
     },
     {
       "file": "elements.json",
-      "sha256": "071785a7cbaccb980598d2f4de4ffa4d1cfad39b7766c11f229e5cc86abc5ea9",
+      "sha256": "2a75288a3231fe898a9aed8aa69f79a29caa0c6d00a3fca7210cff2473b0dad7",
       "imitates": "lf_ops.pantalla_elementos"
     },
     {

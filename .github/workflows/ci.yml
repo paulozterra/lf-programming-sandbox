@@ -127,6 +127,13 @@ jobs:
         working-directory: .
         run: mvn -U -B -q -f apps/time-service/pom.xml spotless:check
       - run: python3 ../standards/tools/stack_checks.py run --set spring-boot --check-id spring-verify
+      - name: Apply repository db/migration to lf_ci (external migrations, CHG-0256)
+        working-directory: .
+        run: |
+          set -euo pipefail
+          for f in $(ls db/migration/V*__*.sql | sort -V); do
+            PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USERNAME" -d lf_ci -X -q -v ON_ERROR_STOP=1 -f "$f"
+          done
       - name: Compile and run staged reminders visible tests (no model)
         working-directory: .
         run: mvn -U -B -q -f apps/time-service/pom.xml test
