@@ -748,15 +748,16 @@
         "seed": "FICTITIOUS_ONLY",
         "plaintext_password_in_seed": "DENY",
         "schema": {
-          "table": "sbx_b2b_account",
+          "table": "sbx_b2b_accounts",
           "columns": {
-            "id": "bigint identidad, PK",
-            "email": "varchar(254) NOT NULL, guardado recortado y en minúsculas el dominio",
-            "password_hash": "text NOT NULL, hash bcrypt ($2a$/$2b$), nunca texto plano",
+            "id": "bigint identidad, PK (STD-DB-02)",
+            "email": "varchar(254) NOT NULL, recortado; dominio en minúsculas",
+            "password_hash": "text NOT NULL, hash bcrypt ($2a$/$2b$/$2y$), nunca texto plano",
             "company_code": "varchar(32) NOT NULL",
-            "profile": "varchar(40) NOT NULL, uno de allowed_profiles",
-            "status": "varchar(12) NOT NULL, uno de allowed_status, por defecto ACTIVE",
-            "created_at": "timestamptz NOT NULL DEFAULT now()"
+            "profile": "varchar(40) NOT NULL, CHECK con allowed_profiles (STD-DB-05)",
+            "status": "varchar(12) NOT NULL DEFAULT 'ACTIVE', CHECK con allowed_status",
+            "created_at": "timestamptz NOT NULL DEFAULT now()",
+            "updated_at": "timestamptz NOT NULL DEFAULT now(), mantenido por trigger (STD-DB-04)"
           },
           "unique": "lower(email)",
           "allowed_profiles": [
@@ -783,7 +784,11 @@
         },
         "migration_runner": "EXTERNAL",
         "service_runs_migrations": "DENY",
-        "datasource_config": "spring.datasource.url/username/password desde DB_URL, DB_USERNAME y DB_PASSWORD (convención del CI); sin esas variables, por defecto jdbc:postgresql://127.0.0.1:5432/pilot con pilot/pilot (base desechable local y del Worker). El servicio no aplica migraciones: la infraestructura aplica db/migration antes de pruebas y ejecución"
+        "datasource_config": "spring.datasource.url/username/password desde DB_URL, DB_USERNAME y DB_PASSWORD (convención del CI); sin esas variables, por defecto jdbc:postgresql://127.0.0.1:5432/pilot con pilot/pilot (base desechable local y del Worker). El servicio no aplica migraciones: la infraestructura aplica db/migration antes de pruebas y ejecución",
+        "standards": [
+          "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en db/rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+        ],
+        "rollback_dir": "db/rollback"
       }
     },
     {
@@ -802,17 +807,18 @@
         "survives_restart": true,
         "sandbox_policy": "EXISTING_LOGIN_POLICY",
         "schema": {
-          "table": "sbx_b2b_login_attempt",
+          "table": "sbx_b2b_login_attempts",
           "columns": {
             "id": "bigint identidad, PK",
-            "account_id": "bigint NULL, FK a sbx_b2b_account(id); NULL si el correo no existe",
+            "account_id": "bigint NULL, FK a sbx_b2b_accounts(id); NULL si el correo no existe",
             "email_normalized": "varchar(254) NOT NULL",
-            "outcome": "varchar(24) NOT NULL, uno de INVALID_CREDENTIALS, RATE_LIMITED",
+            "outcome": "varchar(24) NOT NULL, CHECK INVALID_CREDENTIALS | RATE_LIMITED",
             "correlation_id": "varchar(64) NOT NULL",
-            "occurred_at": "timestamptz NOT NULL DEFAULT now()"
+            "created_at": "timestamptz NOT NULL DEFAULT now(); momento del intento",
+            "updated_at": "timestamptz NOT NULL DEFAULT now() (STD-DB-04); la tabla es de solo inserción"
           },
           "index": [
-            "(email_normalized, occurred_at)"
+            "(email_normalized, created_at)"
           ],
           "forbidden_columns": [
             "password",
@@ -828,7 +834,11 @@
         "counted_outcomes": [
           "INVALID_CREDENTIALS"
         ],
-        "reset_on": "AUTHENTICATED"
+        "reset_on": "AUTHENTICATED",
+        "standards": [
+          "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en db/rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+        ],
+        "rollback_dir": "db/rollback"
       }
     },
     {
@@ -849,15 +859,16 @@
         "logout": "REVOKE",
         "sandbox_policy": "EXISTING_LOGIN_POLICY",
         "schema": {
-          "table": "sbx_b2b_session",
+          "table": "sbx_b2b_sessions",
           "columns": {
             "id": "bigint identidad, PK",
-            "account_id": "bigint NOT NULL, FK a sbx_b2b_account(id)",
+            "account_id": "bigint NOT NULL, FK a sbx_b2b_accounts(id)",
             "token_hash": "char(64) NOT NULL UNIQUE, SHA-256 hex del token; el token nunca se guarda",
-            "created_at": "timestamptz NOT NULL DEFAULT now()",
             "last_seen_at": "timestamptz NOT NULL DEFAULT now()",
             "expires_at": "timestamptz NOT NULL",
-            "revoked_at": "timestamptz NULL"
+            "revoked_at": "timestamptz NULL",
+            "created_at": "timestamptz NOT NULL DEFAULT now()",
+            "updated_at": "timestamptz NOT NULL DEFAULT now(), mantenido por trigger (STD-DB-04)"
           },
           "check": "expires_at > created_at"
         },
@@ -867,7 +878,11 @@
           "http_status": 204
         },
         "session_endpoint": "GET /api/auth/session",
-        "token_hash": "SHA-256 hex del token"
+        "token_hash": "SHA-256 hex del token",
+        "standards": [
+          "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en db/rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+        ],
+        "rollback_dir": "db/rollback"
       }
     },
     {
