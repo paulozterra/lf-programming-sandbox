@@ -169,31 +169,31 @@ def record_merge(root: Path, merge_sha: str, pr: dict, *,
     authoritative = [row for row in candidates if row[0]]
     selected = authoritative if authoritative else candidates
     for _bound, slug, lot, package, paths in selected:
-            ids = lot.get("requirement_ids", [])
-            rule_codes = _rules(package, ids)
-            endpoints = _contract_endpoints(root, merge_sha, lot)
-            files = []
-            for path in sorted(paths):
-                raw = git_file(root, merge_sha, path)
-                if raw is not None:
-                    files.append({"path": path, "sha256": sha(raw)})
-            reasons = []
-            if not ids or not isinstance(ids, list):
-                reasons.append("REQUIREMENT_IDS_MISSING")
-            if rule_codes is None:
-                reasons.append("RULE_BINDING_MISSING")
-            if endpoints is None:
-                reasons.append("CONTRACT_ENDPOINTS_NOT_DERIVABLE")
-            if len(files) != len(paths):
-                reasons.append("INTEGRATED_FILES_MISSING")
-            entries.append({
-                "request": slug, "lot": lot.get("id"), "area": lot.get("area"),
-                "requirement_ids": ids, "rule_codes": rule_codes or [],
-                "endpoints": endpoints or [], "files": files,
-                "merge_sha": merge_sha,
-                "status": "NO_DERIVABLE" if reasons else "ATTESTED",
-                "reasons": reasons,
-            })
+        ids = lot.get("requirement_ids", [])
+        rule_codes = _rules(package, ids)
+        endpoints = _contract_endpoints(root, merge_sha, lot)
+        files = []
+        for path in sorted(paths):
+            raw = git_file(root, merge_sha, path)
+            if raw is not None:
+                files.append({"path": path, "sha256": sha(raw)})
+        reasons = []
+        if not ids or not isinstance(ids, list):
+            reasons.append("REQUIREMENT_IDS_MISSING")
+        if rule_codes is None:
+            reasons.append("RULE_BINDING_MISSING")
+        if endpoints is None:
+            reasons.append("CONTRACT_ENDPOINTS_NOT_DERIVABLE")
+        if len(files) != len(paths):
+            reasons.append("INTEGRATED_FILES_MISSING")
+        entries.append({
+            "request": slug, "lot": lot.get("id"), "area": lot.get("area"),
+            "requirement_ids": ids, "rule_codes": rule_codes or [],
+            "endpoints": endpoints or [], "files": files,
+            "merge_sha": merge_sha,
+            "status": "NO_DERIVABLE" if reasons else "ATTESTED",
+            "reasons": reasons,
+        })
     if len(entries) != 1:
         return {"request": None, "lot": None, "area": None,
                 "requirement_ids": [], "rule_codes": [], "endpoints": [],
