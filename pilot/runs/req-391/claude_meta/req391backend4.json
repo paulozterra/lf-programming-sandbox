@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/req391backend4.oracle.json.age",
+  "holdout_sha256": "e6b9fdf71c40773a6776734ddfb5c7b2301faa4f9b36c58784cf7835ec975145",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "ficha sbx_b2b_login (SBX-B2B-R-DATA-*, AUTH-*, PRIVACY-TELEMETRY)"
+}

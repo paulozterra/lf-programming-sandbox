@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/req391contrato3.oracle.json.age",
+  "holdout_sha256": "cd7ef656357b05dbd0286affcc9a1e417e0dd7de4fc5e9ff110c961811b6d229",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "ficha sbx_b2b_login (SBX-B2B-R-DATA-SESSIONS, SBX-B2B-R-RATE-LIMIT)"
+}
