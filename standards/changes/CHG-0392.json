@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0392",
+  "title": "Análisis MODIFY: A4 recibe la pantalla implementada como objeto existente",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 24/11: problemas-ruta-modificar-modulo-existente 2.3/3.2; simulación T7 \"modifica SBX-B2B-LOGIN\""
+  },
+  "reason": "El host del análisis siempre pasaba a A4 un inventario vacío (solo se construyó para pantallas nuevas), así que una modificación quedaba en A4_TARGET_NOT_MAPPED_TO_INVENTORY_OBJECT y A5 lo tapaba como A5_TARGET_OR_BUSINESS_IDENTITY_DRIFT. Ahora, con intención MODIFY, request_trace entrega la evidencia de implementación (archivos con SHA verificado de lotes ATTESTED de áreas que implementan) y el host la proyecta como objeto impl://<pantalla> con esos archivos como impacto directo; no inventa dependencias de grafo. Si A4 queda sin identidad proyectada, el host bloquea con el código propio de A4.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/host/request_trace.py",
+      "analysis/host/fixture_readback_host.py",
+      "analysis/host/test_modify_existing_readback.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0392.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
