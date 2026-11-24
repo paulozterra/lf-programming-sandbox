@@ -1,0 +1,1077 @@
+{
+  "area": "INFRA",
+  "note": "Reglas de negocio del lote copiadas del paquete A9 del pedido. Son obligatorias y prevalecen sobre cualquier suposición; las reglas técnicas (STD-*) están en lf_rules.md.",
+  "requirements": [
+    {
+      "acceptance_checks": [
+        "Ningún estado depende únicamente del color."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/323"
+      ],
+      "outcome": "Ningún estado depende únicamente del color.",
+      "requirement_id": "REQ-SBX-B2B-R-A11Y-CONTRAST",
+      "rule_code": "SBX-B2B-R-A11Y-CONTRAST",
+      "rules": [
+        {
+          "categoria": "ACCESSIBILITY",
+          "rule_code": "SBX-B2B-R-A11Y-CONTRAST",
+          "source_ref": "supabase://lf_ops.reglas/323",
+          "source_status": "VIGENTE",
+          "titulo": "Contraste y color",
+          "valor_config": {
+            "contrast_target": "WCAG_AA",
+            "status_requires_text_or_icon": true
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "En modo de colores forzados o alto contraste la pantalla conserva toda su funcionalidad, foco y estados."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/325"
+      ],
+      "outcome": "En modo de colores forzados o alto contraste la pantalla conserva toda su funcionalidad, foco y estados.",
+      "requirement_id": "REQ-SBX-B2B-R-A11Y-FORCED-COLORS",
+      "rule_code": "SBX-B2B-R-A11Y-FORCED-COLORS",
+      "rules": [
+        {
+          "categoria": "ACCESSIBILITY",
+          "rule_code": "SBX-B2B-R-A11Y-FORCED-COLORS",
+          "source_ref": "supabase://lf_ops.reglas/325",
+          "source_status": "VIGENTE",
+          "titulo": "Forced colors y alto contraste sin pérdida funcional",
+          "valor_config": {
+            "functional_loss": "DENY",
+            "media": "forced-colors"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Controles con área táctil mínima, foco visible, navegación por teclado y etiquetas."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/322"
+      ],
+      "outcome": "Controles con área táctil mínima, foco visible, navegación por teclado y etiquetas.",
+      "requirement_id": "REQ-SBX-B2B-R-A11Y-INTERACTION",
+      "rule_code": "SBX-B2B-R-A11Y-INTERACTION",
+      "rules": [
+        {
+          "categoria": "ACCESSIBILITY",
+          "rule_code": "SBX-B2B-R-A11Y-INTERACTION",
+          "source_ref": "supabase://lf_ops.reglas/322",
+          "source_status": "VIGENTE",
+          "titulo": "Interacción accesible",
+          "valor_config": {
+            "aria_labels": true,
+            "focus_visible": true,
+            "keyboard": true,
+            "screen_reader_status_updates": true
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Se respeta la preferencia de movimiento reducido del usuario. Cuando esté activa, las animaciones y transiciones no esenciales se reducen o eliminan; ningún estado, error, progreso ni acción depende exclusivamente del movimiento."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/324"
+      ],
+      "outcome": "Se respeta la preferencia de movimiento reducido del usuario. Cuando esté activa, las animaciones y transiciones no esenciales se reducen o eliminan; ningún estado, error, progreso ni acción depende exclusivamente del movimiento.",
+      "requirement_id": "REQ-SBX-B2B-R-A11Y-MOTION",
+      "rule_code": "SBX-B2B-R-A11Y-MOTION",
+      "rules": [
+        {
+          "categoria": "ACCESSIBILITY",
+          "rule_code": "SBX-B2B-R-A11Y-MOTION",
+          "source_ref": "supabase://lf_ops.reglas/324",
+          "source_status": "VIGENTE",
+          "titulo": "Preferencia de movimiento reducido",
+          "valor_config": {
+            "functional_dependency_on_motion": "DENY",
+            "preference": "prefers-reduced-motion"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Toda acción operativa posterior a autenticación completa se deniega por defecto y requiere autorización del lado servidor. El login nunca concede por sí mismo permisos operativos."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/308"
+      ],
+      "outcome": "Toda acción operativa posterior a autenticación completa se deniega por defecto y requiere autorización del lado servidor. El login nunca concede por sí mismo permisos operativos.",
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-DENY-DEFAULT",
+      "rule_code": "SBX-B2B-R-AUTH-DENY-DEFAULT",
+      "rules": [
+        {
+          "categoria": "SECURITY",
+          "rule_code": "SBX-B2B-R-AUTH-DENY-DEFAULT",
+          "source_ref": "supabase://lf_ops.reglas/308",
+          "source_status": "VIGENTE",
+          "titulo": "Denegar por defecto",
+          "valor_config": {
+            "deny_by_default": true,
+            "preauth_grants_operational_access": "DENY",
+            "server_side_enforcement": true
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "La respuesta expone únicamente el outcome funcional, un correlation_id generado por servidor y, cuando corresponda, el código de error canónico. No se exponen errores crudos, credenciales, tokens internos ni razones sensibles."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/306"
+      ],
+      "outcome": "La respuesta expone únicamente el outcome funcional, un correlation_id generado por servidor y, cuando corresponda, el código de error canónico. No se exponen errores crudos, credenciales, tokens internos ni razones sensibles.",
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-ENVELOPE",
+      "rule_code": "SBX-B2B-R-AUTH-ENVELOPE",
+      "rules": [
+        {
+          "categoria": "SECURITY",
+          "rule_code": "SBX-B2B-R-AUTH-ENVELOPE",
+          "source_ref": "supabase://lf_ops.reglas/306",
+          "source_status": "VIGENTE",
+          "titulo": "Sobre de respuesta seguro de autenticación",
+          "valor_config": {
+            "account_restriction_reason_exposure": "DENY",
+            "conditional_error_field": "error_code",
+            "credential_echo": "DENY",
+            "internal_token_exposure": "DENY",
+            "required_fields": [
+              "outcome",
+              "correlation_id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "El Login se comunica exclusivamente con una capa de autenticación del lado servidor. El navegador no verifica credenciales por sí mismo. Si la identidad no puede verificarse válidamente, no se crea sesión ni se concede acceso."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/303"
+      ],
+      "outcome": "El Login se comunica exclusivamente con una capa de autenticación del lado servidor. El navegador no verifica credenciales por sí mismo. Si la identidad no puede verificarse válidamente, no se crea sesión ni se concede acceso.",
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-FAIL-CLOSED",
+      "rule_code": "SBX-B2B-R-AUTH-FAIL-CLOSED",
+      "rules": [
+        {
+          "categoria": "SECURITY",
+          "rule_code": "SBX-B2B-R-AUTH-FAIL-CLOSED",
+          "source_ref": "supabase://lf_ops.reglas/303",
+          "source_status": "VIGENTE",
+          "titulo": "Autenticación del lado servidor y fail-closed",
+          "valor_config": {
+            "browser_direct_auth": "DENY",
+            "fail_closed": true,
+            "session_on_unverified_result": "DENY"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "La capa de autenticación traduce cualquier resultado a un outcome funcional estable. Para outcomes no exitosos se utiliza exclusivamente un código del catálogo de errores; el HTTP y los mensajes visibles se resuelven desde ese catálogo."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/304"
+      ],
+      "outcome": "La capa de autenticación traduce cualquier resultado a un outcome funcional estable. Para outcomes no exitosos se utiliza exclusivamente un código del catálogo de errores; el HTTP y los mensajes visibles se resuelven desde ese catálogo.",
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-OUTCOMES",
+      "rule_code": "SBX-B2B-R-AUTH-OUTCOMES",
+      "rules": [
+        {
+          "categoria": "SECURITY",
+          "rule_code": "SBX-B2B-R-AUTH-OUTCOMES",
+          "source_ref": "supabase://lf_ops.reglas/304",
+          "source_status": "VIGENTE",
+          "titulo": "Resultados normalizados del servicio de autenticación",
+          "valor_config": {
+            "allowed_outcomes": [
+              "AUTHENTICATED",
+              "INVALID_CREDENTIALS",
+              "RATE_LIMITED",
+              "SERVICE_UNAVAILABLE"
+            ],
+            "credential_echo": "DENY",
+            "error_mapping": {
+              "INVALID_CREDENTIALS": "SBX-B2B-E-CREDENTIALS",
+              "RATE_LIMITED": "SBX-B2B-E-RATE",
+              "SERVICE_UNAVAILABLE": "SBX-B2B-E-NETWORK"
+            },
+            "required_metadata": [
+              "outcome",
+              "correlation_id"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "La solicitud de login viaja por HTTPS en el cuerpo, nunca en la URL, query string ni headers de logging. La contraseña no se recorta, normaliza ni transforma; el correo puede recortarse por fuera. El servidor genera el correlation_id. Un resultado de éxito declarado por el cliente no es autoritativo."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/305"
+      ],
+      "outcome": "La solicitud de login viaja por HTTPS en el cuerpo, nunca en la URL, query string ni headers de logging. La contraseña no se recorta, normaliza ni transforma; el correo puede recortarse por fuera. El servidor genera el correlation_id. Un resultado de éxito declarado por el cliente no es autoritativo.",
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-REQUEST",
+      "rule_code": "SBX-B2B-R-AUTH-REQUEST",
+      "rules": [
+        {
+          "categoria": "SECURITY",
+          "rule_code": "SBX-B2B-R-AUTH-REQUEST",
+          "source_ref": "supabase://lf_ops.reglas/305",
+          "source_status": "VIGENTE",
+          "titulo": "Contrato de solicitud hacia la capa de autenticación",
+          "valor_config": {
+            "client_supplied_auth_success": "NON_AUTHORITATIVE",
+            "credentials_in_logging_headers": "DENY",
+            "credentials_in_query_string": "DENY",
+            "credentials_in_url": "DENY",
+            "email_external_trim": "ALLOW",
+            "password_normalization": "DENY",
+            "password_trim": "DENY",
+            "server_generates_correlation_id": true,
+            "transport": "HTTPS_REQUIRED"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "La contraseña ingresada en Login solo existe durante la autenticación. No se persiste en tablas funcionales, logs, analytics, session replay ni payloads de diseño."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/302"
+      ],
+      "outcome": "La contraseña ingresada en Login solo existe durante la autenticación. No se persiste en tablas funcionales, logs, analytics, session replay ni payloads de diseño.",
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+      "rule_code": "SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+      "rules": [
+        {
+          "categoria": "SECURITY",
+          "rule_code": "SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+          "source_ref": "supabase://lf_ops.reglas/302",
+          "source_status": "VIGENTE",
+          "titulo": "Contraseña solo en runtime",
+          "valor_config": {
+            "analytics": "DENY",
+            "logs": "DENY",
+            "persistence": "DENY",
+            "session_replay": "MASK_FULL"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Solo se crea o confirma una sesión autenticada cuando el resultado funcional sea AUTHENTICATED. La creación y rotación de sesión se ejecutan del lado servidor y consumen la política central de sesión; el cliente no decide TTL, concurrencia, rotación ni elevación de privilegios."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/307"
+      ],
+      "outcome": "Solo se crea o confirma una sesión autenticada cuando el resultado funcional sea AUTHENTICATED. La creación y rotación de sesión se ejecutan del lado servidor y consumen la política central de sesión; el cliente no decide TTL, concurrencia, rotación ni elevación de privilegios.",
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+      "rule_code": "SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+      "rules": [
+        {
+          "categoria": "SECURITY",
+          "rule_code": "SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+          "source_ref": "supabase://lf_ops.reglas/307",
+          "source_status": "VIGENTE",
+          "titulo": "Creación de sesión únicamente tras autenticación completa",
+          "valor_config": {
+            "client_session_parameters_authoritative": "DENY",
+            "required_auth_outcome": "AUTHENTICATED",
+            "sandbox_policy": "EXISTING_LOGIN_POLICY",
+            "session_creation_authority": "SERVER_ONLY",
+            "session_rotation": "POLICY_DRIVEN"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "La autenticación consume la política central de timeout. Ante timeout o indisponibilidad se mantiene fail-closed y la respuesta funcional se normaliza como SERVICE_UNAVAILABLE; nunca se reclasifica como credenciales inválidas."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/309"
+      ],
+      "outcome": "La autenticación consume la política central de timeout. Ante timeout o indisponibilidad se mantiene fail-closed y la respuesta funcional se normaliza como SERVICE_UNAVAILABLE; nunca se reclasifica como credenciales inválidas.",
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-TIMEOUT",
+      "rule_code": "SBX-B2B-R-AUTH-TIMEOUT",
+      "rules": [
+        {
+          "categoria": "RESILIENCE",
+          "rule_code": "SBX-B2B-R-AUTH-TIMEOUT",
+          "source_ref": "supabase://lf_ops.reglas/309",
+          "source_status": "VIGENTE",
+          "titulo": "Timeout y reintento controlado de autenticación",
+          "valor_config": {
+            "auth_automatic_retry": "DENY",
+            "session_on_timeout": "DENY",
+            "technical_failure_as_invalid_credentials": "DENY",
+            "timeout_outcome": "SERVICE_UNAVAILABLE",
+            "timeout_policy_code": "SBX-B2B-P-TIMEOUT"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Cada intento de inicio de sesión fallido queda registrado en el almacén persistente con la referencia de la cuenta o el correo normalizado, la hora, el resultado y el correlation id; nunca la contraseña. El bloqueo por intentos se calcula desde ese registro, de modo que se mantiene aunque el servicio se reinicie. Rige la política del login existente (bloqueo tras 5 fallos durante 15 minutos)."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/335"
+      ],
+      "outcome": "Cada intento de inicio de sesión fallido queda registrado en el almacén persistente con la referencia de la cuenta o el correo normalizado, la hora, el resultado y el correlation id; nunca la contraseña. El bloqueo por intentos se calcula desde ese registro, de modo que se mantiene aunque el servicio se reinicie. Rige la política del login existente (bloqueo tras 5 fallos durante 15 minutos).",
+      "requirement_id": "REQ-SBX-B2B-R-DATA-ATTEMPTS",
+      "rule_code": "SBX-B2B-R-DATA-ATTEMPTS",
+      "rules": [
+        {
+          "categoria": "DATOS",
+          "rule_code": "SBX-B2B-R-DATA-ATTEMPTS",
+          "source_ref": "supabase://lf_ops.reglas/335",
+          "source_status": "VIGENTE",
+          "titulo": "Registro persistente de intentos fallidos",
+          "valor_config": {
+            "counted_outcomes": [
+              "INVALID_CREDENTIALS"
+            ],
+            "locked_response": {
+              "error_code": "SBX-B2B-E-RATE",
+              "http_status": 429,
+              "outcome": "RATE_LIMITED"
+            },
+            "lockout_source": "PERSISTED_ATTEMPTS",
+            "origin": "SANDBOX_INTEGRATION",
+            "password_in_record": "DENY",
+            "record": [
+              "account_ref_or_normalized_email",
+              "occurred_at",
+              "outcome",
+              "correlation_id"
+            ],
+            "reset_on": "AUTHENTICATED",
+            "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+            "sandbox_policy": "EXISTING_LOGIN_POLICY",
+            "schema": {
+              "columns": {
+                "account_id": "bigint NULL, FK a sbx_b2b_accounts(id); NULL si el correo no existe",
+                "correlation_id": "varchar(64) NOT NULL",
+                "created_at": "timestamptz NOT NULL DEFAULT now(); momento del intento",
+                "email_normalized": "varchar(254) NOT NULL",
+                "id": "bigint identidad, PK",
+                "outcome": "varchar(24) NOT NULL, CHECK INVALID_CREDENTIALS | RATE_LIMITED",
+                "updated_at": "timestamptz NOT NULL DEFAULT now() (STD-DB-04); la tabla es de solo inserción"
+              },
+              "forbidden_columns": [
+                "password",
+                "password_hash",
+                "password_plain"
+              ],
+              "index": [
+                "(email_normalized, created_at)"
+              ],
+              "table": "sbx_b2b_login_attempts"
+            },
+            "standards": [
+              "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+            ],
+            "store": "SANDBOX_RELATIONAL_DB",
+            "survives_restart": true
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "La sesión emitida tras un resultado AUTHENTICATED se registra en el almacén persistente (solo el hash del token, la cuenta, creación, último uso, vencimiento y revocación). La inactividad y la concurrencia de sesiones se aplican desde ese registro. Cerrar sesión revoca el registro; un token revocado o vencido deja de ser válido aunque el servicio se reinicie."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/336"
+      ],
+      "outcome": "La sesión emitida tras un resultado AUTHENTICATED se registra en el almacén persistente (solo el hash del token, la cuenta, creación, último uso, vencimiento y revocación). La inactividad y la concurrencia de sesiones se aplican desde ese registro. Cerrar sesión revoca el registro; un token revocado o vencido deja de ser válido aunque el servicio se reinicie.",
+      "requirement_id": "REQ-SBX-B2B-R-DATA-SESSIONS",
+      "rule_code": "SBX-B2B-R-DATA-SESSIONS",
+      "rules": [
+        {
+          "categoria": "DATOS",
+          "rule_code": "SBX-B2B-R-DATA-SESSIONS",
+          "source_ref": "supabase://lf_ops.reglas/336",
+          "source_status": "VIGENTE",
+          "titulo": "Sesiones persistidas y revocables",
+          "valor_config": {
+            "idle_and_concurrency_source": "PERSISTED_SESSIONS",
+            "logout": "REVOKE",
+            "logout_auth": "Authorization: Bearer <token>",
+            "logout_endpoint": "POST /api/auth/logout",
+            "logout_response": {
+              "http_status": 204
+            },
+            "origin": "SANDBOX_INTEGRATION",
+            "record": [
+              "token_hash",
+              "account_ref",
+              "created_at",
+              "last_seen_at",
+              "expires_at",
+              "revoked_at"
+            ],
+            "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+            "sandbox_policy": "EXISTING_LOGIN_POLICY",
+            "schema": {
+              "check": "expires_at > created_at",
+              "columns": {
+                "account_id": "bigint NOT NULL, FK a sbx_b2b_accounts(id)",
+                "created_at": "timestamptz NOT NULL DEFAULT now()",
+                "expires_at": "timestamptz NOT NULL",
+                "id": "bigint identidad, PK",
+                "last_seen_at": "timestamptz NOT NULL DEFAULT now()",
+                "revoked_at": "timestamptz NULL",
+                "token_hash": "char(64) NOT NULL UNIQUE, SHA-256 hex del token; el token nunca se guarda",
+                "updated_at": "timestamptz NOT NULL DEFAULT now(), mantenido por trigger (STD-DB-04)"
+              },
+              "table": "sbx_b2b_sessions"
+            },
+            "session_endpoint": "GET /api/auth/session",
+            "standards": [
+              "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+            ],
+            "store": "SANDBOX_RELATIONAL_DB",
+            "token_hash": "SHA-256 hex del token",
+            "token_storage": "HASH_ONLY"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Las cuentas que pueden iniciar sesión viven en el almacén persistente del sandbox (base relacional, migraciones Flyway versionadas que aplica el propio servicio al iniciar). Cada cuenta guarda correo, empresa, perfil y estado; la contraseña solo se guarda como hash. El correo es único sin distinguir mayúsculas. Los datos iniciales son ficticios y nunca incluyen contraseñas en claro. Las cuentas inactivas o restringidas no pueden autenticarse y se tratan como credenciales inválidas hacia afuera."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/334"
+      ],
+      "outcome": "Las cuentas que pueden iniciar sesión viven en el almacén persistente del sandbox (base relacional, migraciones Flyway versionadas que aplica el propio servicio al iniciar). Cada cuenta guarda correo, empresa, perfil y estado; la contraseña solo se guarda como hash. El correo es único sin distinguir mayúsculas. Los datos iniciales son ficticios y nunca incluyen contraseñas en claro. Las cuentas inactivas o restringidas no pueden autenticarse y se tratan como credenciales inválidas hacia afuera.",
+      "requirement_id": "REQ-SBX-B2B-R-DATA-USER-STORE",
+      "rule_code": "SBX-B2B-R-DATA-USER-STORE",
+      "rules": [
+        {
+          "categoria": "DATOS",
+          "rule_code": "SBX-B2B-R-DATA-USER-STORE",
+          "source_ref": "supabase://lf_ops.reglas/334",
+          "source_status": "VIGENTE",
+          "titulo": "Cuentas en el almacén persistente",
+          "valor_config": {
+            "account_fields": [
+              "email",
+              "password_hash",
+              "company_code",
+              "profile",
+              "status",
+              "created_at"
+            ],
+            "allowed_status": [
+              "ACTIVE",
+              "INACTIVE",
+              "RESTRICTED"
+            ],
+            "datasource_config": "El datasource de Spring debe resolver su conexión mediante las variables de entorno DB_URL, DB_USERNAME y DB_PASSWORD. No se permite almacenar usuarios, contraseñas ni credenciales por defecto en el repositorio, ni incluir credenciales en la URL. Solo la URL puede usar como valor por defecto local jdbc:postgresql://127.0.0.1:5432/pilot (Postgres efímero). Los jobs de Worker, CI y ensayo T40 deben proporcionar las tres variables a los procesos de aceptación y del oráculo desde su servicio Postgres desechable. Flyway aplica las migraciones al iniciar el servicio. No se requiere crear archivos .env.example ni otros .env.*.",
+            "email_uniqueness": "NORMALIZED_CASE_INSENSITIVE",
+            "engine": "postgres",
+            "migration_runner": "FLYWAY_AT_SERVICE_STARTUP",
+            "migrations_dir": "apps/time-service/src/main/resources/db/migration",
+            "migrations_location": "apps/time-service/src/main/resources/db/migration (classpath:db/migration)",
+            "origin": "SANDBOX_INTEGRATION",
+            "password_storage": "HASH_ONLY",
+            "plaintext_password_in_seed": "DENY",
+            "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+            "schema": {
+              "allowed_profiles": [
+                "SBX_B2B_ADMIN_EMPRESA",
+                "SBX_B2B_APROBADOR",
+                "SBX_B2B_OPERADOR",
+                "SBX_B2B_LECTOR_AUDITOR"
+              ],
+              "columns": {
+                "company_code": "varchar(32) NOT NULL",
+                "created_at": "timestamptz NOT NULL DEFAULT now()",
+                "email": "varchar(254) NOT NULL, recortado; dominio en minúsculas",
+                "id": "bigint identidad, PK (STD-DB-02)",
+                "password_hash": "text NOT NULL, hash bcrypt ($2a$/$2b$/$2y$), nunca texto plano",
+                "profile": "varchar(40) NOT NULL, CHECK con allowed_profiles (STD-DB-05)",
+                "status": "varchar(12) NOT NULL DEFAULT 'ACTIVE', CHECK con allowed_status",
+                "updated_at": "timestamptz NOT NULL DEFAULT now(), mantenido por trigger (STD-DB-04)"
+              },
+              "seed": [
+                {
+                  "company_code": "SBX-EMP-001",
+                  "email": "demo@sandbox.test",
+                  "password_hash_source": "app.auth.default-password-bcrypt",
+                  "profile": "SBX_B2B_OPERADOR",
+                  "status": "ACTIVE"
+                },
+                {
+                  "company_code": "SBX-EMP-001",
+                  "email": "inactivo@sandbox.test",
+                  "profile": "SBX_B2B_LECTOR_AUDITOR",
+                  "status": "INACTIVE"
+                }
+              ],
+              "table": "sbx_b2b_accounts",
+              "unique": "lower(email)"
+            },
+            "seed": "FICTITIOUS_ONLY",
+            "service_runs_migrations": "ALLOW",
+            "standards": [
+              "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+            ],
+            "store": "SANDBOX_RELATIONAL_DB"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Pantallas y componentes no almacenan HEX, RGB ni medidas directas; los consumen desde los tokens."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/328"
+      ],
+      "outcome": "Pantallas y componentes no almacenan HEX, RGB ni medidas directas; los consumen desde los tokens.",
+      "requirement_id": "REQ-SBX-B2B-R-DESIGN-NO-HARDCODE",
+      "rule_code": "SBX-B2B-R-DESIGN-NO-HARDCODE",
+      "rules": [
+        {
+          "categoria": "DESIGN",
+          "rule_code": "SBX-B2B-R-DESIGN-NO-HARDCODE",
+          "source_ref": "supabase://lf_ops.reglas/328",
+          "source_status": "VIGENTE",
+          "titulo": "Sin valores visuales duros",
+          "valor_config": {
+            "hardcoded_dimensions_in_screens": false,
+            "hardcoded_hex": false,
+            "hardcoded_rgb": false
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Toda definición visual consume los tokens del sistema de diseño de la pantalla (color, tipografía, espaciado, componentes). Está prohibido gobernar la pantalla mediante valores locales no registrados."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/327"
+      ],
+      "outcome": "Toda definición visual consume los tokens del sistema de diseño de la pantalla (color, tipografía, espaciado, componentes). Está prohibido gobernar la pantalla mediante valores locales no registrados.",
+      "requirement_id": "REQ-SBX-B2B-R-DESIGN-TOKENS",
+      "rule_code": "SBX-B2B-R-DESIGN-TOKENS",
+      "rules": [
+        {
+          "categoria": "DESIGN",
+          "rule_code": "SBX-B2B-R-DESIGN-TOKENS",
+          "source_ref": "supabase://lf_ops.reglas/327",
+          "source_status": "VIGENTE",
+          "titulo": "Referencias semánticas de tokens",
+          "valor_config": {
+            "screen_local_token_creation": "DENY",
+            "token_source": "screen_contract.visual"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Todo error se relaciona con el catálogo de errores de la pantalla mediante su código canónico estable."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/313"
+      ],
+      "outcome": "Todo error se relaciona con el catálogo de errores de la pantalla mediante su código canónico estable.",
+      "requirement_id": "REQ-SBX-B2B-R-ERROR-CODE",
+      "rule_code": "SBX-B2B-R-ERROR-CODE",
+      "rules": [
+        {
+          "categoria": "ERROR",
+          "rule_code": "SBX-B2B-R-ERROR-CODE",
+          "source_ref": "supabase://lf_ops.reglas/313",
+          "source_status": "VIGENTE",
+          "titulo": "Código canónico de error",
+          "valor_config": {
+            "catalog": "screen_contract.errors"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Mostrar qué ocurrió, acción sugerida, CTA y código de referencia; ocultar detalles técnicos."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/315"
+      ],
+      "outcome": "Mostrar qué ocurrió, acción sugerida, CTA y código de referencia; ocultar detalles técnicos.",
+      "requirement_id": "REQ-SBX-B2B-R-ERROR-SAFE-MESSAGE",
+      "rule_code": "SBX-B2B-R-ERROR-SAFE-MESSAGE",
+      "rules": [
+        {
+          "categoria": "ERROR",
+          "rule_code": "SBX-B2B-R-ERROR-SAFE-MESSAGE",
+          "source_ref": "supabase://lf_ops.reglas/315",
+          "source_status": "VIGENTE",
+          "titulo": "Mensaje seguro al usuario",
+          "valor_config": {
+            "hide": [
+              "stack_trace",
+              "sql",
+              "table_name",
+              "access_token",
+              "technical_payload",
+              "pii"
+            ],
+            "show": [
+              "user_title",
+              "user_message",
+              "suggested_action",
+              "action_label",
+              "trace_code"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Cada ocurrencia de error se registra del lado servidor con trace_code y correlation_id. El cliente nunca inserta ocurrencias directamente. En errores pre-autenticación solo se conserva contexto redactado y no identificante."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/314"
+      ],
+      "outcome": "Cada ocurrencia de error se registra del lado servidor con trace_code y correlation_id. El cliente nunca inserta ocurrencias directamente. En errores pre-autenticación solo se conserva contexto redactado y no identificante.",
+      "requirement_id": "REQ-SBX-B2B-R-ERROR-TRACE",
+      "rule_code": "SBX-B2B-R-ERROR-TRACE",
+      "rules": [
+        {
+          "categoria": "ERROR",
+          "rule_code": "SBX-B2B-R-ERROR-TRACE",
+          "source_ref": "supabase://lf_ops.reglas/314",
+          "source_status": "VIGENTE",
+          "titulo": "Trazabilidad de ocurrencia",
+          "valor_config": {
+            "client_direct_write": "DENY",
+            "correlation_required": true,
+            "payload_redacted_required": true,
+            "preauth_context": "REDACTED_SERVER_ONLY",
+            "trace_format": "SBX-YYYYMMDD-XXXXXXXX",
+            "writer_boundary": "SERVER_ONLY"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Integración del sandbox (no es regla de LF): el servicio de login existente (POST /api/auth/login) acepta el correo electrónico como identificador; el usuario de prueba tiene el correo demo@sandbox.test. No se crea un segundo servicio de login; el acceso por usuario existente sigue funcionando."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/332"
+      ],
+      "outcome": "Integración del sandbox (no es regla de LF): el servicio de login existente (POST /api/auth/login) acepta el correo electrónico como identificador; el usuario de prueba tiene el correo demo@sandbox.test. No se crea un segundo servicio de login; el acceso por usuario existente sigue funcionando.",
+      "requirement_id": "REQ-SBX-B2B-R-INT-EMAIL-LOGIN",
+      "rule_code": "SBX-B2B-R-INT-EMAIL-LOGIN",
+      "rules": [
+        {
+          "categoria": "SECURITY",
+          "rule_code": "SBX-B2B-R-INT-EMAIL-LOGIN",
+          "source_ref": "supabase://lf_ops.reglas/332",
+          "source_status": "VIGENTE",
+          "titulo": "El login existente acepta correo",
+          "valor_config": {
+            "demo_email": "demo@sandbox.test",
+            "endpoint": "POST /api/auth/login",
+            "identifier": "email",
+            "keep_username_login": true,
+            "origin": "SANDBOX_INTEGRATION",
+            "second_login_service": "DENY"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Integración del sandbox: existe una pantalla de inicio en /home que solo muestra el título Welcome. Requiere una sesión válida, verificada por el servidor; sin sesión válida se redirige a /sbx-b2b-login con next=/home. El contrato OpenAPI del módulo debe declarar las operaciones que consume el frontend para validar y cerrar la sesión (GET /api/auth/session y POST /api/auth/logout), disponibles en el cliente generado. Declarar una operación existente no exige reimplementar su comportamiento; debe conservarse la implementación reutilizable."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/337"
+      ],
+      "outcome": "Integración del sandbox: existe una pantalla de inicio en /home que solo muestra el título Welcome. Requiere una sesión válida, verificada por el servidor; sin sesión válida se redirige a /sbx-b2b-login con next=/home. El contrato OpenAPI del módulo debe declarar las operaciones que consume el frontend para validar y cerrar la sesión (GET /api/auth/session y POST /api/auth/logout), disponibles en el cliente generado. Declarar una operación existente no exige reimplementar su comportamiento; debe conservarse la implementación reutilizable.",
+      "requirement_id": "REQ-SBX-B2B-R-INT-HOME",
+      "rule_code": "SBX-B2B-R-INT-HOME",
+      "rules": [
+        {
+          "categoria": "UX",
+          "rule_code": "SBX-B2B-R-INT-HOME",
+          "source_ref": "supabase://lf_ops.reglas/337",
+          "source_status": "VIGENTE",
+          "titulo": "Pantalla de inicio tras autenticarse",
+          "valor_config": {
+            "content": {
+              "heading": "Welcome"
+            },
+            "origin": "SANDBOX_INTEGRATION",
+            "required_contract_operations": [
+              "GET /api/auth/session",
+              "POST /api/auth/logout"
+            ],
+            "requires_session": true,
+            "route": "/home",
+            "session_check": "SERVER_VALIDATED",
+            "without_session": "REDIRECT_TO_LOGIN"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Integración del sandbox (no es regla de LF): tras iniciar sesión se navega a la ruta interna indicada en el parámetro next de /sbx-b2b-login; si no hay next o no es una ruta interna del sitio, se navega a la pantalla de inicio /home. Nunca se redirige a un dominio externo."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/331"
+      ],
+      "outcome": "Integración del sandbox (no es regla de LF): tras iniciar sesión se navega a la ruta interna indicada en el parámetro next de /sbx-b2b-login; si no hay next o no es una ruta interna del sitio, se navega a la pantalla de inicio /home. Nunca se redirige a un dominio externo.",
+      "requirement_id": "REQ-SBX-B2B-R-INT-RETURN",
+      "rule_code": "SBX-B2B-R-INT-RETURN",
+      "rules": [
+        {
+          "categoria": "UX",
+          "rule_code": "SBX-B2B-R-INT-RETURN",
+          "source_ref": "supabase://lf_ops.reglas/331",
+          "source_status": "VIGENTE",
+          "titulo": "Volver a la pantalla de origen",
+          "valor_config": {
+            "default_route": "/home",
+            "external_redirect": "DENY",
+            "origin": "SANDBOX_INTEGRATION",
+            "return_param": "next"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Integración del sandbox (no es regla de LF): la pantalla de login vive en la ruta /sbx-b2b-login. La pantalla protegida existente /sbx-rem-list, cuando no hay sesión, redirige a /sbx-b2b-login?next=/sbx-rem-list en vez de a /login."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/329"
+      ],
+      "outcome": "Integración del sandbox (no es regla de LF): la pantalla de login vive en la ruta /sbx-b2b-login. La pantalla protegida existente /sbx-rem-list, cuando no hay sesión, redirige a /sbx-b2b-login?next=/sbx-rem-list en vez de a /login.",
+      "requirement_id": "REQ-SBX-B2B-R-INT-ROUTE",
+      "rule_code": "SBX-B2B-R-INT-ROUTE",
+      "rules": [
+        {
+          "categoria": "UX",
+          "rule_code": "SBX-B2B-R-INT-ROUTE",
+          "source_ref": "supabase://lf_ops.reglas/329",
+          "source_status": "VIGENTE",
+          "titulo": "Ruta de la pantalla y redirección desde pantallas protegidas",
+          "valor_config": {
+            "origin": "SANDBOX_INTEGRATION",
+            "page_route": "/sbx-b2b-login",
+            "protected_pages": [
+              "/sbx-rem-list"
+            ],
+            "redirect_template": "/sbx-b2b-login?next=<ruta de origen>"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Integración del sandbox (no es regla de LF): tras un resultado AUTHENTICATED, el token devuelto por el backend se guarda en sessionStorage con la clave sbx-session-token, que es la que leen las pantallas protegidas existentes. Nunca se guarda la contraseña."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/330"
+      ],
+      "outcome": "Integración del sandbox (no es regla de LF): tras un resultado AUTHENTICATED, el token devuelto por el backend se guarda en sessionStorage con la clave sbx-session-token, que es la que leen las pantallas protegidas existentes. Nunca se guarda la contraseña.",
+      "requirement_id": "REQ-SBX-B2B-R-INT-SESSION-STORE",
+      "rule_code": "SBX-B2B-R-INT-SESSION-STORE",
+      "rules": [
+        {
+          "categoria": "UX",
+          "rule_code": "SBX-B2B-R-INT-SESSION-STORE",
+          "source_ref": "supabase://lf_ops.reglas/330",
+          "source_status": "VIGENTE",
+          "titulo": "Dónde queda la sesión en el navegador",
+          "valor_config": {
+            "key": "sbx-session-token",
+            "origin": "SANDBOX_INTEGRATION",
+            "password_storage": "DENY",
+            "storage": "sessionStorage"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "La pantalla se compone por regiones (cabecera con logo y contexto, decorativa con marca de agua, principal y pie) según la composición del contrato visual: orden, alineación, anchos, alturas y separaciones salen de los tokens registrados (incluidos los de layout), con una tolerancia de 8 px respecto de los lienzos de referencia 1440×900, 834×1112 y 390×844. El logo y la marca de agua se usan desde los archivos registrados en brand_assets, nunca se recrean. La marca de agua cambia de posición según la variante y se oculta en móvil. No se usa tarjeta contenedora ni barra lateral."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/338"
+      ],
+      "outcome": "La pantalla se compone por regiones (cabecera con logo y contexto, decorativa con marca de agua, principal y pie) según la composición del contrato visual: orden, alineación, anchos, alturas y separaciones salen de los tokens registrados (incluidos los de layout), con una tolerancia de 8 px respecto de los lienzos de referencia 1440×900, 834×1112 y 390×844. El logo y la marca de agua se usan desde los archivos registrados en brand_assets, nunca se recrean. La marca de agua cambia de posición según la variante y se oculta en móvil. No se usa tarjeta contenedora ni barra lateral.",
+      "requirement_id": "REQ-SBX-B2B-R-LAYOUT-COMPOSITION",
+      "rule_code": "SBX-B2B-R-LAYOUT-COMPOSITION",
+      "rules": [
+        {
+          "categoria": "RESPONSIVE",
+          "rule_code": "SBX-B2B-R-LAYOUT-COMPOSITION",
+          "source_ref": "supabase://lf_ops.reglas/338",
+          "source_status": "VIGENTE",
+          "titulo": "Composición de la pantalla por regiones",
+          "valor_config": {
+            "brand_assets": "screen_contract.visual.brand_assets",
+            "composition_source": "screen_contract.visual.composition",
+            "form_container": "NONE",
+            "layout": "sbx_b2b_auth_login_layout",
+            "layout_tokens": "screen_contract.visual.layout_tokens",
+            "measures": "TOKENS_ONLY",
+            "recreate_brand_assets": "DENY",
+            "sidebar": "DENY",
+            "tolerance_px": 8,
+            "viewports": "screen_contract.visual.viewports"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Analytics, logs, replay y errores no reciben PII."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/316"
+      ],
+      "outcome": "Analytics, logs, replay y errores no reciben PII.",
+      "requirement_id": "REQ-SBX-B2B-R-PRIVACY-TELEMETRY",
+      "rule_code": "SBX-B2B-R-PRIVACY-TELEMETRY",
+      "rules": [
+        {
+          "categoria": "PRIVACY",
+          "rule_code": "SBX-B2B-R-PRIVACY-TELEMETRY",
+          "source_ref": "supabase://lf_ops.reglas/316",
+          "source_status": "VIGENTE",
+          "titulo": "PII prohibida en telemetría",
+          "valor_config": {
+            "analytics_pii_allowed": false,
+            "redaction_required": true
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "La pantalla tiene variantes desktop, tablet y móvil."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/326"
+      ],
+      "outcome": "La pantalla tiene variantes desktop, tablet y móvil.",
+      "requirement_id": "REQ-SBX-B2B-R-RESP-BREAKPOINTS",
+      "rule_code": "SBX-B2B-R-RESP-BREAKPOINTS",
+      "rules": [
+        {
+          "categoria": "RESPONSIVE",
+          "rule_code": "SBX-B2B-R-RESP-BREAKPOINTS",
+          "source_ref": "supabase://lf_ops.reglas/326",
+          "source_status": "VIGENTE",
+          "titulo": "Tres breakpoints funcionales",
+          "valor_config": {
+            "breakpoints": [
+              "viewport_desktop",
+              "viewport_tablet",
+              "viewport_mobile"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "La pantalla usa el tema claro del sistema de diseño (el modo noche queda fuera de alcance en este sandbox)."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/333"
+      ],
+      "outcome": "La pantalla usa el tema claro del sistema de diseño (el modo noche queda fuera de alcance en este sandbox).",
+      "requirement_id": "REQ-SBX-B2B-R-THEME-LIGHT",
+      "rule_code": "SBX-B2B-R-THEME-LIGHT",
+      "rules": [
+        {
+          "categoria": "THEME",
+          "rule_code": "SBX-B2B-R-THEME-LIGHT",
+          "source_ref": "supabase://lf_ops.reglas/333",
+          "source_status": "VIGENTE",
+          "titulo": "Modo claro",
+          "valor_config": {
+            "light": "SBX_B2B_THEME_LIGHT"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Las acciones del Login son: iniciar sesión, mostrar u ocultar contraseña, recuperación de contraseña, Términos y condiciones, Política de privacidad y Contáctanos. Recuperación, Términos, Privacidad y Contáctanos se muestran como enlaces sin destino funcional en esta pantalla."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/321"
+      ],
+      "outcome": "Las acciones del Login son: iniciar sesión, mostrar u ocultar contraseña, recuperación de contraseña, Términos y condiciones, Política de privacidad y Contáctanos. Recuperación, Términos, Privacidad y Contáctanos se muestran como enlaces sin destino funcional en esta pantalla.",
+      "requirement_id": "REQ-SBX-B2B-R-UX-ACTIONS",
+      "rule_code": "SBX-B2B-R-UX-ACTIONS",
+      "rules": [
+        {
+          "categoria": "UX",
+          "rule_code": "SBX-B2B-R-UX-ACTIONS",
+          "source_ref": "supabase://lf_ops.reglas/321",
+          "source_status": "VIGENTE",
+          "titulo": "Contrato de acciones del Login",
+          "valor_config": {
+            "actions": [
+              "SUBMIT_LOGIN",
+              "TOGGLE_PASSWORD_VISIBILITY",
+              "START_PASSWORD_RECOVERY",
+              "OPEN_TERMS",
+              "OPEN_PRIVACY",
+              "CONTACT_SUPPORT"
+            ],
+            "visual_only_actions": [
+              "START_PASSWORD_RECOVERY",
+              "OPEN_TERMS",
+              "OPEN_PRIVACY",
+              "CONTACT_SUPPORT"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "El Login permite gestores de contraseñas y pegado de credenciales mediante controles estándar. El correo usa autocomplete=username y la contraseña autocomplete=current-password, en el mismo formulario. El valor de la contraseña nunca se envía a telemetría."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/319"
+      ],
+      "outcome": "El Login permite gestores de contraseñas y pegado de credenciales mediante controles estándar. El correo usa autocomplete=username y la contraseña autocomplete=current-password, en el mismo formulario. El valor de la contraseña nunca se envía a telemetría.",
+      "requirement_id": "REQ-SBX-B2B-R-UX-PASSWORD-MANAGERS",
+      "rule_code": "SBX-B2B-R-UX-PASSWORD-MANAGERS",
+      "rules": [
+        {
+          "categoria": "UX",
+          "rule_code": "SBX-B2B-R-UX-PASSWORD-MANAGERS",
+          "source_ref": "supabase://lf_ops.reglas/319",
+          "source_status": "VIGENTE",
+          "titulo": "Entrada compatible con gestores de credenciales",
+          "valor_config": {
+            "credential_value_telemetry": "DENY",
+            "email_autocomplete": "username",
+            "email_paste": "ALLOW",
+            "password_autocomplete": "current-password",
+            "password_default_visibility": "MASKED",
+            "password_paste": "ALLOW",
+            "same_form_association": "REQUIRED"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "El campo Contraseña permite alternar entre contenido visible y enmascarado mediante control de visibilidad, sin modificar el valor ni enviarlo a telemetría."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/318"
+      ],
+      "outcome": "El campo Contraseña permite alternar entre contenido visible y enmascarado mediante control de visibilidad, sin modificar el valor ni enviarlo a telemetría.",
+      "requirement_id": "REQ-SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+      "rule_code": "SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+      "rules": [
+        {
+          "categoria": "UX",
+          "rule_code": "SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+          "source_ref": "supabase://lf_ops.reglas/318",
+          "source_status": "VIGENTE",
+          "titulo": "Mostrar u ocultar contraseña sin alterar el valor",
+          "valor_config": {
+            "control": "TOGGLE_VISIBILITY",
+            "default": "MASKED",
+            "telemetry_value": "DENY"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "El Login muestra una acción visible de recuperación inmediatamente asociada al campo Contraseña. La recuperación se resuelve en un flujo separado (fuera de alcance de esta pantalla) y no se ejecuta dentro del formulario de Login."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/317"
+      ],
+      "outcome": "El Login muestra una acción visible de recuperación inmediatamente asociada al campo Contraseña. La recuperación se resuelve en un flujo separado (fuera de alcance de esta pantalla) y no se ejecuta dentro del formulario de Login.",
+      "requirement_id": "REQ-SBX-B2B-R-UX-RECOVERY",
+      "rule_code": "SBX-B2B-R-UX-RECOVERY",
+      "rules": [
+        {
+          "categoria": "UX",
+          "rule_code": "SBX-B2B-R-UX-RECOVERY",
+          "source_ref": "supabase://lf_ops.reglas/317",
+          "source_status": "VIGENTE",
+          "titulo": "Recuperación de contraseña visible y separada",
+          "valor_config": {
+            "flow": "SEPARATE_RECOVERY_FLOW",
+            "placement": "ADJACENT_TO_PASSWORD",
+            "target_in_scope": false
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Mientras exista una solicitud de autenticación pendiente, se ignoran envíos duplicados y el CTA permanece en estado procesando."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/320"
+      ],
+      "outcome": "Mientras exista una solicitud de autenticación pendiente, se ignoran envíos duplicados y el CTA permanece en estado procesando.",
+      "requirement_id": "REQ-SBX-B2B-R-UX-SINGLE-FLIGHT",
+      "rule_code": "SBX-B2B-R-UX-SINGLE-FLIGHT",
+      "rules": [
+        {
+          "categoria": "UX",
+          "rule_code": "SBX-B2B-R-UX-SINGLE-FLIGHT",
+          "source_ref": "supabase://lf_ops.reglas/320",
+          "source_status": "VIGENTE",
+          "titulo": "Un solo intento de autenticación en vuelo",
+          "valor_config": {
+            "concurrency_mode": "SINGLE_FLIGHT",
+            "credential_edit_during_request": "DISABLED",
+            "duplicate_submit": "IGNORE",
+            "new_attempt_after_response": "ALLOW",
+            "reenable_on_recoverable_response": true,
+            "submit_button_state": "PROCESSING_DISABLED"
+          }
+        }
+      ]
+    }
+  ],
+  "run": "req-391",
+  "schema_version": "LF_LOT_BUSINESS_RULES_V1"
+}
