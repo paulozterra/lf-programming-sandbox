@@ -255,4 +255,4 @@
 | CHG-0291 | EDITORIAL | CP3.6: origen vigente de cadena tras replanificación gobernada |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/439 |
 | CHG-0301 | EDITORIAL | INFRA: contexto de requisitos sin secciones de pantalla |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/454 |
 | CHG-0306 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/460 |
-| CHG-0311 | ADDITIVE | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0311 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
