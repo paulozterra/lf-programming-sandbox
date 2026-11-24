@@ -274,4 +274,4 @@
 | CHG-0378 | EDITORIAL | CP3.5: integración verificada nativa req391data2 (run 45471907765) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/560 |
 | CHG-0386 | ADDITIVE | T2: el contrato se integra antes que su BACKEND (diferimiento acreditado de compare-live) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/569 |
 | CHG-0387 | EDITORIAL | T7 registro: INFRA y CONTRATO no implementan reglas; INFRA y DATA sin API |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/570 |
-| CHG-0394 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0394 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/579 |
