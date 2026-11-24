@@ -453,6 +453,19 @@ def run(number):
             continue
         if latest.get("mergeable") is False:
             raise TrainError("PR_NOT_MERGEABLE")
+        # Compare is pinned to exact main and PR HEAD. A truncated file list
+        # cannot authorize a deletion. The trusted guard never runs PR code.
+        from pilot.orchestrator.plan_retirement import (
+            validate_train_retirement, RetirementBlocked,
+        )
+        try:
+            files = compare.get("files")
+            if not isinstance(files, list) or len(files) >= 300:
+                raise RetirementBlocked("CHAIN_HISTORY_INCOMPLETE")
+            validate_train_retirement(lambda route: api("GET", "/" + route),
+                                      base, initial_head, files)
+        except RetirementBlocked as exc:
+            raise TrainError(str(exc)) from exc
         try:
             merged = merge_with_retry(number, initial_head,
                                       {"sha": initial_head, "merge_method": "merge",

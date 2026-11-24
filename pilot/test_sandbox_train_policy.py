@@ -66,7 +66,7 @@ class PolicyTests(unittest.TestCase):
              patch.object(train, "update_branch_locally", return_value="a" * 40), \
              patch.object(train, "api") as api_mock:
             api_mock.side_effect = lambda method, path, payload=None, expected=(200,): (
-                {"behind_by": 0, "status": "ahead"} if path.startswith("/compare/") else
+                {"behind_by": 0, "status": "ahead", "files": []} if path.startswith("/compare/") else
                 {"merged": True, "sha": "c" * 40} if path.endswith("/merge") else
                 {"parents": [{}, {}]} if path == "/commits/" + "c" * 40 else
                 (_ for _ in ()).throw(AssertionError(path)))
@@ -158,7 +158,7 @@ class PolicyTests(unittest.TestCase):
         def fake_api(method, path, payload=None, expected=(200,)):
             calls.append((method, path, payload))
             if path.startswith("/compare/"):
-                return {"behind_by": 1, "status": "diverged"} if len([c for c in calls if c[1].startswith("/compare/")]) == 1 else {"behind_by": 0, "status": "ahead"}
+                return {"behind_by": 1, "status": "diverged", "files": []} if len([c for c in calls if c[1].startswith("/compare/")]) == 1 else {"behind_by": 0, "status": "ahead", "files": []}
             if path.endswith("/dispatches"):
                 return {}
             if path.endswith("/merge"):
@@ -185,7 +185,7 @@ class PolicyTests(unittest.TestCase):
         def fake_api(method, path, payload=None, expected=(200,)):
             calls.append((method, path, payload))
             if path.startswith("/compare/"):
-                return {"behind_by": 0, "status": "ahead"}
+                return {"behind_by": 0, "status": "ahead", "files": []}
             if path.endswith("/merge"):
                 return {"merged": True, "sha": "c" * 40}
             if path == "/commits/" + "c" * 40:
