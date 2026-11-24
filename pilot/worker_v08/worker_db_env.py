@@ -9,20 +9,17 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 import re
+import subprocess
 from unittest.mock import patch
 
 DB_KEYS = ("DB_URL", "DB_USERNAME", "DB_PASSWORD")
 
 
-@contextmanager
-def worker_database_environment():
-    from programming_agent_runner import worker_commands
-
+def _approved_environment():
     values = {key: os.environ.get(key) for key in DB_KEYS}
     if not any(value is not None for value in values.values()):
         # Historical offline tasks without a DB have the original isolation.
-        yield
-        return
+        return None
     if not all(values.values()):
         raise ValueError("WORKER_DB_ENV_INCOMPLETE")
     url = values["DB_URL"]
@@ -35,6 +32,44 @@ def worker_database_environment():
     pg = {"PGHOST": "127.0.0.1", "PGPORT": "5432",
           "PGDATABASE": match.group(1), "PGUSER": values["DB_USERNAME"],
           "PGPASSWORD": values["DB_PASSWORD"]}
+    return values, pg
+
+
+def reset_disposable_database():
+    """Reset only the job-owned database, never a remote or system database.
+
+    The maintenance connection is fixed to postgres and used only to execute
+    DROP/CREATE against the explicitly allowlisted job database. No ambient
+    PG variables or credentials in argv, output or errors.
+    """
+    approved = _approved_environment()
+    if approved is None:
+        return
+    _, pg = approved
+    target = pg["PGDATABASE"]
+    if target not in ("pilot", "lf_ci") or pg["PGUSER"] != "pilot":
+        raise ValueError("WORKER_DB_RESET_TARGET_UNTRUSTED")
+    env = {"PATH": "/usr/bin:/bin", "LANG": "C", **pg,
+           "PGDATABASE": "postgres", "PGCONNECT_TIMEOUT": "10"}
+    for sql in (f'DROP DATABASE "{target}" WITH (FORCE)',
+                f'CREATE DATABASE "{target}" TEMPLATE template0'):
+        try:
+            subprocess.run(["psql", "-X", "-w", "-v", "ON_ERROR_STOP=1",
+                            "-c", sql], env=env, check=True, timeout=30,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except (OSError, subprocess.SubprocessError):
+            raise ValueError("WORKER_DB_RESET_FAILED") from None
+
+
+@contextmanager
+def worker_database_environment():
+    from programming_agent_runner import worker_commands
+
+    approved = _approved_environment()
+    if approved is None:
+        yield
+        return
+    values, pg = approved
     original = worker_commands._command_environment
 
     def isolated_with_db(runtime_root):

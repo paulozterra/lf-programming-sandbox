@@ -107,8 +107,12 @@ def run_reference(source: Path, spec, oracle, patch: str, work_parent: Path) -> 
     work_parent = Path(work_parent)
     work_parent.mkdir(parents=True, exist_ok=True)
     try:
-        outcome = run_verified_worker(source, spec, ReferenceClient(patch), oracle,
-                                      work_parent=work_parent)
+        from pilot.worker_v08.worker_db_env import (reset_disposable_database,
+                                                   worker_database_environment)
+        reset_disposable_database()
+        with worker_database_environment():
+            outcome = run_verified_worker(source, spec, ReferenceClient(patch), oracle,
+                                          work_parent=work_parent)
         receipt = outcome.receipt
         return {"status": str(receipt.get("status")), "reason": str(receipt.get("reason"))}
     except Exception as exc:  # the control itself failing is a route defect

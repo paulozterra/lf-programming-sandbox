@@ -37,7 +37,7 @@ from lot_preflight import check_task, LotBlocked
 from holdout_age import holdout_ref
 from pilot.orchestrator.request_lifecycle import require_task_open, RequestStateError
 from pilot.config.project_config import storage_path, template_path_any_request, reuse_assessment_pattern
-from pilot.worker_v08.worker_db_env import worker_database_environment
+from pilot.worker_v08.worker_db_env import worker_database_environment, reset_disposable_database
 
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _SHA40 = re.compile(r"[0-9a-f]{40}\Z")
@@ -185,6 +185,8 @@ def execute(control: Path, source: Path, proposal_checkout: Path,
     inspect_patch(proposal, spec)
     # The trusted lifecycle step authorizes this job immediately before execute.
     # Do not read GitHub state here: acceptance commands run in this token-free step.
+    # A failed database preparation is a route failure, not a spent attempt.
+    reset_disposable_database()
     _write(public / "attempt-proof.json", _proof(submitted, task, attempt, run_id))
     no_attempt.unlink()
     # T7 duplicate detection is a trusted pre-acceptance gate, after the
