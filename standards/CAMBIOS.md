@@ -262,4 +262,4 @@
 | CHG-0326 | EDITORIAL | CP3.6/Train: retirada gobernada de registros sin ejecución |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/486 |
 | CHG-0330 | EDITORIAL | T7: retirada gobernada de req-391 para replanificación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/491 |
 | CHG-0334 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/498 |
-| CHG-0337 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
+| CHG-0337 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
