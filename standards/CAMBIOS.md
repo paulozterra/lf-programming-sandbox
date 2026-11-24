@@ -258,3 +258,4 @@
 | CHG-0310 | EDITORIAL | CP3.4/Train: contexto sin whitespace y diagnóstico íntegro de git diff --check |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/465 |
 | CHG-0316 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/472 |
 | CHG-0318 | EDITORIAL | T3 DATA: validar rollback emparejado con migración |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/476 |
+| CHG-0325 | EDITORIAL | T2/T7: declaración contractual de operaciones de sesión consumidas por frontend |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/485 |

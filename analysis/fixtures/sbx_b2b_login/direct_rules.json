@@ -370,7 +370,7 @@
       "source_ref": "supabase://lf_ops.reglas/337",
       "association_ref": "supabase://lf_ops.reglas_pantallas/77",
       "categoria": "UX",
-      "descripcion": "Integración del sandbox: existe una pantalla de inicio en /home que solo muestra el título Welcome. Requiere una sesión válida, verificada por el servidor; sin sesión válida se redirige a /sbx-b2b-login con next=/home."
+      "descripcion": "Integración del sandbox: existe una pantalla de inicio en /home que solo muestra el título Welcome. Requiere una sesión válida, verificada por el servidor; sin sesión válida se redirige a /sbx-b2b-login con next=/home. El contrato OpenAPI del módulo debe declarar las operaciones que consume el frontend para validar y cerrar la sesión (GET /api/auth/session y POST /api/auth/logout), disponibles en el cliente generado. Declarar una operación existente no exige reimplementar su comportamiento; debe conservarse la implementación reutilizable."
     },
     {
       "code": "SBX-B2B-R-LAYOUT-COMPOSITION",
@@ -896,7 +896,11 @@
         },
         "requires_session": true,
         "without_session": "REDIRECT_TO_LOGIN",
-        "session_check": "SERVER_VALIDATED"
+        "session_check": "SERVER_VALIDATED",
+        "required_contract_operations": [
+          "GET /api/auth/session",
+          "POST /api/auth/logout"
+        ]
       }
     },
     {

@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0325",
+  "title": "T2/T7: declaración contractual de operaciones de sesión consumidas por frontend",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner req-391: ficha de sesión y contrato tipado"
+  },
+  "reason": "Precisar la regla INT-HOME en la ficha sandbox y su readback efectivo: las operaciones consumidas para validar y cerrar sesión deben declararse en el contrato. Proyectar la obligación tipada desde reglas A9 al esqueleto, exigir cobertura por operación y requisito y permitir declarar únicamente las operaciones reutilizadas explícitamente exigidas, sin ampliar alcance de implementación ni desactivar reuse_guard. T25 CP3.5 conserva la generación mecánica del cliente. No alterar planes registrados, holdouts ni ejecutar lotes.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/fixtures/sbx_b2b_login/direct_rules.json",
+      "analysis/fixtures/sbx_b2b_login/effective_rules.json",
+      "analysis/fixtures/sbx_b2b_login/SOURCE_PIN.json",
+      "pilot/orchestrator/contract_generate.py",
+      "pilot/orchestrator/contract_validate.py",
+      "pilot/orchestrator/test_t33_3_contract_page.py",
+      "standards/changes/CHG-0325.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/485"
+  }
+}
