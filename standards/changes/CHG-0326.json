@@ -13,13 +13,14 @@
     "rule_ids": [],
     "term_ids": [],
     "paths": [
-      "pilot/orchestrator/plan_retirement.py",
       "pilot/orchestrator/chain_lots.py",
-      "pilot/sandbox_train.py",
+      "pilot/orchestrator/plan_retirement.py",
       "pilot/orchestrator/test_chain_lots.py",
+      "pilot/sandbox_train.py",
       "pilot/test_sandbox_train_policy.py",
-      "standards/changes/CHG-0326.json",
-      "standards/CAMBIOS.md"
+      "pilot/test_sandbox_train_recovery.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0326.json"
     ]
   },
   "existing_code_impact": {

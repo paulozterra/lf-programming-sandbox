@@ -746,8 +746,8 @@ def test_replan_registered_unused_lot_removed_atomically(tmp_path):
             (tmp_path / path).unlink()
     deleted = train(tmp_path, 302, remove)
     latest = train(tmp_path, 303, lambda: old_plan(tmp_path, OLD))
-    with patch.object(chain_lots, "api", side_effect=pr_receipt({302: deleted})), \\
-         patch.object(chain_lots, "github_api_raw", side_effect=_empty_retirement_api):
+    with (patch.object(chain_lots, "api", side_effect=pr_receipt({302: deleted})),
+          patch.object(chain_lots, "github_api_raw", side_effect=_empty_retirement_api)):
         assert chain_lots._active_plan_origin("req-391", PLAN, current_adds(tmp_path),
                                              tmp_path, 100) == latest
 
