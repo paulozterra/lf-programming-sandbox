@@ -16,7 +16,6 @@ import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
-from pilot.worker_v08.worker_db_env import worker_database_environment
 
 import argparse
 import hashlib
@@ -77,8 +76,7 @@ def rehearse(control: Path, data: Path, task: str, private: Path, age_bin: str,
                     str(source), spec.base_head_sha], check=True, capture_output=True)
     try:
         oracle = load_hidden_oracle(private / "holdout.oracle.json", holdout_sha)
-        with worker_database_environment():
-            result = run_reference(source, spec, oracle, patch, private / "work")
+        result = run_reference(source, spec, oracle, patch, private / "work")
     finally:
         subprocess.run(["git", "-C", str(data), "worktree", "remove", "--force", str(source)],
                        capture_output=True)

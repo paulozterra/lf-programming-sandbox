@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0373",
+  "title": "T40: aislar base efímera de intento y referencia",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: runs 45445638050 y 45468566200 EXAMINER_CONTROL"
+  },
+  "reason": "Restablecer solo la base PostgreSQL efímera antes de cada ejecución, usar el mismo puente de credenciales para referencia y ensayo y preservar prueba de intento y feedback cuando el control pasa.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/exam_rehearsal.py",
+      "pilot/worker_v08/native_exam_control.py",
+      "pilot/worker_v08/native_run.py",
+      "pilot/worker_v08/test_worker_db_env.py",
+      "pilot/worker_v08/worker_db_env.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0373.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/554"
+  }
+}
