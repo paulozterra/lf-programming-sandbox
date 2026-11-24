@@ -1,0 +1,72 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0330",
+  "title": "T7: retirada gobernada de req-391 para replanificación",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner req-391: retirada de salidas T7 y registros #460/#472 tras CHG-0326"
+  },
+  "reason": "Retirar en un solo PR las salidas T7 y los registros completos de req391infra1 y req391contrato3, conservando entradas del pedido, claude_meta y holdouts. Inventario, refs actuales e historial de PR comprobados; el Train debe validar evidencia completa de ejecuciones antes del merge conforme a CHG-0326. Relanzamiento exclusivamente por owner.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".lf/worker-context/req391contrato3/ekb.md",
+      ".lf/worker-context/req391contrato3/lf_rules.md",
+      ".lf/worker-context/req391contrato3/lf_rules.receipt.json",
+      ".lf/worker-context/req391contrato3/pantalla.json",
+      ".lf/worker-context/req391contrato3/profile.md",
+      ".lf/worker-context/req391contrato3/protocolo.md",
+      ".lf/worker-context/req391contrato3/receipt.json",
+      ".lf/worker-context/req391contrato3/reglas_negocio.json",
+      ".lf/worker-context/req391contrato3/reutilizar.md",
+      ".lf/worker-context/req391contrato3/skills.md",
+      ".lf/worker-context/req391infra1/ekb.md",
+      ".lf/worker-context/req391infra1/lf_rules.md",
+      ".lf/worker-context/req391infra1/lf_rules.receipt.json",
+      ".lf/worker-context/req391infra1/profile.md",
+      ".lf/worker-context/req391infra1/protocolo.md",
+      ".lf/worker-context/req391infra1/receipt.json",
+      ".lf/worker-context/req391infra1/reglas_negocio.json",
+      ".lf/worker-context/req391infra1/reutilizar.md",
+      ".lf/worker-context/req391infra1/skills.md",
+      "pilot/runs/req-391/ANALYSIS_REPORT.md",
+      "pilot/runs/req-391/analysis.json",
+      "pilot/runs/req-391/atomized_inputs.json",
+      "pilot/runs/req-391/chain_plan.json",
+      "pilot/runs/req-391/lots.json",
+      "pilot/runs/req-391/proposal_requests/req391contrato3.proposal-request.json",
+      "pilot/runs/req-391/proposal_requests/req391contrato3.task-pack.json",
+      "pilot/runs/req-391/proposal_requests/req391infra1.proposal-request.json",
+      "pilot/runs/req-391/proposal_requests/req391infra1.task-pack.json",
+      "pilot/runs/req-391/reuse_assessment.json",
+      "pilot/runs/req-391/state.json",
+      "pilot/runs/req-391/templates/req391backend4.task.json",
+      "pilot/runs/req-391/templates/req391contrato3.task.json",
+      "pilot/runs/req-391/templates/req391data2.task.json",
+      "pilot/runs/req-391/templates/req391frontend5.task.json",
+      "pilot/runs/req-391/templates/req391infra1.task.json",
+      "pilot/runs/req-391/templates/sbx-b2b-login.skeleton.json",
+      "pilot/worker_v08/native_tasks/req391contrato3.json",
+      "pilot/worker_v08/native_tasks/req391infra1.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0330.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/491"
+  }
+}
