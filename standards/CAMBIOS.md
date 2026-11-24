@@ -275,4 +275,4 @@
 | CHG-0386 | ADDITIVE | T2: el contrato se integra antes que su BACKEND (diferimiento acreditado de compare-live) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/569 |
 | CHG-0387 | EDITORIAL | T7 registro: INFRA y CONTRATO no implementan reglas; INFRA y DATA sin API |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/570 |
 | CHG-0391 | EDITORIAL | Análisis: evidencia parcial de implementación previa no bloquea si hay evidencia positiva |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/576 |
-| CHG-0395 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0395 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/582 |
