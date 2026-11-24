@@ -56,6 +56,14 @@ def require_green_base(sha: str, fetch) -> None:
         raise AdmissionBlocked("BASE_NO_VERDE")
 
 
+def examinable_requirements(lot: dict):
+    """Requirements a lot's exam and worker context are bound to: its own, or,
+    for a characterization lot (implements none), the ones it pins."""
+    if lot.get("lot_kind") == "CHARACTERIZATION":
+        return lot.get("characterized_requirement_ids")
+    return lot.get("requirement_ids")
+
+
 def missing_exam(root: Path, task: str) -> bool:
     """Inspect only the ciphertext path's existence, NEVER its contents."""
     if not isinstance(task, str) or not TASK.fullmatch(task):
@@ -87,7 +95,7 @@ def public_exam_request(root: Path, request: str, binding: dict, lot: dict) -> t
     context = spec.get("context_path_patterns", [])
     skeleton_paths = [path for path in context if isinstance(path, str)
                       and re.fullmatch(r"contracts/[a-z0-9_-]+[.]skeleton[.]json", path)]
-    requirements = lot.get("requirement_ids")
+    requirements = examinable_requirements(lot)
     if (not isinstance(requirements, list) or not requirements
             or any(not isinstance(r, str) or not r.startswith("REQ-") for r in requirements)):
         raise AdmissionBlocked("EXAMEN_PENDIENTE")
@@ -170,7 +178,7 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
         for key in ("base_head_sha", "source_snapshot_sha256", "task_id"):
             if key in registered:
                 expected[key] = registered[key]
-        if not all(isinstance(x, str) for x in lot.get("requirement_ids", [])):
+        if not all(isinstance(x, str) for x in examinable_requirements(lot) or []):
             return False
         worker = root / "pilot/worker_v08"
         if str(worker) not in sys.path:
@@ -221,7 +229,7 @@ def _legacy_template_matches(root: Path, newest: str, template_path: str,
                 present = set(context_paths) & business
                 if present not in (set(), business):
                     return False
-                requirements = (lot.get("requirement_ids")
+                requirements = (examinable_requirements(lot)
                                 if present == business else None)
                 # T56: ekb.md is a looked-up input, not derivable offline.
                 # Replay with the exact committed bytes the receipt attests.

@@ -95,6 +95,13 @@ def build_brief(root: Path, request: str, task: str, write_paths: list[str],
         "schema_version": "LF_EXAMINER_BRIEF_V1",
         "issue": issue, "request": request, "task": task,
         "area": lot.get("area"), "lot": lot.get("id"),
+        "lot_kind": lot.get("lot_kind"),
+        # A characterization lot pins existing behavior: the examiner needs
+        # the current files it describes, not new code to implement.
+        "characterized_file_content": ({rel: _read_small(root, rel)
+                                        for rel in lot.get("characterized_files") or []
+                                        if _read_small(root, rel) is not None}
+                                       if lot.get("lot_kind") == "CHARACTERIZATION" else {}),
         "depends_on": lot.get("depends_on") or [],
         # The template carries a placeholder until registration: the exam is
         # written against current main, which is the lot's base when T4 opens

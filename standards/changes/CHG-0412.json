@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0412",
+  "title": "Examen de los lotes de caracterización por el examinador automático (T58)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 24/11: opción C sin intervención; usar el examinador automático T58 (#597) en vez de eximir el examen"
+  },
+  "reason": "Un lote CHARACTERIZATION no tiene requirement_ids propios, así que su exam-request salía sin requisitos (EXAMEN_PENDIENTE), el worker no recibía el texto de las reglas y publish_exam rechazaba las trazas rule:. Un solo criterio, examinable_requirements (los propios o, en caracterización, los caracterizados), se usa en el issue público, en el contexto de negocio del worker (registro y su verificación) y en la regla de trazas. El brief del examinador incluye el tipo de lote y el contenido actual de los archivos caracterizados, y EXAMINADOR_AUTOMATICO.md describe cómo examinarlo (suite + mutación + covers + casos propios del examinador; mutantes típicos). El examen no se exime: pasa por referencia, mutantes y ensayo T40 como cualquier lote.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/EXAMINADOR_AUTOMATICO.md",
+      "pilot/orchestrator/examiner_brief.py",
+      "pilot/orchestrator/native_lot_registration.py",
+      "pilot/orchestrator/publish_exam.py",
+      "pilot/orchestrator/t4_admission.py",
+      "pilot/orchestrator/test_characterization_lot.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0412.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

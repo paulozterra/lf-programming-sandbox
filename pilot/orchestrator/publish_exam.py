@@ -209,7 +209,10 @@ def check_trace_lot(root: Path, request: str, task: str, trace: dict) -> None:
     rows = [lot for lot in lots if isinstance(lot, dict) and sorted(lot.get("write_paths") or []) == scope]
     if len(rows) != 1:
         raise ExamBlocked("EXAM_TRACE_LOT_UNRESOLVED")
-    allowed = {r[len("REQ-"):] for r in rows[0].get("requirement_ids") or []
+    lot = rows[0]
+    bound = (lot.get("characterized_requirement_ids") if lot.get("lot_kind") == "CHARACTERIZATION"
+             else lot.get("requirement_ids"))
+    allowed = {r[len("REQ-"):] for r in bound or []
                if isinstance(r, str) and r.startswith("REQ-")}
     for code, target in sorted(trace.items()):
         kind, _, value = str(target).partition(":")

@@ -37,6 +37,14 @@ python3 pilot/orchestrator/examiner_brief.py --request <req> --task <task> \
 - `mut/<nombre>/`: al menos 3 mutantes plausibles (el error que cometería un constructor real), cada uno dentro de las rutas del lote, y cada uno debe hacer fallar el examen.
 - Para BACKEND/DATA usar el PostgreSQL desechable de la sesión (`/usr/lib/postgresql/*/bin`, base temporal, variables `DB_URL`/`DB_USERNAME`/`DB_PASSWORD`) como hace el Worker.
 
+### Lote de caracterización (`lot_kind: CHARACTERIZATION` en el brief)
+
+El lote no implementa nada: GPT debe **describir el comportamiento actual** de `characterized_file_content` como casos JSON de la suite visible (`frontend/visible-tests/`), con `covers` igual a sus `requirement_ids`.
+
+- `exam.py`: corre `playwright_gate.py --suite <carpeta> --mutation-check` y `characterization_covers.py --suite-file <archivo> --requires <ids>` contra el candidato, **más** casos propios del examinador para las reglas de más riesgo (que el candidato no ve): así se detecta una suite que cubre las reglas solo de nombre. Cada `fail` traza a `rule:<CODE>` de esas reglas.
+- `ref/`: solo el archivo JSON del lote, con casos que pasan contra `main` sin cambios.
+- `mut/` (mínimo 3): `covers` incompleto; un caso solo de visibilidad o de texto trivial; un caso de CSS o caja con un valor que no corresponde al código actual. Todos dentro del único archivo del lote.
+
 ## 4. Validar y cifrar
 
 ```bash

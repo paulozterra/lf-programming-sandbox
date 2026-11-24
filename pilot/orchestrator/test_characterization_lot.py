@@ -87,3 +87,29 @@ def test_covers_needs_a_case_per_requirement_and_valid_cases(tmp_path):
         cov.check(tmp_path, rel, ["REQ-A"])
     with pytest.raises(cov.CoverageBlocked, match="ARCHIVO_AUSENTE"):
         cov.check(tmp_path, "frontend/visible-tests/none.json", ["REQ-A"])
+
+
+CHAR_LOT = {"id": "SOL-KX", "area": "FRONTEND", "lot_kind": "CHARACTERIZATION",
+            "requirement_ids": [], "characterized_requirement_ids": ["REQ-KEEP-1"],
+            "characterized_files": ["frontend/src/app/x/page.tsx"],
+            "write_paths": ["frontend/visible-tests/sol-kx.json"]}
+
+
+def test_characterization_exam_and_context_bind_to_pinned_requirements():
+    from t4_admission import examinable_requirements
+    assert examinable_requirements(CHAR_LOT) == ["REQ-KEEP-1"]
+    assert examinable_requirements({"requirement_ids": ["REQ-A"]}) == ["REQ-A"]
+
+
+def test_characterization_exam_trace_may_cite_only_pinned_rules(tmp_path, monkeypatch):
+    import publish_exam
+    folder = tmp_path / "pilot/runs/req-1"
+    (folder / "templates").mkdir(parents=True)
+    (folder / "templates/t1.task.json").write_text(json.dumps(
+        {"task_spec": {"write_path_patterns": CHAR_LOT["write_paths"]}}))
+    (folder / "lots.json").write_text(json.dumps({"lots": [CHAR_LOT]}))
+    monkeypatch.setattr(publish_exam, "storage_path",
+                        lambda key, root: Path(root) / "pilot/runs")
+    publish_exam.check_trace_lot(tmp_path, "req-1", "t1", {"E1": "rule:KEEP-1", "E2": "rule:STD-X"})
+    with pytest.raises(publish_exam.ExamBlocked, match="EXAM_TRACE_RULE_NOT_IN_LOT"):
+        publish_exam.check_trace_lot(tmp_path, "req-1", "t1", {"E1": "rule:OTHER"})
