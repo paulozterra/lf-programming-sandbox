@@ -250,13 +250,77 @@ def validate(path, skeleton, module):
     return True
 
 
-def compare_live(path, live):
+def compare_live(path, live, pending_backend=frozenset()):
+    """Every contract operation must be served live, except an operation whose
+    requirement is owned by a BACKEND lot that is planned and not yet
+    integrated (pending_backend). Returns the deferred operations."""
     if not isinstance(live, dict) or not isinstance(live.get("paths"), dict):
         deny("CONTRACT_LIVE_INVALID")
-    for route, method, _ in operations(load(path)):
+    deferred = []
+    for route, method, op in operations(load(path)):
         if method not in live["paths"].get(route, {}):
-            deny("CONTRACT_LIVE_OPERATION_MISSING:" + method.upper() + " " + route)
-    return True
+            name = method.upper() + " " + route
+            if set(op["x-requirement-ids"]) & set(pending_backend):
+                deferred.append(name)
+                continue
+            deny("CONTRACT_LIVE_OPERATION_MISSING:" + name)
+    return deferred
+
+
+INTEGRATED_TASK = re.compile(r"\[CP3\.5\][^\n]*Verified native ([a-z][a-z0-9_-]{0,63}) run [0-9]+")
+
+
+def integrated_tasks(root):
+    """Task names integrated on the first-parent history of HEAD by the Train
+    (CP3.5 'Verified native <task> run <id>' merges). A shallow or unreadable
+    history is incomplete evidence and denies."""
+    root = Path(root)
+    try:
+        shallow = subprocess.run(["git", "rev-parse", "--is-shallow-repository"], cwd=root,
+                                 check=True, capture_output=True, text=True).stdout.strip()
+        bodies = subprocess.run(["git", "log", "--first-parent", "--format=%B%x00", "HEAD"],
+                                cwd=root, check=True, capture_output=True, text=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        deny("CONTRACT_LIVE_PENDING_EVIDENCE_INCOMPLETE")
+    if shallow != "false":
+        deny("CONTRACT_LIVE_PENDING_EVIDENCE_INCOMPLETE")
+    return frozenset(INTEGRATED_TASK.findall(bodies))
+
+
+def pending_backend_requirements(root):
+    """Requirement ids of BACKEND lots bound in a request's chain plan whose
+    task has not been integrated by the Train. A request without a chain plan
+    cannot run lots and contributes nothing (never widens the deferral)."""
+    root = Path(root)
+    done = integrated_tasks(root)
+    from pilot.config.project_config import storage_path
+    runs = storage_path("requests_root", root=root)
+    pending = set()
+    for lots_file in sorted(runs.glob("*/lots.json")):
+        plan_file = lots_file.parent / "chain_plan.json"
+        if not plan_file.is_file():
+            continue
+        if lots_file.is_symlink() or plan_file.is_symlink():
+            deny("CONTRACT_LIVE_PENDING_EVIDENCE_INCOMPLETE")
+        try:
+            lots = json.loads(lots_file.read_text("utf-8"))["lots"]
+            tasks = {b["lot_id"]: b["task_name"]
+                     for b in json.loads(plan_file.read_text("utf-8"))["bindings"]}
+        except (OSError, ValueError, KeyError, TypeError):
+            deny("CONTRACT_LIVE_PENDING_EVIDENCE_INCOMPLETE")
+        for lot in lots:
+            if lot.get("area") != "BACKEND":
+                continue
+            task = tasks.get(lot.get("id"))
+            if not isinstance(task, str):
+                deny("CONTRACT_LIVE_PENDING_EVIDENCE_INCOMPLETE")
+            if task in done:
+                continue
+            ids = lot.get("requirement_ids")
+            if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
+                deny("CONTRACT_LIVE_PENDING_EVIDENCE_INCOMPLETE")
+            pending.update(ids)
+    return frozenset(pending)
 
 
 def _web():
@@ -297,6 +361,8 @@ def main():
     p.add_argument("--skeleton", type=Path)
     p.add_argument("--module")
     p.add_argument("--compare-live")
+    p.add_argument("--defer-pending-backend", action="store_true",
+                   help="integration CI only: defer operations owned by a planned, not yet integrated BACKEND lot")
     p.add_argument("--check-frontend",type=Path)
     p.add_argument("--check-client",type=Path)
     a=p.parse_args()
@@ -306,8 +372,11 @@ def main():
         if a.compare_live:
             with urlopen(a.compare_live,timeout=15) as stream:
                 live=json.load(stream)
+            pending = (pending_backend_requirements(Path("."))
+                       if a.defer_pending_backend else frozenset())
             for spec in sorted(Path("contracts").glob("*.openapi.yaml")):
-                compare_live(spec,live)
+                for name in compare_live(spec,live,pending):
+                    print("CONTRACT_LIVE_DEFERRED:"+spec.name+":"+name)
         if a.check_frontend:
             check_frontend(a.check_frontend)
         if a.check_client:
