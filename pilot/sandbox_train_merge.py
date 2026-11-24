@@ -25,8 +25,11 @@ def git(root, *args, check=True, env=None):
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             env=no_token_env() if env is None else env)
     if check and result.returncode:
+        # git diff --check writes whitespace diagnostics to stdout, not
+        # stderr. Keep both streams so Train reports the actual path/line.
+        detail = (result.stdout + "\n" + result.stderr).strip()
         raise BranchConflict("BRANCH_CONFLICT git " + str(args[0]) +
-                             ": " + result.stderr.strip()[:350])
+                             ": " + detail[:700])
     return result
 
 
@@ -82,7 +85,11 @@ def prepare_merge(root, base_ref, expected_head):
     if check_conflicts(root):
         raise BranchConflict("BRANCH_CONFLICT UNRESOLVED")
     git(root, "diff", "--check")
-    git(root, "diff", "--cached", "--check")
+    # Check only changes introduced relative to trusted main. An older PR may
+    # legitimately inherit pre-existing whitespace in a file added on main;
+    # never attribute those unchanged main bytes to the PR under review.
+    # A PR that changes that file is still checked against main and blocked.
+    git(root, "diff", "--cached", "--check", base_ref)
     has_merge = (root / ".git" / "MERGE_HEAD").exists()
     dirty = git(root, "diff", "--cached", "--quiet", check=False).returncode != 0
     if has_merge or dirty:

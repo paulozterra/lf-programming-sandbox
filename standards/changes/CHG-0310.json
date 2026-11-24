@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0310",
+  "title": "CP3.4/Train: contexto sin whitespace y diagnóstico íntegro de git diff --check",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-23: Train run 45286925753 bloqueó #459 tras merge de #460 por .lf/worker-context/req391contrato3/profile.md:82 (blank line at EOF)"
+  },
+  "reason": "El ensamblador CP3.4 añadía un LF extra a Markdown de fuentes que ya terminaban con LF. Opción A: normalizar solo profile.md y skills.md ensamblados para nuevos registros antes de calcular sus recibos y validar higiene de todos los artefactos generados antes de persistir. Se conserva íntegro el contexto ya registrado de req391contrato3, incluido profile.md con su EOF histórico, receipt.json, task-pack y hashes; la prueba histórica verifica únicamente integridad de archivo, recibo y paquete, sin exigir limpieza retroactiva. Train comprueba el índice contra main confiable (base_ref), no contra HEAD del PR, para no atribuir al PR whitespace heredado sin cambios; rechaza whitespace nuevo introducido por el PR y conserva stdout y stderr del diagnóstico. Tras integrar CHG-0310 por autoridad del owner, regenerar req391infra1 (#459) mediante T17.4/CP3.6 con el generador corregido y verificar integración. No se editan registros del bot, fuentes fijadas ni holdouts, ni se ejecutan lotes.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/register_task_context.py",
+      "pilot/worker_v08/test_register_task_context.py",
+      "pilot/sandbox_train_merge.py",
+      "pilot/test_sandbox_train_merge.py",
+      "standards/changes/CHG-0310.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/465"
+  }
+}

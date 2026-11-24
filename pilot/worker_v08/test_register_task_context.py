@@ -353,6 +353,68 @@ class PinnedSource(unittest.TestCase):
         with self.assertRaisesRegex(mod.ContextBlocked, "CONTEXT_WRITE_SCOPE_OVERLAP"):
             run(t)
 
+    def test_context_artifacts_pass_real_staged_git_diff_check(self):
+        # The registration bytes must be mergeable by sandbox_train_merge.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            init_git_fixture(root)
+            _task, artifacts = run(task_spec(), root=root, persist=True)
+            profile = artifacts[".lf/worker-context/ex8/profile.md"]
+            self.assertTrue(profile.endswith(b"\n"))
+            self.assertFalse(profile.endswith(b"\n\n"))
+            receipt = json.loads(artifacts[".lf/worker-context/ex8/receipt.json"])
+            self.assertEqual(receipt["profile"]["sha256"], hashlib.sha256(profile).hexdigest())
+            self.assertEqual(receipt["context_sha256"]["profile.md"],
+                             hashlib.sha256(profile).hexdigest())
+            mod.assert_generated_context_clean(artifacts)
+            git(root, "add", "--", *artifacts)
+            result = subprocess.run(["git", "diff", "--cached", "--check"],
+                                    cwd=root, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_req391contrato3_registered_profile_receipt_consistent(self):
+        # Historical registered context is immutable, not subject to new hygiene.
+        folder = ROOT / ".lf/worker-context/req391contrato3"
+        receipt = json.loads((folder / "receipt.json").read_bytes())
+        pack = json.loads((ROOT / "pilot/runs/req-391/proposal_requests/"
+                           "req391contrato3.task-pack.json").read_bytes())
+        entries = pack["user_payload"]["workspace"]["files"]
+        prefix = folder.relative_to(ROOT).as_posix() + "/"
+        context = [entry for entry in entries if entry["path"].startswith(prefix)]
+        by_path = {entry["path"]: entry for entry in context}
+        self.assertEqual(len(context), len(by_path))
+        self.assertEqual(set(by_path), set(receipt["context_paths"]))
+        self.assertEqual(set(receipt["context_sha256"]) | {"receipt.json"},
+                         {Path(path).name for path in by_path})
+        for path, entry in by_path.items():
+            with self.subTest(path=path):
+                raw = (ROOT / path).read_bytes()
+                observed = hashlib.sha256(raw).hexdigest()
+                self.assertFalse(entry["binary"])
+                self.assertEqual(entry["sha256"], observed)
+                self.assertEqual(entry["content"].encode("utf-8"), raw)
+                if Path(path).name != "receipt.json":
+                    self.assertEqual(receipt["context_sha256"][Path(path).name],
+                                     observed)
+        self.assertEqual(receipt["profile"]["sha256"],
+                         receipt["context_sha256"]["profile.md"])
+
+    def test_assembled_markdown_normalization_and_all_artifact_fail_closed(self):
+        pin, sources = mod.read_pins()
+        modified = dict(sources)
+        name = "prog_backend_exp/checklists/priority_checklist.md"
+        modified[name] += b"   \n\n"
+        profile, skills, _ids, _catalog = mod.build_material(modified, "lf_java", "BACKEND")
+        for data in (profile, skills):
+            self.assertTrue(data.endswith(b"\n"))
+            self.assertFalse(data.endswith(b"\n\n"))
+            self.assertFalse(any(line.endswith((b" ", b"\t", b"\r"))
+                                 for line in data.splitlines()))
+        with self.assertRaisesRegex(mod.ContextBlocked, "CONTEXT_OUTPUT_WHITESPACE"):
+            mod.assert_generated_context_clean({"other.md": b"unsafe \n"})
+        with self.assertRaisesRegex(mod.ContextBlocked, "CONTEXT_OUTPUT_WHITESPACE"):
+            mod.assert_generated_context_clean({"other.md": b"end\n\n"})
+
     def test_store_and_replay_same_bytes_in_isolated_repo(self):
         with tempfile.TemporaryDirectory() as path:
             root = Path(path)
