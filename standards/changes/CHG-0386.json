@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0386",
+  "title": "T2: el contrato se integra antes que su BACKEND (diferimiento acreditado de compare-live)",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 24/11: problemas-ruta-modificar-modulo-existente 2.4; #514 CONTRACT_LIVE_OPERATION_MISSING:POST /api/auth/logout"
+  },
+  "reason": "En el CI de integración, compare-live difiere una operación del contrato solo si alguno de sus x-requirement-ids pertenece a un lote BACKEND con plan de cadena cuya tarea aún no fue integrada por el Train (evidencia: merges CP3.5 \"Verified native <tarea>\" en la historia first-parent). Sin responsable, con historia superficial o evidencia ilegible, bloquea. El Worker sigue estricto (no usa --defer-pending-backend). El job backend clona con historia completa.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/orchestrator/contract_validate.py",
+      "pilot/orchestrator/test_contract_live_pending.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0386.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/569"
+  }
+}
