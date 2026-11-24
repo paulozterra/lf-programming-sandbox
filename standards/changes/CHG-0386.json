@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0386",
   "title": "T2: el contrato se integra antes que su BACKEND (diferimiento acreditado de compare-live)",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Owner 24/11: problemas-ruta-modificar-modulo-existente 2.4; #514 CONTRACT_LIVE_OPERATION_MISSING:POST /api/auth/logout"
