@@ -279,4 +279,4 @@
 | CHG-0396 | ADDITIVE | Ruta MODIFY de punta a punta en T7 (as-is, admisión F2, alcance de modificación, átomos EXISTING) y arreglos generales |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/587 |
 | CHG-0397 | ADDITIVE | Suite visible declarativa de frontend (casos JSON en Playwright) protegida para lotes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/589 |
 | CHG-0405 | ADDITIVE | Suite visible: cada caso afirma algo y los casos de CSS/caja deben fallar bajo mutación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/598 |
-| CHG-0406 | ADDITIVE | Lote de caracterización antes de reescribir frontend existente sin pruebas |  | paulozterra |  |
+| CHG-0406 | ADDITIVE | Lote de caracterización antes de reescribir frontend existente sin pruebas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/602 |
