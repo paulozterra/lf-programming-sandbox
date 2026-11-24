@@ -789,7 +789,11 @@
         "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
         "migration_runner": "FLYWAY_AT_SERVICE_STARTUP",
         "service_runs_migrations": "ALLOW",
-        "migrations_location": "apps/time-service/src/main/resources/db/migration (classpath:db/migration)"
+        "migrations_location": "apps/time-service/src/main/resources/db/migration (classpath:db/migration)",
+        "obligation_areas": [
+          "DATA",
+          "BACKEND"
+        ]
       }
     },
     {
@@ -839,7 +843,11 @@
         "standards": [
           "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
         ],
-        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)"
+        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+        "obligation_areas": [
+          "DATA",
+          "BACKEND"
+        ]
       }
     },
     {
@@ -883,7 +891,11 @@
         "standards": [
           "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
         ],
-        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)"
+        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+        "obligation_areas": [
+          "DATA",
+          "BACKEND"
+        ]
       }
     },
     {

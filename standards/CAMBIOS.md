@@ -266,4 +266,5 @@
 | CHG-0342 | EDITORIAL | CP3.5: integración verificada nativa req391infra1 (run 45421381116) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/513 |
 | CHG-0344 | EDITORIAL | T1/T3: pruebas de INFRA independientes del manifiesto real |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/515 |
 | CHG-0345 | EDITORIAL | T3: aislar también la revalidación de dependencias en pruebas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/517 |
-| CHG-0352 | EDITORIAL | Worker DATA: conexión libpq derivada del entorno DB aprobado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/527 |
+| CHG-0349 | EDITORIAL | A9/T7: obligaciones multiárea declaradas por regla |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/522 |
+| CHG-0352 | ADDITIVE | Worker DATA: conexión libpq derivada del entorno DB aprobado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/527 |

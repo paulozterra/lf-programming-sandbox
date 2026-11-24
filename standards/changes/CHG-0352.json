@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0352",
   "title": "Worker DATA: conexión libpq derivada del entorno DB aprobado",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Owner: req391data2 #525 T40 REHEARSAL_FAIL:VISIBLE_MAX_ATTEMPTS_EXHAUSTED"
