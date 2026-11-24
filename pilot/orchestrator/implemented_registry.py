@@ -122,6 +122,10 @@ def _contract_endpoints(root: Path, commit: str, lot: dict) -> list[str] | None:
     return sorted(set(endpoints))
 
 
+NON_IMPLEMENTING_AREAS = frozenset({"INFRA", "CONTRATO"})
+NO_API_AREAS = frozenset({"INFRA", "DATA"})
+
+
 def record_merge(root: Path, merge_sha: str, pr: dict, *,
                  current_sha: str) -> dict:
     branch = pr.get("head", {}).get("ref", "")
@@ -172,8 +176,13 @@ def record_merge(root: Path, merge_sha: str, pr: dict, *,
     selected = authoritative if authoritative else candidates
     for _bound, slug, lot, package, paths in selected:
         ids = lot.get("requirement_ids", [])
-        rule_codes = _rules(package, ids)
-        endpoints = _contract_endpoints(root, merge_sha, lot)
+        area = lot.get("area")
+        # INFRA and CONTRATO lots enable or declare other lots' obligations;
+        # they never implement a business rule, so they claim no rule codes.
+        rule_codes = [] if area in NON_IMPLEMENTING_AREAS else _rules(package, ids)
+        # INFRA and DATA expose no API by nature: endpoints are not applicable,
+        # not "not derivable".
+        endpoints = [] if area in NO_API_AREAS else _contract_endpoints(root, merge_sha, lot)
         files = []
         for path in sorted(paths):
             raw = git_file(root, merge_sha, path)

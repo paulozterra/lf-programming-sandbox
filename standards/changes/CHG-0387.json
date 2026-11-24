@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0387",
+  "title": "T7 registro: INFRA y CONTRATO no implementan reglas; INFRA y DATA sin API",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 24/11: problemas-ruta-modificar-modulo-existente 2.2 (y parte de 2.3); #561 atribuía 34 reglas a INFRA"
+  },
+  "reason": "El registro de implementaciones copiaba rule_codes de todos los requisitos del lote; T7 asigna a INFRA y CONTRATO los requisitos de los lotes que habilitan, por lo que la reutilización podía dar por implementadas reglas solo habilitadas o declaradas. Ahora INFRA y CONTRATO registran rule_codes vacíos (conservan requirement_ids como trazabilidad) y INFRA y DATA registran endpoints como no aplicables en vez de CONTRACT_ENDPOINTS_NOT_DERIVABLE.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/implemented_registry.py",
+      "pilot/orchestrator/test_registry_area_attribution.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0387.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
