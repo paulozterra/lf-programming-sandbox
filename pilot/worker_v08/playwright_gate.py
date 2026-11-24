@@ -92,6 +92,9 @@ def check_case(case) -> dict:
             or any(k in box and not _number(box[k], 0, 10000) for k in ("width", "height"))
             or ("tolerance_px" in box and not _number(box["tolerance_px"], 0, 50))):
         raise BrowserBlocked("BROWSER_CASE_INVALID")
+    if not any(k in case for k in ("text", "title", "count")) and not css and not box:
+        # Visibility alone does not characterize behavior.
+        raise BrowserBlocked("BROWSER_CASE_WITHOUT_ASSERTION")
     viewport = case.get("viewport")
     if viewport is not None and (not isinstance(viewport, dict)
                                  or set(viewport) != {"width", "height"}
@@ -147,6 +150,10 @@ def assert_case(page, case: dict, timeout_ms: int) -> None:
             raise BrowserBlocked("BROWSER_ASSERTION_FAILED:" + case["id"])
     item = found.first
     item.wait_for(state="visible", timeout=timeout_ms)
+    _assert_loaded(page, case, item, timeout_ms)
+
+
+def _assert_loaded(page, case: dict, item, timeout_ms: int) -> None:
     if "text" in case and case["text"] not in item.inner_text(timeout=timeout_ms):
         raise BrowserBlocked("BROWSER_ASSERTION_FAILED:" + case["id"])
     if "title" in case and case["title"] not in page.title():
@@ -161,6 +168,54 @@ def assert_case(page, case: dict, timeout_ms: int) -> None:
         tol = box.get("tolerance_px", 1)
         if rect is None or any(abs(rect[k] - box[k]) > tol for k in ("width", "height") if k in box):
             raise BrowserBlocked("BROWSER_ASSERTION_FAILED:" + case["id"])
+
+
+# Applies the first candidate value that really changes the computed style;
+# returns false if none does (the assertion then cannot be proven to matter).
+MUTATION_JS = """(el, m) => {
+  for (const [prop, candidates] of Object.entries(m)) {
+    const before = getComputedStyle(el).getPropertyValue(prop);
+    let changed = false;
+    for (const value of candidates) {
+      el.style.setProperty(prop, value, 'important');
+      if (getComputedStyle(el).getPropertyValue(prop) !== before) { changed = true; break; }
+    }
+    if (!changed) return false;
+  }
+  return true;
+}"""
+CSS_CANDIDATES = ("777px", "rgb(1, 2, 3)", "none", "block", "inline", "hidden",
+                  "0.37", "italic", "900", "100", "line-through", "uppercase",
+                  "center", "right", "column", "wrap", "space-between", "3", "fixed")
+
+
+def mutations(case: dict) -> list[dict]:
+    """Mechanical in-page mutations of each asserted CSS value and box size.
+    A discriminating case must fail under every one of them."""
+    result = [{prop: list(CSS_CANDIDATES)} for prop in case.get("css", {})]
+    box = case.get("box", {})
+    for key in ("width", "height"):
+        if key in box:
+            target = f"{max(1, round(box[key] * 1.25 + 10 + 2 * box.get('tolerance_px', 1)))}px"
+            result.append({key: [target],
+                           "min-" + key: [target], "max-" + key: [target]})
+    return result
+
+
+def discriminates(page, case: dict, timeout_ms: int) -> None:
+    """Re-run a passing case under each mutation; it must fail every time."""
+    for mutation in mutations(case):
+        page.goto(f"http://127.0.0.1:{FRONTEND_PORT}{case.get('path', '/')}",
+                  wait_until="domcontentloaded", timeout=timeout_ms)
+        item = page.locator(case["selector"]).first
+        item.wait_for(state="visible", timeout=timeout_ms)
+        if not item.evaluate(MUTATION_JS, mutation):
+            raise BrowserBlocked("BROWSER_CASE_NOT_MUTABLE:" + case["id"])
+        try:
+            _assert_loaded(page, case, item, timeout_ms)
+        except BrowserBlocked:
+            continue
+        raise BrowserBlocked("BROWSER_CASE_NOT_DISCRIMINATING:" + case["id"])
 
 
 def available() -> None:
@@ -216,7 +271,8 @@ def _stop(proc: subprocess.Popen) -> None:
 
 
 def verify(root: Path, *, path: str, selector: str, text: str | None,
-           title: str | None, timeout_ms: int = 15000, cases: list | None = None) -> None:
+           title: str | None, timeout_ms: int = 15000, cases: list | None = None,
+           mutate: bool = False) -> None:
     path = check_path(path)
     from pilot.config import project_config as _project
     pom = _project.area_component("BACKEND", "maven")["build_file"]
@@ -257,6 +313,8 @@ def verify(root: Path, *, path: str, selector: str, text: str | None,
                 if cases is not None:
                     for case in cases:
                         assert_case(page, case, timeout_ms)
+                        if mutate and (case.get("css") or case.get("box")):
+                            discriminates(page, case, timeout_ms)
                     context.close()
                     return
                 page.goto(f"http://127.0.0.1:{FRONTEND_PORT}{path}",
@@ -285,6 +343,8 @@ def main() -> int:
     parser.add_argument("--path", default="/")
     parser.add_argument("--selector")
     parser.add_argument("--suite", help="repository-relative folder of *.json cases")
+    parser.add_argument("--mutation-check", action="store_true",
+                        help="each css/box case must fail under in-page mutations")
     parser.add_argument("--text")
     parser.add_argument("--title")
     parser.add_argument("--timeout-ms", type=int, default=15000)
@@ -296,7 +356,7 @@ def main() -> int:
                 print("BROWSER_SUITE_NO_CASES")
                 return 0
             verify(args.root, path="/", selector="body", text=None, title=None,
-                   timeout_ms=args.timeout_ms, cases=cases)
+                   timeout_ms=args.timeout_ms, cases=cases, mutate=args.mutation_check)
             print("BROWSER_SUITE_PASS:" + str(len(cases)))
             return 0
         if not args.selector:

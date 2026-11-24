@@ -689,7 +689,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -789,7 +790,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -923,7 +925,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -1025,7 +1028,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -1161,7 +1165,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -1263,7 +1268,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -1399,7 +1405,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -1503,7 +1510,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -1641,7 +1649,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -1743,7 +1752,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -1879,7 +1889,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -1983,7 +1994,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -2121,7 +2133,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
@@ -2223,7 +2236,8 @@
      "lf-python",
      "pilot/worker_v08/playwright_gate.py",
      "--suite",
-     "frontend/visible-tests"
+     "frontend/visible-tests",
+     "--mutation-check"
     ],
     "max_output_bytes": 32000,
     "name": "frontend-visible-suite",
