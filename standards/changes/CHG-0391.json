@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Owner 24/11: problemas-ruta-modificar-modulo-existente 2.3"
   },
-  "reason": "request_trace.implementation_state bloqueaba con ANALISIS_SENALES_NO_DERIVABLES si cualquier lote previo de la pantalla no estaba ATTESTED o si un archivo fue modificado después por otra integración, por lo que no se podía pedir una modificación de SBX-B2B-LOGIN ni de SBX-REM-LIST. Ahora MODIFY exige al menos un lote ATTESTED de un área que implementa (no INFRA ni CONTRATO) con archivos intactos; los lotes no atestiguados y los archivos cambiados después son evidencia parcial. Sin evidencia positiva, o si un archivo atestiguado ya no existe, sigue bloqueando.",
+  "reason": "request_trace.implementation_state bloqueaba con ANALISIS_SENALES_NO_DERIVABLES si cualquier lote previo de la pantalla no estaba ATTESTED o si un archivo fue modificado después por otra integración, por lo que no se podía pedir una modificación de SBX-B2B-LOGIN ni de SBX-REM-LIST. Ahora MODIFY exige al menos un lote ATTESTED de un área que implementa (no INFRA ni CONTRATO) con archivos intactos; los lotes no atestiguados y los archivos cambiados después son evidencia parcial. Sin evidencia positiva, o si un archivo atestiguado ya no existe, sigue bloqueando. Además, request_trace declara a A1 la intención en su vocabulario (MODIFY se declara EVOLVE, como ya hace la intake semántica de A1); el esquema de A1 no aceptaba MODIFY y el camino de modificación nunca había corrido.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],

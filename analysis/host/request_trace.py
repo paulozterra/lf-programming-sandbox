@@ -279,6 +279,9 @@ def implementation_state(root: Path, target: str) -> str:
     return "MODIFY"
 
 
+A1_INTENT={"CREATE":"CREATE","MODIFY":"EVOLVE"}
+
+
 def signals(root: Path, target: str, request: str, data: dict) -> dict:
     contract=data["screen_contract.json"]["contract"]
     reuse_traces=trace(request,target,contract,root=root,data=data)
@@ -318,7 +321,10 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
         "provided_facts":[{"fact_code":"SOURCE_SCREEN_HINT","value":target,
                            "source_ref":ref}],
         "constraints":constraints,"ambiguities":[],
-        "declared_intent_kind":intent}
+        # A1 declares intent in its own closed vocabulary (MODIFY is EVOLVE,
+        # the same legacy mapping A1's semantic intake applies); A2/A4 keep
+        # the operation vocabulary that A4's intent_aliases resolve.
+        "declared_intent_kind":A1_INTENT[intent]}
     a2={"schema_version":"ANALYSIS_A2_TYPED_SIGNAL_CANDIDATE_V1",
         "business":"LF","target_ref":target,"change_type":intent,
         "target_granularity":"SCREEN","nested_parent_ref":None,

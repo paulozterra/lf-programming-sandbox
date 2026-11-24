@@ -71,3 +71,12 @@ def test_all_attested_drifted_blocks(tmp_path):
     _setup(tmp_path,[_e("FRONTEND","ATTESTED",[fe])])
     with pytest.raises(RequestTraceBlocked,match="ANALISIS_SENALES_NO_DERIVABLES"):
         implementation_state(tmp_path,CODE)
+
+
+def test_a1_intent_vocabulary_is_accepted_by_a1_schema():
+    from analysis.host.request_trace import A1_INTENT
+    schema=json.loads((Path(__file__).resolve().parents[1]/
+        "programming_analysis/steps/a1/schemas/input.schema.json").read_text())
+    allowed=set(schema["properties"]["declared_intent_kind"]["enum"])
+    assert set(A1_INTENT.values())<=allowed
+    assert A1_INTENT["MODIFY"]=="EVOLVE"
