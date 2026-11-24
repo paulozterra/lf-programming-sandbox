@@ -105,6 +105,45 @@ class Catalogue(unittest.TestCase):
             self.assertEqual(entry["codigo"], "LF-ROUTE-" + code.replace("_", "-"))
             self.assertEqual(entry["evidencia"], "run 123456789; lote req-286")
 
+    def test_curated_route_learning_codes_resolve_exactly(self):
+        from unittest.mock import patch
+        codes = (
+            "EXAM_REFERENCE_OUT_OF_SCOPE_001",
+            "EXAM_FORMAT_LATE_001",
+            "EXAM_OBLIGATION_NOT_IN_RULE_001",
+            "EXAM_CONTROL_SHARED_DB_001",
+            "DELEGATE_WITHOUT_SIMULATION_001",
+            "TEST_BOUND_TO_REPO_STATE_001",
+            "DATA_VISIBLE_NO_DB_CONN_001",
+            "MULTIAREA_RULE_SINGLE_LOT_001",
+            "CONTRACT_BEFORE_BACKEND_001",
+            "REPLAN_BY_DELETION_001",
+            "STALE_POLICY_ARTIFACT_001",
+            "GENERATED_FILE_HYGIENE_001",
+            "WATCHDOG_DROPS_REQUEST_FAILURE_001",
+        )
+        cfg = r.load_config()
+        catalogue = r.load_catalog()
+        for code in codes:
+            with self.subTest(code=code):
+                expected = "LF-ROUTE-" + code.replace("_", "-")
+                entry = r.catalog_entry(code, run_id=45445638050, request="req-391",
+                                        cfg=cfg, catalog=catalogue)
+                self.assertEqual(entry["codigo"], expected)
+                self.assertIn("Evidencia:", entry["validacion"])
+                r.validate_entry(entry, cfg)
+                receipt = {"status": "NEW_ERROR", "codigo": expected,
+                           "frequency_after": 1, "event_id": 7}
+                row = {"codigo": expected, "source_context": cfg["source_context"],
+                       "frecuencia": 1}
+                with patch.object(r, "register", return_value=receipt) as write, \
+                        patch.object(r, "lookup", return_value={"entries": [row]}):
+                    result = r.register_catalogued(code, "CHG-0366",
+                                                  execution_id="gha-123456789-1")
+                    self.assertEqual(result["codigo"], expected)
+                    self.assertTrue(result["readback"])
+                    self.assertEqual(write.call_args.args[0]["codigo"], expected)
+
     def test_catalogue_covers_notifier_codes(self):
         codes = set(notify.ROUTES.values()) - {"PEDIDO_T7_FALLIDO", "PEDIDO_INTAKE_FALLIDO",
                                                   "PEDIDO_FINALIZE_FALLIDO", "PEDIDO_EVIDENCIA_FALLIDA"}
