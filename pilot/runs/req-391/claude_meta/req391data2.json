@@ -1,7 +1,7 @@
 {
   "holdout_ref": "pilot/holdouts/req391data2.oracle.json.age",
-  "holdout_sha256": "262b32445eb949f51b0825e96e119ccca30412b8bfe1d0d6c8f4b3aa4bfdf9d5",
+  "holdout_sha256": "c66b1126833c2268c2537887ca3a9bae29a191f9f44dcdf5da30eb699ffa9d6d",
   "project_ref": "lf_java",
   "written_by": "claude",
-  "derived_from": "ficha sbx_b2b_login (SBX-B2B-R-DATA-USER-STORE, DATA-ATTEMPTS, DATA-SESSIONS; STD-DB)"
+  "derived_from": "ficha sbx_b2b_login (SBX-B2B-R-DATA-USER-STORE, DATA-ATTEMPTS, DATA-SESSIONS; STD-DB-03/04/06/08); v2: sin semillas (su hash proviene de la configuración de la app, obligación de BACKEND)"
 }
