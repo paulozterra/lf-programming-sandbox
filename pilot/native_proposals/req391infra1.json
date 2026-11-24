@@ -1,0 +1,14 @@
+{
+  "task_pack_sha256": "7846ef02d05f2e57a040bfc31828dc9b882bb1db7378eb685d95d1a9b0550feb",
+  "proposal_sha256": "5696706758888992f898cf0195ca2fef689ac9cb28ecba19f1d617d84b537e3f",
+  "proposal": {
+    "schema_version": 1,
+    "summary": "Agregar exclusivamente las cuatro dependencias T3 versionadas y configurar datasource y Flyway según allowlist.",
+    "patch": "diff --git a/apps/time-service/pom.xml b/apps/time-service/pom.xml\n--- a/apps/time-service/pom.xml\n+++ b/apps/time-service/pom.xml\n@@ -39,6 +39,26 @@\n       <artifactId>spring-boot-starter-webmvc-test</artifactId>\n       <scope>test</scope>\n     </dependency>\n+    <dependency>\n+      <groupId>org.springframework.boot</groupId>\n+      <artifactId>spring-boot-starter-jdbc</artifactId>\n+      <version>4.1.1</version>\n+    </dependency>\n+    <dependency>\n+      <groupId>org.springframework.boot</groupId>\n+      <artifactId>spring-boot-starter-flyway</artifactId>\n+      <version>4.1.1</version>\n+    </dependency>\n+    <dependency>\n+      <groupId>org.flywaydb</groupId>\n+      <artifactId>flyway-database-postgresql</artifactId>\n+      <version>12.4.0</version>\n+    </dependency>\n+    <dependency>\n+      <groupId>org.postgresql</groupId>\n+      <artifactId>postgresql</artifactId>\n+      <version>42.7.13</version>\n+    </dependency>\n   </dependencies>\n \n   <build>\ndiff --git a/apps/time-service/src/main/resources/application.properties b/apps/time-service/src/main/resources/application.properties\n--- a/apps/time-service/src/main/resources/application.properties\n+++ b/apps/time-service/src/main/resources/application.properties\n@@ -3,3 +3,9 @@\n # F5 Login (sandbox): usuario por defecto. Solo desarrollo; ver AUTH_SPEC.md y .env.example.\n app.auth.default-username=${APP_AUTH_DEFAULT_USERNAME:demo}\n app.auth.default-password-bcrypt=${APP_AUTH_DEFAULT_PASSWORD_BCRYPT:$2a$10$CO5.OM.rZMc1GUEY68j5BuwHRON65SQb7B63Qvnk8dadapQZ872HW}\n+\n+spring.datasource.url=${DB_URL:jdbc:postgresql://127.0.0.1:5432/pilot}\n+spring.datasource.username=${DB_USERNAME}\n+spring.datasource.password=${DB_PASSWORD}\n+spring.flyway.enabled=true\n+spring.flyway.locations=classpath:db/migration\n",
+    "changed_paths": [
+      "apps/time-service/pom.xml",
+      "apps/time-service/src/main/resources/application.properties"
+    ]
+  },
+  "author": "GPT_NATIVE"
+}
