@@ -160,5 +160,61 @@ class Record(unittest.TestCase):
         self.assertIn("continue-on-error: true", record_step)
 
 
+class ManualRegistration(unittest.TestCase):
+    def test_catalogue_manual_write_and_exact_readback(self):
+        from unittest.mock import patch
+        receipt = {"status": "NEW_ERROR", "codigo": "LF-ROUTE-BRANCH-CONFLICT",
+                   "frequency_after": 1, "event_id": 7}
+        row = {"codigo": receipt["codigo"], "source_context": "LF_ROUTE_SANDBOX",
+               "frecuencia": 1}
+        with patch.object(r, "register", return_value=receipt) as write, \
+                patch.object(r, "lookup", return_value={"entries": [row]}):
+            result = r.register_catalogued("BRANCH_CONFLICT", "PR #459; CHG-0310",
+                                          execution_id="gha-123456789-1")
+            self.assertTrue(result["readback"])
+            self.assertEqual(write.call_args.args[0]["evidencia"], "PR #459; CHG-0310")
+
+    def test_manual_invalid_reference_and_unknown_code_never_write(self):
+        from unittest.mock import patch
+        with patch.object(r, "register") as write:
+            for code, ref in (("BRANCH_CONFLICT", "raw log"), ("UNKNOWN_CODE", "PR #459")):
+                with self.assertRaises(r.EkbError):
+                    r.register_catalogued(code, ref, execution_id="gha-123456789-1")
+            write.assert_not_called()
+
+    def test_manual_readback_must_match_source_and_frequency(self):
+        from unittest.mock import patch
+        receipt = {"status": "NEW_ERROR", "codigo": "LF-ROUTE-BRANCH-CONFLICT",
+                   "frequency_after": 2, "event_id": 7}
+        with patch.object(r, "register", return_value=receipt), \
+                patch.object(r, "lookup", return_value={"entries": []}):
+            with self.assertRaisesRegex(r.EkbError, "ROUTE_EKB_READBACK_NOT_VERIFIED"):
+                r.register_catalogued("BRANCH_CONFLICT", "PR #459",
+                                      execution_id="gha-123456789-1")
+
+    def test_verified_origin_not_discarded_when_label_removed(self):
+        from unittest.mock import patch
+        class Api:
+            def api(self, method, path, body=None):
+                if path.startswith("/pulls?"):
+                    return [{"user": {"login": "github-actions[bot]"},
+                             "head": {"ref": "lf/request/req-123"}}]
+                if method == "GET" and path == "/issues/123":
+                    return {"number": 123, "state": "open", "labels": []}
+                if method == "POST":
+                    return {}
+                raise AssertionError(path)
+            def pages(self, path):
+                return []
+        run = {"id": 123456789, "name": "T7 main request auto-admission (trusted, no model)",
+               "path": ".github/workflows/t7-request.yml", "event": "workflow_dispatch",
+               "display_title": "T7 req-123", "conclusion": "failure",
+               "repository": {"full_name": notify.REPO},
+               "html_url": f"https://github.com/{notify.REPO}/actions/runs/123456789"}
+        with patch.object(notify, "ekb_candidate") as candidate:
+            self.assertEqual(notify.emit(Api(), run, []), "RUTA_NOTIFIED")
+            candidate.assert_called_once_with("PEDIDO_T7_FALLIDO", run, 123)
+
+
 if __name__ == "__main__":
     unittest.main()

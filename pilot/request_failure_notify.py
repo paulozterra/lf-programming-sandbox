@@ -409,7 +409,8 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
     if hit is None:
         return "RUTA_NO_ISSUE_ASSOCIATION"
     number, code, url = hit
-    if run.get("name") != "T9 issue request intake":
+    trusted_origin = run.get("name") != "T9 issue request intake"
+    if trusted_origin:
         # Branch-title strings alone are insufficient: verify the original
         # lf/request/ PR was created by the trusted bot, including after merge.
         prs = api.api("GET", f"/pulls?state=all&head=paulozterra:lf/request/req-{number}&per_page=100")
@@ -425,7 +426,7 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
         return "RUTA_ISSUE_NOT_OPEN"
     labels = {x.get("name") for x in issue.get("labels", [])}
     # The issue must have come through the T9 template, not an arbitrary number.
-    if "lf-request" not in labels:
+    if "lf-request" not in labels and not trusted_origin:
         return "RUTA_ISSUE_NOT_LF_REQUEST"
     # T51: source ID + terminal conclusion is the idempotence key.
     # The existing bot issue comments are the durable store; accept legacy
