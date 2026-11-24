@@ -1,6 +1,6 @@
 {
   "covers": ["home-main"],
   "cases": [
-    {"id": "home-main-visible", "path": "/", "selector": "main"}
+    {"id": "home-main-visible", "path": "/", "selector": "main", "count": 1}
   ]
 }

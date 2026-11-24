@@ -138,3 +138,21 @@ def test_repository_suite_is_valid():
     from pathlib import Path
     root = Path(__file__).resolve().parents[2]
     assert _gate.load_suite(root, "frontend/visible-tests")
+
+
+def test_visibility_only_case_is_not_a_characterization(tmp_path):
+    rel = _write(tmp_path, "a.json", {"cases": [{"id": "v", "selector": "main"}]})
+    with _pytest.raises(_gate.BrowserBlocked, match="BROWSER_CASE_WITHOUT_ASSERTION"):
+        _gate.load_suite(tmp_path, rel)
+
+
+def test_every_css_and_box_assertion_gets_a_mutation():
+    case = {"id": "c", "selector": "#x", "css": {"color": "rgb(0, 0, 0)", "font-size": "16px"},
+            "box": {"width": 400, "height": 300, "tolerance_px": 2}}
+    found = _gate.mutations(case)
+    assert [sorted(m) for m in found] == [["color"], ["font-size"],
+                                          ["max-width", "min-width", "width"],
+                                          ["height", "max-height", "min-height"]]
+    # the forced size is always outside the tolerance
+    assert int(found[2]["width"][0][:-2]) - 400 > 2
+    assert _gate.mutations({"id": "t", "selector": "a", "text": "x"}) == []
