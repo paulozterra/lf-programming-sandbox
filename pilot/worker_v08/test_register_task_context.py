@@ -372,32 +372,62 @@ class PinnedSource(unittest.TestCase):
                                     cwd=root, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_req391contrato3_registered_profile_receipt_consistent(self):
-        # Historical registered context is immutable, not subject to new hygiene.
-        folder = ROOT / ".lf/worker-context/req391contrato3"
-        receipt = json.loads((folder / "receipt.json").read_bytes())
-        pack = json.loads((ROOT / "pilot/runs/req-391/proposal_requests/"
-                           "req391contrato3.task-pack.json").read_bytes())
-        entries = pack["user_payload"]["workspace"]["files"]
-        prefix = folder.relative_to(ROOT).as_posix() + "/"
-        context = [entry for entry in entries if entry["path"].startswith(prefix)]
-        by_path = {entry["path"]: entry for entry in context}
-        self.assertEqual(len(context), len(by_path))
-        self.assertEqual(set(by_path), set(receipt["context_paths"]))
-        self.assertEqual(set(receipt["context_sha256"]) | {"receipt.json"},
-                         {Path(path).name for path in by_path})
-        for path, entry in by_path.items():
-            with self.subTest(path=path):
-                raw = (ROOT / path).read_bytes()
-                observed = hashlib.sha256(raw).hexdigest()
-                self.assertFalse(entry["binary"])
-                self.assertEqual(entry["sha256"], observed)
-                self.assertEqual(entry["content"].encode("utf-8"), raw)
-                if Path(path).name != "receipt.json":
-                    self.assertEqual(receipt["context_sha256"][Path(path).name],
-                                     observed)
-        self.assertEqual(receipt["profile"]["sha256"],
-                         receipt["context_sha256"]["profile.md"])
+    def test_synthetic_registered_profile_receipt_consistent(self):
+        # Exercise the real assembler and offline capture, independent of
+        # any live request or retained registration.
+        from export_task_pack import export
+        from programming_agent_runner.hashutil import source_snapshot_sha256
+
+        with tempfile.TemporaryDirectory() as directory:
+            sandbox = Path(directory)
+            root = sandbox / "repo"
+            root.mkdir()
+            init_git_fixture(root)
+            task = task_spec()
+            task.update(task_id="LF-WORKER-NATIVE-SYNTHETIC-CONTEXT",
+                        max_attempts=1, max_patch_bytes=60000,
+                        max_changed_files=1, allow_deletions=False,
+                        acceptance_commands=[{
+                            "name": "visible",
+                            "argv": ["python3", "-c", "print('ok')"],
+                            "timeout_seconds": 15, "max_output_bytes": 1024,
+                        }])
+            enriched, artifacts = run(task, root=root, persist=True,
+                                      task_name="syntheticcontext")
+            git(root, "add", "--", *artifacts)
+            git(root, "commit", "-qm", "Register synthetic context")
+            enriched["base_head_sha"] = git(root, "rev-parse", "HEAD")
+            enriched["source_snapshot_sha256"] = source_snapshot_sha256(root)
+            spec_path = sandbox / "task.json"
+            pack_path = sandbox / "task-pack.json"
+            spec_path.write_bytes(mod.canonical(enriched))
+            pack_sha = export(root, spec_path, pack_path)
+            self.assertEqual(pack_sha, sha256_bytes(pack_path))
+            folder = root / ".lf/worker-context/syntheticcontext"
+            receipt = json.loads((folder / "receipt.json").read_bytes())
+            pack = json.loads(pack_path.read_bytes())
+            entries = pack["user_payload"]["workspace"]["files"]
+            prefix = folder.relative_to(root).as_posix() + "/"
+            context = [entry for entry in entries if entry["path"].startswith(prefix)]
+            by_path = {entry["path"]: entry for entry in context}
+            self.assertEqual(len(context), len(by_path))
+            self.assertEqual(set(by_path), set(receipt["context_paths"]))
+            self.assertEqual(set(by_path), set(artifacts))
+            self.assertEqual(set(receipt["context_sha256"]) | {"receipt.json"},
+                             {Path(path).name for path in by_path})
+            for path, entry in by_path.items():
+                with self.subTest(path=path):
+                    raw = (root / path).read_bytes()
+                    observed = hashlib.sha256(raw).hexdigest()
+                    self.assertEqual(raw, artifacts[path])
+                    self.assertFalse(entry["binary"])
+                    self.assertEqual(entry["sha256"], observed)
+                    self.assertEqual(entry["content"].encode("utf-8"), raw)
+                    if Path(path).name != "receipt.json":
+                        self.assertEqual(receipt["context_sha256"][Path(path).name],
+                                         observed)
+            self.assertEqual(receipt["profile"]["sha256"],
+                             receipt["context_sha256"]["profile.md"])
 
     def test_assembled_markdown_normalization_and_all_artifact_fail_closed(self):
         pin, sources = mod.read_pins()
