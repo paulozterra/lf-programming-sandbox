@@ -54,3 +54,44 @@ def test_empty_section_does_not_create_implementation():
     excluded_ids = {f["front_id"] for f in excluded}
     assert all(f["front_id"] not in excluded_ids for f in active)
     assert not any(f["execution_area"] == "DATA" for f in active)
+
+
+def synthetic_obligation_packet(config):
+    ref = "fixture://synthetic/rule/one"
+    req = {"source_requirement_id": "RULE-ONE", "requirement_id": "REQ-ONE",
+           "evidence_refs": [ref], "scope_id": "SYNTHETIC",
+           "outcome": "Persist and enforce a policy"}
+    front = {"front_id": "F3-ONE", "candidate_ref": ref,
+             "status": "REQUIRED", "evidence_refs": [ref],
+             "simulation_mode": "SIMULATED_SANDBOX_ONLY"}
+    sections = {"rules": [{"source_ref": ref, "association_ref": ref + "/link"}]}
+    rules = {"RULE-ONE": {"source_ref": ref, "categoria": "datos", "config": config}}
+    return [front], [req], sections, rules
+
+
+@pytest.mark.parametrize("areas", [[], ["DATA", "DATA"], ["UNKNOWN"], "DATA", [None]])
+def test_invalid_declared_obligation_areas_block(areas):
+    with pytest.raises(FrontBindingGap, match="A9_OBLIGATION_AREAS_INVALID"):
+        partition(*synthetic_obligation_packet({"obligation_areas": areas}),
+                  scope="SYNTHETIC", create_empty_inventory=True)
+
+
+@pytest.mark.parametrize("config,expected", [
+    ({}, ["DATA"]),
+    ({"obligation_areas": ["DATA"]}, ["DATA"]),
+    ({"obligation_areas": ["DATA", "BACKEND"]}, ["DATA", "BACKEND"]),
+])
+def test_synthetic_obligation_projection(config, expected):
+    from analysis.a9.area_projection import project
+    fronts, reqs, sections, rules = synthetic_obligation_packet(config)
+    active, _ = partition(fronts, reqs, sections, rules,
+                          scope="SYNTHETIC", create_empty_inventory=True)
+    projected, active, scopes, _ = project("SYNTHETIC", reqs, active,
+                                           readiness="READY_CANDIDATE")
+    assert [f["execution_area"] for f in active] == expected
+    assert len(scopes) == len(projected) == len(expected)
+    assert projected[0]["requirement_id"] == "REQ-ONE"
+    if len(expected) == 2:
+        assert projected[1]["derived_from_requirement_id"] == "REQ-ONE"
+        assert projected[1]["requirement_id"] == "REQ-ONE-BACKEND"
+        assert projected[1]["evidence_refs"] == projected[0]["evidence_refs"]

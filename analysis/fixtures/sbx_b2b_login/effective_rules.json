@@ -645,7 +645,11 @@
         "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
         "migration_runner": "FLYWAY_AT_SERVICE_STARTUP",
         "service_runs_migrations": "ALLOW",
-        "migrations_location": "apps/time-service/src/main/resources/db/migration (classpath:db/migration)"
+        "migrations_location": "apps/time-service/src/main/resources/db/migration (classpath:db/migration)",
+        "obligation_areas": [
+          "DATA",
+          "BACKEND"
+        ]
       },
       "categoria": "DATOS",
       "descripcion": "Las cuentas que pueden iniciar sesión viven en el almacén persistente del sandbox (base relacional, migraciones Flyway versionadas que aplica el propio servicio al iniciar). Cada cuenta guarda correo, empresa, perfil y estado; la contraseña solo se guarda como hash. El correo es único sin distinguir mayúsculas. Los datos iniciales son ficticios y nunca incluyen contraseñas en claro. Las cuentas inactivas o restringidas no pueden autenticarse y se tratan como credenciales inválidas hacia afuera."
@@ -702,7 +706,11 @@
         "standards": [
           "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
         ],
-        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)"
+        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+        "obligation_areas": [
+          "DATA",
+          "BACKEND"
+        ]
       },
       "categoria": "DATOS",
       "descripcion": "Cada intento de inicio de sesión fallido queda registrado en el almacén persistente con la referencia de la cuenta o el correo normalizado, la hora, el resultado y el correlation id; nunca la contraseña. El bloqueo por intentos se calcula desde ese registro, de modo que se mantiene aunque el servicio se reinicie. Rige la política del login existente (bloqueo tras 5 fallos durante 15 minutos)."
@@ -753,7 +761,11 @@
         "standards": [
           "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
         ],
-        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)"
+        "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+        "obligation_areas": [
+          "DATA",
+          "BACKEND"
+        ]
       },
       "categoria": "DATOS",
       "descripcion": "La sesión emitida tras un resultado AUTHENTICATED se registra en el almacén persistente (solo el hash del token, la cuenta, creación, último uso, vencimiento y revocación). La inactividad y la concurrencia de sesiones se aplican desde ese registro. Cerrar sesión revoca el registro; un token revocado o vencido deja de ser válido aunque el servicio se reinicie."
