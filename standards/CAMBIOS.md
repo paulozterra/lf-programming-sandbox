@@ -271,3 +271,4 @@
 | CHG-0359 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/535 |
 | CHG-0366 | EDITORIAL | EKB: asociación de fallas, catálogo y registro manual gobernado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/544 |
 | CHG-0373 | EDITORIAL | T40: aislar base efímera de intento y referencia |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/554 |
+| CHG-0375 | ADDITIVE | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
