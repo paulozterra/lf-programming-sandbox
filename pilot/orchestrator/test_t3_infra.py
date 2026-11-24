@@ -236,3 +236,84 @@ def test_rule_declared_route_adds_frontend_page():
                 {"requirement_id": "REQ-OTHER", "valor_config": {"route": "/other"}},
                 {"requirement_id": "REQ-SBX-HOME", "valor_config": {"route": "https://evil.test"}}]
     assert atomize._rule_pages(related, business, rules) == ["frontend/src/app/home/page.tsx"]
+
+
+def _data_pair(root, version="7", module="widget"):
+    migration = infra_lot.policy()["database"]["migration_directory"]
+    rollback = Path(migration.rstrip("/")).with_name("rollback").as_posix() + "/"
+    paths = [migration + f"V{version}__{module}.sql",
+             rollback + f"U{version}__{module}.sql"]
+    for name in paths:
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("-- fixture SQL\n", encoding="utf-8")
+    return paths
+
+
+def test_data_accepts_paired_rollback_in_either_order(tmp_path):
+    pair = _data_pair(tmp_path)
+    other = _data_pair(tmp_path, "8", "other")
+    assert infra_validate.check_data(tmp_path, pair)
+    assert infra_validate.check_data(tmp_path, pair[::-1] + other)
+    assert infra_validate.check_data(tmp_path, pair[:1])  # legacy migration only
+
+
+@pytest.mark.parametrize("version,module", [("8", "widget"), ("7", "other")])
+def test_data_rejects_mismatched_rollback(tmp_path, version, module):
+    migration, _ = _data_pair(tmp_path)
+    _, rollback = _data_pair(tmp_path, version, module)
+    with pytest.raises(infra_lot.DependencyBlocked, match="T3_DATA_ROLLBACK_UNPAIRED"):
+        infra_validate.check_data(tmp_path, [migration, rollback])
+
+
+def test_data_rejects_rollback_without_supplied_migration(tmp_path):
+    _, rollback = _data_pair(tmp_path)
+    with pytest.raises(infra_lot.DependencyBlocked, match="T3_DATA_ROLLBACK_UNPAIRED"):
+        infra_validate.check_data(tmp_path, [rollback])
+
+
+@pytest.mark.parametrize("missing", [0, 1])
+def test_data_rejects_missing_pair_member(tmp_path, missing):
+    pair = _data_pair(tmp_path)
+    (tmp_path / pair[missing]).unlink()
+    with pytest.raises(infra_lot.DependencyBlocked, match="T3_DATA_MIGRATION_FILE_MISSING"):
+        infra_validate.check_data(tmp_path, pair)
+
+
+def test_data_rejects_wrong_directory_or_verb(tmp_path):
+    migration, rollback = _data_pair(tmp_path)
+    for invalid in (rollback.replace("/rollback/", "/migration/"),
+                    migration.replace("/migration/", "/rollback/"),
+                    rollback.replace("/rollback/", "/rollback/../rollback/"),
+                    rollback.replace("/rollback/", "/other/")):
+        with pytest.raises(infra_lot.DependencyBlocked, match="T3_DATA_MIGRATION_PATH_INVALID"):
+            infra_validate.check_data(tmp_path, [migration, invalid])
+
+
+@pytest.mark.parametrize("directory", [False, True])
+def test_data_rejects_symlinked_rollback(tmp_path, directory):
+    pair = _data_pair(tmp_path)
+    path = tmp_path / pair[1]
+    external = tmp_path / "external"
+    external.mkdir()
+    (external / path.name).write_text("-- external\n")
+    path.unlink()
+    if directory:
+        path.parent.rmdir()
+        path.parent.symlink_to(external, target_is_directory=True)
+    else:
+        path.symlink_to(external / path.name)
+    with pytest.raises(infra_lot.DependencyBlocked, match="T3_DATA_MIGRATION_FILE_MISSING"):
+        infra_validate.check_data(tmp_path, pair)
+
+
+def test_data_visible_template_command_accepts_generated_pair(tmp_path):
+    from pilot.orchestrator import generate_chain
+    pair = atomize._route("DATA", "widget", atomize._rules(), tmp_path)
+    for name in pair:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("-- fixture SQL\n", encoding="utf-8")
+    command = generate_chain.acceptance("DATA", sorted(pair))[0]["argv"]
+    assert command[2] == "--check-data"
+    assert infra_validate.check_data(tmp_path, command[3:])

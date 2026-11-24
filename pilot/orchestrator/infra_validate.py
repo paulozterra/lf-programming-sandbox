@@ -73,16 +73,38 @@ def _migrations_prefix():
 def check_data(root, paths):
     root = Path(root)
     target = policy()["database"]["migration_directory"]
+    # The planner places rollback beside migration, outside Flyway's location.
+    migration_dir = Path(target.rstrip("/"))
+    if migration_dir.name != "migration" or migration_dir.is_absolute():
+        deny("T3_MIGRATION_LOCATION_INVALID")
+    rollback = migration_dir.with_name("rollback").as_posix() + "/"
     if not paths:
         deny("T3_DATA_MIGRATIONS_MISSING")
+    migrations, rollbacks = set(), set()
     for name in paths:
-        if not (isinstance(name,str) and name.startswith(target)
-                and re.fullmatch(r"V[0-9]+__[a-z][a-z0-9_]*[.]sql",
-                                 name.removeprefix(target))):
+        if not isinstance(name, str):
+            deny("T3_DATA_MIGRATION_PATH_INVALID")
+        if name.startswith(target):
+            match = re.fullmatch(r"V([0-9]+__[a-z][a-z0-9_]*[.]sql)",
+                                 name.removeprefix(target))
+            identities = migrations
+        elif name.startswith(rollback):
+            match = re.fullmatch(r"U([0-9]+__[a-z][a-z0-9_]*[.]sql)",
+                                 name.removeprefix(rollback))
+            identities = rollbacks
+        else:
+            deny("T3_DATA_MIGRATION_PATH_INVALID")
+        if not match:
             deny("T3_DATA_MIGRATION_PATH_INVALID")
         p = root / name
-        if p.is_symlink() or not p.is_file():
+        if (any((root / parent).is_symlink() for parent in Path(name).parents)
+                or p.is_symlink() or not p.is_file()):
             deny("T3_DATA_MIGRATION_FILE_MISSING")
+        identities.add(match.group(1))
+    if not rollbacks <= migrations:
+        deny("T3_DATA_ROLLBACK_UNPAIRED")
+    if not migrations:
+        deny("T3_DATA_MIGRATIONS_MISSING")
     return True
 
 
