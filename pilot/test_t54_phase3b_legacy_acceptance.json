@@ -683,6 +683,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    }
   ],
   "paths": []
@@ -772,6 +783,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    },
    {
     "argv": [
@@ -895,6 +917,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    }
   ],
   "paths": [
@@ -989,6 +1022,17 @@
    },
    {
     "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
+   },
+   {
+    "argv": [
      "npm",
      "--prefix",
      "frontend",
@@ -1111,6 +1155,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    }
   ],
   "paths": [
@@ -1202,6 +1257,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    },
    {
     "argv": [
@@ -1327,6 +1393,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    }
   ],
   "paths": [
@@ -1423,6 +1500,17 @@
    },
    {
     "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
+   },
+   {
+    "argv": [
      "npm",
      "--prefix",
      "frontend",
@@ -1547,6 +1635,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    }
   ],
   "paths": [
@@ -1638,6 +1737,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    },
    {
     "argv": [
@@ -1763,6 +1873,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    }
   ],
   "paths": [
@@ -1856,6 +1977,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    },
    {
     "argv": [
@@ -1983,6 +2115,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    }
   ],
   "paths": [
@@ -2074,6 +2217,17 @@
     "max_output_bytes": 32000,
     "name": "frontend-browser-visible",
     "timeout_seconds": 240
+   },
+   {
+    "argv": [
+     "lf-python",
+     "pilot/worker_v08/playwright_gate.py",
+     "--suite",
+     "frontend/visible-tests"
+    ],
+    "max_output_bytes": 32000,
+    "name": "frontend-visible-suite",
+    "timeout_seconds": 420
    },
    {
     "argv": [

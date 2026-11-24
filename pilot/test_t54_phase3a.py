@@ -67,7 +67,7 @@ class Equivalence(unittest.TestCase):
     def test_protected_paths_unchanged(self):
         self.assertEqual(pc.protected_paths("sandbox"), (
             "apps/time-service/src/test/**", "apps/time-service/visible-tests/**",
-            "frontend/src/**/__tests__/**"))
+            "frontend/src/**/__tests__/**", "frontend/visible-tests/**"))
 
 
 class OpenMap(unittest.TestCase):
