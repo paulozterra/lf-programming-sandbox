@@ -263,5 +263,6 @@
 | CHG-0330 | EDITORIAL | T7: retirada gobernada de req-391 para replanificación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/491 |
 | CHG-0334 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/498 |
 | CHG-0335 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/499 |
+| CHG-0342 | EDITORIAL | CP3.5: integración verificada nativa req391infra1 (run 45421381116) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/513 |
 | CHG-0344 | EDITORIAL | T1/T3: pruebas de INFRA independientes del manifiesto real |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/515 |
 | CHG-0345 | EDITORIAL | T3: aislar también la revalidación de dependencias en pruebas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/517 |
