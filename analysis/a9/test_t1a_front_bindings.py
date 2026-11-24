@@ -64,7 +64,8 @@ def synthetic_obligation_packet(config):
     front = {"front_id": "F3-ONE", "candidate_ref": ref,
              "status": "REQUIRED", "evidence_refs": [ref],
              "simulation_mode": "SIMULATED_SANDBOX_ONLY"}
-    sections = {"rules": [{"source_ref": ref, "association_ref": ref + "/link"}]}
+    sections = {"fields": [], "errors": [], "visual": {"variants": []},
+                "rules": [{"source_ref": ref, "association_ref": ref + "/link"}]}
     rules = {"RULE-ONE": {"source_ref": ref, "categoria": "datos", "config": config}}
     return [front], [req], sections, rules
 
