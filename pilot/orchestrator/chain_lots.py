@@ -416,20 +416,34 @@ def _active_plan_origin(request: str, path: str, additions: list[str],
                 deny("CHAIN_HISTORY_INCOMPLETE")
         except (ValueError, KeyError, TypeError, AttributeError):
             deny("CHAIN_HISTORY_INCOMPLETE")
-        # Restrict checks to the old plan's life; a registration of the
-        # replacement plan must not invalidate its proven clean retirement.
+        # Old plans may have registered but never executed lots.  All
+        # registration artifacts must be deleted in the same Train merge.
+        from pilot.orchestrator import plan_retirement as retirement
         interval = f"{older}^..{newer}^"
-        for task in tasks:
-            watched = [
-                f"pilot/worker_v08/native_tasks/{task}.json",
-                f"{repo_storage()['requests_root']}/{request}/proposal_requests/{task}.task-pack.json",
-                f"{repo_storage()['requests_root']}/{request}/proposal_requests/{task}.proposal-request.json",
-                f"pilot/native_proposals/{task}.json",
-            ]
-            touched = run("git", "log", "--first-parent", "--format=%H",
-                          interval, "--", *watched, cwd=root)
-            if touched:
-                deny("CHAIN_HISTORY_INCOMPLETE")
+        before = set(run("git", "ls-tree", "-r", "--name-only", parents[1],
+                         cwd=root).splitlines())
+        after = set(run("git", "ls-tree", "-r", "--name-only", deleted,
+                        cwd=root).splitlines())
+        registered = False
+        try:
+            for task in tasks:
+                watched = retirement.registration_paths(request, task)
+                touched = set(run("git", "log", "--first-parent", "--format=",
+                                  "--name-only", interval, "--", *watched,
+                                  cwd=root).splitlines()) - {""}
+                registered |= retirement.verify_removed(
+                    before, after, request, task, historical=touched)
+                if run("git", "log", "--first-parent", "--format=%H", interval,
+                       "--", f"pilot/native_proposals/{task}.json", cwd=root):
+                    deny("CHAIN_HISTORY_INCOMPLETE")
+            if registered:
+                start = run("git", "show", "-s", "--format=%cI", older, cwd=root)
+                end = run("git", "show", "-s", "--format=%cI", deleted, cwd=root)
+                def read(route):
+                    return json.loads(github_api_raw(route))
+                retirement.verify_no_execution(read, tasks, start, end)
+        except (retirement.RetirementBlocked, OSError, ValueError, TypeError, KeyError):
+            deny("CHAIN_HISTORY_INCOMPLETE")
         merges = run("git", "log", "--first-parent", "--format=%H%x09%s",
                      interval, cwd=root).splitlines()
         for entry in merges:

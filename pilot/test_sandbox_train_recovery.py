@@ -49,8 +49,8 @@ class RacePolicyTests(unittest.TestCase):
         def api(method, path, payload=None, expected=(200,)):
             if path.startswith("/compare/"):
                 if "a" * 40 in path:
-                    return {"behind_by": 1, "status": "diverged"}
-                return {"behind_by": 0, "status": "ahead"}
+                    return {"behind_by": 1, "status": "diverged", "files": [{"filename": "README.md", "status": "modified"}]}
+                return {"behind_by": 0, "status": "ahead", "files": [{"filename": "README.md", "status": "modified"}]}
             if path.endswith("/dispatches"):
                 dispatched.append(payload)
                 return {}

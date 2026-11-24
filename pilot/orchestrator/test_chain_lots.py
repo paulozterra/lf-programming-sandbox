@@ -713,3 +713,84 @@ def test_replan_history_limit_excludes_commits_before_first_plan(tmp_path: Path)
     with patch.object(chain_lots, "api", side_effect=pr_receipt({302: deleted})):
         assert chain_lots._active_plan_origin("req-391", PLAN, current_adds(tmp_path),
                                                tmp_path, 4) == latest
+
+
+def _registered_artifacts(root, task=OLD):
+    from pilot.orchestrator.plan_retirement import registration_paths
+    reg, pack, handoff, context = registration_paths("req-391", task)
+    paths = [reg, pack, handoff, context + "receipt.json", context + "profile.md"]
+    for rel in paths:
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("{}")
+    return paths
+
+
+def _empty_retirement_api(route):
+    if route.startswith("actions/"):
+        return json.dumps({"total_count": 0, "workflow_runs": []})
+    if route.startswith("pulls?"):
+        return "[]"
+    raise AssertionError(route)
+
+
+def test_replan_registered_unused_lot_removed_atomically(tmp_path):
+    init_repo(tmp_path)
+    train(tmp_path, 301, lambda: old_plan(tmp_path))
+    paths = _registered_artifacts(tmp_path)
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-m", "Registered only")
+    def remove():
+        (tmp_path / PLAN).unlink()
+        for path in paths:
+            (tmp_path / path).unlink()
+    deleted = train(tmp_path, 302, remove)
+    latest = train(tmp_path, 303, lambda: old_plan(tmp_path, OLD))
+    with (patch.object(chain_lots, "api", side_effect=pr_receipt({302: deleted})),
+          patch.object(chain_lots, "github_api_raw", side_effect=_empty_retirement_api)):
+        assert chain_lots._active_plan_origin("req-391", PLAN, current_adds(tmp_path),
+                                             tmp_path, 100) == latest
+
+
+@pytest.mark.parametrize("kind", ["proposal", "worker", "integration", "incomplete"])
+def test_retirement_remote_evidence_blocks(kind):
+    from pilot.orchestrator import plan_retirement as retirement
+    stamp = "2026-11-23T00:00:00Z"
+    def api(route):
+        if route.startswith("actions/"):
+            rows = []
+            if kind == "proposal" and "trigger" in route:
+                rows = [{"id": 1, "head_branch": "lf/native-proposal/" + OLD,
+                         "display_title": "lf-native-trigger", "created_at": stamp}]
+            if kind == "worker" and "trigger" not in route:
+                rows = [{"id": 1, "head_branch": "main",
+                         "display_title": "lf-native-" + OLD + "-a1-abc",
+                         "created_at": stamp}]
+            return {"total_count": 1001 if kind == "incomplete" else len(rows),
+                    "workflow_runs": rows}
+        if route.startswith("pulls?"):
+            return ([{"id": 1, "head": {"ref": "lf/native-integration/" + OLD + "-run-1"},
+                      "created_at": stamp}] if kind == "integration" else [])
+        raise AssertionError(route)
+    with pytest.raises(retirement.RetirementBlocked, match="CHAIN_HISTORY_INCOMPLETE"):
+        retirement.verify_no_execution(api, {OLD}, stamp, stamp)
+
+
+def test_retirement_partial_context_or_earlier_deletion_blocks(tmp_path):
+    from pilot.orchestrator import plan_retirement as retirement
+    paths = set(_registered_artifacts(tmp_path))
+    with pytest.raises(retirement.RetirementBlocked):
+        retirement.verify_removed(paths, {next(p for p in paths if p.endswith("profile.md"))},
+                                  "req-391", OLD)
+    with pytest.raises(retirement.RetirementBlocked):
+        retirement.verify_removed(paths - {next(p for p in paths if p.endswith("profile.md"))},
+                                  set(), "req-391", OLD, historical=paths)
+
+
+def test_train_blocks_registration_removal_without_plan():
+    from pilot.orchestrator import plan_retirement as retirement
+    with pytest.raises(retirement.RetirementBlocked):
+        retirement.validate_train_retirement(lambda _: pytest.fail("unexpected API"),
+            "a" * 40, "b" * 40,
+            [{"filename": "pilot/worker_v08/native_tasks/" + OLD + ".json",
+              "status": "removed"}])
