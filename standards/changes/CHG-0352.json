@@ -7,13 +7,14 @@
     "kind": "OWNER",
     "reference": "Owner: req391data2 #525 T40 REHEARSAL_FAIL:VISIBLE_MAX_ATTEMPTS_EXHAUSTED"
   },
-  "reason": "Derivar PGHOST, PGPORT, PGDATABASE, PGUSER y PGPASSWORD exclusivamente de DB_* validados, conservar aislamiento del entorno, probar plantilla DATA real con PostgreSQL efímero en CI.",
+  "reason": "Derivar PGHOST, PGPORT, PGDATABASE, PGUSER y PGPASSWORD exclusivamente de DB_* validados, conservar aislamiento del entorno, probar plantilla DATA real con PostgreSQL efímero en CI. Alinear las pruebas con los imports del orquestador y comprobar en subprocess real la derivación PG* y ausencia de secretos ambientales.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
       ".github/workflows/ci.yml",
+      "pilot/worker_v08/test_worker_context_safety.py",
       "pilot/worker_v08/test_worker_db_env.py",
       "pilot/worker_v08/worker_db_env.py",
       "standards/CAMBIOS.md",

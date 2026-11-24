@@ -48,40 +48,44 @@ def test_worker_commands_receive_disposable_db_env_only_inside_trusted_bridge(
         tmp_path, monkeypatch):
     import sys
     from pilot.worker_v08.worker_db_env import worker_database_environment
-    from programming_agent_runner.worker_commands import (
-        _command_environment, run_acceptance_command,
-    )
+    from programming_agent_runner import worker_commands
     from programming_agent_runner.worker_spec import AcceptanceCommand
 
-    monkeypatch.setenv("DB_URL", "jdbc:postgresql://127.0.0.1:5432/pilot")
-    monkeypatch.setenv("DB_USERNAME", "pilot")
-    monkeypatch.setenv("DB_PASSWORD", "pilot")
-    monkeypatch.setenv("GITHUB_TOKEN", "not-exported")
-    monkeypatch.setenv("PGPASSWORD", "not-exported")
+    approved = {
+        "DB_URL": "jdbc:postgresql://127.0.0.1:5432/pilot",
+        "DB_USERNAME": "pilot", "DB_PASSWORD": "job-only",
+    }
+    derived = {
+        "PGHOST": "127.0.0.1", "PGPORT": "5432", "PGDATABASE": "pilot",
+        "PGUSER": approved["DB_USERNAME"], "PGPASSWORD": approved["DB_PASSWORD"],
+    }
+    forbidden = ("GITHUB_TOKEN", "GH_TOKEN", "ANTHROPIC_API_KEY",
+                 "OPENAI_API_KEY", "PGSERVICE", "PGPASSFILE")
+    for key, value in approved.items():
+        monkeypatch.setenv(key, value)
+    for key in (*derived, *forbidden):
+        monkeypatch.setenv(key, "not-exported")
     with worker_database_environment():
-        env = _command_environment(tmp_path / "runtime")
-        # Imported reference before monkeypatch remains the strict vendor
-        # function; read the module attribute that subprocesses actually call.
-        from programming_agent_runner import worker_commands
-        env = worker_commands._command_environment(tmp_path / "runtime2")
-        assert {k: env[k] for k in ("DB_URL", "DB_USERNAME", "DB_PASSWORD")} == {
-            "DB_URL": "jdbc:postgresql://127.0.0.1:5432/pilot",
-            "DB_USERNAME": "pilot", "DB_PASSWORD": "pilot",
-        }
-        assert "GITHUB_TOKEN" not in env and "PGPASSWORD" not in env
-        cmd = AcceptanceCommand(
-            "db-env", (sys.executable, "-c",
-                       "import os,sys;sys.exit(0 if all(os.environ.get(k) "
-                       "for k in ('DB_URL','DB_USERNAME','DB_PASSWORD')) "
-                       "and 'GITHUB_TOKEN' not in os.environ "
-                       "and 'PGPASSWORD' not in os.environ else 1)"),
-            10, 1024,
+        env = worker_commands._command_environment(tmp_path / "runtime")
+        assert {k: v for k, v in env.items() if k.startswith("DB_")} == approved
+        assert {k: v for k, v in env.items() if k.startswith("PG")} == derived
+        assert all(k not in env for k in forbidden)
+        # Check the actual subprocess, not just the environment factory.
+        script = (
+            "import os,sys;"
+            f"expected={dict(approved, **derived)!r};"
+            f"forbidden={forbidden!r};"
+            "sys.exit(0 if all(os.environ.get(k)==v for k,v in expected.items()) "
+            "and all(k not in os.environ for k in forbidden) "
+            "and not any(k.startswith(('DB_','PG')) and k not in expected "
+            "for k in os.environ) else 1)"
         )
-        result = run_acceptance_command(tmp_path, cmd)
+        cmd = AcceptanceCommand("db-env", (sys.executable, "-c", script), 10, 1024)
+        result = worker_commands.run_acceptance_command(tmp_path, cmd)
         assert result.status == "PASS", result.reason
-    from programming_agent_runner import worker_commands
-    assert "DB_PASSWORD" not in worker_commands._command_environment(
-        tmp_path / "after")
+    env = worker_commands._command_environment(tmp_path / "after")
+    assert not any(k.startswith(("DB_", "PG")) for k in env)
+    assert all(k not in env for k in forbidden)
 
 
 def test_worker_db_bridge_refuses_partial_or_remote_env(tmp_path, monkeypatch):

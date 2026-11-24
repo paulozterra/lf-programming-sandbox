@@ -59,6 +59,7 @@ def test_absent_or_partial_db_environment(tmp_path, monkeypatch):
 @pytest.mark.skipif(os.getenv("LF_TEST_REAL_WORKER_DB") != "YES",
                     reason="Requires dedicated disposable PostgreSQL service")
 def test_generated_data_command_applies_in_isolated_worker(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT / "pilot/orchestrator"))
     from pilot.orchestrator.generate_chain import acceptance
     from uuid import uuid4
 
