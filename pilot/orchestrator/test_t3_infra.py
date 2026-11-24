@@ -13,12 +13,14 @@ import pytest
 from pilot.orchestrator import atomize, infra_lot, infra_validate, plan_lots
 from pilot.orchestrator.native_lot_binding import map_profile, real_write_paths
 from pilot.orchestrator.test_contract_t2 import scenario
+from pilot.orchestrator.test_atomize import missing_db_manifests
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize("kind", ["first", "second"])
-def test_a9_screen_with_explicit_dependency_produces_infra_before_backend(tmp_path, kind):
+def test_a9_screen_with_explicit_dependency_produces_infra_before_backend(
+        tmp_path, kind, missing_db_manifests):
     # Real A9 screen package, no fake HTTP endpoints or data source records.
     _, package = scenario(tmp_path, kind, slug="t3-" + kind)
     package = deepcopy(package)
@@ -39,7 +41,7 @@ def test_a9_screen_with_explicit_dependency_produces_infra_before_backend(tmp_pa
     assert result["simulation_only"] is True
 
 
-def test_synthetic_random_data_generates_infra_and_classpath_path(tmp_path):
+def test_synthetic_random_data_generates_infra_and_classpath_path(tmp_path, missing_db_manifests):
     token = uuid.uuid4().hex[:12]
     module = "module-" + token
     data_path = atomize._route("DATA", module, atomize._rules(), tmp_path)
