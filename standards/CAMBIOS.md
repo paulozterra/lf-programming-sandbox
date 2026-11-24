@@ -273,4 +273,4 @@
 | CHG-0373 | EDITORIAL | T40: aislar base efímera de intento y referencia |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/554 |
 | CHG-0378 | EDITORIAL | CP3.5: integración verificada nativa req391data2 (run 45471907765) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/560 |
 | CHG-0386 | ADDITIVE | T2: el contrato se integra antes que su BACKEND (diferimiento acreditado de compare-live) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/569 |
-| CHG-0388 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0388 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/572 |
