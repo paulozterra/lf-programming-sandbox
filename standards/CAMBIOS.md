@@ -268,4 +268,4 @@
 | CHG-0345 | EDITORIAL | T3: aislar también la revalidación de dependencias en pruebas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/517 |
 | CHG-0349 | EDITORIAL | A9/T7: obligaciones multiárea declaradas por regla |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/522 |
 | CHG-0352 | ADDITIVE | Worker DATA: conexión libpq derivada del entorno DB aprobado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/527 |
-| CHG-0362 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0362 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/539 |
