@@ -272,4 +272,4 @@
 | CHG-0366 | EDITORIAL | EKB: asociación de fallas, catálogo y registro manual gobernado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/544 |
 | CHG-0373 | EDITORIAL | T40: aislar base efímera de intento y referencia |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/554 |
 | CHG-0378 | EDITORIAL | CP3.5: integración verificada nativa req391data2 (run 45471907765) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/560 |
-| CHG-0385 | ADDITIVE | CP3.6: encadenamiento gobernado req-391 |  | paulozterra |  |
+| CHG-0385 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra |  |
