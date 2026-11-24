@@ -208,6 +208,23 @@ def atomize(package, root, base_head_sha, *, run, reuse_assessment=None):
         req_by_scope.setdefault(item["scope_id"], []).append(item)
     fronts = package["material_fronts"]
     business_rules = package.get("applicable_rules", [])
+    # Explicit obligations must survive projection before any reuse decision.
+    from analysis.a9.front_bindings import obligation_areas, FrontBindingGap
+    for rule in business_rules:
+        try:
+            declared = obligation_areas(rule.get("valor_config"))
+        except FrontBindingGap as exc:
+            raise AtomBlocked(str(exc)) from exc
+        if declared is None:
+            continue
+        origin = rule.get("requirement_id")
+        owned = {r["requirement_id"] for r in package["requirements"]
+                 if r["requirement_id"] == origin
+                 or r.get("derived_from_requirement_id") == origin}
+        areas = {front.get("execution_area") for front in fronts
+                 if owned.intersection(front.get("requirement_ids", []))}
+        if not set(declared).issubset(areas):
+            raise AtomBlocked("ATOM_OBLIGATION_AREA_MISSING:" + str(origin))
     rows, provenance, unresolved = [], {}, []
     data_ordinal = 0
     # One front per semantic atom. A9 fronts are individually accounted for.

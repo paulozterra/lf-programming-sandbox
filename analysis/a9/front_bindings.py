@@ -17,6 +17,19 @@ class FrontBindingGap(ValueError):
     pass
 
 
+def obligation_areas(config):
+    """Optional, source-declared implementation areas; absent means legacy."""
+    if not isinstance(config, dict) or "obligation_areas" not in config:
+        return None
+    areas = config["obligation_areas"]
+    if (not isinstance(areas, list) or not areas
+            or any(not isinstance(area, str) or area not in
+                   ("DATA", "BACKEND", "FRONTEND") for area in areas)
+            or len(set(areas)) != len(areas)):
+        raise FrontBindingGap("A9_OBLIGATION_AREAS_INVALID")
+    return areas
+
+
 def _policy():
     data = json.loads(POLICY.read_text(encoding="utf-8"))
     if (data.get("schema_version") != "A9_AREA_SOURCE_RULES_V1"
@@ -125,9 +138,14 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
     for req in requirements:
         code = req["source_requirement_id"]
         rule_ref = req["evidence_refs"][0]
+        rule = effective_rules.get(code)
+        declared = obligation_areas(rule.get("config", {})) if isinstance(rule, dict) else None
+        if declared is not None:
+            for area in declared:
+                add(area, rule_ref, rule_ref)
+            continue
         if any(req["requirement_id"] in owned for owned in ids.values()):
             continue
-        rule = effective_rules.get(code)
         if not isinstance(rule, dict) or rule.get("source_ref") != rule_ref:
             gaps.append("A9_REQUIREMENT_EFFECTIVE_RULE_MISSING:" + code)
             continue
