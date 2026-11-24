@@ -507,6 +507,67 @@ def _produce_lots(package, fixture, rows, outputs, dsn):
     return topo(lots),hashes,assignment_hashes,currentness_hashes
 
 
+def modify_scope_paths(package):
+    """repo://path@sha256 MODIFY_SCOPE fronts of an EXISTING package -> {path: sha}."""
+    scope={}
+    if package.get("classification",{}).get("implementation_state")!="EXISTING":
+        return scope
+    for front in package.get("non_atomized_fronts",[]):
+        ref=front.get("candidate_ref") if isinstance(front,dict) else None
+        if (front.get("obligation_mode")=="MODIFY_SCOPE" and isinstance(ref,str)
+                and ref.startswith("repo://") and "@" in ref):
+            path,_,sha=ref[len("repo://"):].rpartition("@")
+            scope[path]=sha
+    return scope
+
+
+def _characterization_lots(package, folder, lots):
+    """Before a FRONTEND lot rewrites the target's own existing files, a
+    characterization lot pins the behavior reused there as visible browser
+    cases. It implements no requirement and writes only a new suite file.
+    Java sources keep their existing-test protection and need none."""
+    scope=modify_scope_paths(package)
+    report=folder/"reuse_assessment.json"
+    if not scope or not report.is_file():
+        return lots
+    rows=json.loads(report.read_text("utf-8")).get("obligations",[])
+    out=copy.deepcopy(lots)
+    added=[]
+    for lot in out:
+        if lot.get("area")!="FRONTEND" or lot.get("lot_kind"):
+            continue
+        # Every non-Java file this lot rewrites that carries reused behavior
+        # (the target's own files or a declared extension point elsewhere).
+        writes={p for p in lot.get("write_paths",[]) if not p.endswith(".java")}
+        pinned={(ref.get("path"),row["requirement_id"]) for row in rows
+                if row.get("decision")=="REUSE_AS_IS"
+                for ref in row.get("reuse_context",[])
+                if isinstance(ref,dict) and ref.get("path") in writes}
+        files=sorted({p for p,_ in pinned})
+        retained=sorted({r for _,r in pinned})
+        if not files or not retained:
+            continue
+        char_id="SOL-K"+hashlib.sha256(("|".join([lot["id"]]+files+retained)).encode()).hexdigest()[:12]
+        if any(x["id"]==char_id for x in out+added):
+            blocked("CARACTERIZACION_ID_DUPLICADO")
+        from pilot.config import project_config as _pc
+        suites=[r.rstrip("/") for r in _pc.area_component("FRONTEND","npm")["test_roots"]
+                if r.rstrip("/").endswith("visible-tests")]
+        if len(suites)!=1:
+            blocked("CARACTERIZACION_SIN_SUITE_VISIBLE")
+        added.append({"id":char_id,"area":"FRONTEND","lot_kind":"CHARACTERIZATION",
+                      "profile_code":lot["profile_code"],
+                      "write_paths":[suites[0]+"/"+char_id.lower()+".json"],"depends_on":[],"requirement_ids":[],
+                      "characterized_requirement_ids":retained,
+                      "characterized_files":files,
+                      "characterizes_lot":lot["id"],
+                      "production_authority":False,"handoff_allowed":False,
+                      "producer_route":"T7_CHARACTERIZATION_NOT_PG04_PG05"})
+        lot["depends_on"]=sorted(set(lot["depends_on"]+[char_id]))
+        lot["characterized_by"]=char_id
+    return topo(out+added) if added else lots
+
+
 def _t2_contract_lots(fixture, lots):
     """Add source-owned contract stage *outside* pinned PG04/PG05 outputs.
 
@@ -771,6 +832,7 @@ def plan(root: Path, run: str) -> dict:
         lots=_t3_infra_lots(package,fixture,lots)
         from affected_tests import with_affected_tests
         lots=with_affected_tests(root,run,lots)
+        lots=_characterization_lots(package,folder,lots)
     except (OSError,RuntimeError):
         blocked("SELECTOR_REQUIERE_ENTORNO")
     document={"schema_version":"CP33_LOTS_CANDIDATE_V1","request_id":run,
