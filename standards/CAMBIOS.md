@@ -277,3 +277,4 @@
 | CHG-0391 | EDITORIAL | Análisis: evidencia parcial de implementación previa no bloquea si hay evidencia positiva |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/576 |
 | CHG-0392 | EDITORIAL | Análisis MODIFY: A4 recibe la pantalla implementada como objeto existente |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/580 |
 | CHG-0396 | ADDITIVE | Ruta MODIFY de punta a punta en T7 (as-is, admisión F2, alcance de modificación, átomos EXISTING) y arreglos generales |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/587 |
+| CHG-0400 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
