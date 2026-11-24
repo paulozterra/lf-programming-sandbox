@@ -213,11 +213,12 @@ def derive_rule_obligations(data: dict) -> list[dict] | None:
              for r in active], [])
 
 
-def implementation_state(root: Path, target: str) -> str:
-    """ATTESTED plus matched A9 target is the only positive code evidence."""
+def implementation_evidence(root: Path, target: str) -> list[dict] | None:
+    """None: no prior registration (CREATE). Otherwise the intact files of
+    ATTESTED lots of implementing areas, the only positive code evidence."""
     registry=root/"pilot/registry/implemented.json"
     if not registry.exists():
-        return "CREATE"
+        return None
     if registry.is_symlink():
         raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
     try:
@@ -247,7 +248,7 @@ def implementation_state(root: Path, target: str) -> str:
         if canonical==target and (shadow is None or shadow==target):
             matched.append(row)
     if not matched:
-        return "CREATE"
+        return None
     # Positive code evidence: an ATTESTED lot of an implementing area whose
     # files all still exist with their registered SHA. INFRA and CONTRATO
     # enable or declare other lots and never prove the screen is implemented.
@@ -255,28 +256,33 @@ def implementation_state(root: Path, target: str) -> str:
     # evidence: they neither prove nor deny the target, so they do not block
     # when positive evidence exists. No positive evidence stays blocked, and
     # a file an ATTESTED lot registered that no longer exists is a contradiction.
-    positive=False
+    evidence=[]
     for entry in matched:
         if entry.get("status")!="ATTESTED" or not entry.get("files"):
             continue
-        intact=True
+        intact=[]
         for file in entry["files"]:
             path=file.get("path") if isinstance(file,dict) else None
             if (not isinstance(path,str) or ".." in Path(path).parts
                     or not isinstance(file.get("sha256"),str)):
                 raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
             full=root/path
-            if full.is_symlink():
+            if full.is_symlink() or not full.is_file():
                 raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
-            if not full.is_file():
-                raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
-            if hashlib.sha256(full.read_bytes()).hexdigest()!=file["sha256"]:
-                intact=False
-        if intact and entry.get("area") not in ("INFRA","CONTRATO"):
-            positive=True
-    if not positive:
+            if hashlib.sha256(full.read_bytes()).hexdigest()==file["sha256"]:
+                intact.append({"path":path,"sha256":file["sha256"]})
+        if (len(intact)==len(entry["files"])
+                and entry.get("area") not in ("INFRA","CONTRATO")):
+            evidence+=[dict(f,request=entry["request"],area=entry.get("area"))
+                       for f in intact]
+    if not evidence:
         raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
-    return "MODIFY"
+    return evidence
+
+
+def implementation_state(root: Path, target: str) -> str:
+    """ATTESTED plus matched A9 target is the only positive code evidence."""
+    return "CREATE" if implementation_evidence(root,target) is None else "MODIFY"
 
 
 A1_INTENT={"CREATE":"CREATE","MODIFY":"EVOLVE"}
@@ -285,7 +291,8 @@ A1_INTENT={"CREATE":"CREATE","MODIFY":"EVOLVE"}
 def signals(root: Path, target: str, request: str, data: dict) -> dict:
     contract=data["screen_contract.json"]["contract"]
     reuse_traces=trace(request,target,contract,root=root,data=data)
-    intent=implementation_state(root,target)
+    existing=implementation_evidence(root,target)
+    intent="CREATE" if existing is None else "MODIFY"
     inventory=data["inventory.json"]
     if intent=="CREATE" and any(inventory.get(k) for k in ("objects","impacts")):
         raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
@@ -334,6 +341,8 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
             "simulation":True,"request_text":request,
             "a1_structured":a1,"a2_signals":a2}
     result["reuse_traces"]=reuse_traces
+    if existing is not None:
+        result["implementation_evidence"]=existing
     if "source_obligations" in legacy:
         obligations=legacy["source_obligations"]
         if not isinstance(obligations,list) or not obligations:

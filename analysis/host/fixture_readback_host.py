@@ -162,6 +162,47 @@ class FixtureHost:
             + hashlib.sha256(raw).hexdigest())
         return data
 
+    def existing_readback(self, semantic, a3):
+        """MODIFY readback from the request-derived registry evidence only.
+
+        The object is the implemented screen; its impact rows are the
+        SHA-verified files of ATTESTED lots. No graph provider exists here,
+        so dependency rows stay empty rather than invented.
+        """
+        files = semantic.get("implementation_evidence")
+        screen_ref = (a3.get("target_resolution") or {}).get("source_ref")
+        if (not isinstance(files, list) or not files
+                or screen_ref not in a3.get("source_refs", [])):
+            block("SBX_A4_EXISTING_EVIDENCE_MISSING")
+        root = "impl://" + self.target
+        rows = []
+        for item in files:
+            if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+                block("SBX_A4_EXISTING_EVIDENCE_MISSING")
+            rows.append({"depth": 1, "affected_ref": "repo://" + item["path"]
+                         + "@" + item["sha256"],
+                         "affected_type": "SOURCE_FILE:" + str(item.get("area")),
+                         "via_relation": "IMPLEMENTED_BY",
+                         "min_confidence": 1.0})
+        return {
+            "inventory_object": {"object_ref": root, "active": True,
+                                 "object_type": "IMPLEMENTED_SCREEN",
+                                 "currentness": "CURRENT"},
+            "identity_binding": {"target_ref": self.target,
+                                 "inventory_object_ref": root,
+                                 "source_ref": screen_ref,
+                                 "source_attested": False},
+            "impact_readback": {"source_function": "inventory.fn_impact_analysis_v1",
+                                "parameters": {"p_object_ref": root, "p_max_depth": 3,
+                                               "p_min_confidence": 0.8},
+                                "source_attested": False, "rows": rows},
+            "dependency_readback": {"source_function": "inventory.fn_dependencies_v1",
+                                    "parameters": {"p_object_ref": root,
+                                                   "p_direction": "BOTH",
+                                                   "p_max_depth": 2},
+                                    "source_attested": False, "rows": []},
+        }
+
     def source_arguments(self, data):
         screen, direct = data["screen_contract.json"], data["direct_rules.json"]
         effective, policies = data["effective_rules.json"], data["policies.json"]
@@ -287,14 +328,20 @@ class FixtureHost:
         if a3.get("status") == "BLOCKED":
             block("SBX_A3_BLOCKED:" + ",".join(a3.get("blocking_codes", [])))
         inventory = data["inventory.json"]
-        a4 = load_stage("a4").run(a3, a2["classification"], {
+        readback = {
             "schema_version": "A4_EXISTING_IMPACT_CORE_READBACK_V1",
             "business": "LF", "target_ref": self.target, "source_attested": False,
             "inventory_object": None, "identity_binding": None,
             "impact_readback": None, "dependency_readback": None,
             "synthetic_inventory_empty": not inventory["objects"],
-        })
-        if a4.get("status") == "BLOCKED":
+        }
+        if a2["classification"].get("change_type") == "MODIFY":
+            readback.update(self.existing_readback(semantic, a3))
+        a4 = load_stage("a4").run(a3, a2["classification"], readback)
+        # A4 gaps without a projected identity must surface as A4's own codes,
+        # not as a later A5 identity drift.
+        if a4.get("status") == "BLOCKED" or (
+                a4.get("blocking_codes") and a4.get("business") != "LF"):
             block("SBX_A4_BLOCKED:" + ",".join(a4.get("blocking_codes", [])))
         policy = json.loads((STAGE / "steps/a5/contracts/deterministic_decision_sources_v1.json").read_text())
         a5_sources = {
