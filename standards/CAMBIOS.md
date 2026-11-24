@@ -263,3 +263,4 @@
 | CHG-0330 | EDITORIAL | T7: retirada gobernada de req-391 para replanificación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/491 |
 | CHG-0334 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/498 |
 | CHG-0335 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/499 |
+| CHG-0339 | ADDITIVE | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
