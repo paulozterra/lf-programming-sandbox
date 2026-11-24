@@ -194,9 +194,36 @@ def _project_patterns() -> dict:
     return mapping
 
 
+def _test_root_areas(path: str, areas) -> list:
+    """Areas whose project components declare a test root containing path."""
+    from pilot.config import project_config
+    found = []
+    for area in areas:
+        try:
+            comps = project_config.area_components(area)
+        except Exception:
+            continue
+        for _, comp in comps:
+            roots = comp.get("test_roots") or []
+            sources = [r.rstrip("/") + "/" for r in comp.get("source_roots") or []
+                       if isinstance(r, str) and r]
+            # A component's tests belong to the area whose prefix lies in the
+            # component's source roots (code), not one in its resources.
+            if (any(path.startswith(r.rstrip("/") + "/") for r in roots if isinstance(r, str) and r)
+                    and any(str(areas[area]).startswith(src) or src.startswith(str(areas[area]))
+                            for src in sources)):
+                found.append(area)
+                break
+    return found
+
+
 def _path_area(path: str, mapping: dict) -> str:
     matched = [area for area, prefix in mapping.items()
                if isinstance(path, str) and path.startswith(prefix)]
+    if not matched and isinstance(path, str):
+        # Tests of an area live under its components' declared test roots,
+        # outside the source prefix; they still belong to that area.
+        matched = _test_root_areas(path, mapping)
     if len(matched) != 1:
         raise ReuseBlocked("REUTILIZACION_AREA_NO_DERIVABLE:" + str(path))
     return matched[0]
