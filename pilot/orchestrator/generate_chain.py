@@ -105,6 +105,12 @@ def acceptance(area, paths, *, run=None, module=None, has_contract=False, skelet
                 # exact same gate with examiner-selected routes/assertions.
                 item("frontend-browser-visible",["python3","pilot/worker_v08/playwright_gate.py",
                                                  "--path","/","--selector","body"],240)]
+        # Declarative browser cases kept in the component's visible test root
+        # protect existing behavior; an empty suite passes without cases.
+        suites=[r for r in web["test_roots"] if r.rstrip("/").endswith("visible-tests")]
+        if len(suites)==1:
+            result.append(item("frontend-visible-suite",["python3","pilot/worker_v08/playwright_gate.py",
+                                                       "--suite",suites[0].rstrip("/")],420))
         if has_contract:
             if client is None:
                 raise ValueError("T2_GENERATED_CLIENT_NOT_CONFIGURED")

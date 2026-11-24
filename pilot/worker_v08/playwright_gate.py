@@ -11,6 +11,8 @@ from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 
 import argparse
+import json
+import re
 import ipaddress
 import os
 from pathlib import Path
@@ -49,6 +51,116 @@ def check_path(path: str) -> str:
             or path.startswith("//") or "\\" in path or "\r" in path or "\n" in path):
         raise BrowserBlocked("BROWSER_PATH_INVALID")
     return path
+
+
+CASE_KEYS = {"id", "path", "selector", "text", "title", "count", "css", "box",
+             "viewport"}
+BOX_KEYS = {"width", "height", "tolerance_px"}
+CSS_PROPERTY = re.compile(r"[a-z-]{1,48}\Z")
+CASE_ID = re.compile(r"[A-Za-z0-9_.-]{1,96}\Z")
+MAX_CASES = 200
+
+
+def _number(value, low, high):
+    return (type(value) in (int, float) and low <= value <= high)
+
+
+def check_case(case) -> dict:
+    """Declarative browser case: data only, never code. Unknown keys deny."""
+    if not isinstance(case, dict) or not set(case) <= CASE_KEYS:
+        raise BrowserBlocked("BROWSER_CASE_INVALID")
+    if not isinstance(case.get("id"), str) or not CASE_ID.fullmatch(case["id"]):
+        raise BrowserBlocked("BROWSER_CASE_INVALID")
+    check_path(case.get("path", "/"))
+    selector = case.get("selector")
+    if not isinstance(selector, str) or not selector or len(selector) > 512:
+        raise BrowserBlocked("BROWSER_CASE_INVALID")
+    for key in ("text", "title"):
+        if key in case and (not isinstance(case[key], str) or not case[key]
+                            or len(case[key]) > 512):
+            raise BrowserBlocked("BROWSER_CASE_INVALID")
+    if "count" in case and not (type(case["count"]) is int and 0 <= case["count"] <= 500):
+        raise BrowserBlocked("BROWSER_CASE_INVALID")
+    css = case.get("css", {})
+    if (not isinstance(css, dict) or len(css) > 24
+            or any(not isinstance(k, str) or not CSS_PROPERTY.fullmatch(k)
+                   or not isinstance(v, str) or not v or len(v) > 128
+                   for k, v in css.items())):
+        raise BrowserBlocked("BROWSER_CASE_INVALID")
+    box = case.get("box", {})
+    if (not isinstance(box, dict) or not set(box) <= BOX_KEYS
+            or any(k in box and not _number(box[k], 0, 10000) for k in ("width", "height"))
+            or ("tolerance_px" in box and not _number(box["tolerance_px"], 0, 50))):
+        raise BrowserBlocked("BROWSER_CASE_INVALID")
+    viewport = case.get("viewport")
+    if viewport is not None and (not isinstance(viewport, dict)
+                                 or set(viewport) != {"width", "height"}
+                                 or not all(type(viewport[k]) is int and 200 <= viewport[k] <= 4000
+                                            for k in viewport)):
+        raise BrowserBlocked("BROWSER_CASE_INVALID")
+    return case
+
+
+def load_suite(root: Path, suite: str) -> list[dict]:
+    """All *.json case files of a repository-relative suite directory."""
+    rel = Path(suite)
+    if rel.is_absolute() or ".." in rel.parts:
+        raise BrowserBlocked("BROWSER_SUITE_INVALID")
+    folder = root / rel
+    if folder.is_symlink() or (folder.exists() and not folder.is_dir()):
+        raise BrowserBlocked("BROWSER_SUITE_INVALID")
+    cases, seen = [], set()
+    for file in sorted(folder.glob("*.json")) if folder.is_dir() else []:
+        if file.is_symlink() or not file.is_file():
+            raise BrowserBlocked("BROWSER_SUITE_INVALID")
+        try:
+            data = json.loads(file.read_text("utf-8"))
+        except (OSError, ValueError) as exc:
+            raise BrowserBlocked("BROWSER_SUITE_INVALID") from exc
+        items = data.get("cases") if isinstance(data, dict) else None
+        if not isinstance(items, list) or not items or set(data) - {"cases", "covers"}:
+            raise BrowserBlocked("BROWSER_SUITE_INVALID")
+        for case in items:
+            check_case(case)
+            if case["id"] in seen:
+                raise BrowserBlocked("BROWSER_SUITE_INVALID")
+            seen.add(case["id"])
+            cases.append(case)
+    if len(cases) > MAX_CASES:
+        raise BrowserBlocked("BROWSER_SUITE_INVALID")
+    return cases
+
+
+def assert_case(page, case: dict, timeout_ms: int) -> None:
+    if case.get("viewport"):
+        page.set_viewport_size(case["viewport"])
+    page.goto(f"http://127.0.0.1:{FRONTEND_PORT}{case.get('path', '/')}",
+              wait_until="domcontentloaded", timeout=timeout_ms)
+    found = page.locator(case["selector"])
+    if "count" in case:
+        if case["count"] == 0:
+            if found.count() != 0:
+                raise BrowserBlocked("BROWSER_ASSERTION_FAILED:" + case["id"])
+            return
+        found.first.wait_for(state="attached", timeout=timeout_ms)
+        if found.count() != case["count"]:
+            raise BrowserBlocked("BROWSER_ASSERTION_FAILED:" + case["id"])
+    item = found.first
+    item.wait_for(state="visible", timeout=timeout_ms)
+    if "text" in case and case["text"] not in item.inner_text(timeout=timeout_ms):
+        raise BrowserBlocked("BROWSER_ASSERTION_FAILED:" + case["id"])
+    if "title" in case and case["title"] not in page.title():
+        raise BrowserBlocked("BROWSER_ASSERTION_FAILED:" + case["id"])
+    for prop, want in case.get("css", {}).items():
+        got = item.evaluate("(el, p) => getComputedStyle(el).getPropertyValue(p)", prop)
+        if str(got).strip() != want:
+            raise BrowserBlocked("BROWSER_ASSERTION_FAILED:" + case["id"])
+    box = case.get("box")
+    if box:
+        rect = item.bounding_box()
+        tol = box.get("tolerance_px", 1)
+        if rect is None or any(abs(rect[k] - box[k]) > tol for k in ("width", "height") if k in box):
+            raise BrowserBlocked("BROWSER_ASSERTION_FAILED:" + case["id"])
 
 
 def available() -> None:
@@ -104,7 +216,7 @@ def _stop(proc: subprocess.Popen) -> None:
 
 
 def verify(root: Path, *, path: str, selector: str, text: str | None,
-           title: str | None, timeout_ms: int = 15000) -> None:
+           title: str | None, timeout_ms: int = 15000, cases: list | None = None) -> None:
     path = check_path(path)
     from pilot.config import project_config as _project
     pom = _project.area_component("BACKEND", "maven")["build_file"]
@@ -142,6 +254,11 @@ def verify(root: Path, *, path: str, selector: str, text: str | None,
                                          ws.connect_to_server() if local_url(ws.url)
                                          else ws.close())
                 page = context.new_page()
+                if cases is not None:
+                    for case in cases:
+                        assert_case(page, case, timeout_ms)
+                    context.close()
+                    return
                 page.goto(f"http://127.0.0.1:{FRONTEND_PORT}{path}",
                           wait_until="domcontentloaded", timeout=timeout_ms)
                 item = page.locator(selector).first
@@ -166,16 +283,29 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path("."))
     parser.add_argument("--path", default="/")
-    parser.add_argument("--selector", required=True)
+    parser.add_argument("--selector")
+    parser.add_argument("--suite", help="repository-relative folder of *.json cases")
     parser.add_argument("--text")
     parser.add_argument("--title")
     parser.add_argument("--timeout-ms", type=int, default=15000)
     args = parser.parse_args()
     try:
+        if args.suite is not None:
+            cases = load_suite(args.root, args.suite)
+            if not cases:
+                print("BROWSER_SUITE_NO_CASES")
+                return 0
+            verify(args.root, path="/", selector="body", text=None, title=None,
+                   timeout_ms=args.timeout_ms, cases=cases)
+            print("BROWSER_SUITE_PASS:" + str(len(cases)))
+            return 0
+        if not args.selector:
+            raise BrowserBlocked("BROWSER_CASE_INVALID")
         verify(args.root, path=args.path, selector=args.selector,
                text=args.text, title=args.title, timeout_ms=args.timeout_ms)
     except BrowserBlocked as exc:
-        print(str(exc).split(":")[0], file=sys.stderr)
+        # The failing case id is safe to show: it is visible repository data.
+        print(str(exc), file=sys.stderr)
         return 1
     print("BROWSER_VISIBLE_CHECK_PASS")
     return 0

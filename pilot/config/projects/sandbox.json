@@ -42,7 +42,8 @@
       ],
       "resource_roots": [],
       "test_roots": [
-        "frontend/src"
+        "frontend/src",
+        "frontend/visible-tests"
       ],
       "affected_test_roots": [
         "frontend/src"
@@ -122,6 +123,7 @@
       "frontend/package.json",
       "frontend/package-lock.json",
       "frontend/src/**/__tests__/**",
+      "frontend/visible-tests/**",
       "db/**"
     ],
     "areas": {
@@ -181,7 +183,8 @@
   "protected_paths": [
     "apps/time-service/src/test/**",
     "apps/time-service/visible-tests/**",
-    "frontend/src/**/__tests__/**"
+    "frontend/src/**/__tests__/**",
+    "frontend/visible-tests/**"
   ],
   "write_roots": [
     "apps/time-service",

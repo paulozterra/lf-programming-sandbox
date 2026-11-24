@@ -81,3 +81,60 @@ def test_frontend_generic_acceptance_and_exam_command_format():
     assert len(examiner) == 1
 
 
+
+
+# --- Declarative visible suite (data-only cases) -------------------------
+import json as _json
+
+import pytest as _pytest
+
+from pilot.worker_v08 import playwright_gate as _gate
+
+
+def _write(tmp, name, data):
+    folder = tmp / "suite"
+    folder.mkdir(exist_ok=True)
+    (folder / name).write_text(_json.dumps(data))
+    return "suite"
+
+
+def test_suite_accepts_declarative_cases(tmp_path):
+    rel = _write(tmp_path, "a.json", {"covers": ["R1"], "cases": [
+        {"id": "c1", "path": "/x", "selector": "main", "text": "Hola",
+         "css": {"font-size": "16px"}, "box": {"width": 320, "tolerance_px": 2},
+         "viewport": {"width": 1440, "height": 900}},
+        {"id": "c2", "selector": ".err", "count": 0}]})
+    assert [c["id"] for c in _gate.load_suite(tmp_path, rel)] == ["c1", "c2"]
+
+
+def test_empty_or_missing_suite_has_no_cases(tmp_path):
+    assert _gate.load_suite(tmp_path, "absent") == []
+
+
+@_pytest.mark.parametrize("case", [
+    {"id": "x", "selector": "main", "script": "alert(1)"},
+    {"id": "x", "selector": "main", "path": "http://evil/"},
+    {"id": "x", "selector": "main", "css": {"Font Size": "1"}},
+    {"id": "x", "selector": "main", "box": {"width": -1}},
+    {"id": "x", "selector": ""},
+    {"id": "bad id!", "selector": "main"},
+])
+def test_case_with_code_or_unsafe_values_is_denied(tmp_path, case):
+    rel = _write(tmp_path, "a.json", {"cases": [case]})
+    with _pytest.raises(_gate.BrowserBlocked):
+        _gate.load_suite(tmp_path, rel)
+
+
+def test_duplicate_case_ids_and_parent_paths_are_denied(tmp_path):
+    rel = _write(tmp_path, "a.json", {"cases": [{"id": "c", "selector": "a"}]})
+    _write(tmp_path, "b.json", {"cases": [{"id": "c", "selector": "b"}]})
+    with _pytest.raises(_gate.BrowserBlocked):
+        _gate.load_suite(tmp_path, rel)
+    with _pytest.raises(_gate.BrowserBlocked):
+        _gate.load_suite(tmp_path, "../etc")
+
+
+def test_repository_suite_is_valid():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    assert _gate.load_suite(root, "frontend/visible-tests")
