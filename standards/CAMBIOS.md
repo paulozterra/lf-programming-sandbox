@@ -280,3 +280,4 @@
 | CHG-0397 | ADDITIVE | Suite visible declarativa de frontend (casos JSON en Playwright) protegida para lotes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/589 |
 | CHG-0404 | ADDITIVE | Examinador automático: cola de exam-request, brief del lote y trazas de reglas acotadas al lote |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/597 |
 | CHG-0405 | ADDITIVE | Suite visible: cada caso afirma algo y los casos de CSS/caja deben fallar bajo mutación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/598 |
+| CHG-0406 | ADDITIVE | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
