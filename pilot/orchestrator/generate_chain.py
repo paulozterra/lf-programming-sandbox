@@ -186,6 +186,30 @@ def _existing_behavior_tests(root, source_path, endpoints):
     return sorted(set(matched))
 
 
+def _visible_suite_root():
+    roots=[r.rstrip("/") for r in _project.area_component("FRONTEND","npm")["test_roots"]
+           if r.rstrip("/").endswith("visible-tests")]
+    return roots[0] if len(roots)==1 else None
+
+
+def _item(name, argv, timeout=600):
+    return {"name":name,"argv":argv,"timeout_seconds":timeout,"max_output_bytes":32000}
+
+
+def _characterization_objective(lot, requirement_by_id):
+    rules = "; ".join(
+        r + (": " + requirement_by_id[r]["outcome"]
+             if isinstance(requirement_by_id.get(r, {}).get("outcome"), str) else "")
+        for r in lot["characterized_requirement_ids"])
+    return ("Caracterizar el comportamiento EXISTENTE (no cambiar código) de "
+            + ", ".join(lot["characterized_files"])
+            + " creando solo " + lot["write_paths"][0]
+            + ": casos JSON declarativos para playwright_gate.py (claves id, path, selector, text, title,"
+            " count, css, box, viewport; cada caso con al menos una aserción concreta; los de css/box deben"
+            " fallar si ese valor cambia) que pasen contra la app actual; campo covers con exactamente: "
+            + ", ".join(lot["characterized_requirement_ids"]) + ". Reglas a conservar: " + rules)
+
+
 def _unprotect_affected(root, protected, affected):
     """Make exactly the lot's affected tests writable; keep every other test protected."""
     result = [p for p in protected if p not in affected]
@@ -345,7 +369,16 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
                         if obligation.get("decision") != "REUSE_AS_IS" or not (matching or in_scope):
                             raise ValueError("REUTILIZACION_INDETERMINADA")
                         endpoints = obligation.get("reused_endpoints", [])
-                        tests = _existing_behavior_tests(root, src, endpoints)
+                        char = next((x for x in lots["lots"]
+                                     if x["id"] == lot.get("characterized_by")
+                                     and x.get("lot_kind") == "CHARACTERIZATION"
+                                     and src in x.get("characterized_files", [])
+                                     and obligation["requirement_id"]
+                                         in x.get("characterized_requirement_ids", [])), None)
+                        # Non-Java retained behavior is protected by the
+                        # characterization suite this lot depends on.
+                        tests = (list(char["write_paths"]) if char is not None
+                                 else _existing_behavior_tests(root, src, endpoints))
                         protected.extend(tests)
                         retained_behavior.append({
                             "path":src,"endpoints":sorted(set(endpoints)),
@@ -372,6 +405,20 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
         affected_tests={p for p in paths if is_project_test(p)}
         if affected_tests:
             protected=_unprotect_affected(root, protected, affected_tests)
+        characterization = lot.get("lot_kind") == "CHARACTERIZATION"
+        if characterization:
+            suite_root = _visible_suite_root()
+            if (not suite_root or len(paths) != 1
+                    or not paths[0].startswith(suite_root + "/") or (Path(root)/paths[0]).exists()):
+                raise ValueError("CARACTERIZACION_ALCANCE_INVALIDO")
+            # Only its own new file is writable; every existing case stays protected.
+            protected = [p for p in protected if p != suite_root + "/**"]
+            protected += sorted(f.relative_to(root).as_posix()
+                                for f in (Path(root)/suite_root).glob("*.json"))
+            context_paths = sorted(set(lot["characterized_files"]
+                                       + ["pilot/worker_v08/playwright_gate.py"]
+                                       + [f.relative_to(root).as_posix()
+                                          for f in sorted((Path(root)/suite_root).glob("*.json"))][:3]))
         protected=sorted(set(protected))
         behavior_note = ("; conservar el comportamiento existente: "
                          + "; ".join(
@@ -396,18 +443,24 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
             "source_snapshot_sha256":"<FILL_AT_REGISTRATION>",
             "max_attempts":1,"allow_deletions":False,"max_changed_files":len(paths),
             "max_context_bytes":200000,"max_patch_bytes":60000,
-            "objective":("Aplicar exclusivamente dependencias y configuración de la allowlist T3"
+            "objective":(_characterization_objective(lot, requirement_by_id)
+                         if characterization else
+                         "Aplicar exclusivamente dependencias y configuración de la allowlist T3"
                          if lot["area"]=="INFRA" else
                          "Implementar "+lot["area"]+" en "+run+"; requisitos "+", ".join(
                             lot["requirement_ids"])+"; seguir package A9 sin inferencias"+behavior_note),
             "write_path_patterns":paths,
             "context_path_patterns":context_paths,
             "protected_path_patterns":protected,
-            "acceptance_commands":acceptance(lot["area"],paths,run=run,module=module,
+            "acceptance_commands":(acceptance(lot["area"],paths,run=run) + [
+                _item("characterization-covers",["lf-python","pilot/worker_v08/characterization_covers.py",
+                      "--suite-file",paths[0],"--requires",",".join(lot["characterized_requirement_ids"])],120)]
+                if characterization else
+                acceptance(lot["area"],paths,run=run,module=module,
                                              has_contract=bool(dependency_contract),
                                              skeleton_path=(skeleton_template.format(module=module)
                                                             if module and skeleton_template else None),
-                                             infra_dependencies=lot.get("infra_missing_dependencies")),
+                                             infra_dependencies=lot.get("infra_missing_dependencies"))),
         }}
         validate_template_worker(template, lot["area"], pending_shas=True)
         output[tpath]=template

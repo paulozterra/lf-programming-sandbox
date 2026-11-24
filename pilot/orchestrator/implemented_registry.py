@@ -189,7 +189,10 @@ def record_merge(root: Path, merge_sha: str, pr: dict, *,
             if raw is not None:
                 files.append({"path": path, "sha256": sha(raw)})
         reasons = []
-        if not ids or not isinstance(ids, list):
+        if lot.get("lot_kind") == "CHARACTERIZATION":
+            # Pins existing behavior as tests; implements nothing.
+            reasons.append("CHARACTERIZATION_NOT_IMPLEMENTATION")
+        elif not ids or not isinstance(ids, list):
             reasons.append("REQUIREMENT_IDS_MISSING")
         if rule_codes is None:
             reasons.append("RULE_BINDING_MISSING")
@@ -199,6 +202,7 @@ def record_merge(root: Path, merge_sha: str, pr: dict, *,
             reasons.append("INTEGRATED_FILES_MISSING")
         entry = {
             "request": slug, "lot": lot.get("id"), "area": lot.get("area"),
+            **({"lot_kind": lot["lot_kind"]} if lot.get("lot_kind") else {}),
             "requirement_ids": ids, "rule_codes": rule_codes or [],
             "endpoints": endpoints or [], "files": files,
             "merge_sha": merge_sha,
