@@ -50,7 +50,44 @@ def _new_id(scope, area):
     return "F3-" + hashlib.sha256((scope + "|T1-A|" + area).encode()).hexdigest()[:16]
 
 
-def partition(fronts, requirements, sections, effective_rules, *, scope, create_empty_inventory):
+# In a modification, A4 gaps that only say existing evidence is not attested
+# or not confirmed are the same non-blocking class as a new build's empty
+# inventory. Gaps saying evidence is missing keep blocking.
+MODIFY_NON_BLOCKING_A4_GAPS = frozenset({
+    "SOURCE_READBACK_CURRENTNESS_AND_AUTHORITY_NOT_ATTESTED",
+    "GITHUB_SOURCE_CURRENTNESS_NOT_ATTESTED",
+    "AUTHORITY_CURRENTNESS_NOT_ATTESTED",
+    "TARGET_IMPLEMENTATION_NOT_CONFIRMED",
+})
+
+
+def a4_gap_code(source):
+    """'A4:unresolved:<CODE>:<SOURCE>' -> CODE."""
+    parts = source.split(":")
+    return parts[2] if len(parts) >= 4 else None
+
+
+def modify_scope_from_a4(a4):
+    """A modification's scope: A4's projection of the target's own verified
+    implementation. Files shared with other targets are read-only impact.
+    Empty for anything that is not a projected MODIFY."""
+    scope = {}
+    if (not isinstance(a4, dict) or a4.get("target_change_action") != "MODIFY"
+            or not isinstance(a4.get("technical_root_ref"), str)):
+        return scope
+    for row in a4.get("direct_impacts", []):
+        relation = row.get("via_relation") if isinstance(row, dict) else None
+        if relation in ("IMPLEMENTED_BY", "SHARED_WITH_OTHER_TARGET"):
+            scope[row["affected_ref"]] = ("MODIFY_SCOPE" if relation == "IMPLEMENTED_BY"
+                                          else "CROSS_TARGET_READ_ONLY")
+    if "MODIFY_SCOPE" not in scope.values():
+        raise FrontBindingGap("A9_MODIFY_SCOPE_EMPTY")
+    return scope
+
+
+def partition(fronts, requirements, sections, effective_rules, *, scope,
+              create_empty_inventory, modify_scope=None):
+    modify_scope = modify_scope or {}
     policy = _policy()
     if not isinstance(scope, str) or not scope:
         raise FrontBindingGap("A9_SCOPE_INVALID")
@@ -161,7 +198,24 @@ def partition(fronts, requirements, sections, effective_rules, *, scope, create_
 
     for front in fronts:
         source = front["candidate_ref"]
-        if source.startswith("A4:unresolved:"):
+        if source in modify_scope:
+            # Existing code of the target is where the change happens, not a
+            # new obligation; shared files are read-only cross impact.
+            mode = modify_scope[source]
+            excluded.append({**front, "obligation_mode": mode,
+                "reason": ("EXISTING_IMPLEMENTATION_TO_MODIFY" if mode == "MODIFY_SCOPE"
+                           else "SHARED_WITH_OTHER_TARGET_READ_ONLY"),
+                "non_blocking_gap": False,
+                "evidence_refs": sorted(set(front["evidence_refs"] + [source])),
+                "execution_area": None, "execution_area_source_ref": None})
+        elif (source.startswith("A4:unresolved:") and modify_scope
+              and a4_gap_code(source) in MODIFY_NON_BLOCKING_A4_GAPS):
+            excluded.append({**front, "obligation_mode": "NOT_APPLICABLE",
+                "reason": "NON_BLOCKING_GAP_UNATTESTED_EXISTING_MODIFY",
+                "non_blocking_gap": True,
+                "evidence_refs": sorted(set(front["evidence_refs"] + [source])),
+                "execution_area": None, "execution_area_source_ref": None})
+        elif source.startswith("A4:unresolved:"):
             if not create_empty_inventory:
                 gaps.append("A9_A4_DEPENDENCY_UNRESOLVED:" + source)
                 continue

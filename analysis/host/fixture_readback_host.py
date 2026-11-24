@@ -11,6 +11,7 @@ from copy import deepcopy
 import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[2]
@@ -162,6 +163,43 @@ class FixtureHost:
             + hashlib.sha256(raw).hexdigest())
         return data
 
+    def as_is_readback(self, semantic, data):
+        """A3 AS-IS from the verified implementation evidence of the target.
+
+        Code: the checkout's commit and the git blob of each verified file.
+        Authority: the pinned screen contract at its numeric version.
+        Nothing is attested; A3 keeps its own unattested gaps.
+        """
+        files = semantic.get("implementation_evidence")
+        head = semantic.get("implementation_source")
+        screen = data["screen_contract.json"]
+        version = re.search(r"(\d+)$", str(screen.get("contract_version", "")))
+        if (not isinstance(files, list) or not files or not isinstance(head, dict)
+                or not version):
+            block("SBX_A3_AS_IS_EVIDENCE_MISSING")
+        components = []
+        for item in files:
+            if not isinstance(item, dict) or not isinstance(item.get("blob_sha1"), str):
+                block("SBX_A3_AS_IS_EVIDENCE_MISSING")
+            components.append({"path": item["path"], "blob_sha1": item["blob_sha1"],
+                               "scope": str(item.get("area") or "UNKNOWN")})
+        return {
+            "business": "LF", "target_ref": self.target,
+            "github": {"repository": head.get("repository"),
+                       "commit_sha": head.get("commit_sha"),
+                       "source_attested": False, "currentness_attested": False,
+                       "runtime_authorized": False,
+                       "observed_components": components},
+            "authority": {"source_ref": "contract://" + self.target + "@"
+                                        + str(screen.get("contract_version")),
+                          "status": screen.get("screen_status"),
+                          "version_id": int(version.group(1)),
+                          "logical_only": False, "runtime_activation": False,
+                          "currentness_attested": False,
+                          "physical_binding": {"implementation_root":
+                                               "impl://" + self.target}},
+        }
+
     def existing_readback(self, semantic, a3):
         """MODIFY readback from the request-derived registry evidence only.
 
@@ -182,7 +220,8 @@ class FixtureHost:
             rows.append({"depth": 1, "affected_ref": "repo://" + item["path"]
                          + "@" + item["sha256"],
                          "affected_type": "SOURCE_FILE:" + str(item.get("area")),
-                         "via_relation": "IMPLEMENTED_BY",
+                         "via_relation": ("SHARED_WITH_OTHER_TARGET"
+                                          if item.get("shared_with") else "IMPLEMENTED_BY"),
                          "min_confidence": 1.0})
         return {
             "inventory_object": {"object_ref": root, "active": True,
@@ -321,6 +360,8 @@ class FixtureHost:
         if not isinstance(a2.get("classification"), dict):
             block("SBX_A2_BLOCKED:" + ",".join(a2.get("blocking_codes", [])))
         a3_sources = self.source_arguments(data)
+        if a2["classification"].get("change_type") == "MODIFY":
+            a3_sources["as_is_readback"] = self.as_is_readback(semantic, data)
         a3 = load_stage("a3").run({
             "REQUEST_CONTEXT_V1": a1["payload"],
             "ANALYSIS_CHANGE_CLASSIFICATION_V1": a2["classification"],

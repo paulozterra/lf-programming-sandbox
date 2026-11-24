@@ -18,6 +18,18 @@ ALLOW = frozenset({
     "A2_TYPED_EVIDENCE_CURRENTNESS_OR_SPECIALIST_PENDING",
     "GITHUB_CURRENT_IMPLEMENTATION_AND_AS_IS_MISSING",
 })
+# A modification of an already implemented target lifts only gaps that say
+# existing evidence is not attested or not confirmed. A gap that says
+# evidence is missing is never in this set and keeps blocking.
+MODIFY_ALLOW = frozenset({
+    "SOURCE_READBACK_CURRENTNESS_AND_AUTHORITY_NOT_ATTESTED",
+    "GITHUB_SOURCE_CURRENTNESS_NOT_ATTESTED",
+    "AUTHORITY_CURRENTNESS_NOT_ATTESTED",
+    "TARGET_IMPLEMENTATION_NOT_CONFIRMED",
+    "A2_TYPED_EVIDENCE_CURRENTNESS_OR_SPECIALIST_PENDING",
+})
+MODIFY_A4_STATUS = ("IMPACT_UNKNOWN", "PROJECTED_UNATTESTED")
+MODIFY_RELATIONS = ("IMPLEMENTED_BY", "SHARED_WITH_OTHER_TARGET")
 STATUS = {
     "A1": "VALID_OUTPUT",
     "A2": "NEED_MORE_EVIDENCE",
@@ -93,13 +105,16 @@ def _target(stages):
 
 def _assess(stages, signals):
     output_digests(stages)
+    modify = (isinstance(stages.get("A4"), dict)
+              and stages["A4"].get("target_change_action") == "MODIFY")
     for stage in STAGES:
         row = stages[stage]
         if not isinstance(row, dict):
             _blocked("F2_STAGE_OUTPUT_INVALID:" + stage)
         if row.get("status") == "BLOCKED":
             _blocked("F2_UPSTREAM_BLOCKED:" + stage)
-        if row.get("status") != STATUS[stage]:
+        expected = MODIFY_A4_STATUS if modify and stage == "A4" else (STATUS[stage],)
+        if row.get("status") not in expected:
             _blocked("F2_UPSTREAM_STATUS_UNEXPECTED:" + stage)
     a1, a2, a3, a4, a5 = (stages[k] for k in STAGES)
     if (a1.get("payload", {}).get("target_hints") != [_target(stages)]
@@ -111,6 +126,9 @@ def _assess(stages, signals):
             or a5.get("a6_allowed") is not False):
         _blocked("F2_SOURCE_IDENTITY_OR_AUTHORITY_INVALID")
     _a2_narrow(signals, a2)
+    if modify:
+        _assess_modify(stages)
+        return _rule_scope(stages)
     if (a4.get("target_change_action") != "CREATE"
             or a4.get("analysis_mode") != "PLANNED_BUILD"
             or a4.get("no_impact_claimed") is not False
@@ -133,6 +151,42 @@ def _assess(stages, signals):
             or a5.get("material_adr_triggers_unknown") != []
             or a5.get("pending_owner_decisions") != []):
         _blocked("F2_A5_OTHER_UNRESOLVED")
+    return _rule_scope(stages)
+
+
+def _assess_modify(stages):
+    """Admit a modification only when its impact is the target's own verified
+    implementation and every open gap is an unattested-evidence gap."""
+    a1, a2, a3, a4, a5 = (stages[k] for k in STAGES)
+    target = _target(stages)
+    direct = a4.get("direct_impacts")
+    if (a4.get("technical_root_ref") != "impl://" + target
+            or not isinstance(direct, list) or not direct
+            or a4.get("indirect_impacts") != []
+            or any(not isinstance(x, dict) or x.get("depth") != 1
+                   or x.get("via_relation") not in MODIFY_RELATIONS for x in direct)
+            or not any(x.get("via_relation") == "IMPLEMENTED_BY" for x in direct)):
+        _blocked("F2_MODIFY_IMPACT_BEYOND_TARGET")
+    if not isinstance(a3.get("as_is_baseline_or_new_implementation_evidence"), dict):
+        _blocked("F2_MODIFY_AS_IS_MISSING")
+    a3_codes = a3.get("blocking_codes")
+    if (not isinstance(a3_codes, list) or not a3_codes
+            or not set(a3_codes) <= MODIFY_ALLOW):
+        _blocked("F2_A3_BLOCKING_SET_INVALID")
+    impacts = a4.get("unresolved_material_impacts")
+    codes = [x.get("code") for x in impacts if isinstance(x, dict)] if isinstance(impacts, list) else None
+    if codes is None or not set(codes) <= MODIFY_ALLOW:
+        _blocked("F2_A4_BLOCKING_SET_INVALID")
+    if (sorted(a5.get("blocking_codes") or []) != sorted("A4:" + c for c in codes)
+            or a5.get("material_adr_triggers_true") != []
+            or a5.get("material_adr_triggers_unknown") != []
+            or a5.get("pending_owner_decisions") != []):
+        _blocked("F2_A5_OTHER_UNRESOLVED")
+
+
+def _rule_scope(stages):
+    a1, a2, a3, a4, a5 = (stages[k] for k in STAGES)
+    modify = a4.get("target_change_action") == "MODIFY"
     approved = a3.get("policy_scope_clear_rule_candidates")
     excluded = a3.get("excluded_rule_items")
     profiles = a5.get("rule_profiles", {}).get("rules")
@@ -153,7 +207,7 @@ def _assess(stages, signals):
             or any(by_code[c].get("implementation_scope") != "EXCLUDED_PENDING"
                    for c in e_codes)):
         _blocked("F2_EXCLUDED_RULE_PROMOTION_OR_DRIFT")
-    return sorted(ALLOW)
+    return sorted(MODIFY_ALLOW if modify else ALLOW)
 
 
 def seal_envelope(stages, signals):

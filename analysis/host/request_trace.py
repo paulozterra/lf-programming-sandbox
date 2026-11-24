@@ -228,6 +228,7 @@ def implementation_evidence(root: Path, target: str) -> list[dict] | None:
     if value.get("schema_version")!="T7_IMPLEMENTED_REGISTRY_V1":
         raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
     matched=[]
+    owners={}
     for row in value.get("entries", []):
         slug=row.get("request")
         if not isinstance(slug,str) or not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}",slug):
@@ -247,6 +248,9 @@ def implementation_evidence(root: Path, target: str) -> list[dict] | None:
         shadow=(snapshot.get("target") if isinstance(snapshot,dict) else None)
         if canonical==target and (shadow is None or shadow==target):
             matched.append(row)
+        for file in row.get("files") or []:
+            if isinstance(file,dict) and isinstance(file.get("path"),str):
+                owners.setdefault(file["path"],set()).add(canonical)
     if not matched:
         return None
     # Positive code evidence: an ATTESTED lot of an implementing area whose
@@ -269,11 +273,17 @@ def implementation_evidence(root: Path, target: str) -> list[dict] | None:
             full=root/path
             if full.is_symlink() or not full.is_file():
                 raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
-            if hashlib.sha256(full.read_bytes()).hexdigest()==file["sha256"]:
-                intact.append({"path":path,"sha256":file["sha256"]})
+            body=full.read_bytes()
+            if hashlib.sha256(body).hexdigest()==file["sha256"]:
+                intact.append({"path":path,"sha256":file["sha256"],
+                               "blob_sha1":hashlib.sha1(b"blob %d\0"%len(body)+body).hexdigest()})
         if (len(intact)==len(entry["files"])
                 and entry.get("area") not in ("INFRA","CONTRATO")):
-            evidence+=[dict(f,request=entry["request"],area=entry.get("area"))
+            # A file other targets' lots also registered is shared: impact
+            # to observe, never part of this target's modification scope.
+            evidence+=[dict(f,request=entry["request"],area=entry.get("area"),
+                            shared_with=sorted(str(t) for t in owners.get(f["path"],set())
+                                               if t!=target))
                        for f in intact]
     if not evidence:
         raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
@@ -283,6 +293,22 @@ def implementation_evidence(root: Path, target: str) -> list[dict] | None:
 def implementation_state(root: Path, target: str) -> str:
     """ATTESTED plus matched A9 target is the only positive code evidence."""
     return "CREATE" if implementation_evidence(root,target) is None else "MODIFY"
+
+
+def _repository_head(root: Path) -> dict:
+    """Repository identity and commit of the checkout whose files were verified."""
+    import subprocess
+    try:
+        commit=subprocess.run(["git","-C",str(root),"rev-parse","HEAD"],check=True,
+                              capture_output=True,text=True,timeout=20).stdout.strip()
+        url=subprocess.run(["git","-C",str(root),"remote","get-url","origin"],check=True,
+                           capture_output=True,text=True,timeout=20).stdout.strip()
+    except (OSError,subprocess.SubprocessError) as exc:
+        raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES") from exc
+    found=re.search(r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?/?$",url)
+    if not re.fullmatch(r"[0-9a-f]{40}",commit) or not found:
+        raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
+    return {"repository":found.group(1),"commit_sha":commit}
 
 
 A1_INTENT={"CREATE":"CREATE","MODIFY":"EVOLVE"}
@@ -312,7 +338,10 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
     empty_inventory=not any(inventory.get(k) for k in
                             ("objects","impacts"))
     depth={"materiality_level":"HIGH" if high_risk else "UNKNOWN",
-           "scope_bounded":("TRUE" if empty_inventory and intent=="CREATE"
+           # A new build is bounded by an empty inventory; a modification by
+           # the target's own verified files with no declared cross impact.
+           "scope_bounded":("TRUE" if (intent=="CREATE" and empty_inventory)
+                            or (intent=="MODIFY" and existing and not known_impacts)
                             else "UNKNOWN"),
            "authority_state":"UNKNOWN", "reversibility_state":"NOT_DEMONSTRATED",
            "currentness_decision":"UNKNOWN_FAIL_CLOSED",
@@ -343,6 +372,7 @@ def signals(root: Path, target: str, request: str, data: dict) -> dict:
     result["reuse_traces"]=reuse_traces
     if existing is not None:
         result["implementation_evidence"]=existing
+        result["implementation_source"]=_repository_head(root)
     if "source_obligations" in legacy:
         obligations=legacy["source_obligations"]
         if not isinstance(obligations,list) or not obligations:

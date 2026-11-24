@@ -248,6 +248,17 @@ def _material_candidates(a3, a4, a6, admission, category_sources):
                 ref, _kind_for_rule(next(c for c, v in included.items() if v == ref), categories, a3), "REQUIRED", "CLOSED", [ref],
                 "A4 direct impact on A3 approved rule ref (source-only)",
                 a3["target_ref"])
+        elif (a4.get("target_change_action") == "MODIFY"
+              and impact.get("via_relation") in ("IMPLEMENTED_BY", "SHARED_WITH_OTHER_TARGET")
+              and impact.get("depth") == 1):
+            # A modification's existing code is where the change happens (or,
+            # if shared, read-only context): never a new obligation.
+            by_candidate[ref] = _front(
+                ref, "OTHER", "NOT_APPLICABLE", "CLOSED", [ref],
+                "A4 existing implementation of the target: modification scope"
+                if impact["via_relation"] == "IMPLEMENTED_BY"
+                else "A4 file shared with another target: read-only impact",
+                a3["target_ref"])
         elif ref in excluded_refs:
             by_candidate[ref] = _front(
                 ref, "OTHER", "NOT_APPLICABLE", "CLOSED", [ref],

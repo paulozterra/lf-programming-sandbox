@@ -156,7 +156,11 @@ def resolve(index_obj, registry, root, dep):
     for row in registry.get("entries", []):
         if not isinstance(row, dict):
             _fail()
-        if dep["kind"] == "endpoint" and dep["key"] in row.get("endpoints", []):
+        # An endpoint is implemented by its BACKEND lot: CONTRATO declares
+        # it and FRONTEND consumes it, so neither corroborates the provider.
+        # A non-attested provider lot is no evidence; the index still is.
+        if (dep["kind"] == "endpoint" and dep["key"] in row.get("endpoints", [])
+                and row.get("area") == "BACKEND" and row.get("status") == "ATTESTED"):
             registry_matches.append(row)
     if len(registry_matches) > 1:
         _fail()

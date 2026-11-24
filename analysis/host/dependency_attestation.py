@@ -35,7 +35,7 @@ def _project_requirements(stages, semantic, data, provenance):
     from analysis.host.simulated_admission_gate import seal_envelope, admit
     from analysis.a6.implementability import run as a6_run
     from analysis.a7.front_coverage import run as a7_run
-    from analysis.a9.front_bindings import partition
+    from analysis.a9.front_bindings import partition, modify_scope_from_a4
     from analysis.a9.area_projection import project
 
     signal = dict(semantic["a2_signals"])
@@ -62,7 +62,8 @@ def _project_requirements(stages, semantic, data, provenance):
     fronts, _ = partition(
         a7["material_fronts"], reqs, data["screen_contract.json"]["contract"],
         {r["code"]: r for r in effective}, scope=scope,
-        create_empty_inventory=True)
+        create_empty_inventory=True,
+        modify_scope=modify_scope_from_a4(stages.get("A4")))
     projected, _, _, _ = project(scope, reqs, fronts, readiness="READY_CANDIDATE")
     return projected
 

@@ -204,6 +204,7 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
     folder=storage_path("requests_root", root=Path(root))/run
     report_path=folder/"reuse_assessment.json"
     reuse_rows=[]
+    modify_scope={}
     package_for_reuse=None
     scope_by_requirement={}
     requirement_by_id={}
@@ -221,6 +222,17 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
                               for r in package_for_reuse["requirements"]}
         requirement_by_id={r["requirement_id"]:r
                            for r in package_for_reuse["requirements"]}
+        # A modification may write the target's own existing files (A9
+        # MODIFY_SCOPE, SHA-pinned); behavior reused there is retained and
+        # protected by its existing tests, as for an explicit EXTEND.
+        modify_scope={}
+        if package_for_reuse.get("classification",{}).get("implementation_state")=="EXISTING":
+            for front in package_for_reuse.get("non_atomized_fronts",[]):
+                ref=front.get("candidate_ref") if isinstance(front,dict) else None
+                if front.get("obligation_mode")=="MODIFY_SCOPE" and isinstance(ref,str) \
+                        and ref.startswith("repo://") and "@" in ref:
+                    path,_,digest=ref[len("repo://"):].rpartition("@")
+                    modify_scope[path]=digest
     contract_lots=[lot for lot in lots["lots"] if lot["area"]=="CONTRATO"]
     contract_by_path={lot["write_paths"][0]:lot["contract_module"]
                       for lot in contract_lots}
@@ -322,7 +334,9 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
                                     if row.get("path") == src
                                     and (row.get("sha256") == sha
                                          or src in allow_source_drift)]
-                        if obligation.get("decision") != "REUSE_AS_IS" or not matching:
+                        in_scope = (obligation.get("decision") == "REUSE_AS_IS"
+                                    and modify_scope.get(src) == sha)
+                        if obligation.get("decision") != "REUSE_AS_IS" or not (matching or in_scope):
                             raise ValueError("REUTILIZACION_INDETERMINADA")
                         endpoints = obligation.get("reused_endpoints", [])
                         tests = _existing_behavior_tests(root, src, endpoints)
