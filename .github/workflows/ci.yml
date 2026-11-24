@@ -537,6 +537,9 @@ jobs:
       - name: Run actual local Chromium against backend plus frontend
         run: |
           python3 -m pilot.workflow_entrypoint pilot/worker_v08/playwright_gate.py --path / --selector main
+      - name: Run declarative frontend visible suite against the real app
+        run: |
+          python3 -m pilot.workflow_entrypoint pilot/worker_v08/playwright_gate.py --suite frontend/visible-tests
 
   standards-shadow:
     # D11: modo sombra. Cada paso reporta violaciones pero no bloquea el PR.

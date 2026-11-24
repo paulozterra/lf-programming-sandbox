@@ -32,7 +32,7 @@ def legacy_protected(area, paths):
                "apps/time-service/src/test/**","apps/time-service/visible-tests/**",
                "apps/time-service/pom.xml","apps/time-service/src/main/resources/**",
                "frontend/package.json","frontend/package-lock.json",
-               "frontend/src/**/__tests__/**","db/**"]
+               "frontend/src/**/__tests__/**","frontend/visible-tests/**","db/**"]
     if area=="INFRA":
         for manifest in ("frontend/package.json", "frontend/package-lock.json"):
             if manifest in paths:

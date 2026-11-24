@@ -1,0 +1,43 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0397",
+  "title": "Suite visible declarativa de frontend (casos JSON en Playwright) protegida para lotes",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 24/11: opción 1 para proteger comportamiento existente de frontend al modificar (CHG-0396)"
+  },
+  "reason": "El frontend no tenía ninguna prueba en el repo, así que una modificación no podía proteger el comportamiento ya implementado. playwright_gate acepta --suite <carpeta>: casos declarativos en JSON (solo datos, nunca código; claves desconocidas niegan) con ruta, selector, texto, título, conteo, CSS calculado, dimensiones de caja y viewport, ejecutados con una sola app y el mismo aislamiento de red. La carpeta es la raíz de pruebas visibles del componente (frontend/visible-tests, mismo patrón que apps/time-service/visible-tests) y queda protegida para lotes. Los lotes FRONTEND y el CI corren la suite; vacía, pasa sin casos. Se agrega un primer caso equivalente a la verificación existente del CI.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "frontend/visible-tests/home.json",
+      "pilot/config/projects/sandbox.json",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/test_t54_phase3a.py",
+      "pilot/test_t54_phase3b.py",
+      "pilot/test_t54_phase3b_legacy_acceptance.json",
+      "pilot/worker_v08/playwright_gate.py",
+      "pilot/worker_v08/test_playwright_gate.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0397.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/589"
+  }
+}
