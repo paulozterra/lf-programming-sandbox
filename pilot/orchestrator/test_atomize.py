@@ -32,12 +32,18 @@ def missing_db_manifests(tmp_path, monkeypatch):
     props = root / policy["database"]["config_files"][1]
     props.parent.mkdir(parents=True, exist_ok=True)
     props.write_text("app.time.zone=UTC\n", encoding="utf-8")
-    original = infra_lot.infra_atom
+    original_atom = infra_lot.infra_atom
+    original_unresolved = infra_lot.unresolved
 
     def from_fixture(package, atoms, root=root):
-        return original(package, atoms, root=root)
+        return original_atom(package, atoms, root=root)
+
+    def unresolved_from_fixture(package, atoms, root=root):
+        return original_unresolved(package, atoms, root=root)
 
     monkeypatch.setattr(infra_lot, "infra_atom", from_fixture)
+    # Planning independently rechecks the atom's missing dependencies.
+    monkeypatch.setattr(infra_lot, "unresolved", unresolved_from_fixture)
     return root
 
 
