@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Owner: EKB sin filas LF_ROUTE; runs 45243395650 y 45445638050"
   },
-  "reason": "Conservar asociación acreditada de pedidos sin etiqueta activa, ampliar catálogo con aprendizajes de ruta, permitir registro manual catalogado y verificar lectura posterior mediante funciones existentes.",
+  "reason": "Conservar asociación acreditada de pedidos sin etiqueta activa, ampliar catálogo con aprendizajes de ruta, permitir registro manual catalogado y verificar lectura posterior mediante funciones existentes. Validar todos los workflows del inventario YAML sin cardinalidad fija, incluyendo el nuevo registro EKB.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -18,6 +18,7 @@
       "pilot/ekb/route_error_catalog.json",
       "pilot/ekb/test_t56_phase2.py",
       "pilot/request_failure_notify.py",
+      "pilot/test_t20_runner_pin.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0366.json"
     ]
