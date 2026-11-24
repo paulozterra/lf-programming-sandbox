@@ -269,4 +269,4 @@
 | CHG-0349 | EDITORIAL | A9/T7: obligaciones multiárea declaradas por regla |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/522 |
 | CHG-0352 | ADDITIVE | Worker DATA: conexión libpq derivada del entorno DB aprobado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/527 |
 | CHG-0359 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/535 |
-| CHG-0364 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
+| CHG-0364 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
