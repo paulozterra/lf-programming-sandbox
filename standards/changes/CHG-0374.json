@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0374",
+  "title": "EKB: trece aprendizajes catalogados de la ruta",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: trece aprendizajes de examen, ruta, CI y planificación"
+  },
+  "reason": "Añadir códigos versionados y pruebas de resolución exacta y saneo, sin escritura real ni cambios al writer.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/ekb/route_error_catalog.json",
+      "pilot/ekb/test_t56_phase2.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0374.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/555"
+  }
+}

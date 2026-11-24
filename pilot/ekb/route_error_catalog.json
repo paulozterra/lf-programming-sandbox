@@ -302,6 +302,227 @@
       "causa_raiz": "La mezcla con main puede dejar conflictos o whitespace inválido detectado por git diff --check",
       "prevencion": "Regenerar artefactos derivados con generador limpio y comprobar diff antes de Train; preservar registros existentes",
       "validacion": "Pruebas de regeneración y git diff --check"
+    },
+    "EXAM_REFERENCE_OUT_OF_SCOPE_001": {
+      "categoria": "EXAMINER",
+      "severidad": "High",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "Judge",
+        "Builder"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Referencia del examen fuera del alcance",
+      "descripcion": "Referencia del examen fuera del alcance en la ruta gobernada.",
+      "patron": "Referencia del examen fuera del alcance",
+      "causa_raiz": "La referencia incluía archivos de otros lotes y el ensayo dependía de sus escrituras.",
+      "prevencion": "Limitar la referencia a los write_paths de su lote y ensayarla sobre la base real del registro.",
+      "validacion": "publish_exam rechaza EXAM_REFERENCE_OUT_OF_SCOPE. Evidencia: CHG-0287; PR #473; PR #503."
+    },
+    "EXAM_FORMAT_LATE_001": {
+      "categoria": "EXAMINER",
+      "severidad": "High",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "Judge",
+        "Builder"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Errores de formato del examen detectados tarde",
+      "descripcion": "Errores de formato del examen detectados tarde en la ruta gobernada.",
+      "patron": "Errores de formato del examen detectados tarde",
+      "causa_raiz": "Aserciones sin código, credenciales literales y timeouts fuera de rango se detectaban después de compilar durante 10 a 25 minutos.",
+      "prevencion": "Ejecutar preflight barato antes de referencia y mutantes.",
+      "validacion": "Códigos EXAM_LINT_* en segundos. Evidencia: CHG-0287."
+    },
+    "EXAM_OBLIGATION_NOT_IN_RULE_001": {
+      "categoria": "EXAMINER",
+      "severidad": "High",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "Judge",
+        "Builder"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Examen exige obligación inalcanzable",
+      "descripcion": "Examen exige obligación inalcanzable en la ruta gobernada.",
+      "patron": "Examen exige obligación inalcanzable",
+      "causa_raiz": "El examen exigía semillas con hash de configuración de aplicación, inaccesible desde una migración SQL y fuera de las obligaciones realizables del lote.",
+      "prevencion": "Rastrear cada aserción a una regla asignada y alcanzable mediante los write_paths del lote.",
+      "validacion": "Traza aserción, regla y área antes de publicar. Evidencia: req-391; run 45445638050; PR #549."
+    },
+    "EXAM_CONTROL_SHARED_DB_001": {
+      "categoria": "ROUTE_TOOL",
+      "severidad": "High",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "Builder",
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Control del examen comparte estado de base",
+      "descripcion": "Control del examen comparte estado de base en la ruta gobernada.",
+      "patron": "Control del examen comparte estado de base",
+      "causa_raiz": "La referencia usaba la base del job donde el intento ya había aplicado su migración; fallaba el control y no se cobraba el intento ni se entregaba feedback.",
+      "prevencion": "Iniciar intento, control y ensayo T40 sobre bases efímeras vacías y equivalentes.",
+      "validacion": "Intento deja tablas; referencia ejecuta CREATE TABLE; control PASS conserva intento y feedback. Evidencia: run 45445638050; run 45468566200."
+    },
+    "DELEGATE_WITHOUT_SIMULATION_001": {
+      "categoria": "ROUTE_OPERATION",
+      "severidad": "High",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "Builder",
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Delegación sin simulación previa",
+      "descripcion": "Delegación sin simulación previa en la ruta gobernada.",
+      "patron": "Delegación sin simulación previa",
+      "causa_raiz": "Se pidió ejecutar lotes sin verificar registro ni validaciones visibles; las compuertas aparecieron una por barrido.",
+      "prevencion": "Simular registro y validaciones visibles de todos los lotes en un clon antes de delegar.",
+      "validacion": "Simulación local antes de cada prompt de ejecución. Evidencia: req-391."
+    },
+    "TEST_BOUND_TO_REPO_STATE_001": {
+      "categoria": "CI_GOVERNANCE",
+      "severidad": "High",
+      "lifecycle_phase": "CI_VALIDATION",
+      "consumer_role": [
+        "Builder",
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Pruebas acopladas al estado del repositorio",
+      "descripcion": "Pruebas acopladas al estado del repositorio en la ruta gobernada.",
+      "patron": "Pruebas acopladas al estado del repositorio",
+      "causa_raiz": "Pruebas de ruta leían el pom real o artefactos de pedidos concretos y fallaron al integrar un lote o replanificar.",
+      "prevencion": "Usar manifiestos y contextos sintéticos para las pruebas de ruta.",
+      "validacion": "Verificar que las pruebas sintéticas no lean pilot/runs de pedidos reales ni manifiestos reales. Evidencia: CHG-0330; CHG-0344; CHG-0345."
+    },
+    "DATA_VISIBLE_NO_DB_CONN_001": {
+      "categoria": "ROUTE_TOOL",
+      "severidad": "High",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "Builder",
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Comando DATA sin conexión PostgreSQL",
+      "descripcion": "Comando DATA sin conexión PostgreSQL en la ruta gobernada.",
+      "patron": "Comando DATA sin conexión PostgreSQL",
+      "causa_raiz": "El comando visible psql no recibía datos de conexión dentro del Worker, solo variables DB_*.",
+      "prevencion": "Derivar PG* desde las DB_* validadas en el puente confiable del Worker.",
+      "validacion": "Ensayo T40 de lote DATA. Evidencia: CHG-0352; PR #527."
+    },
+    "MULTIAREA_RULE_SINGLE_LOT_001": {
+      "categoria": "PLANNING",
+      "severidad": "High",
+      "lifecycle_phase": "construction",
+      "consumer_role": [
+        "Builder",
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Regla multiárea asignada a un solo lote",
+      "descripcion": "Regla multiárea asignada a un solo lote en la ruta gobernada.",
+      "patron": "Regla multiárea asignada a un solo lote",
+      "causa_raiz": "Las obligaciones de varias áreas se asignaban únicamente al área de la pista; BACKEND quedó sin reglas de datos.",
+      "prevencion": "Declarar obligation_areas y proyectar el requisito a todos los lotes de esas áreas.",
+      "validacion": "El template de cada lote contiene sus obligaciones. Evidencia: CHG-0349; PR #522."
+    },
+    "CONTRACT_BEFORE_BACKEND_001": {
+      "categoria": "CI_GOVERNANCE",
+      "severidad": "High",
+      "lifecycle_phase": "CI_VALIDATION",
+      "consumer_role": [
+        "Builder",
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Contrato verificado antes del backend responsable",
+      "descripcion": "Contrato verificado antes del backend responsable en la ruta gobernada.",
+      "patron": "Contrato verificado antes del backend responsable",
+      "causa_raiz": "compare-live exigía operaciones nuevas antes de integrar el BACKEND que las implementa.",
+      "prevencion": "Diferir solo operaciones nuevas con responsable BACKEND pendiente acreditado y verificar al integrar ese responsable.",
+      "validacion": "CONTRATO integra y BACKEND verifica. Evidencia: req-391; PR #514."
+    },
+    "REPLAN_BY_DELETION_001": {
+      "categoria": "ROUTE_OPERATION",
+      "severidad": "High",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "Builder",
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Replanificación por borrado manual",
+      "descripcion": "Replanificación por borrado manual en la ruta gobernada.",
+      "patron": "Replanificación por borrado manual",
+      "causa_raiz": "Borrar manualmente salidas T7 dejó dos altas del plan y bloqueó el registro.",
+      "prevencion": "Replanificar mediante retirada gobernada por Train con verify_no_execution.",
+      "validacion": "CP3.6 acepta solo retiros gobernados. Evidencia: PR #408; CHG-0291; CHG-0326."
+    },
+    "STALE_POLICY_ARTIFACT_001": {
+      "categoria": "PLANNING",
+      "severidad": "High",
+      "lifecycle_phase": "construction",
+      "consumer_role": [
+        "Builder",
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Artefacto generado con política obsoleta",
+      "descripcion": "Artefacto generado con política obsoleta en la ruta gobernada.",
+      "patron": "Artefacto generado con política obsoleta",
+      "causa_raiz": "Un plan generado con política anterior se consumió después de cambiarla y fue rechazado al registrar.",
+      "prevencion": "Guardar la versión de política de generación y regenerar por la vía gobernada ante cambios.",
+      "validacion": "CP34 tras un cambio de política. Evidencia: CHG-0287; PR #444."
+    },
+    "GENERATED_FILE_HYGIENE_001": {
+      "categoria": "ROUTE_TOOL",
+      "severidad": "High",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "Builder",
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Higiene de archivos generados bloquea Train",
+      "descripcion": "Higiene de archivos generados bloquea Train en la ruta gobernada.",
+      "patron": "Higiene de archivos generados bloquea Train",
+      "causa_raiz": "Una línea en blanco final de profile.md bloqueaba Train al actualizar otras ramas.",
+      "prevencion": "Generar archivos limpios y comprobar higiene del Train solo sobre cambios del PR.",
+      "validacion": "git diff --check en prueba del generador. Evidencia: CHG-0310."
+    },
+    "WATCHDOG_DROPS_REQUEST_FAILURE_001": {
+      "categoria": "EKB",
+      "severidad": "High",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "Builder",
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Vigilante descarta fallas de pedidos",
+      "descripcion": "Vigilante descarta fallas de pedidos en la ruta gobernada.",
+      "patron": "Vigilante descarta fallas de pedidos",
+      "causa_raiz": "El vigilante descartaba fallas cuando el issue perdía lf-request y la EKB quedaba sin filas de ruta.",
+      "prevencion": "Asociar corrida al pedido por slug o tarea con origen confiable acreditado.",
+      "validacion": "Fila escrita y leída de vuelta. Evidencia: run 45243395650; run 45445638050; CHG-0366."
     }
   }
 }
