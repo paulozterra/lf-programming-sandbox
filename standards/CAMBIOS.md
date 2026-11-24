@@ -281,4 +281,4 @@
 | CHG-0404 | ADDITIVE | Examinador automático: cola de exam-request, brief del lote y trazas de reglas acotadas al lote |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/597 |
 | CHG-0405 | ADDITIVE | Suite visible: cada caso afirma algo y los casos de CSS/caja deben fallar bajo mutación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/598 |
 | CHG-0406 | ADDITIVE | Lote de caracterización antes de reescribir frontend existente sin pruebas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/602 |
-| CHG-0409 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0409 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/607 |
