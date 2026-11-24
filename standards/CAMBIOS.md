@@ -257,4 +257,4 @@
 | CHG-0306 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/460 |
 | CHG-0310 | EDITORIAL | CP3.4/Train: contexto sin whitespace y diagnóstico íntegro de git diff --check |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/465 |
 | CHG-0316 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/472 |
-| CHG-0319 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0319 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/478 |
