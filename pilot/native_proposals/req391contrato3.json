@@ -1,0 +1,13 @@
+{
+  "task_pack_sha256": "594c5aa6b52b99aaabcbca685a2ce70203b41c90d33e0cce5393e36e18d6f1ba",
+  "proposal_sha256": "7d385c62d62c9ebf37adc693f68692f7bea387aeebf7d2a2f6579778e4b38f69",
+  "proposal": {
+    "schema_version": 1,
+    "summary": "Declarar GET /api/auth/session reutilizado y POST /api/auth/logout con bearer y trazabilidad INT-HOME, preservando el contrato de login.",
+    "patch": "diff --git a/contracts/sbx-b2b-login.openapi.yaml b/contracts/sbx-b2b-login.openapi.yaml\n--- a/contracts/sbx-b2b-login.openapi.yaml\n+++ b/contracts/sbx-b2b-login.openapi.yaml\n@@ -94,6 +94,54 @@\n             application/json:\n               schema:\n                 $ref: '#/components/schemas/LoginFailure'\n+  /api/auth/session:\n+    get:\n+      operationId: getAuthSession\n+      summary: Validar sesión existente en el servidor\n+      x-requirement-ids:\n+        - REQ-SBX-B2B-R-INT-HOME\n+      security:\n+        - bearerAuth: []\n+      responses:\n+        '200':\n+          description: Sesión válida\n+          content:\n+            application/json:\n+              schema:\n+                type: object\n+                required:\n+                  - username\n+                properties:\n+                  username:\n+                    type: string\n+        '401':\n+          description: Sesión inválida o ausente\n+          content:\n+            application/json:\n+              schema:\n+                type: object\n+                required:\n+                  - error\n+                properties:\n+                  error:\n+                    type: string\n+  /api/auth/logout:\n+    post:\n+      operationId: logoutAuthSession\n+      summary: Cerrar y revocar la sesión en el servidor\n+      x-requirement-ids:\n+        - REQ-SBX-B2B-R-INT-HOME\n+      security:\n+        - bearerAuth: []\n+      responses:\n+        '204':\n+          description: Sesión cerrada\n+        '401':\n+          description: Sesión inválida o ausente\n components:\n+  securitySchemes:\n+    bearerAuth:\n+      type: http\n+      scheme: bearer\n   schemas:\n     LoginRequest:\n",
+    "changed_paths": [
+      "contracts/sbx-b2b-login.openapi.yaml"
+    ]
+  },
+  "author": "GPT_NATIVE"
+}
