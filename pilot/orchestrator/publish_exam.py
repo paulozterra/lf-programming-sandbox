@@ -194,6 +194,29 @@ def check_trace(script: str, trace: dict, worktree: Path, reference: Path,
             raise ExamBlocked("EXAM_TRACE_REQUEST_MISMATCH:" + code)
 
 
+def check_trace_lot(root: Path, request: str, task: str, trace: dict) -> None:
+    """T58: a ``rule:`` trace must name a rule the lot itself carries (one of its
+    REQ-<code>) or a catalogue standard (STD-*). Citing a fiche rule of another
+    lot or screen means the exam demands something this constructor was not
+    asked for (req-391: DATA v1 demanded seeds no DATA rule allows)."""
+    folder = storage_path("requests_root", root=root) / request
+    try:
+        spec = json.loads((folder / "templates" / f"{task}.task.json").read_text("utf-8"))["task_spec"]
+        lots = json.loads((folder / "lots.json").read_text("utf-8"))["lots"]
+    except (OSError, ValueError, KeyError, TypeError):
+        raise ExamBlocked("EXAM_TRACE_LOT_UNRESOLVED") from None
+    scope = sorted(spec.get("write_path_patterns") or [])
+    rows = [lot for lot in lots if isinstance(lot, dict) and sorted(lot.get("write_paths") or []) == scope]
+    if len(rows) != 1:
+        raise ExamBlocked("EXAM_TRACE_LOT_UNRESOLVED")
+    allowed = {r[len("REQ-"):] for r in rows[0].get("requirement_ids") or []
+               if isinstance(r, str) and r.startswith("REQ-")}
+    for code, target in sorted(trace.items()):
+        kind, _, value = str(target).partition(":")
+        value = value.strip()
+        if kind == "rule" and not value.startswith("STD-") and value not in allowed:
+            raise ExamBlocked("EXAM_TRACE_RULE_NOT_IN_LOT:" + code + "=" + value)
+
 
 def lint_script(script: str) -> None:
     """Reject untraceable exam failures without running any build."""
@@ -341,6 +364,7 @@ def main() -> int:
         except (OSError, ValueError):
             raise ExamBlocked("EXAM_TRACE_UNREADABLE") from None
         check_trace(script, trace, a.worktree, a.reference, a.request)
+        check_trace_lot(ROOT, a.request, a.task, trace)
         mutants = sorted(d for d in a.mutants.iterdir() if d.is_dir())
         lint_overlay_scope(ROOT, a.request, a.task, a.reference, mutants)
         results = exercise(raw, a.worktree, a.reference, mutants, a.python)
