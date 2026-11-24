@@ -130,6 +130,13 @@ jobs:
       - name: Compile and run staged reminders visible tests (no model)
         working-directory: .
         run: mvn -U -B -q -f apps/time-service/pom.xml test
+      - name: DATA template psql in isolated Worker (disposable PostgreSQL)
+        working-directory: .
+        env:
+          LF_TEST_REAL_WORKER_DB: "YES"
+        run: |
+          python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt pytest==8.4.2
+          python3 -m pytest -q pilot/worker_v08/test_worker_db_env.py -p no:cacheprovider
       - name: "T2: verify live springdoc operations against every contract"
         working-directory: .
         run: |
