@@ -103,4 +103,5 @@ def test_registration_wires_business_material():
     assert "business_material" in src and "requirement_ids" in src
     reg = Path(bc.__file__).parents[1].joinpath(
         "orchestrator/native_lot_registration.py").read_text("utf-8")
-    assert 'requirement_ids=lot.get("requirement_ids")' in reg
+    # CHG-0412: own requirements, or the pinned ones of a characterization lot.
+    assert reg.count("requirement_ids=examinable_requirements(lot)") == 2

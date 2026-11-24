@@ -19,6 +19,7 @@
       "pilot/orchestrator/publish_exam.py",
       "pilot/orchestrator/t4_admission.py",
       "pilot/orchestrator/test_characterization_lot.py",
+      "pilot/worker_v08/test_t33_business_context.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0412.json"
     ]
