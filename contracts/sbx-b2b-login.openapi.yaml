@@ -40,6 +40,7 @@ paths:
         - REQ-SBX-B2B-R-INT-RETURN
         - REQ-SBX-B2B-R-INT-ROUTE
         - REQ-SBX-B2B-R-INT-SESSION-STORE
+        - REQ-SBX-B2B-R-LAYOUT-COMPOSITION
         - REQ-SBX-B2B-R-PRIVACY-TELEMETRY
         - REQ-SBX-B2B-R-RESP-BREAKPOINTS
         - REQ-SBX-B2B-R-THEME-LIGHT
@@ -94,7 +95,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginFailure'
+  /api/auth/session:
+    get:
+      operationId: getAuthSession
+      summary: Validar sesión existente en el servidor
+      x-requirement-ids:
+        - REQ-SBX-B2B-R-INT-HOME
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Sesión válida
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - username
+                properties:
+                  username:
+                    type: string
+        '401':
+          description: Sesión inválida o ausente
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - error
+                properties:
+                  error:
+                    type: string
+  /api/auth/logout:
+    post:
+      operationId: logoutAuthSession
+      summary: Cerrar y revocar la sesión en el servidor
+      x-requirement-ids:
+        - REQ-SBX-B2B-R-INT-HOME
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Sesión cerrada
+        '401':
+          description: Sesión inválida o ausente
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   schemas:
     LoginRequest:
       type: object
