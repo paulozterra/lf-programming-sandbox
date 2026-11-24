@@ -248,18 +248,34 @@ def implementation_state(root: Path, target: str) -> str:
             matched.append(row)
     if not matched:
         return "CREATE"
-    if any(x.get("status")!="ATTESTED" or not x.get("files") for x in matched):
-        raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
+    # Positive code evidence: an ATTESTED lot of an implementing area whose
+    # files all still exist with their registered SHA. INFRA and CONTRATO
+    # enable or declare other lots and never prove the screen is implemented.
+    # Non-attested lots and files changed by later integrations are partial
+    # evidence: they neither prove nor deny the target, so they do not block
+    # when positive evidence exists. No positive evidence stays blocked, and
+    # a file an ATTESTED lot registered that no longer exists is a contradiction.
+    positive=False
     for entry in matched:
+        if entry.get("status")!="ATTESTED" or not entry.get("files"):
+            continue
+        intact=True
         for file in entry["files"]:
-            path=file.get("path")
+            path=file.get("path") if isinstance(file,dict) else None
             if (not isinstance(path,str) or ".." in Path(path).parts
                     or not isinstance(file.get("sha256"),str)):
                 raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
             full=root/path
-            if (full.is_symlink() or not full.is_file()
-                    or hashlib.sha256(full.read_bytes()).hexdigest()!=file["sha256"]):
+            if full.is_symlink():
                 raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
+            if not full.is_file():
+                raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
+            if hashlib.sha256(full.read_bytes()).hexdigest()!=file["sha256"]:
+                intact=False
+        if intact and entry.get("area") not in ("INFRA","CONTRATO"):
+            positive=True
+    if not positive:
+        raise RequestTraceBlocked("ANALISIS_SENALES_NO_DERIVABLES")
     return "MODIFY"
 
 
