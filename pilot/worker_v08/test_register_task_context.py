@@ -373,18 +373,31 @@ class PinnedSource(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_req391contrato3_registered_profile_receipt_consistent(self):
+        # Historical registered context is immutable, not subject to new hygiene.
         folder = ROOT / ".lf/worker-context/req391contrato3"
-        profile = (folder / "profile.md").read_bytes()
-        receipt = json.loads((folder / "receipt.json").read_text("utf-8"))
-        observed = hashlib.sha256(profile).hexdigest()
-        self.assertEqual(receipt["profile"]["sha256"], observed)
-        self.assertEqual(receipt["context_sha256"]["profile.md"], observed)
-        self.assertTrue(profile.endswith(b"\n"))
-        self.assertFalse(profile.endswith(b"\n\n"))
-        mod.assert_generated_context_clean({
-            p.name: p.read_bytes()
-            for p in folder.iterdir() if p.is_file()
-        })
+        receipt = json.loads((folder / "receipt.json").read_bytes())
+        pack = json.loads((ROOT / "pilot/runs/req-391/proposal_requests/"
+                           "req391contrato3.task-pack.json").read_bytes())
+        entries = pack["user_payload"]["workspace"]["files"]
+        prefix = folder.relative_to(ROOT).as_posix() + "/"
+        context = [entry for entry in entries if entry["path"].startswith(prefix)]
+        by_path = {entry["path"]: entry for entry in context}
+        self.assertEqual(len(context), len(by_path))
+        self.assertEqual(set(by_path), set(receipt["context_paths"]))
+        self.assertEqual(set(receipt["context_sha256"]) | {"receipt.json"},
+                         {Path(path).name for path in by_path})
+        for path, entry in by_path.items():
+            with self.subTest(path=path):
+                raw = (ROOT / path).read_bytes()
+                observed = hashlib.sha256(raw).hexdigest()
+                self.assertFalse(entry["binary"])
+                self.assertEqual(entry["sha256"], observed)
+                self.assertEqual(entry["content"].encode("utf-8"), raw)
+                if Path(path).name != "receipt.json":
+                    self.assertEqual(receipt["context_sha256"][Path(path).name],
+                                     observed)
+        self.assertEqual(receipt["profile"]["sha256"],
+                         receipt["context_sha256"]["profile.md"])
 
     def test_assembled_markdown_normalization_and_all_artifact_fail_closed(self):
         pin, sources = mod.read_pins()

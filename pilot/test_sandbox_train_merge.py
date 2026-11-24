@@ -93,6 +93,29 @@ else:
                 r"BRANCH_CONFLICT git diff: .*problem[.]md:2: new blank line at EOF"):
             merge.git(self.root, "diff", "--cached", "--check")
 
+    def test_prepare_merge_inherits_main_whitespace_without_blocking(self):
+        head, _ = self.diverge()
+        run(self.root, "checkout", "main")
+        legacy = b"legacy  \n\n"
+        (self.root / "legacy.md").write_bytes(legacy)
+        main = self.commit("main adds historical whitespace")
+        run(self.root, "checkout", "smoke")
+        merged = merge.prepare_merge(self.root, main, head)
+        self.assertNotEqual(merged, head)
+        self.assertEqual((self.root / "legacy.md").read_bytes(), legacy)
+        self.assertEqual(run(self.root, "diff", "--name-only", main, merged),
+                         "smoke.md")
+
+    def test_prepare_merge_rejects_pr_authored_whitespace(self):
+        head, main = self.diverge()
+        (self.root / "unrelated.txt").write_bytes(b"base\nPR change  \n")
+        head = self.commit("PR introduces trailing whitespace")
+        with self.assertRaisesRegex(
+                merge.BranchConflict,
+                r"BRANCH_CONFLICT git diff: .*unrelated[.]txt:2: trailing whitespace"):
+            merge.prepare_merge(self.root, main, head)
+        self.assertEqual(run(self.root, "rev-parse", "HEAD"), head)
+
     def test_only_cambios_conflict_regenerated_and_checked(self):
         head, main = self.diverge(conflict_cambios=True)
         merged = merge.prepare_merge(self.root, main, head)

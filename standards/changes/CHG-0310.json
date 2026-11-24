@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Paulo 2026-11-23: Train run 45286925753 bloqueó #459 tras merge de #460 por .lf/worker-context/req391contrato3/profile.md:82 (blank line at EOF)"
   },
-  "reason": "El ensamblador de perfil CP3.4 unía fuentes que ya terminaban con LF y añadía un LF extra; Git diff --check bloqueó Train al combinar la rama de req391infra1 con main. Se normaliza solo el Markdown ensamblado de profile.md y skills.md antes de calcular sus recibos, y se bloquea la persistencia de cualquier artifact con trailing whitespace, CR o línea vacía en EOF. Se corrige el único profile.md ya presente en main, req391contrato3, y se actualizan profile.sha256 y context_sha256['profile.md'] de su receipt.json al nuevo contenido para no romper trazabilidad. Los demás archivos de ese contexto ya estaban limpios y sus hashes no cambian; el source pin y hashes de los archivos fuente originales siguen intactos. Train une stdout y stderr al notificar fallos de git diff --check, que reporta los detalles por stdout. La rama antigua del PR #459 también contiene perfil con EOF defectuoso: no se altera directamente ese registro del bot; tras incorporar este CHG se debe regenerar por el barrido gobernado (o sustituir el PR), y verificar nueva integración. No se ejecutan lotes ni se tocan holdouts.",
+  "reason": "El ensamblador CP3.4 añadía un LF extra a Markdown de fuentes que ya terminaban con LF. Opción A: normalizar solo profile.md y skills.md ensamblados para nuevos registros antes de calcular sus recibos y validar higiene de todos los artefactos generados antes de persistir. Se conserva íntegro el contexto ya registrado de req391contrato3, incluido profile.md con su EOF histórico, receipt.json, task-pack y hashes; la prueba histórica verifica únicamente integridad de archivo, recibo y paquete, sin exigir limpieza retroactiva. Train comprueba el índice contra main confiable (base_ref), no contra HEAD del PR, para no atribuir al PR whitespace heredado sin cambios; rechaza whitespace nuevo introducido por el PR y conserva stdout y stderr del diagnóstico. Tras integrar CHG-0310 por autoridad del owner, regenerar req391infra1 (#459) mediante T17.4/CP3.6 con el generador corregido y verificar integración. No se editan registros del bot, fuentes fijadas ni holdouts, ni se ejecutan lotes.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -15,8 +15,6 @@
     "paths": [
       "pilot/worker_v08/register_task_context.py",
       "pilot/worker_v08/test_register_task_context.py",
-      ".lf/worker-context/req391contrato3/profile.md",
-      ".lf/worker-context/req391contrato3/receipt.json",
       "pilot/sandbox_train_merge.py",
       "pilot/test_sandbox_train_merge.py",
       "standards/changes/CHG-0310.json",
