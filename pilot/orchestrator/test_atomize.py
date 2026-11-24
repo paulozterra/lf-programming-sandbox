@@ -15,6 +15,32 @@ ROOT = Path(__file__).resolve().parents[2]
 BASE = "d78d7085a3869fa5630a188f2e6dce6f3138dfd2"
 
 
+@pytest.fixture
+def missing_db_manifests(tmp_path, monkeypatch):
+    """Use real T3 detection against synthetic manifests, never the live POM."""
+    from pilot.orchestrator import infra_lot
+
+    root = tmp_path / "t3-manifests"
+    policy = infra_lot.policy()
+    pom = root / policy["targets"]["maven"]["manifest"]
+    pom.parent.mkdir(parents=True)
+    pom.write_text('<project xmlns="http://maven.apache.org/POM/4.0.0">'
+                   '<dependencies/></project>', encoding="utf-8")
+    npm = root / policy["targets"]["npm"]["manifest"]
+    npm.parent.mkdir(parents=True)
+    npm.write_text('{"dependencies":{},"devDependencies":{}}', encoding="utf-8")
+    props = root / policy["database"]["config_files"][1]
+    props.parent.mkdir(parents=True, exist_ok=True)
+    props.write_text("app.time.zone=UTC\n", encoding="utf-8")
+    original = infra_lot.infra_atom
+
+    def from_fixture(package, atoms, root=root):
+        return original(package, atoms, root=root)
+
+    monkeypatch.setattr(infra_lot, "infra_atom", from_fixture)
+    return root
+
+
 def payload(name):
     return json.loads((ROOT / "pilot/runs" / name / "analysis.json").read_text())
 
@@ -50,7 +76,7 @@ def test_real_login_unresolved_even_when_owner_decision_present(tmp_path):
     assert report["interventions"] == ["owner_area_decision.json"]
 
 
-def test_three_areas_without_fixture_uses_pg02_pg05(tmp_path):
+def test_three_areas_without_fixture_uses_pg02_pg05(tmp_path, missing_db_manifests):
     folder = make_run(tmp_path, "sample-three-area-notes")
     assert not (folder/"planning_fixture.json").exists()
     lots = package_to_lots.prepare(tmp_path, "sample-three-area-notes", base_head_sha=BASE)
@@ -88,7 +114,7 @@ def test_three_areas_without_fixture_uses_pg02_pg05(tmp_path):
         shutil.copyfile(plan, dest/"sample-three-area-notes.json")
 
 
-def test_same_a9_same_atom_bytes(tmp_path):
+def test_same_a9_same_atom_bytes(tmp_path, missing_db_manifests):
     source = payload("sample-three-area-notes")
     a = atomize.atomize(source, tmp_path, BASE, run="sample-three-area-notes")
     b = atomize.atomize(copy.deepcopy(source), tmp_path, BASE, run="sample-three-area-notes")
