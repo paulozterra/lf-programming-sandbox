@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 import json
 
-from contract_validate import ContractBlocked, deny
+from contract_validate import ContractBlocked, deny, required_contract_operations
 
 
 def _contract_sections(package):
@@ -92,7 +92,10 @@ def generate(module, package, atoms):
     ]
     if len(requirements) != len(requirement_ids):
         deny("T2_REQUIREMENT_COVERAGE_MISMATCH")
+    required_operations = required_contract_operations(rules)
     return {
+        **({"required_contract_operations": required_operations}
+           if required_operations else {}),
         "schema_version": "T2_CONTRACT_SKELETON_V1",
         "functional_module": module,
         "source": "A9.programming_context_snapshot.decision_context.material_ledger.source_detail.a3_material_contract.contract_sections",

@@ -136,6 +136,26 @@ def _field_names(operation, spec=None):
     return names
 
 
+def required_contract_operations(rules):
+    """Typed, source-backed contract exposure, independent of code ownership."""
+    result = {}
+    for rule in rules:
+        config = rule.get("valor_config")
+        if not isinstance(config, dict) or "required_contract_operations" not in config:
+            continue
+        ops = config["required_contract_operations"]
+        rid = rule.get("requirement_id")
+        if (not isinstance(rid, str) or not isinstance(ops, list) or not ops
+                or any(not isinstance(op, str) or not re.fullmatch(
+                    r"(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) /[A-Za-z0-9_/{}/.-]*",
+                    op) for op in ops)
+                or len(set(ops)) != len(ops)):
+            deny("CONTRACT_REQUIRED_OPERATIONS_INVALID")
+        for op in ops:
+            result.setdefault(op, set()).add(rid)
+    return {op: sorted(ids) for op, ids in sorted(result.items())}
+
+
 def _check_skeleton(skeleton, module):
     if (not isinstance(skeleton, dict)
             or skeleton.get("schema_version") != "T2_CONTRACT_SKELETON_V1"
@@ -179,6 +199,10 @@ def _check_skeleton(skeleton, module):
     if (not isinstance(extended, list) or len(set(extended)) != len(extended)
             or not set(extended).issubset(set(reused))):
         deny("REUTILIZACION_INDETERMINADA")
+    declared = required_contract_operations(skeleton["rules"])
+    if (skeleton.get("required_contract_operations", {}) != declared
+            or any(not set(ids) <= set(requirements) for ids in declared.values())):
+        deny("CONTRACT_REQUIRED_OPERATIONS_INVALID")
     return api_names, error_codes, set(requirements)
 
 
@@ -190,11 +214,17 @@ def validate(path, skeleton, module):
     # the OpenAPI contract only governs HTTP endpoints.
     reused = {op for op in skeleton.get("reused_endpoints", []) if not op.startswith("PAGE ")}
     extended = {op for op in skeleton.get("extended_endpoints", []) if not op.startswith("PAGE ")}
+    declared = skeleton.get("required_contract_operations", {})
     seen_extensions = set()
+    seen_declared = set()
     for route, method, operation in operations(spec):
         identity = method.upper() + " " + route
-        if identity in reused and identity not in extended:
+        if identity in reused and identity not in extended and identity not in declared:
             deny("DUPLICA_COMPONENTE_EXISTENTE")
+        if identity in declared:
+            if not set(declared[identity]) <= set(operation["x-requirement-ids"]):
+                deny("CONTRACT_DECLARED_ENDPOINT_REQUIREMENT_MISSING:" + identity)
+            seen_declared.add(identity)
         if identity in extended:
             seen_extensions.add(identity)
         seen_requirements.update(operation["x-requirement-ids"])
@@ -206,6 +236,8 @@ def validate(path, skeleton, module):
             if not isinstance(codes, list) or any(not isinstance(code, str) for code in codes):
                 deny("CONTRACT_RESPONSE_ERROR_CODES_INVALID")
             seen_errors.update(codes)
+    if set(declared) - seen_declared:
+        deny("CONTRACT_DECLARED_ENDPOINT_MISSING:" + ",".join(sorted(set(declared) - seen_declared)))
     if extended - seen_extensions:
         deny("CONTRACT_DECLARED_ENDPOINT_MISSING:" + ",".join(sorted(extended - seen_extensions)))
     if required - seen_requirements:
