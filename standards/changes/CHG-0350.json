@@ -1,0 +1,36 @@
+{
+  "affected": {
+    "paths": [
+      "pilot/runs/req-391/H_REPORT.md",
+      "pilot/runs/req-391/evidence/SOL-Icb7267b7c8c3-5d3bffc9b69d.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0350.json"
+    ],
+    "rule_ids": [],
+    "term_ids": []
+  },
+  "approved_by": "paulozterra",
+  "artifacts": [],
+  "change_class": "ADDITIVE",
+  "change_id": "CHG-0350",
+  "evidence": {
+    "pr_url": ""
+  },
+  "existing_code_impact": {
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING",
+    "mode": "NEW_OR_MODIFIED_ONLY"
+  },
+  "reason": "CP3.7 pinned source-only evidence for verified integration merges at 5d3bffc9b69d90255eb928884c57180b272a1240; no production authority",
+  "requested_by": "agent:gpt",
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "security_pin_invalidation": {
+    "affected_artifacts": [],
+    "invalidates": false
+  },
+  "title": "CP3.6: encadenamiento gobernado req-391",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 CP3.6 encadenamiento automático"
+  }
+}
