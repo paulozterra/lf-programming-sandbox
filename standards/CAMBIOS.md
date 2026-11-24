@@ -264,4 +264,4 @@
 | CHG-0334 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/498 |
 | CHG-0335 | EDITORIAL | CP3.6: encadenamiento gobernado req-391 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/499 |
 | CHG-0344 | EDITORIAL | T1/T3: pruebas de INFRA independientes del manifiesto real |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/515 |
-| CHG-0346 | ADDITIVE | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0346 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
