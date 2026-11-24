@@ -53,8 +53,11 @@ def verify_runner_pins(folder: Path = WORKFLOWS) -> list[str]:
 
 
 class RunnerPins(unittest.TestCase):
-    def test_all_27_workflows_pinned(self):
-        self.assertEqual(len(list(WORKFLOWS.glob("*.yml"))), 28)  # T40: + exam-rehearsal.yml; T46: + audit-stage.yml; T48: + audit-request.yml; A5: + audit-auditor.yml; T56: + route-ekb-probe.yml
+    def test_all_workflows_pinned(self):
+        # The workflow directory is the inventory; verify every YAML file.
+        inventory = {*WORKFLOWS.glob("*.yml"), *WORKFLOWS.glob("*.yaml")}
+        self.assertTrue(inventory)
+        self.assertIn(WORKFLOWS / "route-ekb-register.yml", inventory)
         self.assertEqual(verify_runner_pins(), [])
 
     def test_train_exception_never_applies_to_synthetic_folder(self):

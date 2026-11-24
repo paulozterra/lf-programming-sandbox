@@ -1,0 +1,36 @@
+name: LF route EKB governed manual registration
+on:
+  workflow_dispatch:
+    inputs:
+      code:
+        description: "Catalogued route error code"
+        required: true
+        type: string
+      reference:
+        description: "PR #123; run 123456789; CHG-0123"
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: lf-route-ekb-manual-registration
+  cancel-in-progress: false
+jobs:
+  register:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - name: Register catalogued error and verify readback
+        env:
+          LF_EKB_ROUTE_WRITE_URL: ${{ secrets.LF_EKB_ROUTE_WRITE_URL }}
+          LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}
+          ROUTE_CODE: ${{ inputs.code }}
+          ROUTE_REFERENCE: ${{ inputs.reference }}
+        run: |
+          set -euo pipefail
+          python3 -I pilot/ekb/route_ekb.py register-catalogued --code "$ROUTE_CODE" --reference "$ROUTE_REFERENCE" --execution-id "gha-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"

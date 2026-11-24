@@ -335,6 +335,32 @@ def record(candidates: list[dict], *, execution_id: str, cfg: dict | None = None
     return out
 
 
+def register_catalogued(code: str, reference: str, *, execution_id: str,
+                         cfg: dict | None = None, env: dict | None = None,
+                         psql: str = "psql") -> dict:
+    """Manual governed write, followed by exact-code readback."""
+    cfg = cfg or load_config()
+    if not isinstance(code, str) or not ROUTE_CODE.fullmatch(code):
+        raise EkbError("ROUTE_EKB_CANDIDATE_INVALID")
+    if not isinstance(reference, str) or not EVIDENCE_REF.fullmatch(reference):
+        raise EkbError("ROUTE_EKB_ENTRY_EVIDENCE")
+    catalog = load_catalog()
+    if code not in catalog:
+        raise EkbError("ROUTE_EKB_UNCATALOGUED")
+    entry = {**catalog[code], "codigo": "LF-ROUTE-" + code.replace("_", "-"),
+             "evidencia": reference}
+    receipt = register(entry, execution_id=execution_id, cfg=cfg, env=env, psql=psql)
+    result = lookup([entry["codigo"]], cfg=cfg, env=env, psql=psql)
+    matches = [row for row in result["entries"] if row["codigo"] == entry["codigo"]
+               and row["source_context"] == cfg["source_context"]]
+    if (len(matches) != 1 or not isinstance(matches[0]["frecuencia"], int)
+            or not isinstance(receipt["frequency_after"], int)
+            or matches[0]["frecuencia"] < receipt["frequency_after"]):
+        raise EkbError("ROUTE_EKB_READBACK_NOT_VERIFIED")
+    return {**receipt, "readback": True, "source_context": matches[0]["source_context"],
+            "readback_frequency": matches[0]["frecuencia"]}
+
+
 def lot_terms(area: str, skill_codes: list[str], paths: list[str]) -> list[str]:
     """Terms that describe a lot: its skills and its path stems (area is added by lookup)."""
     stems: list[str] = []
@@ -405,6 +431,10 @@ def main(argv: list[str] | None = None) -> int:
     lk.add_argument("--allow-missing", action="store_true",
                     help="secret absent → empty context instead of BLOCKED")
     sub.add_parser("probe")
+    manual = sub.add_parser("register-catalogued")
+    manual.add_argument("--code", required=True)
+    manual.add_argument("--reference", required=True)
+    manual.add_argument("--execution-id", required=True)
     rc = sub.add_parser("record")
     rc.add_argument("--candidates", required=True, help="JSONL from the failure watchdog")
     rg = sub.add_parser("register")
@@ -442,6 +472,8 @@ def main(argv: list[str] | None = None) -> int:
             for result in record(rows, execution_id=f"gha-{run}-{attempt}"):
                 print(json.dumps(result))
             return 0
+        elif a.cmd == "register-catalogued":
+            print(json.dumps(register_catalogued(a.code, a.reference, execution_id=a.execution_id)))
         elif a.cmd == "probe":
             print(json.dumps({"status": "EKB_PROBE_OK", **probe()}))
         else:
