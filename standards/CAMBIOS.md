@@ -260,4 +260,4 @@
 | CHG-0318 | EDITORIAL | T3 DATA: validar rollback emparejado con migración |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/476 |
 | CHG-0325 | EDITORIAL | T2/T7: declaración contractual de operaciones de sesión consumidas por frontend |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/485 |
 | CHG-0326 | EDITORIAL | CP3.6/Train: retirada gobernada de registros sin ejecución |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/486 |
-| CHG-0331 | ADDITIVE | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0331 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
