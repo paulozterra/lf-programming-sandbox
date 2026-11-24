@@ -28,6 +28,8 @@ ROOT = ORCHESTRATOR.parents[1]
 WORKER = ROOT / "pilot/worker_v08"
 sys.path.insert(0, str(WORKER))
 
+sys.path.insert(0, str(ORCHESTRATOR))
+from t4_admission import examinable_requirements
 from native_lot_binding import NativeLotBlocked, map_profile, real_write_paths, next_ready
 from worker_template_contract import validate_template_worker
 from register_task_context import (
@@ -176,7 +178,7 @@ def register_lot(root: Path, folder: Path, lot: dict, mapped: dict,
         area=lot["area"], lot_paths=paths, task_name=task_name,
         budget=spec.get("max_context_bytes", 240000),
         root=root, persist=False,
-        requirement_ids=lot.get("requirement_ids"))
+        requirement_ids=examinable_requirements(lot))
     # T56: consult the EKB for this lot (area, its skills, its paths). Only
     # a trusted step with the read secret adds ekb.md; it never blocks.
     ekb, ekb_status = _lot_ekb_context(lot["area"], artifacts, task_name, paths)
@@ -187,7 +189,7 @@ def register_lot(root: Path, folder: Path, lot: dict, mapped: dict,
             area=lot["area"], lot_paths=paths, task_name=task_name,
             budget=spec.get("max_context_bytes", 240000),
             root=root, persist=False,
-            requirement_ids=lot.get("requirement_ids"), ekb_markdown=ekb)
+            requirement_ids=examinable_requirements(lot), ekb_markdown=ekb)
     enriched = output["task_spec"]
     validate_template_worker({"task_spec": enriched}, lot["area"])
     native_registration_bytes(enriched, sha, ref, task_name)
