@@ -66,8 +66,23 @@ def run_f3(fixtures=None, output_dir=None, request=None):
             "main_commit_sha": verified["main_commit_sha"]}
            if attested else {}),
     }] if empty else [])
-    if not empty and any(row["candidate_ref"].startswith("A4:unresolved:")
-                         for row in a7["material_fronts"]):
+    # A modification: A4 gaps that only say existing evidence is unattested,
+    # with every declared dependency attested against main, are non-blocking.
+    from analysis.a9.front_bindings import MODIFY_NON_BLOCKING_A4_GAPS, a4_gap_code
+    unresolved = [row["candidate_ref"] for row in a7["material_fronts"]
+                  if row["candidate_ref"].startswith("A4:unresolved:")]
+    modify = (a4.get("target_change_action") == "MODIFY"
+              and all(a4_gap_code(ref) in MODIFY_NON_BLOCKING_A4_GAPS for ref in unresolved)
+              and (not inv.get("dependencies") or attested))
+    if modify:
+        a8["non_blocking_gaps"] = [{
+            "code": a4_gap_code(ref), "classification": "NON_BLOCKING_GAP",
+            "basis": "UNATTESTED_EXISTING_IMPLEMENTATION_MODIFY",
+            "source_ref": ref,
+            **({"evidence": deepcopy(verified["entries"]),
+                "main_commit_sha": verified["main_commit_sha"]} if attested else {}),
+        } for ref in sorted(set(unresolved))]
+    if not empty and not modify and unresolved:
         a8["decision"] = "CONTINUE"
         a8["decision_stable"] = False
         a8["reason"] = "A4 inventory dependency not verified against main"

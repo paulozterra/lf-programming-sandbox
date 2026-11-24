@@ -253,6 +253,22 @@ def _policy():
     return contract
 
 
+def _state_evidence(package, fixture, row):
+    """NEW atoms cite their bounded reuse assessment; EXISTING atoms cite the
+    target's verified implementation (as-is) and the sealed reuse assessment
+    that defines what this request changes (delta)."""
+    if package["classification"]["implementation_state"]!="EXISTING":
+        return {"bounded_reuse_assessment_ref":"fixture://a3/reuse/"+row["atom_id"]}
+    target=package["request_context"]["target_ref"]
+    scope=[f for f in package.get("non_atomized_fronts",[])
+           if f.get("obligation_mode")=="MODIFY_SCOPE"]
+    reuse=fixture.get("reuse_assessment_sha256")
+    if not scope or not isinstance(reuse,str) or not re.fullmatch(r"[0-9a-f]{64}",reuse):
+        blocked("LOTES_MODIFICACION_SIN_EVIDENCIA")
+    return {"as_is_ref":"impl://"+target,
+            "delta_ref":"reuse-assessment://sha256:"+reuse+"#"+row["atom_id"]}
+
+
 def _source_chain(package, fixture, rows, sha, state):
     snapshot,mapping,pg01 = _source_inputs(package, rows, fixture, sha, state)
     pg02 = classify_with_outcome(snapshot,mapping,pg01_binding=pg01)
@@ -289,7 +305,7 @@ def _source_chain(package, fixture, rows, sha, state):
             "write_scope_reason":"Paths declared in synthetic A9 planning evidence",
             "write_scope":sorted(row["paths"]),"shared_contract_refs":[],
             "implementation_state":package["classification"]["implementation_state"],
-            "bounded_reuse_assessment_ref":"fixture://a3/reuse/"+row["atom_id"],
+            **_state_evidence(package, fixture, row),
             "requirement_ids":rids,"acceptance_ids":["ACC-"+r for r in rids],
             "depends_on":sorted(row["depends_on"]),"coimplement_with":[]})
     from pg04_semantic_partition_candidate_v1 import PartitionBlocked

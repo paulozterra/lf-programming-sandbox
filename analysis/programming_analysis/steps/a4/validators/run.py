@@ -325,6 +325,28 @@ def run(a3: Any, a2: Any, readback: Any = None, *, business: str = "LF") -> dict
     for code in a3.get("unresolved_material_gaps", []):
         if isinstance(code, str) and code:
             unresolved.append(_gap(code, target=target, source="S1_A3"))
+    # The screen's non-approved material items stay excluded obligations in a
+    # modification too, exactly as a new build projects them; A5 needs the
+    # collection to tell "none excluded" from "not supplied".
+    excluded = []
+    material = a3.get("material_contract_readback")
+    if material is not None:
+        if (not isinstance(material, dict)
+                or not isinstance(material.get("status_items"), list)):
+            return _blocked("A4_MATERIAL_PROJECTION_INVALID", target=target)
+        for item in material["status_items"]:
+            if (not isinstance(item, dict)
+                    or not isinstance(item.get("source_ref"), str)
+                    or not isinstance(item.get("source_status"), str)):
+                return _blocked("A4_MATERIAL_ITEM_SOURCE_INVALID", target=target)
+            if item["source_status"] != "VIGENTE":
+                excluded.append({
+                    "affected_ref": item["source_ref"], "evidence_origin": "S1_A3",
+                    "impact_class": "PLANNED_MATERIAL_DEFINITION",
+                    "change_action": "UNKNOWN", "definition_action": "UNKNOWN",
+                    "change_action_basis": "EXCLUDED_SOURCE_NOT_APPROVED",
+                    "source_status": item["source_status"],
+                    "existing_code_delta": False, "source_attested": False})
     refs = list(dict.fromkeys(
         [r for r in a3["source_refs"] if isinstance(r, str)]
         + [root]
@@ -340,6 +362,7 @@ def run(a3: Any, a2: Any, readback: Any = None, *, business: str = "LF") -> dict
         "technical_root_ref": root,
         "direct_impacts": direct, "indirect_impacts": indirect,
         "consumers": consumers, "dependency_paths": paths,
+        "excluded_pending_obligations": excluded,
         "evidence_refs": refs,
         "unresolved_material_impacts": unresolved,
         "counts": {"direct": len(direct), "indirect": len(indirect),

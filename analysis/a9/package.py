@@ -72,6 +72,12 @@ def _classification(a1, a2, a3, a4):
     # is not EXISTING; for new screen A4 CREATE + no existing code => NEW.
     if a4.get("target_change_action") == "CREATE" and a4.get("target_code_destination") is None:
         implementation_state = "NEW"
+    elif (a4.get("target_change_action") == "MODIFY"
+          and a4.get("technical_root_ref") == "impl://" + str(a4.get("target_ref"))
+          and any(isinstance(x, dict) and x.get("via_relation") == "IMPLEMENTED_BY"
+                  for x in a4.get("direct_impacts", []))):
+        # A modification projected onto the target's own verified files.
+        implementation_state = "EXISTING"
     else:
         implementation_state = "UNKNOWN"
     authority = a3.get("authority_state", "UNKNOWN")
@@ -335,13 +341,22 @@ def build(result, request_raw):
                     # target object or unresolved change impact. Their
                     # existence is checked separately by T7.2 against main.
                     and all(inv.get(key) == [] for key in ("objects", "impacts")))
+    from analysis.a9.front_bindings import modify_scope_from_a4
+    try:
+        modify_scope = modify_scope_from_a4(a4)
+    except FrontBindingGap as exc:
+        fail(str(exc))
     try:
         front_rows, non_atomized = partition_fronts(
             a7["material_fronts"], reqs, sections, effective,
-            scope=scope_id, create_empty_inventory=empty_create)
+            scope=scope_id, create_empty_inventory=empty_create,
+            modify_scope=modify_scope)
     except FrontBindingGap as exc:
         fail(str(exc))
+    from analysis.a9.front_bindings import MODIFY_NON_BLOCKING_A4_GAPS, a4_gap_code
     if not empty_create and any(f["candidate_ref"].startswith("A4:unresolved:")
+                                and not (modify_scope and a4_gap_code(f["candidate_ref"])
+                                         in MODIFY_NON_BLOCKING_A4_GAPS)
                                 for f in a7["material_fronts"]):
         fail("A9_A4_INVENTORY_DEPENDENCY_BLOCKED")
     has_blocked = any(f["closure"] == "BLOCKED" for f in front_rows)

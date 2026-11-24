@@ -1,0 +1,50 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0396",
+  "title": "Ruta MODIFY de punta a punta en T7 (as-is, admisión F2, alcance de modificación, átomos EXISTING) y arreglos generales",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 24/11: modificar pantalla existente (problemas-ruta-modificar-modulo-existente 2.1, 2.3, 3.2); simulación T7 \"modifica\" sobre dos pantallas"
+  },
+  "reason": "Una modificación de una pantalla implementada se bloqueaba en cada etapa porque la ruta solo se construyó para pantallas nuevas. A3 recibe el código existente (commit y blobs de los archivos atestiguados) como as-is sin atestiguar; F2 tiene una admisión MODIFY estricta (solo huecos \"sin atestiguar/no confirmado\", nunca \"falta\"; impacto limitado a los archivos propios de la pantalla); A4 proyecta las obligaciones excluidas también en MODIFY; A7/A9 tratan los archivos existentes como alcance de modificación y los compartidos con otra pantalla como impacto de solo lectura; A8 no bloquea por huecos sin atestiguar con dependencias confirmadas contra main; A9 marca EXISTING y PG04 recibe as_is_ref/delta_ref; generate_chain permite escribir archivos del alcance conservando el comportamiento reutilizado. Arreglos generales que también afectaban a CREATE: un endpoint se corrobora solo por su lote BACKEND atestiguado (CONTRATO lo declara y FRONTEND lo consume); las pruebas de un componente pertenecen al área de su código (test_roots + source_roots). Además se agregan al CI las pruebas de CHG-0386 y CHG-0387, que no se estaban ejecutando.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "analysis/a7/front_coverage.py",
+      "analysis/a9/front_bindings.py",
+      "analysis/a9/package.py",
+      "analysis/host/dependency_attestation.py",
+      "analysis/host/fixture_readback_host.py",
+      "analysis/host/request_trace.py",
+      "analysis/host/run_a1_a8_fixture.py",
+      "analysis/host/simulated_admission_gate.py",
+      "analysis/host/test_modify_route_general.py",
+      "analysis/programming_analysis/steps/a4/validators/run.py",
+      "pilot/orchestrator/declared_dependencies.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/plan_lots.py",
+      "pilot/orchestrator/reuse_assessment.py",
+      "pilot/orchestrator/test_modify_route_general.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0396.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/587"
+  }
+}
