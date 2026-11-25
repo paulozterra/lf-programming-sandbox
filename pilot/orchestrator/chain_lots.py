@@ -912,6 +912,9 @@ def pending_draft(prefix: str) -> bool:
 _EXAM_RUN_CACHE: dict[str, dict] = {}
 
 
+EXAM_RETRY_LABEL = "exam-retry"
+
+
 def exam_issue_marker(task: str) -> str:
     if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task):
         deny("EXAM_REQUEST_TASK_INVALID")
@@ -1166,7 +1169,7 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
 
 
 def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict]:
-    """Request every independent exam immediately at LOTS_PLANNED.
+    """Request the exams of lots without dependencies at LOTS_PLANNED.
 
     Opening an exam request is not permission to register its lot: CP3.6
     still gates each successor on integrated predecessor receipts and its
@@ -1177,6 +1180,12 @@ def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict
         deny("EXAM_PLAN_BINDING_INCOMPLETE")
     outcomes = []
     for lot_id in sorted(planned):
+        # An exam is written against current main. A lot with dependencies
+        # gets its exam request at admission (admit_registration), once those
+        # dependencies are integrated; requested earlier, its reference would
+        # be built on a base its predecessors still change (req-652 BACKEND).
+        if planned[lot_id].get("depends_on"):
+            continue
         bound = bindings[lot_id]
         task = bound["task_name"]
         if missing_exam(ROOT, task):
@@ -1265,6 +1274,106 @@ def publish_pending_plan_refresh(request: str, binding: dict, completed: dict,
                        "task identity and exams unchanged.",
                        f"pending plan refresh before registering {task}")
         return {"status": "PLAN_REFRESH_DRAFT", "task": task, "paths": changed, **review}
+    return worktree(head, branch, create)
+
+
+def open_heads_with(prefix: str) -> list[str]:
+    """Open PR head branches starting with prefix (same listing as pending_draft)."""
+    rows = json.loads(run("gh", "pr", "list", "--repo", REPO,
+                          "--state", "open", "--limit", "100",
+                          "--json", "headRefName"))
+    if not isinstance(rows, list):
+        deny("PENDING_DRAFT_LIST_INVALID")
+    return [str(item.get("headRefName", "")) for item in rows if isinstance(item, dict)
+            and str(item.get("headRefName", "")).startswith(prefix)]
+
+
+def close_registration_drafts(task: str, comment: str) -> list[int]:
+    rows = json.loads(run("gh", "pr", "list", "--repo", REPO, "--state", "open",
+                          "--limit", "100", "--json", "number,headRefName,author"))
+    if not isinstance(rows, list):
+        deny("PENDING_DRAFT_LIST_INVALID")
+    closed = []
+    for item in rows:
+        ref = str(item.get("headRefName", "")) if isinstance(item, dict) else ""
+        login = str((item.get("author") or {}).get("login", "")) if isinstance(item, dict) else ""
+        if (ref.startswith(f"lf/native-registration/{task}-")
+                and login in ("app/github-actions", "github-actions[bot]", "github-actions")):
+            run("gh", "pr", "close", str(int(item["number"])), "--repo", REPO, "--delete-branch",
+                "--comment", comment)
+            closed.append(int(item["number"]))
+    return closed
+
+
+def rehearsal_reason(task: str, failed: dict) -> str:
+    """Public verdict line of the failed rehearsal job (command names only)."""
+    try:
+        logs = github_api_raw(f"actions/jobs/{failed['job_id']}/logs")
+    except Exception:
+        return "REHEARSAL_FAIL"
+    text = logs.decode("utf-8", "replace") if isinstance(logs, bytes) else str(logs)
+    found = re.findall(re.escape(task) + r": (REHEARSAL_FAIL:[\w ./:=,-]{1,300})", text)
+    return found[-1] if found else "REHEARSAL_FAIL"
+
+
+def signal_exam_retry(task: str) -> str:
+    """Event for the examiner routine: label the open exam request of a task
+    whose exam was retired with `exam-retry` (GitHub `labeled` event), so it is
+    rewritten in minutes instead of waiting for the hourly backup run. The
+    examiner removes the label when it claims the task. Best effort."""
+    try:
+        for issue in listed_exam_requests():
+            if (isinstance(issue, dict) and issue.get("state") == "open"
+                    and str(issue.get("title", "")) == "EXAM_REQUEST: " + task):
+                labels = {str(l.get("name")) for l in issue.get("labels", []) if isinstance(l, dict)}
+                if EXAM_RETRY_LABEL in labels or "examiner-working" in labels:
+                    return "EXAM_RETRY_ALREADY_SIGNALED"
+                run("gh", "issue", "edit", str(int(issue["number"])), "--repo", REPO,
+                    "--add-label", EXAM_RETRY_LABEL)
+                return "EXAM_RETRY_SIGNALED"
+    except (ChainBlocked, ValueError, OSError, subprocess.SubprocessError):
+        return "EXAM_RETRY_SIGNAL_FAILED"
+    return "EXAM_RETRY_NO_OPEN_REQUEST"
+
+
+def retire_stale_exam(request: str, task: str, head: str, reason: str | None = None) -> dict:
+    """Open one bot PR deleting exactly the stale exam's files; close the
+    registration drafts built on it. Policy C re-verifies staleness on main."""
+    from stale_exam import exam_paths
+    prefix = f"lf/exam-retire/{task}-"
+    if pending_draft(prefix):
+        return {"status": "EXAM_STALE_RETIRING"}
+    closed = close_registration_drafts(
+        task, "Examen retirado (E2): se reescribe sobre el main actual y la tarea se "
+              "registrará con el examen nuevo.")
+    branch = prefix + head[:12]
+    def create(root: Path):
+        present = [p for p in exam_paths(request, task) if (root / p).is_file()]
+        if not present:
+            return {"status": "EXAM_STALE_NOTHING_TO_RETIRE"}
+        run("git", "rm", "-q", "--", *present, cwd=root)
+        run("git", "commit", "-m", f"[E2] retiro de examen desactualizado {task}", cwd=root)
+        current_main = run("git", "ls-remote", "origin", "refs/heads/main", cwd=root).split()[0]
+        if current_main != head:
+            deny("MAIN_MOVED_BEFORE_DRAFT")
+        run("git", "push", "--set-upstream", "origin", branch, cwd=root)
+        why = (f"su referencia falla el ensayo T40 ({reason})" if reason
+               else "se publicó antes de integrar una dependencia del lote")
+        url = run("gh", "pr", "create", "--repo", REPO, "--base", "main", "--head", branch,
+                  "--title", f"[E2] retiro de examen {task} ({request})",
+                  "--body", "Elimina solo el examen cifrado, su referencia y su metadata: " + why
+                  + ". Política C verifica la condición; el examinador automático lo reescribe "
+                  "sobre la base real.", cwd=root)
+        if reason:
+            for issue in listed_exam_requests():
+                if (isinstance(issue, dict) and issue.get("state") == "open"
+                        and str(issue.get("title", "")).endswith(task)):
+                    run("gh", "issue", "comment", str(int(issue["number"])), "--repo", REPO,
+                        "--body", "Examen retirado (E2): la referencia no pasa el ensayo T40 en la "
+                        f"base actual — `{reason}`. Reescribir el examen y su referencia "
+                        "considerando ese comando visible.", cwd=root)
+        run("gh", "workflow", "run", "ci.yml", "--repo", REPO, "--ref", branch, cwd=root)
+        return {"status": "EXAM_STALE_RETIRE_PROPOSED", "retire_pr": url, "closed_registrations": closed}
     return worktree(head, branch, create)
 
 
@@ -2082,12 +2191,60 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                 outcomes.append({"request": request, "lot_id": lot_id,
                                  "status": "STALE_REGISTRATION_RETIRED",
                                  "closed_prs": retired})
+        # E2: an exam published before a dependency was integrated was written
+        # against a base that dependency changed; retire it (governed PR) so
+        # the automatic examiner rewrites it on current main.
+        from stale_exam import is_stale
+        dependency_tasks = [bindings[d]["task_name"] for d in lot["depends_on"] if d in bindings]
+        if candidate == task and is_stale(ROOT, task, dependency_tasks):
+            outcomes.append({"request": request, "lot_id": lot_id,
+                             **retire_stale_exam(request, task, head)})
+            continue
+        # E2: a fresh exam whose reference fails its T40 rehearsal is retired
+        # too (at most MAX_REHEARSAL_RETIRES per task); the examiner is told
+        # which public visible command failed.
+        if candidate == task and pending_draft(f"lf/native-registration/{candidate}-"):
+            from stale_exam import rehearsal_failure, retire_count, MAX_REHEARSAL_RETIRES
+            # The 100 most recent PRs: a live request's registration and retire
+            # PRs are always among them (full history is not needed here).
+            closed_pulls = lambda: json.loads(github_api_raw(
+                "pulls?state=all&sort=created&direction=desc&per_page=100"))
+            try:
+                failed = rehearsal_failure(closed_pulls, lambda sha: api(
+                    f"commits/{sha}/check-runs?per_page=100").get("check_runs", []), task)
+                retires = retire_count(closed_pulls, task) if failed is not None else 0
+            except Exception:
+                # Recovery only: if GitHub cannot be read, retire nothing.
+                failed = None
+            if failed is not None and retires < MAX_REHEARSAL_RETIRES:
+                outcomes.append({"request": request, "lot_id": lot_id,
+                                 **retire_stale_exam(request, task, head,
+                                                     reason=rehearsal_reason(task, failed))})
+                continue
         if pending_draft(f"lf/native-registration/{candidate}-"):
+            from stale_exam import exam_retired
+            if candidate == task and exam_retired(ROOT, task):
+                # Its exam was retired (E2): the draft points to a removed
+                # holdout. Close it so admission requests and binds the new exam.
+                outcomes.append({"request": request, "lot_id": lot_id,
+                                 "status": "REGISTRATION_WITHOUT_EXAM_CLOSED",
+                                 "closed_prs": close_registration_drafts(
+                                     task, "El examen de esta tarea fue retirado (E2); "
+                                           "se registrará con el examen nuevo.")})
+                continue
             outcomes.append({"request": request, "lot_id": lot_id,
                              "status": "ALREADY_PREPARED"})
             continue
+        if candidate == task and pending_draft(f"lf/exam-retire/{task}-"):
+            # Never prepare a registration on an exam whose retire is pending.
+            outcomes.append({"request": request, "lot_id": lot_id,
+                             "status": "EXAM_STALE_RETIRING"})
+            continue
         admission = admit_registration(request, chosen, lot, head)
         if admission is not None:
+            from stale_exam import exam_retired
+            if candidate == task and exam_retired(ROOT, task):
+                admission = {**admission, "exam_retry": signal_exam_retry(task)}
             outcomes.append({"request": request, "lot_id": lot_id, **admission})
             continue
         outcomes.append({"request": request, "lot_id": lot_id,

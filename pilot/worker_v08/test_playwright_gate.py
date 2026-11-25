@@ -156,3 +156,30 @@ def test_every_css_and_box_assertion_gets_a_mutation():
     # the forced size is always outside the tolerance
     assert int(found[2]["width"][0][:-2]) - 400 > 2
     assert _gate.mutations({"id": "t", "selector": "a", "text": "x"}) == []
+
+
+def test_app_start_flake_is_retried_once_but_assertions_never(monkeypatch):
+    calls = []
+    monkeypatch.setattr(_gate.time, "sleep", lambda s: None)
+    def flaky(root, **kw):
+        calls.append(1)
+        if len(calls) == 1:
+            raise _gate.BrowserBlocked("APP_NO_ARRANCA")
+    monkeypatch.setattr(_gate, "_verify_once", flaky)
+    _gate.verify(".", path="/", selector="main", text=None, title=None)
+    assert len(calls) == 2
+    calls.clear()
+    monkeypatch.setattr(_gate, "_verify_once",
+                        lambda root, **kw: (calls.append(1), (_ for _ in ()).throw(
+                            _gate.BrowserBlocked("APP_NO_ARRANCA")))[1])
+    with _pytest.raises(_gate.BrowserBlocked, match="APP_NO_ARRANCA"):
+        _gate.verify(".", path="/", selector="main", text=None, title=None)
+    assert len(calls) == _gate.APP_START_ATTEMPTS
+    calls.clear()
+    def wrong(root, **kw):
+        calls.append(1)
+        raise _gate.BrowserBlocked("BROWSER_ASSERTION_FAILED:c1")
+    monkeypatch.setattr(_gate, "_verify_once", wrong)
+    with _pytest.raises(_gate.BrowserBlocked, match="ASSERTION"):
+        _gate.verify(".", path="/", selector="main", text=None, title=None)
+    assert len(calls) == 1

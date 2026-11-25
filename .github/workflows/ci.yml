@@ -138,7 +138,7 @@ jobs:
           LF_TEST_REAL_WORKER_DB: "YES"
         run: |
           python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt pytest==8.4.2
-          python3 -m pytest -q pilot/worker_v08/test_worker_db_env.py -p no:cacheprovider
+          python3 -m pytest -q pilot/worker_v08/test_worker_db_env.py pilot/worker_v08/test_fixture_credentials.py -p no:cacheprovider
       - name: "T2: verify live springdoc operations against every contract"
         working-directory: .
         run: |
@@ -707,7 +707,7 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt
           python3 -m py_compile analysis/host/request_catalog.py pilot/orchestrator/declared_dependencies.py pilot/orchestrator/reuse_assessment.py pilot/orchestrator/t7_entry.py pilot/worker_v08/reuse_guard.py
-          python3 -m pytest -q pilot/orchestrator/test_t7_reuse.py pilot/orchestrator/test_t7_registry.py pilot/orchestrator/test_t72_dependencies.py pilot/orchestrator/test_t2_general_guard.py pilot/orchestrator/test_registry_area_attribution.py pilot/orchestrator/test_contract_live_pending.py pilot/orchestrator/test_modify_route_general.py pilot/orchestrator/test_characterization_lot.py -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_t7_reuse.py pilot/orchestrator/test_t7_registry.py pilot/orchestrator/test_t72_dependencies.py pilot/orchestrator/test_t2_general_guard.py pilot/orchestrator/test_registry_area_attribution.py pilot/orchestrator/test_contract_live_pending.py pilot/orchestrator/test_modify_route_general.py pilot/orchestrator/test_characterization_lot.py pilot/orchestrator/test_e2_stale_exam.py -p no:cacheprovider
       - name: T8 LF complete rules, deterministic gates and adverse patches (NO MODEL)
         run: |
           python3 -m py_compile pilot/worker_v08/lf_rule_context.py pilot/worker_v08/lf_rule_gate.py

@@ -287,3 +287,18 @@
 | CHG-0424 | EDITORIAL | CP3.6: encadenamiento gobernado req-619 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/642 |
 | CHG-0428 | EDITORIAL | Política C: límite de lectura de la API igual al de la reconstrucción del registro |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/648 |
 | CHG-0432 | EDITORIAL | Informe de análisis: significado de los estados de A4 en MODIFY |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/654 |
+| CHG-0436 | EDITORIAL | La ruta se recupera sola: reintento de T7 tras un arreglo, de arranque de la app y del control del registro |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/664 |
+| CHG-0437 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/667 |
+| CHG-0444 | EDITORIAL | CP3.5: integración verificada nativa req652contrato1 (run 45544411504) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/676 |
+| CHG-0445 | EDITORIAL | Análisis: una entrada del registro con archivos cambiados no bloquea la lectura de reutilización |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/677 |
+| CHG-0454 | EDITORIAL | Examen de un lote con dependencias se pide al registrarlo, no al planificar |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/687 |
+| CHG-0455 | ADDITIVE | E2: retiro automático de exámenes desactualizados para que el examinador los reescriba |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/689 |
+| CHG-0468 | EDITORIAL | Ensayo T40: informar qué comandos visibles fallaron |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/704 |
+| CHG-0469 | EDITORIAL | Ensayo T40: informar el rechazo del parche de referencia (categoría y ruta) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/705 |
+| CHG-0473 | EDITORIAL | Ensayo T40: detalle visible real (el recibo verificado no trae intentos) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/710 |
+| CHG-0478 | EDITORIAL | Examen: referencia validada con los comandos visibles antes de publicar; retiro E2 también tras un ensayo T40 fallido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/715 |
+| CHG-0482 | EDITORIAL | E2: detección de ensayo fallido con los 100 PR más recientes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/719 |
+| CHG-0490 | EDITORIAL | E2: no registrar durante un retiro y cerrar registros cuyo examen fue retirado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/725 |
+| CHG-0498 | ADDITIVE | Credenciales ficticias del sandbox por variables SBX_FIXTURE_* para Worker y examen |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/733 |
+| CHG-0502 | EDITORIAL | Policy C: impedir fusionar registros nativos durante retiro E2 pendiente |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/737 |
+| CHG-0504 | EDITORIAL | Evento exam-retry: el examen retirado se reescribe en minutos, no en la corrida horaria |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/740 |

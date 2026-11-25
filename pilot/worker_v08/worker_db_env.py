@@ -65,16 +65,21 @@ def reset_disposable_database():
 def worker_database_environment():
     from programming_agent_runner import worker_commands
 
+    from pilot.worker_v08.fixture_credentials import fixture_environment
+
     approved = _approved_environment()
-    if approved is None:
+    fixtures = fixture_environment()
+    if approved is None and not fixtures:
         yield
         return
-    values, pg = approved
+    values, pg = approved if approved is not None else ({}, {})
     original = worker_commands._command_environment
 
     def isolated_with_db(runtime_root):
         env = original(runtime_root)
-        return {**env, **values, **pg}
+        # Fictitious SBX_FIXTURE_* credentials (published in their spec) let
+        # hidden oracles sign in without a literal secret in their argv.
+        return {**env, **fixtures, **values, **pg}
 
     with patch.object(worker_commands, "_command_environment",
                       side_effect=isolated_with_db):

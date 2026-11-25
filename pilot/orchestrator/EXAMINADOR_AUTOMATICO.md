@@ -18,7 +18,11 @@ cd main && python3 pilot/orchestrator/examiner_queue.py > /tmp/queue.json
 
 ## 1. Reclamar la tarea
 
-Poner la etiqueta `examiner-working` al issue (evita que otra corrida la tome) y comentar: "Examinador automático: escribiendo el examen".
+Poner la etiqueta `examiner-working` al issue (evita que otra corrida la tome), quitar `exam-retry` si la tiene y comentar: "Examinador automático: escribiendo el examen".
+
+Disparo: la rutina de evento reacciona a un issue `exam-request` **abierto** (examen nuevo) y a un issue **etiquetado** `exam-retry` (reintento). La ruta pone `exam-retry` cuando se integra un retiro E2; el owner la pone al desbloquear un `examiner-blocked`. La corrida horaria es solo respaldo.
+
+Si el issue tiene un comentario "Examen retirado (E2)", el examen anterior se retiró porque su referencia no pasó el ensayo T40: leer el comando visible indicado y corregir la referencia para que lo pase (por ejemplo, implementar todas las operaciones del contrato asociadas a las reglas del lote).
 
 ## 2. Brief (sin explorar el repo)
 
@@ -36,6 +40,7 @@ python3 pilot/orchestrator/examiner_brief.py --request <req> --task <task> \
 - `ref/`: implementación de referencia, **solo** con archivos de las rutas de escritura del lote (`EXAM_REFERENCE_OUT_OF_SCOPE` si no).
 - `mut/<nombre>/`: al menos 3 mutantes plausibles (el error que cometería un constructor real), cada uno dentro de las rutas del lote, y cada uno debe hacer fallar el examen.
 - Para BACKEND/DATA usar el PostgreSQL desechable de la sesión (`/usr/lib/postgresql/*/bin`, base temporal, variables `DB_URL`/`DB_USERNAME`/`DB_PASSWORD`) como hace el Worker.
+- Credenciales ficticias del sandbox (p. ej. el usuario demo): leerlas de las variables `SBX_FIXTURE_*` (`os.environ`), declaradas en `pilot/config/fixture_credentials.json`. **Nunca** escribirlas literales en el examen ni en el argv: el Worker rechaza secretos probables. El Worker y `publish_exam.py` exponen esas variables. Si hace falta una credencial ficticia que no está declarada, bloquear con `EXAM_FIXTURE_CREDENTIAL_UNDECLARED` (decide el owner).
 
 ### Lote de caracterización (`lot_kind: CHARACTERIZATION` en el brief)
 
@@ -56,7 +61,7 @@ python3 pilot/orchestrator/publish_exam.py --task <task> --request <req> \
   --derived-from "ficha <fixture> (<códigos>)"
 ```
 
-Exige referencia PASS, todos los mutantes FAIL y cifrado verificado. Si bloquea: leer el código, corregir y repetir. **Máximo 3 vueltas** por tarea.
+Exige que la referencia pase los comandos visibles del lote (`EXAM_REFERENCE_FAILS_VISIBLE:<comando>`), referencia PASS en el examen, todos los mutantes FAIL y cifrado verificado. Si bloquea: leer el código, corregir y repetir. **Máximo 3 vueltas** por tarea.
 
 ## 5. Publicar
 
@@ -66,7 +71,7 @@ Si el ensayo T40 del PR falla: corregir en la misma rama (cuenta dentro de las 3
 
 ## 6. Si no se logra
 
-Tras 3 vueltas sin éxito: etiqueta `examiner-blocked` en el issue, quitar `examiner-working`, comentario con el último código de bloqueo (sin contenido del examen). Es el único caso que requiere al owner.
+Tras 3 vueltas sin éxito: etiqueta `examiner-blocked` en el issue, quitar `examiner-working`, comentario con el último código de bloqueo (sin contenido del examen). Es el único caso que requiere al owner, que al decidir quita `examiner-blocked` y pone `exam-retry`.
 
 ## 7. Resumen de la corrida
 

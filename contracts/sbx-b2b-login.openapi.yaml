@@ -36,10 +36,15 @@ paths:
         - REQ-SBX-B2B-R-ERROR-CODE
         - REQ-SBX-B2B-R-ERROR-SAFE-MESSAGE
         - REQ-SBX-B2B-R-ERROR-TRACE
+        - REQ-SBX-B2B-R-DATA-ATTEMPTS-BACKEND
+        - REQ-SBX-B2B-R-DATA-SESSIONS-BACKEND
+        - REQ-SBX-B2B-R-DATA-USER-STORE-BACKEND
         - REQ-SBX-B2B-R-INT-EMAIL-LOGIN
+        - REQ-SBX-B2B-R-INT-HOME
         - REQ-SBX-B2B-R-INT-RETURN
         - REQ-SBX-B2B-R-INT-ROUTE
         - REQ-SBX-B2B-R-INT-SESSION-STORE
+        - REQ-SBX-B2B-R-LAYOUT-COMPOSITION
         - REQ-SBX-B2B-R-PRIVACY-TELEMETRY
         - REQ-SBX-B2B-R-RESP-BREAKPOINTS
         - REQ-SBX-B2B-R-THEME-LIGHT
@@ -94,7 +99,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginFailure'
+  /api/auth/session:
+    get:
+      operationId: getAuthSession
+      summary: Consultar sesión vigente mediante token emitido por el servidor
+      description: >-
+        Operación de sesión existente y reutilizada. El servidor valida
+        el token, su vigencia y su revocación antes de responder.
+      x-requirement-ids:
+        - REQ-SBX-B2B-R-INT-HOME
+        - REQ-SBX-B2B-R-DATA-SESSIONS-BACKEND
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Sesión autenticada y vigente
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - username
+                properties:
+                  username:
+                    type: string
+        '401':
+          description: Sesión ausente, revocada o vencida
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - error
+                properties:
+                  error:
+                    type: string
+  /api/auth/logout:
+    post:
+      operationId: logoutAuthSession
+      summary: Revocar una sesión autenticada
+      description: >-
+        El servidor revoca el registro de sesión y no expone el token
+        ni sus hashes. No implementa un segundo servicio de autenticación.
+      x-requirement-ids:
+        - REQ-SBX-B2B-R-INT-HOME
+        - REQ-SBX-B2B-R-DATA-SESSIONS-BACKEND
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Sesión revocada; sin cuerpo de respuesta
+        '401':
+          description: Sesión ausente o inválida
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - error
+                properties:
+                  error:
+                    type: string
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   schemas:
     LoginRequest:
       type: object

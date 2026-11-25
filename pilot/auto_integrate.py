@@ -60,6 +60,7 @@ BRANCH_RULES = (
     ("exam", "lf/exam/", r"lf/exam/[a-z][a-z0-9_-]{0,31}"),
     ("generated-t7", "lf/generated-t7/", r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?"),
     ("implemented-registry", "lf/implemented-registry/", r"lf/implemented-registry/[0-9a-f]{12}"),
+    ("exam-retire", "lf/exam-retire/", r"lf/exam-retire/[a-z][a-z0-9_-]{0,31}-[0-9a-f]{12}"),
     ("request", "lf/request/", r"lf/request/req-[1-9][0-9]*"),
 )
 BOT_BRANCH_PREFIXES = tuple(item[1] for item in BRANCH_RULES)
@@ -135,6 +136,15 @@ def eligible_pr(pr, paths, repo=REPOSITORY, api=None):
             block("PR_PATH_NOT_ALLOWED")
     elif kind == "implemented-registry":
         if paths != ["pilot/registry/implemented.json"]:
+            block("PR_PATH_NOT_ALLOWED")
+    elif kind == "exam-retire":
+        task = branch.removeprefix("lf/exam-retire/").rsplit("-", 1)[0]
+        metas = [p for p in paths if re.fullmatch(
+            r"pilot/runs/req-[1-9][0-9]{0,6}/claude_meta/" + re.escape(task) + r"[.]json", p)]
+        request = metas[0].split("/")[2] if len(metas) == 1 else None
+        from pilot.orchestrator.stale_exam import exam_paths
+        if (request is None or f"pilot/holdouts/{task}.oracle.json.age" not in paths
+                or not set(paths) <= set(exam_paths(request, task))):
             block("PR_PATH_NOT_ALLOWED")
     elif kind == "request":
         slug = branch.split("/")[-1]
@@ -370,6 +380,39 @@ def _content(api, path, revision):
     if len(raw) != response["size"]:
         block("GENERATED_CONTENT_DRIFT")
     return raw
+
+
+def verify_exam_retire(api, number, pr, paths):
+    """E2: only deletions, and the exam must be stale on trusted main: published
+    before one of its lot's dependencies was integrated (same rule as CP3.6)."""
+    rows = api.pages(f"/pulls/{number}/files", None)
+    if any(not isinstance(r, dict) or r.get("status") != "removed" for r in rows):
+        block("EXAM_RETIRE_NOT_DELETION_ONLY")
+    task = pr["head"]["ref"].removeprefix("lf/exam-retire/").rsplit("-", 1)[0]
+    request = next(p.split("/")[2] for p in paths if "/claude_meta/" in p)
+    root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from pilot.orchestrator.stale_exam import is_stale
+    try:
+        plan = json.loads((root / f"pilot/runs/{request}/chain_plan.json").read_text("utf-8"))
+        lots = json.loads((root / f"pilot/runs/{request}/lots.json").read_text("utf-8"))["lots"]
+        by_lot = {b["lot_id"]: b["task_name"] for b in plan["bindings"]}
+        lot_id = next(b["lot_id"] for b in plan["bindings"] if b["task_name"] == task)
+        lot = next(x for x in lots if x["id"] == lot_id)
+        deps = [by_lot[d] for d in lot.get("depends_on", []) if d in by_lot]
+    except (OSError, ValueError, KeyError, StopIteration, TypeError):
+        block("EXAM_RETIRE_LOT_UNRESOLVED")
+    if is_stale(root, task, deps):
+        return
+    # Or: the task's latest registration failed its T40 rehearsal, within the cap.
+    from pilot.orchestrator.stale_exam import (rehearsal_failure, retire_count,
+                                               MAX_REHEARSAL_RETIRES)
+    pulls = lambda: api.request("GET", "/pulls?state=all&sort=created&direction=desc&per_page=100")
+    checks = lambda sha: api.pages(f"/commits/{sha}/check-runs", "check_runs")
+    if (rehearsal_failure(pulls, checks, task) is None
+            or retire_count(pulls, task) >= MAX_REHEARSAL_RETIRES):
+        block("EXAM_RETIRE_NOT_STALE")
 
 
 def verify_generated_content(api, pr, paths, kind):
@@ -658,6 +701,8 @@ def evaluate_one(api, number):
         return labeled_train_recovery(api, number)
     if kind in ("generated-t7", "implemented-registry"):
         verify_generated_content(api, pr, paths, kind)
+    if kind == "exam-retire":
+        verify_exam_retire(api, number, pr, paths)
     if kind == "integration":
         try:
             integration_proof(api, pr, paths)
@@ -666,6 +711,14 @@ def evaluate_one(api, number):
                 comment_once(api, number)
             raise
     checks = api.pages(f"/commits/{head}/check-runs", "check_runs")
+    if kind == "implemented-registry":
+        # The trusted content check above just passed on current main. If the
+        # PR's own byte-equality CI check failed earlier (e.g. it ran before a
+        # fix reached main), re-run it instead of waiting for a human.
+        rerun = registry_check_rerun(checks, head)
+        if rerun is not None:
+            api.request("POST", f"/actions/jobs/{rerun}/rerun")
+            return "REGISTRY_CHECK_RERUN_REQUESTED"
     required = (REQUIRED + ("T7 generated content byte equality",)
                 if kind in ("generated-t7", "implemented-registry") else
                 REQUIRED + ("T9 request content byte equality",) if kind == "request"
@@ -684,6 +737,25 @@ def evaluate_one(api, number):
     api.request("POST", "/actions/workflows/sandbox-train.yml/dispatches",
                 {"ref": "main", "inputs": {"pr_number": str(number)}})
     return "LABEL_AND_TRAIN_DISPATCHED"
+
+
+MAX_REGISTRY_CHECK_FAILURES = 3
+
+
+def registry_check_rerun(checks, head):
+    """Job id to re-run when the latest byte-equality check failed, at most
+    MAX_REGISTRY_CHECK_FAILURES failures per head; None otherwise."""
+    rows = [c for c in checks if isinstance(c, dict)
+            and c.get("name") == "T7 generated content byte equality"
+            and c.get("head_sha") == head and c.get("status") == "completed"
+            and c.get("conclusion") in ("success", "failure")]
+    if not rows:
+        return None
+    latest = max(rows, key=lambda c: (str(c.get("started_at") or ""), int(c.get("id") or 0)))
+    failures = sum(1 for c in rows if c.get("conclusion") == "failure")
+    if latest.get("conclusion") != "failure" or failures >= MAX_REGISTRY_CHECK_FAILURES:
+        return None
+    return int(latest["id"]) if type(latest.get("id")) is int else None
 
 
 def run(api, trigger, *, numbers=None, scheduled=False):
