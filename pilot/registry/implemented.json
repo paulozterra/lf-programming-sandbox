@@ -436,8 +436,37 @@
         "SBX-B2B-R-DATA-USER-STORE"
       ],
       "status": "ATTESTED"
+    },
+    {
+      "area": "CONTRATO",
+      "endpoints": [
+        "GET /api/auth/session",
+        "POST /api/auth/login",
+        "POST /api/auth/logout"
+      ],
+      "files": [
+        {
+          "path": "contracts/sbx-b2b-login.openapi.yaml",
+          "sha256": "f69d0dc5f9625b3c8a7d5a129529c4ee3029a49729a909c4ad2547f6b13f5cb0"
+        }
+      ],
+      "lot": "SOL-Cf376a709e8a9",
+      "merge_sha": "4d722957cfa01d3539ac978e1ab9de6570757836",
+      "reasons": [],
+      "request": "req-652",
+      "requirement_ids": [
+        "REQ-SBX-B2B-R-DATA-ATTEMPTS-BACKEND",
+        "REQ-SBX-B2B-R-DATA-SESSIONS-BACKEND",
+        "REQ-SBX-B2B-R-DATA-USER-STORE-BACKEND",
+        "REQ-SBX-B2B-R-INT-EMAIL-LOGIN",
+        "REQ-SBX-B2B-R-INT-HOME",
+        "REQ-SBX-B2B-R-INT-ROUTE",
+        "REQ-SBX-B2B-R-LAYOUT-COMPOSITION"
+      ],
+      "rule_codes": [],
+      "status": "ATTESTED"
     }
   ],
   "schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
-  "source_main_sha": "c5df32ecbe348e8714aacced25f0c2bea2083485"
+  "source_main_sha": "4d722957cfa01d3539ac978e1ab9de6570757836"
 }
