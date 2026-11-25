@@ -114,6 +114,18 @@ def visible_failures(receipt: dict) -> list[str]:
             and isinstance(item.get("name"), str)][:10]
 
 
+def patch_rejection(receipt: dict) -> str | None:
+    """Category and path of a reference patch rejected before any command ran
+    (scope/protection), e.g. 'PATCH_REJECTED: cumulative path is protected: x'.
+    Paths only, never patch or exam content."""
+    attempts = receipt.get("attempts") if isinstance(receipt, dict) else None
+    last = attempts[-1] if isinstance(attempts, list) and attempts else None
+    reason = last.get("proposal_reason") if isinstance(last, dict) else None
+    if not isinstance(reason, str) or not reason.startswith(("PATCH_REJECTED", "PROPOSAL_")):
+        return None
+    return re.sub(r"[^\w ./:-]", "", reason)[:200]
+
+
 def run_reference(source: Path, spec, oracle, patch: str, work_parent: Path) -> dict:
     """Run the reference through the same verified Worker. Returns
     {"status": PASS|FAIL|BLOCKED, "reason": str} without any exam detail."""
@@ -129,7 +141,8 @@ def run_reference(source: Path, spec, oracle, patch: str, work_parent: Path) -> 
                                           work_parent=work_parent)
         receipt = outcome.receipt
         return {"status": str(receipt.get("status")), "reason": str(receipt.get("reason")),
-                "visible_failed": visible_failures(receipt)}
+                "visible_failed": visible_failures(receipt),
+                "patch_reason": patch_rejection(receipt)}
     except Exception as exc:  # the control itself failing is a route defect
         return {"status": "BLOCKED", "reason": "CONTROL_ERROR:" + type(exc).__name__}
 

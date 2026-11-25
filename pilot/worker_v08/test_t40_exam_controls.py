@@ -168,3 +168,11 @@ def test_rehearsal_reports_only_visible_failed_command_names():
     assert visible_failures(receipt) == ["backend-contract-live"]
     assert visible_failures({}) == []
     assert visible_failures({"attempts": []}) == []
+
+
+def test_rehearsal_reports_reference_patch_rejection_category_and_path():
+    from pilot.worker_v08.native_exam_control import patch_rejection
+    receipt = {"attempts": [{"proposal_reason": "PATCH_REJECTED: cumulative path is protected: a/B.java",
+                             "acceptance": []}]}
+    assert patch_rejection(receipt) == "PATCH_REJECTED: cumulative path is protected: a/B.java"
+    assert patch_rejection({"attempts": [{"proposal_reason": "PATCH_APPLIED_IN_DISPOSABLE_WORKSPACE"}]}) is None
