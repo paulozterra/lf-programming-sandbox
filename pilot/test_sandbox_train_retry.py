@@ -26,7 +26,7 @@ class MergeRetry(unittest.TestCase):
 
         with mock.patch.object(train, "api", side_effect=api), \
                 mock.patch.object(train.time, "sleep"):
-            return train.merge_with_retry(118, HEAD, {"sha": HEAD}), calls["put"]
+            return train.merge_with_retry(118, HEAD, {"sha": HEAD}, branch="feature/x"), calls["put"]
 
     def test_expected_checks_lag_then_success(self):
         lag = train.TrainError('HTTP 405 PUT /pulls/118/merge: 6 of 6 required status checks are expected.')
@@ -93,7 +93,7 @@ class InProgressWaitTest(unittest.TestCase):
             return {"workflow_runs": []}
 
         with mock.patch.object(train, "api", side_effect=api):
-            result = train.merge_with_retry(118, HEAD, {"sha": HEAD},
+            result = train.merge_with_retry(118, HEAD, {"sha": HEAD}, branch="feature/x",
                                             clock=lambda: next(clock), sleep=lambda s: None)
         return result, calls["put"]
 

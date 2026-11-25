@@ -2,6 +2,8 @@
 import importlib.util
 import os
 import re
+import subprocess
+import sys
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -245,6 +247,51 @@ jobs:
         run: echo ok
 """
         self.assertEqual(checker.violations(step_env), [])
+
+class RetirementMergeTests(unittest.TestCase):
+    def test_workflow_entrypoint_import(self):
+        subprocess.run([sys.executable, "-m", "pilot.workflow_entrypoint",
+                        "--smoke", "pilot/sandbox_train.py"], cwd=ROOT, check=True)
+
+    def test_retirement_guard(self):
+        branch = "lf/native-registration/t1-aaaaaaaaaaaa"
+        head = "a" * 40
+        same = {"number": 42, "state": "open", "head": {"ref": "lf/exam-retire/t1-abc"}}
+        other = {"number": 43, "state": "open", "head": {"ref": "lf/exam-retire/t2-abc"}}
+        for rows, error in [
+            ([], None), ([same], "POLICY_C_RETIRO_PENDIENTE.*#42"),
+            ([other], None), (None, "POLICY_C_RETIRO_API_ERROR"),
+            ([dict(same, state="closed")], "POLICY_C_RETIRO_API_ERROR"),
+        ]:
+            with self.subTest(rows=rows):
+                def fake_api(method, path, payload=None):
+                    if method == "GET":
+                        self.assertIn("state=open", path)
+                        if rows is None:
+                            raise train.TrainError("NETWORK GET")
+                        return rows
+                    return {"merged": True}
+                with patch.object(train, "api", side_effect=fake_api) as mock_api:
+                    if error:
+                        with self.assertRaisesRegex(train.TrainError, error):
+                            train.merge_with_retry(101, head, {}, branch=branch)
+                    else:
+                        self.assertTrue(train.merge_with_retry(101, head, {}, branch=branch)["merged"])
+                    self.assertEqual(sum(c.args[0] == "PUT" for c in mock_api.call_args_list),
+                                     0 if error else 1)
+
+    def test_retirement_appears_during_retry(self):
+        head = "a" * 40
+        rows = [{"number": 42, "state": "open", "head": {"ref": "lf/exam-retire/t1-abc"}}]
+        with patch.object(train, "api", side_effect=[
+            [], train.TrainError("NETWORK PUT merge"),
+            {"merged": False, "head": {"sha": head}}, rows,
+        ]) as mock_api:
+            with self.assertRaisesRegex(train.TrainError, "POLICY_C_RETIRO_PENDIENTE"):
+                train.merge_with_retry(101, head, {}, branch="lf/native-registration/t1-aaaaaaaaaaaa",
+                                       sleep=lambda _: None)
+            self.assertEqual(sum(c.args[0] == "PUT" for c in mock_api.call_args_list), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -106,3 +106,24 @@ def exam_retired(root: Path, task: str, rev: str = "HEAD") -> bool:
         return False
     out = _git(root, "log", "-1", "--format=%H", "--diff-filter=D", rev, "--", path)
     return out.returncode == 0 and bool(SHA.fullmatch(out.stdout.strip()))
+
+
+def pending_retire_pr(list_pulls, task: str) -> int | None:
+    """Return an open retirement from a complete state=open collection."""
+    if not isinstance(task, str) or not TASK.fullmatch(task):
+        raise ValueError("STALE_EXAM_IDENTITY_INVALID")
+    rows = list_pulls()
+    if not isinstance(rows, list):
+        raise ValueError("RETIRE_PR_LIST_INVALID")
+    pending = []
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("RETIRE_PR_LIST_INVALID")
+        head, number = row.get("head"), row.get("number")
+        if (row.get("state") != "open" or not isinstance(head, dict)
+                or not isinstance(head.get("ref"), str)
+                or type(number) is not int or number <= 0):
+            raise ValueError("RETIRE_PR_LIST_INVALID")
+        if head["ref"].startswith(f"lf/exam-retire/{task}-"):
+            pending.append(number)
+    return min(pending) if pending else None
