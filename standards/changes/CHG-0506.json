@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0506",
+  "title": "APP_NO_ARRANCA dice qué componente falló, por qué y con qué salida",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 25/11: investigar por qué la app no arrancó en el registro #739, no solo reintentar"
+  },
+  "reason": "En #739 Playwright falló dos veces con APP_NO_ARRANCA sin ninguna pista: la salida del backend y del frontend iba a /dev/null. Ahora la salida va a un archivo temporal privado y, si el arranque falla, el gate imprime APP_NO_ARRANCA_DETALLE con el componente (BACKEND/FRONTEND), la causa (TIMEOUT_90S o EXIT_<código>) y las últimas 25 líneas, omitiendo las que parecen secretos o contienen DB_PASSWORD/SBX_FIXTURE_*. El código de bloqueo y el reintento no cambian.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/playwright_gate.py",
+      "pilot/worker_v08/test_playwright_gate.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0506.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

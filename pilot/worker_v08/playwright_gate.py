@@ -237,25 +237,62 @@ def available() -> None:
 
 def _spawn(argv: list[str], root: Path) -> subprocess.Popen:
     try:
-        # Neither browser assertions nor child-server logs receive secrets.
-        return subprocess.Popen(argv, cwd=root, stdin=subprocess.DEVNULL,
-                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        # Child-server output goes to a private temp file, read only to
+        # diagnose a failed start (redacted, last lines; see _start_diagnosis).
+        import tempfile
+        log = tempfile.TemporaryFile()
+        proc = subprocess.Popen(argv, cwd=root, stdin=subprocess.DEVNULL,
+                                stdout=log, stderr=subprocess.STDOUT,
                                 start_new_session=True,
                                 env={**os.environ, "CI": "true", "NEXT_TELEMETRY_DISABLED": "1"})
+        proc._lf_log = log  # type: ignore[attr-defined]
+        return proc
     except OSError as exc:
         raise BrowserBlocked("APP_NO_ARRANCA") from exc
 
 
-def wait_local(port: int, proc: subprocess.Popen, seconds: int = 90) -> None:
+DIAGNOSIS_LINES = 25
+
+
+def _start_diagnosis(name: str, proc: subprocess.Popen, seconds: int) -> None:
+    """Say WHY the app did not start: which component, timeout or exit code,
+    and the redacted tail of its output. Never prints a probable secret or a
+    value of DB_PASSWORD / SBX_FIXTURE_* (fictitious, but still not echoed)."""
+    code = proc.poll()
+    cause = f"TIMEOUT_{seconds}S" if code is None else f"EXIT_{code}"
+    print(f"APP_NO_ARRANCA_DETALLE: {name} {cause}", file=sys.stderr)
+    log = getattr(proc, "_lf_log", None)
+    if log is None:
+        return
+    try:
+        log.flush(); log.seek(0)
+        lines = log.read().decode("utf-8", "replace").splitlines()[-DIAGNOSIS_LINES:]
+    except OSError:
+        return
+    try:
+        from programming_agent_runner.worker_secrets import secret_text_reason
+    except ImportError:
+        secret_text_reason = lambda text: None  # noqa: E731
+    hidden = [v for k, v in os.environ.items()
+              if v and (k == "DB_PASSWORD" or k.startswith("SBX_FIXTURE_"))]
+    for line in lines:
+        if secret_text_reason(line) or any(v in line for v in hidden):
+            line = "<línea omitida: posible secreto>"
+        print(f"  {name}| {line[:300]}", file=sys.stderr)
+
+
+def wait_local(port: int, proc: subprocess.Popen, seconds: int = 90, name: str = "APP") -> None:
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         if proc.poll() is not None:
+            _start_diagnosis(name, proc, seconds)
             raise BrowserBlocked("APP_NO_ARRANCA")
         try:
             with socket.create_connection(("127.0.0.1", port), timeout=0.5):
                 return
         except OSError:
             time.sleep(0.3)
+    _start_diagnosis(name, proc, seconds)
     raise BrowserBlocked("APP_NO_ARRANCA")
 
 
@@ -305,11 +342,11 @@ def _verify_once(root: Path, *, path: str, selector: str, text: str | None,
                           "spring-boot:run", "-Dspring-boot.run.arguments=--server.address=127.0.0.1"],
                          root)
         running.append(backend)
-        wait_local(BACKEND_PORT, backend)
+        wait_local(BACKEND_PORT, backend, name="BACKEND")
         frontend = _spawn(["npm", "--prefix", web["root"], "run", "dev",
                            "--", "--hostname", "127.0.0.1", "--port", str(FRONTEND_PORT)], root)
         running.append(frontend)
-        wait_local(FRONTEND_PORT, frontend)
+        wait_local(FRONTEND_PORT, frontend, name="FRONTEND")
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             try:

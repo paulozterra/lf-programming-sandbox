@@ -183,3 +183,20 @@ def test_app_start_flake_is_retried_once_but_assertions_never(monkeypatch):
     with _pytest.raises(_gate.BrowserBlocked, match="ASSERTION"):
         _gate.verify(".", path="/", selector="main", text=None, title=None)
     assert len(calls) == 1
+
+
+def test_failed_start_says_component_cause_and_redacted_tail(tmp_path, capsys, monkeypatch):
+    import sys as _sys
+    from pilot.worker_v08 import playwright_gate as gate
+    monkeypatch.setenv("DB_PASSWORD", "pw-not-echoed")
+    script = ("import sys; print('Downloading spring-boot-maven-plugin'); "
+              "print('url pw-not-echoed'); print('password=abcdefghijklmnopqrstu'); sys.exit(3)")
+    proc = gate._spawn([_sys.executable, "-c", script], tmp_path)
+    proc.wait(timeout=10)
+    import pytest as _pytest
+    with _pytest.raises(gate.BrowserBlocked, match="APP_NO_ARRANCA"):
+        gate.wait_local(1, proc, seconds=2, name="BACKEND")
+    err = capsys.readouterr().err
+    assert "APP_NO_ARRANCA_DETALLE: BACKEND EXIT_3" in err
+    assert "Downloading spring-boot-maven-plugin" in err
+    assert "pw-not-echoed" not in err and "abcdefghijklmnopqrstu" not in err
