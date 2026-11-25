@@ -1274,7 +1274,18 @@ def publish_pending_plan_refresh(request: str, binding: dict, completed: dict,
     return worktree(head, branch, create)
 
 
-def retire_stale_exam(request: str, task: str, head: str) -> dict:
+def rehearsal_reason(task: str, failed: dict) -> str:
+    """Public verdict line of the failed rehearsal job (command names only)."""
+    try:
+        logs = github_api_raw(f"actions/jobs/{failed['job_id']}/logs")
+    except Exception:
+        return "REHEARSAL_FAIL"
+    text = logs.decode("utf-8", "replace") if isinstance(logs, bytes) else str(logs)
+    found = re.findall(re.escape(task) + r": (REHEARSAL_FAIL:[\w ./:=,-]{1,300})", text)
+    return found[-1] if found else "REHEARSAL_FAIL"
+
+
+def retire_stale_exam(request: str, task: str, head: str, reason: str | None = None) -> dict:
     """Open one bot PR deleting exactly the stale exam's files; close the
     registration drafts built on it. Policy C re-verifies staleness on main."""
     from stale_exam import exam_paths
@@ -1306,11 +1317,21 @@ def retire_stale_exam(request: str, task: str, head: str) -> dict:
         if current_main != head:
             deny("MAIN_MOVED_BEFORE_DRAFT")
         run("git", "push", "--set-upstream", "origin", branch, cwd=root)
+        why = (f"su referencia falla el ensayo T40 ({reason})" if reason
+               else "se publicó antes de integrar una dependencia del lote")
         url = run("gh", "pr", "create", "--repo", REPO, "--base", "main", "--head", branch,
-                  "--title", f"[E2] retiro de examen desactualizado {task} ({request})",
-                  "--body", "Elimina solo el examen cifrado, su referencia y su metadata: se publicó "
-                  "antes de integrar una dependencia del lote. Política C verifica la condición en "
-                  "main; el examinador automático lo reescribe sobre la base real.", cwd=root)
+                  "--title", f"[E2] retiro de examen {task} ({request})",
+                  "--body", "Elimina solo el examen cifrado, su referencia y su metadata: " + why
+                  + ". Política C verifica la condición; el examinador automático lo reescribe "
+                  "sobre la base real.", cwd=root)
+        if reason:
+            for issue in listed_exam_requests():
+                if (isinstance(issue, dict) and issue.get("state") == "open"
+                        and str(issue.get("title", "")).endswith(task)):
+                    run("gh", "issue", "comment", str(int(issue["number"])), "--repo", REPO,
+                        "--body", "Examen retirado (E2): la referencia no pasa el ensayo T40 en la "
+                        f"base actual — `{reason}`. Reescribir el examen y su referencia "
+                        "considerando ese comando visible.", cwd=root)
         run("gh", "workflow", "run", "ci.yml", "--repo", REPO, "--ref", branch, cwd=root)
         return {"status": "EXAM_STALE_RETIRE_PROPOSED", "retire_pr": url, "closed_registrations": closed}
     return worktree(head, branch, create)
@@ -2139,6 +2160,24 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
             outcomes.append({"request": request, "lot_id": lot_id,
                              **retire_stale_exam(request, task, head)})
             continue
+        # E2: a fresh exam whose reference fails its T40 rehearsal is retired
+        # too (at most MAX_REHEARSAL_RETIRES per task); the examiner is told
+        # which public visible command failed.
+        if candidate == task and pending_draft(f"lf/native-registration/{candidate}-"):
+            from stale_exam import rehearsal_failure, retire_count, MAX_REHEARSAL_RETIRES
+            closed_pulls = lambda: api_list("pulls?state=all&sort=created&direction=desc", max_pages=3)
+            try:
+                failed = rehearsal_failure(closed_pulls, lambda sha: api(
+                    f"commits/{sha}/check-runs?per_page=100").get("check_runs", []), task)
+                retires = retire_count(closed_pulls, task) if failed is not None else 0
+            except Exception:
+                # Recovery only: if GitHub cannot be read, retire nothing.
+                failed = None
+            if failed is not None and retires < MAX_REHEARSAL_RETIRES:
+                outcomes.append({"request": request, "lot_id": lot_id,
+                                 **retire_stale_exam(request, task, head,
+                                                     reason=rehearsal_reason(task, failed))})
+                continue
         if pending_draft(f"lf/native-registration/{candidate}-"):
             outcomes.append({"request": request, "lot_id": lot_id,
                              "status": "ALREADY_PREPARED"})

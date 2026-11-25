@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0478",
+  "title": "Examen: referencia validada con los comandos visibles antes de publicar; retiro E2 también tras un ensayo T40 fallido",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 25/11: la referencia de req652backend2 (examen v2) no implementa operaciones del contrato y falla backend-contract-operations en T40"
+  },
+  "reason": "(1) publish_exam corre los comandos visibles de la plantilla del lote sobre base + referencia (orden del Worker) y bloquea con EXAM_REFERENCE_FAILS_VISIBLE:<comando>, así el examinador lo corrige antes de publicar. (2) Si igual el ensayo T40 del último registro de la tarea falla, CP3.6 retira el examen como en E2 (máximo 2 retiros por tarea), cierra el borrador y comenta en el exam-request el veredicto público (comandos visibles fallidos); la Política C re-verifica esa condición. EXAMINADOR_AUTOMATICO.md indica leer ese comentario. La detección no retira nada si no puede leer GitHub.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/auto_integrate.py",
+      "pilot/orchestrator/EXAMINADOR_AUTOMATICO.md",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/publish_exam.py",
+      "pilot/orchestrator/stale_exam.py",
+      "pilot/orchestrator/test_e2_stale_exam.py",
+      "pilot/orchestrator/test_t31_publish_exam.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0478.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/715"
+  }
+}

@@ -62,3 +62,36 @@ def is_stale(root: Path, task: str, dependency_tasks: list[str], rev: str = "HEA
         if _git(root, "merge-base", "--is-ancestor", merged, published).returncode != 0:
             return True
     return False
+
+
+MAX_REHEARSAL_RETIRES = 2
+
+
+def rehearsal_failure(list_pulls, check_runs, task: str) -> dict | None:
+    """Latest registration PR of the task whose T40 'rehearse' check failed.
+
+    list_pulls() -> GitHub pulls (state=all); check_runs(sha) -> check runs.
+    Returns {"pr", "head_sha", "job_id"} or None. Public metadata only."""
+    prefix = f"lf/native-registration/{task}-"
+    rows = [p for p in list_pulls() if isinstance(p, dict)
+            and str((p.get("head") or {}).get("ref", "")).startswith(prefix)]
+    if not rows:
+        return None
+    latest = max(rows, key=lambda p: (str(p.get("created_at") or ""), int(p.get("number") or 0)))
+    sha = (latest.get("head") or {}).get("sha")
+    if not isinstance(sha, str) or not SHA.fullmatch(sha):
+        return None
+    runs = [c for c in check_runs(sha) if isinstance(c, dict) and c.get("name") == "rehearse"
+            and c.get("status") == "completed"]
+    if not runs:
+        return None
+    last = max(runs, key=lambda c: (str(c.get("started_at") or ""), int(c.get("id") or 0)))
+    if last.get("conclusion") != "failure":
+        return None
+    return {"pr": int(latest["number"]), "head_sha": sha, "job_id": int(last["id"])}
+
+
+def retire_count(list_pulls, task: str) -> int:
+    prefix = f"lf/exam-retire/{task}-"
+    return sum(1 for p in list_pulls() if isinstance(p, dict) and p.get("merged_at")
+               and str((p.get("head") or {}).get("ref", "")).startswith(prefix))

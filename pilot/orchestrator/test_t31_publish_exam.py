@@ -205,3 +205,26 @@ def test_main_worker_loader_precedes_reference_and_mutant_compilation(
     assert pe.main() == 1
     assert calls == ["worker_load"]
     assert "EXAM_WORKER_LOADER_REJECTED" in capsys.readouterr().out
+
+
+def test_reference_must_pass_the_lots_visible_commands(tmp_path, monkeypatch):
+    import subprocess as _sp
+    work = tmp_path / "work"
+    work.mkdir()
+    _sp.run(["git", "init", "-q"], cwd=work, check=True)
+    (work / "base.txt").write_text("base")
+    _sp.run(["git", "add", "."], cwd=work, check=True)
+    ref = tmp_path / "ref"
+    (ref / "src").mkdir(parents=True)
+    (ref / "src/ok.txt").write_text("ok")
+    folder = tmp_path / "runs/req-1/templates"
+    folder.mkdir(parents=True)
+    check = ("import pathlib,sys; sys.exit(0 if pathlib.Path('src/ok.txt').exists() else 1)")
+    folder.joinpath("t1.task.json").write_text(json.dumps({"task_spec": {"acceptance_commands": [
+        {"name": "visible-ok", "argv": ["lf-python", "-c", check], "timeout_seconds": 30}]}}))
+    monkeypatch.setattr(pe, "storage_path", lambda key, root: tmp_path / "runs")
+    pe.visible_preflight(tmp_path, "req-1", "t1", work, ref, sys.executable)
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    with pytest.raises(pe.ExamBlocked, match="EXAM_REFERENCE_FAILS_VISIBLE:visible-ok"):
+        pe.visible_preflight(tmp_path, "req-1", "t1", work, empty, sys.executable)

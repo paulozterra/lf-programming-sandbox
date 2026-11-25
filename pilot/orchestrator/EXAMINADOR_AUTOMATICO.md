@@ -20,6 +20,8 @@ cd main && python3 pilot/orchestrator/examiner_queue.py > /tmp/queue.json
 
 Poner la etiqueta `examiner-working` al issue (evita que otra corrida la tome) y comentar: "Examinador automático: escribiendo el examen".
 
+Si el issue tiene un comentario "Examen retirado (E2)", el examen anterior se retiró porque su referencia no pasó el ensayo T40: leer el comando visible indicado y corregir la referencia para que lo pase (por ejemplo, implementar todas las operaciones del contrato asociadas a las reglas del lote).
+
 ## 2. Brief (sin explorar el repo)
 
 ```bash
@@ -56,7 +58,7 @@ python3 pilot/orchestrator/publish_exam.py --task <task> --request <req> \
   --derived-from "ficha <fixture> (<códigos>)"
 ```
 
-Exige referencia PASS, todos los mutantes FAIL y cifrado verificado. Si bloquea: leer el código, corregir y repetir. **Máximo 3 vueltas** por tarea.
+Exige que la referencia pase los comandos visibles del lote (`EXAM_REFERENCE_FAILS_VISIBLE:<comando>`), referencia PASS en el examen, todos los mutantes FAIL y cifrado verificado. Si bloquea: leer el código, corregir y repetir. **Máximo 3 vueltas** por tarea.
 
 ## 5. Publicar
 
