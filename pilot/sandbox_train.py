@@ -385,12 +385,58 @@ def wait_for_pushed_head(number, merged_head):
         time.sleep(5)
 
 
+# A completed successful CI can leave an individual check stuck in GitHub.
+# Never synthesize a successful check: ask Actions to rerun the exact job.
+CHECK_RECOVERY_GRACE_SECONDS = 180
+
+
+def recover_inconsistent_ci_job(sha, missing, found, recovery_attempts):
+    key = ("check_recovery", sha)
+    if key in recovery_attempts or len(missing) != 1 or missing[0] not in REQUIRED:
+        return False
+    name = missing[0]
+    runs = ci_workflow_runs_for_head(sha)
+    if not runs or any(r.get("status") != "completed" for r in runs):
+        return False
+    latest = max(runs, key=lambda r: (r["id"], r.get("run_attempt", 1)))
+    if (latest.get("conclusion") != "success" or
+            latest.get("head_repository", {}).get("full_name") != os.environ["GITHUB_REPOSITORY"]):
+        return False
+    jobs = api("GET", f"/actions/runs/{latest['id']}/jobs?filter=latest&per_page=100")
+    rows = jobs.get("jobs", [])
+    if jobs.get("total_count") != len(rows) or len(rows) >= 100:
+        return False
+    matches = [j for j in rows if j.get("name") == name]
+    if len(matches) != 1:
+        return False
+    job = matches[0]
+    check = found.get(name)
+    if (job.get("head_sha") != sha or job.get("run_id") != latest["id"] or
+            job.get("conclusion") != "success" or
+            job.get("status") not in ("completed", "in_progress") or
+            not isinstance(job.get("id"), int)):
+        return False
+    if check is not None and (check.get("conclusion") not in (None, "success") or
+            check.get("status") == "completed" or
+            not (job.get("check_run_url") or "").endswith("/" + str(check["id"]))):
+        return False
+    # Consume budget before POST: an ambiguous response must not cause another mutation.
+    recovery_attempts.add(key)
+    print(json.dumps({"event": "ci_check_recovery_requested", "head": sha,
+                      "run": latest["id"], "job": job["id"], "check": name,
+                      "job_status": job["status"], "observed_check": check}), flush=True)
+    api("POST", f"/actions/jobs/{job['id']}/rerun", {}, expected=(201, 202, 204))
+    return True
+
+
 def await_checks(number, sha, dispatched_heads=None):
     dispatched_heads = dispatched_heads if dispatched_heads is not None else set()
     required = REQUIRED + ((REHEARSAL_CHECK,) if needs_rehearsal(number) else ())
     start = time.monotonic()
     deadline = start + WAIT_SECONDS
     pending_since = None  # first time an approvable CI run was seen (review H1)
+    inconsistent_since = None
+    last_missing = None
     while time.monotonic() < deadline:
         pr = pr_data(number)
         check_pr(pr)
@@ -436,8 +482,22 @@ def await_checks(number, sha, dispatched_heads=None):
             if extra_bad:
                 raise TrainError("EXTRA_CHECK_FAILED " + json.dumps(extra_bad))
             return {name: found[name] for name in required}
-        print(json.dumps({"event": "waiting_checks", "head": sha, "missing": missing}), flush=True)
+        if missing != last_missing:
+            inconsistent_since = time.monotonic()
+            last_missing = missing
+        if time.monotonic() - inconsistent_since >= CHECK_RECOVERY_GRACE_SECONDS:
+            # Re-read PR authorization and exact HEAD immediately before mutation.
+            current = pr_data(number)
+            check_pr(current)
+            if current["head"]["sha"] != sha:
+                return None
+            recover_inconsistent_ci_job(sha, missing, found, dispatched_heads)
+        print(json.dumps({"event": "waiting_checks", "head": sha, "missing": missing,
+                          "observed": {name: found.get(name) for name in missing},
+                          "recovery_attempted": ("check_recovery", sha) in dispatched_heads}), flush=True)
         time.sleep(POLL_SECONDS)
+    if ("check_recovery", sha) in dispatched_heads:
+        raise TrainError("CHECK_RECOVERY_TIMEOUT " + json.dumps({"head": sha, "missing": last_missing}))
     raise TrainError("CHECK_WAIT_TIMEOUT")
 
 
