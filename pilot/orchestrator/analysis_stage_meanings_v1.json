@@ -11,7 +11,9 @@
       "SOURCE_READBACK_PROCESSED_UNATTESTED": "Se procesó la ficha fuente, sin acreditar autoridad de producción"
     },
     "A4": {
-      "PLANNED_BUILD_IMPACT_UNATTESTED": "Se identificó impacto de implementación, pendiente de acreditación"
+      "PLANNED_BUILD_IMPACT_UNATTESTED": "Se identificó impacto de implementación, pendiente de acreditación",
+      "IMPACT_UNKNOWN": "Modificación de una pantalla implementada: impacto proyectado sobre sus archivos atestiguados; quedan huecos solo de evidencia sin atestiguar (no autoridad ni efecto real)",
+      "PROJECTED_UNATTESTED": "Modificación de una pantalla implementada: impacto proyectado sobre sus archivos atestiguados, sin huecos materiales (candidato sin atestiguar)"
     },
     "A5": {
       "UNRESOLVED": "Las decisiones de gobierno o autoridad siguen sin resolverse"

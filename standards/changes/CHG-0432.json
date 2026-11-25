@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0432",
+  "title": "Informe de análisis: significado de los estados de A4 en MODIFY",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 24/11: req-652 (modifica SBX-B2B-LOGIN) bloqueado en T7 con GENERATED_CONTENT_DRIFT"
+  },
+  "reason": "El informe de análisis exige un significado por estado de etapa y solo conocía el estado de A4 de una construcción nueva; un pedido MODIFY (A4 IMPACT_UNKNOWN o PROJECTED_UNATTESTED) se bloqueaba al escribir el informe, después de planificar. Se agregan esos dos significados. Verificado con T7 completo en local sobre main para req-652: LOTS_PLANNED con CONTRATO, BACKEND, CHARACTERIZATION y FRONTEND.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/analysis_stage_meanings_v1.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0432.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
