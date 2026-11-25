@@ -140,9 +140,18 @@ def run_reference(source: Path, spec, oracle, patch: str, work_parent: Path) -> 
             outcome = run_verified_worker(source, spec, ReferenceClient(patch), oracle,
                                           work_parent=work_parent)
         receipt = outcome.receipt
-        return {"status": str(receipt.get("status")), "reason": str(receipt.get("reason")),
-                "visible_failed": visible_failures(receipt),
-                "patch_reason": patch_rejection(receipt)}
+        result = {"status": str(receipt.get("status")), "reason": str(receipt.get("reason"))}
+        if result["status"] != "PASS" and result["reason"].startswith("VISIBLE_"):
+            # The verified receipt keeps only the visible receipt's hash. Re-run
+            # the visible part alone (never the hidden oracle) for public detail.
+            from programming_agent_runner.worker import run_worker
+            reset_disposable_database()
+            with worker_database_environment():
+                visible = run_worker(source, spec, ReferenceClient(patch),
+                                     work_parent=work_parent)
+            result["visible_failed"] = visible_failures(visible.receipt)
+            result["patch_reason"] = patch_rejection(visible.receipt)
+        return result
     except Exception as exc:  # the control itself failing is a route defect
         return {"status": "BLOCKED", "reason": "CONTROL_ERROR:" + type(exc).__name__}
 
