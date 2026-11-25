@@ -396,7 +396,8 @@ def recover_inconsistent_ci_job(sha, missing, found, recovery_attempts):
         return False
     name = missing[0]
     runs = ci_workflow_runs_for_head(sha)
-    if not runs or any(r.get("status") != "completed" for r in runs):
+    if (not runs or any(r.get("head_sha") != sha or r.get("status") != "completed" for r in runs)
+            or ci_workflow_runs_for_head(sha, pending_approval=True)):
         return False
     latest = max(runs, key=lambda r: (r["id"], r.get("run_attempt", 1)))
     if (latest.get("conclusion") != "success" or
@@ -473,7 +474,8 @@ def await_checks(number, sha, dispatched_heads=None):
         failed = [name for name in required if name in found and found[name]["conclusion"] not in (None, "success")]
         if failed:
             raise TrainError("CHECK_FAILED " + json.dumps({name: found[name] for name in failed}))
-        missing = [name for name in required if name not in found or found[name]["status"] != "completed"]
+        missing = [name for name in required if name not in found or
+                   found[name]["status"] != "completed" or found[name]["conclusion"] != "success"]
         if not missing:
             # Any completed failing GitHub Actions check on this SHA is blocking.
             extra_bad = {name: value for name, value in found.items()
@@ -491,7 +493,10 @@ def await_checks(number, sha, dispatched_heads=None):
             check_pr(current)
             if current["head"]["sha"] != sha:
                 return None
-            recover_inconsistent_ci_job(sha, missing, found, dispatched_heads)
+            if not any(v["status"] == "completed" and v["conclusion"] not in
+                       ("success", "skipped", "neutral") for n, v in found.items()
+                       if n not in missing):
+                recover_inconsistent_ci_job(sha, missing, found, dispatched_heads)
         print(json.dumps({"event": "waiting_checks", "head": sha, "missing": missing,
                           "observed": {name: found.get(name) for name in missing},
                           "recovery_attempted": ("check_recovery", sha) in dispatched_heads}), flush=True)
