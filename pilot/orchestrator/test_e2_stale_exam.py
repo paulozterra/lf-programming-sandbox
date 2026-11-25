@@ -19,7 +19,7 @@ def _repo(tmp_path):
 
 
 def _exam(git, tmp_path, task, n):
-    (tmp_path / f"pilot/holdouts/{task}.oracle.json.age").write_text(str(n))
+    (tmp_path / f"pilot/holdouts/{task}.oracle.json.age").write_bytes(b"\x00\xffsynthetic-age-" + str(n).encode("ascii"))
     git("add", "."); git("commit", "-qm", f"exam({task}) v{n}")
 
 
