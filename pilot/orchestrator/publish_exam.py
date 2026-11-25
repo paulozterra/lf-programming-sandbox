@@ -93,6 +93,12 @@ def overlay(base: Path, files: Path, dest: Path) -> None:
         shutil.copyfile(src, target)
 
 
+def command_env() -> dict:
+    """Like the Worker bridge: fictitious SBX_FIXTURE_* credentials by env."""
+    from pilot.worker_v08.fixture_credentials import fixture_environment
+    return {**os.environ, **fixture_environment()}
+
+
 def run_oracle(raw: bytes, workdir: Path, python: str) -> bool:
     for cmd in json.loads(raw)["commands"]:
         argv = list(cmd["argv"])
@@ -100,7 +106,7 @@ def run_oracle(raw: bytes, workdir: Path, python: str) -> bool:
             argv[0] = python
         try:
             result = subprocess.run(argv, cwd=workdir, capture_output=True, text=True,
-                                    timeout=cmd["timeout_seconds"])
+                                    timeout=cmd["timeout_seconds"], env=command_env())
         except subprocess.TimeoutExpired:
             return False
         if result.returncode != 0:
@@ -185,7 +191,8 @@ def visible_preflight(root: Path, request: str, task: str, worktree: Path,
                 argv[0] = python
             try:
                 result = subprocess.run(argv, cwd=case, capture_output=True, text=True,
-                                        timeout=int(cmd.get("timeout_seconds", 600)))
+                                        timeout=int(cmd.get("timeout_seconds", 600)),
+                                        env=command_env())
             except (OSError, subprocess.TimeoutExpired):
                 raise ExamBlocked("EXAM_REFERENCE_FAILS_VISIBLE:" + name) from None
             if result.returncode != 0:

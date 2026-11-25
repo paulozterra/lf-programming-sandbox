@@ -138,7 +138,7 @@ jobs:
           LF_TEST_REAL_WORKER_DB: "YES"
         run: |
           python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt pytest==8.4.2
-          python3 -m pytest -q pilot/worker_v08/test_worker_db_env.py -p no:cacheprovider
+          python3 -m pytest -q pilot/worker_v08/test_worker_db_env.py pilot/worker_v08/test_fixture_credentials.py -p no:cacheprovider
       - name: "T2: verify live springdoc operations against every contract"
         working-directory: .
         run: |
