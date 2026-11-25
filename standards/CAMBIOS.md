@@ -297,4 +297,4 @@
 | CHG-0469 | EDITORIAL | Ensayo T40: informar el rechazo del parche de referencia (categoría y ruta) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/705 |
 | CHG-0473 | EDITORIAL | Ensayo T40: detalle visible real (el recibo verificado no trae intentos) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/710 |
 | CHG-0478 | EDITORIAL | Examen: referencia validada con los comandos visibles antes de publicar; retiro E2 también tras un ensayo T40 fallido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/715 |
-| CHG-0480 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
+| CHG-0480 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/717 |
