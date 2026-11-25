@@ -252,6 +252,12 @@ def _spawn(argv: list[str], root: Path) -> subprocess.Popen:
 
 
 DIAGNOSIS_LINES = 25
+# Same families the Worker rejects (keys, tokens, private keys, password=...);
+# local so the gate keeps no runtime dependency on the vendored Worker.
+_SECRETISH = re.compile(
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\bsk-[A-Za-z0-9_-]{20,}|\bgh[pousr]_[A-Za-z0-9]{30,}"
+    r"|\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"
+    r"|(?i:\b(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|secret)\b\s*[:=]\s*\S+)")
 
 
 def _start_diagnosis(name: str, proc: subprocess.Popen, seconds: int) -> None:
@@ -269,14 +275,10 @@ def _start_diagnosis(name: str, proc: subprocess.Popen, seconds: int) -> None:
         lines = log.read().decode("utf-8", "replace").splitlines()[-DIAGNOSIS_LINES:]
     except OSError:
         return
-    try:
-        from programming_agent_runner.worker_secrets import secret_text_reason
-    except ImportError:
-        secret_text_reason = lambda text: None  # noqa: E731
     hidden = [v for k, v in os.environ.items()
               if v and (k == "DB_PASSWORD" or k.startswith("SBX_FIXTURE_"))]
     for line in lines:
-        if secret_text_reason(line) or any(v in line for v in hidden):
+        if _SECRETISH.search(line) or any(v in line for v in hidden):
             line = "<línea omitida: posible secreto>"
         print(f"  {name}| {line[:300]}", file=sys.stderr)
 
