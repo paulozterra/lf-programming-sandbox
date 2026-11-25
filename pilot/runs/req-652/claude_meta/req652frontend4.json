@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/req652frontend4.oracle.json.age",
+  "holdout_sha256": "51780450246b5ea2bc6fee484de21238cb45fbabece7a1691a7cd9da730b5373",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "ficha sbx_b2b_login (SBX-B2B-R-INT-HOME, SBX-B2B-R-INT-ROUTE, SBX-B2B-R-LAYOUT-COMPOSITION)"
+}
