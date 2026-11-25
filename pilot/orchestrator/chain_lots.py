@@ -912,6 +912,9 @@ def pending_draft(prefix: str) -> bool:
 _EXAM_RUN_CACHE: dict[str, dict] = {}
 
 
+EXAM_RETRY_LABEL = "exam-retry"
+
+
 def exam_issue_marker(task: str) -> str:
     if not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task):
         deny("EXAM_REQUEST_TASK_INVALID")
@@ -1311,6 +1314,26 @@ def rehearsal_reason(task: str, failed: dict) -> str:
     text = logs.decode("utf-8", "replace") if isinstance(logs, bytes) else str(logs)
     found = re.findall(re.escape(task) + r": (REHEARSAL_FAIL:[\w ./:=,-]{1,300})", text)
     return found[-1] if found else "REHEARSAL_FAIL"
+
+
+def signal_exam_retry(task: str) -> str:
+    """Event for the examiner routine: label the open exam request of a task
+    whose exam was retired with `exam-retry` (GitHub `labeled` event), so it is
+    rewritten in minutes instead of waiting for the hourly backup run. The
+    examiner removes the label when it claims the task. Best effort."""
+    try:
+        for issue in listed_exam_requests():
+            if (isinstance(issue, dict) and issue.get("state") == "open"
+                    and str(issue.get("title", "")) == "EXAM_REQUEST: " + task):
+                labels = {str(l.get("name")) for l in issue.get("labels", []) if isinstance(l, dict)}
+                if EXAM_RETRY_LABEL in labels or "examiner-working" in labels:
+                    return "EXAM_RETRY_ALREADY_SIGNALED"
+                run("gh", "issue", "edit", str(int(issue["number"])), "--repo", REPO,
+                    "--add-label", EXAM_RETRY_LABEL)
+                return "EXAM_RETRY_SIGNALED"
+    except (ChainBlocked, ValueError, OSError, subprocess.SubprocessError):
+        return "EXAM_RETRY_SIGNAL_FAILED"
+    return "EXAM_RETRY_NO_OPEN_REQUEST"
 
 
 def retire_stale_exam(request: str, task: str, head: str, reason: str | None = None) -> dict:
@@ -2219,6 +2242,9 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
             continue
         admission = admit_registration(request, chosen, lot, head)
         if admission is not None:
+            from stale_exam import exam_retired
+            if candidate == task and exam_retired(ROOT, task):
+                admission = {**admission, "exam_retry": signal_exam_retry(task)}
             outcomes.append({"request": request, "lot_id": lot_id, **admission})
             continue
         outcomes.append({"request": request, "lot_id": lot_id,

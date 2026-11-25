@@ -112,3 +112,41 @@ def test_pending_retire_api_error():
         raise OSError("API unavailable")
     with pytest.raises(OSError):
         se.pending_retire_pr(unavailable, "t1")
+
+
+def _signal(monkeypatch, rows):
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import chain_lots as cl
+    calls = []
+    monkeypatch.setattr(cl, "listed_exam_requests", lambda: rows)
+    monkeypatch.setattr(cl, "run", lambda *a, **k: calls.append(a) or "")
+    return cl, calls
+
+
+def test_retired_exam_signals_retry_once_on_its_open_request(monkeypatch):
+    rows = [{"number": 9, "state": "closed", "title": "EXAM_REQUEST: r1backend2", "labels": []},
+            {"number": 10, "state": "open", "title": "EXAM_REQUEST: r1backend22", "labels": []},
+            {"number": 11, "state": "open", "title": "EXAM_REQUEST: r1backend2",
+             "labels": [{"name": "exam-request"}]}]
+    cl, calls = _signal(monkeypatch, rows)
+    assert cl.signal_exam_retry("r1backend2") == "EXAM_RETRY_SIGNALED"
+    assert calls == [("gh", "issue", "edit", "11", "--repo", cl.REPO, "--add-label", "exam-retry")]
+
+
+@pytest.mark.parametrize("label", ["exam-retry", "examiner-working"])
+def test_retry_not_resignaled_while_pending_or_claimed(monkeypatch, label):
+    rows = [{"number": 11, "state": "open", "title": "EXAM_REQUEST: r1backend2",
+             "labels": [{"name": label}]}]
+    cl, calls = _signal(monkeypatch, rows)
+    assert cl.signal_exam_retry("r1backend2") == "EXAM_RETRY_ALREADY_SIGNALED" and not calls
+
+
+def test_retry_signal_is_best_effort(monkeypatch):
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import chain_lots as cl
+    def boom():
+        raise cl.ChainBlocked("EXAM_REQUEST_LIST_UNTRUSTED")
+    monkeypatch.setattr(cl, "listed_exam_requests", boom)
+    assert cl.signal_exam_retry("r1backend2") == "EXAM_RETRY_SIGNAL_FAILED"
