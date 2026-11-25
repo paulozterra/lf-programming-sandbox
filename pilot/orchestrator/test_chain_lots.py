@@ -794,3 +794,15 @@ def test_train_blocks_registration_removal_without_plan():
             "a" * 40, "b" * 40,
             [{"filename": "pilot/worker_v08/native_tasks/" + OLD + ".json",
               "status": "removed"}])
+
+
+def test_registry_draft_with_current_entries_is_not_superseded():
+    import json as _json
+    import chain_lots as _cl
+    ledger = {"schema_version": "T7_IMPLEMENTED_REGISTRY_V1", "source_main_sha": "a" * 40,
+              "entries": [{"request": "req-1"}]}
+    older = _json.dumps(dict(ledger, source_main_sha="b" * 40)).encode()
+    assert _cl.same_registry_entries(older, ledger)
+    assert not _cl.same_registry_entries(_json.dumps(dict(ledger, entries=[])).encode(), ledger)
+    assert not _cl.same_registry_entries(None, ledger)
+    assert not _cl.same_registry_entries(b"not json", ledger)

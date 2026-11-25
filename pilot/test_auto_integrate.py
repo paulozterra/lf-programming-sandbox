@@ -310,6 +310,43 @@ class T7GeneratedPolicyTests(unittest.TestCase):
                         ai.evaluate_one(api, 129)
         self.assertEqual(api.writes, [])
 
+    def _registry_check(self, proposed_obj, *, ancestor=True, raw=None):
+        import json as _json
+        from types import SimpleNamespace
+        registry_paths = ["pilot/registry/implemented.json"]
+        item = self.generated("lf/implemented-registry", registry_paths)
+        item["head"]["ref"] = "lf/implemented-registry/" + "b" * 12   # older main
+        api = FakeAPI(item, registry_paths, checks())
+        current = {"schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
+                   "source_main_sha": HEAD, "entries": [{"request": "req-1"}]}
+        if raw is None:
+            raw = (_json.dumps(proposed_obj, sort_keys=True, ensure_ascii=False, indent=2)
+                   + "\n").encode()
+        def fake_run(args, **kw):
+            if "merge-base" in args:
+                return SimpleNamespace(returncode=0 if ancestor else 1, stdout="")
+            return SimpleNamespace(stdout=HEAD + "\n", returncode=0)
+        with patch.object(ai.subprocess, "run", side_effect=fake_run), \
+             patch("pilot.orchestrator.implemented_registry.reconstruct", return_value=current), \
+             patch.object(ai, "_content", return_value=raw):
+            ai.verify_generated_content(api, item, registry_paths, "implemented-registry")
+
+    def test_registry_draft_from_older_main_with_same_entries_is_valid(self):
+        older = {"schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
+                 "source_main_sha": "b" * 40, "entries": [{"request": "req-1"}]}
+        self._registry_check(older)
+
+    def test_registry_draft_with_other_entries_or_unrelated_base_blocks(self):
+        other = {"schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
+                 "source_main_sha": "b" * 40, "entries": []}
+        with self.assertRaisesRegex(ai.PolicyBlocked, "GENERATED_CONTENT_DRIFT"):
+            self._registry_check(other)
+        same = dict(other, entries=[{"request": "req-1"}])
+        with self.assertRaisesRegex(ai.PolicyBlocked, "GENERATED_CONTENT_DRIFT"):
+            self._registry_check(same, ancestor=False)
+        with self.assertRaisesRegex(ai.PolicyBlocked, "GENERATED_CONTENT_DRIFT"):
+            self._registry_check(same, raw=b'{"entries":[{"request":"req-1"}],"schema_version":"T7_IMPLEMENTED_REGISTRY_V1","source_main_sha":"' + b"b" * 40 + b'"}')
+
     def test_generated_analysis_drift_blocks_without_label(self):
         allowed = ["pilot/runs/sample/analysis.json"]
         item = self.generated("lf/generated-t7", allowed)

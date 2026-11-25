@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0420",
+  "title": "Registro de implementaciones: borrador válido por contenido, no por el commit de main",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 24/11: req-619 (modifica SBX-B2B-LOGIN) se planificó como CREATE porque el registro en main no se actualizaba"
+  },
+  "reason": "CP3.6 regenera pilot/registry/implemented.json en un borrador y lo cerraba como superado cada vez que main avanzaba; la Política C solo lo aceptaba si la rama coincidía con el main actual. Con main moviéndose cada pocos minutos ningún borrador se integró (#599 a #628) y el registro quedó sin req-286/req-391: la ruta no podía ver que el login existe y planificó un MODIFY como CREATE. Ahora el borrador vale mientras sus entradas sean iguales a la regeneración sobre el main actual, su source_main_sha sea ancestro de main y esté serializado de forma canónica; CP3.6 no lo cierra mientras siga vigente. Los análisis T7 siguen atados al main exacto.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/auto_integrate.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/test_chain_lots.py",
+      "pilot/test_auto_integrate.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0420.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
