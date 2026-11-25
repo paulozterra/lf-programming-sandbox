@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import urllib.error
 import urllib.request
 
@@ -147,7 +148,54 @@ def git(*args):
     subprocess.run(["git", *args], check=True)
 
 
+REJECTION_GUIDANCE = {
+    "PEDIDO_FORMULARIO_INVALIDO": "Usa la plantilla Nuevo pedido con un único campo ### Pedido.",
+    "PEDIDO_VACIO": "Completa el campo Pedido con la solicitud.",
+    "PEDIDO_FECHA_INVALIDA": "Solicita al responsable revisar la fecha del issue.",
+    "PEDIDO_EVENTO_NO_COINCIDE": "Solicita al responsable revisar los datos del evento.",
+    "PEDIDO_YA_EXISTE": "Solicita al responsable revisar el registro existente.",
+}
+
+
+def notify_rejection(api: API, number: int, code: str) -> None:
+    if type(number) is not int or number < 1:
+        return
+    if not re.fullmatch(r"[A-Z][A-Z0-9_]{3,100}", code):
+        return
+    marker = f"<!-- lf-t9-rejection:{code} -->"
+    try:
+        for page in range(1, 11):
+            rows = api.call("GET", f"/issues/{number}/comments?per_page=100&page={page}")
+            if not isinstance(rows, list) or len(rows) > 100:
+                raise ValueError("PEDIDO_COMMENT_HISTORY_INVALID")
+            for row in rows:
+                user, body = row.get("user"), row.get("body")
+                if not isinstance(user, dict) or not isinstance(body, str):
+                    raise ValueError("PEDIDO_COMMENT_HISTORY_INVALID")
+                if user.get("login") == BOT and marker in body.splitlines():
+                    return
+            if len(rows) < 100:
+                break
+        else:
+            raise ValueError("PEDIDO_COMMENT_HISTORY_INCOMPLETE")
+        guidance = REJECTION_GUIDANCE.get(
+            code, "Solicita al responsable de T9 revisar este código antes de reintentar.")
+        api.comment(number, f"{marker}\n{code}\n{guidance}")
+    except Exception:
+        print(f"T9_COMMENT_FAILED {code}", file=sys.stderr, flush=True)
+
+
 def intake(api: API, event: dict):
+    try:
+        return _intake(api, event)
+    except Blocked as exc:
+        issue = event.get("issue")
+        if isinstance(issue, dict):
+            notify_rejection(api, issue.get("number"), str(exc))
+        raise
+
+
+def _intake(api: API, event: dict):
     issue_event = event.get("issue", {})
     info = metadata(issue_event)
     issue = api.issue(info["issue"])
