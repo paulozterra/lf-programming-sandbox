@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0436",
+  "title": "La ruta se recupera sola: reintento de T7 tras un arreglo, de arranque de la app y del control del registro",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 24/11: req-652 necesitó intervenciones manuales (relanzar T7, relanzar Playwright, relanzar el control del registro); priorizar que no haya que tocar la ruta"
+  },
+  "reason": "Tres pasos que hoy requerían a una persona pasan a ser automáticos, con topes: (1) el barrido programado de T7 reintenta un pedido abierto cuyo T7 falló si main cambió código de la ruta (pilot/ o analysis/, sin datos de pedidos, exámenes ni tareas nativas) después de la última falla, como máximo 3 fallas por pedido; sin cambio de la ruta queda detenido. (2) playwright_gate vuelve a levantar la app una vez si no arrancó (APP_NO_ARRANCA, falla conocida del runner); una aserción fallida nunca se reintenta. (3) la Política C, cuando la verificación de confianza del borrador del registro pasa sobre el main actual pero su control de CI falló antes, relanza ese control, como máximo 3 fallas por commit.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/auto_integrate.py",
+      "pilot/orchestrator/t7_pending_reconcile.py",
+      "pilot/orchestrator/test_r1_t7_reconcile.py",
+      "pilot/test_auto_integrate.py",
+      "pilot/worker_v08/playwright_gate.py",
+      "pilot/worker_v08/test_playwright_gate.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0436.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
