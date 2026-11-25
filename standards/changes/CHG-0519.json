@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0519",
+  "title": "Admitir la ruta exacta de caracterización T7 en CP3.4",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 25/11: corregir CP34_FAKE_OR_UNSAFE_PATH en lotes de caracterización"
+  },
+  "reason": "El plan T7 de caracterización FRONTEND genera una suite JSON legítima. CP3.4 admite únicamente la ruta exacta derivada de la identidad y del componente configurado, con el lote comprometido como evidencia; conserva las restricciones ordinarias.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/native_lot_binding.py",
+      "pilot/orchestrator/native_lot_registration.py",
+      "pilot/orchestrator/test_native_lot_binding.py",
+      "pilot/worker_v08/lot_preflight.py",
+      "pilot/worker_v08/test_lot_preflight.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0519.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/755"
+  }
+}

@@ -226,3 +226,48 @@ def test_ex8b_base_preflight_still_passes():
     from lot_preflight import check_task
     result = check_task(root, registered)
     assert result["context_files"] == 11
+
+
+def test_characterization_preflight_requires_committed_plan(tmp_path):
+    import hashlib
+    from lot_preflight import check_task
+    root = repo(tmp_path)
+    folder = "pilot/runs/req-999"
+    target = "frontend/visible-tests/sol-k123456789abc.json"
+    sibling = "frontend/visible-tests/home.json"
+    lot = {"id": "SOL-K123456789abc", "area": "FRONTEND",
+           "lot_kind": "CHARACTERIZATION",
+           "producer_route": "T7_CHARACTERIZATION_NOT_PG04_PG05",
+           "production_authority": False, "handoff_allowed": False,
+           "write_paths": [target]}
+    lots = {"schema_version": "CP33_LOTS_CANDIDATE_V1",
+            "production_authority": False, "lots": [lot]}
+    raw = json.dumps(lots, sort_keys=True, separators=(",", ":")) + "\n"
+    digest = hashlib.sha256(raw.encode()).hexdigest()
+    make_file(root, folder + "/lots.json", raw)
+    make_file(root, folder + "/state.json", json.dumps({"lots_sha256": digest}))
+    make_file(root, folder + "/chain_plan.json", json.dumps({
+        "schema_version": "CP36_CHAIN_PLAN_V1", "production_authority": False,
+        "request_id": "req-999", "lots_sha256": digest,
+        "bindings": [{"task_name": "syntheticfrontend1", "lot_id": lot["id"]}]}))
+    make_file(root, sibling, "{}")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "committed characterization plan")
+    task = {"task_id": "LF-WORKER-NATIVE-SYNTHETICFRONTEND1",
+            "base_head_sha": git(root, "rev-parse", "HEAD").strip(),
+            "context_path_patterns": ["README.md"],
+            "write_path_patterns": [target],
+            "protected_path_patterns": [sibling], "allow_deletions": False}
+    assert check_task(root, task)["write_files"] == 1
+    for changes in ({"task_id": "LF-WORKER-NATIVE-OTHER"},
+                    {"write_path_patterns": [sibling]},
+                    {"write_path_patterns": [target, "frontend/src/page.tsx"]},
+                    {"protected_path_patterns": []}, {"allow_deletions": True}):
+        with pytest.raises(LotBlocked, match="LOTE_ESCRITURA_FUERA_DE_SCOPE"):
+            check_task(root, dict(task, **changes))
+    # Mutable checkout cannot authorize a different identity.
+    plan = root / folder / "chain_plan.json"
+    plan.write_text(plan.read_text().replace("syntheticfrontend1", "other"))
+    with pytest.raises(LotBlocked, match="LOTE_ESCRITURA_FUERA_DE_SCOPE"):
+        check_task(root, dict(task, task_id="LF-WORKER-NATIVE-OTHER"))
+    assert check_task(root, task)["write_files"] == 1

@@ -112,7 +112,7 @@ def choose(root: Path, request: str, lot_id: str, proofs: list[dict]):
         blocked("CP34_DEPENDENCY_NOT_VERIFIED")
     lot = candidates[lot_id]
     return folder, lot, map_profile(lot["profile_code"], lot["area"]), real_write_paths(
-        root, lot["area"], lot["write_paths"])
+        root, lot["area"], lot["write_paths"], lot=lot)
 
 
 def verify_holdout(root: Path, name: str, config: dict) -> tuple[str, str]:
