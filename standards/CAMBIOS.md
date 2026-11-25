@@ -304,4 +304,4 @@
 | CHG-0504 | EDITORIAL | Evento exam-retry: el examen retirado se reescribe en minutos, no en la corrida horaria |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/740 |
 | CHG-0505 | ADDITIVE | Tiempos por paso de un pedido (línea de tiempo desde GitHub, solo lectura) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/741 |
 | CHG-0511 | EDITORIAL | Preflight del examen corre también los comandos de estándares que agrega el registro (STD-BE-05) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/747 |
-| CHG-0514 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0514 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/750 |
