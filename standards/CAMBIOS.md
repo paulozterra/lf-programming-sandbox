@@ -307,4 +307,4 @@
 | CHG-0515 | EDITORIAL | Recuperar barridos CP3.6 desplazados por otro merge |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/751 |
 | CHG-0519 | EDITORIAL | Admitir la ruta exacta de caracterización T7 en CP3.4 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/755 |
 | CHG-0521 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/757 |
-| CHG-0527 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0527 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/763 |
