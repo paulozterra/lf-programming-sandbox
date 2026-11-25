@@ -47,6 +47,7 @@ TRIGGERS = {
     ".github/workflows/native-verified-integration.yml": "CP3.5 native verified patch to draft PR",
 }
 SHA = re.compile(r"[0-9a-f]{40}\Z")
+MAX_API_BODY = 5_000_000
 CHG_NAME = re.compile(r"standards/changes/(CHG-[0-9]{4})\.json\Z")
 RUN_IN_BODY = re.compile(r"\brun:\s*\\?`?(\d{1,18})\\?`?", re.IGNORECASE)
 TASK_IN_BODY = re.compile(r"\bTask:\s*\\?`?([a-z][a-z0-9_-]{0,31})\\?`?", re.IGNORECASE)
@@ -268,8 +269,11 @@ class GitHub:
                      "User-Agent": "LF-auto-integrate-policy-C"})
         try:
             with urllib.request.build_opener(SafeRedirect()).open(req, timeout=30) as response:
-                content = response.read(1_500_001)
-                if len(content) > 1_500_000:
+                # Same bound as the registry reconstruction reader: a page of
+                # 100 closed PRs with their bodies exceeds 1.5 MB, which made
+                # policy C unable to regenerate the registry at all.
+                content = response.read(MAX_API_BODY + 1)
+                if len(content) > MAX_API_BODY:
                     block("API_BODY_OVERSIZE")
                 return content if raw else (json.loads(content) if content else {})
         except (urllib.error.HTTPError, urllib.error.URLError, ValueError, TimeoutError):

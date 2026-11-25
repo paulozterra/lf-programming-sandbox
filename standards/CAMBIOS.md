@@ -285,3 +285,4 @@
 | CHG-0416 | EDITORIAL | Catálogo de errores de la ruta: 19 códigos nuevos para el EKB |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/621 |
 | CHG-0420 | EDITORIAL | Registro de implementaciones: borrador válido por contenido, no por el commit de main |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/632 |
 | CHG-0424 | EDITORIAL | CP3.6: encadenamiento gobernado req-619 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/642 |
+| CHG-0428 | EDITORIAL | Política C: límite de lectura de la API igual al de la reconstrucción del registro |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/648 |
