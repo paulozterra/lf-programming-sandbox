@@ -302,6 +302,312 @@
       "causa_raiz": "La mezcla con main puede dejar conflictos o whitespace inválido detectado por git diff --check",
       "prevencion": "Regenerar artefactos derivados con generador limpio y comprobar diff antes de Train; preservar registros existentes",
       "validacion": "Pruebas de regeneración y git diff --check"
+    },
+    "EXAM_REFERENCE_OUT_OF_SCOPE": {
+      "categoria": "EXAMINER",
+      "severidad": "High",
+      "lifecycle_phase": "governance",
+      "consumer_role": [
+        "Judge"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "La referencia de un examen incluye archivos de otros lotes",
+      "descripcion": "El control positivo del examen dependía de lo que escribiera otro lote, no del lote examinado.",
+      "patron": "El ensayo T40 pasa o falla por archivos fuera de los write_paths del lote",
+      "causa_raiz": "La referencia se armó copiando la solución completa del pedido",
+      "prevencion": "La referencia contiene solo los write_paths de su lote y se ensaya sobre la base real del registro",
+      "validacion": "publish_exam rechaza EXAM_REFERENCE_OUT_OF_SCOPE"
+    },
+    "EXAM_FORMAT_LATE": {
+      "categoria": "EXAMINER",
+      "severidad": "Medium",
+      "lifecycle_phase": "governance",
+      "consumer_role": [
+        "Judge"
+      ],
+      "root_cause_family": "R5_EROSION_PROCESO",
+      "detectability": "LOUD_LATE",
+      "titulo": "Errores de forma del examen detectados tras compilar",
+      "descripcion": "Errores de forma del examen (assert sin código, credencial literal, timeout fuera de rango) aparecían después de 10 a 25 minutos de compilación.",
+      "patron": "publish_exam falla al final de la ejecución por un defecto de forma",
+      "causa_raiz": "No había validación barata del script antes de correr referencia y mutantes",
+      "prevencion": "Preflight de forma del examen antes de ejecutar referencia y mutantes",
+      "validacion": "EXAM_LINT_* en segundos dentro de publish_exam"
+    },
+    "EXAM_TRACE_RULE_NOT_IN_LOT": {
+      "categoria": "EXAMINER",
+      "severidad": "High",
+      "lifecycle_phase": "governance",
+      "consumer_role": [
+        "Judge"
+      ],
+      "root_cause_family": "R4_NO_CUESTIONA",
+      "detectability": "LOUD_LATE",
+      "titulo": "El examen exige algo que ninguna regla del lote pide",
+      "descripcion": "Un examen DATA exigía datos semilla que la regla asignada no permite producir desde una migración.",
+      "patron": "El lote falla siempre aunque cumpla su ficha",
+      "causa_raiz": "El examinador tradujo una obligación de otro lote o de otra área como exigencia del examen",
+      "prevencion": "Cada aserción del examen se rastrea a una regla del lote o a un estándar STD",
+      "validacion": "publish_exam rechaza EXAM_TRACE_RULE_NOT_IN_LOT"
+    },
+    "DELEGATE_WITHOUT_SIMULATION": {
+      "categoria": "ROUTE_OPERATION",
+      "severidad": "Medium",
+      "lifecycle_phase": "governance",
+      "consumer_role": [
+        "DevOps"
+      ],
+      "root_cause_family": "R3_NO_PRIORIZA",
+      "detectability": "PROCESS_DEPENDENT",
+      "titulo": "Se delega la ejecución sin simular el registro de los lotes",
+      "descripcion": "Se pidió ejecutar lotes sin verificar antes registro ni validaciones visibles; las compuertas aparecieron una por barrido.",
+      "patron": "Cada barrido del encadenador descubre una compuerta nueva",
+      "causa_raiz": "No se simuló prepare_successor ni las validaciones visibles antes de delegar",
+      "prevencion": "Simular registro y validaciones visibles de todos los lotes en un clon antes de delegar",
+      "validacion": "Simulación local antes de cada prompt de ejecución"
+    },
+    "TEST_BOUND_TO_REPO_STATE": {
+      "categoria": "CI_GOVERNANCE",
+      "severidad": "Medium",
+      "lifecycle_phase": "CI_VALIDATION",
+      "consumer_role": [
+        "Builder"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Pruebas de la ruta atadas al estado real del repo",
+      "descripcion": "Pruebas de la ruta leían el manifiesto real del proyecto o artefactos de un pedido y fallaron al integrar un lote o replanificar.",
+      "patron": "Una prueba antes verde falla tras integrar un lote sin cambios en la ruta",
+      "causa_raiz": "Las pruebas usaban datos reales del repositorio como fixture",
+      "prevencion": "Pruebas con manifiestos y contextos sintéticos",
+      "validacion": "Ninguna prueba lee pilot/runs de un pedido ni manifiestos reales"
+    },
+    "DATA_VISIBLE_NO_DB_CONN": {
+      "categoria": "ROUTE_TOOL",
+      "severidad": "High",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "El comando visible de DATA no recibe conexión a la base",
+      "descripcion": "El comando psql de un lote DATA no recibía variables de conexión en el Worker, que solo exponía DB_*.",
+      "patron": "El lote DATA falla en el comando visible con error de conexión",
+      "causa_raiz": "El puente del Worker no derivaba las variables PG desde DB_*",
+      "prevencion": "Derivar las variables PG desde las DB_* validadas en el puente",
+      "validacion": "Ensayo T40 de un lote DATA"
+    },
+    "MULTIAREA_RULE_SINGLE_LOT": {
+      "categoria": "PLANNING",
+      "severidad": "High",
+      "lifecycle_phase": "construction",
+      "consumer_role": [
+        "Architect"
+      ],
+      "root_cause_family": "R1_NO_SABE",
+      "detectability": "SILENT",
+      "titulo": "Regla con obligaciones en varias áreas asignada a un solo lote",
+      "descripcion": "Reglas con obligaciones en DATA y BACKEND quedaron solo en DATA; BACKEND no las integró.",
+      "patron": "Una regla aparece cumplida en un área y ausente en otra",
+      "causa_raiz": "El análisis asignaba cada regla a una sola área",
+      "prevencion": "obligation_areas en la regla y proyección a todos los lotes con obligación",
+      "validacion": "La plantilla de cada lote contiene sus obligaciones"
+    },
+    "REPLAN_BY_DELETION": {
+      "categoria": "ROUTE_OPERATION",
+      "severidad": "High",
+      "lifecycle_phase": "governance",
+      "consumer_role": [
+        "DevOps"
+      ],
+      "root_cause_family": "R5_EROSION_PROCESO",
+      "detectability": "LOUD_LATE",
+      "titulo": "Replanificación borrando salidas de T7 a mano",
+      "descripcion": "Borrar a mano las salidas de T7 para replanificar dejó dos altas del plan en conflicto.",
+      "patron": "CP3.6 encuentra planes duplicados del mismo pedido",
+      "causa_raiz": "Se intervino el estado del pedido fuera de la ruta",
+      "prevencion": "Replanificar solo por el Train con verify_no_execution",
+      "validacion": "CP3.6 acepta solo retiros gobernados"
+    },
+    "STALE_POLICY_ARTIFACT": {
+      "categoria": "PLANNING",
+      "severidad": "Medium",
+      "lifecycle_phase": "construction",
+      "consumer_role": [
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Plan generado con una política anterior",
+      "descripcion": "Un plan generado con una versión anterior de la política de lotes fue rechazado al registrar.",
+      "patron": "CP3.4 rechaza un lote planificado antes de un cambio de política",
+      "causa_raiz": "El artefacto no guardaba la versión de política con la que se generó",
+      "prevencion": "Guardar la versión de política en el artefacto y regenerar de forma gobernada",
+      "validacion": "Registro CP3.4 después de un cambio de política"
+    },
+    "GENERATED_FILE_HYGIENE": {
+      "categoria": "ROUTE_TOOL",
+      "severidad": "Low",
+      "lifecycle_phase": "CI_VALIDATION",
+      "consumer_role": [
+        "Builder"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_EARLY",
+      "titulo": "Archivo generado con espacios sobrantes bloquea el Train",
+      "descripcion": "Un profile.md generado con línea en blanco final bloqueó el Train.",
+      "patron": "El Train rechaza el PR por git diff --check",
+      "causa_raiz": "El generador no normalizaba el final del archivo",
+      "prevencion": "Generador limpio y Train revisando solo lo que cambia el PR",
+      "validacion": "git diff --check dentro de la prueba del generador"
+    },
+    "WATCHDOG_DROPS_REQUEST_FAILURE": {
+      "categoria": "EKB",
+      "severidad": "Medium",
+      "lifecycle_phase": "governance",
+      "consumer_role": [
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "SILENT",
+      "titulo": "El vigilante descarta fallas del pedido",
+      "descripcion": "El vigilante descartaba fallas cuando el issue perdió la etiqueta del pedido; el EKB quedaba sin filas de la ruta.",
+      "patron": "Pedidos con fallas y cero filas de la ruta en el EKB",
+      "causa_raiz": "La asociación falla-pedido dependía de una etiqueta mutable",
+      "prevencion": "Asociar por slug o tarea con origen confiable",
+      "validacion": "Fila escrita y leída de vuelta tras una falla real"
+    },
+    "PEDIDO_FORMULARIO_INVALIDO": {
+      "categoria": "ROUTE_OPERATION",
+      "severidad": "Medium",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "DevOps"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "SILENT",
+      "titulo": "T9 rechaza un pedido sin decir por qué",
+      "descripcion": "Un issue creado fuera de la plantilla del formulario fue rechazado por T9 sin comentario ni código visible en el log.",
+      "patron": "El pedido no avanza y la corrida de T9 termina en falla sin mensaje",
+      "causa_raiz": "El workflow captura la salida de issue_intake y termina antes de imprimirla o comentar",
+      "prevencion": "T9 comenta en el issue el código del rechazo; los pedidos se abren solo con la plantilla",
+      "validacion": "Issue sin formulario recibe comentario PEDIDO_FORMULARIO_INVALIDO"
+    },
+    "PEDIDO_EXCEDE_FICHA": {
+      "categoria": "ROUTE_OPERATION",
+      "severidad": "Medium",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "DevOps",
+        "Builder"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_EARLY",
+      "titulo": "Texto ajeno al pedido llega al análisis",
+      "descripcion": "Al editar el issue del pedido con una herramienta de agente se agregó una firma automática; T7 la leyó como parte del pedido y lo rechazó.",
+      "patron": "T7_BLOCKED PEDIDO_EXCEDE_FICHA con palabras que no son del pedido",
+      "causa_raiz": "El cuerpo del issue se tomó literal y la herramienta de edición agrega firmas",
+      "prevencion": "No editar el cuerpo de un pedido con herramientas de agente; abrir uno nuevo con la plantilla",
+      "validacion": "request.md contiene solo el texto del campo Pedido"
+    },
+    "DEPENDENCIA_DECLARADA_AUSENTE": {
+      "categoria": "PLANNING",
+      "severidad": "High",
+      "lifecycle_phase": "construction",
+      "consumer_role": [
+        "Architect"
+      ],
+      "root_cause_family": "R1_NO_SABE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Un endpoint registrado por varios lotes rompe las dependencias declaradas",
+      "descripcion": "El mismo endpoint figura en los lotes CONTRATO (lo declara), BACKEND (lo implementa) y FRONTEND (lo consume); la validación exigía una sola coincidencia.",
+      "patron": "T7_BLOCKED DEPENDENCIA_DECLARADA_AUSENTE con el registro de implementaciones regenerado",
+      "causa_raiz": "La corroboración del proveedor no distinguía qué área implementa el endpoint",
+      "prevencion": "Corroborar un endpoint solo con su lote BACKEND atestiguado y, si no hay, con el índice de código",
+      "validacion": "Prueba sintética con el endpoint en tres áreas"
+    },
+    "CI_TEST_NOT_LISTED": {
+      "categoria": "CI_GOVERNANCE",
+      "severidad": "High",
+      "lifecycle_phase": "CI_VALIDATION",
+      "consumer_role": [
+        "Builder"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "SILENT",
+      "titulo": "Pruebas nuevas que el CI no ejecuta",
+      "descripcion": "Pruebas agregadas con un cambio no corrían en el CI porque el workflow lista los archivos de forma explícita.",
+      "patron": "Un PR integra con pruebas que nunca se ejecutaron",
+      "causa_raiz": "El CI usa listas explícitas y nadie verificó que el archivo nuevo estuviera incluido",
+      "prevencion": "Agregar cada archivo de prueba nuevo a su paso del CI y comprobarlo en el log del PR",
+      "validacion": "El log del CI del PR muestra la prueba nueva ejecutada"
+    },
+    "ANALISIS_SENALES_NO_DERIVABLES": {
+      "categoria": "PLANNING",
+      "severidad": "High",
+      "lifecycle_phase": "construction",
+      "consumer_role": [
+        "Architect"
+      ],
+      "root_cause_family": "R1_NO_SABE",
+      "detectability": "LOUD_EARLY",
+      "titulo": "Modificar una pantalla existente bloquea el análisis",
+      "descripcion": "El camino MODIFY nunca se había ejecutado: evidencia previa parcial bloqueaba, A1 no aceptaba MODIFY, A4 recibía inventario vacío y F2 solo admitía construcciones nuevas.",
+      "patron": "Un pedido sobre una pantalla ya implementada se detiene en análisis",
+      "causa_raiz": "La ruta se construyó y probó solo para pantallas nuevas",
+      "prevencion": "MODIFY con evidencia positiva atestiguada, as-is en A3, admisión F2 estricta y alcance de modificación en A7/A9",
+      "validacion": "Simulación T7 de modifica sobre dos pantallas distintas"
+    },
+    "REUTILIZACION_AREA_NO_DERIVABLE": {
+      "categoria": "PLANNING",
+      "severidad": "Medium",
+      "lifecycle_phase": "construction",
+      "consumer_role": [
+        "Architect"
+      ],
+      "root_cause_family": "R1_NO_SABE",
+      "detectability": "LOUD_EARLY",
+      "titulo": "Archivos de prueba sin área en la reutilización",
+      "descripcion": "Un archivo de prueba Java no coincidía con ningún patrón de área y bloqueaba la evaluación de reutilización.",
+      "patron": "T7_BLOCKED REUTILIZACION_AREA_NO_DERIVABLE con una ruta src/test",
+      "causa_raiz": "Los patrones de área solo cubrían código fuente",
+      "prevencion": "Las pruebas de un componente pertenecen al área de su código según test_roots y source_roots",
+      "validacion": "Prueba sintética con pruebas de un componente compartido por dos áreas"
+    },
+    "REGISTRY_RULES_ON_NON_IMPLEMENTING": {
+      "categoria": "PLANNING",
+      "severidad": "High",
+      "lifecycle_phase": "construction",
+      "consumer_role": [
+        "Architect"
+      ],
+      "root_cause_family": "R4_NO_CUESTIONA",
+      "detectability": "SILENT",
+      "titulo": "El registro atribuye reglas a lotes que no implementan",
+      "descripcion": "El registro de implementaciones copiaba a INFRA y CONTRATO las reglas de los lotes que habilitan; la reutilización podía darlas por hechas.",
+      "patron": "Reglas no implementadas aparecen como reutilizables",
+      "causa_raiz": "Los requirement_ids de un lote habilitador se trataban como implementados",
+      "prevencion": "INFRA y CONTRATO no registran reglas; INFRA y DATA sin API",
+      "validacion": "Prueba de atribución por área del registro"
+    },
+    "MODIFY_RETAINED_BEHAVIOR_UNPROTECTED": {
+      "categoria": "PLANNING",
+      "severidad": "High",
+      "lifecycle_phase": "construction",
+      "consumer_role": [
+        "Architect",
+        "Judge"
+      ],
+      "root_cause_family": "R1_NO_SABE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Modificar frontend existente sin pruebas que protejan lo conservado",
+      "descripcion": "Al reescribir archivos de frontend con reglas ya implementadas no había pruebas que verificaran que se conservaban.",
+      "patron": "La cadena bloquea REUTILIZACION_INDETERMINADA sobre un archivo de frontend",
+      "causa_raiz": "Solo existía protección por pruebas Java y el frontend no tenía pruebas",
+      "prevencion": "Suite visible declarativa con verificación por mutación y lote de caracterización antes de modificar",
+      "validacion": "Simulación T7 crea el lote de caracterización y la cadena protege su suite"
     }
   }
 }
