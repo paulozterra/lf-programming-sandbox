@@ -428,3 +428,12 @@ class ScheduledSweepTest(unittest.TestCase):
     def test_unscheduled_without_trigger_still_blocks(self):
         with self.assertRaises(ai.PolicyBlocked):
             ai.run(FakeAPI(pr("registration"), paths(), checks()), None, numbers=[129])
+
+
+class ApiBodyLimitTests(unittest.TestCase):
+    def test_policy_c_reads_as_much_as_the_registry_reconstruction(self):
+        # A page of 100 closed PRs exceeds 1.5 MB; both readers share 5 MB.
+        self.assertEqual(ai.MAX_API_BODY, 5_000_000)
+        import inspect
+        from pilot.orchestrator import implemented_registry as reg
+        self.assertIn("read(5_000_001)", inspect.getsource(reg))
