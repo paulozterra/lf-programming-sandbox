@@ -160,6 +160,38 @@ def exercise(raw: bytes, worktree: Path, reference: Path, mutants: list[Path],
     return results
 
 
+def visible_preflight(root: Path, request: str, task: str, worktree: Path,
+                      reference: Path, python: str) -> None:
+    """Run the lot template's visible acceptance commands on base + reference
+    (Worker order) before publishing; fail with the first failing command."""
+    folder = storage_path("requests_root", root=root) / request
+    try:
+        spec = json.loads((folder / "templates" / f"{task}.task.json").read_text("utf-8"))["task_spec"]
+        commands = spec["acceptance_commands"]
+    except (OSError, ValueError, KeyError, TypeError):
+        raise ExamBlocked("EXAM_VISIBLE_COMMANDS_UNRESOLVED") from None
+    if not isinstance(commands, list):
+        raise ExamBlocked("EXAM_VISIBLE_COMMANDS_UNRESOLVED")
+    with tempfile.TemporaryDirectory(prefix="lf-exam-visible-") as tmp:
+        candidate = clean_copy(worktree, Path(tmp) / "candidate")
+        overlay(candidate, reference, candidate)
+        case = worker_order_copy(candidate, Path(tmp) / "commands")
+        for cmd in commands:
+            argv = list(cmd.get("argv") or [])
+            name = str(cmd.get("name", "?"))
+            if not argv:
+                raise ExamBlocked("EXAM_VISIBLE_COMMANDS_UNRESOLVED")
+            if argv[0] == "lf-python":
+                argv[0] = python
+            try:
+                result = subprocess.run(argv, cwd=case, capture_output=True, text=True,
+                                        timeout=int(cmd.get("timeout_seconds", 600)))
+            except (OSError, subprocess.TimeoutExpired):
+                raise ExamBlocked("EXAM_REFERENCE_FAILS_VISIBLE:" + name) from None
+            if result.returncode != 0:
+                raise ExamBlocked("EXAM_REFERENCE_FAILS_VISIBLE:" + name)
+
+
 FAIL_CODE = re.compile(r"""fail\(\s*f?["']([A-Z][A-Z0-9_]*)""")
 TRACE_KINDS = ("rule:", "contract:", "request:", "env:")
 
@@ -370,6 +402,10 @@ def main() -> int:
         check_trace_lot(ROOT, a.request, a.task, trace)
         mutants = sorted(d for d in a.mutants.iterdir() if d.is_dir())
         lint_overlay_scope(ROOT, a.request, a.task, a.reference, mutants)
+        # The reference must also pass the lot's VISIBLE commands, exactly as
+        # the T40 rehearsal will run them (req-652: a BACKEND reference without
+        # contract operations passed its own exam but failed T40).
+        visible_preflight(ROOT, a.request, a.task, a.worktree, a.reference, a.python)
         results = exercise(raw, a.worktree, a.reference, mutants, a.python)
         package = reference_package(a.task, raw, reference_patch(a.worktree, a.reference))
         cipher = ROOT / "pilot/holdouts" / f"{a.task}.oracle.json.age"

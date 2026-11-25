@@ -403,7 +403,15 @@ def verify_exam_retire(api, number, pr, paths):
         deps = [by_lot[d] for d in lot.get("depends_on", []) if d in by_lot]
     except (OSError, ValueError, KeyError, StopIteration, TypeError):
         block("EXAM_RETIRE_LOT_UNRESOLVED")
-    if not is_stale(root, task, deps):
+    if is_stale(root, task, deps):
+        return
+    # Or: the task's latest registration failed its T40 rehearsal, within the cap.
+    from pilot.orchestrator.stale_exam import (rehearsal_failure, retire_count,
+                                               MAX_REHEARSAL_RETIRES)
+    pulls = lambda: api.pages("/pulls?state=all&sort=created&direction=desc", None)
+    checks = lambda sha: api.pages(f"/commits/{sha}/check-runs", "check_runs")
+    if (rehearsal_failure(pulls, checks, task) is None
+            or retire_count(pulls, task) >= MAX_REHEARSAL_RETIRES):
         block("EXAM_RETIRE_NOT_STALE")
 
 

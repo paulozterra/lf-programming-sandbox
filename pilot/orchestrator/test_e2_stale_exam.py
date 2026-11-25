@@ -58,3 +58,25 @@ def test_exam_paths_are_exactly_the_three_exam_files():
         "pilot/runs/req-1/claude_meta/r1backend2.json"]
     with pytest.raises(ValueError):
         se.exam_paths("req-1", "../x")
+
+
+def _pr(n, ref, sha="a" * 40, merged=None, created="2026-11-25T00:00:00Z"):
+    return {"number": n, "head": {"ref": ref, "sha": sha}, "merged_at": merged, "created_at": created}
+
+
+def test_failed_rehearsal_on_latest_registration_is_detected():
+    pulls = [_pr(1, "lf/native-registration/t1-" + "a" * 12, sha="b" * 40, created="1"),
+             _pr(2, "lf/native-registration/t1-" + "c" * 12, sha="c" * 40, created="2")]
+    checks = {"c" * 40: [{"id": 9, "name": "rehearse", "status": "completed",
+                          "conclusion": "failure", "started_at": "x"}]}
+    found = se.rehearsal_failure(lambda: pulls, lambda sha: checks.get(sha, []), "t1")
+    assert found == {"pr": 2, "head_sha": "c" * 40, "job_id": 9}
+    checks["c" * 40][0]["conclusion"] = "success"
+    assert se.rehearsal_failure(lambda: pulls, lambda sha: checks.get(sha, []), "t1") is None
+    assert se.rehearsal_failure(lambda: [], lambda sha: [], "t1") is None
+
+
+def test_rehearsal_retires_are_capped():
+    pulls = [_pr(i, f"lf/exam-retire/t1-{i:012d}", merged="m") for i in range(2)]
+    assert se.retire_count(lambda: pulls, "t1") == 2 >= se.MAX_REHEARSAL_RETIRES
+    assert se.retire_count(lambda: [_pr(5, "lf/exam-retire/t1-" + "a" * 12)], "t1") == 0
