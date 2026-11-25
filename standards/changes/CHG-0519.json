@@ -16,6 +16,8 @@
       "pilot/orchestrator/native_lot_binding.py",
       "pilot/orchestrator/native_lot_registration.py",
       "pilot/orchestrator/test_native_lot_binding.py",
+      "pilot/worker_v08/lot_preflight.py",
+      "pilot/worker_v08/test_lot_preflight.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0519.json"
     ]
