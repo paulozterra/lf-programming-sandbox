@@ -38,6 +38,7 @@ python3 pilot/orchestrator/examiner_brief.py --request <req> --task <task> \
 - `ref/`: implementación de referencia, **solo** con archivos de las rutas de escritura del lote (`EXAM_REFERENCE_OUT_OF_SCOPE` si no).
 - `mut/<nombre>/`: al menos 3 mutantes plausibles (el error que cometería un constructor real), cada uno dentro de las rutas del lote, y cada uno debe hacer fallar el examen.
 - Para BACKEND/DATA usar el PostgreSQL desechable de la sesión (`/usr/lib/postgresql/*/bin`, base temporal, variables `DB_URL`/`DB_USERNAME`/`DB_PASSWORD`) como hace el Worker.
+- Credenciales ficticias del sandbox (p. ej. el usuario demo): leerlas de las variables `SBX_FIXTURE_*` (`os.environ`), declaradas en `pilot/config/fixture_credentials.json`. **Nunca** escribirlas literales en el examen ni en el argv: el Worker rechaza secretos probables. El Worker y `publish_exam.py` exponen esas variables. Si hace falta una credencial ficticia que no está declarada, bloquear con `EXAM_FIXTURE_CREDENTIAL_UNDECLARED` (decide el owner).
 
 ### Lote de caracterización (`lot_kind: CHARACTERIZATION` en el brief)
 
