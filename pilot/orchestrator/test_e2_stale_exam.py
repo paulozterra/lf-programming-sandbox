@@ -89,3 +89,26 @@ def test_exam_retired_only_after_a_deletion(tmp_path):
     assert not se.exam_retired(tmp_path, "r1backend2")          # present
     git("rm", "-q", "pilot/holdouts/r1backend2.oracle.json.age"); git("commit", "-qm", "retire")
     assert se.exam_retired(tmp_path, "r1backend2")
+
+
+@pytest.mark.parametrize("rows, expected", [
+    ([], None),
+    ([{"number": 42, "state": "open", "head": {"ref": "lf/exam-retire/t1-abc"}}], 42),
+    ([{"number": 43, "state": "open", "head": {"ref": "lf/exam-retire/t2-abc"}}], None),
+])
+def test_pending_retire_pr(rows, expected):
+    assert se.pending_retire_pr(lambda: rows, "t1") == expected
+
+
+def test_pending_retire_closed():
+    rows = [{"number": 42, "state": "closed", "head": {"ref": "lf/exam-retire/t1-abc"}}]
+    assert se.pending_retire_pr(lambda: [p for p in rows if p["state"] == "open"], "t1") is None
+    with pytest.raises(ValueError, match="RETIRE_PR_LIST_INVALID"):
+        se.pending_retire_pr(lambda: rows, "t1")
+
+
+def test_pending_retire_api_error():
+    def unavailable():
+        raise OSError("API unavailable")
+    with pytest.raises(OSError):
+        se.pending_retire_pr(unavailable, "t1")

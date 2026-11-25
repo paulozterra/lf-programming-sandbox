@@ -9,6 +9,8 @@ import time
 import urllib.error
 import urllib.request
 from sandbox_train_merge import update_branch_locally, BranchConflict
+from native_registration_family import PREFIX, registration_family
+from orchestrator.stale_exam import pending_retire_pr
 
 REQUIRED = (
     "backend (Maven verify)",
@@ -94,7 +96,44 @@ IN_PROGRESS_WAIT_SECONDS = 1200
 IN_PROGRESS_POLL_SECONDS = 20
 
 
-def merge_with_retry(number, head, payload, *, clock=None, sleep=None):
+def open_pulls_for_retirement():
+    rows, seen = [], set()
+    for page in range(1, 11):
+        batch = api("GET", f"/pulls?state=open&per_page=100&page={page}")
+        if not isinstance(batch, list) or len(batch) > 100:
+            raise TrainError("RETIRE_PR_LIST_INVALID")
+        for row in batch:
+            if not isinstance(row, dict):
+                raise TrainError("RETIRE_PR_LIST_INVALID")
+            number = row.get("number")
+            if type(number) is not int or number <= 0 or number in seen:
+                raise TrainError("RETIRE_PR_LIST_INVALID")
+            seen.add(number)
+        rows.extend(batch)
+        if len(batch) < 100:
+            return rows
+    raise TrainError("RETIRE_PR_PAGINATION_LIMIT")
+
+
+def guard_pending_retirement(branch):
+    if not isinstance(branch, str) or not branch:
+        raise TrainError("POLICY_C_REGISTRATION_IDENTITY_INVALID")
+    if not branch.startswith(PREFIX):
+        return
+    family, task = registration_family(branch)
+    if family == "auxiliary":
+        return
+    if family != "registration":
+        raise TrainError("POLICY_C_REGISTRATION_IDENTITY_INVALID")
+    try:
+        retire = pending_retire_pr(open_pulls_for_retirement, task)
+    except Exception as exc:
+        raise TrainError(f"POLICY_C_RETIRO_API_ERROR task={task}") from exc
+    if retire is not None:
+        raise TrainError(f"POLICY_C_RETIRO_PENDIENTE task={task} retire_pr=#{retire}")
+
+
+def merge_with_retry(number, head, payload, *, branch, clock=None, sleep=None):
     """GitHub may still report required checks as 'expected' a few seconds
     after they completed, a required check may still be running on the same
     HEAD, and a merge PUT can lose its connection. Re-read the PR before every
@@ -104,6 +143,7 @@ def merge_with_retry(number, head, payload, *, clock=None, sleep=None):
     lag_attempts = 0
     in_progress_deadline = None
     while True:
+        guard_pending_retirement(branch)
         try:
             return api("PUT", f"/pulls/{number}/merge", payload)
         except TrainError as exc:
@@ -469,7 +509,8 @@ def run(number):
         try:
             merged = merge_with_retry(number, initial_head,
                                       {"sha": initial_head, "merge_method": "merge",
-                                       "commit_title": f"Merge PR #{number} via sandbox-train"})
+                                       "commit_title": f"Merge PR #{number} via sandbox-train"},
+                                      branch=latest["head"]["ref"])
         except TrainError as exc:
             # Main may have moved between last read and merge; restart safely.
             if main_sha() != base or pr_data(number)["head"]["sha"] != initial_head:
