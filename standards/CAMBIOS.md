@@ -292,4 +292,4 @@
 | CHG-0444 | EDITORIAL | CP3.5: integración verificada nativa req652contrato1 (run 45544411504) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/676 |
 | CHG-0445 | EDITORIAL | Análisis: una entrada del registro con archivos cambiados no bloquea la lectura de reutilización |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/677 |
 | CHG-0454 | EDITORIAL | Examen de un lote con dependencias se pide al registrarlo, no al planificar |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/687 |
-| CHG-0457 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0457 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
