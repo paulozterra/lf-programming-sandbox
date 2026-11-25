@@ -411,7 +411,7 @@ def verify_exam_retire(api, number, pr, paths):
     pulls = lambda: api.request("GET", "/pulls?state=all&sort=created&direction=desc&per_page=100")
     checks = lambda sha: api.pages(f"/commits/{sha}/check-runs", "check_runs")
     if (rehearsal_failure(pulls, checks, task) is None
-            or retire_count(pulls, task) >= MAX_REHEARSAL_RETIRES):
+            or retire_count(root, task, deps) >= MAX_REHEARSAL_RETIRES):
         block("EXAM_RETIRE_NOT_STALE")
 
 
