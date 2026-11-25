@@ -301,4 +301,4 @@
 | CHG-0490 | EDITORIAL | E2: no registrar durante un retiro y cerrar registros cuyo examen fue retirado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/725 |
 | CHG-0498 | ADDITIVE | Credenciales ficticias del sandbox por variables SBX_FIXTURE_* para Worker y examen |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/733 |
 | CHG-0502 | EDITORIAL | Policy C: impedir fusionar registros nativos durante retiro E2 pendiente |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/737 |
-| CHG-0503 | ADDITIVE | CP3.6: encadenamiento gobernado req-652 |  | paulozterra |  |
+| CHG-0503 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra |  |
