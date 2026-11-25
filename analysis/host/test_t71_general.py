@@ -427,7 +427,15 @@ def test_registry_sha_valid_components_trace_to_reuse_not_to_screen(tmp_path):
     assert {x["term"] for x in reuse}=={"sesion","prioridad","error","generico"}
     assert all(x["decision"]=="REUTILIZAR" and x["evidence"].startswith("REGISTRY:")
                for x in reuse)
+    # A file changed by a later integration no longer witnesses reuse: the
+    # words lose their evidence (fail closed as extraneous), without blocking
+    # every other analysis with REUTILIZACION_INDETERMINADA.
     file.write_text("drift",encoding="utf-8")
+    with pytest.raises(RequestTraceBlocked,match="PEDIDO_EXCEDE_FICHA"):
+        trace(request,code,{"fields":[]},root=tmp_path)
+    # A malformed registry entry still blocks.
+    ledger.write_text(json.dumps({"schema_version":"T7_IMPLEMENTED_REGISTRY_V1",
+        "entries":[{"status":"ATTESTED","files":[{"path":"../x","sha256":"0"}]}]}))
     with pytest.raises(RequestTraceBlocked,match="REUTILIZACION_INDETERMINADA"):
         trace(request,code,{"fields":[]},root=tmp_path)
 

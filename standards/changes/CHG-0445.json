@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0445",
+  "title": "Análisis: una entrada del registro con archivos cambiados no bloquea la lectura de reutilización",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 24/11: el lote req652contrato1 pasó el worker pero su PR de integración (#676) falló dos pruebas con REUTILIZACION_INDETERMINADA"
+  },
+  "reason": "Con el registro actualizado, el contrato del login figura atestiguado por req-286; el lote CONTRATO de la modificación lo cambia y la lectura de palabras reutilizables del análisis bloqueaba todo con REUTILIZACION_INDETERMINADA. Mismo criterio que CHG-0391: una entrada con archivos cambiados por una integración posterior es evidencia parcial, no aporta palabras reutilizables pero no bloquea (sin evidencia, el pedido sigue rechazándose como PEDIDO_EXCEDE_FICHA). Una entrada malformada sigue bloqueando.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "analysis/host/request_trace.py",
+      "analysis/host/test_t71_general.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0445.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
