@@ -19,6 +19,7 @@
       "pilot/orchestrator/stale_exam.py",
       "pilot/orchestrator/test_e2_stale_exam.py",
       "pilot/test_auto_integrate.py",
+      "pilot/test_policy_c_handoff.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0455.json"
     ]

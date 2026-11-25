@@ -64,6 +64,8 @@ def check_coverage(ci: dict, policy: dict, rules=BRANCH_RULES) -> list[str]:
                      prefix + "pack-req186contrato1-" + "b" * 12,
                      prefix + "route-python-req186contrato1-" + "c" * 12]
                     if kind == "registration" else
+                    [prefix + "req186backend2-" + "d" * 12]
+                    if kind == "exam-retire" else
                     [prefix + suffix for suffix in ("a", "a" * 12, "req-1", "1")])
         examples = [b for b in examples if re.fullmatch(pattern, b)]
         if (not wired or not examples or
