@@ -106,7 +106,7 @@ def retire_count(root: Path, task: str, dependency_tasks: list[str]) -> int:
         raise ValueError("EXAM_RETIRE_HISTORY_INCOMPLETE")
     path = f"pilot/holdouts/{task}.oracle.json.age"
     history = _git(root, "log", "--first-parent", "--diff-merges=first-parent",
-                   "--diff-filter=D", "--format=%H", "HEAD", "--", path)
+                   "--no-patch", "--diff-filter=D", "--format=%H", "HEAD", "--", path)
     if history.returncode:
         raise ValueError("EXAM_RETIRE_HISTORY_INCOMPLETE")
     total = 0
