@@ -1166,7 +1166,7 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
 
 
 def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict]:
-    """Request every independent exam immediately at LOTS_PLANNED.
+    """Request the exams of lots without dependencies at LOTS_PLANNED.
 
     Opening an exam request is not permission to register its lot: CP3.6
     still gates each successor on integrated predecessor receipts and its
@@ -1177,6 +1177,12 @@ def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict
         deny("EXAM_PLAN_BINDING_INCOMPLETE")
     outcomes = []
     for lot_id in sorted(planned):
+        # An exam is written against current main. A lot with dependencies
+        # gets its exam request at admission (admit_registration), once those
+        # dependencies are integrated; requested earlier, its reference would
+        # be built on a base its predecessors still change (req-652 BACKEND).
+        if planned[lot_id].get("depends_on"):
+            continue
         bound = bindings[lot_id]
         task = bound["task_name"]
         if missing_exam(ROOT, task):
