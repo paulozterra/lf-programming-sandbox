@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0473",
+  "title": "Ensayo T40: detalle visible real (el recibo verificado no trae intentos)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 25/11: CHG-0468/0469 no mostraban detalle para req652backend2"
+  },
+  "reason": "El recibo verificado del worker solo guarda el hash del recibo visible, sin intentos; por eso CHG-0468/0469 nunca encontraban el comando o el rechazo. Si el ensayo falla en la parte visible, run_reference vuelve a correr solo la parte visible (nunca el examen oculto) con la misma referencia y extrae los nombres de comandos fallidos y el rechazo del parche.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_exam_control.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0473.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
