@@ -287,3 +287,4 @@
 | CHG-0424 | EDITORIAL | CP3.6: encadenamiento gobernado req-619 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/642 |
 | CHG-0428 | EDITORIAL | Política C: límite de lectura de la API igual al de la reconstrucción del registro |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/648 |
 | CHG-0432 | EDITORIAL | Informe de análisis: significado de los estados de A4 en MODIFY |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/654 |
+| CHG-0437 | ADDITIVE | CP3.6: encadenamiento gobernado req-652 |  | paulozterra |  |
