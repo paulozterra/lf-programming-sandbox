@@ -291,4 +291,4 @@
 | CHG-0437 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/667 |
 | CHG-0444 | EDITORIAL | CP3.5: integración verificada nativa req652contrato1 (run 45544411504) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/676 |
 | CHG-0445 | EDITORIAL | Análisis: una entrada del registro con archivos cambiados no bloquea la lectura de reutilización |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/677 |
-| CHG-0446 | ADDITIVE | CP3.6: encadenamiento gobernado req-652 |  | paulozterra |  |
+| CHG-0446 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra |  |
