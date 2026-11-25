@@ -91,10 +91,44 @@ def rehearsal_failure(list_pulls, check_runs, task: str) -> dict | None:
     return {"pr": int(latest["number"]), "head_sha": sha, "job_id": int(last["id"])}
 
 
-def retire_count(list_pulls, task: str) -> int:
-    prefix = f"lf/exam-retire/{task}-"
-    return sum(1 for p in list_pulls() if isinstance(p, dict) and p.get("merged_at")
-               and str((p.get("head") or {}).get("ref", "")).startswith(prefix))
+def retire_count(root: Path, task: str, dependency_tasks: list[str]) -> int:
+    """Count rehearsal-budget retirements using immutable first-parent history.
+
+    A deletion proven stale at its immediate main parent is not a rehearsal
+    failure. Unknown deletions consume budget; incomplete history blocks E2.
+    Neither PR descriptions nor a recent-PR window can reset this budget.
+    """
+    if not TASK.fullmatch(task) or any(not TASK.fullmatch(dep)
+                                      for dep in dependency_tasks):
+        raise ValueError("EXAM_RETIRE_HISTORY_INVALID")
+    shallow = _git(root, "rev-parse", "--is-shallow-repository")
+    if shallow.returncode or shallow.stdout.strip() != "false":
+        raise ValueError("EXAM_RETIRE_HISTORY_INCOMPLETE")
+    path = f"pilot/holdouts/{task}.oracle.json.age"
+    history = _git(root, "log", "--first-parent", "--diff-merges=first-parent",
+                   "--no-patch", "--diff-filter=D", "--format=%H", "HEAD", "--", path)
+    if history.returncode:
+        raise ValueError("EXAM_RETIRE_HISTORY_INCOMPLETE")
+    total = 0
+    for sha in history.stdout.splitlines():
+        if not SHA.fullmatch(sha):
+            raise ValueError("EXAM_RETIRE_HISTORY_INVALID")
+        parent = sha + "^1"
+        published = exam_commit(root, task, parent)
+        stale = False
+        if published is not None:
+            for dep in dependency_tasks:
+                merged = integration_commit(root, dep, parent)
+                if merged is not None:
+                    relation = _git(root, "merge-base", "--is-ancestor", merged, published)
+                    if relation.returncode not in (0, 1):
+                        raise ValueError("EXAM_RETIRE_HISTORY_INCOMPLETE")
+                    if relation.returncode == 1:
+                        stale = True
+                        break
+        if not stale:
+            total += 1
+    return total
 
 
 def exam_retired(root: Path, task: str, rev: str = "HEAD") -> bool:

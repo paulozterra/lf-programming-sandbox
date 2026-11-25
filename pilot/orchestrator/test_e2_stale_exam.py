@@ -19,7 +19,8 @@ def _repo(tmp_path):
 
 
 def _exam(git, tmp_path, task, n):
-    (tmp_path / f"pilot/holdouts/{task}.oracle.json.age").write_text(str(n))
+    (tmp_path / "pilot/holdouts").mkdir(parents=True, exist_ok=True)
+    (tmp_path / f"pilot/holdouts/{task}.oracle.json.age").write_bytes(b"\x00\xffsynthetic-age-" + str(n).encode("ascii"))
     git("add", "."); git("commit", "-qm", f"exam({task}) v{n}")
 
 
@@ -76,10 +77,42 @@ def test_failed_rehearsal_on_latest_registration_is_detected():
     assert se.rehearsal_failure(lambda: [], lambda sha: [], "t1") is None
 
 
-def test_rehearsal_retires_are_capped():
-    pulls = [_pr(i, f"lf/exam-retire/t1-{i:012d}", merged="m") for i in range(2)]
-    assert se.retire_count(lambda: pulls, "t1") == 2 >= se.MAX_REHEARSAL_RETIRES
-    assert se.retire_count(lambda: [_pr(5, "lf/exam-retire/t1-" + "a" * 12)], "t1") == 0
+def test_rehearsal_retires_are_capped(tmp_path):
+    git = _repo(tmp_path)
+    task, dep = "r1backend2", "r1contrato1"
+
+    def retire():
+        # Match Train's merge topology; first-parent deletion must be visible.
+        git("checkout", "-qb", "retire")
+        git("rm", "-q", f"pilot/holdouts/{task}.oracle.json.age")
+        git("commit", "-qm", "retire exam")
+        git("checkout", "-q", "main")
+        git("merge", "--no-ff", "-qm", "Train retirement", "retire")
+        git("branch", "-D", "retire")
+
+    _exam(git, tmp_path, task, 1)
+    _integrate(git, tmp_path, dep)
+    retire()
+    assert se.retire_count(tmp_path, task, [dep]) == 0
+    _exam(git, tmp_path, task, 2)
+    retire()
+    assert se.retire_count(tmp_path, task, [dep]) == 1
+    _exam(git, tmp_path, task, 3)
+    assert se.retire_count(tmp_path, task, [dep]) == 1 < se.MAX_REHEARSAL_RETIRES
+    retire()
+    assert se.retire_count(tmp_path, task, [dep]) == 2 >= se.MAX_REHEARSAL_RETIRES
+    # With no proof of staleness, all retirements consume the budget.
+    assert se.retire_count(tmp_path, task, []) == 3
+    assert se.retire_count(tmp_path, "other", []) == 0
+
+
+def test_retire_budget_rejects_shallow_history(tmp_path):
+    git = _repo(tmp_path)
+    clone = tmp_path.parent / "shallow"
+    subprocess.run(["git", "clone", "--depth=1", tmp_path.as_uri(), str(clone)],
+                   check=True, capture_output=True)
+    with pytest.raises(ValueError, match="EXAM_RETIRE_HISTORY_INCOMPLETE"):
+        se.retire_count(clone, "r1backend2", [])
 
 
 def test_exam_retired_only_after_a_deletion(tmp_path):

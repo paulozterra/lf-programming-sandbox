@@ -2212,7 +2212,7 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
             try:
                 failed = rehearsal_failure(closed_pulls, lambda sha: api(
                     f"commits/{sha}/check-runs?per_page=100").get("check_runs", []), task)
-                retires = retire_count(closed_pulls, task) if failed is not None else 0
+                retires = retire_count(ROOT, task, dependency_tasks) if failed is not None else 0
             except Exception:
                 # Recovery only: if GitHub cannot be read, retire nothing.
                 failed = None
