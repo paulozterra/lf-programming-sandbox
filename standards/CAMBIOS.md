@@ -300,3 +300,4 @@
 | CHG-0482 | EDITORIAL | E2: detección de ensayo fallido con los 100 PR más recientes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/719 |
 | CHG-0490 | EDITORIAL | E2: no registrar durante un retiro y cerrar registros cuyo examen fue retirado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/725 |
 | CHG-0498 | ADDITIVE | Credenciales ficticias del sandbox por variables SBX_FIXTURE_* para Worker y examen |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/733 |
+| CHG-0501 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
