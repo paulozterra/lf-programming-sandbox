@@ -1,0 +1,36 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0454",
+  "title": "Examen de un lote con dependencias se pide al registrarlo, no al planificar",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 25/11: req-652 BACKEND falló el ensayo T40 porque su examen se escribió antes de integrar CONTRATO"
+  },
+  "reason": "La ruta pedía todos los exámenes al planificar. El de un lote dependiente se escribía contra un main que sus predecesores todavía cambian: en req-652, GPT integró CONTRATO con operaciones nuevas y la referencia del examen BACKEND, escrita antes, ya no pasa los comandos visibles (REHEARSAL_FAIL). Ahora al planificar solo se piden los exámenes de lotes sin dependencias; el de un lote dependiente lo pide admit_registration cuando sus dependencias ya están integradas (camino existente). Se pierde paralelismo, pero cada examen se escribe sobre su base real.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/test_t11_api_exams.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0454.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}

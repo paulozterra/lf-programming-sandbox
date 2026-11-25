@@ -125,7 +125,7 @@ class Tests(TestCase):
         self.assertTrue(route[0]["requires_green_base"])
         self.assertIsNone(train_handoff.route("lf/exam/../../tasktest",mapping))
 
-    def test_all_lots_open_before_root_completes(self):
+    def test_only_lots_without_dependencies_open_at_plan_time(self):
         bindings = {"L1":{"task_name":"root","template_path":"one"},
                     "L2":{"task_name":"dependent","template_path":"two"},
                     "L3":{"task_name":"last","template_path":"three"}}
@@ -139,8 +139,10 @@ class Tests(TestCase):
         with patch.object(chain_lots,"missing_exam",return_value=True), \
              patch.object(chain_lots,"request_missing_exam",side_effect=send):
             outcomes = chain_lots.request_all_lot_exams("req-901",lots,bindings)
-        self.assertEqual([x[1] for x in seen],["L1","L2","L3"])
-        self.assertEqual(len(outcomes),3)
+        # Dependents are requested at admission, after their predecessors
+        # are integrated (CHG: exams against a base their deps still change).
+        self.assertEqual([x[1] for x in seen],["L1"])
+        self.assertEqual(len(outcomes),1)
         self.assertTrue(all(x["reason_code"]=="EXAMEN_PENDIENTE" for x in outcomes))
 
     def test_new_plan_requires_exact_generated_t7_merge(self):
