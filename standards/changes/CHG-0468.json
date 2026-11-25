@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0468",
+  "title": "Ensayo T40: informar qué comandos visibles fallaron",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 25/11: req-652 BACKEND falla el ensayo T40 con VISIBLE_MAX_ATTEMPTS_EXHAUSTED sin decir qué comando"
+  },
+  "reason": "El ensayo T40 solo decía que un comando visible falló. Los comandos visibles son públicos (plantilla de la tarea) y ya se devuelven al constructor como retroalimentación; ahora el veredicto agrega visible_failed=<nombres> del último intento. El examen oculto nunca forma parte de esa lista ni se imprime contenido de los comandos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/exam_rehearsal.py",
+      "pilot/worker_v08/native_exam_control.py",
+      "pilot/worker_v08/test_t40_exam_controls.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0468.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": ""
+  }
+}
