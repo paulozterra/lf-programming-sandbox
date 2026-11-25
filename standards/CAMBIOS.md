@@ -296,4 +296,4 @@
 | CHG-0468 | EDITORIAL | Ensayo T40: informar qué comandos visibles fallaron |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/704 |
 | CHG-0469 | EDITORIAL | Ensayo T40: informar el rechazo del parche de referencia (categoría y ruta) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/705 |
 | CHG-0473 | EDITORIAL | Ensayo T40: detalle visible real (el recibo verificado no trae intentos) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/710 |
-| CHG-0477 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0477 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/714 |
