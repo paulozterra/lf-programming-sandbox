@@ -299,4 +299,4 @@
 | CHG-0478 | EDITORIAL | Examen: referencia validada con los comandos visibles antes de publicar; retiro E2 también tras un ensayo T40 fallido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/715 |
 | CHG-0482 | EDITORIAL | E2: detección de ensayo fallido con los 100 PR más recientes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/719 |
 | CHG-0490 | EDITORIAL | E2: no registrar durante un retiro y cerrar registros cuyo examen fue retirado |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/725 |
-| CHG-0494 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0494 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/729 |
