@@ -270,7 +270,23 @@ def _stop(proc: subprocess.Popen) -> None:
         pass
 
 
-def verify(root: Path, *, path: str, selector: str, text: str | None,
+APP_START_ATTEMPTS = 2
+
+
+def verify(root: Path, **kwargs) -> None:
+    """Retry only when the local app did not start (a known runner flake);
+    never retry a failing browser assertion."""
+    for attempt in range(1, APP_START_ATTEMPTS + 1):
+        try:
+            return _verify_once(root, **kwargs)
+        except BrowserBlocked as exc:
+            if str(exc) != "APP_NO_ARRANCA" or attempt == APP_START_ATTEMPTS:
+                raise
+            print("APP_NO_ARRANCA: reintento de arranque " + str(attempt + 1), file=sys.stderr)
+            time.sleep(5)
+
+
+def _verify_once(root: Path, *, path: str, selector: str, text: str | None,
            title: str | None, timeout_ms: int = 15000, cases: list | None = None,
            mutate: bool = False) -> None:
     path = check_path(path)
