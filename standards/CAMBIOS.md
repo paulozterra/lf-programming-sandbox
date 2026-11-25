@@ -282,3 +282,4 @@
 | CHG-0405 | ADDITIVE | Suite visible: cada caso afirma algo y los casos de CSS/caja deben fallar bajo mutación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/598 |
 | CHG-0406 | ADDITIVE | Lote de caracterización antes de reescribir frontend existente sin pruebas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/602 |
 | CHG-0412 | EDITORIAL | Examen de los lotes de caracterización por el examinador automático (T58) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/611 |
+| CHG-0416 | EDITORIAL | Catálogo de errores de la ruta: 19 códigos nuevos para el EKB |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/621 |
