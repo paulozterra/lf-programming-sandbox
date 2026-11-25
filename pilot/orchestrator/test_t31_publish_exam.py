@@ -228,3 +228,18 @@ def test_reference_must_pass_the_lots_visible_commands(tmp_path, monkeypatch):
     empty.mkdir()
     with pytest.raises(pe.ExamBlocked, match="EXAM_REFERENCE_FAILS_VISIBLE:visible-ok"):
         pe.visible_preflight(tmp_path, "req-1", "t1", work, empty, sys.executable)
+
+
+def test_preflight_adds_the_standards_command_of_backend_lots(tmp_path, monkeypatch):
+    folder = tmp_path / "req-1"
+    folder.mkdir()
+    (folder / "chain_plan.json").write_text(json.dumps({"bindings": [
+        {"task_name": "t1", "lot_id": "L1"}, {"task_name": "t2", "lot_id": "L2"}]}))
+    (folder / "lots.json").write_text(json.dumps({"lots": [
+        {"id": "L1", "area": "BACKEND"}, {"id": "L2", "area": "FRONTEND"}]}))
+    names = [c["name"] for c in pe.standards_commands(folder, "t1", [])]
+    assert names == ["std-be-05-spotless-check"]
+    assert pe.standards_commands(folder, "t2", []) == []
+    assert pe.standards_commands(folder, "unknown", []) == []
+    already = pe.standards_commands(folder, "t1", [])
+    assert pe.standards_commands(folder, "t1", already) == []
