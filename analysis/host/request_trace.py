@@ -125,21 +125,22 @@ def _verified_reuse_words(root: Path) -> tuple[set[str], dict[str, str]]:
             verified=True
             for item in files:
                 if not isinstance(item,dict):
-                    verified=False
-                    break
+                    raise RequestTraceBlocked("REUTILIZACION_INDETERMINADA")
                 rel=item.get("path")
                 digest=item.get("sha256")
                 if (not isinstance(rel,str) or rel.startswith("/")
                         or ".." in Path(rel).parts or not isinstance(digest,str)):
-                    verified=False
-                    break
+                    raise RequestTraceBlocked("REUTILIZACION_INDETERMINADA")
                 file=root/rel
                 if file.is_symlink() or not file.is_file() or hashlib.sha256(
                         file.read_bytes()).hexdigest()!=digest:
                     verified=False
                     break
             if not verified:
-                raise RequestTraceBlocked("REUTILIZACION_INDETERMINADA")
+                # A file changed by a later integration (e.g. a modification
+                # in progress) is partial evidence: it neither proves nor
+                # blocks reuse. Its words are simply not witnessed.
+                continue
             for value in list(row.get("rule_codes",[]))+list(row.get("endpoints",[])):
                 for word in _words(str(value)):
                     known.add(word)
