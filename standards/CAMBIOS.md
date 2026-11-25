@@ -293,3 +293,4 @@
 | CHG-0445 | EDITORIAL | Análisis: una entrada del registro con archivos cambiados no bloquea la lectura de reutilización |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/677 |
 | CHG-0454 | EDITORIAL | Examen de un lote con dependencias se pide al registrarlo, no al planificar |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/687 |
 | CHG-0455 | ADDITIVE | E2: retiro automático de exámenes desactualizados para que el examinador los reescriba |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/689 |
+| CHG-0468 | EDITORIAL | Ensayo T40: informar qué comandos visibles fallaron |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/704 |

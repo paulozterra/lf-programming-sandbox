@@ -100,6 +100,20 @@ class ReferenceClient:
                              output_text=text, usage={})
 
 
+def visible_failures(receipt: dict) -> list[str]:
+    """Names of the last attempt's VISIBLE acceptance commands that did not pass.
+    Visible commands are public (task template) and already returned to the
+    constructor as feedback; the hidden oracle is never part of this list."""
+    attempts = receipt.get("attempts") if isinstance(receipt, dict) else None
+    last = attempts[-1] if isinstance(attempts, list) and attempts else None
+    items = last.get("acceptance") if isinstance(last, dict) else None
+    if not isinstance(items, list):
+        return []
+    return [str(item.get("name")) for item in items
+            if isinstance(item, dict) and item.get("status") != "PASS"
+            and isinstance(item.get("name"), str)][:10]
+
+
 def run_reference(source: Path, spec, oracle, patch: str, work_parent: Path) -> dict:
     """Run the reference through the same verified Worker. Returns
     {"status": PASS|FAIL|BLOCKED, "reason": str} without any exam detail."""
@@ -114,7 +128,8 @@ def run_reference(source: Path, spec, oracle, patch: str, work_parent: Path) -> 
             outcome = run_verified_worker(source, spec, ReferenceClient(patch), oracle,
                                           work_parent=work_parent)
         receipt = outcome.receipt
-        return {"status": str(receipt.get("status")), "reason": str(receipt.get("reason"))}
+        return {"status": str(receipt.get("status")), "reason": str(receipt.get("reason")),
+                "visible_failed": visible_failures(receipt)}
     except Exception as exc:  # the control itself failing is a route defect
         return {"status": "BLOCKED", "reason": "CONTROL_ERROR:" + type(exc).__name__}
 

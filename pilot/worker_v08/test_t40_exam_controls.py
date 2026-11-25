@@ -157,3 +157,14 @@ def test_no_workflow_has_duplicate_keys():
     Strict.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, mapping)
     for wf in sorted((ROOT / ".github/workflows").glob("*.yml")):
         yaml.load(wf.read_text("utf-8"), Loader=Strict)
+
+
+def test_rehearsal_reports_only_visible_failed_command_names():
+    from pilot.worker_v08.native_exam_control import visible_failures
+    receipt = {"attempts": [{"acceptance": [
+        {"name": "backend-package", "status": "PASS"},
+        {"name": "backend-contract-live", "status": "FAIL", "stdout": "secret detail"}]}],
+        "hidden_oracle": {"status": "FAIL", "name": "holdout"}}
+    assert visible_failures(receipt) == ["backend-contract-live"]
+    assert visible_failures({}) == []
+    assert visible_failures({"attempts": []}) == []

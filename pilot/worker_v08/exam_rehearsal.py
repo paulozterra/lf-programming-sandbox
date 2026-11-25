@@ -82,7 +82,9 @@ def rehearse(control: Path, data: Path, task: str, private: Path, age_bin: str,
                        capture_output=True)
     if result["status"] == "PASS":
         return "REHEARSAL_PASS"
-    return "REHEARSAL_FAIL:" + result["reason"]
+    failed = [n for n in result.get("visible_failed", []) if re.fullmatch(r"[a-z0-9_-]{1,64}", n)]
+    return ("REHEARSAL_FAIL:" + result["reason"]
+            + (" visible_failed=" + ",".join(failed) if failed else ""))
 
 
 def main() -> int:
