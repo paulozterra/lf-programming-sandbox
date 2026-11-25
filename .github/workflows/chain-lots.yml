@@ -97,6 +97,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Verify exact CI-verified main merge SHA when Train gated
+        id: chain_base
         if: ${{ inputs.base_sha != '' }}
         env:
           EXPECTED_BASE: ${{ inputs.base_sha }}
@@ -107,18 +108,27 @@ jobs:
           if [ "${{ inputs.sweep }}" != "true" ]; then
             [[ "$REQUEST_SLUG" =~ ^req-[1-9][0-9]*$ ]]
           fi
-          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE"
-          # CP3.6 retains its internal require_green_base call.
+          head="$(git rev-parse HEAD)"
+          if [ "$head" != "$EXPECTED_BASE" ]; then
+            # A queued global sweep may have been overtaken by another Train merge.
+            # Only an ancestor is eligible; never retarget a request-specific handoff.
+            test "${{ inputs.sweep }}" = "true"
+            git merge-base --is-ancestor "$EXPECTED_BASE" "$head"
+            echo "CP36_SWEEP_BASE_SUPERSEDED: $EXPECTED_BASE -> $head"
+          fi
+          echo "sha=$head" >> "$GITHUB_OUTPUT"
+          # process() independently checks live main and exact-SHA CI before any mutation.
       - name: Reconcile trusted merge, DAG, attempts; prepare draft successors only
         env:
           CP36_PACK_OUT: ${{ runner.temp }}/cp36-proposal-packs
+          SWEEP_BASE: ${{ steps.chain_base.outputs.sha }}
           # T56: read-only EKB secret for the lot's ekb.md. Only trusted main
           # code runs here (no proposal is executed); it never prints content.
           LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}
         run: |
           set -o pipefail
           if [ "${{ inputs.sweep }}" = "true" ]; then
-            python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --sweep --base-sha "${{ inputs.base_sha }}" | tee "$RUNNER_TEMP/cp36-sweep-outcomes.json"
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --sweep --base-sha "$SWEEP_BASE" | tee "$RUNNER_TEMP/cp36-sweep-outcomes.json"
           elif [ -n "$INTEGRATION_PR" ]; then
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --integration-pr "$INTEGRATION_PR"
           elif [ -n "$NEW_PLAN_REQUEST" ]; then
@@ -131,7 +141,7 @@ jobs:
         if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.sweep == true && github.ref == 'refs/heads/main' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          BASE_SHA: ${{ inputs.base_sha }}
+          BASE_SHA: ${{ steps.chain_base.outputs.sha }}
           RETRY_ATTEMPT: ${{ inputs.retry_attempt || '0' }}
         run: |
           set -euo pipefail

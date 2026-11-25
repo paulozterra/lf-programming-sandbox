@@ -325,5 +325,60 @@ class Tests(unittest.TestCase):
                           static.check(root))
 
 
+
+class SupersededSweepTests(unittest.TestCase):
+    """Exercise the actual workflow shell gate with a two-merge git history."""
+
+    def test_sweep_gate(self):
+        import os
+        import subprocess
+        import yaml
+
+        doc = yaml.safe_load((HERE.parent / ".github/workflows/chain-lots.yml").read_text())
+        steps = doc["jobs"]["chain"]["steps"]
+        gate = next(step for step in steps if step.get("id") == "chain_base")
+        reconcile = next(step for step in steps if step["name"].startswith("Reconcile trusted"))
+        retry = next(step for step in steps if step["name"].startswith("T27 retry"))
+        self.assertEqual(reconcile["env"]["SWEEP_BASE"], "${{ steps.chain_base.outputs.sha }}")
+        self.assertIn('--sweep --base-sha "$SWEEP_BASE"', reconcile["run"])
+        self.assertEqual(retry["env"]["BASE_SHA"], "${{ steps.chain_base.outputs.sha }}")
+        with tempfile.TemporaryDirectory() as tmp:
+            def git(*args):
+                return subprocess.check_output(["git", *args], cwd=tmp, text=True,
+                                               stderr=subprocess.DEVNULL).strip()
+            git("init", "-q")
+            git("config", "user.name", "Test")
+            git("config", "user.email", "test@example.invalid")
+            git("commit", "--allow-empty", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+            git("checkout", "-qb", "other")
+            git("commit", "--allow-empty", "-qm", "unrelated")
+            other = git("rev-parse", "HEAD")
+            git("checkout", "-q", "--detach", base)
+            git("commit", "--allow-empty", "-qm", "first Train merge")
+            first = git("rev-parse", "HEAD")
+            git("commit", "--allow-empty", "-qm", "second Train merge")
+            head = git("rev-parse", "HEAD")
+            output = Path(tmp) / "output"
+            for expected, sweep, ok in (
+                (head, True, True), (first, True, True),
+                (first, False, False), (other, True, False),
+                ("invalid", True, False), ("0" * 40, True, False),
+                (head, False, True),
+            ):
+                with self.subTest(expected=expected, sweep=sweep):
+                    output.write_text("")
+                    env = dict(os.environ, EXPECTED_BASE=expected,
+                               REQUEST_SLUG="req-1", GITHUB_OUTPUT=str(output))
+                    result = subprocess.run(
+                        ["bash", "-e", "-c", gate["run"].replace(
+                            "${{ inputs.sweep }}", str(sweep).lower())],
+                        cwd=tmp, env=env, capture_output=True, text=True)
+                    self.assertEqual(result.returncode == 0, ok, result.stderr)
+                    self.assertEqual(output.read_text(), f"sha={head}\n" if ok else "")
+                    if ok and expected != head:
+                        self.assertIn("CP36_SWEEP_BASE_SUPERSEDED", result.stdout)
+
+
 if __name__=="__main__":
     unittest.main()
