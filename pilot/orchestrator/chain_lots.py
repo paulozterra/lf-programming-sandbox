@@ -1674,6 +1674,42 @@ def draft_implemented_registry(root: Path, branch: str, head: str) -> dict:
     return {"draft_pr": url, "head_sha": run("git", "rev-parse", "HEAD", cwd=root)}
 
 
+def same_registry_entries(raw: bytes | None, ledger: dict) -> bool:
+    """A registry draft is still current when its entries equal the regeneration
+    on the current main; source_main_sha only records where it was generated."""
+    try:
+        value = json.loads(raw) if raw is not None else None
+    except ValueError:
+        return False
+    return (isinstance(value, dict)
+            and value.get("schema_version") == ledger.get("schema_version")
+            and value.get("entries") == ledger.get("entries"))
+
+
+def open_bot_drafts(prefix: str) -> list[str]:
+    rows = json.loads(run("gh", "pr", "list", "--repo", REPO, "--state", "open",
+                          "--limit", "100", "--json", "headRefName,author"))
+    if not isinstance(rows, list):
+        deny("PENDING_DRAFT_LIST_INVALID")
+    return [str(item["headRefName"]) for item in rows
+            if isinstance(item, dict) and str(item.get("headRefName", "")).startswith(prefix)
+            and str((item.get("author") or {}).get("login", "")) in
+                ("app/github-actions", "github-actions[bot]", "github-actions")]
+
+
+def draft_file(ref: str, path: str) -> bytes | None:
+    """Exact blob bytes of a file on a bot branch (data only, never executed)."""
+    import base64
+    from urllib.parse import quote
+    try:
+        data = api(f"contents/{path}?ref={quote(ref, safe='')}")
+        if data.get("type") != "file" or data.get("encoding") != "base64":
+            return None
+        return base64.b64decode("".join(str(data.get("content", "")).split()), validate=True)
+    except (ValueError, TypeError):
+        return None
+
+
 def sync_implemented_registry(head: str) -> dict:
     """CP3.6 trusted main merge consumer is the sole registry writer.
 
@@ -1689,6 +1725,14 @@ def sync_implemented_registry(head: str) -> dict:
     if old is not None and old.get("entries") == result["entries"]:
         return {"status": "REGISTRY_CURRENT"}
     branch = "lf/implemented-registry/" + head[:12]
+    # The registry is content-addressed: it changes only when a lot is
+    # integrated, not with every main commit. A draft whose bytes equal the
+    # regeneration on the current main stays open for policy C and Train;
+    # only a draft with different content is superseded.
+    keep = [ref for ref in open_bot_drafts("lf/implemented-registry/")
+            if same_registry_entries(draft_file(ref, "pilot/registry/implemented.json"), result)]
+    if keep:
+        return {"status": "REGISTRY_PENDING_REVIEW", "draft": keep[0]}
     close_stale_drafts("lf/implemented-registry/", head[:12])
     if pending_draft("lf/implemented-registry/"):
         return {"status": "REGISTRY_PENDING_REVIEW"}

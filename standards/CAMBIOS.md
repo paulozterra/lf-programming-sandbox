@@ -283,3 +283,4 @@
 | CHG-0406 | ADDITIVE | Lote de caracterización antes de reescribir frontend existente sin pruebas |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/602 |
 | CHG-0412 | EDITORIAL | Examen de los lotes de caracterización por el examinador automático (T58) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/611 |
 | CHG-0416 | EDITORIAL | Catálogo de errores de la ruta: 19 códigos nuevos para el EKB |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/621 |
+| CHG-0420 | EDITORIAL | Registro de implementaciones: borrador válido por contenido, no por el commit de main |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/632 |
