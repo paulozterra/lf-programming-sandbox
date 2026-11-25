@@ -80,3 +80,12 @@ def test_rehearsal_retires_are_capped():
     pulls = [_pr(i, f"lf/exam-retire/t1-{i:012d}", merged="m") for i in range(2)]
     assert se.retire_count(lambda: pulls, "t1") == 2 >= se.MAX_REHEARSAL_RETIRES
     assert se.retire_count(lambda: [_pr(5, "lf/exam-retire/t1-" + "a" * 12)], "t1") == 0
+
+
+def test_exam_retired_only_after_a_deletion(tmp_path):
+    git = _repo(tmp_path)
+    assert not se.exam_retired(tmp_path, "r1backend2")          # never existed
+    _exam(git, tmp_path, "r1backend2", 1)
+    assert not se.exam_retired(tmp_path, "r1backend2")          # present
+    git("rm", "-q", "pilot/holdouts/r1backend2.oracle.json.age"); git("commit", "-qm", "retire")
+    assert se.exam_retired(tmp_path, "r1backend2")
