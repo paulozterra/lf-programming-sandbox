@@ -18,7 +18,9 @@ cd main && python3 pilot/orchestrator/examiner_queue.py > /tmp/queue.json
 
 ## 1. Reclamar la tarea
 
-Poner la etiqueta `examiner-working` al issue (evita que otra corrida la tome) y comentar: "Examinador automático: escribiendo el examen".
+Poner la etiqueta `examiner-working` al issue (evita que otra corrida la tome), quitar `exam-retry` si la tiene y comentar: "Examinador automático: escribiendo el examen".
+
+Disparo: la rutina de evento reacciona a un issue `exam-request` **abierto** (examen nuevo) y a un issue **etiquetado** `exam-retry` (reintento). La ruta pone `exam-retry` cuando se integra un retiro E2; el owner la pone al desbloquear un `examiner-blocked`. La corrida horaria es solo respaldo.
 
 Si el issue tiene un comentario "Examen retirado (E2)", el examen anterior se retiró porque su referencia no pasó el ensayo T40: leer el comando visible indicado y corregir la referencia para que lo pase (por ejemplo, implementar todas las operaciones del contrato asociadas a las reglas del lote).
 
@@ -69,7 +71,7 @@ Si el ensayo T40 del PR falla: corregir en la misma rama (cuenta dentro de las 3
 
 ## 6. Si no se logra
 
-Tras 3 vueltas sin éxito: etiqueta `examiner-blocked` en el issue, quitar `examiner-working`, comentario con el último código de bloqueo (sin contenido del examen). Es el único caso que requiere al owner.
+Tras 3 vueltas sin éxito: etiqueta `examiner-blocked` en el issue, quitar `examiner-working`, comentario con el último código de bloqueo (sin contenido del examen). Es el único caso que requiere al owner, que al decidir quita `examiner-blocked` y pone `exam-retry`.
 
 ## 7. Resumen de la corrida
 
