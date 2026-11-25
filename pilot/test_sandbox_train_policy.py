@@ -307,7 +307,7 @@ class CheckRecoveryTests(unittest.TestCase):
         check = {"id": 22, "status": "in_progress", "conclusion": "success"}
         budget = set()
         with patch.dict(os.environ, {"GITHUB_REPOSITORY": repo}), \
-             patch.object(train, "ci_workflow_runs_for_head", return_value=[run]), \
+             patch.object(train, "ci_workflow_runs_for_head", side_effect=lambda sha, pending_approval=False: [] if pending_approval else [run]), \
              patch.object(train, "api", return_value={"total_count": 1, "jobs": [job]}) as api:
             self.assertTrue(train.recover_inconsistent_ci_job(sha, [name], {name: check}, budget))
             self.assertFalse(train.recover_inconsistent_ci_job(sha, [name], {name: check}, budget))
@@ -339,7 +339,7 @@ class CheckRecoveryTests(unittest.TestCase):
         for runs, jobs, observed in cases:
             with self.subTest(runs=runs, jobs=jobs, observed=observed), \
                  patch.dict(os.environ, {"GITHUB_REPOSITORY": repo}), \
-                 patch.object(train, "ci_workflow_runs_for_head", return_value=runs), \
+                 patch.object(train, "ci_workflow_runs_for_head", side_effect=lambda sha, pending_approval=False: [] if pending_approval else runs), \
                  patch.object(train, "api", return_value={"total_count": len(jobs), "jobs": jobs}) as api:
                 budget = set()
                 self.assertFalse(train.recover_inconsistent_ci_job(sha, [name], {name: observed}, budget))
