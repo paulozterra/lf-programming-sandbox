@@ -1274,6 +1274,48 @@ def publish_pending_plan_refresh(request: str, binding: dict, completed: dict,
     return worktree(head, branch, create)
 
 
+def retire_stale_exam(request: str, task: str, head: str) -> dict:
+    """Open one bot PR deleting exactly the stale exam's files; close the
+    registration drafts built on it. Policy C re-verifies staleness on main."""
+    from stale_exam import exam_paths
+    prefix = f"lf/exam-retire/{task}-"
+    if pending_draft(prefix):
+        return {"status": "EXAM_STALE_RETIRING"}
+    rows = json.loads(run("gh", "pr", "list", "--repo", REPO, "--state", "open",
+                          "--limit", "100", "--json", "number,headRefName,author"))
+    if not isinstance(rows, list):
+        deny("PENDING_DRAFT_LIST_INVALID")
+    closed = []
+    for item in rows:
+        ref = str(item.get("headRefName", "")) if isinstance(item, dict) else ""
+        login = str((item.get("author") or {}).get("login", "")) if isinstance(item, dict) else ""
+        if (ref.startswith(f"lf/native-registration/{task}-")
+                and login in ("app/github-actions", "github-actions[bot]", "github-actions")):
+            run("gh", "pr", "close", str(int(item["number"])), "--repo", REPO, "--delete-branch",
+                "--comment", "Examen desactualizado (publicado antes de integrar una dependencia): "
+                "se retira y el examinador automático lo reescribe sobre el main actual (E2).")
+            closed.append(int(item["number"]))
+    branch = prefix + head[:12]
+    def create(root: Path):
+        present = [p for p in exam_paths(request, task) if (root / p).is_file()]
+        if not present:
+            return {"status": "EXAM_STALE_NOTHING_TO_RETIRE"}
+        run("git", "rm", "-q", "--", *present, cwd=root)
+        run("git", "commit", "-m", f"[E2] retiro de examen desactualizado {task}", cwd=root)
+        current_main = run("git", "ls-remote", "origin", "refs/heads/main", cwd=root).split()[0]
+        if current_main != head:
+            deny("MAIN_MOVED_BEFORE_DRAFT")
+        run("git", "push", "--set-upstream", "origin", branch, cwd=root)
+        url = run("gh", "pr", "create", "--repo", REPO, "--base", "main", "--head", branch,
+                  "--title", f"[E2] retiro de examen desactualizado {task} ({request})",
+                  "--body", "Elimina solo el examen cifrado, su referencia y su metadata: se publicó "
+                  "antes de integrar una dependencia del lote. Política C verifica la condición en "
+                  "main; el examinador automático lo reescribe sobre la base real.", cwd=root)
+        run("gh", "workflow", "run", "ci.yml", "--repo", REPO, "--ref", branch, cwd=root)
+        return {"status": "EXAM_STALE_RETIRE_PROPOSED", "retire_pr": url, "closed_registrations": closed}
+    return worktree(head, branch, create)
+
+
 def prepare_successor(request: str, binding: dict, completed: dict, head: str) -> dict:
     task = binding["task_name"]
     refreshed = publish_pending_plan_refresh(request, binding, completed, head)
@@ -2088,6 +2130,15 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                 outcomes.append({"request": request, "lot_id": lot_id,
                                  "status": "STALE_REGISTRATION_RETIRED",
                                  "closed_prs": retired})
+        # E2: an exam published before a dependency was integrated was written
+        # against a base that dependency changed; retire it (governed PR) so
+        # the automatic examiner rewrites it on current main.
+        from stale_exam import is_stale
+        dependency_tasks = [bindings[d]["task_name"] for d in lot["depends_on"] if d in bindings]
+        if candidate == task and is_stale(ROOT, task, dependency_tasks):
+            outcomes.append({"request": request, "lot_id": lot_id,
+                             **retire_stale_exam(request, task, head)})
+            continue
         if pending_draft(f"lf/native-registration/{candidate}-"):
             outcomes.append({"request": request, "lot_id": lot_id,
                              "status": "ALREADY_PREPARED"})
