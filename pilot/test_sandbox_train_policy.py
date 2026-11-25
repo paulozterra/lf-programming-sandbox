@@ -293,5 +293,78 @@ class RetirementMergeTests(unittest.TestCase):
             self.assertEqual(sum(c.args[0] == "PUT" for c in mock_api.call_args_list), 1)
 
 
+
+class CheckRecoveryTests(unittest.TestCase):
+    def test_recovery_is_exact_and_bounded(self):
+        sha = "a" * 40
+        repo = "paulozterra/lf-programming-sandbox"
+        name = train.REQUIRED[-1]
+        run = {"id": 11, "head_sha": sha, "status": "completed",
+               "conclusion": "success", "head_repository": {"full_name": repo}}
+        job = {"id": 22, "run_id": 11, "head_sha": sha, "name": name,
+               "status": "in_progress", "conclusion": "success",
+               "check_run_url": "https://api.github.com/repos/example/check-runs/22"}
+        check = {"id": 22, "status": "in_progress", "conclusion": "success"}
+        budget = set()
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": repo}), \
+             patch.object(train, "ci_workflow_runs_for_head", return_value=[run]), \
+             patch.object(train, "api", return_value={"total_count": 1, "jobs": [job]}) as api:
+            self.assertTrue(train.recover_inconsistent_ci_job(sha, [name], {name: check}, budget))
+            self.assertFalse(train.recover_inconsistent_ci_job(sha, [name], {name: check}, budget))
+            self.assertEqual(sum(c.args[0] == "POST" for c in api.call_args_list), 1)
+            self.assertEqual(api.call_args_list[-1].args[1], "/actions/jobs/22/rerun")
+
+    def test_recovery_rejects_untrusted_or_real_failure(self):
+        sha = "a" * 40
+        repo = "paulozterra/lf-programming-sandbox"
+        name = train.REQUIRED[-1]
+        run = {"id": 11, "head_sha": sha, "status": "completed",
+               "conclusion": "success", "head_repository": {"full_name": repo}}
+        job = {"id": 22, "run_id": 11, "head_sha": sha, "name": name,
+               "status": "completed", "conclusion": "success",
+               "check_run_url": "https://api.github.com/repos/example/check-runs/22"}
+        check = {"id": 22, "status": "in_progress", "conclusion": None}
+        cases = [
+            ([dict(run, status="in_progress")], [job], check),
+            ([dict(run, conclusion="failure")], [job], check),
+            ([dict(run, head_repository={"full_name": "foreign/repo"})], [job], check),
+            ([run], [dict(job, head_sha="b" * 40)], check),
+            ([run], [dict(job, conclusion="failure")], check),
+            ([run], [dict(job, run_id=12)], check),
+            ([run], [job, job], check),
+            ([run], [job], dict(check, id=99)),
+            ([run], [job], dict(check, conclusion="failure")),
+            ([run], [job], dict(check, status="completed")),
+        ]
+        for runs, jobs, observed in cases:
+            with self.subTest(runs=runs, jobs=jobs, observed=observed), \
+                 patch.dict(os.environ, {"GITHUB_REPOSITORY": repo}), \
+                 patch.object(train, "ci_workflow_runs_for_head", return_value=runs), \
+                 patch.object(train, "api", return_value={"total_count": len(jobs), "jobs": jobs}) as api:
+                budget = set()
+                self.assertFalse(train.recover_inconsistent_ci_job(sha, [name], {name: observed}, budget))
+                self.assertFalse(budget)
+                self.assertFalse(any(c.args[0] == "POST" for c in api.call_args_list))
+
+    def test_await_checks_never_accepts_incomplete_success(self):
+        sha = "a" * 40
+        name = train.REQUIRED[-1]
+        green = {n: {"id": i + 1, "status": "completed", "conclusion": "success"}
+                 for i, n in enumerate(train.REQUIRED)}
+        stuck = dict(green, **{name: dict(green[name], status="in_progress")})
+        clock = iter(range(0, 10000, 200))
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"}), \
+             patch.object(train, "pr_data", return_value=sample_pr()), \
+             patch.object(train, "needs_rehearsal", return_value=False), \
+             patch.object(train, "approve_pending_runs"), \
+             patch.object(train, "ci_workflow_runs_for_head", return_value=[{"id": 1}]), \
+             patch.object(train, "checks_for_head", side_effect=[stuck, stuck, green]), \
+             patch.object(train, "recover_inconsistent_ci_job") as recovery, \
+             patch.object(train.time, "monotonic", side_effect=lambda: next(clock)), \
+             patch.object(train.time, "sleep"), \
+             patch.object(train, "WAIT_SECONDS", 10000):
+            self.assertEqual(train.await_checks(77, sha), green)
+            recovery.assert_called()
+
 if __name__ == "__main__":
     unittest.main()
