@@ -2165,7 +2165,10 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
         # which public visible command failed.
         if candidate == task and pending_draft(f"lf/native-registration/{candidate}-"):
             from stale_exam import rehearsal_failure, retire_count, MAX_REHEARSAL_RETIRES
-            closed_pulls = lambda: api_list("pulls?state=all&sort=created&direction=desc", max_pages=3)
+            # The 100 most recent PRs: a live request's registration and retire
+            # PRs are always among them (full history is not needed here).
+            closed_pulls = lambda: json.loads(github_api_raw(
+                "pulls?state=all&sort=created&direction=desc&per_page=100"))
             try:
                 failed = rehearsal_failure(closed_pulls, lambda sha: api(
                     f"commits/{sha}/check-runs?per_page=100").get("check_runs", []), task)

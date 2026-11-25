@@ -408,7 +408,7 @@ def verify_exam_retire(api, number, pr, paths):
     # Or: the task's latest registration failed its T40 rehearsal, within the cap.
     from pilot.orchestrator.stale_exam import (rehearsal_failure, retire_count,
                                                MAX_REHEARSAL_RETIRES)
-    pulls = lambda: api.pages("/pulls?state=all&sort=created&direction=desc", None)
+    pulls = lambda: api.request("GET", "/pulls?state=all&sort=created&direction=desc&per_page=100")
     checks = lambda sha: api.pages(f"/commits/{sha}/check-runs", "check_runs")
     if (rehearsal_failure(pulls, checks, task) is None
             or retire_count(pulls, task) >= MAX_REHEARSAL_RETIRES):
