@@ -289,4 +289,4 @@
 | CHG-0432 | EDITORIAL | Informe de análisis: significado de los estados de A4 en MODIFY |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/654 |
 | CHG-0436 | EDITORIAL | La ruta se recupera sola: reintento de T7 tras un arreglo, de arranque de la app y del control del registro |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/664 |
 | CHG-0437 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/667 |
-| CHG-0439 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
+| CHG-0439 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/671 |
