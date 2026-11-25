@@ -47,6 +47,7 @@ TRIGGERS = {
     ".github/workflows/native-verified-integration.yml": "CP3.5 native verified patch to draft PR",
 }
 SHA = re.compile(r"[0-9a-f]{40}\Z")
+MAX_API_BODY = 5_000_000
 CHG_NAME = re.compile(r"standards/changes/(CHG-[0-9]{4})\.json\Z")
 RUN_IN_BODY = re.compile(r"\brun:\s*\\?`?(\d{1,18})\\?`?", re.IGNORECASE)
 TASK_IN_BODY = re.compile(r"\bTask:\s*\\?`?([a-z][a-z0-9_-]{0,31})\\?`?", re.IGNORECASE)
@@ -268,8 +269,11 @@ class GitHub:
                      "User-Agent": "LF-auto-integrate-policy-C"})
         try:
             with urllib.request.build_opener(SafeRedirect()).open(req, timeout=30) as response:
-                content = response.read(1_500_001)
-                if len(content) > 1_500_000:
+                # Same bound as the registry reconstruction reader: a page of
+                # 100 closed PRs with their bodies exceeds 1.5 MB, which made
+                # policy C unable to regenerate the registry at all.
+                content = response.read(MAX_API_BODY + 1)
+                if len(content) > MAX_API_BODY:
                     block("API_BODY_OVERSIZE")
                 return content if raw else (json.loads(content) if content else {})
         except (urllib.error.HTTPError, urllib.error.URLError, ValueError, TimeoutError):
@@ -374,9 +378,14 @@ def verify_generated_content(api, pr, paths, kind):
     root = Path(__file__).resolve().parents[1]
     main = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, text=True,
                           capture_output=True, check=True).stdout.strip()
+    # The registry is content-addressed (it changes only when a lot is
+    # integrated): its draft is valid while its bytes equal the regeneration
+    # on the current trusted main, even if main advanced after the draft.
+    # T7 analyses stay bound to the exact main they were generated on.
     if (not SHA.fullmatch(main) or not head or
-            not re.fullmatch(re.escape(main[:12]) + r"(?:-req-[1-9][0-9]*)?",
-                             pr["head"]["ref"].rsplit("/", 1)[-1])):
+            (kind != "implemented-registry" and
+             not re.fullmatch(re.escape(main[:12]) + r"(?:-req-[1-9][0-9]*)?",
+                              pr["head"]["ref"].rsplit("/", 1)[-1]))):
         block("GENERATED_CONTENT_DRIFT")
     # Invoked as a script (python3 pilot/...), so sys.path[0] is pilot/, not
     # the repository root that owns the `pilot` and `analysis` packages.
@@ -389,9 +398,23 @@ def verify_generated_content(api, pr, paths, kind):
             ledger = reconstruct(root, main, batched_pr_reader(
                 lambda: api.pages("/" + CLOSED_PULLS, None),
                 lambda n: api.request("GET", f"/pulls/{n}")))
-            expected = (json.dumps(ledger, sort_keys=True, ensure_ascii=False, indent=2)
-                        + "\n").encode("utf-8")
-            if _content(api, "pilot/registry/implemented.json", head) != expected:
+            raw = _content(api, "pilot/registry/implemented.json", head)
+            try:
+                proposed = json.loads(raw)
+            except ValueError:
+                block("GENERATED_CONTENT_DRIFT")
+            generated_at = proposed.get("source_main_sha") if isinstance(proposed, dict) else None
+            # Same entries as the regeneration on current main, generated on an
+            # ancestor of it, and byte-for-byte the canonical serialization.
+            ancestor = (isinstance(generated_at, str) and SHA.fullmatch(generated_at)
+                        and subprocess.run(["git", "merge-base", "--is-ancestor", generated_at, main],
+                                           cwd=root, capture_output=True).returncode == 0)
+            canonical = (json.dumps(proposed, sort_keys=True, ensure_ascii=False, indent=2)
+                         + "\n").encode("utf-8") if isinstance(proposed, dict) else None
+            if (not ancestor or raw != canonical
+                    or set(proposed) != set(ledger)
+                    or proposed.get("schema_version") != ledger.get("schema_version")
+                    or proposed.get("entries") != ledger.get("entries")):
                 block("GENERATED_CONTENT_DRIFT")
             return
         if kind != "generated-t7":
