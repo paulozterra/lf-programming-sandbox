@@ -1,0 +1,590 @@
+{
+  "obligations": [
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-A11Y-CONTRAST",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-A11Y-FORCED-COLORS",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-A11Y-INTERACTION",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-A11Y-MOTION",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-DENY-DEFAULT",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-ENVELOPE",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-FAIL-CLOSED",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "REUSE_AS_IS",
+      "evidence": {
+        "key": "POST /api/auth/login",
+        "kind": "declared_screen_dependency",
+        "source": "inventory.json#dependencies"
+      },
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-GENERIC",
+      "reuse_context": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+          "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937"
+        }
+      ],
+      "reused_endpoints": [
+        "POST /api/auth/login"
+      ],
+      "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937",
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-OUTCOMES",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-REQUEST",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-RUNTIME-PASSWORD",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-SESSION-AFTER-AUTH",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-AUTH-TIMEOUT",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-DATA-ATTEMPTS",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-DATA-SESSIONS",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-DATA-USER-STORE",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-DESIGN-NO-HARDCODE",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-DESIGN-TOKENS",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-ERROR-CODE",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-ERROR-SAFE-MESSAGE",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-ERROR-TRACE",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "EXTEND",
+      "evidence": {
+        "key": "POST /api/auth/login",
+        "kind": "declared_screen_dependency",
+        "source": "inventory.json#dependencies"
+      },
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "requirement_id": "REQ-SBX-B2B-R-INT-EMAIL-LOGIN",
+      "reuse_context": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthService.java",
+          "sha256": "402d1c7fe84c5315ee1af41ddc39c02086e6ac02a6e9e0ca876c0e8769722100"
+        }
+      ],
+      "reused_endpoints": [
+        "POST /api/auth/login"
+      ],
+      "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937",
+      "write_paths": [
+        "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java"
+      ]
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-INT-HOME",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-INT-RETURN",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "EXTEND",
+      "evidence": {
+        "key": "PAGE /sbx-rem-list",
+        "kind": "declared_screen_dependency",
+        "source": "inventory.json#dependencies"
+      },
+      "path": "frontend/src/app/sbx-rem-list/page.tsx",
+      "requirement_id": "REQ-SBX-B2B-R-INT-ROUTE",
+      "reuse_context": [
+        {
+          "path": "frontend/src/lib/sbx-rem-list.ts",
+          "sha256": "7da9814a82e2ad124b938c7fd28db9159f2e93ea84eb4f90dc72d8e747a4ca78"
+        }
+      ],
+      "reused_endpoints": [
+        "PAGE /sbx-rem-list"
+      ],
+      "sha256": "86ad1e64a4fcc973c98a7643c6d627ad43795c3f1f37353ce674eca388d9a27a",
+      "write_paths": [
+        "frontend/src/app/sbx-rem-list/page.tsx"
+      ]
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-INT-SESSION-STORE",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-LAYOUT-COMPOSITION",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-PRIVACY-TELEMETRY",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "REUSE_AS_IS",
+      "evidence": {
+        "key": "POST /api/auth/login",
+        "kind": "declared_screen_dependency",
+        "source": "inventory.json#dependencies"
+      },
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "requirement_id": "REQ-SBX-B2B-R-RATE-LIMIT",
+      "reuse_context": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+          "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937"
+        }
+      ],
+      "reused_endpoints": [
+        "POST /api/auth/login"
+      ],
+      "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937",
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-RESP-BREAKPOINTS",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "REUSE_AS_IS",
+      "evidence": {
+        "key": "GET /api/auth/session",
+        "kind": "declared_screen_dependency",
+        "source": "inventory.json#dependencies"
+      },
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "requirement_id": "REQ-SBX-B2B-R-SESSION-CONCURRENCY",
+      "reuse_context": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+          "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937"
+        }
+      ],
+      "reused_endpoints": [
+        "GET /api/auth/session"
+      ],
+      "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937",
+      "write_paths": []
+    },
+    {
+      "decision": "REUSE_AS_IS",
+      "evidence": {
+        "key": "GET /api/auth/session",
+        "kind": "declared_screen_dependency",
+        "source": "inventory.json#dependencies"
+      },
+      "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+      "requirement_id": "REQ-SBX-B2B-R-SESSION-IDLE",
+      "reuse_context": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/auth/AuthController.java",
+          "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937"
+        }
+      ],
+      "reused_endpoints": [
+        "GET /api/auth/session"
+      ],
+      "sha256": "b84729e36426d079ffe5bf140ea1155c5327a3820821a2fd72081d5d32162937",
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-THEME-LIGHT",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-UX-ACTIONS",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-UX-PASSWORD-MANAGERS",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-UX-PASSWORD-VISIBILITY",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-UX-RECOVERY",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-UX-SINGLE-FLIGHT",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-DATA-ATTEMPTS-BACKEND",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-DATA-SESSIONS-BACKEND",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    },
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 9
+      },
+      "path": null,
+      "requirement_id": "REQ-SBX-B2B-R-DATA-USER-STORE-BACKEND",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    }
+  ],
+  "schema_version": "T7_REUSE_ASSESSMENT_V1"
+}
