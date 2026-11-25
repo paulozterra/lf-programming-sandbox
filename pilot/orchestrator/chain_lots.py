@@ -1274,6 +1274,34 @@ def publish_pending_plan_refresh(request: str, binding: dict, completed: dict,
     return worktree(head, branch, create)
 
 
+def open_heads_with(prefix: str) -> list[str]:
+    """Open PR head branches starting with prefix (same listing as pending_draft)."""
+    rows = json.loads(run("gh", "pr", "list", "--repo", REPO,
+                          "--state", "open", "--limit", "100",
+                          "--json", "headRefName"))
+    if not isinstance(rows, list):
+        deny("PENDING_DRAFT_LIST_INVALID")
+    return [str(item.get("headRefName", "")) for item in rows if isinstance(item, dict)
+            and str(item.get("headRefName", "")).startswith(prefix)]
+
+
+def close_registration_drafts(task: str, comment: str) -> list[int]:
+    rows = json.loads(run("gh", "pr", "list", "--repo", REPO, "--state", "open",
+                          "--limit", "100", "--json", "number,headRefName,author"))
+    if not isinstance(rows, list):
+        deny("PENDING_DRAFT_LIST_INVALID")
+    closed = []
+    for item in rows:
+        ref = str(item.get("headRefName", "")) if isinstance(item, dict) else ""
+        login = str((item.get("author") or {}).get("login", "")) if isinstance(item, dict) else ""
+        if (ref.startswith(f"lf/native-registration/{task}-")
+                and login in ("app/github-actions", "github-actions[bot]", "github-actions")):
+            run("gh", "pr", "close", str(int(item["number"])), "--repo", REPO, "--delete-branch",
+                "--comment", comment)
+            closed.append(int(item["number"]))
+    return closed
+
+
 def rehearsal_reason(task: str, failed: dict) -> str:
     """Public verdict line of the failed rehearsal job (command names only)."""
     try:
@@ -1292,20 +1320,9 @@ def retire_stale_exam(request: str, task: str, head: str, reason: str | None = N
     prefix = f"lf/exam-retire/{task}-"
     if pending_draft(prefix):
         return {"status": "EXAM_STALE_RETIRING"}
-    rows = json.loads(run("gh", "pr", "list", "--repo", REPO, "--state", "open",
-                          "--limit", "100", "--json", "number,headRefName,author"))
-    if not isinstance(rows, list):
-        deny("PENDING_DRAFT_LIST_INVALID")
-    closed = []
-    for item in rows:
-        ref = str(item.get("headRefName", "")) if isinstance(item, dict) else ""
-        login = str((item.get("author") or {}).get("login", "")) if isinstance(item, dict) else ""
-        if (ref.startswith(f"lf/native-registration/{task}-")
-                and login in ("app/github-actions", "github-actions[bot]", "github-actions")):
-            run("gh", "pr", "close", str(int(item["number"])), "--repo", REPO, "--delete-branch",
-                "--comment", "Examen desactualizado (publicado antes de integrar una dependencia): "
-                "se retira y el examinador automático lo reescribe sobre el main actual (E2).")
-            closed.append(int(item["number"]))
+    closed = close_registration_drafts(
+        task, "Examen retirado (E2): se reescribe sobre el main actual y la tarea se "
+              "registrará con el examen nuevo.")
     branch = prefix + head[:12]
     def create(root: Path):
         present = [p for p in exam_paths(request, task) if (root / p).is_file()]
@@ -2182,8 +2199,23 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                                                      reason=rehearsal_reason(task, failed))})
                 continue
         if pending_draft(f"lf/native-registration/{candidate}-"):
+            from stale_exam import exam_retired
+            if candidate == task and exam_retired(ROOT, task):
+                # Its exam was retired (E2): the draft points to a removed
+                # holdout. Close it so admission requests and binds the new exam.
+                outcomes.append({"request": request, "lot_id": lot_id,
+                                 "status": "REGISTRATION_WITHOUT_EXAM_CLOSED",
+                                 "closed_prs": close_registration_drafts(
+                                     task, "El examen de esta tarea fue retirado (E2); "
+                                           "se registrará con el examen nuevo.")})
+                continue
             outcomes.append({"request": request, "lot_id": lot_id,
                              "status": "ALREADY_PREPARED"})
+            continue
+        if candidate == task and pending_draft(f"lf/exam-retire/{task}-"):
+            # Never prepare a registration on an exam whose retire is pending.
+            outcomes.append({"request": request, "lot_id": lot_id,
+                             "status": "EXAM_STALE_RETIRING"})
             continue
         admission = admit_registration(request, chosen, lot, head)
         if admission is not None:

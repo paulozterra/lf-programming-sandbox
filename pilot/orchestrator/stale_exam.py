@@ -95,3 +95,14 @@ def retire_count(list_pulls, task: str) -> int:
     prefix = f"lf/exam-retire/{task}-"
     return sum(1 for p in list_pulls() if isinstance(p, dict) and p.get("merged_at")
                and str((p.get("head") or {}).get("ref", "")).startswith(prefix))
+
+
+def exam_retired(root: Path, task: str, rev: str = "HEAD") -> bool:
+    """True when the task's ciphertext existed and its last change deleted it."""
+    if not TASK.fullmatch(task):
+        return False
+    path = f"pilot/holdouts/{task}.oracle.json.age"
+    if (root / path).exists():
+        return False
+    out = _git(root, "log", "-1", "--format=%H", "--diff-filter=D", rev, "--", path)
+    return out.returncode == 0 and bool(SHA.fullmatch(out.stdout.strip()))
