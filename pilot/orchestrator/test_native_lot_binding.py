@@ -74,3 +74,33 @@ def test_never_promote_authority():
             "worker_invoked": False, "lots": []}
     with pytest.raises(NativeLotBlocked, match="LOTS_NOT_CANDIDATE"):
         next_ready(lots, set())
+
+
+def test_characterization_admits_only_its_planned_suite(tmp_path):
+    (tmp_path / "frontend/visible-tests").mkdir(parents=True)
+    path = "frontend/visible-tests/sol-k123456789abc.json"
+    lot = {"id": "SOL-K123456789abc", "area": "FRONTEND",
+           "lot_kind": "CHARACTERIZATION",
+           "producer_route": "T7_CHARACTERIZATION_NOT_PG04_PG05",
+           "production_authority": False, "handoff_allowed": False,
+           "write_paths": [path]}
+    assert real_write_paths(tmp_path, "FRONTEND", [path], lot=lot) == [path]
+    with pytest.raises(NativeLotBlocked):
+        real_write_paths(tmp_path, "FRONTEND", [path])
+    for bad in ("frontend/visible-tests/home.json",
+                "frontend/visible-tests/sol-k000000000000.json",
+                "frontend/src/sol-k123456789abc.json",
+                "frontend/visible-tests/../sol-k123456789abc.json"):
+        with pytest.raises(NativeLotBlocked):
+            real_write_paths(tmp_path, "FRONTEND", [bad],
+                             lot=dict(lot, write_paths=[bad]))
+    for mutation in ({"producer_route": "OTHER"}, {"production_authority": True},
+                     {"handoff_allowed": True}, {"area": "BACKEND"}):
+        with pytest.raises(NativeLotBlocked):
+            real_write_paths(tmp_path, "FRONTEND", [path], lot=dict(lot, **mutation))
+    with pytest.raises(NativeLotBlocked):
+        real_write_paths(tmp_path, "FRONTEND", [path, "frontend/src/app/page.tsx"],
+                         lot=dict(lot, write_paths=[path, "frontend/src/app/page.tsx"]))
+    (tmp_path / path).symlink_to(tmp_path / "other.json")
+    with pytest.raises(NativeLotBlocked, match="UNSAFE_PATH"):
+        real_write_paths(tmp_path, "FRONTEND", [path], lot=lot)

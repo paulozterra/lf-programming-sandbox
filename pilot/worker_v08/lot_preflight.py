@@ -149,6 +149,70 @@ def _base_blob_bytes(root: Path, base: str, name: str, entries: dict) -> int:
     return size
 
 
+def _planned_characterization(root: Path, task: dict, entries: dict) -> str | None:
+    """Resolve the exact suite from the immutable base plan, not task assertions."""
+    writes = task["write_path_patterns"]
+    if len(writes) != 1 or not isinstance(writes[0], str) or not re.search(r"/visible-tests/sol-k[0-9a-f]{12}[.]json$", writes[0]):
+        return None
+    from pilot.config import project_config as project
+    from pilot.orchestrator.native_lot_binding import _characterization_path, NativeLotBlocked
+    base = task["base_head_sha"]
+    requests = project.storage()["requests_root"]
+    identity = task.get("task_id")
+    matches = []
+
+    def read(name):
+        if name not in entries or entries[name][0] not in ("100644", "100755"):
+            blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
+        return json.loads(_git_bytes(root, "show", base + ":" + name))
+
+    try:
+        for name in sorted(entries):
+            if not re.fullmatch(re.escape(requests) + r"/[a-z0-9_-]+/chain_plan[.]json", name):
+                continue
+            plan = read(name)
+            for binding in plan.get("bindings", []):
+                task_name = binding.get("task_name")
+                if not isinstance(task_name, str) or identity != "LF-WORKER-NATIVE-" + task_name.upper():
+                    continue
+                folder = name.rsplit("/", 1)[0]
+                lots = read(folder + "/lots.json")
+                state = read(folder + "/state.json")
+                digest = hashlib.sha256((json.dumps(lots, sort_keys=True, separators=(",", ":"),
+                                                     ensure_ascii=True) + "\n").encode()).hexdigest()
+                if (plan.get("schema_version") != "CP36_CHAIN_PLAN_V1"
+                        or plan.get("production_authority") is not False
+                        or plan.get("request_id") != folder.rsplit("/", 1)[1]
+                        or plan.get("lots_sha256") != digest
+                        or state.get("lots_sha256") != digest
+                        or lots.get("schema_version") != "CP33_LOTS_CANDIDATE_V1"
+                        or lots.get("production_authority") is not False):
+                    blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
+                candidates = [lot for lot in lots["lots"] if lot["id"] == binding["lot_id"]]
+                if len(candidates) != 1:
+                    blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
+                allowed = _characterization_path("FRONTEND", writes, candidates[0])
+                if allowed is None:
+                    blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
+                matches.append(allowed)
+    except (ValueError, KeyError, TypeError, AttributeError, NativeLotBlocked):
+        blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
+    if len(matches) != 1:
+        blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
+    # No deletion or mutation of sibling suites; the task must protect them.
+    protected = task.get("protected_path_patterns", [])
+    if not isinstance(protected, list) or task.get("allow_deletions") is not False:
+        blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
+    target = matches[0]
+    prefix = target.rsplit("/", 1)[0] + "/"
+    if any(not any(path_matches_pattern(name, pattern) for pattern in protected)
+           for name in entries if name.startswith(prefix) and name != target):
+        blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
+    if any(path_matches_pattern(target, pattern) for pattern in protected):
+        blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
+    return target
+
+
 def check_size(root: Path, task: dict, *, prompt: str) -> dict:
     contexts = task.get("context_path_patterns")
     writes = task.get("write_path_patterns")
@@ -160,6 +224,7 @@ def check_size(root: Path, task: dict, *, prompt: str) -> dict:
         blocked("LOTE_CONTEXTO_O_ESCRITURA_INVALIDO")
     base = task.get("base_head_sha")
     entries = base_tree(root, base)
+    characterization = _planned_characterization(root, task, entries)
     expanded = set()
     for pattern in contexts:
         try:
@@ -191,7 +256,7 @@ def check_size(root: Path, task: dict, *, prompt: str) -> dict:
             set(allowlist["database"]["config_files"]) |
             {x["manifest"] for x in allowlist["targets"].values()} |
             {allowlist["targets"]["npm"]["lockfile"]})
-        if (not (name.endswith(ALLOWED_WRITE) or contract_yaml or infra_target)
+        if (not (name.endswith(ALLOWED_WRITE) or contract_yaml or infra_target or name == characterization)
                 or denial(name)):
             blocked("LOTE_ESCRITURA_FUERA_DE_SCOPE")
         if name in entries and entries[name][0] not in ("100644", "100755"):
