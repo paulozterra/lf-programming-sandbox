@@ -306,4 +306,4 @@
 | CHG-0511 | EDITORIAL | Preflight del examen corre también los comandos de estándares que agrega el registro (STD-BE-05) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/747 |
 | CHG-0515 | EDITORIAL | Recuperar barridos CP3.6 desplazados por otro merge |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/751 |
 | CHG-0519 | EDITORIAL | Admitir la ruta exacta de caracterización T7 en CP3.4 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/755 |
-| CHG-0524 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0524 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
