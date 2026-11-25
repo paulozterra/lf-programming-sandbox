@@ -451,3 +451,35 @@ class RegistryCheckRerunTests(unittest.TestCase):
         capped = [self.row(i, "failure", str(i)) for i in range(ai.MAX_REGISTRY_CHECK_FAILURES)]
         self.assertIsNone(ai.registry_check_rerun(capped, HEAD))
         self.assertIsNone(ai.registry_check_rerun([], HEAD))
+
+
+class ExamRetireTests(unittest.TestCase):
+    def pr(self, task="req1backend2", n=3):
+        obj = pr("registration")
+        obj["head"]["ref"] = "lf/exam-retire/" + task + "-" + HEAD[:12]
+        obj["changed_files"] = n
+        return obj
+
+    PATHS = ["pilot/holdouts/req1backend2.oracle.json.age",
+             "pilot/holdouts/req1backend2.reference.json.age",
+             "pilot/runs/req-1/claude_meta/req1backend2.json"]
+
+    def test_only_the_tasks_exam_files_are_eligible(self):
+        self.assertEqual(ai.eligible_pr(self.pr(), self.PATHS), "exam-retire")
+        for extra in (["pilot/orchestrator/chain_lots.py"],
+                      ["pilot/holdouts/req1frontend4.oracle.json.age"]):
+            with self.assertRaisesRegex(ai.PolicyBlocked, "PR_PATH_NOT_ALLOWED"):
+                ai.eligible_pr(self.pr(n=4), self.PATHS + extra)
+        with self.assertRaisesRegex(ai.PolicyBlocked, "PR_PATH_NOT_ALLOWED"):
+            ai.eligible_pr(self.pr(n=2), self.PATHS[1:])      # oracle must be retired
+        human = self.pr(); human["user"]["login"] = "human"
+        with self.assertRaises(ai.PolicyBlocked):
+            ai.eligible_pr(human, self.PATHS)
+
+    def test_retire_must_delete_only(self):
+        class Api:
+            def pages(self, path, field):
+                return [{"filename": "pilot/holdouts/req1backend2.oracle.json.age",
+                         "status": "modified"}]
+        with self.assertRaisesRegex(ai.PolicyBlocked, "EXAM_RETIRE_NOT_DELETION_ONLY"):
+            ai.verify_exam_retire(Api(), 1, self.pr(), self.PATHS)

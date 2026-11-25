@@ -1,0 +1,41 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0455",
+  "title": "E2: retiro automático de exámenes desactualizados para que el examinador los reescriba",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 25/11: opción a) para req-652 (exámenes BACKEND y FRONTEND escritos antes de integrar CONTRATO)"
+  },
+  "reason": "Un examen publicado antes de que se integrara una dependencia de su lote está escrito sobre una base que esa dependencia cambió (req-652 BACKEND falla el ensayo T40), y el examinador automático no rehace exámenes publicados. CP3.6, al registrar un lote, detecta por historial de main (commit del examen vs merge CP3.5 de cada dependencia) que su examen es anterior a una dependencia, cierra los borradores de registro construidos sobre él y abre un PR del bot que solo borra el examen cifrado, su referencia y su metadata. La Política C acepta ese tipo de PR solo si son únicamente esas eliminaciones y la misma condición se cumple sobre main. Con el examen retirado y su exam-request abierto, el examinador automático lo reescribe sobre la base real. Un examen escrito después de sus dependencias nunca se retira (sin ciclo); con CHG-0454 los exámenes nuevos ya no quedan desactualizados.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/ci.yml",
+      "pilot/auto_integrate.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/stale_exam.py",
+      "pilot/orchestrator/test_e2_stale_exam.py",
+      "pilot/test_auto_integrate.py",
+      "pilot/test_policy_c_handoff.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0455.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/689"
+  }
+}

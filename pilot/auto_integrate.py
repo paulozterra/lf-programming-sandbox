@@ -60,6 +60,7 @@ BRANCH_RULES = (
     ("exam", "lf/exam/", r"lf/exam/[a-z][a-z0-9_-]{0,31}"),
     ("generated-t7", "lf/generated-t7/", r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?"),
     ("implemented-registry", "lf/implemented-registry/", r"lf/implemented-registry/[0-9a-f]{12}"),
+    ("exam-retire", "lf/exam-retire/", r"lf/exam-retire/[a-z][a-z0-9_-]{0,31}-[0-9a-f]{12}"),
     ("request", "lf/request/", r"lf/request/req-[1-9][0-9]*"),
 )
 BOT_BRANCH_PREFIXES = tuple(item[1] for item in BRANCH_RULES)
@@ -135,6 +136,15 @@ def eligible_pr(pr, paths, repo=REPOSITORY, api=None):
             block("PR_PATH_NOT_ALLOWED")
     elif kind == "implemented-registry":
         if paths != ["pilot/registry/implemented.json"]:
+            block("PR_PATH_NOT_ALLOWED")
+    elif kind == "exam-retire":
+        task = branch.removeprefix("lf/exam-retire/").rsplit("-", 1)[0]
+        metas = [p for p in paths if re.fullmatch(
+            r"pilot/runs/req-[1-9][0-9]{0,6}/claude_meta/" + re.escape(task) + r"[.]json", p)]
+        request = metas[0].split("/")[2] if len(metas) == 1 else None
+        from pilot.orchestrator.stale_exam import exam_paths
+        if (request is None or f"pilot/holdouts/{task}.oracle.json.age" not in paths
+                or not set(paths) <= set(exam_paths(request, task))):
             block("PR_PATH_NOT_ALLOWED")
     elif kind == "request":
         slug = branch.split("/")[-1]
@@ -370,6 +380,31 @@ def _content(api, path, revision):
     if len(raw) != response["size"]:
         block("GENERATED_CONTENT_DRIFT")
     return raw
+
+
+def verify_exam_retire(api, number, pr, paths):
+    """E2: only deletions, and the exam must be stale on trusted main: published
+    before one of its lot's dependencies was integrated (same rule as CP3.6)."""
+    rows = api.pages(f"/pulls/{number}/files", None)
+    if any(not isinstance(r, dict) or r.get("status") != "removed" for r in rows):
+        block("EXAM_RETIRE_NOT_DELETION_ONLY")
+    task = pr["head"]["ref"].removeprefix("lf/exam-retire/").rsplit("-", 1)[0]
+    request = next(p.split("/")[2] for p in paths if "/claude_meta/" in p)
+    root = Path(__file__).resolve().parents[1]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from pilot.orchestrator.stale_exam import is_stale
+    try:
+        plan = json.loads((root / f"pilot/runs/{request}/chain_plan.json").read_text("utf-8"))
+        lots = json.loads((root / f"pilot/runs/{request}/lots.json").read_text("utf-8"))["lots"]
+        by_lot = {b["lot_id"]: b["task_name"] for b in plan["bindings"]}
+        lot_id = next(b["lot_id"] for b in plan["bindings"] if b["task_name"] == task)
+        lot = next(x for x in lots if x["id"] == lot_id)
+        deps = [by_lot[d] for d in lot.get("depends_on", []) if d in by_lot]
+    except (OSError, ValueError, KeyError, StopIteration, TypeError):
+        block("EXAM_RETIRE_LOT_UNRESOLVED")
+    if not is_stale(root, task, deps):
+        block("EXAM_RETIRE_NOT_STALE")
 
 
 def verify_generated_content(api, pr, paths, kind):
@@ -658,6 +693,8 @@ def evaluate_one(api, number):
         return labeled_train_recovery(api, number)
     if kind in ("generated-t7", "implemented-registry"):
         verify_generated_content(api, pr, paths, kind)
+    if kind == "exam-retire":
+        verify_exam_retire(api, number, pr, paths)
     if kind == "integration":
         try:
             integration_proof(api, pr, paths)
