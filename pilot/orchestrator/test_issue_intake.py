@@ -50,6 +50,50 @@ class T9(unittest.TestCase):
         self.assertEqual(comments,
                          [(159, "PEDIDO_AUTOR_NO_AUTORIZADO")])
 
+    def test_rejection_comments_are_idempotent_by_code(self):
+        mod = self.mod
+        issue = dict(self.issue, body="invalid private issue text")
+        comments = []
+
+        class API:
+            def issue(self, number):
+                return issue
+            def permission(self, author):
+                return "write"
+            def call(self, method, path, payload=None):
+                return comments[:]
+            def comment(self, number, body):
+                comments.append({"user": {"login": mod.BOT}, "body": body})
+
+        api = API()
+        for _ in range(2):
+            with self.assertRaisesRegex(mod.Blocked, "PEDIDO_FORMULARIO_INVALIDO"):
+                mod.intake(api, {"issue": issue})
+        self.assertEqual(len(comments), 1)
+        self.assertNotIn("invalid private issue text", comments[0]["body"])
+        issue["body"] = "### Pedido\n\n"
+        with self.assertRaisesRegex(mod.Blocked, "PEDIDO_VACIO"):
+            mod.intake(api, {"issue": issue})
+        self.assertEqual(len(comments), 2)
+        self.assertIn("PEDIDO_VACIO", comments[1]["body"])
+
+    def test_comment_failure_preserves_original_rejection(self):
+        mod = self.mod
+        issue = dict(self.issue, body="invalid")
+
+        class API:
+            def issue(self, number):
+                return issue
+            def permission(self, author):
+                return "write"
+            def call(self, method, path, payload=None):
+                return []
+            def comment(self, number, body):
+                raise mod.Blocked("PEDIDO_API_FAILED")
+
+        with self.assertRaisesRegex(mod.Blocked, "^PEDIDO_FORMULARIO_INVALIDO$"):
+            mod.intake(API(), {"issue": issue})
+
     def test_valid_issue_produces_exact_bot_branch_and_pr(self):
         calls = []
         files = self.mod.expected_files(self.issue)
