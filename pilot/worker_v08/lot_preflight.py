@@ -152,7 +152,7 @@ def _base_blob_bytes(root: Path, base: str, name: str, entries: dict) -> int:
 def _planned_characterization(root: Path, task: dict, entries: dict) -> str | None:
     """Resolve the exact suite from the immutable base plan, not task assertions."""
     writes = task["write_path_patterns"]
-    if len(writes) != 1 or not re.search(r"/visible-tests/sol-k[0-9a-f]{12}[.]json$", writes[0]):
+    if len(writes) != 1 or not isinstance(writes[0], str) or not re.search(r"/visible-tests/sol-k[0-9a-f]{12}[.]json$", writes[0]):
         return None
     from pilot.config import project_config as project
     from pilot.orchestrator.native_lot_binding import _characterization_path, NativeLotBlocked
