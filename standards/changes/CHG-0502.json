@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0502",
   "title": "Policy C: impedir fusionar registros nativos durante retiro E2 pendiente",
-  "change_class": "ADDITIVE",
+  "change_class": "EDITORIAL",
   "trigger": {
     "kind": "OWNER",
     "reference": "Owner 25/11: candado defensivo E2"
