@@ -302,3 +302,4 @@
 | CHG-0498 | ADDITIVE | Credenciales ficticias del sandbox por variables SBX_FIXTURE_* para Worker y examen |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/733 |
 | CHG-0502 | EDITORIAL | Policy C: impedir fusionar registros nativos durante retiro E2 pendiente |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/737 |
 | CHG-0504 | EDITORIAL | Evento exam-retry: el examen retirado se reescribe en minutos, no en la corrida horaria |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/740 |
+| CHG-0509 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
