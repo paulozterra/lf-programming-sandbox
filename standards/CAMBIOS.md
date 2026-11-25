@@ -295,4 +295,4 @@
 | CHG-0455 | ADDITIVE | E2: retiro automático de exámenes desactualizados para que el examinador los reescriba |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/689 |
 | CHG-0468 | EDITORIAL | Ensayo T40: informar qué comandos visibles fallaron |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/704 |
 | CHG-0469 | EDITORIAL | Ensayo T40: informar el rechazo del parche de referencia (categoría y ruta) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/705 |
-| CHG-0475 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0475 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/712 |
