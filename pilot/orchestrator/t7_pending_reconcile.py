@@ -41,6 +41,35 @@ def _t7_history() -> list[dict]:
     return rows
 
 
+MAX_T7_FAILURES = 3
+ROUTE_PATHS = ("pilot", "analysis")
+
+
+def latest(rows: list[dict]) -> dict:
+    return max(rows, key=lambda r: (str(r.get("created_at") or ""), int(r.get("id") or 0)))
+
+
+def route_changed_since(root: Path, run: dict) -> bool:
+    """True if trusted main changed route code after the commit a run used."""
+    import subprocess
+    sha = run.get("head_sha")
+    if not isinstance(sha, str) or not SHA.fullmatch(sha):
+        return False
+    try:
+        ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", sha, "HEAD"],
+                                  cwd=root, capture_output=True, timeout=60).returncode == 0
+        if not ancestor:
+            return False
+        changed = subprocess.run(["git", "diff", "--name-only", sha, "HEAD", "--", *ROUTE_PATHS],
+                                 cwd=root, capture_output=True, text=True, timeout=60, check=True).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    # Request artifacts, exams and native task records are data, not route code.
+    data = ("pilot/runs/", "pilot/holdouts/", "pilot/worker_v08/native_tasks/",
+            "pilot/native_proposals/")
+    return any(line and not line.startswith(data) for line in changed.splitlines())
+
+
 def select(*, root: Path = ROOT) -> str | None:
     request_root = storage_path("requests_root", root=root)
     if not request_root.is_dir():
@@ -87,7 +116,18 @@ def select(*, root: Path = ROOT) -> str | None:
                    (row.get("display_title") in ("T7 " + request, "T7 " + source)
                     or (row.get("head_sha") == source and
                         row.get("event") == "push"))]
+        failures = [row for row in matches if row.get("status") == "completed"
+                    and row.get("conclusion") == "failure"]
+        # A failed T7 is retried only when trusted main changed the route's own
+        # code after the latest failure (the defect may be fixed), and never
+        # more than MAX_T7_FAILURES times. Unchanged route: stays stopped.
+        retry = (bool(failures) and len(failures) < MAX_T7_FAILURES
+                 and not any(row.get("status") == "completed" and row.get("conclusion") == "success"
+                             for row in matches)
+                 and route_changed_since(root, latest(failures)))
         for row in matches:
+            if retry and row.get("status") == "completed" and row.get("conclusion") == "failure":
+                continue
             if row.get("status") in ("queued", "in_progress", "waiting", "pending"):
                 pending = True
                 break

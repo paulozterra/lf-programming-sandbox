@@ -666,6 +666,14 @@ def evaluate_one(api, number):
                 comment_once(api, number)
             raise
     checks = api.pages(f"/commits/{head}/check-runs", "check_runs")
+    if kind == "implemented-registry":
+        # The trusted content check above just passed on current main. If the
+        # PR's own byte-equality CI check failed earlier (e.g. it ran before a
+        # fix reached main), re-run it instead of waiting for a human.
+        rerun = registry_check_rerun(checks, head)
+        if rerun is not None:
+            api.request("POST", f"/actions/jobs/{rerun}/rerun")
+            return "REGISTRY_CHECK_RERUN_REQUESTED"
     required = (REQUIRED + ("T7 generated content byte equality",)
                 if kind in ("generated-t7", "implemented-registry") else
                 REQUIRED + ("T9 request content byte equality",) if kind == "request"
@@ -684,6 +692,25 @@ def evaluate_one(api, number):
     api.request("POST", "/actions/workflows/sandbox-train.yml/dispatches",
                 {"ref": "main", "inputs": {"pr_number": str(number)}})
     return "LABEL_AND_TRAIN_DISPATCHED"
+
+
+MAX_REGISTRY_CHECK_FAILURES = 3
+
+
+def registry_check_rerun(checks, head):
+    """Job id to re-run when the latest byte-equality check failed, at most
+    MAX_REGISTRY_CHECK_FAILURES failures per head; None otherwise."""
+    rows = [c for c in checks if isinstance(c, dict)
+            and c.get("name") == "T7 generated content byte equality"
+            and c.get("head_sha") == head and c.get("status") == "completed"
+            and c.get("conclusion") in ("success", "failure")]
+    if not rows:
+        return None
+    latest = max(rows, key=lambda c: (str(c.get("started_at") or ""), int(c.get("id") or 0)))
+    failures = sum(1 for c in rows if c.get("conclusion") == "failure")
+    if latest.get("conclusion") != "failure" or failures >= MAX_REGISTRY_CHECK_FAILURES:
+        return None
+    return int(latest["id"]) if type(latest.get("id")) is int else None
 
 
 def run(api, trigger, *, numbers=None, scheduled=False):

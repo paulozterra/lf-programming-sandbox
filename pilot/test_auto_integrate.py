@@ -437,3 +437,17 @@ class ApiBodyLimitTests(unittest.TestCase):
         import inspect
         from pilot.orchestrator import implemented_registry as reg
         self.assertIn("read(5_000_001)", inspect.getsource(reg))
+
+
+class RegistryCheckRerunTests(unittest.TestCase):
+    def row(self, i, conclusion, started):
+        return {"id": i, "name": "T7 generated content byte equality", "head_sha": HEAD,
+                "status": "completed", "conclusion": conclusion, "started_at": started}
+
+    def test_failed_check_is_rerun_until_the_cap(self):
+        self.assertEqual(ai.registry_check_rerun([self.row(1, "failure", "1")], HEAD), 1)
+        self.assertIsNone(ai.registry_check_rerun(
+            [self.row(1, "failure", "1"), self.row(2, "success", "2")], HEAD))
+        capped = [self.row(i, "failure", str(i)) for i in range(ai.MAX_REGISTRY_CHECK_FAILURES)]
+        self.assertIsNone(ai.registry_check_rerun(capped, HEAD))
+        self.assertIsNone(ai.registry_check_rerun([], HEAD))
