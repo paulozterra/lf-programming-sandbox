@@ -94,10 +94,15 @@ def test_native_run_dry_mode_real_proposal_envelopes(tmp_path):
     reuse.write_text(json.dumps([ref]))
     program = ROOT / "pilot/worker_v08/native_run.py"
     def submit(name, added):
+        path = "apps/time-service/src/main/java/demo/New.java"
+        lines = added.splitlines()
         patch = (
-            "diff --git a/apps/time-service/src/main/java/demo/New.java "
-            "b/apps/time-service/src/main/java/demo/New.java\n"
-            + "\n".join("+" + line for line in added.splitlines()) + "\n")
+            f"diff --git a/{path} b/{path}\n"
+            "new file mode 100644\n"
+            "--- /dev/null\n"
+            f"+++ b/{path}\n"
+            f"@@ -0,0 +1,{len(lines)} @@\n"
+            + "\n".join("+" + line for line in lines) + "\n")
         proposal = tmp_path / ("proposal-" + name + ".json")
         proposal.write_text(json.dumps({
             "schema_version": 1, "summary": "offline test", "patch": patch,

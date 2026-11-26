@@ -1,6 +1,7 @@
 """T28: a file the task is authorized to extend is not a duplicate of itself."""
 from __future__ import annotations
 
+import difflib
 import hashlib
 import sys
 from pathlib import Path
@@ -27,10 +28,11 @@ def entry(tmp_path, rel=CTRL, value=BODY):
 
 def test_extending_a_writable_file_in_place_passes(tmp_path):
     ctx = [entry(tmp_path)]
-    patch = (f"diff --git a/{CTRL} b/{CTRL}\n"
-             '+@GetMapping("/api/gadgets")\n'
-             '+public String list(String auth, String q) { return q; }\n'
-             f"diff --git a/{TEST} b/{TEST}\n+// login first\n")
+    updated = BODY.replace("list(String q)", "list(String auth, String q)")
+    patch = f"diff --git a/{CTRL} b/{CTRL}\n" + "".join(
+        difflib.unified_diff(BODY.splitlines(True), updated.splitlines(True),
+                             fromfile=f"a/{CTRL}", tofile=f"b/{CTRL}"))
+    patch += f"diff --git a/{TEST} b/{TEST}\n--- /dev/null\n+++ b/{TEST}\n@@ -0,0 +1 @@\n+// login first\n"
     check(tmp_path, patch, ctx, writable=[CTRL, TEST])
 
 
