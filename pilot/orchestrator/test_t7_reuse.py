@@ -1,6 +1,7 @@
 """T7 offline catalogue and reuse guards; no fixture or hidden exam modifications."""
 import hashlib
 import json
+import difflib
 from pathlib import Path
 import sys
 
@@ -37,6 +38,18 @@ def source(tmp_path, rel, value):
     return {"path": rel, "sha256": hashlib.sha256(value.encode()).hexdigest()}
 
 
+def new_file_patch(path, content):
+    return f"diff --git a/{path} b/{path}\n" + "".join(
+        difflib.unified_diff([], content.splitlines(True), fromfile="/dev/null", tofile=f"b/{path}"))
+
+
+def complete_fixture_patch(patch):
+    # Older synthetic fixtures specified added lines only; construct a real hunk.
+    path = patch.splitlines()[0].split(" b/")[1]
+    return new_file_patch(path, "".join(line[1:] + "\n" for line in patch.splitlines()[1:]))
+
+
+
 def test_index_exact_evidence_and_indeterminate_without_explicit_rule(tmp_path):
     source(tmp_path, "apps/time-service/src/main/java/demo/Service.java",
            'public class Worker {\n'
@@ -63,7 +76,7 @@ def test_duplicate_endpoint_rejected(tmp_path):
              'b/apps/time-service/src/main/java/demo/New.java\n'
              '+@PostMapping("/api/example")\n')
     with pytest.raises(DuplicateComponent, match="DUPLICA_COMPONENTE_EXISTENTE:endpoint"):
-        check(tmp_path, patch, [])
+        check(tmp_path, complete_fixture_patch(patch), [])
 
 
 def test_copy_service_with_renamed_class_same_public_signature_rejected(tmp_path):
@@ -75,7 +88,7 @@ def test_copy_service_with_renamed_class_same_public_signature_rejected(tmp_path
              '+public class New {\n'
              '+public String changed(String input) { return input; }\n')
     with pytest.raises(DuplicateComponent, match="DUPLICA_COMPONENTE_EXISTENTE:signature"):
-        check(tmp_path, patch, [entry])
+        check(tmp_path, complete_fixture_patch(patch), [entry])
 
 
 def test_modify_reuse_context_rejected(tmp_path):
@@ -95,7 +108,7 @@ def test_use_existing_service_without_modifying_or_copying_passes(tmp_path):
              'b/apps/time-service/src/main/java/demo/New.java\n'
              '+public class New {\n'
              '+private final Existing existing;\n')
-    check(tmp_path, patch, [entry])
+    check(tmp_path, complete_fixture_patch(patch), [entry])
 
 
 def test_distinct_methods_with_same_shape_are_not_duplicates(tmp_path):
@@ -105,7 +118,7 @@ def test_distinct_methods_with_same_shape_are_not_duplicates(tmp_path):
     path = "apps/time-service/src/main/java/demo/New.java"
     patch = (f"diff --git a/{path} b/{path}\n"
              '+public String remove(String input) { return delete(input); }\n')
-    check(tmp_path, patch, [entry])
+    check(tmp_path, complete_fixture_patch(patch), [entry])
 
 
 def test_record_components_are_not_method_signatures(tmp_path):
@@ -114,7 +127,7 @@ def test_record_components_are_not_method_signatures(tmp_path):
     path = "apps/time-service/src/main/java/demo/New.java"
     patch = (f"diff --git a/{path} b/{path}\n"
              '+public record New(String status, String token) { public New { validate(status); } }\n')
-    check(tmp_path, patch, [entry])
+    check(tmp_path, complete_fixture_patch(patch), [entry])
 
 
 def test_same_method_name_different_behavior_is_not_duplicate(tmp_path):
@@ -123,7 +136,7 @@ def test_same_method_name_different_behavior_is_not_duplicate(tmp_path):
     path = "apps/time-service/src/main/java/demo/New.java"
     patch = (f"diff --git a/{path} b/{path}\n"
              '+public String lookup(String key) { return store.find(key); }\n')
-    check(tmp_path, patch, [entry])
+    check(tmp_path, complete_fixture_patch(patch), [entry])
 
 
 def test_copied_body_with_comments_and_nested_braces_rejected(tmp_path):
@@ -137,7 +150,7 @@ def test_copied_body_with_comments_and_nested_braces_rejected(tmp_path):
              '+  return key;\n'
              '+}\n')
     with pytest.raises(DuplicateComponent, match=r"Existing.java#read:.*New.java#renamed"):
-        check(tmp_path, patch, [entry])
+        check(tmp_path, complete_fixture_patch(patch), [entry])
 
 
 def test_complete_postimage_detects_copy_across_diff_hunks(tmp_path):
@@ -192,4 +205,61 @@ def test_duplicate_type_still_rejected(tmp_path):
     patch = (f"diff --git a/{path} b/{path}\n"
              '+public record Existing(String value) {}\n')
     with pytest.raises(DuplicateComponent, match="DUPLICA_COMPONENTE_EXISTENTE:type"):
-        check(tmp_path, patch, [])
+        check(tmp_path, complete_fixture_patch(patch), [])
+
+
+@pytest.mark.parametrize("header", [
+    'public String renamed(@RequestHeader(name = "A") String input)',
+    'public String renamed(@RequestBody String input)',
+    'public String renamed(String input) throws IOException, SQLException',
+    'public String renamed(final String input)',
+])
+def test_annotated_and_throws_copy_rejected(tmp_path, header):
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+                   'public String original(@RequestHeader(name = "A") String input) { return store.find(input); }\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    with pytest.raises(DuplicateComponent, match="DUPLICA_COMPONENTE_EXISTENTE:signature"):
+        check(tmp_path, new_file_patch(path, header + " { return store.find(input); }\n"), [entry])
+
+
+@pytest.mark.parametrize("replacement", [
+    'public String renamed(String auth) { String stored = store.find(auth); return stored; }',
+    'public String renamed(String input) { String value = store.find(input); return value; }',
+    'public String renamed(String input) { final String stored = store.find(input); return stored; }',
+    'public String renamed(String input) { String stored = store.find(input); ; return stored; }',
+])
+def test_trivial_copy_variants_rejected(tmp_path, replacement):
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+                   'public String original(String input) { String stored = store.find(input); return stored; }\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    with pytest.raises(DuplicateComponent, match="DUPLICA_COMPONENTE_EXISTENTE:signature"):
+        check(tmp_path, new_file_patch(path, replacement + "\n"), [entry])
+
+
+def test_nested_generic_parameters_and_annotation_arrays(tmp_path):
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+                   'public Map<String, List<Integer>> original(@A(values = {"x", "y"}) '
+                   'Map<String, List<Integer>> data, String key) throws IOException { return store.get(data, key); }\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    copied = ('public Map<String,List<Integer>> renamed(Map<String,List<Integer>> values, final String name) '
+              '{ return store.get(values, name); }\n')
+    with pytest.raises(DuplicateComponent, match="DUPLICA_COMPONENTE_EXISTENTE:signature"):
+        check(tmp_path, new_file_patch(path, copied), [entry])
+
+
+@pytest.mark.parametrize("replacement", [
+    'public String read(String key) { return store.remove(key); }',
+    'public String read(String key) { return store.find("other"); }',
+    'public String read(String key) { return this.key; }',
+])
+def test_normalization_preserves_calls_literals_and_members(tmp_path, replacement):
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+                   'public String read(String key) { return store.find(key); }\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    check(tmp_path, new_file_patch(path, replacement + "\n"), [entry])
+
+
+def test_fragment_without_hunk_is_rejected(tmp_path):
+    path = "apps/time-service/src/main/java/demo/New.java"
+    with pytest.raises(DuplicateComponent, match="REUTILIZACION_INDETERMINADA"):
+        check(tmp_path, f"diff --git a/{path} b/{path}\n+public class New {{}}\n", [])
