@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Owner: solucionar EXAM_TRACE_RULE_UNKNOWN en EXAM_REQUEST #831"
   },
-  "reason": "Resolver la relación explícita entre requirement_id y source_requirement_id de SECOND_SCREEN_SOURCE_V1 en el brief y la validación de trazas. Rechazar enlaces ausentes, ambiguos o sin evidencia; conservar el alcance de lote T58 y la compatibilidad con fichas legacy. Regresión sintética sin examen ni registro real.",
+  "reason": "Resolver brief y publicación mediante la fuente fijada del pedido A9, su pin y correspondencia de requisito a regla con estados VALID/MISSING/INVALID/AMBIGUOUS. Eliminar bypass textual y fallback legacy indebido; conservar STD y alcance T58. Regresión sintética y entrada catalogada EKB sin examen ni registro real.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -17,7 +17,9 @@
       "pilot/orchestrator/publish_exam.py",
       "pilot/orchestrator/test_t58_auto_examiner.py",
       "standards/changes/CHG-0586.json",
-      "standards/CAMBIOS.md"
+      "standards/CAMBIOS.md",
+      "pilot/worker_v08/test_t40_exam_controls.py",
+      "pilot/ekb/route_error_catalog.json"
     ]
   },
   "existing_code_impact": {
