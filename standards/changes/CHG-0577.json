@@ -2,7 +2,7 @@
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0577",
   "title": "Prevalidación nativa de formato Java — fase 1",
-  "change_class": "EDITORIAL",
+  "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
     "reference": "Owner: prevalidación Spotless previa a intento; segunda revisión H3, H6, H7"
