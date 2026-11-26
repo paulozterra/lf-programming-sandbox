@@ -117,12 +117,6 @@ def recover(head: str, run, api, repo: str, root: Path, *, allowed_task, format_
                 if state != "CONTINUE":
                     outcomes.append({"status": state, "task": task, "proposal_sha": sha})
                     continue
-                # A cancelled redispatch is not an unlimited retry token.
-                if any(PENDING.fullmatch(str(x.get("display_title") or "")) and
-                       PENDING.fullmatch(str(x.get("display_title") or "")).groups() == (task, sha)
-                       for x in rows):
-                    outcomes.append({"status": "FORMAT_PENDING_RETRY_EXHAUSTED", "task": task})
-                    continue
             # The runner already serializes by task, but a separate in-flight run
             # for the task must be respected even if it references another SHA.
             if any(_recognized_run(item, task) and item.get("status") in

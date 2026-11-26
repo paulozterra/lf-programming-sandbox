@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Owner: prevalidación Spotless previa a intento; segunda revisión H3, H6, H7"
   },
-  "reason": "Construir y probar un módulo aislado de formato Java; ejecutar primero la propuesta, comparar la base únicamente ante una infracción atribuible y limitar el presupuesto temporal total. No conectar todavía el módulo a la ruta productiva ni cambiar estándares, exámenes o intentos. Fase 2: gate anterior al examinador y evidencia sin intento; sin presupuesto de formato ni CP3.6. Fase 3: presupuesto independiente de tres rechazos únicos, evidencia de Actions ligada al parche y feedback idempotente; sin CP3.6. Fase 4: recuperación CP3.6, cancelaciones, prueba Maven real y límites de sobrecoste.",
+  "reason": "Construir y probar un módulo aislado de formato Java; ejecutar primero la propuesta, comparar la base únicamente ante una infracción atribuible y limitar el presupuesto temporal total. No conectar todavía el módulo a la ruta productiva ni cambiar estándares, exámenes o intentos. Fase 2: gate anterior al examinador y evidencia sin intento; sin presupuesto de formato ni CP3.6. Fase 3: presupuesto independiente de tres rechazos únicos, evidencia de Actions ligada al parche y feedback idempotente; sin CP3.6. Fase 4: recuperación CP3.6, cancelaciones, prueba Maven real y límites de sobrecoste. Cierre H15/H16: activación por inscripción gobernada inicialmente vacía y R1 acotado a tarea/frontera de activación.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -32,7 +32,10 @@
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/native_route_recovery.py",
       "pilot/orchestrator/chain_contract.py",
-      "pilot/orchestrator/test_t24_1_sweep_and_attempts.py"
+      "pilot/orchestrator/test_t24_1_sweep_and_attempts.py",
+      "pilot/worker_v08/native_format_activation.py",
+      "pilot/worker_v08/native_format_activation.json",
+      "pilot/worker_v08/test_native_format_activation.py"
     ]
   },
   "existing_code_impact": {

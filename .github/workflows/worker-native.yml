@@ -340,9 +340,22 @@ jobs:
           test "$(git -C proposal rev-parse HEAD)" = "$PROPOSAL_SHA"
           test -f "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
           test ! -L "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
+      - name: Resolve governed format activation for registered task
+        id: format_activation
+        timeout-minutes: 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 control/pilot/worker_v08/native_format_activation.py \
+            --control control --task "$NATIVE_TASK" --workflow-sha "$GITHUB_SHA" \
+            --github-output "$GITHUB_OUTPUT"
       - name: Admit independent format rejection budget
         id: format_budget
-        timeout-minutes: 2
+        if: ${{ steps.format_activation.outputs.enabled == 'true' }}
+        timeout-minutes: 1
         env:
           GH_TOKEN: ${{ github.token }}
           NATIVE_TASK: ${{ steps.source.outputs.task }}
@@ -355,6 +368,7 @@ jobs:
             --sha "$NATIVE_SHA" --run-id "$GITHUB_RUN_ID"
       - name: Prevalidate native proposal format before examiner material
         id: format
+        if: ${{ steps.format_activation.outputs.enabled == 'true' }}
         timeout-minutes: 6
         env:
           NATIVE_TASK: ${{ steps.source.outputs.task }}

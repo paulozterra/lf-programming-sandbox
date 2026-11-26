@@ -12,6 +12,8 @@ from test_native_format_history import row,evidence,envelope,TASK,SHA
 
 def fixture(monkeypatch, statuses):
     r=Recovery(None,None,h.REPO,ROOT)
+    r.policy={TASK:900}
+    monkeypatch.setattr(r,'enabled',lambda task:task==TASK)
     rows=[row(i,str(i)*40) for i in range(1,len(statuses)+1)]
     data={i:evidence(i,str(i)*40,envelope("patch"+str(i)),status)
           for i,status in enumerate(statuses,1)}
@@ -41,7 +43,7 @@ def test_status(monkeypatch,status,expected):
 def test_feedback_recovery_only(monkeypatch):
     from datetime import datetime,timezone
     r=fixture(monkeypatch,["FORMAT_FAIL"])
-    r._boundary=datetime(2026,11,26,tzinfo=timezone.utc)
+    monkeypatch.setattr(r,'boundary',lambda task:datetime(2026,11,26,tzinfo=timezone.utc))
     monkeypatch.setattr(r,"rows",lambda:[row(1,"1"*40,status="cancelled")])
     calls=[]
     monkeypatch.setattr(h,"publish",lambda *args:calls.append(args[-1]) or "FORMAT_FEEDBACK_PUBLISHED")
@@ -62,7 +64,7 @@ def test_distinct_governed_format_block(monkeypatch):
     from datetime import datetime,timezone
     from pilot.orchestrator import chain_contract
     r=fixture(monkeypatch,["FORMAT_FAIL"]*3)
-    r._boundary=datetime(2026,11,26,tzinfo=timezone.utc)
+    monkeypatch.setattr(r,'boundary',lambda task:datetime(2026,11,26,tzinfo=timezone.utc))
     monkeypatch.setattr(r,"rows",lambda:[row(i,str(i)*40) for i in range(1,4)])
     monkeypatch.setattr(h,"publish",lambda *a:"FORMAT_FEEDBACK_ALREADY_PUBLISHED")
     outcomes=r.recover_feedback(lambda task:True)

@@ -1974,7 +1974,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             # Only registered, actively owned tasks can have format evidence.
             # Do not query Actions for plans still awaiting registration.
             registration = storage_path("registrations_root", task + ".json", root=ROOT)
-            return registration.is_file() and not registration.is_symlink() and task_live(task)
+            return (registration.is_file() and not registration.is_symlink()
+                    and format_recovery.enabled(task) and task_live(task))
         recoveries = (
             ("T20_BOT_CI_RETRY",
              lambda: retry_failed_bot_prs(
@@ -1992,7 +1993,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             ("R1_WORKER_PENDING",
              lambda: recover_pending_worker(
                  head, run, api, REPO, ROOT, allowed_task=pending_task_live,
-                 format_decision=format_recovery.decision)
+                 format_decision=format_recovery.pending_decision)
              if owners else []),
             ("T20_NATIVE_INFRA",
              lambda: retry_native_infra(

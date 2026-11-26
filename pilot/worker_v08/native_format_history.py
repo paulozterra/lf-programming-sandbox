@@ -238,8 +238,8 @@ def result_for_run(api, command, repo, row, task):
     return data
 
 
-def historical_rejections(api, command, repo, task, run_id, sha):
-    boundary = cutover(api)
+def historical_rejections(api, command, repo, task, run_id, sha, *, activation_boundary=None):
+    boundary = activation_boundary if activation_boundary is not None else cutover(api)
     rows = listed(api)
     current = [r for r in rows if r["id"] == run_id]
     require(len(current) == 1, "FORMAT_CURRENT_RUN_MISSING")
@@ -319,7 +319,11 @@ def main():
             "FORMAT_HISTORY_CONTEXT_INVALID")
     api = lambda route: _api(repo, token, route)
     if a.mode == "budget":
-        prior = historical_rejections(api, _subprocess, repo, a.task, a.run_id, a.sha)
+        from native_format_activation import policy_at_root, eligible, boundary
+        policy = policy_at_root(a.control)
+        require(eligible(a.control, a.task, policy), 'FORMAT_ACTIVATION_NOT_ENROLLED')
+        prior = historical_rejections(api, _subprocess, repo, a.task, a.run_id, a.sha,
+                                      activation_boundary=boundary(api, a.task, policy))
         try:
             hashes = checkout_identity(a.proposal, a.task)
         except Exception:

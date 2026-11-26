@@ -6,6 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "worker_v08"))
 import native_format_history as history
+import native_format_activation as activation
 from native_format_admission import identity
 from native_run_history import _recognized_run
 
@@ -17,20 +18,31 @@ class Recovery:
     def __init__(self, run, api, repo, root):
         self.run, self.api, self.repo, self.root = run, api, repo, root
         self._rows = None
-        self._boundary = None
+        self._boundaries = {}
+        self.policy = activation.policy_at_root()
         self._data = {}
         self.exhausted_tasks = set()
 
     def rows(self):
         if self._rows is None:
-            self._boundary = history.cutover(self.api)
             self._rows = history.listed(self.api)
         return self._rows
 
+    def enabled(self, task):
+        return activation.eligible(self.root, task, self.policy)
+
+    def boundary(self, task):
+        if task not in self._boundaries:
+            self._boundaries[task] = activation.boundary(self.api, task, self.policy)
+        return self._boundaries[task]
+
     def task_rows(self, task):
+        if not self.enabled(task):
+            return []
+        boundary = self.boundary(task)
         return [row for row in self.rows()
                 if _recognized_run({**row, "run_attempt":1},task)
-                and history.stamp(row.get("created_at")) >= self._boundary]
+                and history.stamp(row.get("created_at")) >= boundary]
 
     def result(self, row, task):
         rid = row["id"]
@@ -69,12 +81,24 @@ class Recovery:
                 return latest["status"]
         return "CONTINUE"
 
+    def pending_decision(self, task, sha):
+        # R1's historical policy remains untouched outside enrolled tasks.
+        state = self.decision(task, sha)
+        if state != 'CONTINUE' or not self.enabled(task):
+            return state
+        for row in self.task_rows(task):
+            if (row.get('display_title') == f'lf-native-pending-retry-{task}-{sha}'
+                    and row.get('event') == 'workflow_dispatch'):
+                history.trusted_run(row, self.repo)
+                return 'FORMAT_PENDING_RETRY_EXHAUSTED'
+        return state
+
     def recover_feedback(self, allowed_task):
         outcomes=[]
+        if not self.policy:
+            return outcomes
         rejected, unresolved, active = {}, set(), set()
         for row in self.rows():
-            if history.stamp(row.get("created_at")) < self._boundary:
-                continue
             # Exact title identity, including pending retry; no task guessing.
             title=row.get("display_title") or ""
             match=re.fullmatch(r"lf-native-(?:auto-lf/native-proposal/|(?:infra|route|pending)-retry-)([a-z][a-z0-9_-]{0,31})-[0-9a-f]{40}",title)
@@ -84,7 +108,9 @@ class Recovery:
                 continue
             task=match.group(1)
             try:
-                if not allowed_task(task):
+                if not self.enabled(task) or not allowed_task(task):
+                    continue
+                if history.stamp(row.get('created_at')) < self.boundary(task):
                     continue
                 if row.get("status") != "completed":
                     active.add(task)
