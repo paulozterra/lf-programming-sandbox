@@ -1970,6 +1970,11 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     if sweep:
         from pilot.orchestrator.native_format_recovery import Recovery as FormatRecovery
         format_recovery = FormatRecovery(run, api, REPO, ROOT)
+        def format_task_live(task):
+            # Only registered, actively owned tasks can have format evidence.
+            # Do not query Actions for plans still awaiting registration.
+            registration = storage_path("registrations_root", task + ".json", root=ROOT)
+            return registration.is_file() and not registration.is_symlink() and task_live(task)
         recoveries = (
             ("T20_BOT_CI_RETRY",
              lambda: retry_failed_bot_prs(
@@ -1996,8 +2001,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             ("T22_FEEDBACK",
              lambda: recover_native_feedback(run, api, REPO, ROOT)),
             ("FORMAT_FEEDBACK",
-             lambda: format_recovery.recover_feedback(task_live)
-             if any(task_live(task) for task in owners) else []),
+             lambda: format_recovery.recover_feedback(format_task_live)
+             if any(format_task_live(task) for task in owners) else []),
             ("T23_ROUTE",
              lambda: recover_route_defects(
                  head, run, api, REPO, ROOT, worktree, draft, pending_draft,
