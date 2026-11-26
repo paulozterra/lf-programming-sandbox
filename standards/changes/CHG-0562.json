@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0562",
+  "title": "T37 acredita defectos del guard previo a aceptación",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: recuperación gobernada de defectos de herramientas previas a aceptación"
+  },
+  "reason": "Acreditar falsos positivos de firma mediante reproducción exacta sobre una base de fuente invariable y dos controles confiables, sin reanclar registro ni modificar examen. Mantener T37 histórico y exigir identidad de run, propuesta y task-pack.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/route_tool_defect.py",
+      "pilot/worker_v08/native_route_tool_defect.py",
+      "pilot/worker_v08/test_t37_route_tool_defect.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0562.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/800"
+  }
+}
