@@ -312,4 +312,4 @@
 | CHG-0542 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/780 |
 | CHG-0549 | EDITORIAL | Aprendizaje EKB y mantenimiento protegido del Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/787 |
 | CHG-0554 | EDITORIAL | Exigir evidencia de duplicación de métodos en reuse guard |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/792 |
-| CHG-0564 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
+| CHG-0564 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
