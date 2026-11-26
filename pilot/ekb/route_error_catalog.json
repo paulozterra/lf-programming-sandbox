@@ -641,6 +641,24 @@
       "causa_raiz": "El Train impide ejecutar o integrar automáticamente herramientas de política modificadas por el PR. No es un conflicto de Git.",
       "prevencion": "Conservar el candado. Usar mantenimiento excepcional del owner solo con revisión independiente, HEAD exacto y checks verdes; verificar merge de dos padres, CI de main y recuperación de eventos sin fabricar recibos.",
       "validacion": "PR 771 CHG-0534, run 45731331972; procedimiento de mantenimiento protegido y pruebas del candado."
+    },
+    "EXAM_TRACE_RULE_UNKNOWN": {
+      "categoria": "EXAMINER",
+      "severidad": "High",
+      "lifecycle_phase": "governance",
+      "consumer_role": [
+        "Judge",
+        "Builder",
+        "Auditor"
+      ],
+      "root_cause_family": "R4_NO_CUESTIONA",
+      "detectability": "LOUD_LATE",
+      "titulo": "Trazas de examen sin resolución vinculada a la fuente del pedido",
+      "descripcion": "Una asociación explícita de requisito a regla no se resolvía; búsquedas textuales y fallback legacy podían aceptar reglas ajenas o asociaciones inválidas.",
+      "patron": "EXAM_TRACE_RULE_UNKNOWN y rules_without_text; identificadores canónicos distintos de la regla fuente, o coincidencias en otra ficha.",
+      "causa_raiz": "El brief y el publicador usaban búsquedas diferentes y no vinculadas a la fuente persistida del pedido.",
+      "prevencion": "Resolver ambos con la identidad de A9, el pin de la ficha, evidencia explícita y estados válido, inexistente, inválido y ambiguo. No usar fallback textual ni legacy para una fuente de segunda pantalla. Acreditar además el hash histórico de A9 contra los bytes legacy o contra la evidencia del normalizador existente; un repin posterior no sustituye esa huella. Bloquear brief y publicación si cualquier obligación del lote no resuelve VALID, aunque las trazas sean de contrato, pedido, entorno o STD. Los requisitos derivados por área deben acreditar su padre A9 y evidencia coincidente.",
+      "validacion": "PR 835 CHG-0586; pruebas sintéticas de colisiones, elusión textual, fallback legacy, alcance y evidencia en pilot/orchestrator/test_t58_auto_examiner.py. Regresiones de repin consistente y de fuentes no relacionadas; readback de artefactos públicos históricos."
     }
   }
 }

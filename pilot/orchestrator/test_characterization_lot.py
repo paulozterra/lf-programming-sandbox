@@ -1,4 +1,5 @@
 """Characterization lots on synthetic inputs: planning, coverage check."""
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -108,8 +109,53 @@ def test_characterization_exam_trace_may_cite_only_pinned_rules(tmp_path, monkey
     (folder / "templates/t1.task.json").write_text(json.dumps(
         {"task_spec": {"write_path_patterns": CHAR_LOT["write_paths"]}}))
     (folder / "lots.json").write_text(json.dumps({"lots": [CHAR_LOT]}))
+    # H4 requires the characterization lot's obligations to resolve against
+    # the same pinned, historical A9 source as an implementation lot.
+    fixture = tmp_path / "analysis/fixtures/characterization_demo"
+    fixture.mkdir(parents=True)
+    target = "DEMO-CHARACTERIZATION"
+    rules = [
+        {"code": "KEEP-1", "source_ref": "supabase://lf_ops.reglas/1",
+         "title": "Conservar comportamiento", "status": "VIGENTE"},
+        {"code": "OTHER", "source_ref": "supabase://lf_ops.reglas/2",
+         "title": "Regla de otro lote", "status": "VIGENTE"},
+    ]
+    effective = fixture / "effective_rules.json"
+    effective.write_text(json.dumps({"rules": rules}), encoding="utf-8")
+    digest = hashlib.sha256(effective.read_bytes()).hexdigest()
+    (fixture / "SOURCE_PIN.json").write_text(json.dumps({
+        "schema_version": "SBX_FIXTURE_PIN_V1", "fixture_id": target,
+        "files": [{"file": effective.name, "sha256": digest}],
+    }), encoding="utf-8")
+    analysis = folder / "analysis.json"
+    analysis.write_text(json.dumps({
+        "request_context": {"target_ref": target, "intent": "modifica " + target},
+        "programming_context_snapshot": {"target": target, "source_snapshot_inputs": {
+            "rule_fixture_provenance": {"effective_rules.json":
+                f"fixture://{fixture.name}/{effective.name}@{digest}"}}},
+        "requirements": [
+            {"requirement_id": "REQ-" + rule["code"],
+             "source_requirement_id": rule["code"],
+             "evidence_refs": [rule["source_ref"]]} for rule in rules
+        ],
+    }), encoding="utf-8")
+    standards = tmp_path / "standards"
+    standards.mkdir()
+    (standards / "catalog.json").write_text(
+        json.dumps({"rules": [{"id": "STD-X"}]}), encoding="utf-8")
     monkeypatch.setattr(publish_exam, "storage_path",
                         lambda key, root: Path(root) / "pilot/runs")
-    publish_exam.check_trace_lot(tmp_path, "req-1", "t1", {"E1": "rule:KEEP-1", "E2": "rule:STD-X"})
+    monkeypatch.setattr(publish_exam, "ROOT", tmp_path)
+    trace = {"E1": "rule:KEEP-1", "E2": "rule:STD-X"}
+    publish_exam.check_trace('fail("E1")\nfail("E2")', trace, tmp_path, tmp_path, "req-1")
+    publish_exam.check_trace_lot(tmp_path, "req-1", "t1", trace)
+    # A rule from the same A9 source but outside the characterization lot
+    # remains inadmissible, even though its own provenance is valid.
+    publish_exam.check_trace('fail("E1")', {"E1": "rule:OTHER"},
+                             tmp_path, tmp_path, "req-1")
     with pytest.raises(publish_exam.ExamBlocked, match="EXAM_TRACE_RULE_NOT_IN_LOT"):
         publish_exam.check_trace_lot(tmp_path, "req-1", "t1", {"E1": "rule:OTHER"})
+    # Losing historical A9 evidence must also block non-rule traces (H4).
+    analysis.unlink()
+    with pytest.raises(publish_exam.ExamBlocked, match="EXAM_LOT_RULE_UNRESOLVED:KEEP-1=INVALID"):
+        publish_exam.check_trace_lot(tmp_path, "req-1", "t1", {"E1": "env:build"})

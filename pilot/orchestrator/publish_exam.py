@@ -22,6 +22,7 @@ import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
+from pilot.orchestrator.examiner_brief import BriefBlocked, require_lot_rules, resolve_fiche_rule
 
 import argparse
 import ast
@@ -242,8 +243,6 @@ def check_trace(script: str, trace: dict, worktree: Path, reference: Path,
         extra = sorted(set(trace or {}) - codes)
         raise ExamBlocked("EXAM_TRACE_MISMATCH:" + ",".join(
             ["missing=" + c for c in missing] + ["unused=" + c for c in extra]))
-    fixtures = "\n".join(p.read_text("utf-8", "replace")
-                         for p in (ROOT / "analysis/fixtures").rglob("*.json"))
     for code, target in sorted(trace.items()):
         if not isinstance(target, str) or not target.startswith(TRACE_KINDS):
             raise ExamBlocked("EXAM_TRACE_KIND_INVALID:" + code)
@@ -251,8 +250,11 @@ def check_trace(script: str, trace: dict, worktree: Path, reference: Path,
         value = value.strip()
         if not value:
             raise ExamBlocked("EXAM_TRACE_EMPTY:" + code)
-        if kind == "rule" and not re.search(r"(?<![A-Z0-9-])" + re.escape(value) + r"(?![A-Z0-9])", fixtures):
-            raise ExamBlocked("EXAM_TRACE_RULE_UNKNOWN:" + code + "=" + value)
+        if kind == "rule":
+            state = resolve_fiche_rule(ROOT, request, value)["status"]
+            if state != "VALID":
+                reason = "UNKNOWN" if state == "MISSING" else state
+                raise ExamBlocked("EXAM_TRACE_RULE_" + reason + ":" + code + "=" + value)
         if kind == "contract" and not ((worktree / value).is_file() or (reference / value).is_file()):
             raise ExamBlocked("EXAM_TRACE_CONTRACT_UNKNOWN:" + code + "=" + value)
         if kind == "request" and value.split()[0] != request:
@@ -277,8 +279,13 @@ def check_trace_lot(root: Path, request: str, task: str, trace: dict) -> None:
     lot = rows[0]
     bound = (lot.get("characterized_requirement_ids") if lot.get("lot_kind") == "CHARACTERIZATION"
              else lot.get("requirement_ids"))
-    allowed = {r[len("REQ-"):] for r in bound or []
-               if isinstance(r, str) and r.startswith("REQ-")}
+    # Check every lot obligation before any reference build or publication,
+    # even when all failure codes use contract/request/env/STD traces.
+    try:
+        require_lot_rules(root, request, bound)
+    except BriefBlocked as exc:
+        raise ExamBlocked(str(exc)) from None
+    allowed = {r[len("REQ-"):] for r in bound}
     for code, target in sorted(trace.items()):
         kind, _, value = str(target).partition(":")
         value = value.strip()
