@@ -317,3 +317,4 @@
 | CHG-0567 | EDITORIAL | T37 recuperación gobernada req652backend2 run 45751249784 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/805 |
 | CHG-0577 | ADDITIVE | Prevalidación nativa de formato Java — fase 1 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/816 |
 | CHG-0578 | EDITORIAL | Fijar frontera histórica de prevalidación CHG-0577 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/817 |
+| CHG-0582 | ADDITIVE | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
