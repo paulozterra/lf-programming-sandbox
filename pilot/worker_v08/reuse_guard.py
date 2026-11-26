@@ -64,6 +64,56 @@ def _methods_with_body(source: str):
                     break
 
 
+_HUNK = re.compile(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?:.*)")
+
+
+def _postimage(root: Path, path: str, diff: list[str]) -> tuple[str, str]:
+    """Reconstruct a Java postimage from checked unified-diff hunks, in memory."""
+    rel = Path(path)
+    if rel.is_absolute() or ".." in rel.parts or not (root / rel).resolve().is_relative_to(root.resolve()):
+        raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+    candidate = root / rel
+    if candidate.is_symlink():
+        raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+    before = candidate.read_text("utf-8") if candidate.is_file() else ""
+    old = before.splitlines()
+    result = []
+    cursor = 0
+    starts = [i for i, line in enumerate(diff) if line.startswith("@@ ")]
+    for start, end in zip(starts, starts[1:] + [len(diff)]):
+        hunk = _HUNK.fullmatch(diff[start])
+        if hunk is None:
+            raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+        old_start, old_count, new_start, new_count = hunk.groups()
+        old_count, new_count = int(old_count or "1"), int(new_count or "1")
+        offset = int(old_start) - (1 if old_count else 0)
+        new_offset = int(new_start) - (1 if new_count else 0)
+        if not cursor <= offset <= len(old):
+            raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+        result.extend(old[cursor:offset])
+        cursor = offset
+        if len(result) != new_offset:
+            raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+        consumed = produced = 0
+        for line in diff[start + 1:end]:
+            if line == r"\ No newline at end of file":
+                continue
+            if not line or line[0] not in " +-":
+                raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+            if line[0] in " -":
+                if cursor >= len(old) or old[cursor] != line[1:]:
+                    raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+                cursor += 1
+                consumed += 1
+            if line[0] in " +":
+                result.append(line[1:])
+                produced += 1
+        if (consumed, produced) != (old_count, new_count):
+            raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
+    result.extend(old[cursor:])
+    return before, "\n".join(result)
+
+
 def check(root: Path, patch: str, reuse_context: list[dict],
           writable: tuple[str, ...] | list[str] = ()) -> None:
     """``writable``: files the registered task is authorized to change (an
@@ -82,6 +132,7 @@ def check(root: Path, patch: str, reuse_context: list[dict],
         context[entry["path"]] = entry.get("sha256")
     current = None
     added = []
+    diffs = {}
     added_blocks = []
     block = []
     touched = set()
@@ -96,11 +147,14 @@ def check(root: Path, patch: str, reuse_context: list[dict],
                 raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
             current = match.group(1)
             touched.add(current)
+            diffs[current] = []
         elif line.startswith("+") and not line.startswith("+++"):
             if current is None:
                 raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
             added.append((current, line[1:]))
             block.append(line[1:])
+        if current is not None and not line.startswith("diff --git a/"):
+            diffs[current].append(line)
     if block:
         added_blocks.append((current, "\n".join(block)))
     for path in sorted((touched & context.keys()) - writable):
@@ -129,18 +183,37 @@ def check(root: Path, patch: str, reuse_context: list[dict],
             if key in existing_types and existing_types[key] != path:
                 raise DuplicateComponent("DUPLICA_COMPONENTE_EXISTENTE:type:" + key +
                                          ":" + existing_types[key])
-    # Never join unrelated diff hunks to fabricate a method body. A signature
-    # alone (even the same method name) is not evidence of copied behavior.
-    for path, snippet in added_blocks:
+    # Real submissions have hunks (validated by worker_patch.inspect_patch).
+    # Compare changed/new methods against pinned context, not unchanged legacy
+    # methods. Fragment-only inputs are retained for the offline guard fixtures.
+    from collections import Counter
+
+    candidates = []
+    for path, diff in diffs.items():
         if not path.endswith(".java"):
             continue
-        for method, body in _methods_with_body(snippet):
-            for existing_path in sorted(context):
-                if existing_path == path or not existing_path.endswith(".java"):
-                    continue
-                source = (root / existing_path).read_text("utf-8")
-                for known, known_body in _methods_with_body(source):
-                    if _public_signature(method) == _public_signature(known) and body == known_body:
-                        raise DuplicateComponent(
-                            "DUPLICA_COMPONENTE_EXISTENTE:signature:"
-                            + existing_path + "#" + known[1] + ":" + path + "#" + method[1])
+        if any(line.startswith("@@ ") for line in diff):
+            before, after = _postimage(root, path, diff)
+            previous = Counter((method, body) for method, body in _methods_with_body(before))
+            for method, body in _methods_with_body(after):
+                if previous[(method, body)]:
+                    previous[(method, body)] -= 1
+                else:
+                    candidates.append((path, method, body))
+        else:
+            for added_path, snippet in added_blocks:
+                if added_path == path:
+                    candidates.extend((path, method, body) for method, body in _methods_with_body(snippet))
+    known_methods = {
+        path: list(_methods_with_body((root / path).read_text("utf-8")))
+        for path in sorted(context) if path.endswith(".java")
+    }
+    for path, method, body in candidates:
+        for existing_path, methods in known_methods.items():
+            if existing_path == path:
+                continue
+            for known, known_body in methods:
+                if _public_signature(method) == _public_signature(known) and body == known_body:
+                    raise DuplicateComponent(
+                        "DUPLICA_COMPONENTE_EXISTENTE:signature:"
+                        + existing_path + "#" + known[1] + ":" + path + "#" + method[1])
