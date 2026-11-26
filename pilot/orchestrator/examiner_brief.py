@@ -15,6 +15,7 @@ import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path
+from analysis.host.fixture_normalize import normalize
 
 import argparse
 import hashlib
@@ -71,7 +72,7 @@ def _source_for_request(root: Path, request: str) -> tuple[str, Path | None, dic
         if not isinstance(target, str) or not target or snapshot["target"] != target:
             return "INVALID", None, {}
         ref = provenance["effective_rules.json"]
-        match = re.fullmatch(r"fixture://([a-zA-Z0-9_-]+)/effective_rules\.json@[a-f0-9]{64}", ref)
+        match = re.fullmatch(r"fixture://([a-zA-Z0-9_-]+)/effective_rules\.json@([a-f0-9]{64})", ref)
         if not match:
             return "INVALID", None, {}
         folder = root / "analysis" / "fixtures" / match.group(1)
@@ -88,6 +89,22 @@ def _source_for_request(root: Path, request: str) -> tuple[str, Path | None, dic
                     return "AMBIGUOUS", None, {}
             except (OSError, ValueError):
                 continue
+        # Revalidate the exact historical A9 readback, not merely today's pin.
+        if pin.get("schema_version") == "SOURCE_SCREEN_PIN_V1":
+            intent = analysis["request_context"]["intent"]
+            # The original normalizer owns canonicalization and provenance.
+            normalized_target, _, evidence = normalize(folder, intent)
+            if normalized_target != target or evidence.get("effective_rules.json") != ref:
+                return "INVALID", None, {}
+        elif pin.get("schema_version") == "SBX_FIXTURE_PIN_V1":
+            pins = _rule_rows(pin.get("files"), "file", "effective_rules.json")
+            if len(pins) != 1:
+                return ("AMBIGUOUS" if pins else "INVALID"), None, {}
+            if pins[0].get("sha256") != match.group(2):
+                return "INVALID", None, {}
+            _pinned_file(folder, "effective_rules.json", match.group(2))
+        else:
+            return "INVALID", None, {}
         return "VALID", folder, {"analysis": analysis, "pin": pin}
     except (OSError, ValueError, KeyError, TypeError):
         return "INVALID", None, {}
