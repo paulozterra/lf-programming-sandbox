@@ -30,7 +30,7 @@ from contextlib import nullcontext
 import pilot.orchestrator.sweep_api_budget as budget
 
 from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN
-from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_state,
+from chain_contract import (ChainBlocked, BLOCK_CODE, FORMAT_BLOCK_CODE, attest_merge, blocked_state,
                             progress, validate_plan, verified_failures, deny)
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
@@ -1748,14 +1748,16 @@ def block_request(request: str, state: dict, result: dict, head: str) -> dict:
     branch = f"lf/chain-blocked/{request}-{head[:12]}"
     if pending_draft(f"lf/chain-blocked/{request}-") or run("git", "ls-remote", "--heads", "origin", branch):
         return {"status": "BLOCKED_ALREADY_RECORDED", "branch": branch}
+    reason_code = result["reason_code"]
     def process(root: Path):
         target = storage_path("requests_root", root=root) / request / "state.json"
         target.write_bytes(canonical(blocked_state(state, result)))
         review = draft(root, branch, request, [target.relative_to(root).as_posix()],
-                       BLOCK_CODE + " after three Actions-proven failed attempts; "
+                       reason_code + " after three Actions-proven " +
+                       ("unique format rejections" if reason_code == FORMAT_BLOCK_CODE else "failed attempts") + "; "
                        "state update requires owner-reviewed Train merge.",
-                       f"BLOCKED {request} ({BLOCK_CODE})")
-        return {"status": "BLOCKED_PENDING_OWNER_MERGE", "reason_code": BLOCK_CODE,
+                       f"BLOCKED {request} ({reason_code})")
+        return {"status": "BLOCKED_PENDING_OWNER_MERGE", "reason_code": reason_code,
                 **review}
     return worktree(head, branch, process)
 
@@ -2117,7 +2119,9 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             with budget.phase("CHAIN"):
                 outcomes.extend(process_one_plan(
                     request, lots, state, bindings, head, kind, sweep,
-                    new_plan_request, manual_sha, first_parent_merges(request)))
+                    new_plan_request, manual_sha, first_parent_merges(request),
+                    **({"format_exhausted": format_recovery.exhausted_tasks}
+                       if sweep and format_recovery.exhausted_tasks else {})))
         except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
                 OSError, ValueError, KeyError) as exc:
             outcomes.append(per_request_block(request, "CHAIN", exc))
@@ -2127,7 +2131,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
 
 
 def process_one_plan(request, lots, state, bindings, head, kind, sweep,
-                     new_plan_request, manual_sha, history) -> list[dict]:
+                     new_plan_request, manual_sha, history, *, format_exhausted=()) -> list[dict]:
     outcomes = []
     try:
         current = request_state(request, api, root=ROOT)
@@ -2151,6 +2155,13 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
     if state.get("stage") == "BLOCKED":
         outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
         return outcomes
+    format_lots = sorted(lot for lot, binding in bindings.items()
+                         if lot not in completed and binding["task_name"] in format_exhausted)
+    if format_lots:
+        result = {"stage":"BLOCKED", "reason_code":FORMAT_BLOCK_CODE,
+                  "blocked_lot_ids":format_lots, "ready_lot_ids":[],
+                  "production_authority":False,"handoff_allowed":False}
+        return [{"request":request, **block_request(request,state,result,head)}]
     # Only the Train-merged native registration can complete its exam
     # issue. A ciphertext already on main permits draft preparation first.
     if kind == "TRAIN":

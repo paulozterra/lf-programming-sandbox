@@ -20,6 +20,7 @@ SHA64 = re.compile(r"[0-9a-f]{64}\Z")
 PR_HEAD = re.compile(r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-([1-9][0-9]*)\Z")
 TRIES = 3
 BLOCK_CODE = "CP36_MAX_VERIFIED_ATTEMPTS_EXCEEDED"
+FORMAT_BLOCK_CODE = "FORMAT_REJECTION_LIMIT_EXCEEDED"
 
 
 class ChainBlocked(ValueError):
@@ -191,12 +192,12 @@ def progress(lots: dict, completed: dict[str, dict], failures: dict[str, list[in
 
 
 def blocked_state(original: dict, result: dict) -> dict:
-    if result.get("stage") != "BLOCKED" or result.get("reason_code") != BLOCK_CODE:
+    if result.get("stage") != "BLOCKED" or result.get("reason_code") not in (BLOCK_CODE, FORMAT_BLOCK_CODE):
         deny("BLOCK_STATE_NOT_REQUIRED")
     if original.get("stage") not in ("LOTS_PLANNED", "BLOCKED"):
         deny("STATE_NOT_PLANNED")
     state = dict(original, stage="BLOCKED",
-                 reason_code=BLOCK_CODE,
+                 reason_code=result["reason_code"],
                  blocked_lot_ids=result["blocked_lot_ids"],
                  production_authority=False, handoff_allowed=False,
                  downstream_authorized=False)

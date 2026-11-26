@@ -19,6 +19,7 @@ class Recovery:
         self._rows = None
         self._boundary = None
         self._data = {}
+        self.exhausted_tasks = set()
 
     def rows(self):
         if self._rows is None:
@@ -70,8 +71,9 @@ class Recovery:
 
     def recover_feedback(self, allowed_task):
         outcomes=[]
+        rejected, unresolved, active = {}, set(), set()
         for row in self.rows():
-            if row.get("status") != "completed" or history.stamp(row.get("created_at")) < self._boundary:
+            if history.stamp(row.get("created_at")) < self._boundary:
                 continue
             # Exact title identity, including pending retry; no task guessing.
             title=row.get("display_title") or ""
@@ -84,15 +86,28 @@ class Recovery:
             try:
                 if not allowed_task(task):
                     continue
+                if row.get("status") != "completed":
+                    active.add(task)
+                    continue
                 result=self.result(row,task)
                 if result is None or result["status"] in history.CONTINUE:
                     continue
                 status=result["status"]
+                if status == "FORMAT_FAIL":
+                    rejected.setdefault(task,set()).add(result["patch_sha256"])
                 if status in ("FORMAT_FAIL","INVALID_PROPOSAL","BASELINE_FAIL"):
-                    status=history.publish(self.run,self.api,self.repo,self.root,task,result)
+                    try:
+                        status=history.publish(self.run,self.api,self.repo,self.root,task,result)
+                    except (ValueError,OSError,KeyError,TypeError):
+                        status="FORMAT_FEEDBACK_PENDING"
                 outcomes.append({"task":task,"run_id":row["id"],"status":status})
             except (ValueError,OSError,KeyError,TypeError) as exc:
+                unresolved.add(task)
                 code=str(exc)
                 outcomes.append({"task":task,"run_id":row["id"],"status":"BLOCKED",
                                  "reason":code if re.fullmatch(r"FORMAT_[A-Z0-9_]+",code) else "FORMAT_RECOVERY_UNRESOLVED"})
+        self.exhausted_tasks = {task for task, patches in rejected.items()
+                                if len(patches) >= history.LIMIT and task not in unresolved | active}
+        outcomes.extend({"task":task,"status":"BLOCKED","reason":"FORMAT_REJECTION_LIMIT_EXCEEDED"}
+                        for task in sorted(self.exhausted_tasks))
         return outcomes

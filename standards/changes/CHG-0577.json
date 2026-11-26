@@ -30,7 +30,8 @@
       "pilot/orchestrator/native_pending_recovery.py",
       "pilot/orchestrator/native_infra_retry.py",
       "pilot/orchestrator/chain_lots.py",
-      "pilot/orchestrator/native_route_recovery.py"
+      "pilot/orchestrator/native_route_recovery.py",
+      "pilot/orchestrator/chain_contract.py"
     ]
   },
   "existing_code_impact": {

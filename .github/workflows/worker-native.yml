@@ -342,7 +342,7 @@ jobs:
           test ! -L "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
       - name: Admit independent format rejection budget
         id: format_budget
-        timeout-minutes: 3
+        timeout-minutes: 2
         env:
           GH_TOKEN: ${{ github.token }}
           NATIVE_TASK: ${{ steps.source.outputs.task }}
@@ -378,6 +378,7 @@ jobs:
             GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
             "$python" control/pilot/worker_v08/native_format_admission.py "${args[@]}"
       - name: Upload public native format preflight evidence
+        timeout-minutes: 1
         if: ${{ always() && (steps.format.outcome == 'success' || steps.format.outcome == 'failure') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -386,6 +387,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Summarize native format preflight outcome
+        timeout-minutes: 1
         if: ${{ always() && (steps.format.outcome == 'success' || steps.format.outcome == 'failure') }}
         shell: bash
         run: |

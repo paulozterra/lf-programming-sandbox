@@ -56,3 +56,19 @@ def test_workflow_and_sweep_wired():
     assert "format_recovery.recover_feedback" in source
     assert "FORMAT_INFRA_RETRY" in (ROOT/"pilot/orchestrator/native_infra_retry.py").read_text()
     assert "format_decision" in (ROOT/"pilot/orchestrator/native_pending_recovery.py").read_text()
+
+
+def test_distinct_governed_format_block(monkeypatch):
+    from datetime import datetime,timezone
+    from pilot.orchestrator import chain_contract
+    r=fixture(monkeypatch,["FORMAT_FAIL"]*3)
+    r._boundary=datetime(2026,11,26,tzinfo=timezone.utc)
+    monkeypatch.setattr(r,"rows",lambda:[row(i,str(i)*40) for i in range(1,4)])
+    monkeypatch.setattr(h,"publish",lambda *a:"FORMAT_FEEDBACK_ALREADY_PUBLISHED")
+    outcomes=r.recover_feedback(lambda task:True)
+    assert r.exhausted_tasks=={TASK}
+    assert outcomes[-1]["reason"]==chain_contract.FORMAT_BLOCK_CODE
+    state=chain_contract.blocked_state({"stage":"LOTS_PLANNED"},
+            {"stage":"BLOCKED","reason_code":chain_contract.FORMAT_BLOCK_CODE,"blocked_lot_ids":["LOT"]})
+    assert state["reason_code"]=="FORMAT_REJECTION_LIMIT_EXCEEDED"
+    assert state["handoff_allowed"] is False

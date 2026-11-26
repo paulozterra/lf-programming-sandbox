@@ -47,6 +47,22 @@ def test_real_spotless_rejection_and_correction(baseline,tmp_path,monkeypatch):
     monkeypatch.setattr(history,"envelope_at",lambda *a:env)
     for _ in range(3):
         assert r.decision("synthetic","a"*40)=="FORMAT_DUPLICATE_REJECTED_PATCH"
+    # Actual R1 dispatcher must not enqueue a cancelled run whose rejection
+    # already has durable evidence, even on repeated CP3.6 sweeps.
+    from pilot.orchestrator import native_pending_recovery as pending
+    registration=tmp_path/"registration.json"
+    registration.write_text("{}")
+    monkeypatch.setattr(pending,"storage_path",lambda *a,**kw:registration)
+    cancelled={"id":1,"status":"completed","conclusion":"cancelled",
+               "display_title":"lf-native-auto-lf/native-proposal/synthetic-"+"a"*40}
+    def run(*args):
+        if args[:3]==("git","ls-remote","--heads"):
+            return "a"*40+"\trefs/heads/lf/native-proposal/synthetic"
+        pytest.fail("unexpected requeue: "+str(args[:3]))
+    for _ in range(3):
+        outcome=pending.recover("f"*40,run,lambda route:{"total_count":1,"workflow_runs":[cancelled]},
+                                history.REPO,tmp_path,allowed_task=lambda task:True,format_decision=r.decision)
+        assert outcome[0]["status"]=="FORMAT_DUPLICATE_REJECTED_PATCH"
     # Palantir formats a field onto its own line.
     ok,good,_=submit({**proposal(), "patch": proposal()["patch"].replace("@@ -1 +1 @@","@@ -1 +1,3 @@").replace("+class Example { int x; }","+class Example {\n+    int x;\n+}")},2)
     assert ok and good["status"]=="PASS",good
