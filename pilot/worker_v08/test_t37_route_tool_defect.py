@@ -169,3 +169,35 @@ def test_preacceptance_feedback_is_narrow():
             preacceptance_failure({**feedback, "commands": [{**row, **over}]})
     with pytest.raises(ValueError):
         preacceptance_failure({**feedback, "commands": [row, row]})
+
+
+def test_preacceptance_consumed_by_history_and_chain(tmp_path, monkeypatch):
+    import native_run_history as history
+    from pilot.orchestrator import chain_lots
+
+    reg, data, file, tool = _historical_fixture(tmp_path)
+    task = "req9contrato1"
+    pack = "d" * 64
+    def run(i, sha, status="completed"):
+        return {"id": i, "status": status, "conclusion": "failure" if status == "completed" else None,
+                "head_branch": "main", "run_attempt": 1, "event": "workflow_run",
+                "display_title": f"lf-native-auto-lf/native-proposal/{task}-{sha}"}
+    prior = [run(5, "a" * 40), run(6, "b" * 40), run(7, "e" * 40)]
+    current = run(8, "f" * 40, "in_progress")
+    proofs = {i: {"task_id": task, "attempt": i-4, "run_id": i,
+                  "task_pack_sha256": pack} for i in (5, 6, 7)}
+    monkeypatch.setattr(history, "__file__", str(tmp_path / "pilot/worker_v08/native_run_history.py"))
+    monkeypatch.setattr(history, "storage_path", lambda kind, *p, root: root.joinpath("pilot/worker_v08/native_tasks", *p))
+    monkeypatch.setattr(history, "_api", lambda *a: {"total_count": 4, "workflow_runs": prior + [current]})
+    monkeypatch.setattr(history, "_artifact_json", lambda repo, token, rid: proofs[rid])
+    out = tmp_path / "admit.json"
+    assert history.admit_attempt(repository="paulozterra/lf-programming-sandbox", token="offline",
+        task=task, attempt=None, run_id=8, run_attempt=1, sha="f" * 40, output=out,
+        event="workflow_run", proposal_branch="lf/native-proposal/" + task) == 3
+    assert json.loads(out.read_text())["route_defect_run_ids"] == [7]
+    assert json.loads(out.read_text())["prior_run_ids"] == [5, 6]
+    monkeypatch.setattr(chain_lots, "ROOT", tmp_path)
+    monkeypatch.setattr(chain_lots, "storage_path", lambda kind, *p, root: root.joinpath("pilot/worker_v08/native_tasks", *p))
+    monkeypatch.setattr(chain_lots, "api", lambda path: {"total_count": 3, "workflow_runs": prior})
+    monkeypatch.setenv("GH_TOKEN", "offline")
+    assert chain_lots.failed_lots({"lot": {"task_name": task}}) == {"lot": [5, 6]}
