@@ -1,0 +1,19 @@
+{
+  "area": "BACKEND",
+  "note": "Ficha de la pantalla (textos, campos, validaciones, errores y, en FRONTEND, tokens visuales y variantes) copiada del paquete A9. Usar estos textos y valores tal cual; no inventar otros.",
+  "run": "req-825",
+  "schema_version": "LF_LOT_SCREEN_MATERIAL_V1",
+  "sections": {
+    "errors": [
+      {
+        "error_code": "FORMAT_CANARY_INVALID_INPUT",
+        "generic": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/957901"
+        ],
+        "status": "VIGENTE"
+      }
+    ],
+    "fields": []
+  }
+}
