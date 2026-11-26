@@ -383,3 +383,46 @@ def test_historical_second_screen_missing_rule_remains_missing(tmp_path, monkeyp
     assert eb.resolve_fiche_rule(tmp_path, REQ, "PUBLIC-RULE-X")["status"] == "MISSING"
     with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_UNKNOWN"):
         _check_trace(tmp_path, monkeypatch, "PUBLIC-RULE-X")
+
+
+@pytest.mark.parametrize("request_id,code", [
+    ("req-825", "FORMAT-CANARY-VALIDATION"),
+    ("req-186", "SBX-R-LOG"),
+    ("req-286", "SBX-B2B-R-AUTH-GENERIC"),
+    ("req-391", "SBX-B2B-R-AUTH-GENERIC"),
+    ("req-652", "SBX-B2B-R-AUTH-GENERIC"),
+])
+def test_public_historical_requests_read_only(request_id, code, monkeypatch):
+    """Compatibility readback only: no regeneration, holdout or live service.
+
+    Expected state follows the recorded A9 identity and current source bytes,
+    not a hard-coded assumption that the moving fixture has never changed.
+    The adversarial guarantees themselves are covered by isolated tests above.
+    """
+    root = Path(__file__).resolve().parents[2]
+    analysis_path = root / "pilot/runs" / request_id / "analysis.json"
+    if not analysis_path.is_file():
+        pytest.skip("public historical request not present in this checkout")
+    raw = analysis_path.read_bytes()
+    analysis = json.loads(raw)
+    history = analysis["programming_context_snapshot"]["source_snapshot_inputs"]["rule_fixture_provenance"]
+    ref = history["effective_rules.json"]
+    fixture = ref.split("/")[2]
+    folder = root / "analysis/fixtures" / fixture
+    pin = json.loads((folder / "SOURCE_PIN.json").read_text())
+    if pin["schema_version"] == "SOURCE_SCREEN_PIN_V1":
+        _, _, evidence = normalize(folder, analysis["request_context"]["intent"])
+        current = evidence["effective_rules.json"]
+    else:
+        digest = hashlib.sha256((folder / "effective_rules.json").read_bytes()).hexdigest()
+        assert digest == next(x["sha256"] for x in pin["files"] if x["file"] == "effective_rules.json")
+        current = f"fixture://{fixture}/effective_rules.json@{digest}"
+    result = eb.resolve_fiche_rule(root, request_id, code)
+    expected = "VALID" if current == ref else "INVALID"
+    assert result["status"] == expected, (request_id, ref, current, result)
+    if expected == "VALID":
+        _check_trace(root, monkeypatch, code, request=request_id)
+    else:
+        with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_INVALID"):
+            _check_trace(root, monkeypatch, code, request=request_id)
+    assert analysis_path.read_bytes() == raw
