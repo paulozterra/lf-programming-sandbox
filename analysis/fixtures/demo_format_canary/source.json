@@ -1,0 +1,73 @@
+{
+  "schema_version": "SECOND_SCREEN_SOURCE_V1",
+  "target_ref": "DEMO-FORMAT-CANARY",
+  "screen_contract": {
+    "fields": [],
+    "errors": [
+      {
+        "error_code": "FORMAT_CANARY_INVALID_INPUT",
+        "status": "VIGENTE",
+        "generic": true,
+        "rule_refs": [
+          "fixture://demo_format_canary/rules/957901"
+        ]
+      }
+    ],
+    "visual": {
+      "variants": []
+    },
+    "context": {
+      "module_code": "FORMAT_CANARY"
+    },
+    "metadata": {
+      "screen_code": "DEMO-FORMAT-CANARY"
+    },
+    "analytics": [],
+    "profiles": [],
+    "rules": [
+      {
+        "code": "FORMAT_CANARY_VALIDATION",
+        "title": "Validación de seguridad de identificador",
+        "descripcion": "El servicio Java aislado del canary valida un identificador no confiable mediante lista permitida: acepta únicamente la cadena exacta canary-ok y rechaza cualquier otra cadena o null con IllegalArgumentException, sin incluir la entrada en el mensaje. Sin persistencia ni interfaz.",
+        "status": "VIGENTE",
+        "source_ref": "fixture://demo_format_canary/rules/957901",
+        "association_ref": "fixture://demo_format_canary/assoc/957901"
+      }
+    ],
+    "policies": []
+  },
+  "effective_rules": {
+    "FORMAT_CANARY_VALIDATION": {
+      "code": "FORMAT_CANARY_VALIDATION",
+      "source_ref": "fixture://demo_format_canary/rules/957901",
+      "status": "VIGENTE",
+      "binding_source": "LEGACY_EXPLICIT",
+      "categoria": "security",
+      "config": {
+        "obligation_areas": [
+          "BACKEND"
+        ]
+      }
+    }
+  },
+  "requirements": [
+    {
+      "requirement_id": "REQ-FORMAT-CANARY-VALIDATION",
+      "source_requirement_id": "FORMAT_CANARY_VALIDATION",
+      "evidence_refs": [
+        "fixture://demo_format_canary/rules/957901"
+      ],
+      "outcome": "El servicio Java aislado valida un identificador no confiable mediante lista permitida: acepta únicamente canary-ok; cualquier otra cadena o null produce IllegalArgumentException con mensaje constante sin reflejar la entrada.",
+      "acceptance_signal": "canary-ok se acepta; null, cadena vacía y ../canary-ok se rechazan con IllegalArgumentException y mensaje constante.",
+      "acceptance_checks": [
+        "canary-ok se acepta; null, cadena vacía y ../canary-ok se rechazan con IllegalArgumentException y mensaje constante."
+      ]
+    }
+  ],
+  "inventory": {
+    "objects": [],
+    "impacts": [],
+    "dependencies": []
+  },
+  "simulation_only": true
+}
