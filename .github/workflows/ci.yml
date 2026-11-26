@@ -679,7 +679,7 @@ jobs:
           python3 -m pytest -q pilot/worker_v08/test_native_run.py
           python3 -m pytest -q pilot/worker_v08/test_holdout_age.py
       - name: Offline native format preflight (synthetic; NO MODEL)
-        run: python3 -m pytest -q pilot/worker_v08/test_native_format_preflight.py -p no:cacheprovider
+        run: python3 -m pytest -q pilot/worker_v08/test_native_format_preflight.py pilot/worker_v08/test_native_format_admission.py -p no:cacheprovider
 
       - name: CP3.4 profile mapping, real paths and two-lot simulated handoff (NO MODEL)
         run: |
