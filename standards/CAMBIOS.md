@@ -315,4 +315,4 @@
 | CHG-0554 | EDITORIAL | Exigir evidencia de duplicación de métodos en reuse guard |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/792 |
 | CHG-0562 | EDITORIAL | T37 acredita defectos del guard previo a aceptación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/800 |
 | CHG-0567 | EDITORIAL | T37 recuperación gobernada req652backend2 run 45751249784 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/805 |
-| CHG-0575 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
+| CHG-0575 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
