@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0578",
+  "title": "Fijar frontera histórica de prevalidación CHG-0577",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: preparar registro histórico posterior a integración gobernada de #816"
+  },
+  "reason": "Fijar exclusivamente metadata real de fusión de #816 (sandbox-train 45895398995), siguiendo r3_cutover.json. Sin activar tareas ni cambiar aceptación. Draft pendiente de aprobación específica.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/format_cutover.json",
+      "standards/changes/CHG-0578.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/817"
+  }
+}
