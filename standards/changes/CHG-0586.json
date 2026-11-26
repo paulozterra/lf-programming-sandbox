@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Owner: solucionar EXAM_TRACE_RULE_UNKNOWN en EXAM_REQUEST #831"
   },
-  "reason": "Resolver brief y publicación mediante la fuente fijada del pedido A9, su pin y correspondencia de requisito a regla con estados VALID/MISSING/INVALID/AMBIGUOUS. Eliminar bypass textual y fallback legacy indebido; conservar STD y alcance T58. Regresión sintética y entrada catalogada EKB sin examen ni registro real.",
+  "reason": "Resolver brief y publicación mediante la fuente fijada del pedido A9, su pin y correspondencia de requisito a regla con estados VALID/MISSING/INVALID/AMBIGUOUS. Eliminar bypass textual y fallback legacy indebido; conservar STD y alcance T58. Regresión sintética y entrada catalogada EKB sin examen ni registro real. Acreditar el hash histórico A9: igualdad de pin y bytes legacy o evidencia de la proyección del normalizador existente; regresiones de repin y mantenimiento no relacionado, readback público sin regeneración.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
