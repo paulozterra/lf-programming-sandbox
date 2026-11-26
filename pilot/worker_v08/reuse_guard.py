@@ -12,7 +12,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from pilot.orchestrator.reuse_assessment import index, JAVA_TYPE, JAVA_METHOD, JAVA_MAPPING, METHODS
+from pilot.orchestrator.reuse_assessment import index, JAVA_TYPE, JAVA_MAPPING, METHODS
 
 
 class DuplicateComponent(ValueError):
@@ -28,40 +28,195 @@ _JAVA_TOKEN = re.compile(
 _NON_METHOD = {"record", "class", "interface", "enum"}
 
 
-def _public_signature(method: tuple[str, str, str]) -> tuple[str, str]:
-    ret, _, args = method
-    signature = re.sub(r"\s+", " ", ret.strip())
-    parts = []
-    for arg in args.split(","):
-        tokens = arg.strip().split()
-        if len(tokens) >= 2:
-            parts.append(" ".join(tokens[:-1]))
-    return signature, ",".join(parts)
+_IDENT = re.compile(r"[A-Za-z_$][\w$]*\Z")
+_MODIFIERS = {"static", "final", "synchronized", "abstract", "native", "strictfp", "default"}
+_RESERVED = {"return", "throw", "new", "case", "yield", "break", "continue",
+             "else", "assert", "instanceof", "this", "super", "null", "true", "false"}
+
+
+def _tokens(source: str) -> list[str]:
+    return [t for t in _JAVA_TOKEN.findall(source) if not t.startswith(("//", "/*"))]
+
+
+def _closing(tokens: list[str], start: int, left: str, right: str) -> int | None:
+    depth = 0
+    for i in range(start, len(tokens)):
+        if tokens[i] == left:
+            depth += 1
+        elif tokens[i] == right:
+            depth -= 1
+            if depth == 0:
+                return i
+    return None
+
+
+def _annotation_end(tokens: list[str], start: int) -> int:
+    i = start + 1
+    if i >= len(tokens) or not _IDENT.fullmatch(tokens[i]):
+        return start
+    i += 1
+    while i + 1 < len(tokens) and tokens[i] == "." and _IDENT.fullmatch(tokens[i + 1]):
+        i += 2
+    if i < len(tokens) and tokens[i] == "(":
+        end = _closing(tokens, i, "(", ")")
+        return end + 1 if end is not None else start
+    return i
+
+
+def _parameters(tokens: list[str]) -> tuple[tuple[str, ...], tuple[str, ...]] | None:
+    clean = []
+    i = 0
+    while i < len(tokens):
+        if tokens[i] == "@":
+            end = _annotation_end(tokens, i)
+            if end == i:
+                return None
+            i = end
+        elif tokens[i] == "final":
+            i += 1
+        else:
+            clean.append(tokens[i])
+            i += 1
+    groups = [[]]
+    depth = 0
+    for token in clean:
+        if token == "<":
+            depth += 1
+        elif token == ">":
+            depth -= 1
+        if token == "," and depth == 0:
+            groups.append([])
+        else:
+            groups[-1].append(token)
+    if depth != 0:
+        return None
+    if groups == [[]]:
+        return (), ()
+    names, types = [], []
+    for group in groups:
+        suffix = []
+        while group[-2:] == ["[", "]"]:
+            suffix.extend(group[-2:])
+            group = group[:-2]
+        if len(group) < 2 or not _IDENT.fullmatch(group[-1]):
+            return None
+        names.append(group[-1])
+        types.append(" ".join(group[:-1] + suffix))
+    return tuple(types), tuple(names)
 
 
 def _methods_with_body(source: str):
-    for match in JAVA_METHOD.finditer(source):
-        method = match.groups()
-        if method[0].strip() in _NON_METHOD:
+    """Bounded lexical method extraction, not a Java compiler or AST."""
+    tokens = _tokens(source)
+    for start, token in enumerate(tokens):
+        if token != "public":
             continue
-        tail = source[match.end():]
-        opening = re.match(r"\s*\{", tail)
-        if opening is None:
-            continue
-        depth = 0
-        body = []
-        for token in _JAVA_TOKEN.findall(tail[opening.end() - 1:]):
-            if token.startswith(("//", "/*")):
-                continue
-            body.append(token)
-            if token == "{":
-                depth += 1
-            elif token == "}":
-                depth -= 1
-                if depth == 0:
-                    if len(body) > 2:
-                        yield method, tuple(body)
+        i = start + 1
+        while i < len(tokens):
+            if tokens[i] in _MODIFIERS:
+                i += 1
+            elif tokens[i] == "@":
+                end = _annotation_end(tokens, i)
+                if end == i:
                     break
+                i = end
+            else:
+                break
+        if i >= len(tokens) or tokens[i] in _NON_METHOD:
+            continue
+        head = i
+        while i < len(tokens) and tokens[i] not in {"(", "{", "}", ";", "="}:
+            i += 1
+        if i >= len(tokens) or tokens[i] != "(" or i - head < 2:
+            continue
+        name = tokens[i - 1]
+        if not _IDENT.fullmatch(name):
+            continue
+        end = _closing(tokens, i, "(", ")")
+        if end is None:
+            continue
+        params = _parameters(tokens[i + 1:end])
+        if params is None:
+            continue
+        j = end + 1
+        if j < len(tokens) and tokens[j] == "throws":
+            j += 1
+            while j < len(tokens) and tokens[j] not in {"{", "}", ";", "(", "="}:
+                j += 1
+        if j >= len(tokens) or tokens[j] != "{":
+            continue
+        close = _closing(tokens, j, "{", "}")
+        if close is None:
+            continue
+        body = tuple(tokens[j:close + 1])
+        if len(body) > 2:
+            yield (" ".join(tokens[head:i - 1]), name, params[0], params[1]), body
+
+
+def _public_signature(method):
+    return method[0], method[2]
+
+
+def _local_declaration(tokens: tuple[str, ...], i: int) -> int | None:
+    """Recognize common local declarations at statement/for/catch boundaries."""
+    if i and tokens[i - 1] not in {"{", "}", ";", "("}:
+        return None
+    if i and tokens[i - 1] == "(" and (i < 2 or tokens[i - 2] not in {"for", "catch", "try"}):
+        return None
+    j = i + (tokens[i] == "final")
+    if j >= len(tokens) or not _IDENT.fullmatch(tokens[j]) or tokens[j] in _RESERVED:
+        return None
+    j += 1
+    while j < len(tokens):
+        if tokens[j] == "." and j + 1 < len(tokens) and _IDENT.fullmatch(tokens[j + 1]):
+            j += 2
+        elif tokens[j] == "<":
+            end = _closing(list(tokens), j, "<", ">")
+            if end is None:
+                return None
+            j = end + 1
+        elif tokens[j:j + 2] == ("[", "]"):
+            j += 2
+        else:
+            break
+    if (j + 1 < len(tokens) and _IDENT.fullmatch(tokens[j])
+            and tokens[j] not in _RESERVED and tokens[j + 1] in {"=", ";", ",", ":", ")"}):
+        return j
+    return None
+
+
+def _normalized_body(method, body: tuple[str, ...]) -> tuple[str, ...]:
+    # Only declared parameters/locals are renamed. Preserve member accesses,
+    # calls, type names, operators and literal contents. This is intentionally
+    # lexical: helper extraction or reordered statements are not equivalence.
+    names = {name: f"$param:{i}" for i, name in enumerate(method[3])}
+    declarations = {}
+    for i in range(len(body)):
+        end = _local_declaration(body, i)
+        if end is not None:
+            name = body[end]
+            if name not in names:
+                names[name] = f"$local:{len(declarations)}"
+            declarations[end] = names[name]
+    out = []
+    parens = 0
+    for i, token in enumerate(body):
+        prev = body[i - 1] if i else ""
+        nxt = body[i + 1] if i + 1 < len(body) else ""
+        if token == "final" and _local_declaration(body, i) is not None:
+            continue
+        if token == ";" and parens == 0 and prev in {";", "{"}:
+            continue
+        if token == "(":
+            parens += 1
+        elif token == ")":
+            parens -= 1
+        if i in declarations:
+            token = declarations[i]
+        elif token in names and prev != "." and nxt != "(":
+            token = names[token]
+        out.append(token)
+    return tuple(out)
 
 
 _HUNK = re.compile(r"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@(?:.*)")
@@ -133,14 +288,8 @@ def check(root: Path, patch: str, reuse_context: list[dict],
     current = None
     added = []
     diffs = {}
-    added_blocks = []
-    block = []
     touched = set()
     for line in patch.splitlines():
-        if not (line.startswith("+") and not line.startswith("+++")):
-            if block:
-                added_blocks.append((current, "\n".join(block)))
-                block = []
         if line.startswith("diff --git a/"):
             match = re.fullmatch(r"diff --git a/([^\s]+) b/\1", line)
             if not match:
@@ -152,11 +301,8 @@ def check(root: Path, patch: str, reuse_context: list[dict],
             if current is None:
                 raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
             added.append((current, line[1:]))
-            block.append(line[1:])
         if current is not None and not line.startswith("diff --git a/"):
             diffs[current].append(line)
-    if block:
-        added_blocks.append((current, "\n".join(block)))
     for path in sorted((touched & context.keys()) - writable):
         raise DuplicateComponent("DUPLICA_COMPONENTE_EXISTENTE:reuse_context:" + path)
     for path, sha in sorted(context.items()):
@@ -185,7 +331,7 @@ def check(root: Path, patch: str, reuse_context: list[dict],
                                          ":" + existing_types[key])
     # Real submissions have hunks (validated by worker_patch.inspect_patch).
     # Compare changed/new methods against pinned context, not unchanged legacy
-    # methods. Fragment-only inputs are retained for the offline guard fixtures.
+    # methods. Reject fragment-only Java inputs, including offline dry runs.
     from collections import Counter
 
     candidates = []
@@ -201,9 +347,7 @@ def check(root: Path, patch: str, reuse_context: list[dict],
                 else:
                     candidates.append((path, method, body))
         else:
-            for added_path, snippet in added_blocks:
-                if added_path == path:
-                    candidates.extend((path, method, body) for method, body in _methods_with_body(snippet))
+            raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
     known_methods = {
         path: list(_methods_with_body((root / path).read_text("utf-8")))
         for path in sorted(context) if path.endswith(".java")
@@ -213,7 +357,7 @@ def check(root: Path, patch: str, reuse_context: list[dict],
             if existing_path == path:
                 continue
             for known, known_body in methods:
-                if _public_signature(method) == _public_signature(known) and body == known_body:
+                if _public_signature(method) == _public_signature(known) and _normalized_body(method, body) == _normalized_body(known, known_body):
                     raise DuplicateComponent(
                         "DUPLICA_COMPONENTE_EXISTENTE:signature:"
                         + existing_path + "#" + known[1] + ":" + path + "#" + method[1])
