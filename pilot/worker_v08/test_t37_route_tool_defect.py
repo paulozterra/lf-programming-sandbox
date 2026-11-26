@@ -201,3 +201,77 @@ def test_preacceptance_consumed_by_history_and_chain(tmp_path, monkeypatch):
     monkeypatch.setattr(chain_lots, "api", lambda path: {"total_count": 3, "workflow_runs": prior})
     monkeypatch.setenv("GH_TOKEN", "offline")
     assert chain_lots.failed_lots({"lot": {"task_name": task}}) == {"lot": [5, 6]}
+
+
+def test_producer_requires_exact_proof_and_three_replays(tmp_path, monkeypatch):
+    import hashlib
+    import subprocess
+    import pytest
+    from pilot.orchestrator import route_tool_defect as p
+    import native_run_history as history
+    from programming_agent_runner.hashutil import canonical_json_bytes
+
+    reg, data, file, tool = _historical_fixture(tmp_path)
+    task = data["task"]
+    old, new = data["superseded_control_sha"], data["current_control_sha"]
+    proposal = {"schema_version": 1, "summary": "synthetic", "patch": "synthetic patch",
+                "changed_paths": ["src/A.java"]}
+    envelope = {"author": "GPT_NATIVE", "proposal": proposal,
+                "proposal_sha256": hashlib.sha256(canonical_json_bytes(proposal)).hexdigest(),
+                "task_pack_sha256": "d" * 64}
+    sha = "e" * 40
+    proof = {"task_id": task, "attempt": 3, "run_id": 7, "task_pack_sha256": "d" * 64}
+    reason = "DUPLICA_COMPONENTE_EXISTENTE:signature:src/A.java"
+    feedback = {"schema_version": "LF_NATIVE_VISIBLE_FEEDBACK_V1",
+                "kind": "VISIBLE_ACCEPTANCE_ONLY", "attempt": 3,
+                "commands": [{"name": "reuse-component-guard", "status": "FAIL",
+                    "returncode": 1, "reason": reason, "stdout_excerpt": "", "stderr_excerpt": ""}]}
+    run = {"id": 7, "event": "workflow_run", "head_branch": "main", "status": "completed",
+           "conclusion": "failure", "run_attempt": 1, "head_sha": old,
+           "path": ".github/workflows/worker-native.yml", "repository": {"full_name": p.REPO},
+           "display_title": f"lf-native-auto-lf/native-proposal/{task}-{sha}"}
+    _git(tmp_path, "update-ref", "refs/remotes/origin/main", new)
+    monkeypatch.setattr(p, "ROOT", tmp_path)
+    monkeypatch.setattr(p, "storage_path", lambda kind, root: root / "pilot/runs")
+    monkeypatch.setenv("GH_TOKEN", "offline")
+    monkeypatch.setattr(p, "api", lambda path: run)
+    monkeypatch.setattr(p, "feedback_for", lambda *args: feedback)
+    monkeypatch.setattr(p, "attest_control_checkout", lambda rid, control: None)
+    monkeypatch.setattr(history, "_artifact_json", lambda *args: proof)
+    def sh(*args, **kwargs):
+        if args[:2] == ("git", "fetch"):
+            return ""
+        if args[:2] == ("git", "show") and args[2].startswith(sha + ":"):
+            return json.dumps(envelope)
+        return subprocess.check_output(args, cwd=tmp_path, text=True)
+    monkeypatch.setattr(p, "sh", sh)
+    calls = []
+    results = [reason, None, None]
+    def replay(base, control, submitted, spec, **kw):
+        assert base == OLD and submitted == proposal and spec == reg["task_spec"]
+        calls.append((control, kw.get("replacement_guard")))
+        return results[len(calls)-1]
+    monkeypatch.setattr(p, "replay_preacceptance", replay)
+    got = p.prove_preacceptance(task, [7], new, "synthetic")
+    assert got["forgiven"] == data["forgiven"]
+    assert calls == [(old, None), (old, b"fixed guard"), (new, None)]
+    for values, code in [
+        (["other", None, None], "SUPERSEDED_TOOL_DOES_NOT_REPRODUCE"),
+        ([reason, reason, None], "ISOLATED_GUARD_STILL_FAILS"),
+        ([reason, None, reason], "CURRENT_TOOL_STILL_FAILS")]:
+        calls.clear()
+        results[:] = values
+        with pytest.raises(ValueError, match=code):
+            p.prove_preacceptance(task, [7], new, "synthetic")
+    calls.clear()
+    proof["task_pack_sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="ATTEMPT_PROOF_MISMATCH"):
+        p.prove_preacceptance(task, [7], new, "synthetic")
+    assert calls == []
+    proof["task_pack_sha256"] = "d" * 64
+    envelope["task_pack_sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="PROPOSAL_PACK_MISMATCH"):
+        p.prove_preacceptance(task, [7], new, "synthetic")
+    assert calls == []
+    with pytest.raises(ValueError, match="CONTROL_NOT_TRUSTED_MAIN"):
+        p.prove_preacceptance(task, [7], "f" * 40, "synthetic")
