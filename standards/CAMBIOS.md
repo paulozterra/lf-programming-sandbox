@@ -316,3 +316,4 @@
 | CHG-0562 | EDITORIAL | T37 acredita defectos del guard previo a aceptación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/800 |
 | CHG-0567 | EDITORIAL | T37 recuperación gobernada req652backend2 run 45751249784 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/805 |
 | CHG-0577 | ADDITIVE | Prevalidación nativa de formato Java — fase 1 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/816 |
+| CHG-0580 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
