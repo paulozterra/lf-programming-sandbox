@@ -313,4 +313,4 @@
 | CHG-0549 | EDITORIAL | Aprendizaje EKB y mantenimiento protegido del Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/787 |
 | CHG-0554 | EDITORIAL | Exigir evidencia de duplicación de métodos en reuse guard |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/792 |
 | CHG-0562 | EDITORIAL | T37 acredita defectos del guard previo a aceptación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/800 |
-| CHG-0568 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0568 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/806 |
