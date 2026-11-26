@@ -160,6 +160,8 @@ def resolve_fiche_rule(root: Path, request: str, code: str) -> dict:
                 return _result("INVALID")
             # A9's simulation projects fixture rule references to lf_ops IDs.
             match = re.fullmatch(r"fixture://" + re.escape(folder.name) + r"/rules/([0-9]+)", ref)
+            if ref.startswith("fixture://") and not match:
+                return _result("INVALID")
             projected = "supabase://lf_ops.reglas/" + match.group(1) if match else ref
             planned_refs = planned[0].get("evidence_refs")
             if (not isinstance(planned_refs, list) or not ({ref, projected} & set(
@@ -213,6 +215,12 @@ def build_brief(root: Path, request: str, task: str, write_paths: list[str],
     if sorted(spec.get("write_path_patterns") or []) != sorted(write_paths):
         raise BriefBlocked("EXAMINER_BRIEF_SCOPE_MISMATCH")
     lot = lot_for(_json(folder / "lots.json"), write_paths)
+    bound = (lot.get("characterized_requirement_ids") if lot.get("lot_kind") == "CHARACTERIZATION"
+             else lot.get("requirement_ids"))
+    if (not isinstance(bound, list) or not all(isinstance(r, str) for r in bound)
+            or not all(isinstance(r, str) for r in requirement_ids)
+            or sorted(bound) != sorted(requirement_ids)):
+        raise BriefBlocked("EXAMINER_BRIEF_REQUIREMENTS_MISMATCH")
     rules, rule_resolution = fiche_rules(root, request, requirement_ids)
     missing = sorted(code for code, state in rule_resolution.items() if state != "VALID")
     context = {}
