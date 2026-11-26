@@ -35,6 +35,11 @@ KEYS = frozenset({"schema_version", "task", "tool", "blocked_code",
                   "superseded_base_sha", "current_base_sha",
                   "superseded_tool_sha256", "current_tool_sha256",
                   "forgiven", "reason"})
+PREACCEPTANCE_TOOL = "pilot/worker_v08/reuse_guard.py"
+PREACCEPTANCE_SCHEMA = "LF_NATIVE_PREACCEPTANCE_DEFECT_V1"
+PREACCEPTANCE_KEYS = frozenset({"schema_version", "task", "tool", "blocked_code",
+    "base_head_sha", "superseded_control_sha", "current_control_sha",
+    "superseded_tool_sha256", "current_tool_sha256", "forgiven", "reason"})
 ROW_KEYS = frozenset({"run_id", "proposal_commit_sha", "task_pack_sha256"})
 
 
@@ -49,6 +54,8 @@ def verified_route_tool_defects(root: Path, task: str, record: dict) -> dict[int
         data = json.loads(file.read_text("utf-8"))
     except (OSError, UnicodeError, ValueError):
         return {}
+    if isinstance(data, dict) and data.get("schema_version") == PREACCEPTANCE_SCHEMA:
+        return _verified_preacceptance(root, task, record, data)
     if (not isinstance(data, dict) or set(data) != KEYS
             or data.get("schema_version") != SCHEMA or data.get("task") != task
             or data.get("tool") not in ROUTE_TOOLS
@@ -68,6 +75,53 @@ def verified_route_tool_defects(root: Path, task: str, record: dict) -> dict[int
     if not isinstance(rows, list) or not 1 <= len(rows) <= 3:
         return {}
     result: dict[int, dict] = {}
+    for row in rows:
+        if (not isinstance(row, dict) or set(row) != ROW_KEYS
+                or type(row.get("run_id")) is not int or row["run_id"] <= 0
+                or row["run_id"] in result
+                or not isinstance(row.get("proposal_commit_sha"), str)
+                or not SHA40.fullmatch(row["proposal_commit_sha"])
+                or not isinstance(row.get("task_pack_sha256"), str)
+                or not SHA64.fullmatch(row["task_pack_sha256"])):
+            return {}
+        result[row["run_id"]] = {"proposal_commit_sha": row["proposal_commit_sha"],
+                                 "task_pack_sha256": row["task_pack_sha256"]}
+    return result
+
+
+def _verified_preacceptance(root: Path, task: str, record: dict, data: dict) -> dict[int, dict]:
+    """A trusted control-only repair leaves the pinned source and exam unchanged."""
+    import hashlib
+
+    spec = record.get("task_spec")
+    if (set(data) != PREACCEPTANCE_KEYS or data.get("task") != task
+            or data.get("tool") != PREACCEPTANCE_TOOL
+            or data.get("blocked_code") != "DUPLICA_COMPONENTE_EXISTENTE"
+            or not isinstance(spec, dict)
+            or data.get("base_head_sha") != spec.get("base_head_sha")
+            or not isinstance(data.get("reason"), str) or not data["reason"].strip()):
+        return {}
+    if not all(isinstance(data.get(k), str) and SHA40.fullmatch(data[k])
+               for k in ("base_head_sha", "superseded_control_sha", "current_control_sha")):
+        return {}
+    if not all(isinstance(data.get(k), str) and SHA64.fullmatch(data[k])
+               for k in ("superseded_tool_sha256", "current_tool_sha256")):
+        return {}
+    if (data["superseded_control_sha"] == data["current_control_sha"]
+            or data["superseded_tool_sha256"] == data["current_tool_sha256"]):
+        return {}
+    tool = Path(root) / PREACCEPTANCE_TOOL
+    if tool.is_symlink() or not tool.is_file():
+        return {}
+    try:
+        if hashlib.sha256(tool.read_bytes()).hexdigest() != data["current_tool_sha256"]:
+            return {}
+    except OSError:
+        return {}
+    rows = data.get("forgiven")
+    if not isinstance(rows, list) or not 1 <= len(rows) <= 3:
+        return {}
+    result = {}
     for row in rows:
         if (not isinstance(row, dict) or set(row) != ROW_KEYS
                 or type(row.get("run_id")) is not int or row["run_id"] <= 0
