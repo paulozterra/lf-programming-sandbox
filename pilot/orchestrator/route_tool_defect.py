@@ -269,6 +269,11 @@ else:
 
 def prove_preacceptance(task: str, run_ids: list[int], current_control: str, reason: str) -> dict:
     from native_route_tool_defect import PREACCEPTANCE_SCHEMA, PREACCEPTANCE_TOOL
+    from native_run_history import _artifact_json
+    import os
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not token:
+        deny("GITHUB_TOKEN_MISSING")
     if (not TASK.fullmatch(task) or not SHA40.fullmatch(current_control)
             or not 1 <= len(run_ids) <= 3 or len(set(run_ids)) != len(run_ids)
             or not reason.strip()):
@@ -311,11 +316,18 @@ def prove_preacceptance(task: str, run_ids: list[int], current_control: str, rea
         request = json.loads(sh("git", "show", f"{control}:{meta[0].relative_to(ROOT).as_posix()}"))
         if env.get("author") != "GPT_NATIVE" or env.get("task_pack_sha256") != request.get("task_pack_sha256"):
             deny("PROPOSAL_PACK_MISMATCH")
+        sys.path.insert(0, str(ROOT / "vendor/programming-agent/src"))
         from native_proposal_client import read_proposal_envelope
         with tempfile.TemporaryDirectory(prefix="t37-envelope-") as tmp:
             envelope = Path(tmp) / "proposal.json"
             envelope.write_text(json.dumps(env), "utf-8")
             validated = read_proposal_envelope(envelope)
+        proof = _artifact_json(REPO, token, run_id)
+        if (not isinstance(proof, dict) or set(proof) != {"task_id", "run_id", "attempt", "task_pack_sha256"}
+                or proof.get("task_id") != task or proof.get("run_id") != run_id
+                or type(proof.get("attempt")) is not int or proof["attempt"] != feedback["attempt"]
+                or proof.get("task_pack_sha256") != validated["task_pack_sha256"]):
+            deny("ATTEMPT_PROOF_MISMATCH")
         proposal = validated["proposal"]
         if replay_preacceptance(base, control, proposal, reg["task_spec"]) != expected:
             deny("SUPERSEDED_TOOL_DOES_NOT_REPRODUCE")
