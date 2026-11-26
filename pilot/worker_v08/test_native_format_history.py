@@ -44,7 +44,7 @@ def scenario(monkeypatch, entries, current=9, current_sha=SHA, event="workflow_r
     env = {item[0]["display_title"].rsplit("-", 1)[-1]: item[2] for item in entries}
     monkeypatch.setattr(h, "cutover", lambda api: datetime(2026, 11, 26, tzinfo=timezone.utc))
     monkeypatch.setattr(h, "listed", lambda api: rows)
-    monkeypatch.setattr(h, "steps", lambda api, run: {h.GATE: "success" if data[run["id"]]["status"] in h.CONTINUE else "failure", h.UPLOAD: "success", h.WORKER: "skipped"})
+    monkeypatch.setattr(h, "steps", lambda api, run: None if run["conclusion"] == "cancelled" and data[run["id"]] is None else {h.GATE: "success" if data[run["id"]] and data[run["id"]]["status"] in h.CONTINUE else "failure", h.UPLOAD: "success", h.WORKER: "skipped"})
     monkeypatch.setattr(h, "download", lambda api, cmd, repo, rid: data[rid])
     monkeypatch.setattr(h, "envelope_at", lambda api, task, sha: env[sha])
     return h.historical_rejections(None, None, h.REPO, TASK, current, current_sha)
@@ -196,3 +196,27 @@ def test_missing_gate_in_executed_post_cutover_job(monkeypatch):
     monkeypatch.setattr(h,"steps",lambda *args:{})
     with pytest.raises(ValueError,match="FORMAT_GATE_HISTORY_MISSING"):
         h.historical_rejections(None,None,h.REPO,TASK,9,SHA)
+
+
+@pytest.mark.parametrize("outcome", ["skipped", "cancelled"])
+def test_cancel_before_or_during_no_result(monkeypatch, outcome):
+    monkeypatch.setattr(h,"steps",lambda *a:{h.GATE:outcome,h.UPLOAD:"skipped",h.WORKER:"skipped"})
+    api=lambda route:{"artifacts":[],"total_count":0}
+    assert h.result_for_run(api,None,h.REPO,row(1,"1"*40,status="cancelled"),TASK) is None
+
+
+def test_cancel_after_published_rejection_preserves_charge(monkeypatch):
+    env=envelope()
+    rejected=scenario(monkeypatch,[(row(1,"1"*40,status="cancelled"),evidence(1,"1"*40,env),env)])
+    assert len(rejected)==1
+
+
+@pytest.mark.parametrize("outcome,upload,inventory", [
+    ("failure","cancelled",[]),("cancelled","success",[]),
+    ("cancelled","skipped",[{"name":h.ARTIFACT}]),
+])
+def test_cancel_ambiguous_fails_closed(monkeypatch,outcome,upload,inventory):
+    monkeypatch.setattr(h,"steps",lambda *a:{h.GATE:outcome,h.UPLOAD:upload,h.WORKER:"skipped"})
+    with pytest.raises(ValueError):
+        h.result_for_run(lambda route:{"artifacts":inventory,"total_count":len(inventory)},None,h.REPO,
+                         row(1,"1"*40,status="cancelled"),TASK)

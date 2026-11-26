@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Owner: prevalidación Spotless previa a intento; segunda revisión H3, H6, H7"
   },
-  "reason": "Construir y probar un módulo aislado de formato Java; ejecutar primero la propuesta, comparar la base únicamente ante una infracción atribuible y limitar el presupuesto temporal total. No conectar todavía el módulo a la ruta productiva ni cambiar estándares, exámenes o intentos. Fase 2: gate anterior al examinador y evidencia sin intento; sin presupuesto de formato ni CP3.6. Fase 3: presupuesto independiente de tres rechazos únicos, evidencia de Actions ligada al parche y feedback idempotente; sin CP3.6.",
+  "reason": "Construir y probar un módulo aislado de formato Java; ejecutar primero la propuesta, comparar la base únicamente ante una infracción atribuible y limitar el presupuesto temporal total. No conectar todavía el módulo a la ruta productiva ni cambiar estándares, exámenes o intentos. Fase 2: gate anterior al examinador y evidencia sin intento; sin presupuesto de formato ni CP3.6. Fase 3: presupuesto independiente de tres rechazos únicos, evidencia de Actions ligada al parche y feedback idempotente; sin CP3.6. Fase 4: recuperación CP3.6, cancelaciones, prueba Maven real y límites de sobrecoste.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -22,7 +22,16 @@
       "pilot/worker_v08/native_format_admission.py",
       "pilot/worker_v08/test_native_format_admission.py",
       "pilot/worker_v08/native_format_history.py",
-      "pilot/worker_v08/test_native_format_history.py"
+      "pilot/worker_v08/test_native_format_history.py",
+      "pilot/orchestrator/native_format_recovery.py",
+      "pilot/orchestrator/test_native_format_recovery.py",
+      "pilot/worker_v08/test_native_format_real.py",
+      "pilot/worker_v08/native_format_operations.md",
+      "pilot/worker_v08/native_format_preflight.py",
+      "pilot/orchestrator/native_pending_recovery.py",
+      "pilot/orchestrator/native_infra_retry.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/native_route_recovery.py"
     ]
   },
   "existing_code_impact": {

@@ -56,7 +56,8 @@ jobs:
   native:
     if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    # Preserve the original 35-minute window plus bounded format overhead.
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:17
@@ -341,6 +342,7 @@ jobs:
           test ! -L "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
       - name: Admit independent format rejection budget
         id: format_budget
+        timeout-minutes: 3
         env:
           GH_TOKEN: ${{ github.token }}
           NATIVE_TASK: ${{ steps.source.outputs.task }}
@@ -353,6 +355,7 @@ jobs:
             --sha "$NATIVE_SHA" --run-id "$GITHUB_RUN_ID"
       - name: Prevalidate native proposal format before examiner material
         id: format
+        timeout-minutes: 6
         env:
           NATIVE_TASK: ${{ steps.source.outputs.task }}
           NATIVE_SHA: ${{ steps.source.outputs.proposal_sha }}
@@ -396,6 +399,7 @@ jobs:
             echo '~~~'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Publish independent format feedback
+        timeout-minutes: 1
         if: ${{ always() && steps.format.outcome == 'failure' }}
         env:
           GH_TOKEN: ${{ github.token }}

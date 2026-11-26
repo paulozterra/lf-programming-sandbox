@@ -80,7 +80,8 @@ def _evaluate(control, source, checkout, task, sha, attempt, route_retry):
     try:
         if not _check_pack(control, source, task, raw, submitted, route_retry=route_retry, sha=sha, attempt=attempt):
             return FormatResult("INVALID_PROPOSAL", "FORMAT_TASK_PACK_MISMATCH")
-        return prevalidate(source, spec, submitted["proposal"], load(active_project(root=control), root=control))
+        return prevalidate(source, spec, submitted["proposal"], load(active_project(root=control), root=control),
+                           total_timeout_seconds=300)
     except Exception:
         return FormatResult("INFRA_ERROR", "FORMAT_ADMISSION_EXECUTION_FAILED")
 

@@ -1966,6 +1966,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     # short-circuit later recoveries or per-request planning.
     repair_outcomes = list(recovery_failures) + kept
     if sweep:
+        from pilot.orchestrator.native_format_recovery import Recovery as FormatRecovery
+        format_recovery = FormatRecovery(run, api, REPO, ROOT)
         recoveries = (
             ("T20_BOT_CI_RETRY",
              lambda: retry_failed_bot_prs(
@@ -1982,17 +1984,22 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                          "implemented-registry")}))),
             ("R1_WORKER_PENDING",
              lambda: recover_pending_worker(
-                 head, run, api, REPO, ROOT, allowed_task=pending_task_live)
+                 head, run, api, REPO, ROOT, allowed_task=pending_task_live,
+                 format_decision=format_recovery.decision)
              if owners else []),
             ("T20_NATIVE_INFRA",
              lambda: retry_native_infra(
-                 head, run, api, REPO, ROOT, allowed_task=task_live)),
+                 head, run, api, REPO, ROOT, allowed_task=task_live,
+                 format_decision=format_recovery.decision)),
             ("T22_FEEDBACK",
              lambda: recover_native_feedback(run, api, REPO, ROOT)),
+            ("FORMAT_FEEDBACK",
+             lambda: format_recovery.recover_feedback(task_live)),
             ("T23_ROUTE",
              lambda: recover_route_defects(
                  head, run, api, REPO, ROOT, worktree, draft, pending_draft,
-                 api_list=api_list, allowed_task=task_live)),
+                 api_list=api_list, allowed_task=task_live,
+                 format_decision=format_recovery.decision)),
         )
         for phase, action in recoveries:
             try:

@@ -277,7 +277,7 @@ def comment_resubmit(run, api, repo: str, number: int, task: str,
 
 
 def replay_corrected(head, run, api, repo: str, root: Path,
-                     rows: list[dict], api_list=None, allowed_task=None) -> list[dict]:
+                     rows: list[dict], api_list=None, allowed_task=None, format_decision=None) -> list[dict]:
     results = []
     done = set()
     for item in rows:
@@ -312,6 +312,11 @@ def replay_corrected(head, run, api, repo: str, root: Path,
         sha = migration_info["proposal_commit_sha"]
         if (task, sha) in done:
             continue
+        if format_decision is not None:
+            state = format_decision(task, sha)
+            if state != "CONTINUE":
+                results.append({"task": task, "status": state, "proposal_sha": sha})
+                continue
         source = api(f"actions/runs/{migration_info['source_run_id']}")
         if (_run_identity(source, repo) != (task, sha)
                 or source.get("conclusion") != "failure"):
@@ -362,7 +367,7 @@ def replay_corrected(head, run, api, repo: str, root: Path,
 
 
 def sweep(head, run, api, repo, root, worktree, draft, pending_draft,
-          api_list=None, allowed_task=None):
+          api_list=None, allowed_task=None, format_decision=None):
     rows = history(api)
     results = []
     # A historical run is classified once from trusted visible artifacts; no
@@ -399,5 +404,5 @@ def sweep(head, run, api, repo, root, worktree, draft, pending_draft,
                     "ROUTE_DEFECT_REGISTRATION_PENDING"):
                 scheduled = True
     results.extend(replay_corrected(head, run, api, repo, root, rows,
-                                    api_list, allowed_task=allowed_task))
+                                    api_list, allowed_task=allowed_task, format_decision=format_decision))
     return results

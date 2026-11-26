@@ -25,6 +25,7 @@ from native_feedback_delivery import (
 )
 from programming_agent_runner.worker_secrets import secret_text_reason
 
+BUDGET_GATE = "Admit independent format rejection budget"
 GATE = "Prevalidate native proposal format before examiner material"
 UPLOAD = "Upload public native format preflight evidence"
 WORKER = "Execute original run_verified_worker using native proposal (single attempt)"
@@ -51,6 +52,15 @@ def stamp(value):
 
 
 def cutover(api):
+    # Follow-up owner/Train pin, once actual merge metadata exists.
+    pin = Path(__file__).with_name("format_cutover.json")
+    if pin.exists():
+        pr = json.loads(pin.read_text("utf-8"))
+        require(set(pr) == {"schema_version", "pr_number", "merge_commit_sha", "merged_at"}
+                and pr["schema_version"] == "LF_FORMAT_CUTOVER_V1" and pr["pr_number"] == 816
+                and SHA40.fullmatch(pr["merge_commit_sha"] or "") is not None,
+                "FORMAT_CUTOVER_UNRESOLVED")
+        return stamp(pr["merged_at"])
     pr = api("pulls/816")
     require(pr.get("number") == 816 and pr.get("merged") is True
             and SHA40.fullmatch(pr.get("merge_commit_sha") or "") is not None
@@ -107,7 +117,7 @@ def steps(api, run):
         return None
     rows = jobs[0].get("steps")
     require(isinstance(rows, list), "FORMAT_STEP_HISTORY_INVALID")
-    relevant = [s for s in rows if s.get("name") in (GATE, UPLOAD, WORKER)]
+    relevant = [s for s in rows if s.get("name") in (BUDGET_GATE, GATE, UPLOAD, WORKER)]
     names = [s.get("name") for s in relevant]
     require(len(names) == len(set(names)), "FORMAT_STEP_HISTORY_DUPLICATE")
     return {s["name"]: s.get("conclusion") for s in relevant}
@@ -183,6 +193,44 @@ def validate(data, task, run_id, sha, outcome, envelope=None):
     return data
 
 
+def result_for_run(api, command, repo, row, task):
+    """Classify a completed post-cutover run, including cancelled runs.
+
+    A completed failed gate without a published result is ambiguous even
+    when the overall run was cancelled. Never silently waive that evidence.
+    """
+    trusted_run(row, repo)
+    require(row.get("status") == "completed", "FORMAT_RUN_UNRESOLVED")
+    observed = steps(api, row)
+    if observed is None:
+        return None
+    require(GATE in observed, "FORMAT_GATE_HISTORY_MISSING")
+    outcome = observed[GATE]
+    upload = observed.get(UPLOAD)
+    if outcome in ("skipped", "cancelled"):
+        require(upload in (None, "skipped", "cancelled"), "FORMAT_CANCEL_EVIDENCE_CONTRADICTORY")
+        if row.get("conclusion") == "cancelled":
+            inventory = api(f"actions/runs/{row['id']}/artifacts?per_page=100")
+            items = inventory.get("artifacts")
+            require(isinstance(items, list) and inventory.get("total_count") == len(items)
+                    and not any(x.get("name") == ARTIFACT for x in items),
+                    "FORMAT_CANCEL_EVIDENCE_CONTRADICTORY")
+        return None
+    require(outcome in ("success", "failure") and upload == "success",
+            "FORMAT_EVIDENCE_NOT_ATTESTED")
+    sha = proposal_sha(row, task)
+    data = download(api, command, repo, row["id"])
+    require(isinstance(data, dict), "FORMAT_EVIDENCE_FILE_INVALID")
+    envelope = envelope_at(api, task, sha) if any(data.get(k) is not None for k in HASHES) else None
+    validate(data, task, row["id"], sha, outcome, envelope)
+    if data["status"] in BLOCK:
+        require(row.get("conclusion") in ("failure", "cancelled")
+                and observed.get(WORKER) in ("skipped", None)
+                and (observed.get(WORKER) == "skipped" or row.get("conclusion") == "cancelled"),
+                "FORMAT_WORKER_NOT_SKIPPED")
+    return data
+
+
 def historical_rejections(api, command, repo, task, run_id, sha):
     boundary = cutover(api)
     rows = listed(api)
@@ -204,24 +252,8 @@ def historical_rejections(api, command, repo, task, run_id, sha):
             continue  # newer queued runs have not executed under task concurrency
         require(row["id"] < run_id and row.get("status") == "completed",
                 "FORMAT_HISTORY_CONCURRENT_OR_UNRESOLVED")
-        if row.get("conclusion") in ("cancelled", "skipped"):
-            continue
-        observed = steps(api, row)
-        if observed is None:
-            continue
-        require(GATE in observed, "FORMAT_GATE_HISTORY_MISSING")
-        outcome = observed[GATE]
-        if outcome in ("skipped", "cancelled"):
-            continue
-        require(outcome in ("success", "failure") and observed.get(UPLOAD) == "success",
-                "FORMAT_EVIDENCE_NOT_ATTESTED")
-        old_sha = proposal_sha(row, task)
-        data = download(api, command, repo, row["id"])
-        envelope = envelope_at(api, task, old_sha) if any(data.get(k) is not None for k in HASHES) else None
-        validate(data, task, row["id"], old_sha, outcome, envelope)
-        if data["status"] == "FORMAT_FAIL":
-            require(row.get("conclusion") == "failure" and observed.get(WORKER) == "skipped",
-                    "FORMAT_WORKER_NOT_SKIPPED")
+        data = result_for_run(api, command, repo, row, task)
+        if data is not None and data["status"] == "FORMAT_FAIL":
             rejected.setdefault(data["patch_sha256"], data)
     return rejected
 
@@ -242,7 +274,10 @@ def publish(command, api, repo, control, task, data):
     issue = api(f"issues/{number}")
     require(issue.get("number") == number and not issue.get("pull_request")
             and issue.get("state") == "open", "FORMAT_ISSUE_INVALID")
-    key = f"<!-- LF_NATIVE_FORMAT_FEEDBACK:{task}:{data['patch_sha256']} -->"
+    status = data["status"]
+    require(status in ("FORMAT_FAIL", "INVALID_PROPOSAL", "BASELINE_FAIL"), "FORMAT_FEEDBACK_STATUS_INVALID")
+    key = (f"<!-- LF_NATIVE_FORMAT_FEEDBACK:{task}:{data['patch_sha256']} -->" if status == "FORMAT_FAIL"
+           else f"<!-- LF_NATIVE_FORMAT_NOTICE:{task}:{data['proposal_commit_sha']}:{status} -->")
     for page in range(1, 11):
         comments = json.loads(command("gh", "api", f"repos/{repo}/issues/{number}/comments?per_page=100&page={page}"))
         require(isinstance(comments, list), "FORMAT_FEEDBACK_HISTORY_INVALID")
@@ -252,11 +287,13 @@ def publish(command, api, repo, control, task, data):
             break
     else:
         raise ValueError("FORMAT_FEEDBACK_HISTORY_INCOMPLETE")
-    body = (key + "\nPrevalidación Spotless: FORMAT_FAIL (sin intento funcional).\n"
+    body = (key + "\nPrevalidación Spotless: " + status + " (sin intento funcional).\n"
             + "Tarea: " + task + "\nPropuesta: " + data["proposal_commit_sha"]
             + "\nRun: " + str(data["run_id"]) + "\n"
             + "\n".join(data["diagnostics"])
-            + "\nCorrige el formato y presenta un parche diferente.")
+            + ("\nCorrige el formato y presenta un parche diferente." if status == "FORMAT_FAIL"
+               else "\nRevisa la propuesta registrada." if status == "INVALID_PROPOSAL"
+               else "\nDefecto de base: requiere revisión del owner; no imputable al constructor."))
     command("gh", "issue", "comment", str(number), "--repo", repo, "--body", body)
     return "FORMAT_FEEDBACK_PUBLISHED"
 
@@ -294,7 +331,7 @@ def main():
                 "FORMAT_EVIDENCE_NOT_ATTESTED")
         envelope = envelope_at(api, a.task, a.sha) if any(data.get(k) is not None for k in HASHES) else None
         validate(data, a.task, a.run_id, a.sha, "failure", envelope)
-        if data["status"] == "FORMAT_FAIL":
+        if data["status"] in ("FORMAT_FAIL", "INVALID_PROPOSAL", "BASELINE_FAIL"):
             print(publish(_subprocess, api, repo, a.control, a.task, data))
 
 
