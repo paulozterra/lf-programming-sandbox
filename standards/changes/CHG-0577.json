@@ -31,7 +31,8 @@
       "pilot/orchestrator/native_infra_retry.py",
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/native_route_recovery.py",
-      "pilot/orchestrator/chain_contract.py"
+      "pilot/orchestrator/chain_contract.py",
+      "pilot/orchestrator/test_t24_1_sweep_and_attempts.py"
     ]
   },
   "existing_code_impact": {
