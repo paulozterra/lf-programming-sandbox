@@ -58,7 +58,11 @@ def retry_native_infra(head, run, api, repo, control, *, allowed_task=None, form
             continue
         if (task, sha) in done or not SHA.fullmatch(sha):
             continue
-        format_state = format_decision(task, sha) if format_decision is not None else "CONTINUE"
+        try:
+            format_state = format_decision(task, sha) if format_decision is not None else "CONTINUE"
+        except (ValueError, OSError, KeyError, TypeError):
+            outcomes.append({"task": task, "status": "BLOCKED", "reason": "FORMAT_HISTORY_UNRESOLVED"})
+            continue
         if format_state not in ("CONTINUE", "FORMAT_INFRA_RETRY"):
             outcomes.append({"task": task, "status": format_state, "proposal_sha": sha})
             continue

@@ -1994,7 +1994,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             ("T22_FEEDBACK",
              lambda: recover_native_feedback(run, api, REPO, ROOT)),
             ("FORMAT_FEEDBACK",
-             lambda: format_recovery.recover_feedback(task_live)),
+             lambda: format_recovery.recover_feedback(task_live)
+             if any(task_live(task) for task in owners) else []),
             ("T23_ROUTE",
              lambda: recover_route_defects(
                  head, run, api, REPO, ROOT, worktree, draft, pending_draft,

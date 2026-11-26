@@ -47,7 +47,7 @@ def scenario(monkeypatch, entries, current=9, current_sha=SHA, event="workflow_r
     monkeypatch.setattr(h, "steps", lambda api, run: None if run["conclusion"] == "cancelled" and data[run["id"]] is None else {h.GATE: "success" if data[run["id"]] and data[run["id"]]["status"] in h.CONTINUE else "failure", h.UPLOAD: "success", h.WORKER: "skipped"})
     monkeypatch.setattr(h, "download", lambda api, cmd, repo, rid: data[rid])
     monkeypatch.setattr(h, "envelope_at", lambda api, task, sha: env[sha])
-    return h.historical_rejections(None, None, h.REPO, TASK, current, current_sha)
+    return h.historical_rejections(lambda route: {"artifacts": [], "total_count": 0}, None, h.REPO, TASK, current, current_sha)
 
 
 def entries(n):
@@ -220,3 +220,10 @@ def test_cancel_ambiguous_fails_closed(monkeypatch,outcome,upload,inventory):
     with pytest.raises(ValueError):
         h.result_for_run(lambda route:{"artifacts":inventory,"total_count":len(inventory)},None,h.REPO,
                          row(1,"1"*40,status="cancelled"),TASK)
+
+
+def test_cancel_without_job_but_with_proof_is_ambiguous(monkeypatch):
+    monkeypatch.setattr(h,"steps",lambda *a:None)
+    with pytest.raises(ValueError,match="FORMAT_CANCEL_EVIDENCE_CONTRADICTORY"):
+        h.result_for_run(lambda route:{"artifacts":[{"name":h.ARTIFACT}],"total_count":1},
+                         None,h.REPO,row(1,"1"*40,status="cancelled"),TASK)

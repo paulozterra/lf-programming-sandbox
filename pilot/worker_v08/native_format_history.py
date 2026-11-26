@@ -54,6 +54,7 @@ def stamp(value):
 def cutover(api):
     # Follow-up owner/Train pin, once actual merge metadata exists.
     pin = Path(__file__).with_name("format_cutover.json")
+    require(not pin.is_symlink(), "FORMAT_CUTOVER_UNRESOLVED")
     if pin.exists():
         pr = json.loads(pin.read_text("utf-8"))
         require(set(pr) == {"schema_version", "pr_number", "merge_commit_sha", "merged_at"}
@@ -202,19 +203,25 @@ def result_for_run(api, command, repo, row, task):
     trusted_run(row, repo)
     require(row.get("status") == "completed", "FORMAT_RUN_UNRESOLVED")
     observed = steps(api, row)
+    def absent_on_cancel():
+        inventory = api(f"actions/runs/{row['id']}/artifacts?per_page=100")
+        items = inventory.get("artifacts")
+        require(isinstance(items, list) and inventory.get("total_count") == len(items)
+                and not any(x.get("name") in (ARTIFACT, "native-attempt-proof") for x in items),
+                "FORMAT_CANCEL_EVIDENCE_CONTRADICTORY")
     if observed is None:
+        if row.get("conclusion") == "cancelled":
+            absent_on_cancel()
         return None
     require(GATE in observed, "FORMAT_GATE_HISTORY_MISSING")
     outcome = observed[GATE]
     upload = observed.get(UPLOAD)
     if outcome in ("skipped", "cancelled"):
         require(upload in (None, "skipped", "cancelled"), "FORMAT_CANCEL_EVIDENCE_CONTRADICTORY")
+        require(observed.get(WORKER) in (None, "skipped", "cancelled"),
+                "FORMAT_CANCEL_EVIDENCE_CONTRADICTORY")
         if row.get("conclusion") == "cancelled":
-            inventory = api(f"actions/runs/{row['id']}/artifacts?per_page=100")
-            items = inventory.get("artifacts")
-            require(isinstance(items, list) and inventory.get("total_count") == len(items)
-                    and not any(x.get("name") == ARTIFACT for x in items),
-                    "FORMAT_CANCEL_EVIDENCE_CONTRADICTORY")
+            absent_on_cancel()
         return None
     require(outcome in ("success", "failure") and upload == "success",
             "FORMAT_EVIDENCE_NOT_ATTESTED")
@@ -289,7 +296,7 @@ def publish(command, api, repo, control, task, data):
         raise ValueError("FORMAT_FEEDBACK_HISTORY_INCOMPLETE")
     body = (key + "\nPrevalidación Spotless: " + status + " (sin intento funcional).\n"
             + "Tarea: " + task + "\nPropuesta: " + data["proposal_commit_sha"]
-            + "\nRun: " + str(data["run_id"]) + "\n"
+            + "\nRun: " + str(data["run_id"]) + "\nMotivo: " + data["reason"] + "\n"
             + "\n".join(data["diagnostics"])
             + ("\nCorrige el formato y presenta un parche diferente." if status == "FORMAT_FAIL"
                else "\nRevisa la propuesta registrada." if status == "INVALID_PROPOSAL"

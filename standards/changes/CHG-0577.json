@@ -27,7 +27,6 @@
       "pilot/orchestrator/test_native_format_recovery.py",
       "pilot/worker_v08/test_native_format_real.py",
       "pilot/worker_v08/native_format_operations.md",
-      "pilot/worker_v08/native_format_preflight.py",
       "pilot/orchestrator/native_pending_recovery.py",
       "pilot/orchestrator/native_infra_retry.py",
       "pilot/orchestrator/chain_lots.py",
