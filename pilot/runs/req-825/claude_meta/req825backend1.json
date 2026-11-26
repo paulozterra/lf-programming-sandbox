@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/req825backend1.oracle.json.age",
+  "holdout_sha256": "7ba591c80d3030c4f4aded5734bbf4d08dd7582fb7dcec853e4541d4ac21c3b8",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "ficha demo_format_canary (FORMAT-CANARY-VALIDATION)"
+}
