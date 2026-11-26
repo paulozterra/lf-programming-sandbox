@@ -608,6 +608,39 @@
       "causa_raiz": "Solo existía protección por pruebas Java y el frontend no tenía pruebas",
       "prevencion": "Suite visible declarativa con verificación por mutación y lote de caracterización antes de modificar",
       "validacion": "Simulación T7 crea el lote de caracterización y la cadena protege su suite"
+    },
+    "GH_CHECK_STUCK_INPROGRESS_SUCCESS": {
+      "categoria": "CI_GOVERNANCE",
+      "severidad": "Medium",
+      "lifecycle_phase": "EXECUTION",
+      "consumer_role": [
+        "DevOps",
+        "Builder"
+      ],
+      "root_cause_family": "R2_NO_VE",
+      "detectability": "LOUD_LATE",
+      "titulo": "Check exitoso de GitHub permanece en progreso",
+      "descripcion": "CI completado exitosamente con un job y check in_progress/success. El Train agotó 25 minutos; reejecutar el job exacto permitió recuperar el estado.",
+      "patron": "CI completed/success, job y check in_progress/success, Train CHECK_WAIT_TIMEOUT",
+      "causa_raiz": "Inconsistencia externa observada en GitHub; causa interna de GitHub no determinada. La ruta carecía de recuperación acotada y diagnóstico específico.",
+      "prevencion": "Nunca sintetizar éxito. Exigir CI propio exitoso, HEAD exacto y enlace job/check por id. Reejecutar una vez por HEAD y ejecución, consumir presupuesto antes del POST; fallar cerrado.",
+      "validacion": "PR 771 CHG-0534, Train 45697016688, CI 45694962310, job 139489837645, rerun 139541125028 (20 s). CHECK_WAIT_TIMEOUT, CHECK_INCONSISTENT_UNRECOVERED, CHECK_RECOVERY_TIMEOUT y CHECK_RECOVERY_POST_FAILED; pruebas en pilot/test_sandbox_train_policy.py."
+    },
+    "TRAIN_PROTECTED_TOOLING_UPDATE": {
+      "categoria": "CI_GOVERNANCE",
+      "severidad": "Medium",
+      "lifecycle_phase": "governance",
+      "consumer_role": [
+        "DevOps"
+      ],
+      "root_cause_family": "R5_EROSION_PROCESO",
+      "detectability": "LOUD_EARLY",
+      "titulo": "Actualización del Train requiere vía gobernada de mantenimiento",
+      "descripcion": "Un PR revisado y con CI verde fue rechazado por la protección deliberada contra cambios de herramientas del Train.",
+      "patron": "BRANCH_CONFLICT_TOOLING_CHANGED en una actualización de herramientas protegidas",
+      "causa_raiz": "El Train impide ejecutar o integrar automáticamente herramientas de política modificadas por el PR. No es un conflicto de Git.",
+      "prevencion": "Conservar el candado. Usar mantenimiento excepcional del owner solo con revisión independiente, HEAD exacto y checks verdes; verificar merge de dos padres, CI de main y recuperación de eventos sin fabricar recibos.",
+      "validacion": "PR 771 CHG-0534, run 45731331972; procedimiento de mantenimiento protegido y pruebas del candado."
     }
   }
 }

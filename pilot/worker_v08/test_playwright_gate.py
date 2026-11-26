@@ -198,5 +198,37 @@ def test_failed_start_says_component_cause_and_redacted_tail(tmp_path, capsys, m
         gate.wait_local(1, proc, seconds=2, name="BACKEND")
     err = capsys.readouterr().err
     assert "APP_NO_ARRANCA_DETALLE: BACKEND EXIT_3" in err
-    assert "Downloading spring-boot-maven-plugin" in err
+    assert "APP_NO_ARRANCA_INDICIO: BACKEND MAVEN_DEPENDENCY_TRANSFER" in err
+    assert "Downloading spring-boot-maven-plugin" not in err
+    gate._stop(proc)
+    assert proc._lf_log.closed
     assert "pw-not-echoed" not in err and "abcdefghijklmnopqrstu" not in err
+
+
+def test_diagnosis_never_echoes_arbitrary_child_output(tmp_path, capsys):
+    import sys
+    proc = gate._spawn([sys.executable, "-c", "print('unclassified-sensitive-value'); print('Address already in use')"], tmp_path)
+    try:
+        proc.wait(timeout=10)
+        with pytest.raises(gate.BrowserBlocked, match="APP_NO_ARRANCA"):
+            gate.wait_local(1, proc, seconds=2, name="FRONTEND")
+        err = capsys.readouterr().err
+        assert "FRONTEND EXIT_0" in err
+        assert "FRONTEND PORT_IN_USE" in err
+        assert "unclassified-sensitive-value" not in err
+    finally:
+        gate._stop(proc)
+
+
+def test_diagnosis_bounded_tail_and_preserves_write_offset(tmp_path, capsys):
+    import sys
+    proc = gate._spawn([sys.executable, "-c", "print('Address already in use'); print('x' * 70000); print('Connection refused')"], tmp_path)
+    try:
+        proc.wait(timeout=10)
+        pos = proc._lf_log.tell()
+        gate._start_diagnosis("BACKEND", proc, 90)
+        err = capsys.readouterr().err
+        assert "DATABASE_CONNECTION" in err and "PORT_IN_USE" not in err
+        assert proc._lf_log.tell() == pos
+    finally:
+        gate._stop(proc)

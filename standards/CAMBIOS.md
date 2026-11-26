@@ -302,4 +302,16 @@
 | CHG-0498 | ADDITIVE | Credenciales ficticias del sandbox por variables SBX_FIXTURE_* para Worker y examen |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/733 |
 | CHG-0502 | EDITORIAL | Policy C: impedir fusionar registros nativos durante retiro E2 pendiente |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/737 |
 | CHG-0504 | EDITORIAL | Evento exam-retry: el examen retirado se reescribe en minutos, no en la corrida horaria |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/740 |
+| CHG-0505 | ADDITIVE | Tiempos por paso de un pedido (línea de tiempo desde GitHub, solo lectura) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/741 |
 | CHG-0506 | EDITORIAL | APP_NO_ARRANCA dice qué componente falló, por qué y con qué salida |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/743 |
+| CHG-0511 | EDITORIAL | Preflight del examen corre también los comandos de estándares que agrega el registro (STD-BE-05) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/747 |
+| CHG-0515 | EDITORIAL | Recuperar barridos CP3.6 desplazados por otro merge |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/751 |
+| CHG-0519 | EDITORIAL | Admitir la ruta exacta de caracterización T7 en CP3.4 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/755 |
+| CHG-0520 | EDITORIAL | Separar retiros E2 obsoletos del presupuesto de ensayos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/756 |
+| CHG-0521 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/757 |
+| CHG-0534 | EDITORIAL | Recuperar checks inconsistentes del Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/771 |
+| CHG-0542 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/780 |
+| CHG-0549 | EDITORIAL | Aprendizaje EKB y mantenimiento protegido del Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/787 |
+| CHG-0554 | EDITORIAL | Exigir evidencia de duplicación de métodos en reuse guard |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/792 |
+| CHG-0562 | EDITORIAL | T37 acredita defectos del guard previo a aceptación |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/800 |
+| CHG-0567 | EDITORIAL | T37 recuperación gobernada req652backend2 run 45751249784 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/805 |

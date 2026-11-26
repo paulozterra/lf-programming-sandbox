@@ -12,6 +12,7 @@ from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config import project_config as _project  # noqa: E402
 import json
+import re
 
 # Explicit aliases; deliberately NO suffix-stripping or fuzzy matching.
 SELECTOR_BINDINGS = {
@@ -99,9 +100,32 @@ def map_profile(profile_code: str, declared_area: str) -> dict[str, str]:
             "native_profile_code": native_code, "pinned_profile_slug": pinned_slug}
 
 
-def real_write_paths(root: Path, area: str, paths: list[str]) -> list[str]:
+def _characterization_path(area: str, paths: list[str], lot: dict | None) -> str | None:
+    """Only the committed T7 characterization lot may create its own suite."""
+    if lot is None or lot.get("lot_kind") != "CHARACTERIZATION":
+        return None
+    lot_id = lot.get("id")
+    if (area != "FRONTEND" or lot.get("area") != area
+            or lot.get("producer_route") != "T7_CHARACTERIZATION_NOT_PG04_PG05"
+            or not isinstance(lot_id, str)
+            or not re.fullmatch(r"SOL-K[0-9a-f]{12}", lot_id)
+            or lot.get("write_paths") != paths
+            or lot.get("production_authority") is not False
+            or lot.get("handoff_allowed") is not False):
+        raise NativeLotBlocked("CP34_CHARACTERIZATION_SCOPE_INVALID")
+    component = _project.area_component("FRONTEND", "npm")
+    suite = component["root"] + "/visible-tests"
+    expected = suite + "/" + lot_id.lower() + ".json"
+    if suite not in component["test_roots"] or paths != [expected]:
+        raise NativeLotBlocked("CP34_CHARACTERIZATION_SCOPE_INVALID")
+    return expected
+
+
+def real_write_paths(root: Path, area: str, paths: list[str], *,
+                     lot: dict | None = None) -> list[str]:
     if area not in REAL_ROOTS or not isinstance(paths, list) or not paths:
         raise NativeLotBlocked("CP34_WRITE_SCOPE_INVALID")
+    characterization = _characterization_path(area, paths, lot)
     result = []
     for path in paths:
         if (not isinstance(path, str) or not path or path.startswith("/")
@@ -113,6 +137,7 @@ def real_write_paths(root: Path, area: str, paths: list[str]) -> list[str]:
                 or (area == "INFRA" and path not in _infra_allowed_paths())
                 or Path(path).suffix not in ({".yaml"} if area == "CONTRATO"
                                              else {".xml", ".properties", ".example", ".json"} if area == "INFRA"
+                                             else {".java", ".ts", ".tsx", ".sql", ".json"} if path == characterization
                                              else {".java", ".ts", ".tsx", ".sql"})):
             raise NativeLotBlocked("CP34_FAKE_OR_UNSAFE_PATH")
         target = root / path

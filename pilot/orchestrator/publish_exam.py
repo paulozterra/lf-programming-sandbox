@@ -166,6 +166,31 @@ def exercise(raw: bytes, worktree: Path, reference: Path, mutants: list[Path],
     return results
 
 
+def lot_area(folder: Path, task: str) -> str | None:
+    """Area of the task's lot (chain_plan binding -> lots.json)."""
+    try:
+        plan = json.loads((folder / "chain_plan.json").read_text("utf-8"))
+        lot_id = next(b["lot_id"] for b in plan["bindings"] if b["task_name"] == task)
+        lots = json.loads((folder / "lots.json").read_text("utf-8"))
+        lots = lots["lots"] if isinstance(lots, dict) else lots
+        return next(l["area"] for l in lots if l["id"] == lot_id)
+    except (OSError, ValueError, KeyError, TypeError, StopIteration):
+        return None
+
+
+def standards_commands(folder: Path, task: str, commands: list) -> list:
+    """Visible commands the registration ADDS to the template (STD-BE-05
+    Spotless for BACKEND lots), so the preflight runs what T40 will run."""
+    if lot_area(folder, task) != "BACKEND":
+        return []
+    worker_dir = str(Path(__file__).resolve().parents[1] / "worker_v08")
+    if worker_dir not in sys.path:
+        sys.path.insert(0, worker_dir)  # register_task_context imports its siblings flat
+    from pilot.worker_v08.register_task_context import format_command
+    extra = format_command()
+    return [extra] if extra is not None and extra not in commands else []
+
+
 def visible_preflight(root: Path, request: str, task: str, worktree: Path,
                       reference: Path, python: str) -> None:
     """Run the lot template's visible acceptance commands on base + reference
@@ -178,6 +203,7 @@ def visible_preflight(root: Path, request: str, task: str, worktree: Path,
         raise ExamBlocked("EXAM_VISIBLE_COMMANDS_UNRESOLVED") from None
     if not isinstance(commands, list):
         raise ExamBlocked("EXAM_VISIBLE_COMMANDS_UNRESOLVED")
+    commands = commands + standards_commands(folder, task, commands)
     with tempfile.TemporaryDirectory(prefix="lf-exam-visible-") as tmp:
         candidate = clean_copy(worktree, Path(tmp) / "candidate")
         overlay(candidate, reference, candidate)

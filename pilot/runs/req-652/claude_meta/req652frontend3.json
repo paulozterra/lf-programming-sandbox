@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/req652frontend3.oracle.json.age",
+  "holdout_sha256": "6fbe07367684a1be28504b0575d74d1405d93cad3c27c99bf8da6680bbe60f73",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "ficha sbx_b2b_login (SBX-B2B-R-UX-ACTIONS, SBX-B2B-R-UX-RECOVERY, SBX-B2B-R-DESIGN-TOKENS, SBX-B2B-R-RESP-BREAKPOINTS, SBX-B2B-R-A11Y-INTERACTION, SBX-B2B-R-UX-SINGLE-FLIGHT)"
+}

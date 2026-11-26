@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 import unittest
 from unittest.mock import patch
+from contextlib import ExitStack
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/sandbox-train.yml"
@@ -292,6 +293,195 @@ class RetirementMergeTests(unittest.TestCase):
                                        sleep=lambda _: None)
             self.assertEqual(sum(c.args[0] == "PUT" for c in mock_api.call_args_list), 1)
 
+
+
+class CheckRecoveryTests(unittest.TestCase):
+    def test_recovery_is_exact_and_bounded(self):
+        sha = "a" * 40
+        repo = "paulozterra/lf-programming-sandbox"
+        name = train.REQUIRED[-1]
+        run = {"id": 11, "head_sha": sha, "status": "completed",
+               "conclusion": "success", "head_repository": {"full_name": repo}}
+        job = {"id": 22, "run_id": 11, "head_sha": sha, "name": name,
+               "status": "in_progress", "conclusion": "success",
+               "check_run_url": "https://api.github.com/repos/example/check-runs/22"}
+        check = {"id": 22, "status": "in_progress", "conclusion": "success"}
+        budget = set()
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": repo}), \
+             patch.object(train, "ci_workflow_runs_for_head", side_effect=lambda sha, pending_approval=False: [] if pending_approval else [run]), \
+             patch.object(train, "api", return_value={"total_count": 1, "jobs": [job]}) as api:
+            self.assertEqual(train.recover_inconsistent_ci_job(sha, [name], {name: check}, budget), "RECOVERY_REQUESTED")
+            self.assertEqual(train.recover_inconsistent_ci_job(sha, [name], {name: check}, budget), "RECOVERY_SKIPPED:BUDGET_USED")
+            self.assertEqual(sum(c.args[0] == "POST" for c in api.call_args_list), 1)
+            self.assertEqual(api.call_args_list[-1].args[1], "/actions/jobs/22/rerun")
+
+    def test_recovery_rejects_untrusted_or_real_failure(self):
+        sha = "a" * 40
+        repo = "paulozterra/lf-programming-sandbox"
+        name = train.REQUIRED[-1]
+        run = {"id": 11, "head_sha": sha, "status": "completed",
+               "conclusion": "success", "head_repository": {"full_name": repo}}
+        job = {"id": 22, "run_id": 11, "head_sha": sha, "name": name,
+               "status": "completed", "conclusion": "success",
+               "check_run_url": "https://api.github.com/repos/example/check-runs/22"}
+        check = {"id": 22, "status": "in_progress", "conclusion": None}
+        cases = [
+            ([dict(run, status="in_progress")], [job], check),
+            ([dict(run, conclusion="failure")], [job], check),
+            ([dict(run, head_repository={"full_name": "foreign/repo"})], [job], check),
+            ([run], [dict(job, head_sha="b" * 40)], check),
+            ([run], [dict(job, conclusion="failure")], check),
+            ([run], [dict(job, run_id=12)], check),
+            ([run], [job, job], check),
+            ([run], [job], dict(check, id=99)),
+            ([run], [job], dict(check, conclusion="failure")),
+            ([run], [job], dict(check, status="completed")),
+        ]
+        for runs, jobs, observed in cases:
+            with self.subTest(runs=runs, jobs=jobs, observed=observed), \
+                 patch.dict(os.environ, {"GITHUB_REPOSITORY": repo}), \
+                 patch.object(train, "ci_workflow_runs_for_head", side_effect=lambda sha, pending_approval=False: [] if pending_approval else runs), \
+                 patch.object(train, "api", return_value={"total_count": len(jobs), "jobs": jobs}) as api:
+                budget = set()
+                self.assertTrue(train.recover_inconsistent_ci_job(sha, [name], {name: observed}, budget).startswith("RECOVERY_SKIPPED:"))
+                self.assertFalse(budget)
+                self.assertFalse(any(c.args[0] == "POST" for c in api.call_args_list))
+
+    def test_await_checks_never_accepts_incomplete_success(self):
+        sha = "a" * 40
+        name = train.REQUIRED[-1]
+        green = {n: {"id": i + 1, "status": "completed", "conclusion": "success"}
+                 for i, n in enumerate(train.REQUIRED)}
+        stuck = dict(green, **{name: dict(green[name], status="in_progress")})
+        clock = iter(range(0, 10000, 200))
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"}), \
+             patch.object(train, "pr_data", return_value=sample_pr()), \
+             patch.object(train, "needs_rehearsal", return_value=False), \
+             patch.object(train, "approve_pending_runs"), \
+             patch.object(train, "ci_workflow_runs_for_head", return_value=[{"id": 1}]), \
+             patch.object(train, "checks_for_head", side_effect=[stuck, stuck, green]), \
+             patch.object(train, "recover_inconsistent_ci_job", return_value="RECOVERY_REQUESTED") as recovery, \
+             patch.object(train.time, "monotonic", side_effect=lambda: next(clock)), \
+             patch.object(train.time, "sleep"), \
+             patch.object(train, "WAIT_SECONDS", 10000):
+            self.assertEqual(train.await_checks(77, sha), green)
+            recovery.assert_called()
+
+
+    def test_recovery_evidence_and_post_failure(self):
+        sha = "a" * 40
+        repo = "paulozterra/lf-programming-sandbox"
+        name = train.REQUIRED[-1]
+        run = {"id": 11, "head_sha": sha, "status": "completed",
+               "conclusion": "success", "head_repository": {"full_name": repo}}
+        job = {"id": 22, "run_id": 11, "head_sha": sha, "name": name,
+               "status": "in_progress", "conclusion": "success",
+               "check_run_url": "https://api.github.com/repos/example/check-runs/22"}
+        check = {"id": 22, "status": "in_progress", "conclusion": "success"}
+        for pending, rows, count, observed, reason in [
+            ([run], [job], 1, {name: check}, "CI_PENDING_APPROVAL"),
+            ([], [job], 2, {name: check}, "JOBS_INCOMPLETE"),
+            ([], [job] * 100, 100, {name: check}, "JOBS_INCOMPLETE"),
+            ([], [job], 1, {}, "CHECK_ABSENT"),
+        ]:
+            with self.subTest(reason=reason, count=count), \
+                 patch.dict(os.environ, {"GITHUB_REPOSITORY": repo}), \
+                 patch.object(train, "ci_workflow_runs_for_head",
+                              side_effect=lambda sha, pending_approval=False: pending if pending_approval else [run]), \
+                 patch.object(train, "api", return_value={"total_count": count, "jobs": rows}) as api:
+                budget = set()
+                self.assertEqual(train.recover_inconsistent_ci_job(sha, [name], observed, budget),
+                                 "RECOVERY_SKIPPED:" + reason)
+                self.assertFalse(budget)
+                self.assertFalse(any(c.args[0] == "POST" for c in api.call_args_list))
+        with patch.dict(os.environ, {"GITHUB_REPOSITORY": repo}), \
+             patch.object(train, "ci_workflow_runs_for_head",
+                          side_effect=lambda sha, pending_approval=False: [] if pending_approval else [run]), \
+             patch.object(train, "api", side_effect=[{"total_count": 1, "jobs": [job]},
+                                                    train.TrainError("NETWORK POST")]) as api:
+            budget = set()
+            with self.assertRaisesRegex(train.TrainError, "CHECK_RECOVERY_POST_FAILED"):
+                train.recover_inconsistent_ci_job(sha, [name], {name: check}, budget)
+            self.assertIn(("check_recovery", sha), budget)
+            self.assertEqual(train.recover_inconsistent_ci_job(sha, [name], {name: check}, budget),
+                             "RECOVERY_SKIPPED:BUDGET_USED")
+            self.assertEqual(sum(c.args[0] == "POST" for c in api.call_args_list), 1)
+
+    def test_wait_loop_recovery_paths(self):
+        sha = "a" * 40
+        repo = "paulozterra/lf-programming-sandbox"
+        name = train.REQUIRED[-1]
+        other = train.REQUIRED[-2]
+        green = {n: {"id": i + 1, "status": "completed", "conclusion": "success"}
+                 for i, n in enumerate(train.REQUIRED)}
+        stuck = dict(green, **{name: dict(green[name], status="in_progress")})
+        two = dict(stuck, **{other: dict(green[other], status="in_progress")})
+        slow = dict(stuck, **{name: dict(stuck[name], conclusion=None)})
+        run = {"id": 11, "head_sha": sha, "status": "completed",
+               "conclusion": "success", "head_repository": {"full_name": repo}}
+        cases = [
+            ("grace", stuck, 180, "CHECK_INCONSISTENT_UNRECOVERED", "GRACE_NOT_MET", 0),
+            ("multiple", two, 240, "CHECK_INCONSISTENT_UNRECOVERED", "MULTIPLE_CHECKS", 0),
+            ("head_changed", stuck, 240, None, None, 0),
+            ("pending", stuck, 240, "CHECK_INCONSISTENT_UNRECOVERED", "CI_PENDING_APPROVAL", 0),
+            ("post_failure", stuck, 240, "CHECK_RECOVERY_POST_FAILED", None, 1),
+            ("recovery_timeout", stuck, 260, "CHECK_RECOVERY_TIMEOUT", None, 1),
+            ("slow", slow, 240, "CHECK_WAIT_TIMEOUT", "CI_RUNNING", 0),
+        ]
+        for scenario, checks, wait, error, reason, posts in cases:
+            with self.subTest(scenario=scenario), ExitStack() as stack:
+                now = [0]
+                budget = set()
+                job = {"id": 22, "run_id": 11, "head_sha": sha, "name": name,
+                       "status": "in_progress", "conclusion": "success",
+                       "check_run_url": "https://api.github.com/repos/example/check-runs/" + str(green[name]["id"])}
+                def read_pr(_):
+                    pr = sample_pr()
+                    if scenario == "head_changed" and now[0] >= 180 and read_pr.reads_at_180:
+                        pr["head"]["sha"] = "b" * 40
+                    if now[0] >= 180:
+                        read_pr.reads_at_180 += 1
+                    return pr
+                read_pr.reads_at_180 = 0
+                def fake_runs(_sha, pending_approval=False):
+                    if pending_approval:
+                        return [run] if scenario == "pending" else []
+                    return [dict(run, status="in_progress")] if scenario == "slow" else [run]
+                def fake_api(method, path, payload=None, expected=(200,)):
+                    if method == "GET":
+                        return {"total_count": 1, "jobs": [job]}
+                    if scenario == "post_failure":
+                        raise train.TrainError("NETWORK POST")
+                    return {}
+                stack.enter_context(patch.dict(os.environ, {"GITHUB_REPOSITORY": repo}))
+                for attr, kwargs in [
+                    ("pr_data", {"side_effect": read_pr}),
+                    ("needs_rehearsal", {"return_value": False}),
+                    ("approve_pending_runs", {}),
+                    ("ci_workflow_runs_for_head", {"side_effect": fake_runs}),
+                    ("checks_for_head", {"return_value": checks}),
+                    ("WAIT_SECONDS", {"new": wait}),
+                ]:
+                    stack.enter_context(patch.object(train, attr, **kwargs))
+                api = stack.enter_context(patch.object(train, "api", side_effect=fake_api))
+                helper = stack.enter_context(patch.object(train, "recover_inconsistent_ci_job",
+                                                         wraps=train.recover_inconsistent_ci_job))
+                log = stack.enter_context(patch("builtins.print"))
+                stack.enter_context(patch.object(train.time, "monotonic", side_effect=lambda: now[0]))
+                stack.enter_context(patch.object(train.time, "sleep", side_effect=lambda secs: now.__setitem__(0, now[0] + secs)))
+                if error:
+                    with self.assertRaisesRegex(train.TrainError, error):
+                        train.await_checks(77, sha, budget)
+                else:
+                    self.assertIsNone(train.await_checks(77, sha, budget))
+                self.assertEqual(sum(c.args[0] == "POST" for c in api.call_args_list), posts)
+                self.assertEqual(("check_recovery", sha) in budget, bool(posts))
+                if scenario in ("grace", "multiple", "head_changed"):
+                    helper.assert_not_called()
+                if reason:
+                    matching = [c for c in log.call_args_list if "ci_check_recovery_skipped" in str(c)
+                                and "RECOVERY_SKIPPED:" + reason in str(c)]
+                    self.assertEqual(len(matching), 1)
 
 if __name__ == "__main__":
     unittest.main()

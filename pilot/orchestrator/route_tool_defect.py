@@ -180,6 +180,284 @@ def prove(task: str, run_ids: list[int], current_base: str, reason: str,
             "forgiven": rows, "reason": reason}
 
 
+def preacceptance_failure(feedback: dict) -> str:
+    """Only the exact, single pre-acceptance signature rejection is eligible."""
+    from native_feedback_delivery import parse_feedback
+
+    if not isinstance(feedback, dict):
+        deny("FEEDBACK_KIND")
+    feedback = parse_feedback(json.dumps(feedback).encode("utf-8"), feedback.get("attempt"))
+    rows = feedback["commands"]
+    if len(rows) != 1:
+        deny("NOT_A_SINGLE_TOOL_FAILURE")
+    row = rows[0]
+    reason = row.get("reason")
+    if (row.get("name") != "reuse-component-guard" or row.get("status") != "FAIL"
+            or row.get("returncode") != 1
+            or row.get("stderr_excerpt") != "" or row.get("stdout_excerpt") != ""
+            or not isinstance(reason, str)
+            or re.fullmatch(r"DUPLICA_COMPONENTE_EXISTENTE:signature:[A-Za-z0-9_./-]+", reason) is None):
+        deny("NOT_A_PREACCEPTANCE_SIGNATURE_FAILURE")
+    return reason
+
+
+def replay_preacceptance(source_base: str, control_sha: str, proposal: dict, spec: dict,
+                         *, replacement_guard: bytes | None = None) -> str | None:
+    """Same source, patch, context and writable scope; only trusted control changes."""
+    with tempfile.TemporaryDirectory(prefix="t37-preacceptance-") as tmp:
+        source, control = Path(tmp) / "source", Path(tmp) / "control"
+        sh("git", "worktree", "add", "--detach", str(source), source_base)
+        try:
+            sh("git", "worktree", "add", "--detach", str(control), control_sha)
+            try:
+                if replacement_guard is not None:
+                    (control / "pilot/worker_v08/reuse_guard.py").write_bytes(replacement_guard)
+                input_file = Path(tmp) / "input.json"
+                input_file.write_text(json.dumps({"proposal": proposal, "spec": spec}), "utf-8")
+                # Execute only trusted control modules; proposal bytes are data.
+                script = r"""
+import json, pathlib, re, sys
+control, source, input_file = map(pathlib.Path, sys.argv[1:])
+sys.path[:0] = [str(control), str(control / 'pilot/worker_v08'),
+                str(control / 'vendor/programming-agent/src')]
+from reuse_guard import check, DuplicateComponent
+from programming_agent_runner.hashutil import strict_json_loads
+from programming_agent_runner.worker_patch import parse_patch_proposal, inspect_patch
+from programming_agent_runner.worker_spec import parse_worker_task
+data = json.loads(input_file.read_text('utf-8'))
+spec = data['spec']
+paths = spec['context_path_patterns']
+reports = [p for p in paths if isinstance(p, str) and re.fullmatch(
+    r'pilot/runs/[a-z][a-z0-9_-]{0,63}/reuse_assessment[.]json', p)]
+if len(reports) != 1:
+    raise ValueError('REPORT_NOT_UNIQUE')
+report = source / reports[0]
+if report.is_symlink() or not report.is_file():
+    raise ValueError('REPORT_INVALID')
+doc = strict_json_loads(report.read_text('utf-8'))
+if doc.get('schema_version') != 'T7_REUSE_ASSESSMENT_V1' or not isinstance(doc.get('obligations'), list):
+    raise ValueError('REPORT_INVALID')
+ctx = []
+for row in doc['obligations']:
+    if not isinstance(row, dict) or not isinstance(row.get('reuse_context'), list):
+        raise ValueError('REPORT_INVALID')
+    for ref in row['reuse_context']:
+        if isinstance(ref, dict) and ref.get('path') in paths:
+            ctx.append(ref)
+proposal = parse_patch_proposal(data['proposal'], parse_worker_task(spec))
+patch = proposal.patch
+inspect_patch(proposal, parse_worker_task(spec))
+try:
+    check(source, patch, ctx, writable=spec.get('write_path_patterns', []))
+except DuplicateComponent as exc:
+    print(json.dumps({'reason': str(exc)[:500]}))
+else:
+    print(json.dumps({'reason': None}))
+"""
+                result = subprocess.run([sys.executable, "-I", "-c", script,
+                    str(control), str(source), str(input_file)], cwd=control,
+                    capture_output=True, text=True, timeout=300)
+                if result.returncode:
+                    deny("PREACCEPTANCE_REPLAY_FAILED")
+                reply = json.loads(result.stdout)
+                if set(reply) != {"reason"} or (reply["reason"] is not None
+                        and not isinstance(reply["reason"], str)):
+                    deny("PREACCEPTANCE_REPLAY_INVALID")
+                return reply["reason"]
+            finally:
+                sh("git", "worktree", "remove", "--force", str(control))
+        finally:
+            sh("git", "worktree", "remove", "--force", str(source))
+
+
+def checkout_sha_from_log(log: str) -> str:
+    """Read only checkout evidence before proposal handling begins."""
+    lines = log.splitlines()
+    prefix = []
+    for line in lines:
+        value = re.sub(r"^\d{4}-\d\d-\d\dT\S+Z\s+", "", line)
+        if "git -C control fetch --no-tags origin" in value:
+            break
+        prefix.append(value)
+    matches = []
+    for i, line in enumerate(prefix[:-1]):
+        if re.fullmatch(r"\[command\].*/git log -1 --format=%H", line):
+            candidate = prefix[i + 1].strip()
+            if SHA40.fullmatch(candidate):
+                matches.append(candidate)
+    if len(matches) != 1 or not any("git checkout --progress --force -B main refs/remotes/origin/main" in x
+                                   for x in prefix):
+        deny("CONTROL_CHECKOUT_EVIDENCE_INVALID")
+    return matches[0]
+
+
+def read_checkout_log(job_id: int) -> str:
+    """Fetch bounded GitHub job logs without forwarding credentials to storage."""
+    import os
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, request, fp, code, msg, headers, newurl):
+            return None
+
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not token or type(job_id) is not int or job_id <= 0:
+        deny("CONTROL_LOG_INPUT_INVALID")
+    opener = urllib.request.build_opener(NoRedirect())
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{REPO}/actions/jobs/{job_id}/logs",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28"})
+    limit = 2_000_000
+    try:
+        try:
+            with opener.open(request, timeout=25) as response:
+                raw = response.read(limit + 1)
+        except urllib.error.HTTPError as exc:
+            if exc.code != 302:
+                deny(f"CONTROL_LOG_API_HTTP_{exc.code}")
+            location = exc.headers.get("Location")
+            exc.close()
+            target = urllib.parse.urlsplit(location or "")
+            if (target.scheme != "https" or not target.hostname
+                    or target.username is not None or target.password is not None):
+                deny("CONTROL_LOG_REDIRECT_INVALID")
+            try:
+                with opener.open(urllib.request.Request(location), timeout=25) as response:
+                    raw = response.read(limit + 1)
+            except urllib.error.HTTPError as storage_exc:
+                deny(f"CONTROL_LOG_STORAGE_HTTP_{storage_exc.code}")
+    except (urllib.error.URLError, TimeoutError, OSError):
+        deny("CONTROL_LOG_TRANSPORT_FAILED")
+    if len(raw) > limit:
+        deny("CONTROL_LOG_SIZE_INVALID")
+    return raw.decode("utf-8", errors="strict")
+
+
+def attest_control_checkout(run_id: int, expected: str) -> None:
+    response = api(f"actions/runs/{run_id}/jobs?per_page=100")
+    jobs = response.get("jobs")
+    if response.get("total_count") != 1 or not isinstance(jobs, list) or len(jobs) != 1:
+        deny("CONTROL_JOB_INVALID")
+    job = jobs[0]
+    if job.get("name") != "native" or job.get("conclusion") != "failure":
+        deny("CONTROL_JOB_INVALID")
+    steps = job.get("steps", [])
+    required = {
+        "Checkout trusted main control code": "success",
+        "Independently attest source workflow and exact proposal-only commit": "success",
+        "Execute original run_verified_worker using native proposal (single attempt)": "failure",
+        "Upload CI-generated attempt proof for future run admission": "success",
+    }
+    for name, conclusion in required.items():
+        found = [step for step in steps if step.get("name") == name]
+        if len(found) != 1 or found[0].get("conclusion") != conclusion:
+            deny("CONTROL_JOB_STEP_INVALID")
+    if type(job.get("id")) is not int:
+        deny("CONTROL_JOB_INVALID")
+    # Never print or inspect exam contents; parse only the early checkout prefix.
+    log = read_checkout_log(job["id"])
+    if checkout_sha_from_log(log) != expected:
+        deny("CONTROL_CHECKOUT_SHA_MISMATCH")
+
+
+def prove_preacceptance(task: str, run_ids: list[int], current_control: str, reason: str) -> dict:
+    from native_route_tool_defect import (PREACCEPTANCE_SCHEMA, PREACCEPTANCE_TOOL,
+                                          historical_controls, historical_bytes)
+    from native_run_history import _artifact_json
+    import os
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not token:
+        deny("GITHUB_TOKEN_MISSING")
+    if (not TASK.fullmatch(task) or not SHA40.fullmatch(current_control)
+            or len(run_ids) != 1
+            or not reason.strip()):
+        deny("INPUT_INVALID")
+    # Current tool must be a trusted main ancestor, never a proposal branch.
+    if subprocess.run(["git", "merge-base", "--is-ancestor", current_control, "origin/main"],
+                      cwd=ROOT).returncode:
+        deny("CONTROL_NOT_TRUSTED_MAIN")
+    reg_path = f"pilot/worker_v08/native_tasks/{task}.json"
+    reg = json.loads(sh("git", "show", f"origin/main:{reg_path}"))
+    base = reg["task_spec"]["base_head_sha"]
+    meta = sorted(storage_path("requests_root", root=ROOT).glob(
+        f"*/proposal_requests/{task}.proposal-request.json"))
+    if len(meta) != 1:
+        deny("REQUEST_NOT_FOUND")
+    issue = int(meta[0].parts[-3].split("-", 1)[1])
+    old_control = None
+    rows = []
+    for run_id in run_ids:
+        run = api(f"actions/runs/{run_id}")
+        identity = _run_identity(run, REPO)
+        if (run.get("id") != run_id or run.get("conclusion") != "failure"
+                or run.get("status") != "completed" or run.get("run_attempt") != 1
+                or identity is None or identity[0] != task):
+            deny("RUN_NOT_A_FAILED_ATTEMPT")
+        control = run.get("head_sha")
+        attest_control_checkout(run_id, control)
+        if (not isinstance(control, str) or not SHA40.fullmatch(control)
+                or control == current_control or old_control not in (None, control)
+                or subprocess.run(["git", "merge-base", "--is-ancestor", control, current_control],
+                                  cwd=ROOT).returncode):
+            deny("CONTROL_HISTORY_INVALID")
+        historical_controls(ROOT, control, current_control, "origin/main")
+        old_control = control
+        registration_bytes = historical_bytes(ROOT, control, reg_path)
+        if (json.loads(registration_bytes) != reg
+                or historical_bytes(ROOT, current_control, reg_path) != registration_bytes):
+            deny("REGISTRATION_CHANGED")
+        sha = identity[1]
+        feedback = feedback_for(issue, task, sha)
+        expected = preacceptance_failure(feedback)
+        sh("git", "fetch", "-q", "--no-tags", "origin", sha)
+        raw_envelope = historical_bytes(ROOT, sha, f"pilot/native_proposals/{task}.json")
+        request_path = meta[0].relative_to(ROOT).as_posix()
+        request_bytes = historical_bytes(ROOT, control, request_path)
+        if historical_bytes(ROOT, current_control, request_path) != request_bytes:
+            deny("REQUEST_CHANGED")
+        request = json.loads(request_bytes)
+        if request.get("task_name") != task or request.get("base_head_sha") != base:
+            deny("REQUEST_IDENTITY_MISMATCH")
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "vendor/programming-agent/src"))
+        from native_proposal_client import read_proposal_envelope
+        with tempfile.TemporaryDirectory(prefix="t37-envelope-") as tmp:
+            envelope = Path(tmp) / "proposal.json"
+            envelope.write_bytes(raw_envelope)
+            validated = read_proposal_envelope(envelope)
+        if validated.get("author") != "GPT_NATIVE" or validated.get("task_pack_sha256") != request.get("task_pack_sha256"):
+            deny("PROPOSAL_PACK_MISMATCH")
+        proof = _artifact_json(REPO, token, run_id)
+        if (not isinstance(proof, dict) or set(proof) != {"task_id", "run_id", "attempt", "task_pack_sha256"}
+                or proof.get("task_id") != task or proof.get("run_id") != run_id
+                or type(proof.get("attempt")) is not int or proof["attempt"] != feedback["attempt"]
+                or proof.get("task_pack_sha256") != validated["task_pack_sha256"]):
+            deny("ATTEMPT_PROOF_MISMATCH")
+        proposal = validated["proposal"]
+        if replay_preacceptance(base, control, proposal, reg["task_spec"]) != expected:
+            deny("SUPERSEDED_TOOL_DOES_NOT_REPRODUCE")
+        replacement = historical_bytes(ROOT, current_control, PREACCEPTANCE_TOOL)
+        if replay_preacceptance(base, control, proposal, reg["task_spec"],
+                                replacement_guard=replacement) is not None:
+            deny("ISOLATED_GUARD_STILL_FAILS")
+        if replay_preacceptance(base, current_control, proposal, reg["task_spec"]) is not None:
+            deny("CURRENT_TOOL_STILL_FAILS")
+        rows.append({"run_id": run_id, "proposal_commit_sha": sha,
+                     "task_pack_sha256": validated["task_pack_sha256"]})
+    old_sha = tool_sha(old_control, PREACCEPTANCE_TOOL)
+    new_sha = tool_sha(current_control, PREACCEPTANCE_TOOL)
+    if old_sha == new_sha:
+        deny("TOOL_UNCHANGED")
+    return {"schema_version": PREACCEPTANCE_SCHEMA, "task": task,
+            "tool": PREACCEPTANCE_TOOL, "blocked_code": "DUPLICA_COMPONENTE_EXISTENTE",
+            "base_head_sha": base, "superseded_control_sha": old_control,
+            "current_control_sha": current_control, "superseded_tool_sha256": old_sha,
+            "current_tool_sha256": new_sha, "registration_sha256": hashlib.sha256(registration_bytes).hexdigest(),
+            "request_path": request_path, "forgiven": rows, "reason": reason}
+
+
 def prove_patch(task: str, run_ids: list[int], reason: str) -> dict:
     """T38: each run's patch must not apply to the registered base."""
     from native_intake_defect import SCHEMA as INTAKE, CODE
@@ -213,7 +491,7 @@ def prove_patch(task: str, run_ids: list[int], reason: str) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("command", choices=["prove", "prove-patch"])
+    ap.add_argument("command", choices=["prove", "prove-patch", "prove-preacceptance"])
     ap.add_argument("--task", required=True)
     ap.add_argument("--run-id", type=int, action="append", required=True)
     ap.add_argument("--current-base")
@@ -223,6 +501,8 @@ def main() -> int:
     a = ap.parse_args()
     try:
         record = (prove_patch(a.task, a.run_id, a.reason) if a.command == "prove-patch"
+                  else prove_preacceptance(a.task, a.run_id, a.current_base or "", a.reason)
+                  if a.command == "prove-preacceptance"
                   else prove(a.task, a.run_id, a.current_base or "", a.reason, a.registered_ref))
     except (ToolDefectBlocked, subprocess.CalledProcessError, KeyError, ValueError) as exc:
         print("T37_BLOCKED:" + str(exc), file=sys.stderr)

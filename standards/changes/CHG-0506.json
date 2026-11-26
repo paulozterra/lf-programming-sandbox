@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Owner 25/11: investigar por qué la app no arrancó en el registro #739, no solo reintentar"
   },
-  "reason": "En #739 Playwright falló dos veces con APP_NO_ARRANCA sin ninguna pista: la salida del backend y del frontend iba a /dev/null. Ahora la salida va a un archivo temporal privado y, si el arranque falla, el gate imprime APP_NO_ARRANCA_DETALLE con el componente (BACKEND/FRONTEND), la causa (TIMEOUT_90S o EXIT_<código>) y las últimas 25 líneas, omitiendo las que parecen secretos o contienen DB_PASSWORD/SBX_FIXTURE_*. El código de bloqueo y el reintento no cambian.",
+  "reason": "Diagnóstico de APP_NO_ARRANCA en #739 y recurrencias: componente, timeout o exit code y categorías fijas de indicios del tail acotado del proceso, sin publicar texto arbitrario ni secretos. Cierre explícito del archivo temporal; no cambia reintentos ni aceptación. Se conserva hipótesis Maven pendiente de confirmación.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],

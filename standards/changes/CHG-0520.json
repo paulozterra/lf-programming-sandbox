@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0520",
+  "title": "Separar retiros E2 obsoletos del presupuesto de ensayos",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 25/11: recuperar el retiro E2 y desbloquear la ruta"
+  },
+  "reason": "Los retiros obsoletos por dependencias no consumen el límite de dos retiros por referencia fallida. CP3.6 y Policy C comparten el contador a partir de historial first-parent; los retiros sin prueba de obsolescencia consumen presupuesto.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/stale_exam.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/auto_integrate.py",
+      "pilot/orchestrator/test_e2_stale_exam.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0520.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/756"
+  }
+}

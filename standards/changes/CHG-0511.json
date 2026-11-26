@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0511",
+  "title": "Preflight del examen corre también los comandos de estándares que agrega el registro (STD-BE-05)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 25/11: el ensayo T40 del examen v3 de req652backend2 falló en std-be-05-spotless-check"
+  },
+  "reason": "visible_preflight solo corría los comandos de la plantilla del lote, pero el registro de un lote BACKEND agrega std-be-05-spotless-check; una referencia sin formatear pasaba el preflight y fallaba el ensayo T40 (retiro E2 y otra vuelta). Ahora el preflight agrega los comandos de estándares del registro según el área del lote (chain_plan → lots.json), y la guía del examinador pide spotless:apply sobre la referencia BACKEND.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/publish_exam.py",
+      "pilot/orchestrator/test_t31_publish_exam.py",
+      "pilot/orchestrator/EXAMINADOR_AUTOMATICO.md",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0511.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/747"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0505",
+  "title": "Tiempos por paso de un pedido (línea de tiempo desde GitHub, solo lectura)",
+  "change_class": "ADDITIVE",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 25/11: medir cuánto tarda cada paso de un pedido para saber dónde se concentra la demora"
+  },
+  "reason": "No había forma de saber si la demora de un pedido viene de bloqueos, del examinador, de GPT o del CI. pilot/metrics/request_timeline.py reconstruye la línea de tiempo de un pedido desde sus PRs (T9, T7, examen, retiro E2, registro, CP3.5, evidencia) y los comentarios de sus pedidos de examen, con duración de cada paso, espera previa y total por paso. Solo lectura, sin instrumentar la ruta.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/metrics/request_timeline.py",
+      "pilot/metrics/test_request_timeline.py",
+      ".github/workflows/ci.yml",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0505.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/741"
+  }
+}

@@ -236,10 +236,9 @@ def available() -> None:
 
 
 def _spawn(argv: list[str], root: Path) -> subprocess.Popen:
+    import tempfile
+    log = None
     try:
-        # Child-server output goes to a private temp file, read only to
-        # diagnose a failed start (redacted, last lines; see _start_diagnosis).
-        import tempfile
         log = tempfile.TemporaryFile()
         proc = subprocess.Popen(argv, cwd=root, stdin=subprocess.DEVNULL,
                                 stdout=log, stderr=subprocess.STDOUT,
@@ -248,22 +247,25 @@ def _spawn(argv: list[str], root: Path) -> subprocess.Popen:
         proc._lf_log = log  # type: ignore[attr-defined]
         return proc
     except OSError as exc:
+        if log is not None:
+            log.close()
+        print("APP_NO_ARRANCA_DETALLE: SPAWN_FAILED", file=sys.stderr)
         raise BrowserBlocked("APP_NO_ARRANCA") from exc
 
 
-DIAGNOSIS_LINES = 25
-# Same families the Worker rejects (keys, tokens, private keys, password=...);
-# local so the gate keeps no runtime dependency on the vendored Worker.
-_SECRETISH = re.compile(
-    r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\bsk-[A-Za-z0-9_-]{20,}|\bgh[pousr]_[A-Za-z0-9]{30,}"
-    r"|\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"
-    r"|(?i:\b(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|secret)\b\s*[:=]\s*\S+)")
+# Emit only fixed diagnostic categories, never arbitrary child-controlled text.
+# pread avoids altering the shared write offset while the process is alive.
+_DIAG_TAIL_BYTES = 64 * 1024
+_DIAG_PATTERNS = (
+    ("MAVEN_DEPENDENCY_TRANSFER", rb"downloading (?:from |spring-boot-maven-plugin)|could not (?:transfer|resolve)|non-resolvable parent pom"),
+    ("DATABASE_CONNECTION", rb"connection refused|failed to obtain jdbc connection|unable to obtain connection from database"),
+    ("PORT_IN_USE", rb"address already in use|port [0-9]+ was already in use|eaddrinuse"),
+    ("JAVA_START_FAILURE", rb"application failed to start|could not find or load main class|unsupportedclassversionerror"),
+    ("NODE_START_FAILURE", rb"cannot find module|module not found|next: not found"),
+)
 
 
 def _start_diagnosis(name: str, proc: subprocess.Popen, seconds: int) -> None:
-    """Say WHY the app did not start: which component, timeout or exit code,
-    and the redacted tail of its output. Never prints a probable secret or a
-    value of DB_PASSWORD / SBX_FIXTURE_* (fictitious, but still not echoed)."""
     code = proc.poll()
     cause = f"TIMEOUT_{seconds}S" if code is None else f"EXIT_{code}"
     print(f"APP_NO_ARRANCA_DETALLE: {name} {cause}", file=sys.stderr)
@@ -271,16 +273,14 @@ def _start_diagnosis(name: str, proc: subprocess.Popen, seconds: int) -> None:
     if log is None:
         return
     try:
-        log.flush(); log.seek(0)
-        lines = log.read().decode("utf-8", "replace").splitlines()[-DIAGNOSIS_LINES:]
-    except OSError:
+        size = os.fstat(log.fileno()).st_size
+        raw = os.pread(log.fileno(), min(size, _DIAG_TAIL_BYTES),
+                       max(0, size - _DIAG_TAIL_BYTES)).lower()
+    except (OSError, ValueError):
         return
-    hidden = [v for k, v in os.environ.items()
-              if v and (k == "DB_PASSWORD" or k.startswith("SBX_FIXTURE_"))]
-    for line in lines:
-        if _SECRETISH.search(line) or any(v in line for v in hidden):
-            line = "<línea omitida: posible secreto>"
-        print(f"  {name}| {line[:300]}", file=sys.stderr)
+    for category, pattern in _DIAG_PATTERNS:
+        if re.search(pattern, raw):
+            print(f"APP_NO_ARRANCA_INDICIO: {name} {category}", file=sys.stderr)
 
 
 def wait_local(port: int, proc: subprocess.Popen, seconds: int = 90, name: str = "APP") -> None:
@@ -307,6 +307,10 @@ def _stop(proc: subprocess.Popen) -> None:
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
         pass
+    finally:
+        log = getattr(proc, "_lf_log", None)
+        if log is not None:
+            log.close()
 
 
 APP_START_ATTEMPTS = 2

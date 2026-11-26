@@ -1,0 +1,150 @@
+{
+  "area": "BACKEND",
+  "note": "Ficha de la pantalla (textos, campos, validaciones, errores y, en FRONTEND, tokens visuales y variantes) copiada del paquete A9. Usar estos textos y valores tal cual; no inventar otros.",
+  "run": "req-652",
+  "schema_version": "LF_LOT_SCREEN_MATERIAL_V1",
+  "sections": {
+    "errors": [
+      {
+        "action_label": "Revisar datos",
+        "error_code": "SBX-B2B-E-CREDENTIALS",
+        "generic": true,
+        "http_status": 401,
+        "message": "No pudimos validar tus datos de acceso. Revisa la información e inténtalo nuevamente.",
+        "retryable": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/301",
+          "supabase://lf_ops.reglas/304",
+          "supabase://lf_ops.reglas/315"
+        ],
+        "status": "VIGENTE",
+        "suggested_action": "Verifica tu correo y contraseña. Si no recuerdas tu contraseña, utiliza la opción de recuperación.",
+        "title": "No pudimos iniciar sesión"
+      },
+      {
+        "action_label": "Reintentar después",
+        "error_code": "SBX-B2B-E-RATE",
+        "generic": false,
+        "http_status": 429,
+        "message": "Se alcanzó temporalmente el límite de operaciones.",
+        "retryable": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/310",
+          "supabase://lf_ops.reglas/304"
+        ],
+        "status": "VIGENTE",
+        "suggested_action": "Espere unos minutos antes de volver a intentar.",
+        "title": "Demasiadas solicitudes"
+      },
+      {
+        "action_label": "Reintentar",
+        "error_code": "SBX-B2B-E-NETWORK",
+        "generic": false,
+        "http_status": 503,
+        "message": "Se perdió la conexión durante la operación.",
+        "retryable": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/309",
+          "supabase://lf_ops.reglas/304"
+        ],
+        "status": "VIGENTE",
+        "suggested_action": "Verifique su conexión. La aplicación intentará recuperar el estado.",
+        "title": "Conexión interrumpida"
+      },
+      {
+        "action_label": "Contactar soporte",
+        "error_code": "SBX-B2B-E-UNEXPECTED",
+        "generic": false,
+        "http_status": 500,
+        "message": "Ocurrió un error inesperado.",
+        "retryable": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/314",
+          "supabase://lf_ops.reglas/315"
+        ],
+        "status": "VIGENTE",
+        "suggested_action": "Use el código de referencia para solicitar soporte.",
+        "title": "No pudimos completar la operación"
+      }
+    ],
+    "fields": [
+      {
+        "analytics_allowed": false,
+        "component_token": "input_default",
+        "field_code": "SBX-B2B-F-EMAIL",
+        "label": "Correo electrónico",
+        "logs_allowed": false,
+        "masking_rule": "MASK_EMAIL",
+        "nombre": "email",
+        "order": 1,
+        "placeholder": "ejemplo@empresa.com",
+        "required": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/305",
+          "supabase://lf_ops.reglas/319",
+          "supabase://lf_ops.reglas/316"
+        ],
+        "sensitive": true,
+        "status": "VIGENTE",
+        "tipo_dato": "email",
+        "validations": [
+          {
+            "blocking": true,
+            "code": "SBX-B2B-V-EMAIL-FORMAT",
+            "config": {
+              "allow_consecutive_dots": false,
+              "allow_internal_spaces": false,
+              "allow_leading_or_trailing_dot": false,
+              "client_side_validation": "UX_ONLY",
+              "domain_case_for_comparison": "LOWERCASE",
+              "local_part_case": "PRESERVE",
+              "max_length": 254,
+              "require_domain_dot": true,
+              "require_fqdn": true,
+              "require_local_part": true,
+              "require_single_at": true,
+              "require_tld": true,
+              "server_side_validation": "REQUIRED",
+              "trim_external_spaces": true
+            },
+            "message": "Ingresa un correo electrónico válido. Ejemplo: usuario@empresa.com",
+            "type": "EMAIL"
+          }
+        ]
+      },
+      {
+        "analytics_allowed": false,
+        "component_token": "input_default",
+        "field_code": "SBX-B2B-F-PASSWORD",
+        "label": "Contraseña",
+        "logs_allowed": false,
+        "masking_rule": "MASK_FULL",
+        "nombre": "password",
+        "order": 2,
+        "placeholder": "Ingresa tu contraseña",
+        "required": true,
+        "rule_refs": [
+          "supabase://lf_ops.reglas/302",
+          "supabase://lf_ops.reglas/305",
+          "supabase://lf_ops.reglas/318",
+          "supabase://lf_ops.reglas/319"
+        ],
+        "sensitive": true,
+        "status": "VIGENTE",
+        "tipo_dato": "password",
+        "validations": [
+          {
+            "blocking": true,
+            "code": "SBX-B2B-V-PASSWORD-REQUIRED",
+            "config": {
+              "min_length": 1,
+              "trim": false
+            },
+            "message": "Ingresa tu contraseña.",
+            "type": "REQUIRED"
+          }
+        ]
+      }
+    ]
+  }
+}

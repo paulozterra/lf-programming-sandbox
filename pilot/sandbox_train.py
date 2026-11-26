@@ -385,12 +385,80 @@ def wait_for_pushed_head(number, merged_head):
         time.sleep(5)
 
 
+# A completed successful CI can leave an individual check stuck in GitHub.
+# Never synthesize a successful check: ask Actions to rerun the exact job.
+CHECK_RECOVERY_GRACE_SECONDS = 180
+
+
+def recover_inconsistent_ci_job(sha, missing, found, recovery_attempts):
+    """Return an explicit outcome; only REQUESTED consumes the recovery budget."""
+    key = ("check_recovery", sha)
+    if key in recovery_attempts:
+        return "RECOVERY_SKIPPED:BUDGET_USED"
+    if len(missing) != 1:
+        return "RECOVERY_SKIPPED:MULTIPLE_CHECKS"
+    if missing[0] not in REQUIRED:
+        return "RECOVERY_SKIPPED:NOT_CI_CHECK"
+    name = missing[0]
+    runs = ci_workflow_runs_for_head(sha)
+    if ci_workflow_runs_for_head(sha, pending_approval=True):
+        return "RECOVERY_SKIPPED:CI_PENDING_APPROVAL"
+    if not runs:
+        return "RECOVERY_SKIPPED:CI_MISSING"
+    if any(r.get("head_sha") != sha for r in runs):
+        return "RECOVERY_SKIPPED:CI_HEAD_MISMATCH"
+    if any(r.get("status") != "completed" for r in runs):
+        return "RECOVERY_SKIPPED:CI_RUNNING"
+    latest = max(runs, key=lambda r: (r["id"], r.get("run_attempt", 1)))
+    if latest.get("head_repository", {}).get("full_name") != os.environ["GITHUB_REPOSITORY"]:
+        return "RECOVERY_SKIPPED:CI_FOREIGN_REPO"
+    if latest.get("conclusion") != "success":
+        return "RECOVERY_SKIPPED:CI_NOT_SUCCESS"
+    jobs = api("GET", f"/actions/runs/{latest['id']}/jobs?filter=latest&per_page=100")
+    rows = jobs.get("jobs", [])
+    if jobs.get("total_count") != len(rows) or len(rows) >= 100:
+        return "RECOVERY_SKIPPED:JOBS_INCOMPLETE"
+    matches = [j for j in rows if j.get("name") == name]
+    if len(matches) != 1:
+        return "RECOVERY_SKIPPED:JOB_NOT_UNIQUE"
+    job = matches[0]
+    check = found.get(name)
+    if (job.get("head_sha") != sha or job.get("run_id") != latest["id"] or
+            job.get("conclusion") != "success" or
+            job.get("status") not in ("completed", "in_progress") or
+            not isinstance(job.get("id"), int)):
+        return "RECOVERY_SKIPPED:JOB_EVIDENCE_INVALID"
+    # Fail closed when the check itself is absent: the ID link is mandatory.
+    if check is None:
+        return "RECOVERY_SKIPPED:CHECK_ABSENT"
+    if (check.get("conclusion") not in (None, "success") or
+            check.get("status") == "completed" or
+            not (job.get("check_run_url") or "").endswith("/" + str(check["id"]))):
+        return "RECOVERY_SKIPPED:CHECK_EVIDENCE_INVALID"
+    # Consume budget before POST: an ambiguous response must not cause another mutation.
+    recovery_attempts.add(key)
+    print(json.dumps({"event": "ci_check_recovery_requested", "head": sha,
+                      "run": latest["id"], "job": job["id"], "check": name,
+                      "job_status": job["status"], "observed_check": check}), flush=True)
+    try:
+        api("POST", f"/actions/jobs/{job['id']}/rerun", {}, expected=(201, 202, 204))
+    except TrainError as exc:
+        raise TrainError("CHECK_RECOVERY_POST_FAILED " + json.dumps(
+            {"head": sha, "job": job["id"], "check": name})) from exc
+    return "RECOVERY_REQUESTED"
+
+
 def await_checks(number, sha, dispatched_heads=None):
     dispatched_heads = dispatched_heads if dispatched_heads is not None else set()
     required = REQUIRED + ((REHEARSAL_CHECK,) if needs_rehearsal(number) else ())
     start = time.monotonic()
     deadline = start + WAIT_SECONDS
     pending_since = None  # first time an approvable CI run was seen (review H1)
+    inconsistent_since = None
+    last_missing = None
+    recovery_reason = None
+    logged_reasons = set()
+    found = {}
     while time.monotonic() < deadline:
         pr = pr_data(number)
         check_pr(pr)
@@ -427,7 +495,8 @@ def await_checks(number, sha, dispatched_heads=None):
         failed = [name for name in required if name in found and found[name]["conclusion"] not in (None, "success")]
         if failed:
             raise TrainError("CHECK_FAILED " + json.dumps({name: found[name] for name in failed}))
-        missing = [name for name in required if name not in found or found[name]["status"] != "completed"]
+        missing = [name for name in required if name not in found or
+                   found[name]["status"] != "completed" or found[name]["conclusion"] != "success"]
         if not missing:
             # Any completed failing GitHub Actions check on this SHA is blocking.
             extra_bad = {name: value for name, value in found.items()
@@ -436,8 +505,44 @@ def await_checks(number, sha, dispatched_heads=None):
             if extra_bad:
                 raise TrainError("EXTRA_CHECK_FAILED " + json.dumps(extra_bad))
             return {name: found[name] for name in required}
-        print(json.dumps({"event": "waiting_checks", "head": sha, "missing": missing}), flush=True)
+        if missing != last_missing:
+            inconsistent_since = time.monotonic()
+            last_missing = missing
+        if time.monotonic() - inconsistent_since < CHECK_RECOVERY_GRACE_SECONDS:
+            recovery_reason = "RECOVERY_SKIPPED:GRACE_NOT_MET"
+        elif len(missing) != 1:
+            recovery_reason = "RECOVERY_SKIPPED:MULTIPLE_CHECKS"
+        elif missing[0] not in REQUIRED:
+            recovery_reason = "RECOVERY_SKIPPED:NOT_CI_CHECK"
+        elif any(v["status"] == "completed" and v["conclusion"] not in
+                 ("success", "skipped", "neutral") for n, v in found.items()
+                 if n not in missing):
+            recovery_reason = "RECOVERY_SKIPPED:EXTRA_CHECK_FAILED"
+        else:
+            # Re-read PR authorization and exact HEAD before recovery.
+            current = pr_data(number)
+            check_pr(current)
+            if current["head"]["sha"] != sha:
+                return None
+            recovery_reason = recover_inconsistent_ci_job(sha, missing, found, dispatched_heads)
+        if recovery_reason.startswith("RECOVERY_SKIPPED:") and recovery_reason not in logged_reasons:
+            logged_reasons.add(recovery_reason)
+            print(json.dumps({"event": "ci_check_recovery_skipped", "head": sha,
+                              "missing": missing, "reason": recovery_reason}), flush=True)
+        print(json.dumps({"event": "waiting_checks", "head": sha, "missing": missing,
+                          "observed": {name: found.get(name) for name in missing},
+                          "recovery_attempted": ("check_recovery", sha) in dispatched_heads}), flush=True)
         time.sleep(POLL_SECONDS)
+    if ("check_recovery", sha) in dispatched_heads:
+        raise TrainError("CHECK_RECOVERY_TIMEOUT " + json.dumps({"head": sha, "missing": last_missing}))
+    detail = {"head": sha, "missing": last_missing, "reason": recovery_reason}
+    # A successful conclusion with a nonterminal status is contradictory.
+    # Ordinary slow/missing CI must retain CHECK_WAIT_TIMEOUT.
+    contradictory = any(n in REQUIRED and found.get(n, {}).get("conclusion") == "success"
+                        and found[n]["status"] != "completed" for n in (last_missing or []))
+    if contradictory:
+        raise TrainError("CHECK_INCONSISTENT_UNRECOVERED " + json.dumps(detail))
+    print(json.dumps({"event": "ci_check_wait_timeout", **detail}), flush=True)
     raise TrainError("CHECK_WAIT_TIMEOUT")
 
 
