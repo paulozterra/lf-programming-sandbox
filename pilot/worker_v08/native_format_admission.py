@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Token-free format admission before examiner loading."""
 import argparse
+import hashlib
 import re
 import sys
 import tempfile
@@ -26,6 +27,19 @@ SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 SAFE_PATH = re.compile(r"[A-Za-z0-9_./-]{1,1024}\Z")
 SAFE_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,79}\Z")
 LOCATION = re.compile(r"([A-Za-z0-9_./-]{1,1024}): original line [0-9]{1,8}, [0-9]{1,8} lines; formatted line [0-9]{1,8}, [0-9]{1,8} lines\Z")
+
+
+def identity(submitted):
+    patch = submitted["proposal"]["patch"]
+    if not isinstance(patch, str):
+        raise ValueError("FORMAT_PATCH_INVALID")
+    return {"task_pack_sha256": submitted["task_pack_sha256"],
+            "proposal_sha256": submitted["proposal_sha256"],
+            "patch_sha256": hashlib.sha256(patch.encode("utf-8")).hexdigest()}
+
+
+def checkout_identity(checkout, task):
+    return identity(read_proposal_envelope(checkout / proposal_path(task)))
 
 
 def _write(path, data):
@@ -91,11 +105,17 @@ def admit(control, source, checkout, task, sha, attempt, run_id, output, *, rout
         raise ValueError("FORMAT_ADMISSION_IDENTITY_INVALID")
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     result = _public(_evaluate(control, source, checkout, task, sha, attempt, route_retry))
+    try:
+        hashes = checkout_identity(checkout, task)
+    except Exception:
+        hashes = dict.fromkeys(("task_pack_sha256", "proposal_sha256", "patch_sha256"))
+        if result["status"] not in ("INVALID_PROPOSAL", "INFRA_ERROR"):
+            result = _public(FormatResult("INFRA_ERROR", "FORMAT_IDENTITY_UNAVAILABLE"))
     proceed = result["status"] in CONTINUE
     _write(output / "format-result.json", {
-        "schema_version": "LF_NATIVE_FORMAT_RESULT_V1", "task_id": task,
+        "schema_version": "LF_NATIVE_FORMAT_RESULT_V2", "task_id": task,
         "proposal_commit_sha": sha, "run_id": run_id, "next_functional_attempt": attempt,
-        "functional_attempt_consumed": False, **result,
+        "functional_attempt_consumed": False, **hashes, **result,
     })
     if not proceed:
         _write(output / "no-attempt.json", {

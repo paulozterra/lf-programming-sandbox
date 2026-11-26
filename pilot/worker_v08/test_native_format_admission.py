@@ -24,6 +24,7 @@ COORD = JAVA + ": original line 78, 8 lines; formatted line 78, 7 lines"
 def test_admission(tmp_path, monkeypatch, status, reason, proceed):
     result = FormatResult(status, reason, paths=(JAVA,), diagnostics=(COORD,)) if status == "FORMAT_FAIL" else FormatResult(status, reason)
     monkeypatch.setattr(a, "_evaluate", lambda *args: result)
+    monkeypatch.setattr(a, "checkout_identity", lambda *args: dict.fromkeys(("task_pack_sha256", "proposal_sha256", "patch_sha256"), "b"*64))
     out = tmp_path / "result"
     assert a.admit(tmp_path, tmp_path, tmp_path, "synthetic", SHA, 2, 42, out) is proceed
     evidence = json.loads((out / "format-result.json").read_text())

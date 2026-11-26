@@ -339,6 +339,18 @@ jobs:
           test "$(git -C proposal rev-parse HEAD)" = "$PROPOSAL_SHA"
           test -f "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
           test ! -L "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
+      - name: Admit independent format rejection budget
+        id: format_budget
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          NATIVE_SHA: ${{ steps.source.outputs.proposal_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 control/pilot/worker_v08/native_format_history.py budget \
+            --control control --proposal proposal --task "$NATIVE_TASK" \
+            --sha "$NATIVE_SHA" --run-id "$GITHUB_RUN_ID"
       - name: Prevalidate native proposal format before examiner material
         id: format
         env:
@@ -383,6 +395,18 @@ jobs:
             cat "$report"
             echo '~~~'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish independent format feedback
+        if: ${{ always() && steps.format.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          NATIVE_SHA: ${{ steps.source.outputs.proposal_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 control/pilot/worker_v08/native_format_history.py publish \
+            --control control --proposal proposal --task "$NATIVE_TASK" \
+            --sha "$NATIVE_SHA" --run-id "$GITHUB_RUN_ID"
       - name: Install age v1.3.2 from SHA-256 pinned GitHub Releases tarball
         if: ${{ steps.task.outputs.holdout_ref != '' }}
         shell: bash
