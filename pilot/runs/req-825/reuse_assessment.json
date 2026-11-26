@@ -1,0 +1,18 @@
+{
+  "obligations": [
+    {
+      "decision": "BUILD_NEW",
+      "evidence": {
+        "index_entries_checked": 115,
+        "kind": "sin coincidencias",
+        "registry_entries_checked": 12
+      },
+      "path": null,
+      "requirement_id": "REQ-FORMAT-CANARY-VALIDATION",
+      "reuse_context": [],
+      "sha256": null,
+      "write_paths": []
+    }
+  ],
+  "schema_version": "T7_REUSE_ASSESSMENT_V1"
+}
