@@ -319,4 +319,4 @@
 | CHG-0578 | EDITORIAL | Fijar frontera histórica de prevalidación CHG-0577 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/817 |
 | CHG-0579 | EDITORIAL | Ficha sintética BACKEND exclusiva DEMO-FORMAT-CANARY |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/824 |
 | CHG-0586 | EDITORIAL | Resolver trazas del examinador desde fuentes de segunda pantalla |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/835 |
-| CHG-0597 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0597 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/847 |
