@@ -171,12 +171,11 @@ def test_req652_two_hunks_and_no_source_disclosure():
         "[ERROR]         -password=synthetic_sensitive_value\n"
         "[ERROR]         @@ -161,8 +160,8 @@\n"
         "[ERROR]         +synthetic_source_content\n"
-        "[ERROR]     src/main/java/Other.java\n"
-        "[ERROR]         @@ -3 +3 @@\n"
+        "[ERROR] Run 'mvn spotless:apply' to fix these violations.\n"
     )
     result = preflight._diagnose(output, (path,), "service")
     paths, diagnostics = result.paths, result.locations
-    assert not result.complete
+    assert result.complete
     assert paths == (path,)
     assert len(diagnostics) == 2
     assert "original line 78, 8 lines; formatted line 78, 7 lines" in diagnostics[0]

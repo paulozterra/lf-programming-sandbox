@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0577",
+  "title": "Prevalidación nativa de formato Java — fase 1",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: prevalidación Spotless previa a intento; segunda revisión H3, H6, H7"
+  },
+  "reason": "Construir y probar un módulo aislado de formato Java; ejecutar primero la propuesta, comparar la base únicamente ante una infracción atribuible y limitar el presupuesto temporal total. No conectar todavía el módulo a la ruta productiva ni cambiar estándares, exámenes o intentos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_format_preflight.py",
+      "pilot/worker_v08/test_native_format_preflight.py",
+      ".github/workflows/ci.yml",
+      "standards/changes/CHG-0577.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/816"
+  }
+}
