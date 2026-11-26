@@ -201,7 +201,8 @@ def preacceptance_failure(feedback: dict) -> str:
     return reason
 
 
-def replay_preacceptance(source_base: str, control_sha: str, proposal: dict, spec: dict) -> str | None:
+def replay_preacceptance(source_base: str, control_sha: str, proposal: dict, spec: dict,
+                         *, replacement_guard: bytes | None = None) -> str | None:
     """Same source, patch, context and writable scope; only trusted control changes."""
     with tempfile.TemporaryDirectory(prefix="t37-preacceptance-") as tmp:
         source, control = Path(tmp) / "source", Path(tmp) / "control"
@@ -209,6 +210,8 @@ def replay_preacceptance(source_base: str, control_sha: str, proposal: dict, spe
         try:
             sh("git", "worktree", "add", "--detach", str(control), control_sha)
             try:
+                if replacement_guard is not None:
+                    (control / "pilot/worker_v08/reuse_guard.py").write_bytes(replacement_guard)
                 input_file = Path(tmp) / "input.json"
                 input_file.write_text(json.dumps({"proposal": proposal, "spec": spec}), "utf-8")
                 # Execute only trusted control modules; proposal bytes are data.
@@ -217,7 +220,7 @@ import json, pathlib, re, sys
 control, source, input_file = map(pathlib.Path, sys.argv[1:])
 sys.path[:0] = [str(control), str(control / 'pilot/worker_v08'),
                 str(control / 'vendor/programming-agent/src')]
-from pilot.worker_v08.reuse_guard import check, DuplicateComponent
+from reuse_guard import check, DuplicateComponent
 from programming_agent_runner.hashutil import strict_json_loads
 from programming_agent_runner.worker_patch import parse_patch_proposal, inspect_patch
 from programming_agent_runner.worker_spec import parse_worker_task
@@ -267,15 +270,64 @@ else:
             sh("git", "worktree", "remove", "--force", str(source))
 
 
+def checkout_sha_from_log(log: str) -> str:
+    """Read only checkout evidence before proposal handling begins."""
+    lines = log.splitlines()
+    prefix = []
+    for line in lines:
+        value = re.sub(r"^\d{4}-\d\d-\d\dT\S+Z\s+", "", line)
+        if "git -C control fetch --no-tags origin" in value:
+            break
+        prefix.append(value)
+    matches = []
+    for i, line in enumerate(prefix[:-1]):
+        if re.fullmatch(r"\[command\].*/git log -1 --format=%H", line):
+            candidate = prefix[i + 1].strip()
+            if SHA40.fullmatch(candidate):
+                matches.append(candidate)
+    if len(matches) != 1 or not any("git checkout --progress --force -B main refs/remotes/origin/main" in x
+                                   for x in prefix):
+        deny("CONTROL_CHECKOUT_EVIDENCE_INVALID")
+    return matches[0]
+
+
+def attest_control_checkout(run_id: int, expected: str) -> None:
+    response = api(f"actions/runs/{run_id}/jobs?per_page=100")
+    jobs = response.get("jobs")
+    if response.get("total_count") != 1 or not isinstance(jobs, list) or len(jobs) != 1:
+        deny("CONTROL_JOB_INVALID")
+    job = jobs[0]
+    if job.get("name") != "native" or job.get("conclusion") != "failure":
+        deny("CONTROL_JOB_INVALID")
+    steps = job.get("steps", [])
+    required = {
+        "Checkout trusted main control code": "success",
+        "Independently attest source workflow and exact proposal-only commit": "success",
+        "Execute original run_verified_worker using native proposal (single attempt)": "failure",
+        "Upload CI-generated attempt proof for future run admission": "success",
+    }
+    for name, conclusion in required.items():
+        found = [step for step in steps if step.get("name") == name]
+        if len(found) != 1 or found[0].get("conclusion") != conclusion:
+            deny("CONTROL_JOB_STEP_INVALID")
+    if type(job.get("id")) is not int:
+        deny("CONTROL_JOB_INVALID")
+    # Never print or inspect exam contents; parse only the early checkout prefix.
+    log = sh("gh", "api", f"repos/{REPO}/actions/jobs/{job['id']}/logs")
+    if checkout_sha_from_log(log) != expected:
+        deny("CONTROL_CHECKOUT_SHA_MISMATCH")
+
+
 def prove_preacceptance(task: str, run_ids: list[int], current_control: str, reason: str) -> dict:
-    from native_route_tool_defect import PREACCEPTANCE_SCHEMA, PREACCEPTANCE_TOOL
+    from native_route_tool_defect import (PREACCEPTANCE_SCHEMA, PREACCEPTANCE_TOOL,
+                                          historical_controls, historical_bytes)
     from native_run_history import _artifact_json
     import os
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
         deny("GITHUB_TOKEN_MISSING")
     if (not TASK.fullmatch(task) or not SHA40.fullmatch(current_control)
-            or not 1 <= len(run_ids) <= 3 or len(set(run_ids)) != len(run_ids)
+            or len(run_ids) != 1
             or not reason.strip()):
         deny("INPUT_INVALID")
     # Current tool must be a trusted main ancestor, never a proposal branch.
@@ -300,20 +352,30 @@ def prove_preacceptance(task: str, run_ids: list[int], current_control: str, rea
                 or identity is None or identity[0] != task):
             deny("RUN_NOT_A_FAILED_ATTEMPT")
         control = run.get("head_sha")
+        attest_control_checkout(run_id, control)
         if (not isinstance(control, str) or not SHA40.fullmatch(control)
                 or control == current_control or old_control not in (None, control)
                 or subprocess.run(["git", "merge-base", "--is-ancestor", control, current_control],
                                   cwd=ROOT).returncode):
             deny("CONTROL_HISTORY_INVALID")
+        historical_controls(ROOT, control, current_control, "origin/main")
         old_control = control
-        if json.loads(sh("git", "show", f"{control}:{reg_path}")) != reg:
+        registration_bytes = historical_bytes(ROOT, control, reg_path)
+        if (json.loads(registration_bytes) != reg
+                or historical_bytes(ROOT, current_control, reg_path) != registration_bytes):
             deny("REGISTRATION_CHANGED")
         sha = identity[1]
         feedback = feedback_for(issue, task, sha)
         expected = preacceptance_failure(feedback)
         sh("git", "fetch", "-q", "--no-tags", "origin", sha)
         env = json.loads(sh("git", "show", f"{sha}:pilot/native_proposals/{task}.json"))
-        request = json.loads(sh("git", "show", f"{control}:{meta[0].relative_to(ROOT).as_posix()}"))
+        request_path = meta[0].relative_to(ROOT).as_posix()
+        request_bytes = historical_bytes(ROOT, control, request_path)
+        if historical_bytes(ROOT, current_control, request_path) != request_bytes:
+            deny("REQUEST_CHANGED")
+        request = json.loads(request_bytes)
+        if request.get("task_name") != task or request.get("base_head_sha") != base:
+            deny("REQUEST_IDENTITY_MISMATCH")
         if env.get("author") != "GPT_NATIVE" or env.get("task_pack_sha256") != request.get("task_pack_sha256"):
             deny("PROPOSAL_PACK_MISMATCH")
         sys.path.insert(0, str(ROOT / "vendor/programming-agent/src"))
@@ -331,6 +393,10 @@ def prove_preacceptance(task: str, run_ids: list[int], current_control: str, rea
         proposal = validated["proposal"]
         if replay_preacceptance(base, control, proposal, reg["task_spec"]) != expected:
             deny("SUPERSEDED_TOOL_DOES_NOT_REPRODUCE")
+        replacement = historical_bytes(ROOT, current_control, PREACCEPTANCE_TOOL)
+        if replay_preacceptance(base, control, proposal, reg["task_spec"],
+                                replacement_guard=replacement) is not None:
+            deny("ISOLATED_GUARD_STILL_FAILS")
         if replay_preacceptance(base, current_control, proposal, reg["task_spec"]) is not None:
             deny("CURRENT_TOOL_STILL_FAILS")
         rows.append({"run_id": run_id, "proposal_commit_sha": sha,
@@ -343,7 +409,8 @@ def prove_preacceptance(task: str, run_ids: list[int], current_control: str, rea
             "tool": PREACCEPTANCE_TOOL, "blocked_code": "DUPLICA_COMPONENTE_EXISTENTE",
             "base_head_sha": base, "superseded_control_sha": old_control,
             "current_control_sha": current_control, "superseded_tool_sha256": old_sha,
-            "current_tool_sha256": new_sha, "forgiven": rows, "reason": reason}
+            "current_tool_sha256": new_sha, "registration_sha256": hashlib.sha256(registration_bytes).hexdigest(),
+            "request_path": request_path, "forgiven": rows, "reason": reason}
 
 
 def prove_patch(task: str, run_ids: list[int], reason: str) -> dict:
