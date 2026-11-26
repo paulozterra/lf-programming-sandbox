@@ -21,7 +21,7 @@ def raw(tasks):
 
 
 def test_merge_default_off_without_history(monkeypatch):
-    assert a.policy_at_root()=={}
+    monkeypatch.setattr(a,"policy_at_root",lambda *args:{})
     monkeypatch.setattr(a,"git_policy",lambda *args:{})
     assert not a.select(ROOT,TASK,SHA,lambda *args:pytest.fail("history queried"))
     r=Recovery(None,lambda *args:pytest.fail("history queried"),h.REPO,ROOT)
@@ -118,3 +118,31 @@ def test_workflow_only_optional_gates_are_conditional():
         assert "if: "+chr(36)+"{{ steps.format_activation.outputs.enabled == 'true' }}" in block
     original=workflow.split("      - name: Execute original run_verified_worker",1)[1].split("      - name:",1)[0]
     assert "format_activation" not in original
+
+
+def test_checked_out_policy_has_append_only_history():
+    # Also runs on future activation PRs: no permanent assertion of empty list.
+    assert isinstance(a.policy_at_root(),dict)
+
+
+def test_history_cannot_remove_or_change_prior_enrollment(tmp_path):
+    import subprocess
+    def git(*args):
+        return subprocess.check_output(["git","-C",str(tmp_path),*args])
+    git("init","-q")
+    file=tmp_path/a.POLICY
+    file.parent.mkdir(parents=True)
+    def commit(tasks):
+        file.write_text(raw(tasks))
+        git("add",".")
+        git("-c","user.name=Test","-c","user.email=test@example.invalid","commit","-qm","policy")
+    commit({})
+    commit({TASK:900})
+    commit({TASK:900,"other":901})
+    assert a.policy_at_root(tmp_path)=={TASK:900,"other":901}
+    commit({"other":901})
+    with pytest.raises(ValueError,match="HISTORY_REWRITE"):
+        a.policy_at_root(tmp_path)
+    commit({TASK:900,"other":901})
+    with pytest.raises(ValueError,match="HISTORY_REWRITE"):
+        a.policy_at_root(tmp_path)

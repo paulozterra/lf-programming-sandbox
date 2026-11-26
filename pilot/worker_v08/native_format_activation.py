@@ -46,12 +46,36 @@ def policy_at_root(root=ROOT):
     path = root / POLICY
     if path.is_symlink() or not path.is_file():
         raise ValueError("FORMAT_ACTIVATION_POLICY_MISSING")
-    return parse_policy(path.read_text("utf-8"))
+    current = parse_policy(path.read_text("utf-8"))
+    verify_policy_history(root, current)
+    return current
 
 
 def assert_append_only(previous, current):
     if any(current.get(task) != number for task, number in previous.items()):
         raise ValueError("FORMAT_ACTIVATION_HISTORY_REWRITE")
+
+
+def verify_policy_history(root, current):
+    # Both native and CP3.6 check out full trusted main. CI checks the same
+    # append-only invariant on the candidate merge, before the Train.
+    shallow = subprocess.check_output(["git", "-C", str(root), "rev-parse",
+                                       "--is-shallow-repository"], timeout=10).strip()
+    if shallow != b"false":
+        raise ValueError("FORMAT_ACTIVATION_HISTORY_INCOMPLETE")
+    commits = subprocess.check_output(["git", "-C", str(root), "log", "--first-parent",
+                                       "--full-history", "--format=%H", "HEAD", "--", POLICY],
+                                      timeout=20).decode("ascii").splitlines()
+    if not commits or len(commits) > 1000:
+        raise ValueError("FORMAT_ACTIVATION_HISTORY_INCOMPLETE")
+    # Walk oldest to newest: a removal followed by restoration is also a
+    # rewrite, not a valid reset of the task's rejection ledger.
+    prior = {}
+    for sha in reversed(commits):
+        next_policy = git_policy(root, sha)
+        assert_append_only(prior, next_policy)
+        prior = next_policy
+    assert_append_only(prior, current)
 
 
 def eligible(control, task, policy):
