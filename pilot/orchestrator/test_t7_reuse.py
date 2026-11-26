@@ -96,3 +96,68 @@ def test_use_existing_service_without_modifying_or_copying_passes(tmp_path):
              '+public class New {\n'
              '+private final Existing existing;\n')
     check(tmp_path, patch, [entry])
+
+
+def test_distinct_methods_with_same_shape_are_not_duplicates(tmp_path):
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+                   'public class Existing {\n'
+                   'public String read(String input) { return load(input); }\n}\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    patch = (f"diff --git a/{path} b/{path}\n"
+             '+public String remove(String input) { return delete(input); }\n')
+    check(tmp_path, patch, [entry])
+
+
+def test_record_components_are_not_method_signatures(tmp_path):
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+                   'public record Existing(String first, String second) {}\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    patch = (f"diff --git a/{path} b/{path}\n"
+             '+public record New(String status, String token) {}\n')
+    check(tmp_path, patch, [entry])
+
+
+def test_same_method_name_different_behavior_is_not_duplicate(tmp_path):
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+                   'public String lookup(String key) { return cache.get(key); }\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    patch = (f"diff --git a/{path} b/{path}\n"
+             '+public String lookup(String key) { return store.find(key); }\n')
+    check(tmp_path, patch, [entry])
+
+
+def test_copied_body_with_comments_and_nested_braces_rejected(tmp_path):
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+                   'public String read(String key) { if (key == null) { return "}"; } return key; }\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    patch = (f"diff --git a/{path} b/{path}\n"
+             '+public String renamed(String key) {\n'
+             '+  // comment\n'
+             '+  if (key == null) { return "}"; }\n'
+             '+  return key;\n'
+             '+}\n')
+    with pytest.raises(DuplicateComponent, match=r"Existing.java#read:.*New.java#renamed"):
+        check(tmp_path, patch, [entry])
+
+
+def test_separate_hunks_do_not_fabricate_method_body(tmp_path):
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+                   'public String read(String key) { return key; }\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    patch = (f"diff --git a/{path} b/{path}\n"
+             '@@ -1,1 +1,2 @@\n'
+             '+public String renamed(String key) {\n'
+             ' unchanged();\n'
+             '@@ -10,1 +11,2 @@\n'
+             '+return key; }\n')
+    check(tmp_path, patch, [entry])
+
+
+def test_duplicate_type_still_rejected(tmp_path):
+    source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+           'public record Existing(String value) {}\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    patch = (f"diff --git a/{path} b/{path}\n"
+             '+public record Existing(String value) {}\n')
+    with pytest.raises(DuplicateComponent, match="DUPLICA_COMPONENTE_EXISTENTE:type"):
+        check(tmp_path, patch, [])
