@@ -53,39 +53,101 @@ def test_history_and_chain_consume_the_record():
     assert "verified_route_tool_defects" in (here.parent / "orchestrator/chain_lots.py").read_text("utf-8")
 
 
-def test_preacceptance_exact_control_bytes_and_unchanged_registration(tmp_path):
+def _git(root, *args):
+    import subprocess
+    return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+
+
+def _commit(root, message):
+    _git(root, "add", ".")
+    _git(root, "commit", "-qm", message)
+    return _git(root, "rev-parse", "HEAD")
+
+
+def _historical_fixture(root):
     import hashlib
 
-    tool = tmp_path / t.PREACCEPTANCE_TOOL
+    _git(root, "init", "-q")
+    _git(root, "config", "user.name", "Test")
+    _git(root, "config", "user.email", "test@example.invalid")
+    tool = root / t.PREACCEPTANCE_TOOL
     tool.parent.mkdir(parents=True)
+    tool.write_bytes(b"old guard")
+    reg = {"task_spec": {"base_head_sha": OLD}}
+    registration = root / "pilot/worker_v08/native_tasks/req9contrato1.json"
+    registration.parent.mkdir()
+    registration.write_text(json.dumps(reg))
+    req_path = "pilot/runs/req-9/proposal_requests/req9contrato1.proposal-request.json"
+    request = root / req_path
+    request.parent.mkdir(parents=True)
+    request.write_text(json.dumps({"task_name": "req9contrato1",
+        "base_head_sha": OLD, "task_pack_sha256": "d" * 64}))
+    old = _commit(root, "original")
     tool.write_bytes(b"fixed guard")
+    new = _commit(root, "fix")
     data = {"schema_version": t.PREACCEPTANCE_SCHEMA, "task": "req9contrato1",
             "tool": t.PREACCEPTANCE_TOOL, "blocked_code": "DUPLICA_COMPONENTE_EXISTENTE",
-            "base_head_sha": OLD, "superseded_control_sha": "c" * 40,
-            "current_control_sha": NEW, "superseded_tool_sha256": "1" * 64,
-            "current_tool_sha256": hashlib.sha256(tool.read_bytes()).hexdigest(),
+            "base_head_sha": OLD, "superseded_control_sha": old,
+            "current_control_sha": new,
+            "superseded_tool_sha256": hashlib.sha256(b"old guard").hexdigest(),
+            "current_tool_sha256": hashlib.sha256(b"fixed guard").hexdigest(),
+            "registration_sha256": hashlib.sha256(registration.read_bytes()).hexdigest(),
+            "request_path": req_path,
             "forgiven": [{"run_id": 7, "proposal_commit_sha": "e" * 40,
                           "task_pack_sha256": "d" * 64}],
             "reason": "signature false positive reproduced"}
-    folder = tmp_path / "pilot/worker_v08/route_tool_defects"
-    folder.mkdir(parents=True)
-    file = folder / "req9contrato1.json"
-    reg = {"task_spec": {"base_head_sha": OLD}}
+    file = root / "pilot/worker_v08/route_tool_defects/req9contrato1/7.json"
+    file.parent.mkdir(parents=True)
     file.write_text(json.dumps(data))
-    assert t.verified_route_tool_defects(tmp_path, "req9contrato1", reg) == {
-        7: {"proposal_commit_sha": "e" * 40, "task_pack_sha256": "d" * 64}}
+    _commit(root, "governed recovery")
+    return reg, data, file, tool
+
+
+def test_preacceptance_exact_control_bytes_and_unchanged_registration(tmp_path):
+    reg, data, file, tool = _historical_fixture(tmp_path)
+    expected = {7: {"proposal_commit_sha": "e" * 40, "task_pack_sha256": "d" * 64}}
+    assert t.verified_route_tool_defects(tmp_path, "req9contrato1", reg) == expected
     assert not t.verified_route_tool_defects(tmp_path, "req9contrato1", REC)
     for over in ({"tool": "apps/time-service/build.sh"},
                  {"blocked_code": "REUTILIZACION_INDETERMINADA"},
-                 {"superseded_control_sha": NEW},
+                 {"superseded_control_sha": data["current_control_sha"]},
+                 {"superseded_control_sha": "f" * 40},
+                 {"current_control_sha": "f" * 40},
+                 {"registration_sha256": "2" * 64},
                  {"superseded_tool_sha256": data["current_tool_sha256"]},
                  {"forgiven": [data["forgiven"][0]] * 2},
+                 {"forgiven": [{**data["forgiven"][0], "task_pack_sha256": "9" * 64}]},
                  {"current_tool_sha256": "2" * 64}):
         file.write_text(json.dumps({**data, **over}))
         assert not t.verified_route_tool_defects(tmp_path, "req9contrato1", reg), over
     file.write_text(json.dumps(data))
-    tool.write_bytes(b"drifted guard")
-    assert not t.verified_route_tool_defects(tmp_path, "req9contrato1", reg)
+    tool.write_bytes(b"future maintenance")
+    _commit(tmp_path, "future tool version")
+    assert t.verified_route_tool_defects(tmp_path, "req9contrato1", reg) == expected
+
+
+def test_preacceptance_coexists_with_legacy(tmp_path):
+    reg, data, file, tool = _historical_fixture(tmp_path)
+    # The existing T37 schema remains independent of the new per-run record.
+    _write(tmp_path, superseded_base_sha=NEW, current_base_sha=OLD,
+           forgiven=[{"run_id": 6, "proposal_commit_sha": "c" * 40,
+                      "task_pack_sha256": "d" * 64}])
+    assert set(t.verified_route_tool_defects(tmp_path, "req9contrato1", reg)) == {6, 7}
+
+
+def test_checkout_attestation_is_bounded_to_trusted_prefix():
+    import pytest
+    from pilot.orchestrator.route_tool_defect import checkout_sha_from_log
+
+    prefix = ("2026-11-26T03:49:32.8210819Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main\n"
+              "2026-11-26T03:49:32.9263013Z [command]/usr/bin/git log -1 --format=%H\n"
+              "2026-11-26T03:49:32.9297894Z " + OLD + "\n")
+    suffix = "git -C control fetch --no-tags origin $sha\n[command]/usr/bin/git log -1 --format=%H\n" + NEW
+    assert checkout_sha_from_log(prefix + suffix) == OLD
+    with pytest.raises(ValueError):
+        checkout_sha_from_log(suffix)
+    with pytest.raises(ValueError):
+        checkout_sha_from_log(prefix + prefix + suffix)
 
 
 def test_preacceptance_feedback_is_narrow():
