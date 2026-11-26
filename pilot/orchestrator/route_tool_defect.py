@@ -184,6 +184,8 @@ def preacceptance_failure(feedback: dict) -> str:
     """Only the exact, single pre-acceptance signature rejection is eligible."""
     from native_feedback_delivery import parse_feedback
 
+    if not isinstance(feedback, dict):
+        deny("FEEDBACK_KIND")
     feedback = parse_feedback(json.dumps(feedback).encode("utf-8"), feedback.get("attempt"))
     rows = feedback["commands"]
     if len(rows) != 1:
@@ -199,7 +201,7 @@ def preacceptance_failure(feedback: dict) -> str:
     return reason
 
 
-def replay_preacceptance(source_base: str, control_sha: str, patch: str, spec: dict) -> str | None:
+def replay_preacceptance(source_base: str, control_sha: str, proposal: dict, spec: dict) -> str | None:
     """Same source, patch, context and writable scope; only trusted control changes."""
     with tempfile.TemporaryDirectory(prefix="t37-preacceptance-") as tmp:
         source, control = Path(tmp) / "source", Path(tmp) / "control"
@@ -208,9 +210,9 @@ def replay_preacceptance(source_base: str, control_sha: str, patch: str, spec: d
             sh("git", "worktree", "add", "--detach", str(control), control_sha)
             try:
                 input_file = Path(tmp) / "input.json"
-                input_file.write_text(json.dumps({"patch": patch, "spec": spec}), "utf-8")
+                input_file.write_text(json.dumps({"proposal": proposal, "spec": spec}), "utf-8")
                 # Execute only trusted control modules; proposal bytes are data.
-                script = """
+                script = r"""
 import json, pathlib, re, sys
 control, source, input_file = map(pathlib.Path, sys.argv[1:])
 sys.path[:0] = [str(control), str(control / 'pilot/worker_v08'),
@@ -239,10 +241,8 @@ for row in doc['obligations']:
     for ref in row['reuse_context']:
         if isinstance(ref, dict) and ref.get('path') in paths:
             ctx.append(ref)
-patch = data['patch']
-proposal = parse_patch_proposal({'schema_version': 1, 'summary': 'offline replay',
-    'patch': patch, 'changed_paths': sorted(set(re.findall(r'^diff --git a/(\\S+) b/\\S+$', patch, re.M)))},
-    parse_worker_task(spec))
+proposal = parse_patch_proposal(data['proposal'], parse_worker_task(spec))
+patch = proposal.patch
 inspect_patch(proposal, parse_worker_task(spec))
 try:
     check(source, patch, ctx, writable=spec.get('write_path_patterns', []))
@@ -311,10 +311,15 @@ def prove_preacceptance(task: str, run_ids: list[int], current_control: str, rea
         request = json.loads(sh("git", "show", f"{control}:{meta[0].relative_to(ROOT).as_posix()}"))
         if env.get("author") != "GPT_NATIVE" or env.get("task_pack_sha256") != request.get("task_pack_sha256"):
             deny("PROPOSAL_PACK_MISMATCH")
-        patch = env["proposal"]["patch"]
-        if replay_preacceptance(base, control, patch, reg["task_spec"]) != expected:
+        from native_proposal_client import read_proposal_envelope
+        with tempfile.TemporaryDirectory(prefix="t37-envelope-") as tmp:
+            envelope = Path(tmp) / "proposal.json"
+            envelope.write_text(json.dumps(env), "utf-8")
+            validated = read_proposal_envelope(envelope)
+        proposal = validated["proposal"]
+        if replay_preacceptance(base, control, proposal, reg["task_spec"]) != expected:
             deny("SUPERSEDED_TOOL_DOES_NOT_REPRODUCE")
-        if replay_preacceptance(base, current_control, patch, reg["task_spec"]) is not None:
+        if replay_preacceptance(base, current_control, proposal, reg["task_spec"]) is not None:
             deny("CURRENT_TOOL_STILL_FAILS")
         rows.append({"run_id": run_id, "proposal_commit_sha": sha,
                      "task_pack_sha256": env["task_pack_sha256"]})
