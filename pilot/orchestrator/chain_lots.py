@@ -30,7 +30,7 @@ from contextlib import nullcontext
 import pilot.orchestrator.sweep_api_budget as budget
 
 from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN
-from chain_contract import (ChainBlocked, BLOCK_CODE, attest_merge, blocked_state,
+from chain_contract import (ChainBlocked, BLOCK_CODE, FORMAT_BLOCK_CODE, attest_merge, blocked_state,
                             progress, validate_plan, verified_failures, deny)
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
@@ -1748,14 +1748,16 @@ def block_request(request: str, state: dict, result: dict, head: str) -> dict:
     branch = f"lf/chain-blocked/{request}-{head[:12]}"
     if pending_draft(f"lf/chain-blocked/{request}-") or run("git", "ls-remote", "--heads", "origin", branch):
         return {"status": "BLOCKED_ALREADY_RECORDED", "branch": branch}
+    reason_code = result["reason_code"]
     def process(root: Path):
         target = storage_path("requests_root", root=root) / request / "state.json"
         target.write_bytes(canonical(blocked_state(state, result)))
         review = draft(root, branch, request, [target.relative_to(root).as_posix()],
-                       BLOCK_CODE + " after three Actions-proven failed attempts; "
+                       reason_code + " after three Actions-proven " +
+                       ("unique format rejections" if reason_code == FORMAT_BLOCK_CODE else "failed attempts") + "; "
                        "state update requires owner-reviewed Train merge.",
-                       f"BLOCKED {request} ({BLOCK_CODE})")
-        return {"status": "BLOCKED_PENDING_OWNER_MERGE", "reason_code": BLOCK_CODE,
+                       f"BLOCKED {request} ({reason_code})")
+        return {"status": "BLOCKED_PENDING_OWNER_MERGE", "reason_code": reason_code,
                 **review}
     return worktree(head, branch, process)
 
@@ -1966,6 +1968,14 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     # short-circuit later recoveries or per-request planning.
     repair_outcomes = list(recovery_failures) + kept
     if sweep:
+        from pilot.orchestrator.native_format_recovery import Recovery as FormatRecovery
+        format_recovery = FormatRecovery(run, api, REPO, ROOT)
+        def format_task_live(task):
+            # Only registered, actively owned tasks can have format evidence.
+            # Do not query Actions for plans still awaiting registration.
+            registration = storage_path("registrations_root", task + ".json", root=ROOT)
+            return (registration.is_file() and not registration.is_symlink()
+                    and format_recovery.enabled(task) and task_live(task))
         recoveries = (
             ("T20_BOT_CI_RETRY",
              lambda: retry_failed_bot_prs(
@@ -1982,17 +1992,23 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                          "implemented-registry")}))),
             ("R1_WORKER_PENDING",
              lambda: recover_pending_worker(
-                 head, run, api, REPO, ROOT, allowed_task=pending_task_live)
+                 head, run, api, REPO, ROOT, allowed_task=pending_task_live,
+                 format_decision=format_recovery.pending_decision)
              if owners else []),
             ("T20_NATIVE_INFRA",
              lambda: retry_native_infra(
-                 head, run, api, REPO, ROOT, allowed_task=task_live)),
+                 head, run, api, REPO, ROOT, allowed_task=task_live,
+                 format_decision=format_recovery.decision)),
             ("T22_FEEDBACK",
              lambda: recover_native_feedback(run, api, REPO, ROOT)),
+            ("FORMAT_FEEDBACK",
+             lambda: format_recovery.recover_feedback(format_task_live)
+             if any(format_task_live(task) for task in owners) else []),
             ("T23_ROUTE",
              lambda: recover_route_defects(
                  head, run, api, REPO, ROOT, worktree, draft, pending_draft,
-                 api_list=api_list, allowed_task=task_live)),
+                 api_list=api_list, allowed_task=task_live,
+                 format_decision=format_recovery.decision)),
         )
         for phase, action in recoveries:
             try:
@@ -2109,7 +2125,9 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             with budget.phase("CHAIN"):
                 outcomes.extend(process_one_plan(
                     request, lots, state, bindings, head, kind, sweep,
-                    new_plan_request, manual_sha, first_parent_merges(request)))
+                    new_plan_request, manual_sha, first_parent_merges(request),
+                    **({"format_exhausted": format_recovery.exhausted_tasks}
+                       if sweep and format_recovery.exhausted_tasks else {})))
         except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
                 OSError, ValueError, KeyError) as exc:
             outcomes.append(per_request_block(request, "CHAIN", exc))
@@ -2119,7 +2137,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
 
 
 def process_one_plan(request, lots, state, bindings, head, kind, sweep,
-                     new_plan_request, manual_sha, history) -> list[dict]:
+                     new_plan_request, manual_sha, history, *, format_exhausted=()) -> list[dict]:
     outcomes = []
     try:
         current = request_state(request, api, root=ROOT)
@@ -2143,6 +2161,13 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
     if state.get("stage") == "BLOCKED":
         outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
         return outcomes
+    format_lots = sorted(lot for lot, binding in bindings.items()
+                         if lot not in completed and binding["task_name"] in format_exhausted)
+    if format_lots:
+        result = {"stage":"BLOCKED", "reason_code":FORMAT_BLOCK_CODE,
+                  "blocked_lot_ids":format_lots, "ready_lot_ids":[],
+                  "production_authority":False,"handoff_allowed":False}
+        return [{"request":request, **block_request(request,state,result,head)}]
     # Only the Train-merged native registration can complete its exam
     # issue. A ciphertext already on main permits draft preparation first.
     if kind == "TRAIN":

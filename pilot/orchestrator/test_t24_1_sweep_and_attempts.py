@@ -126,7 +126,7 @@ def test_full_sweep_dispatches_immutable_pass_and_continues_other_request(tmp_pa
         ("req-901", {"lots": [{"id": "SOL-002", "area": "BACKEND", "depends_on": []}]}, {"stage": "LOTS_PLANNED"},
          {"SOL-002": {"task_name": "othertask"}}),
     ]
-    worker_row = worker()
+    worker_row = worker(created_at="2026-11-16T03:00:00Z")
     cp35_row = failure()
     dispatched = []
     failed_ledger_reads = []
@@ -135,7 +135,13 @@ def test_full_sweep_dispatches_immutable_pass_and_continues_other_request(tmp_pa
             return {"number": int(path.split("/")[-1]), "state": "open"}
         if path == f"actions/workflows/{INTEGRATION}/runs?per_page=100":
             return {"total_count": 1, "workflow_runs": [cp35_row]}
-        if path == f"actions/workflows/{WORKER}/runs?per_page=100":
+        # Synthetic merge metadata only: the historical PASS is before the
+        # format feature, so recovery must not download a format artifact.
+        if path == "pulls/816":
+            return {"number":816,"merged":True,"merge_commit_sha":"f"*40,
+                    "merged_at":"2026-11-26T20:00:00Z","base":{"ref":"main"}}
+        if path in (f"actions/workflows/{WORKER}/runs?per_page=100",
+                    f"actions/workflows/{WORKER}/runs?per_page=100&page=1"):
             return {"total_count": 1, "workflow_runs": [worker_row]}
         if path == f"actions/runs/{FAILED_CP35}/jobs?per_page=100":
             return {"total_count": 1, "jobs": [{

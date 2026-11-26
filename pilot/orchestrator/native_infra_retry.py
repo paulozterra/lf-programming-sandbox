@@ -20,7 +20,7 @@ INFRA_STEP = "Install pinned shared Python acceptance runtime (T13)"
 MAX = 100
 
 
-def retry_native_infra(head, run, api, repo, control, *, allowed_task=None):
+def retry_native_infra(head, run, api, repo, control, *, allowed_task=None, format_decision=None):
     response = api("actions/workflows/worker-native.yml/runs?per_page=100")
     rows = response.get("workflow_runs")
     if (not isinstance(rows, list) or type(response.get("total_count")) is not int
@@ -58,6 +58,14 @@ def retry_native_infra(head, run, api, repo, control, *, allowed_task=None):
             continue
         if (task, sha) in done or not SHA.fullmatch(sha):
             continue
+        try:
+            format_state = format_decision(task, sha) if format_decision is not None else "CONTINUE"
+        except (ValueError, OSError, KeyError, TypeError):
+            outcomes.append({"task": task, "status": "BLOCKED", "reason": "FORMAT_HISTORY_UNRESOLVED"})
+            continue
+        if format_state not in ("CONTINUE", "FORMAT_INFRA_RETRY"):
+            outcomes.append({"task": task, "status": format_state, "proposal_sha": sha})
+            continue
         # Only one initial failure, never a later Worker result for the same
         # proposal HEAD. Even a successful run supersedes the candidate.
         matching = [x for x in rows if isinstance(x, dict)
@@ -74,7 +82,7 @@ def retry_native_infra(head, run, api, repo, control, *, allowed_task=None):
             continue
         job = jobrows[0]
         steps = job.get("steps", [])
-        if (job.get("name") != "native" or not isinstance(steps, list)
+        if format_state != "FORMAT_INFRA_RETRY" and (job.get("name") != "native" or not isinstance(steps, list)
                 or not any(s.get("name") == INFRA_STEP and s.get("conclusion") == "failure"
                            for s in steps if isinstance(s, dict))
                 or any(s.get("name") == "Admit task and registered base (fail closed until Claude registers ex6)" and

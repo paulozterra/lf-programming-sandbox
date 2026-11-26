@@ -56,7 +56,8 @@ jobs:
   native:
     if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    # Preserve the original 35-minute window plus bounded format overhead.
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:17
@@ -339,6 +340,93 @@ jobs:
           test "$(git -C proposal rev-parse HEAD)" = "$PROPOSAL_SHA"
           test -f "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
           test ! -L "proposal/pilot/native_proposals/${{ steps.source.outputs.task }}.json"
+      - name: Resolve governed format activation for registered task
+        id: format_activation
+        timeout-minutes: 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 control/pilot/worker_v08/native_format_activation.py \
+            --control control --task "$NATIVE_TASK" --workflow-sha "$GITHUB_SHA" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Admit independent format rejection budget
+        id: format_budget
+        if: ${{ steps.format_activation.outputs.enabled == 'true' }}
+        timeout-minutes: 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          NATIVE_SHA: ${{ steps.source.outputs.proposal_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 control/pilot/worker_v08/native_format_history.py budget \
+            --control control --proposal proposal --task "$NATIVE_TASK" \
+            --sha "$NATIVE_SHA" --run-id "$GITHUB_RUN_ID"
+      - name: Prevalidate native proposal format before examiner material
+        id: format
+        if: ${{ steps.format_activation.outputs.enabled == 'true' }}
+        timeout-minutes: 6
+        env:
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          NATIVE_SHA: ${{ steps.source.outputs.proposal_sha }}
+          NATIVE_ATTEMPT: ${{ steps.history.outputs.attempt }}
+          MANUAL_ROUTE_RETRY: ${{ inputs.route_retry }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          scratch="$(mktemp -d "$RUNNER_TEMP/native-format-env.XXXXXX")"
+          trap 'rm -rf "$scratch"' EXIT
+          python="$(command -v python3)"
+          args=(--control control --source source --proposal proposal
+                --task "$NATIVE_TASK" --sha "$NATIVE_SHA" --attempt "$NATIVE_ATTEMPT"
+                --run-id "$GITHUB_RUN_ID" --output "$RUNNER_TEMP/native-format-public")
+          if [ "$MANUAL_ROUTE_RETRY" = "true" ]; then
+            args+=(--route-retry)
+          fi
+          env -i PATH=/usr/local/bin:/usr/bin:/bin HOME="$scratch" TMPDIR="$scratch" \
+            XDG_CONFIG_HOME="$scratch" LANG=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 \
+            GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
+            "$python" control/pilot/worker_v08/native_format_admission.py "${args[@]}"
+      - name: Upload public native format preflight evidence
+        timeout-minutes: 1
+        if: ${{ always() && (steps.format.outcome == 'success' || steps.format.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-format-preflight
+          path: ${{ runner.temp }}/native-format-public/format-result.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Summarize native format preflight outcome
+        timeout-minutes: 1
+        if: ${{ always() && (steps.format.outcome == 'success' || steps.format.outcome == 'failure') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/native-format-public/format-result.json"
+          test -f "$report" && test ! -L "$report"
+          {
+            echo '### LF native format preflight (no functional attempt consumed)'
+            echo '~~~json'
+            cat "$report"
+            echo '~~~'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish independent format feedback
+        timeout-minutes: 1
+        if: ${{ always() && steps.format.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+          NATIVE_SHA: ${{ steps.source.outputs.proposal_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 control/pilot/worker_v08/native_format_history.py publish \
+            --control control --proposal proposal --task "$NATIVE_TASK" \
+            --sha "$NATIVE_SHA" --run-id "$GITHUB_RUN_ID"
       - name: Install age v1.3.2 from SHA-256 pinned GitHub Releases tarball
         if: ${{ steps.task.outputs.holdout_ref != '' }}
         shell: bash
@@ -457,11 +545,11 @@ jobs:
           if-no-files-found: ignore
           retention-days: 90
       - name: Upload CI-generated signed NO_ATTEMPT marker for forgivable pre-attempt refusal
-        if: ${{ always() && (steps.worker.outcome == 'success' || steps.worker.outcome == 'failure') }}
+        if: ${{ always() && (steps.format.outcome == 'failure' || steps.worker.outcome == 'success' || steps.worker.outcome == 'failure') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: native-no-attempt
-          path: ${{ runner.temp }}/native-private/public/no-attempt.json
+          path: ${{ steps.format.outcome == 'failure' && format('{0}/native-format-public/no-attempt.json', runner.temp) || format('{0}/native-private/public/no-attempt.json', runner.temp) }}
           if-no-files-found: ignore
           retention-days: 90
       - name: Upload cost and visible-only feedback

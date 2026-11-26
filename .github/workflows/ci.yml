@@ -139,6 +139,18 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check --no-input -r pilot/worker_v08/python_runtime_requirements.txt pytest==8.4.2
           python3 -m pytest -q pilot/worker_v08/test_worker_db_env.py pilot/worker_v08/test_fixture_credentials.py -p no:cacheprovider
+      - name: Native format preflight real Maven Spotless (synthetic Java, NO MODEL)
+        working-directory: .
+        timeout-minutes: 8
+        env:
+          LF_TEST_REAL_SPOTLESS: "YES"
+        run: |
+          set -euo pipefail
+          for tool in java javac jar; do
+            sudo ln -sfn "$JAVA_HOME/bin/$tool" "/usr/local/bin/$tool"
+          done
+          sudo ln -sfn "$(readlink -f "$(command -v mvn)")" /usr/local/bin/mvn
+          python3 -m pytest -q pilot/worker_v08/test_native_format_real.py -p no:cacheprovider
       - name: "T2: verify live springdoc operations against every contract"
         working-directory: .
         run: |
@@ -678,6 +690,8 @@ jobs:
           python3 -m pytest -q pilot/worker_v08/test_native_clients.py
           python3 -m pytest -q pilot/worker_v08/test_native_run.py
           python3 -m pytest -q pilot/worker_v08/test_holdout_age.py
+      - name: Offline native format preflight (synthetic; NO MODEL)
+        run: python3 -m pytest -q pilot/worker_v08/test_native_format_preflight.py pilot/worker_v08/test_native_format_admission.py pilot/worker_v08/test_native_format_history.py pilot/orchestrator/test_native_format_recovery.py pilot/worker_v08/test_native_format_activation.py -p no:cacheprovider
 
       - name: CP3.4 profile mapping, real paths and two-lot simulated handoff (NO MODEL)
         run: |

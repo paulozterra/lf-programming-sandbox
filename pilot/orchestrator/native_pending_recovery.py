@@ -60,7 +60,7 @@ def replay_decision(task: str, sha: str, rows: list[dict]) -> str:
     return result
 
 
-def recover(head: str, run, api, repo: str, root: Path, *, allowed_task) -> list[dict]:
+def recover(head: str, run, api, repo: str, root: Path, *, allowed_task, format_decision=None) -> list[dict]:
     if not SHA.fullmatch(head):
         raise ValueError("R1_WORKER_BASE_INVALID")
     refs = run("git", "ls-remote", "--heads", "origin",
@@ -112,6 +112,11 @@ def recover(head: str, run, api, repo: str, root: Path, *, allowed_task) -> list
             decision = replay_decision(task, sha, rows)
             if decision != "REPLAY":
                 continue
+            if format_decision is not None:
+                state = format_decision(task, sha)
+                if state != "CONTINUE":
+                    outcomes.append({"status": state, "task": task, "proposal_sha": sha})
+                    continue
             # The runner already serializes by task, but a separate in-flight run
             # for the task must be respected even if it references another SHA.
             if any(_recognized_run(item, task) and item.get("status") in
