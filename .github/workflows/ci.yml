@@ -32,6 +32,41 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  t37-historical-rehearsal:
+    name: T37 historical reproduction (read-only, PR 800)
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 800 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      issues: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Fetch trusted main and exact proposal data without executing it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          python3 pilot/orchestrator/route_tool_defect.py prove-preacceptance --task req652backend2 --run-id 45751249784 --current-base 6fca197fe23130793e747c8f81226c5755f53707 --reason "CHG-0554 historical rehearsal; NOT a registered recovery" > "$RUNNER_TEMP/t37-rehearsal.json"
+          for historical_run in 45751028452 45751150685; do
+            if python3 pilot/orchestrator/route_tool_defect.py prove-preacceptance --task req652backend2 --run-id "$historical_run" --current-base 6fca197fe23130793e747c8f81226c5755f53707 --reason "negative control" > "$RUNNER_TEMP/t37-negative.json" 2> "$RUNNER_TEMP/t37-negative.err"; then
+              echo "T37_NEGATIVE_UNEXPECTED_ELIGIBILITY"
+              exit 1
+            fi
+            grep -Fx 'T37_BLOCKED:NOT_A_PREACCEPTANCE_SIGNATURE_FAILURE' "$RUNNER_TEMP/t37-negative.err"
+          done
+          echo "T37_REHEARSAL_PASS: historical FAIL, isolated guard PASS, full corrected control PASS, two negative controls rejected"
+          cat "$RUNNER_TEMP/t37-rehearsal.json"
+
   t9-request-equality:
     name: T9 request content byte equality
     if: startsWith(github.head_ref || github.ref_name, 'lf/request/')

@@ -7,12 +7,13 @@
     "kind": "OWNER",
     "reference": "Owner: recuperación gobernada de defectos de herramientas previas a aceptación"
   },
-  "reason": "Acreditar falsos positivos de firma mediante reproducción exacta sobre una base de fuente invariable y dos controles confiables, sin reanclar registro ni modificar examen. Mantener T37 histórico y exigir identidad de run, propuesta y task-pack.",
+  "reason": "Acreditar falsos positivos mediante reproducción diferencial aislada y control corregido completo, con identidad histórica y registro durable por run. Ensayo CI temporal del PR 800 exclusivamente de lectura; no registra recuperaciones ni altera exámenes.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/ci.yml",
       "pilot/orchestrator/route_tool_defect.py",
       "pilot/worker_v08/native_route_tool_defect.py",
       "pilot/worker_v08/test_t37_route_tool_defect.py",

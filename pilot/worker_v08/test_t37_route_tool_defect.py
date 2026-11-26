@@ -245,6 +245,8 @@ def test_producer_requires_exact_proof_and_three_replays(tmp_path, monkeypatch):
             return json.dumps(envelope)
         return subprocess.check_output(args, cwd=tmp_path, text=True)
     monkeypatch.setattr(p, "sh", sh)
+    original_blob = t.historical_bytes
+    monkeypatch.setattr(t, "historical_bytes", lambda root, commit, path: json.dumps(envelope).encode("utf-8") if commit == sha else original_blob(root, commit, path))
     calls = []
     results = [reason, None, None]
     def replay(base, control, submitted, spec, **kw):

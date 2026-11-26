@@ -368,7 +368,7 @@ def prove_preacceptance(task: str, run_ids: list[int], current_control: str, rea
         feedback = feedback_for(issue, task, sha)
         expected = preacceptance_failure(feedback)
         sh("git", "fetch", "-q", "--no-tags", "origin", sha)
-        env = json.loads(sh("git", "show", f"{sha}:pilot/native_proposals/{task}.json"))
+        raw_envelope = historical_bytes(ROOT, sha, f"pilot/native_proposals/{task}.json")
         request_path = meta[0].relative_to(ROOT).as_posix()
         request_bytes = historical_bytes(ROOT, control, request_path)
         if historical_bytes(ROOT, current_control, request_path) != request_bytes:
@@ -376,14 +376,14 @@ def prove_preacceptance(task: str, run_ids: list[int], current_control: str, rea
         request = json.loads(request_bytes)
         if request.get("task_name") != task or request.get("base_head_sha") != base:
             deny("REQUEST_IDENTITY_MISMATCH")
-        if env.get("author") != "GPT_NATIVE" or env.get("task_pack_sha256") != request.get("task_pack_sha256"):
-            deny("PROPOSAL_PACK_MISMATCH")
-        sys.path.insert(0, str(ROOT / "vendor/programming-agent/src"))
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "vendor/programming-agent/src"))
         from native_proposal_client import read_proposal_envelope
         with tempfile.TemporaryDirectory(prefix="t37-envelope-") as tmp:
             envelope = Path(tmp) / "proposal.json"
-            envelope.write_text(json.dumps(env), "utf-8")
+            envelope.write_bytes(raw_envelope)
             validated = read_proposal_envelope(envelope)
+        if validated.get("author") != "GPT_NATIVE" or validated.get("task_pack_sha256") != request.get("task_pack_sha256"):
+            deny("PROPOSAL_PACK_MISMATCH")
         proof = _artifact_json(REPO, token, run_id)
         if (not isinstance(proof, dict) or set(proof) != {"task_id", "run_id", "attempt", "task_pack_sha256"}
                 or proof.get("task_id") != task or proof.get("run_id") != run_id
@@ -400,7 +400,7 @@ def prove_preacceptance(task: str, run_ids: list[int], current_control: str, rea
         if replay_preacceptance(base, current_control, proposal, reg["task_spec"]) is not None:
             deny("CURRENT_TOOL_STILL_FAILS")
         rows.append({"run_id": run_id, "proposal_commit_sha": sha,
-                     "task_pack_sha256": env["task_pack_sha256"]})
+                     "task_pack_sha256": validated["task_pack_sha256"]})
     old_sha = tool_sha(old_control, PREACCEPTANCE_TOOL)
     new_sha = tool_sha(current_control, PREACCEPTANCE_TOOL)
     if old_sha == new_sha:
