@@ -657,8 +657,8 @@
       "descripcion": "Una asociación explícita de requisito a regla no se resolvía; búsquedas textuales y fallback legacy podían aceptar reglas ajenas o asociaciones inválidas.",
       "patron": "EXAM_TRACE_RULE_UNKNOWN y rules_without_text; identificadores canónicos distintos de la regla fuente, o coincidencias en otra ficha.",
       "causa_raiz": "El brief y el publicador usaban búsquedas diferentes y no vinculadas a la fuente persistida del pedido.",
-      "prevencion": "Resolver ambos con la identidad de A9, el pin de la ficha, evidencia explícita y estados válido, inexistente, inválido y ambiguo. No usar fallback textual ni legacy para una fuente de segunda pantalla.",
-      "validacion": "PR 835 CHG-0586; pruebas sintéticas de colisiones, elusión textual, fallback legacy, alcance y evidencia en pilot/orchestrator/test_t58_auto_examiner.py."
+      "prevencion": "Resolver ambos con la identidad de A9, el pin de la ficha, evidencia explícita y estados válido, inexistente, inválido y ambiguo. No usar fallback textual ni legacy para una fuente de segunda pantalla. Acreditar además el hash histórico de A9 contra los bytes legacy o contra la evidencia del normalizador existente; un repin posterior no sustituye esa huella.",
+      "validacion": "PR 835 CHG-0586; pruebas sintéticas de colisiones, elusión textual, fallback legacy, alcance y evidencia en pilot/orchestrator/test_t58_auto_examiner.py. Regresiones de repin consistente y de fuentes no relacionadas; readback de artefactos públicos históricos."
     }
   }
 }
