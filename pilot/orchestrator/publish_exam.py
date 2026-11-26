@@ -22,6 +22,7 @@ import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
+from pilot.orchestrator.examiner_brief import source_fiche_rules
 
 import argparse
 import ast
@@ -252,7 +253,11 @@ def check_trace(script: str, trace: dict, worktree: Path, reference: Path,
         if not value:
             raise ExamBlocked("EXAM_TRACE_EMPTY:" + code)
         if kind == "rule" and not re.search(r"(?<![A-Z0-9-])" + re.escape(value) + r"(?![A-Z0-9])", fixtures):
-            raise ExamBlocked("EXAM_TRACE_RULE_UNKNOWN:" + code + "=" + value)
+            # A second-screen source may explicitly bind this canonical lot
+            # code to a differently spelled fiche rule. Do not normalize or
+            # accept an unbound alias; check_trace_lot still enforces scope.
+            if value not in source_fiche_rules(ROOT, ["REQ-" + value]):
+                raise ExamBlocked("EXAM_TRACE_RULE_UNKNOWN:" + code + "=" + value)
         if kind == "contract" and not ((worktree / value).is_file() or (reference / value).is_file()):
             raise ExamBlocked("EXAM_TRACE_CONTRACT_UNKNOWN:" + code + "=" + value)
         if kind == "request" and value.split()[0] != request:
