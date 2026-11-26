@@ -10,6 +10,8 @@ from __future__ import annotations
 import os
 import re
 import signal
+import selectors
+import time
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -17,7 +19,6 @@ from pathlib import Path, PurePosixPath
 
 from programming_agent_runner.worker_patch import (
     PatchValidationError,
-    apply_patch_to_workspace,
     inspect_patch,
     parse_patch_proposal,
 )
@@ -30,6 +31,7 @@ class FormatResult:
     reason: str
     command: str = ""
     paths: tuple[str, ...] = ()
+    diagnostics: tuple[str, ...] = ()
 
 
 def _within(path: str, root: str) -> bool:
@@ -62,6 +64,9 @@ def _env(home: Path) -> dict[str, str]:
         "LC_ALL": "C.UTF-8",
         "GIT_CONFIG_NOSYSTEM": "1",
         "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_SYSTEM": os.devnull,
+        "GIT_ATTR_NOSYSTEM": "1",
+        "XDG_CONFIG_HOME": str(home),
         "GIT_TERMINAL_PROMPT": "0",
     }
 
@@ -73,11 +78,11 @@ def _git(cwd: Path, env: dict, *args: str) -> bytes:
     ).stdout
 
 
-def _materialize(source: Path, workspace: Path, env: dict, base: str, root: str) -> None:
+def _materialize(source: Path, workspace: Path, env: dict, base: str, root: str, extra: tuple[str, ...] = ()) -> None:
     """Export only regular tracked files of the configured component, no .git or control tree."""
     if _git(source, env, "rev-parse", "HEAD").decode().strip() != base:
         raise ValueError("base drift")
-    entries = _git(source, env, "ls-tree", "-r", "-z", base, "--", root)
+    entries = _git(source, env, "ls-tree", "-r", "-z", base, "--", root, *extra)
     for entry in entries.split(b"\0"):
         if not entry:
             continue
@@ -86,51 +91,128 @@ def _materialize(source: Path, workspace: Path, env: dict, base: str, root: str)
         path = raw_path.decode("utf-8")
         parts = PurePosixPath(path).parts
         if (mode not in ("100644", "100755") or kind != "blob"
-                or not _within(path, root) or any(p in (".git", "..") for p in parts)
+                or not (_within(path, root) or path in extra) or any(p in (".git", "..") for p in parts)
                 or path.startswith("/")):
             raise ValueError("unsafe component tree")
         target = workspace / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(_git(source, env, "cat-file", "blob", oid))
         target.chmod(0o755 if mode == "100755" else 0o644)
-    _git(workspace, env, "init", "-q")
-    _git(workspace, env, "add", "-f", "--", root)
+    _git(workspace, env, "init", "-q", "--template=")
+    _git(workspace, env, "add", "-f", "--", ".")
     _git(workspace, env, "-c", "user.name=LF", "-c", "user.email=lf@example.invalid",
          "commit", "-qm", "format baseline")
 
 
 def _run(command: AcceptanceCommand, workspace: Path, env: dict) -> tuple[int, str]:
-    """Bound runtime and retained output; terminate the process group on timeout."""
+    """Read incrementally, fail closed on overflow, kill process group on exit."""
     limit = min(command.max_output_bytes, 32000)
-    # Temporary output is not forwarded to Actions or persisted as feedback.
-    with tempfile.TemporaryFile() as output:
-        proc = subprocess.Popen(
-            list(command.argv), cwd=workspace, env=env,
-            stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
+    proc = subprocess.Popen(
+        list(command.argv), cwd=workspace, env=env, stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True,
+    )
+    deadline = time.monotonic() + command.timeout_seconds
+    data = bytearray()
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(proc.stdout, selectors.EVENT_READ)
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0 or not selector.select(remaining):
+                    raise subprocess.TimeoutExpired(command.argv, command.timeout_seconds)
+                chunk = os.read(proc.stdout.fileno(), min(4096, limit - len(data) + 1))
+                if not chunk:
+                    break
+                if len(data) + len(chunk) > limit:
+                    raise ValueError("format output limit exceeded")
+                data.extend(chunk)
+        code = proc.wait(timeout=max(0, deadline - time.monotonic()))
+        return code, data.decode("utf-8", errors="replace")
+    finally:
         try:
-            code = proc.wait(timeout=command.timeout_seconds)
-        except subprocess.TimeoutExpired:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            proc.wait()
-            raise
-        # Maven may put the decisive diagnostic at the end of its output.
-        size = output.seek(0, os.SEEK_END)
-        output.seek(max(0, size - limit))
-        return code, output.read(limit).decode("utf-8", errors="replace")
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        proc.wait()
+        proc.stdout.close()
+
+
+def _safe_change(path: str, component: dict) -> bool:
+    # Only known inert data and Java sources are admitted to the disposable
+    # format execution. Unknown build/config/scripts are deferred to the
+    # unchanged Worker, not declared invalid by this optional gate.
+    if path.endswith(".java") and any(
+        _within(path, root) for root in component["source_roots"]
+    ):
+        return True
+    parts = PurePosixPath(path).parts
+    if any(part.startswith(".") for part in parts):
+        return False
+    return path.endswith((".md", ".txt", ".sql", ".json", ".yaml", ".yml")) and not _within(
+        path, component["root"]
+    )
+
+
+def _apply(workspace: Path, env: dict, parsed, facts) -> None:
+    """Equivalent strict Git application; vendor helper omits HOME/XDG isolation.
+
+    Keep its parse/inspect policy and whitespace checks, but use our explicit
+    environment for every Git operation, including application.
+    """
+    from programming_agent_runner.worker_secrets import secret_text_reason
+    args = ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false",
+            "-c", "core.attributesFile=/dev/null", "apply", "--index",
+            "--whitespace=error-all"]
+    for flags in (["--check"], []):
+        result = subprocess.run(args + flags + ["-"], cwd=workspace, env=env,
+                                input=parsed.patch.encode("utf-8"), capture_output=True,
+                                timeout=60, check=False)
+        if result.returncode:
+            raise PatchValidationError("patch application rejected")
+    raw = _git(workspace, env, "diff", "--cached", "--name-only", "-z", "--no-renames")
+    if tuple(sorted(p.decode() for p in raw.split(b"\0") if p)) != facts.changed_paths:
+        raise PatchValidationError("changed paths mismatch")
+    _git(workspace, env, "diff", "--cached", "--check")
+    for path in facts.changed_paths:
+        target = workspace / path
+        if target.is_symlink() or (target.is_file() and
+                secret_text_reason(target.read_text(encoding="utf-8", errors="replace"))):
+            raise PatchValidationError("unsafe changed file")
+
+
+def _diagnose(output: str, changed: tuple[str, ...], root: str):
+    """Extract only verified path headers and numeric hunk locations.
+
+    No source text (including context or added lines) is ever published.
+    Hunk coordinates identify the exact formatting region; +/- line counts
+    indicate wrapping changes. Unrecognized/truncated diagnostics fail closed.
+    """
+    clean = re.sub(r"\x1b\[[0-9;]*m", "", output)
+    if "The following files had format violations:" not in clean:
+        return None
+    allowed = {p.removeprefix(root + "/"): p for p in changed if _within(p, root)}
+    current = None
+    paths = set()
+    locations = []
+    for line in clean.splitlines():
+        header = re.fullmatch(r"\[ERROR\] {5}([A-Za-z0-9_./-]+\.java)", line)
+        if header:
+            current = allowed.get(header.group(1))
+            if current:
+                paths.add(current)
+            continue
+        hunk = re.fullmatch(r"\[ERROR\] {9}@@ -(\d{1,8})(?:,(\d{1,8}))? \+(\d{1,8})(?:,(\d{1,8}))? @@.*", line)
+        if current and hunk and len(locations) < 32:
+            a, b, c, d = hunk.groups()
+            locations.append(f"{current}: original line {a}, {b or '1'} lines; formatted line {c}, {d or '1'} lines")
+    return tuple(sorted(paths)), tuple(locations)
 
 
 def prevalidate(source: Path, spec: WorkerTaskSpec, proposal: dict, config: dict) -> FormatResult:
-    """Never mutate source or proposal. Only PASS/SKIPPED may continue downstream.
+    """Compare a clean registered baseline and patched disposable workspace.
 
-    The adapter deliberately refuses mixed/non-Java changes when a Spotless
-    command is selected: executing a proposal-modified build/config is unsafe.
-    This is a disposable workspace and clean environment, not an OS sandbox.
-    Integrators must run it before loading private material.
+    SKIPPED means the original Worker remains responsible for acceptance.
+    BASELINE_FAIL and INFRA_ERROR must never consume a format rejection.
     """
     try:
         parsed = parse_patch_proposal(proposal, spec)
@@ -144,24 +226,31 @@ def prevalidate(source: Path, spec: WorkerTaskSpec, proposal: dict, config: dict
     if selected is None:
         return FormatResult("SKIPPED", "NO_REGISTERED_FORMAT_COMMAND")
     command, component = selected
-    if any(not path.endswith(".java") or not any(
-        _within(path, root) for root in component["source_roots"]
-    ) for path in facts.changed_paths):
-        return FormatResult("INVALID_PROPOSAL", "FORMAT_UNSAFE_CHANGE", command.name)
+    if any(not _safe_change(path, component) for path in facts.changed_paths):
+        return FormatResult("SKIPPED", "FORMAT_UNSAFE_TO_PREFLIGHT", command.name)
+    root = component["root"]
+    extra = tuple(p for p in facts.changed_paths if not _within(p, root))
     try:
         with tempfile.TemporaryDirectory(prefix="lf-format-") as tmp:
-            workspace = Path(tmp) / "source"
             home = Path(tmp) / "home"
-            workspace.mkdir()
             home.mkdir()
             env = _env(home)
-            _materialize(source, workspace, env, spec.base_head_sha, component["root"])
-            if not (workspace / component["build_file"]).is_file():
-                return FormatResult("INFRA_ERROR", "FORMAT_BUILD_FILE_MISSING", command.name)
+            baseline = Path(tmp) / "baseline"
+            workspace = Path(tmp) / "source"
+            for folder in (baseline, workspace):
+                folder.mkdir()
+                _materialize(source, folder, env, spec.base_head_sha, root, extra)
+                if not (folder / component["build_file"]).is_file():
+                    return FormatResult("INFRA_ERROR", "FORMAT_BUILD_FILE_MISSING", command.name)
             try:
-                apply_patch_to_workspace(workspace, parsed, facts)
+                _apply(workspace, env, parsed, facts)
             except PatchValidationError:
                 return FormatResult("INVALID_PROPOSAL", "PATCH_APPLICATION_REJECTED", command.name)
+            base_code, base_output = _run(command, baseline, env)
+            if base_code != 0:
+                if base_code == 1 and _diagnose(base_output, (), root) is not None:
+                    return FormatResult("BASELINE_FAIL", "SPOTLESS_BASELINE_VIOLATIONS", command.name)
+                return FormatResult("INFRA_ERROR", "FORMAT_BASELINE_EXECUTION_FAILED", command.name)
             code, output = _run(command, workspace, env)
     except subprocess.TimeoutExpired:
         return FormatResult("INFRA_ERROR", "FORMAT_TIMEOUT", command.name)
@@ -169,12 +258,10 @@ def prevalidate(source: Path, spec: WorkerTaskSpec, proposal: dict, config: dict
         return FormatResult("INFRA_ERROR", "FORMAT_EXECUTION_FAILED", command.name)
     if code == 0:
         return FormatResult("PASS", "FORMAT_OK", command.name)
-    # Fail closed: do not count generic Maven/plugin/dependency failures as format.
-    clean = re.sub(r"\x1b\[[0-9;]*m", "", output)
-    if code == 1 and re.search(r"(?im)^\[ERROR\].*The following files had format violations:", clean):
-        # Only return paths already validated by the trusted patch inspector;
-        # never return arbitrary Maven output or source fragments.
-        paths = tuple(p for p in facts.changed_paths if p in clean or
-                      p.removeprefix(component["root"] + "/") in clean)
-        return FormatResult("FORMAT_FAIL", "SPOTLESS_VIOLATIONS", command.name, paths)
+    diagnosis = _diagnose(output, facts.changed_paths, root) if code == 1 else None
+    if diagnosis:
+        paths, locations = diagnosis
+        if paths and locations and all(any(row.startswith(p + ":") for row in locations) for p in paths):
+            return FormatResult("FORMAT_FAIL", "SPOTLESS_VIOLATIONS", command.name, paths, locations)
+        return FormatResult("INFRA_ERROR", "FORMAT_UNATTRIBUTED_OR_INCOMPLETE", command.name)
     return FormatResult("INFRA_ERROR", "FORMAT_NONZERO_UNCLASSIFIED", command.name)

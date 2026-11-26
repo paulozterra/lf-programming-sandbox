@@ -64,7 +64,7 @@ def test_valid_format(baseline, monkeypatch):
     def run(command, workspace, env):
         seen.append(workspace)
         assert command == CHECK
-        assert (workspace / JAVA).read_text() == "class Example { int x; }\n"
+        assert (workspace / JAVA).read_text() == (ORIGINAL if workspace.name == "baseline" else "class Example { int x; }\n")
         assert not (workspace / "control.txt").exists()
         assert "GH_TOKEN" not in env
         assert Path(env["HOME"]).is_dir()
@@ -80,7 +80,7 @@ def test_invalid_format_and_corrected_submission(baseline, monkeypatch):
     source, spec = baseline
     def run(command, workspace, env):
         if "int  x" in (workspace / JAVA).read_text():
-            return 1, "[ERROR] The following files had format violations:\n[ERROR]     src/main/java/Example.java\n"
+            return 1, "[ERROR] The following files had format violations:\n[ERROR]     src/main/java/Example.java\n[ERROR]         @@ -1,2 +1,1 @@\n"
         return 0, ""
     monkeypatch.setattr(preflight, "_run", run)
     bad = proposal(new="class Example { int  x; }")
@@ -136,3 +136,107 @@ def test_unapplicable_patch(baseline, monkeypatch):
     source, spec = baseline
     monkeypatch.setattr(preflight, "_run", lambda *a: pytest.fail("must not execute"))
     assert preflight.prevalidate(source, spec, proposal(old="different baseline"), CONFIG).status == "INVALID_PROPOSAL"
+
+
+def test_baseline_violation_not_charged(baseline, monkeypatch):
+    source, spec = baseline
+    calls = []
+    def run(command, workspace, env):
+        calls.append(workspace.name)
+        return 1, "[ERROR] The following files had format violations:\n[ERROR]     src/main/java/Example.java\n"
+    monkeypatch.setattr(preflight, "_run", run)
+    result = preflight.prevalidate(source, spec, proposal(), CONFIG)
+    assert result.status == "BASELINE_FAIL"
+    assert calls == ["baseline"]
+
+
+def test_unattributed_violation_never_format_fail(baseline, monkeypatch):
+    source, spec = baseline
+    monkeypatch.setattr(preflight, "_run", lambda c, w, e: (0, "") if w.name == "baseline" else (
+        1, "[ERROR] The following files had format violations:\n[ERROR]     src/main/java/Other.java\n"))
+    assert preflight.prevalidate(source, spec, proposal(), CONFIG).status == "INFRA_ERROR"
+
+
+def test_req652_two_hunks_and_no_source_disclosure():
+    # Actual diagnostic shape and coordinates from issue 652 feedback;
+    # source lines intentionally replaced with synthetic sensitive content.
+    relative = "src/main/java/lf/sandbox/time/sbxb2blogin/SbxB2bLoginService.java"
+    path = "service/" + relative
+    output = (
+        "[ERROR] Failed to execute goal com.diffplug.spotless:spotless-maven-plugin:3.10.4:check "
+        "(default-cli) on project time-service: The following files had format violations:\n"
+        f"[ERROR]     {relative}\n"
+        "[ERROR]         @@ -78,8 +78,7 @@\n"
+        "[ERROR]         -password=synthetic_sensitive_value\n"
+        "[ERROR]         @@ -161,8 +160,8 @@\n"
+        "[ERROR]         +synthetic_source_content\n"
+        "[ERROR]     src/main/java/Other.java\n"
+        "[ERROR]         @@ -3 +3 @@\n"
+    )
+    paths, diagnostics = preflight._diagnose(output, (path,), "service")
+    assert paths == (path,)
+    assert len(diagnostics) == 2
+    assert "original line 78, 8 lines; formatted line 78, 7 lines" in diagnostics[0]
+    assert "original line 161, 8 lines; formatted line 160, 8 lines" in diagnostics[1]
+    assert "synthetic" not in str(diagnostics)
+    assert "Other.java" not in str(diagnostics)
+
+
+def test_mixed_inert_files(baseline, monkeypatch):
+    source, spec = baseline
+    path = "docs/readme.md"
+    (source / path).parent.mkdir()
+    (source / path).write_text("old\n")
+    git(source, "add", ".")
+    git(source, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "docs")
+    spec = replace(spec, base_head_sha=git(source, "rev-parse", "HEAD"), write_path_patterns=(JAVA, path))
+    value = proposal()
+    value["changed_paths"] = sorted([JAVA, path])
+    value["patch"] += proposal(path, "old", "new")["patch"]
+    def run(c, w, e):
+        assert (w / path).read_text() == ("old\n" if w.name == "baseline" else "new\n")
+        return 0, ""
+    monkeypatch.setattr(preflight, "_run", run)
+    assert preflight.prevalidate(source, spec, value, CONFIG).status == "PASS"
+
+
+def test_authorized_build_change_deferred(baseline, monkeypatch):
+    source, spec = baseline
+    spec = replace(spec, protected_path_patterns=("control.txt",), write_path_patterns=(POM,))
+    monkeypatch.setattr(preflight, "_run", lambda *a: pytest.fail("must not execute changed POM"))
+    result = preflight.prevalidate(source, spec, proposal(POM, "<project/>", "<project />"), CONFIG)
+    assert (result.status, result.reason) == ("SKIPPED", "FORMAT_UNSAFE_TO_PREFLIGHT")
+
+
+def test_capture_overflow(tmp_path):
+    command = AcceptanceCommand("synthetic", (sys.executable, "-c", "print('x'*1000000)"), 5, 1024)
+    with pytest.raises(ValueError, match="output limit"):
+        preflight._run(command, tmp_path, preflight._env(tmp_path))
+
+
+def test_real_timeout(tmp_path):
+    command = AcceptanceCommand("synthetic", (sys.executable, "-c", "import time; time.sleep(30)"), 1, 1024)
+    with pytest.raises(subprocess.TimeoutExpired):
+        preflight._run(command, tmp_path, preflight._env(tmp_path))
+
+
+def test_git_environment_isolated(baseline, monkeypatch, tmp_path):
+    source, spec = baseline
+    poison = tmp_path / "poison"
+    poison.write_text("[core]\n\thooksPath = /nonexistent\n")
+    for key in ("GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "GIT_INDEX_FILE", "GIT_DIR",
+                "GIT_WORK_TREE", "GIT_CONFIG_COUNT", "XDG_CONFIG_HOME"):
+        monkeypatch.setenv(key, str(poison))
+    real = subprocess.run
+    def run(*args, **kwargs):
+        env = kwargs["env"]
+        assert "GIT_INDEX_FILE" not in env
+        assert "GIT_DIR" not in env
+        assert "GIT_WORK_TREE" not in env
+        assert "GIT_CONFIG_COUNT" not in env
+        assert env["GIT_CONFIG_GLOBAL"] == preflight.os.devnull
+        assert env["XDG_CONFIG_HOME"] != str(poison)
+        return real(*args, **kwargs)
+    monkeypatch.setattr(preflight.subprocess, "run", run)
+    monkeypatch.setattr(preflight, "_run", lambda *a: (0, ""))
+    assert preflight.prevalidate(source, spec, proposal(), CONFIG).status == "PASS"
