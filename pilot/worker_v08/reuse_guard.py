@@ -19,9 +19,17 @@ class DuplicateComponent(ValueError):
     pass
 
 
+# Lexical tokens preserve string literals and ignore comments/whitespace. A
+# matching signature is only a candidate; require a complete matching body.
+_JAVA_TOKEN = re.compile(
+    r'//[^\n]*|/\*[\s\S]*?\*/|"""[\s\S]*?"""|"(?:\\.|[^"\\])*"|'
+    r"'(?:\\.|[^'\\])*'|[A-Za-z_$][\w$]*|\d+|\S"
+)
+_NON_METHOD = {"record", "class", "interface", "enum"}
+
+
 def _public_signature(method: tuple[str, str, str]) -> tuple[str, str]:
     ret, _, args = method
-    # Name-independent public method fingerprint detects copied services.
     signature = re.sub(r"\s+", " ", ret.strip())
     parts = []
     for arg in args.split(","):
@@ -29,6 +37,31 @@ def _public_signature(method: tuple[str, str, str]) -> tuple[str, str]:
         if len(tokens) >= 2:
             parts.append(" ".join(tokens[:-1]))
     return signature, ",".join(parts)
+
+
+def _methods_with_body(source: str):
+    for match in JAVA_METHOD.finditer(source):
+        method = match.groups()
+        if method[0].strip() in _NON_METHOD:
+            continue
+        tail = source[match.end():]
+        opening = re.match(r"\s*\{", tail)
+        if opening is None:
+            continue
+        depth = 0
+        body = []
+        for token in _JAVA_TOKEN.findall(tail[opening.end() - 1:]):
+            if token.startswith(("//", "/*")):
+                continue
+            body.append(token)
+            if token == "{":
+                depth += 1
+            elif token == "}":
+                depth -= 1
+                if depth == 0:
+                    if len(body) > 2:
+                        yield method, tuple(body)
+                    break
 
 
 def check(root: Path, patch: str, reuse_context: list[dict],
@@ -49,8 +82,14 @@ def check(root: Path, patch: str, reuse_context: list[dict],
         context[entry["path"]] = entry.get("sha256")
     current = None
     added = []
+    added_blocks = []
+    block = []
     touched = set()
     for line in patch.splitlines():
+        if not (line.startswith("+") and not line.startswith("+++")):
+            if block:
+                added_blocks.append((current, "\n".join(block)))
+                block = []
         if line.startswith("diff --git a/"):
             match = re.fullmatch(r"diff --git a/([^\s]+) b/\1", line)
             if not match:
@@ -61,6 +100,9 @@ def check(root: Path, patch: str, reuse_context: list[dict],
             if current is None:
                 raise DuplicateComponent("REUTILIZACION_INDETERMINADA")
             added.append((current, line[1:]))
+            block.append(line[1:])
+    if block:
+        added_blocks.append((current, "\n".join(block)))
     for path in sorted((touched & context.keys()) - writable):
         raise DuplicateComponent("DUPLICA_COMPONENTE_EXISTENTE:reuse_context:" + path)
     for path, sha in sorted(context.items()):
@@ -87,13 +129,18 @@ def check(root: Path, patch: str, reuse_context: list[dict],
             if key in existing_types and existing_types[key] != path:
                 raise DuplicateComponent("DUPLICA_COMPONENTE_EXISTENTE:type:" + key +
                                          ":" + existing_types[key])
-        # An existing public method name is only protected if it is explicitly
-        # present in reuse_context; otherwise common method names are ambiguous.
-        public = JAVA_METHOD.findall(snippet)
-        for existing_path in context:
-            source = (root / existing_path).read_text("utf-8")
-            known = {_public_signature(v) for v in JAVA_METHOD.findall(source)}
-            for method in public:
-                if _public_signature(method) in known and existing_path != path:
-                    raise DuplicateComponent(
-                        "DUPLICA_COMPONENTE_EXISTENTE:signature:" + existing_path)
+    # Never join unrelated diff hunks to fabricate a method body. A signature
+    # alone (even the same method name) is not evidence of copied behavior.
+    for path, snippet in added_blocks:
+        if not path.endswith(".java"):
+            continue
+        for method, body in _methods_with_body(snippet):
+            for existing_path in sorted(context):
+                if existing_path == path or not existing_path.endswith(".java"):
+                    continue
+                source = (root / existing_path).read_text("utf-8")
+                for known, known_body in _methods_with_body(source):
+                    if _public_signature(method) == _public_signature(known) and body == known_body:
+                        raise DuplicateComponent(
+                            "DUPLICA_COMPONENTE_EXISTENTE:signature:"
+                            + existing_path + "#" + known[1] + ":" + path + "#" + method[1])
