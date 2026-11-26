@@ -110,10 +110,10 @@ def test_distinct_methods_with_same_shape_are_not_duplicates(tmp_path):
 
 def test_record_components_are_not_method_signatures(tmp_path):
     entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
-                   'public record Existing(String first, String second) {}\n')
+                   'public record Existing(String first, String second) { public Existing { validate(first); } }\n')
     path = "apps/time-service/src/main/java/demo/New.java"
     patch = (f"diff --git a/{path} b/{path}\n"
-             '+public record New(String status, String token) {}\n')
+             '+public record New(String status, String token) { public New { validate(status); } }\n')
     check(tmp_path, patch, [entry])
 
 
@@ -140,17 +140,49 @@ def test_copied_body_with_comments_and_nested_braces_rejected(tmp_path):
         check(tmp_path, patch, [entry])
 
 
-def test_separate_hunks_do_not_fabricate_method_body(tmp_path):
+def test_complete_postimage_detects_copy_across_diff_hunks(tmp_path):
+    import difflib
+
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
+                   'public String read(String key) {\n'
+                   '    return store.find(key);\n}\n')
+    path = "apps/time-service/src/main/java/demo/New.java"
+    old = ('public String previous(String key) {\n'
+           '    return cache.get(key);\n}\n')
+    new = ('public String renamed(String key) {\n'
+           '    return store.find(key);\n}\n')
+    source(tmp_path, path, old)
+    patch = f"diff --git a/{path} b/{path}\n" + "".join(
+        difflib.unified_diff(old.splitlines(True), new.splitlines(True),
+                             fromfile=f"a/{path}", tofile=f"b/{path}", n=0))
+    with pytest.raises(DuplicateComponent, match="DUPLICA_COMPONENTE_EXISTENTE:signature"):
+        check(tmp_path, patch, [entry])
+
+
+def test_unchanged_legacy_duplicate_is_not_attributed_to_new_patch(tmp_path):
+    import difflib
+
+    old = 'public String read(String key) { return key; }\n'
+    entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java", old)
+    path = "apps/time-service/src/main/java/demo/New.java"
+    source(tmp_path, path, old)
+    new = old + 'public String remove(String key) { return delete(key); }\n'
+    patch = f"diff --git a/{path} b/{path}\n" + "".join(
+        difflib.unified_diff(old.splitlines(True), new.splitlines(True),
+                             fromfile=f"a/{path}", tofile=f"b/{path}"))
+    check(tmp_path, patch, [entry])
+
+
+def test_invalid_hunk_is_fail_closed(tmp_path):
     entry = source(tmp_path, "apps/time-service/src/main/java/demo/Existing.java",
                    'public String read(String key) { return key; }\n')
     path = "apps/time-service/src/main/java/demo/New.java"
     patch = (f"diff --git a/{path} b/{path}\n"
-             '@@ -1,1 +1,2 @@\n'
-             '+public String renamed(String key) {\n'
-             ' unchanged();\n'
-             '@@ -10,1 +11,2 @@\n'
-             '+return key; }\n')
-    check(tmp_path, patch, [entry])
+             '@@ -0,0 +1,2 @@\n'
+             '+public String renamed(String key) { return key; }\n')
+    with pytest.raises(DuplicateComponent, match="REUTILIZACION_INDETERMINADA"):
+        check(tmp_path, patch, [entry])
+
 
 
 def test_duplicate_type_still_rejected(tmp_path):
