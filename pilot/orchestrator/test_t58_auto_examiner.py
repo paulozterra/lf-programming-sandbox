@@ -133,7 +133,7 @@ def test_queue_ignores_untrusted_or_malformed_issues(tmp_path):
 # --- brief -----------------------------------------------------------------
 
 def test_brief_carries_only_the_lot_rules_and_context(tmp_path):
-    _repo(tmp_path)
+    _repo(tmp_path, reqs=("REQ-SBX-R-ONE", "REQ-SBX-R-GONE"))
     (tmp_path / WRITE[0]).parent.mkdir(parents=True)
     (tmp_path / WRITE[0]).write_text("class Service {}")
     brief = eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-SBX-R-ONE", "REQ-SBX-R-GONE"], 50)
@@ -155,6 +155,8 @@ def test_brief_blocks_on_scope_mismatch_or_missing_template(tmp_path):
         eb.build_brief(tmp_path, REQ, "req9backend9", WRITE, ["REQ-SBX-R-ONE"])
     with pytest.raises(eb.BriefBlocked, match="IDENTITY"):
         eb.build_brief(tmp_path, "nope", TASK, WRITE, [])
+    with pytest.raises(eb.BriefBlocked, match="REQUIREMENTS_MISMATCH"):
+        eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-SBX-R-TWO"])
 
 
 def test_brief_cli_refuses_output_inside_repository(tmp_path, monkeypatch, capsys):
