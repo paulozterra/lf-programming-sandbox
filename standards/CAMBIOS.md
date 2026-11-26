@@ -318,4 +318,4 @@
 | CHG-0577 | ADDITIVE | Prevalidación nativa de formato Java — fase 1 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/816 |
 | CHG-0578 | EDITORIAL | Fijar frontera histórica de prevalidación CHG-0577 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/817 |
 | CHG-0579 | EDITORIAL | Ficha sintética BACKEND exclusiva DEMO-FORMAT-CANARY |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/824 |
-| CHG-0581 | ADDITIVE | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
+| CHG-0581 | EDITORIAL | CP3.6: encadenamiento gobernado req-186 |  | paulozterra |  |
