@@ -22,7 +22,7 @@ import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
-from pilot.orchestrator.examiner_brief import resolve_fiche_rule
+from pilot.orchestrator.examiner_brief import BriefBlocked, require_lot_rules, resolve_fiche_rule
 
 import argparse
 import ast
@@ -279,8 +279,13 @@ def check_trace_lot(root: Path, request: str, task: str, trace: dict) -> None:
     lot = rows[0]
     bound = (lot.get("characterized_requirement_ids") if lot.get("lot_kind") == "CHARACTERIZATION"
              else lot.get("requirement_ids"))
-    allowed = {r[len("REQ-"):] for r in bound or []
-               if isinstance(r, str) and r.startswith("REQ-")}
+    # Check every lot obligation before any reference build or publication,
+    # even when all failure codes use contract/request/env/STD traces.
+    try:
+        require_lot_rules(root, request, bound)
+    except BriefBlocked as exc:
+        raise ExamBlocked(str(exc)) from None
+    allowed = {r[len("REQ-"):] for r in bound}
     for code, target in sorted(trace.items()):
         kind, _, value = str(target).partition(":")
         value = value.strip()

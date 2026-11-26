@@ -143,12 +143,14 @@ def test_queue_ignores_untrusted_or_malformed_issues(tmp_path):
 # --- brief -----------------------------------------------------------------
 
 def test_brief_carries_only_the_lot_rules_and_context(tmp_path):
-    _repo(tmp_path, reqs=("REQ-SBX-R-ONE", "REQ-SBX-R-GONE"))
+    _repo(tmp_path)
     (tmp_path / WRITE[0]).parent.mkdir(parents=True)
     (tmp_path / WRITE[0]).write_text("class Service {}")
-    brief = eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-SBX-R-ONE", "REQ-SBX-R-GONE"], 50)
+    brief = eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-SBX-R-ONE"], 50)
     assert set(brief["rules"]) == {"SBX-R-ONE"}
-    assert brief["rules_without_text"] == ["SBX-R-GONE"]
+    assert brief["rules_without_text"] == []
+    # A non-lot lookup may be absent without weakening the valid lot.
+    assert eb.resolve_fiche_rule(tmp_path, REQ, "SBX-R-GONE")["status"] == "MISSING"
     assert brief["area"] == "BACKEND" and brief["depends_on"] == ["SOL-001"]
     assert brief["base_head_sha"] == "main actual"
     assert brief["context_files"] == {"contracts/x.yaml": "openapi: 3.1.0\n"}
@@ -289,9 +291,11 @@ def test_second_screen_cannot_be_rescued_by_global_text_or_legacy(tmp_path, monk
     if defect == "wrong_analysis_ref":
         _bind(tmp_path, "SBX-DEMO", "sbx_demo", [{"requirement_id": "REQ-PUBLIC-RULE-X",
                 "source_requirement_id": "PUBLIC-RULE-X", "evidence_refs": ["wrong"]}])
-    brief = eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-PUBLIC-RULE-X"])
-    assert brief["rules_without_text"] == ["PUBLIC-RULE-X"]
-    assert brief["rule_resolution"] == {"PUBLIC-RULE-X": state}
+    assert eb.resolve_fiche_rule(tmp_path, REQ, "PUBLIC-RULE-X")["status"] == state
+    with pytest.raises(eb.BriefBlocked, match="EXAM_LOT_RULE_UNRESOLVED:PUBLIC-RULE-X=" + state):
+        eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-PUBLIC-RULE-X"])
+    with pytest.raises(pe.ExamBlocked, match="EXAM_LOT_RULE_UNRESOLVED:PUBLIC-RULE-X=" + state):
+        pe.check_trace_lot(tmp_path, REQ, TASK, {"FAIL": "env:build"})
     reason = "UNKNOWN" if state == "MISSING" else state
     with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_" + reason):
         _check_trace(tmp_path, monkeypatch, "PUBLIC-RULE-X")
@@ -347,8 +351,10 @@ def test_historical_projection_rejects_consistently_repinned_rule(tmp_path, monk
         _pin_legacy(folder, "SBX-DEMO")
     assert analysis_path.read_bytes() == original_analysis
     assert eb.resolve_fiche_rule(tmp_path, REQ, code)["status"] == "INVALID"
-    brief = eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-" + code])
-    assert brief["rule_resolution"] == {code: "INVALID"}
+    with pytest.raises(eb.BriefBlocked, match="EXAM_LOT_RULE_UNRESOLVED:" + code + "=INVALID"):
+        eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-" + code])
+    with pytest.raises(pe.ExamBlocked, match="EXAM_LOT_RULE_UNRESOLVED:" + code + "=INVALID"):
+        pe.check_trace_lot(tmp_path, REQ, TASK, {"FAIL": "env:build"})
     with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_INVALID"):
         _check_trace(tmp_path, monkeypatch, code)
 
@@ -381,6 +387,10 @@ def test_historical_second_screen_missing_rule_remains_missing(tmp_path, monkeyp
     _bind(tmp_path, "SBX-DEMO", "sbx_demo", [{"requirement_id": "REQ-PUBLIC-RULE-X",
           "source_requirement_id": "PUBLIC-RULE-X", "evidence_refs": ["supabase://lf_ops.reglas/1"]}])
     assert eb.resolve_fiche_rule(tmp_path, REQ, "PUBLIC-RULE-X")["status"] == "MISSING"
+    with pytest.raises(eb.BriefBlocked, match="EXAM_LOT_RULE_UNRESOLVED:PUBLIC-RULE-X=MISSING"):
+        eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-PUBLIC-RULE-X"])
+    with pytest.raises(pe.ExamBlocked, match="EXAM_LOT_RULE_UNRESOLVED:PUBLIC-RULE-X=MISSING"):
+        pe.check_trace_lot(tmp_path, REQ, TASK, {"FAIL": "request:req-9 decision"})
     with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_UNKNOWN"):
         _check_trace(tmp_path, monkeypatch, "PUBLIC-RULE-X")
 
@@ -388,6 +398,8 @@ def test_historical_second_screen_missing_rule_remains_missing(tmp_path, monkeyp
 @pytest.mark.parametrize("request_id,code", [
     ("req-825", "FORMAT-CANARY-VALIDATION"),
     ("req-186", "SBX-R-LOG"),
+    ("req-186", "SBX-R-ERR-FRONTEND"),
+    ("req-652", "SBX-B2B-R-DATA-ATTEMPTS-BACKEND"),
     ("req-286", "SBX-B2B-R-AUTH-GENERIC"),
     ("req-391", "SBX-B2B-R-AUTH-GENERIC"),
     ("req-652", "SBX-B2B-R-AUTH-GENERIC"),
@@ -426,3 +438,73 @@ def test_public_historical_requests_read_only(request_id, code, monkeypatch):
         with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_INVALID"):
             _check_trace(root, monkeypatch, code, request=request_id)
     assert analysis_path.read_bytes() == raw
+
+
+@pytest.mark.parametrize("second,base", [(False, "SBX-R-ONE"), (True, "PUBLIC-RULE-X")])
+@pytest.mark.parametrize("bad", [False, True])
+def test_area_derived_lot_obligation_uses_explicit_a9_parent(tmp_path, second, base, bad):
+    rid = "REQ-" + base
+    derived = rid + "-BACKEND"
+    _repo(tmp_path, reqs=(derived,))
+    if second:
+        _second_source(tmp_path)
+    path = tmp_path / "pilot/runs" / REQ / "analysis.json"
+    analysis = json.loads(path.read_text())
+    parent = next(q for q in analysis["requirements"] if q["requirement_id"] == rid)
+    clone = {**parent, "requirement_id": derived, "execution_area": "BACKEND",
+             "derived_from_requirement_id": rid}
+    if bad:
+        clone["evidence_refs"] = ["unrelated"]
+    analysis["requirements"].append(clone)
+    path.write_text(json.dumps(analysis))
+    code = derived[4:]
+    if bad:
+        with pytest.raises(eb.BriefBlocked, match="EXAM_LOT_RULE_UNRESOLVED:" + code + "=INVALID"):
+            eb.build_brief(tmp_path, REQ, TASK, WRITE, [derived])
+        with pytest.raises(pe.ExamBlocked, match="EXAM_LOT_RULE_UNRESOLVED:" + code + "=INVALID"):
+            pe.check_trace_lot(tmp_path, REQ, TASK, {"FAIL": "env:build"})
+    else:
+        brief = eb.build_brief(tmp_path, REQ, TASK, WRITE, [derived])
+        assert brief["rule_resolution"] == {code: "VALID"}
+        assert brief["rules"][code]["code"] == code
+        pe.check_trace_lot(tmp_path, REQ, TASK, {"FAIL": "rule:" + code})
+        with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_NOT_IN_LOT"):
+            pe.check_trace_lot(tmp_path, REQ, TASK, {"FAIL": "rule:" + base})
+
+
+def test_missing_bound_requirement_blocks_brief_cli_and_all_non_fiche_traces(tmp_path, monkeypatch, capsys):
+    root = tmp_path / "repo"
+    reqs = ["REQ-SBX-R-ONE", "REQ-SBX-R-GONE"]
+    _repo(root, reqs=reqs)
+    out = tmp_path / "brief"
+    monkeypatch.setattr("sys.argv", ["examiner_brief.py", "--request", REQ, "--task", TASK,
+                                     "--write-paths", json.dumps(WRITE),
+                                     "--requirement-ids", json.dumps(reqs),
+                                     "--root", str(root), "--out", str(out)])
+    assert eb.main() == 2
+    assert "EXAM_LOT_RULE_UNRESOLVED:SBX-R-GONE=MISSING" in capsys.readouterr().out
+    assert not out.exists()
+    for target in ("env:build", "request:req-9 decision", "contract:contracts/x.yaml", "rule:STD-BE-05"):
+        with pytest.raises(pe.ExamBlocked, match="EXAM_LOT_RULE_UNRESOLVED:SBX-R-GONE=MISSING"):
+            pe.check_trace_lot(root, REQ, TASK, {"FAIL": target})
+
+    # Exercise the real publisher entry point up to its public preflight.
+    # No encrypted files, private oracles or builds are involved.
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    script = scratch / "check.py"
+    script.write_text('fail("FAIL")\n')
+    trace = scratch / "trace.json"
+    trace.write_text(json.dumps({"FAIL": "env:build"}))
+    monkeypatch.setattr(pe, "ROOT", root)
+    monkeypatch.setattr(pe, "worker_load", lambda *args: None)
+    monkeypatch.setattr(pe, "lint_overlay_scope", lambda *args: pytest.fail("must block before overlay"))
+    monkeypatch.setattr(pe, "exercise", lambda *args: pytest.fail("must block before exercise"))
+    monkeypatch.setattr("sys.argv", ["publish_exam.py", "--request", REQ, "--task", TASK,
+                                     "--script", str(script), "--trace", str(trace),
+                                     "--family", "backend", "--version", "v1",
+                                     "--worktree", str(scratch), "--reference", str(scratch),
+                                     "--mutants", str(scratch), "--derived-from", "synthetic"])
+    assert pe.main() == 1
+    assert "EXAM_LOT_RULE_UNRESOLVED:SBX-R-GONE=MISSING" in capsys.readouterr().out
+    assert not list((root / "pilot/holdouts").iterdir())

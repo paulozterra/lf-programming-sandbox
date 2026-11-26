@@ -148,6 +148,27 @@ def resolve_fiche_rule(root: Path, request: str, code: str) -> dict:
         planned = _rule_rows(analysis.get("requirements"), "requirement_id", req_id)
         if len(planned) != 1:
             return _result("AMBIGUOUS" if planned else "MISSING")
+        # Area projection in A9 clones requirements without cloning the
+        # source rule. Follow only the explicit, corroborated base identity.
+        source_req_id = req_id
+        source_plan = planned[0]
+        if "derived_from_requirement_id" in source_plan:
+            source_req_id = source_plan["derived_from_requirement_id"]
+            area = source_plan.get("execution_area")
+            if (not isinstance(source_req_id, str) or not source_req_id.startswith("REQ-")
+                    or not isinstance(area, str) or not area
+                    or req_id != source_req_id + "-" + area):
+                return _result("INVALID")
+            originals = _rule_rows(analysis.get("requirements"), "requirement_id", source_req_id)
+            if len(originals) != 1:
+                return _result("AMBIGUOUS" if originals else "INVALID")
+            original = originals[0]
+            if ("derived_from_requirement_id" in original
+                    or original.get("source_requirement_id") != source_plan.get("source_requirement_id")
+                    or original.get("evidence_refs") != source_plan.get("evidence_refs")):
+                return _result("INVALID")
+            source_plan = original
+        source_trace_code = source_req_id[len("REQ-"):]
         if pin.get("schema_version") == "SOURCE_SCREEN_PIN_V1":
             if pin.get("source_file") != "source.json":
                 return _result("INVALID")
@@ -155,7 +176,7 @@ def resolve_fiche_rule(root: Path, request: str, code: str) -> dict:
             if (data.get("schema_version") != "SECOND_SCREEN_SOURCE_V1"
                     or data.get("target_ref") != pin["fixture_id"]):
                 return _result("INVALID")
-            rows = _rule_rows(data.get("requirements"), "requirement_id", req_id)
+            rows = _rule_rows(data.get("requirements"), "requirement_id", source_req_id)
             if len(rows) != 1:
                 return _result("AMBIGUOUS" if rows else "MISSING")
             req = rows[0]
@@ -183,7 +204,7 @@ def resolve_fiche_rule(root: Path, request: str, code: str) -> dict:
             planned_refs = planned[0].get("evidence_refs")
             if (not isinstance(planned_refs, list) or not ({ref, projected} & set(
                     r for r in planned_refs if isinstance(r, str)))
-                    or planned[0].get("source_requirement_id") not in (source_code, code)):
+                    or source_plan.get("source_requirement_id") not in (source_code, source_trace_code)):
                 return _result("INVALID")
             return _result("VALID", {**link, **rule, "fixture": folder.name,
                                      "code": code, "source_rule_code": source_code})
@@ -193,15 +214,16 @@ def resolve_fiche_rule(root: Path, request: str, code: str) -> dict:
         if len(pins) != 1:
             return _result("AMBIGUOUS" if pins else "INVALID")
         data = _pinned_file(folder, "effective_rules.json", pins[0].get("sha256"))
-        rows = _rule_rows(data.get("rules"), "code", code)
+        rows = _rule_rows(data.get("rules"), "code", source_trace_code)
         if len(rows) != 1:
             return _result("AMBIGUOUS" if rows else "MISSING")
         rule = rows[0]
         refs = planned[0].get("evidence_refs")
         if (not isinstance(rule.get("source_ref"), str) or not isinstance(refs, list)
-                or rule["source_ref"] not in refs or planned[0].get("source_requirement_id") != code):
+                or rule["source_ref"] not in refs or source_plan.get("source_requirement_id") != source_trace_code):
             return _result("INVALID")
-        return _result("VALID", {**rule, "fixture": folder.name})
+        return _result("VALID", {**rule, "fixture": folder.name, "code": code,
+                                 "source_rule_code": source_trace_code})
     except (OSError, ValueError, KeyError, TypeError):
         return _result("INVALID")
 
@@ -211,6 +233,24 @@ def fiche_rules(root: Path, request: str, requirement_ids: list[str]) -> tuple[d
               for r in requirement_ids if isinstance(r, str) and r.startswith("REQ-")}
     found = {code: result["rule"] for code, result in states.items() if result["status"] == "VALID"}
     return found, {code: result["status"] for code, result in states.items()}
+
+def require_lot_rules(root: Path, request: str, requirement_ids: list[str]) -> tuple[dict, dict]:
+    """All requirements carried by the lot are obligations, not optional hints.
+
+    A lookup outside the lot can legitimately be MISSING; a bound requirement
+    cannot. Area-derived obligations resolve through their explicit A9 parent.
+    """
+    if (not isinstance(requirement_ids, list)
+            or not all(isinstance(r, str) and r.startswith("REQ-") and len(r) > 4
+                       for r in requirement_ids)
+            or len(set(requirement_ids)) != len(requirement_ids)):
+        raise BriefBlocked("EXAM_LOT_REQUIREMENTS_INVALID")
+    rules, states = fiche_rules(root, request, requirement_ids)
+    failures = [code + "=" + state for code, state in sorted(states.items()) if state != "VALID"]
+    if failures:
+        raise BriefBlocked("EXAM_LOT_RULE_UNRESOLVED:" + ",".join(failures))
+    return rules, states
+
 
 def _read_small(root: Path, rel: str) -> str | None:
     path = root / rel
@@ -238,8 +278,8 @@ def build_brief(root: Path, request: str, task: str, write_paths: list[str],
             or not all(isinstance(r, str) for r in requirement_ids)
             or sorted(bound) != sorted(requirement_ids)):
         raise BriefBlocked("EXAMINER_BRIEF_REQUIREMENTS_MISMATCH")
-    rules, rule_resolution = fiche_rules(root, request, requirement_ids)
-    missing = sorted(code for code, state in rule_resolution.items() if state != "VALID")
+    rules, rule_resolution = require_lot_rules(root, request, requirement_ids)
+    missing = []  # Unresolved lot obligations block before a brief is emitted.
     context = {}
     for rel in spec.get("context_path_patterns") or []:
         if isinstance(rel, str) and "*" not in rel:
@@ -306,10 +346,6 @@ def render_md(brief: dict) -> str:
         lines.append(json.dumps({k: v for k, v in rule.items() if k not in ("source_ref",)},
                                 ensure_ascii=False, indent=1))
         lines.append("```")
-    if brief["rules_without_text"]:
-        lines += ["", "Sin texto en la ficha (no exigir): "
-                  + ", ".join(f"{code} ({brief['rule_resolution'][code]})"
-                              for code in brief["rules_without_text"])]
     lines += ["", "## Pruebas visibles del lote", "```json",
               json.dumps(brief["visible_acceptance_commands"], ensure_ascii=False, indent=1),
               "```", "", "## Archivos de contexto"]
