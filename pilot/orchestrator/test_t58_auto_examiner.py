@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from analysis.host.fixture_normalize import normalize
 from pilot.orchestrator import examiner_brief as eb
 from pilot.orchestrator import examiner_queue as eq
 from pilot.orchestrator import publish_exam as pe
@@ -31,11 +32,20 @@ def _issue(task=TASK, slug=REQ, number=50, labels=("exam-request",), user=eq.BOT
 def _bind(root, target, fixture, reqs, request=REQ):
     folder = root / "pilot/runs" / request
     folder.mkdir(parents=True, exist_ok=True)
+    source = root / "analysis" / "fixtures" / fixture
+    pin = json.loads((source / "SOURCE_PIN.json").read_text())
+    intent = "implementa " + target
+    if pin["schema_version"] == "SOURCE_SCREEN_PIN_V1":
+        _, _, evidence = normalize(source, intent)
+        ref = evidence["effective_rules.json"]
+    else:
+        digest = hashlib.sha256((source / "effective_rules.json").read_bytes()).hexdigest()
+        ref = f"fixture://{fixture}/effective_rules.json@{digest}"
     (folder / "analysis.json").write_text(json.dumps({
-        "request_context": {"target_ref": target},
+        "request_context": {"target_ref": target, "intent": intent},
         "programming_context_snapshot": {"target": target, "source_snapshot_inputs": {
             "rule_fixture_provenance": {"effective_rules.json":
-                "fixture://" + fixture + "/effective_rules.json@" + "a" * 64}}},
+                ref}}},
         "requirements": reqs,
     }))
 
@@ -52,7 +62,7 @@ def _pin_second(folder, target):
     digest = hashlib.sha256((folder / "source.json").read_bytes()).hexdigest()
     (folder / "SOURCE_PIN.json").write_text(json.dumps({
         "schema_version": "SOURCE_SCREEN_PIN_V1", "fixture_id": target,
-        "source_file": "source.json", "sha256": digest,
+        "source_file": "source.json", "sha256": digest, "simulation_only": True,
     }))
 
 
@@ -196,13 +206,17 @@ def _second_source(root, fixture="sbx_demo", *, source_code="PUBLIC_RULE_X",
     folder.mkdir(parents=True, exist_ok=True)
     ref = "fixture://" + fixture + "/rules/1"
     rule = {"code": source_code, "source_ref": ref, "title": "Regla pública",
-            "descripcion": "Descripción de prueba"}
+            "descripcion": "Descripción de prueba", "status": "VIGENTE",
+            "association_ref": "fixture://" + fixture + "/assoc/1"}
     req = {"requirement_id": "REQ-" + canonical, "source_requirement_id": source_code,
            "evidence_refs": [ref if evidence else "fixture://unrelated"]}
     (folder / "source.json").write_text(json.dumps({
         "schema_version": "SECOND_SCREEN_SOURCE_V1", "target_ref": target,
-        "screen_contract": {"rules": [rule]},
-        "effective_rules": {source_code: {"code": source_code, "source_ref": ref}},
+        "screen_contract": {"rules": [rule], "fields": [], "errors": [],
+                            "visual": {}, "context": {}, "metadata": {}},
+        "effective_rules": {source_code: {"code": source_code, "source_ref": ref,
+                                          "categoria": "security"}},
+        "inventory": {"objects": [], "impacts": [], "dependencies": []},
         "requirements": [req, req] if duplicate else [req],
     }), encoding="utf-8")
     _pin_second(folder, target)
@@ -246,7 +260,7 @@ def test_second_screen_brief_and_publish_use_same_canonical_trace(tmp_path, monk
 @pytest.mark.parametrize("defect,state", [
     ("evidence", "INVALID"), ("duplicate", "AMBIGUOUS"),
     ("cross_fixture", "AMBIGUOUS"), ("missing_rule", "INVALID"),
-    ("missing_association", "MISSING"), ("wrong_analysis_ref", "INVALID"),
+    ("missing_association", "INVALID"), ("wrong_analysis_ref", "INVALID"),
     ("tampered_pin", "INVALID"),
 ])
 def test_second_screen_cannot_be_rescued_by_global_text_or_legacy(tmp_path, monkeypatch, defect, state):
@@ -312,3 +326,60 @@ def test_legacy_and_std_structured_lookup_and_lot_scope(tmp_path, monkeypatch):
     _check_trace(tmp_path, monkeypatch, "SBX-R-TWO")
     with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_NOT_IN_LOT"):
         pe.check_trace_lot(tmp_path, REQ, TASK, {"FAIL": "rule:SBX-R-TWO"})
+
+
+@pytest.mark.parametrize("second,code", [(False, "SBX-R-ONE"), (True, "PUBLIC-RULE-X")])
+def test_historical_projection_rejects_consistently_repinned_rule(tmp_path, monkeypatch, second, code):
+    _repo(tmp_path, reqs=("REQ-" + code,))
+    folder = _second_source(tmp_path) if second else tmp_path / "analysis/fixtures/sbx_demo"
+    analysis_path = tmp_path / "pilot/runs" / REQ / "analysis.json"
+    original_analysis = analysis_path.read_bytes()
+    assert eb.resolve_fiche_rule(tmp_path, REQ, code)["status"] == "VALID"
+    filename = "source.json" if second else "effective_rules.json"
+    path = folder / filename
+    data = json.loads(path.read_text())
+    rules = data["screen_contract"]["rules"] if second else data["rules"]
+    rules[0]["descripcion"] = "Descripción modificada después de A9"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    if second:
+        _pin_second(folder, "SBX-DEMO")
+    else:
+        _pin_legacy(folder, "SBX-DEMO")
+    assert analysis_path.read_bytes() == original_analysis
+    assert eb.resolve_fiche_rule(tmp_path, REQ, code)["status"] == "INVALID"
+    brief = eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-" + code])
+    assert brief["rule_resolution"] == {code: "INVALID"}
+    with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_INVALID"):
+        _check_trace(tmp_path, monkeypatch, code)
+
+
+@pytest.mark.parametrize("second,code", [(False, "SBX-R-ONE"), (True, "PUBLIC-RULE-X")])
+def test_unrelated_source_maintenance_preserves_historical_binding(tmp_path, monkeypatch, second, code):
+    _repo(tmp_path, reqs=("REQ-" + code,))
+    if second:
+        _second_source(tmp_path)
+    other = _second_source(tmp_path, fixture="unrelated", target="OTHER", bind=False)
+    before = eb.resolve_fiche_rule(tmp_path, REQ, code)
+    assert before["status"] == "VALID"
+    path = other / "source.json"
+    data = json.loads(path.read_text())
+    data["screen_contract"]["rules"][0]["descripcion"] = "Otra ficha actualizada"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    _pin_second(other, "OTHER")
+    assert eb.resolve_fiche_rule(tmp_path, REQ, code) == before
+    _check_trace(tmp_path, monkeypatch, code)
+
+
+def test_historical_second_screen_missing_rule_remains_missing(tmp_path, monkeypatch):
+    _repo(tmp_path, reqs=("REQ-PUBLIC-RULE-X",))
+    folder = _second_source(tmp_path)
+    path = folder / "source.json"
+    data = json.loads(path.read_text())
+    data["requirements"] = []
+    path.write_text(json.dumps(data), encoding="utf-8")
+    _pin_second(folder, "SBX-DEMO")
+    _bind(tmp_path, "SBX-DEMO", "sbx_demo", [{"requirement_id": "REQ-PUBLIC-RULE-X",
+          "source_requirement_id": "PUBLIC-RULE-X", "evidence_refs": ["supabase://lf_ops.reglas/1"]}])
+    assert eb.resolve_fiche_rule(tmp_path, REQ, "PUBLIC-RULE-X")["status"] == "MISSING"
+    with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_UNKNOWN"):
+        _check_trace(tmp_path, monkeypatch, "PUBLIC-RULE-X")
