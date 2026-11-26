@@ -16,6 +16,7 @@
       "pilot/worker_v08/reuse_guard.py",
       "pilot/orchestrator/test_t7_reuse.py",
       "pilot/orchestrator/test_t28_reuse_writable.py",
+      "pilot/orchestrator/test_t7_registry.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0554.json"
     ]
