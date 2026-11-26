@@ -69,9 +69,12 @@ def source_fiche_rules(root: Path, requirement_ids: list[str]) -> dict:
         if not isinstance(requirements, list):
             continue
         for req in requirements:
-            if not isinstance(req, dict) or req.get("requirement_id") not in wanted:
+            if not isinstance(req, dict):
                 continue
-            canonical = req["requirement_id"][len("REQ-"):]
+            requirement_id = req.get("requirement_id")
+            if not isinstance(requirement_id, str) or requirement_id not in wanted:
+                continue
+            canonical = requirement_id[len("REQ-"):]
             rows = candidates.setdefault(canonical, [])
             source_code = req.get("source_requirement_id")
             if not isinstance(source_code, str) or not isinstance(screen, dict) or not isinstance(effective, dict):
