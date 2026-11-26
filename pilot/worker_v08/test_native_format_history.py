@@ -182,3 +182,17 @@ def test_t23_pack_compatibility(monkeypatch,tmp_path):
         assert admission._check_pack(*args,route_retry=True,sha=SHA,attempt=1)
         assert not admission._check_pack(*args,route_retry=True,sha=SHA,attempt=2)
         assert not admission._check_pack(*args,route_retry=False,sha=SHA,attempt=1)
+
+
+def test_completed_job_without_gate_is_not_legacy():
+    result = h.steps(lambda route: {"total_count":1,"jobs":[{"name":"native",
+                     "conclusion":"failure","steps":[{"name":"unrelated","conclusion":"success"}]}]}, {"id":1})
+    assert result == {}  # not the None used for a provably skipped job
+
+
+def test_missing_gate_in_executed_post_cutover_job(monkeypatch):
+    monkeypatch.setattr(h,"cutover",lambda api:datetime(2026,11,26,tzinfo=timezone.utc))
+    monkeypatch.setattr(h,"listed",lambda api:[row(1,"1"*40),row(9,SHA)])
+    monkeypatch.setattr(h,"steps",lambda *args:{})
+    with pytest.raises(ValueError,match="FORMAT_GATE_HISTORY_MISSING"):
+        h.historical_rejections(None,None,h.REPO,TASK,9,SHA)

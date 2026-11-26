@@ -100,11 +100,11 @@ def steps(api, run):
     require(isinstance(jobs, list) and obj.get("total_count") == len(jobs),
             "FORMAT_JOB_HISTORY_INCOMPLETE")
     if not jobs and run.get("conclusion") in ("cancelled", "skipped"):
-        return {}
+        return None
     require(len(jobs) == 1 and jobs[0].get("name") == "native",
             "FORMAT_JOB_HISTORY_INVALID")
     if jobs[0].get("conclusion") == "skipped":
-        return {}
+        return None
     rows = jobs[0].get("steps")
     require(isinstance(rows, list), "FORMAT_STEP_HISTORY_INVALID")
     relevant = [s for s in rows if s.get("name") in (GATE, UPLOAD, WORKER)]
@@ -207,7 +207,7 @@ def historical_rejections(api, command, repo, task, run_id, sha):
         if row.get("conclusion") in ("cancelled", "skipped"):
             continue
         observed = steps(api, row)
-        if not observed:
+        if observed is None:
             continue
         require(GATE in observed, "FORMAT_GATE_HISTORY_MISSING")
         outcome = observed[GATE]
@@ -220,7 +220,8 @@ def historical_rejections(api, command, repo, task, run_id, sha):
         envelope = envelope_at(api, task, old_sha) if any(data.get(k) is not None for k in HASHES) else None
         validate(data, task, row["id"], old_sha, outcome, envelope)
         if data["status"] == "FORMAT_FAIL":
-            require(observed.get(WORKER) == "skipped", "FORMAT_WORKER_NOT_SKIPPED")
+            require(row.get("conclusion") == "failure" and observed.get(WORKER) == "skipped",
+                    "FORMAT_WORKER_NOT_SKIPPED")
             rejected.setdefault(data["patch_sha256"], data)
     return rejected
 
