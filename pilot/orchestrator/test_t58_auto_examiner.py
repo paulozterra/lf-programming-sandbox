@@ -143,3 +143,62 @@ def test_procedure_document_names_the_tools():
     for needle in ("examiner_queue.py", "examiner_brief.py", "publish_exam.py",
                    "examiner-blocked", "exam/<task>", "ready-to-merge"):
         assert needle in doc
+
+# --- second-screen public source trace --------------------------------------
+
+def _second_source(root, fixture="second_screen", *, source_code="PUBLIC_RULE_X",
+                   canonical="PUBLIC-RULE-X", evidence=True, duplicate=False):
+    folder = root / "analysis" / "fixtures" / fixture
+    folder.mkdir(parents=True, exist_ok=True)
+    ref = "fixture://" + fixture + "/rules/1"
+    rule = {"code": source_code, "source_ref": ref, "title": "Regla pública",
+            "descripcion": "Descripción de prueba"}
+    req = {"requirement_id": "REQ-" + canonical, "source_requirement_id": source_code,
+           "evidence_refs": [ref if evidence else "fixture://unrelated"]}
+    (folder / "source.json").write_text(json.dumps({
+        "schema_version": "SECOND_SCREEN_SOURCE_V1",
+        "screen_contract": {"rules": [rule]},
+        "effective_rules": {source_code: {"code": source_code, "source_ref": ref}},
+        "requirements": [req, req] if duplicate else [req],
+    }), encoding="utf-8")
+
+
+def test_second_screen_brief_and_publish_use_same_canonical_trace(tmp_path, monkeypatch):
+    _repo(tmp_path, reqs=("REQ-PUBLIC-RULE-X",))
+    _second_source(tmp_path)
+    brief = eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-PUBLIC-RULE-X"])
+    assert brief["rules_without_text"] == []
+    rule = brief["rules"]["PUBLIC-RULE-X"]
+    assert rule["code"] == "PUBLIC-RULE-X"
+    assert rule["source_rule_code"] == "PUBLIC_RULE_X"
+    assert rule["descripcion"] == "Descripción de prueba"
+    monkeypatch.setattr(pe, "ROOT", tmp_path)
+    trace = {"FAIL": "rule:PUBLIC-RULE-X"}
+    pe.check_trace('fail("FAIL")', trace, tmp_path, tmp_path, REQ)
+    pe.check_trace_lot(tmp_path, REQ, TASK, trace)
+    with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_NOT_IN_LOT"):
+        pe.check_trace_lot(tmp_path, REQ, TASK, {"FAIL": "rule:PUBLIC_RULE_X"})
+    _second_source(tmp_path, fixture="unrelated", source_code="OTHER_RULE",
+                   canonical="OTHER-RULE")
+    other = {"FAIL": "rule:OTHER-RULE"}
+    pe.check_trace('fail("FAIL")', other, tmp_path, tmp_path, REQ)
+    with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_NOT_IN_LOT"):
+        pe.check_trace_lot(tmp_path, REQ, TASK, other)
+
+
+@pytest.mark.parametrize("defect", ["evidence", "duplicate", "cross_fixture", "missing_rule"])
+def test_second_screen_does_not_guess_or_accept_ambiguous_alias(tmp_path, monkeypatch, defect):
+    _repo(tmp_path, reqs=("REQ-PUBLIC-RULE-X",))
+    _second_source(tmp_path, evidence=defect != "evidence", duplicate=defect == "duplicate")
+    if defect == "cross_fixture":
+        _second_source(tmp_path, fixture="other_screen")
+    if defect == "missing_rule":
+        path = tmp_path / "analysis/fixtures/second_screen/source.json"
+        data = json.loads(path.read_text("utf-8"))
+        data["screen_contract"]["rules"] = []
+        path.write_text(json.dumps(data), encoding="utf-8")
+    brief = eb.build_brief(tmp_path, REQ, TASK, WRITE, ["REQ-PUBLIC-RULE-X"])
+    assert brief["rules_without_text"] == ["PUBLIC-RULE-X"]
+    monkeypatch.setattr(pe, "ROOT", tmp_path)
+    with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_UNKNOWN"):
+        pe.check_trace('fail("FAIL")', {"FAIL": "rule:PUBLIC-RULE-X"}, tmp_path, tmp_path, REQ)
