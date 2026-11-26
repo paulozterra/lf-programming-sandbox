@@ -1,0 +1,7 @@
+{
+  "schema_version": "SOURCE_SCREEN_PIN_V1",
+  "fixture_id": "DEMO-FORMAT-CANARY",
+  "source_file": "source.json",
+  "sha256": "439bb1d83112f34c9c29823e763f1d82de88426da61ae9d6d9fc82f934ba0694",
+  "simulation_only": true
+}
