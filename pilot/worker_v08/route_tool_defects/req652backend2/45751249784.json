@@ -1,0 +1,21 @@
+{
+  "base_head_sha": "1ab2b8c62053d1b626c1629dfaf3ca754272977d",
+  "blocked_code": "DUPLICA_COMPONENTE_EXISTENTE",
+  "current_control_sha": "6fca197fe23130793e847c8f81226c5755f53707",
+  "current_tool_sha256": "fa5bd531932388ec76d3125b2ee7c6fe7a85268ac4ba6955286fc10bca4ae945",
+  "forgiven": [
+    {
+      "proposal_commit_sha": "4d83602185bda936a84a3a9497edcfd911a09986",
+      "run_id": 45751249784,
+      "task_pack_sha256": "bae4487f20fd7cdb76eacddfa97138cd8cc3331736386fb98041edac0ec8683d"
+    }
+  ],
+  "reason": "CHG-0554 corrigió falso positivo de firma previo a aceptación; reproducción real CI 45849729455 job 140012799686, revisión independiente PR 800 comentario 7196629336, mecanismo CHG-0562 integrado. Recuperar exclusivamente run 45751249784.",
+  "registration_sha256": "95a70c9f74182b67f38bdf882bff9b543bd982680c82d74775acd27fb33d40da",
+  "request_path": "pilot/runs/req-652/proposal_requests/req652backend2.proposal-request.json",
+  "schema_version": "LF_NATIVE_PREACCEPTANCE_DEFECT_V1",
+  "superseded_control_sha": "473efd3266f3fd697141feca4a80ae8432cd97f9",
+  "superseded_tool_sha256": "cbfc0fb677e596a49b8fc7116c9e0bd2b90891cb88023de90932db25f8e830b6",
+  "task": "req652backend2",
+  "tool": "pilot/worker_v08/reuse_guard.py"
+}
