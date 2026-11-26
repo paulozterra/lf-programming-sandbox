@@ -106,7 +106,7 @@ def _source_for_request(root: Path, request: str) -> tuple[str, Path | None, dic
         else:
             return "INVALID", None, {}
         return "VALID", folder, {"analysis": analysis, "pin": pin}
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return "INVALID", None, {}
 
 
