@@ -17,6 +17,19 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
+TOTAL_TIMEOUT_SECONDS = 600
+
+
+class TotalTimeout(TimeoutError):
+    pass
+
+
+def _remaining(deadline: float, cap: float) -> float:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise TotalTimeout()
+    return min(remaining, cap)
+
 from programming_agent_runner.worker_patch import (
     PatchValidationError,
     inspect_patch,
@@ -71,19 +84,20 @@ def _env(home: Path) -> dict[str, str]:
     }
 
 
-def _git(cwd: Path, env: dict, *args: str) -> bytes:
+def _git(cwd: Path, env: dict, *args: str, deadline: float) -> bytes:
     return subprocess.run(
         ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", *args],
-        cwd=cwd, env=env, capture_output=True, check=True, timeout=60,
+        cwd=cwd, env=env, capture_output=True, check=True, timeout=_remaining(deadline, 60),
     ).stdout
 
 
-def _materialize(source: Path, workspace: Path, env: dict, base: str, root: str, extra: tuple[str, ...] = ()) -> None:
+def _materialize(source: Path, workspace: Path, env: dict, base: str, root: str, extra: tuple[str, ...] = (), *, deadline: float) -> None:
     """Export only regular tracked files of the configured component, no .git or control tree."""
-    if _git(source, env, "rev-parse", "HEAD").decode().strip() != base:
+    if _git(source, env, "rev-parse", "HEAD", deadline=deadline).decode().strip() != base:
         raise ValueError("base drift")
-    entries = _git(source, env, "ls-tree", "-r", "-z", base, "--", root, *extra)
+    entries = _git(source, env, "ls-tree", "-r", "-z", base, "--", root, *extra, deadline=deadline)
     for entry in entries.split(b"\0"):
+        _remaining(deadline, 60)
         if not entry:
             continue
         meta, raw_path = entry.split(b"\t", 1)
@@ -96,22 +110,26 @@ def _materialize(source: Path, workspace: Path, env: dict, base: str, root: str,
             raise ValueError("unsafe component tree")
         target = workspace / path
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(_git(source, env, "cat-file", "blob", oid))
+        target.write_bytes(_git(source, env, "cat-file", "blob", oid, deadline=deadline))
         target.chmod(0o755 if mode == "100755" else 0o644)
-    _git(workspace, env, "init", "-q", "--template=")
-    _git(workspace, env, "add", "-f", "--", ".")
+    _git(workspace, env, "init", "-q", "--template=", deadline=deadline)
+    _git(workspace, env, "add", "-f", "--", ".", deadline=deadline)
     _git(workspace, env, "-c", "user.name=LF", "-c", "user.email=lf@example.invalid",
-         "commit", "-qm", "format baseline")
+         "commit", "-qm", "format baseline", deadline=deadline)
 
 
-def _run(command: AcceptanceCommand, workspace: Path, env: dict) -> tuple[int, str]:
+def _run(command: AcceptanceCommand, workspace: Path, env: dict, *, deadline: float | None = None) -> tuple[int, str]:
     """Read incrementally, fail closed on overflow, kill process group on exit."""
     limit = min(command.max_output_bytes, 32000)
+    command_deadline = time.monotonic() + command.timeout_seconds
+    if deadline is not None:
+        _remaining(deadline, command.timeout_seconds)
+        command_deadline = min(deadline, command_deadline)
     proc = subprocess.Popen(
         list(command.argv), cwd=workspace, env=env, stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True,
     )
-    deadline = time.monotonic() + command.timeout_seconds
+    deadline = command_deadline
     data = bytearray()
     try:
         with selectors.DefaultSelector() as selector:
@@ -153,7 +171,7 @@ def _safe_change(path: str, component: dict) -> bool:
     )
 
 
-def _apply(workspace: Path, env: dict, parsed, facts) -> None:
+def _apply(workspace: Path, env: dict, parsed, facts, *, deadline: float) -> None:
     """Equivalent strict Git application; vendor helper omits HOME/XDG isolation.
 
     Keep its parse/inspect policy and whitespace checks, but use our explicit
@@ -166,54 +184,85 @@ def _apply(workspace: Path, env: dict, parsed, facts) -> None:
     for flags in (["--check"], []):
         result = subprocess.run(args + flags + ["-"], cwd=workspace, env=env,
                                 input=parsed.patch.encode("utf-8"), capture_output=True,
-                                timeout=60, check=False)
+                                timeout=_remaining(deadline, 60), check=False)
         if result.returncode:
             raise PatchValidationError("patch application rejected")
-    raw = _git(workspace, env, "diff", "--cached", "--name-only", "-z", "--no-renames")
+    raw = _git(workspace, env, "diff", "--cached", "--name-only", "-z", "--no-renames", deadline=deadline)
     if tuple(sorted(p.decode() for p in raw.split(b"\0") if p)) != facts.changed_paths:
         raise PatchValidationError("changed paths mismatch")
-    _git(workspace, env, "diff", "--cached", "--check")
+    _git(workspace, env, "diff", "--cached", "--check", deadline=deadline)
     for path in facts.changed_paths:
+        _remaining(deadline, 60)
         target = workspace / path
         if target.is_symlink() or (target.is_file() and
                 secret_text_reason(target.read_text(encoding="utf-8", errors="replace"))):
             raise PatchValidationError("unsafe changed file")
 
 
-def _diagnose(output: str, changed: tuple[str, ...], root: str):
-    """Extract only verified path headers and numeric hunk locations.
+@dataclass(frozen=True)
+class Diagnosis:
+    paths: tuple[str, ...]
+    locations: tuple[str, ...]
+    complete: bool
 
-    No source text (including context or added lines) is ever published.
-    Hunk coordinates identify the exact formatting region; +/- line counts
-    indicate wrapping changes. Unrecognized/truncated diagnostics fail closed.
-    """
+
+def _diagnose(output: str, changed: tuple[str, ...], root: str) -> Diagnosis | None:
+    """Allow only complete attributable Spotless reports; never export source text."""
     clean = re.sub(r"\x1b\[[0-9;]*m", "", output)
-    if "The following files had format violations:" not in clean:
+    marker = "The following files had format violations:"
+    if marker not in clean:
         return None
     allowed = {p.removeprefix(root + "/"): p for p in changed if _within(p, root)}
     current = None
     paths = set()
     locations = []
+    complete = True
+    ended = False
+    active = False
     for line in clean.splitlines():
-        header = re.fullmatch(r"\[ERROR\] {5}([A-Za-z0-9_./-]+\.java)", line)
+        if marker in line:
+            if active:
+                complete = False
+            active = True
+            continue
+        if not active or ended:
+            continue
+        if line.startswith("[ERROR] Run 'mvn spotless:apply' to fix these violations."):
+            ended = True
+            continue
+        # Include ALL file header candidates, even non-Java/unknown paths.
+        header = re.fullmatch(r"\[ERROR\] {5}(\S.*)", line)
         if header:
             current = allowed.get(header.group(1))
-            if current:
+            if current is None or current in paths:
+                complete = False
+            else:
                 paths.add(current)
             continue
-        hunk = re.fullmatch(r"\[ERROR\] {9}@@ -(\d{1,8})(?:,(\d{1,8}))? \+(\d{1,8})(?:,(\d{1,8}))? @@.*", line)
-        if current and hunk and len(locations) < 32:
-            a, b, c, d = hunk.groups()
-            locations.append(f"{current}: original line {a}, {b or '1'} lines; formatted line {c}, {d or '1'} lines")
-    return tuple(sorted(paths)), tuple(locations)
+        hunk = re.fullmatch(r"\[ERROR\] {9}@@ -(\d{1,8})(?:,(\d{1,8}))? \+(\d{1,8})(?:,(\d{1,8}))? @@", line)
+        if hunk:
+            if current is None or len(locations) >= 32:
+                complete = False
+            else:
+                a, b, c, d = hunk.groups()
+                locations.append(f"{current}: original line {a}, {b or '1'} lines; formatted line {c}, {d or '1'} lines")
+            continue
+        # Only unified-diff body lines are expected inside the report.
+        if not re.fullmatch(r"\[ERROR\] {9}[ +\-].*", line):
+            complete = False
+    complete = (complete and ended and bool(paths) and
+                all(any(row.startswith(p + ":") for row in locations) for p in paths))
+    return Diagnosis(tuple(sorted(paths)), tuple(locations), complete)
 
 
-def prevalidate(source: Path, spec: WorkerTaskSpec, proposal: dict, config: dict) -> FormatResult:
-    """Compare a clean registered baseline and patched disposable workspace.
+def prevalidate(source: Path, spec: WorkerTaskSpec, proposal: dict, config: dict,
+                *, total_timeout_seconds: float = TOTAL_TIMEOUT_SECONDS) -> FormatResult:
+    """Run the proposal first; only a complete attributable failure checks base.
 
-    SKIPPED means the original Worker remains responsible for acceptance.
-    BASELINE_FAIL and INFRA_ERROR must never consume a format rejection.
+    One shared monotonic deadline covers both runs and Git preparation.
+    SKIPPED defers to the unchanged Worker. Only FORMAT_FAIL is attributable.
     """
+    deadline = time.monotonic() + min(total_timeout_seconds, TOTAL_TIMEOUT_SECONDS)
     try:
         parsed = parse_patch_proposal(proposal, spec)
         facts = inspect_patch(parsed, spec)
@@ -231,37 +280,46 @@ def prevalidate(source: Path, spec: WorkerTaskSpec, proposal: dict, config: dict
     root = component["root"]
     extra = tuple(p for p in facts.changed_paths if not _within(p, root))
     try:
+        _remaining(deadline, 60)
         with tempfile.TemporaryDirectory(prefix="lf-format-") as tmp:
             home = Path(tmp) / "home"
             home.mkdir()
             env = _env(home)
-            baseline = Path(tmp) / "baseline"
             workspace = Path(tmp) / "source"
-            for folder in (baseline, workspace):
-                folder.mkdir()
-                _materialize(source, folder, env, spec.base_head_sha, root, extra)
-                if not (folder / component["build_file"]).is_file():
-                    return FormatResult("INFRA_ERROR", "FORMAT_BUILD_FILE_MISSING", command.name)
+            workspace.mkdir()
+            _materialize(source, workspace, env, spec.base_head_sha, root, extra, deadline=deadline)
+            if not (workspace / component["build_file"]).is_file():
+                return FormatResult("INFRA_ERROR", "FORMAT_BUILD_FILE_MISSING", command.name)
             try:
-                _apply(workspace, env, parsed, facts)
+                _apply(workspace, env, parsed, facts, deadline=deadline)
             except PatchValidationError:
                 return FormatResult("INVALID_PROPOSAL", "PATCH_APPLICATION_REJECTED", command.name)
-            base_code, base_output = _run(command, baseline, env)
+            code, output = _run(command, workspace, env, deadline=deadline)
+            _remaining(deadline, 60)
+            if code == 0:
+                return FormatResult("PASS", "FORMAT_OK", command.name)
+            diagnosis = _diagnose(output, facts.changed_paths, root) if code == 1 else None
+            if diagnosis is None:
+                return FormatResult("INFRA_ERROR", "FORMAT_NONZERO_UNCLASSIFIED", command.name)
+            if not diagnosis.complete:
+                return FormatResult("INFRA_ERROR", "FORMAT_UNATTRIBUTED_OR_INCOMPLETE", command.name)
+            baseline = Path(tmp) / "baseline"
+            baseline.mkdir()
+            _materialize(source, baseline, env, spec.base_head_sha, root, extra, deadline=deadline)
+            if not (baseline / component["build_file"]).is_file():
+                return FormatResult("INFRA_ERROR", "FORMAT_BUILD_FILE_MISSING", command.name)
+            base_code, base_output = _run(command, baseline, env, deadline=deadline)
+            _remaining(deadline, 60)
             if base_code != 0:
                 if base_code == 1 and _diagnose(base_output, (), root) is not None:
                     return FormatResult("BASELINE_FAIL", "SPOTLESS_BASELINE_VIOLATIONS", command.name)
                 return FormatResult("INFRA_ERROR", "FORMAT_BASELINE_EXECUTION_FAILED", command.name)
-            code, output = _run(command, workspace, env)
+            return FormatResult("FORMAT_FAIL", "SPOTLESS_VIOLATIONS", command.name,
+                                diagnosis.paths, diagnosis.locations)
+    except TotalTimeout:
+        return FormatResult("INFRA_ERROR", "FORMAT_TOTAL_TIMEOUT", command.name)
     except subprocess.TimeoutExpired:
-        return FormatResult("INFRA_ERROR", "FORMAT_TIMEOUT", command.name)
+        reason = "FORMAT_TOTAL_TIMEOUT" if time.monotonic() >= deadline else "FORMAT_TIMEOUT"
+        return FormatResult("INFRA_ERROR", reason, command.name)
     except (OSError, subprocess.SubprocessError, ValueError):
         return FormatResult("INFRA_ERROR", "FORMAT_EXECUTION_FAILED", command.name)
-    if code == 0:
-        return FormatResult("PASS", "FORMAT_OK", command.name)
-    diagnosis = _diagnose(output, facts.changed_paths, root) if code == 1 else None
-    if diagnosis:
-        paths, locations = diagnosis
-        if paths and locations and all(any(row.startswith(p + ":") for row in locations) for p in paths):
-            return FormatResult("FORMAT_FAIL", "SPOTLESS_VIOLATIONS", command.name, paths, locations)
-        return FormatResult("INFRA_ERROR", "FORMAT_UNATTRIBUTED_OR_INCOMPLETE", command.name)
-    return FormatResult("INFRA_ERROR", "FORMAT_NONZERO_UNCLASSIFIED", command.name)

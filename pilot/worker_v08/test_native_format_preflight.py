@@ -61,7 +61,7 @@ def test_valid_format(baseline, monkeypatch):
     source, spec = baseline
     seen = []
     monkeypatch.setenv("GH_TOKEN", "not-for-format")
-    def run(command, workspace, env):
+    def run(command, workspace, env, **kwargs):
         seen.append(workspace)
         assert command == CHECK
         assert (workspace / JAVA).read_text() == (ORIGINAL if workspace.name == "baseline" else "class Example { int x; }\n")
@@ -72,15 +72,16 @@ def test_valid_format(baseline, monkeypatch):
     monkeypatch.setattr(preflight, "_run", run)
     assert preflight.prevalidate(source, spec, proposal(), CONFIG).status == "PASS"
     assert (source / JAVA).read_text() == ORIGINAL
+    assert len(seen) == 1
     assert not seen[0].exists()
     assert git(source, "status", "--porcelain") == ""
 
 
 def test_invalid_format_and_corrected_submission(baseline, monkeypatch):
     source, spec = baseline
-    def run(command, workspace, env):
+    def run(command, workspace, env, **kwargs):
         if "int  x" in (workspace / JAVA).read_text():
-            return 1, "[ERROR] The following files had format violations:\n[ERROR]     src/main/java/Example.java\n[ERROR]         @@ -1,2 +1,1 @@\n"
+            return 1, "[ERROR] The following files had format violations:\n[ERROR]     src/main/java/Example.java\n[ERROR]         @@ -1,2 +1,1 @@\n[ERROR] Run 'mvn spotless:apply' to fix these violations.\n"
         return 0, ""
     monkeypatch.setattr(preflight, "_run", run)
     bad = proposal(new="class Example { int  x; }")
@@ -98,7 +99,7 @@ def test_invalid_format_and_corrected_submission(baseline, monkeypatch):
 ])
 def test_infrastructure_exception(baseline, monkeypatch, failure, reason):
     source, spec = baseline
-    def run(*args):
+    def run(*args, **kwargs):
         raise failure
     monkeypatch.setattr(preflight, "_run", run)
     result = preflight.prevalidate(source, spec, proposal(), CONFIG)
@@ -107,52 +108,52 @@ def test_infrastructure_exception(baseline, monkeypatch, failure, reason):
 
 def test_generic_maven_failure_is_not_format(baseline, monkeypatch):
     source, spec = baseline
-    monkeypatch.setattr(preflight, "_run", lambda *a: (1, "[ERROR] Could not resolve plugin"))
+    monkeypatch.setattr(preflight, "_run", lambda *a, **kw: (1, "[ERROR] Could not resolve plugin"))
     assert preflight.prevalidate(source, spec, proposal(), CONFIG).status == "INFRA_ERROR"
 
 
 @pytest.mark.parametrize("path", ["outside.java", POM])
 def test_outside_scope_or_protected(baseline, monkeypatch, path):
     source, spec = baseline
-    monkeypatch.setattr(preflight, "_run", lambda *a: pytest.fail("must not execute"))
+    monkeypatch.setattr(preflight, "_run", lambda *a, **kw: pytest.fail("must not execute"))
     assert preflight.prevalidate(source, spec, proposal(path), CONFIG).status == "INVALID_PROPOSAL"
 
 
 def test_no_spotless(baseline, monkeypatch):
     source, spec = baseline
     spec = replace(spec, acceptance_commands=(AcceptanceCommand("package", ("mvn", "package"), 5, 1024),))
-    monkeypatch.setattr(preflight, "_run", lambda *a: pytest.fail("must not execute"))
+    monkeypatch.setattr(preflight, "_run", lambda *a, **kw: pytest.fail("must not execute"))
     assert preflight.prevalidate(source, spec, proposal(), CONFIG).status == "SKIPPED"
 
 
 def test_unsupported_command_fails_closed(baseline, monkeypatch):
     source, spec = baseline
     spec = replace(spec, acceptance_commands=(replace(CHECK, argv=CHECK.argv + ("-Dskip=true",)),))
-    monkeypatch.setattr(preflight, "_run", lambda *a: pytest.fail("must not execute"))
+    monkeypatch.setattr(preflight, "_run", lambda *a, **kw: pytest.fail("must not execute"))
     assert preflight.prevalidate(source, spec, proposal(), CONFIG).status == "INFRA_ERROR"
 
 
 def test_unapplicable_patch(baseline, monkeypatch):
     source, spec = baseline
-    monkeypatch.setattr(preflight, "_run", lambda *a: pytest.fail("must not execute"))
+    monkeypatch.setattr(preflight, "_run", lambda *a, **kw: pytest.fail("must not execute"))
     assert preflight.prevalidate(source, spec, proposal(old="different baseline"), CONFIG).status == "INVALID_PROPOSAL"
 
 
 def test_baseline_violation_not_charged(baseline, monkeypatch):
     source, spec = baseline
     calls = []
-    def run(command, workspace, env):
+    def run(command, workspace, env, **kwargs):
         calls.append(workspace.name)
-        return 1, "[ERROR] The following files had format violations:\n[ERROR]     src/main/java/Example.java\n"
+        return 1, diagnostic()
     monkeypatch.setattr(preflight, "_run", run)
     result = preflight.prevalidate(source, spec, proposal(), CONFIG)
     assert result.status == "BASELINE_FAIL"
-    assert calls == ["baseline"]
+    assert calls == ["source", "baseline"]
 
 
 def test_unattributed_violation_never_format_fail(baseline, monkeypatch):
     source, spec = baseline
-    monkeypatch.setattr(preflight, "_run", lambda c, w, e: (0, "") if w.name == "baseline" else (
+    monkeypatch.setattr(preflight, "_run", lambda c, w, e, **kw: (0, "") if w.name == "baseline" else (
         1, "[ERROR] The following files had format violations:\n[ERROR]     src/main/java/Other.java\n"))
     assert preflight.prevalidate(source, spec, proposal(), CONFIG).status == "INFRA_ERROR"
 
@@ -173,7 +174,9 @@ def test_req652_two_hunks_and_no_source_disclosure():
         "[ERROR]     src/main/java/Other.java\n"
         "[ERROR]         @@ -3 +3 @@\n"
     )
-    paths, diagnostics = preflight._diagnose(output, (path,), "service")
+    result = preflight._diagnose(output, (path,), "service")
+    paths, diagnostics = result.paths, result.locations
+    assert not result.complete
     assert paths == (path,)
     assert len(diagnostics) == 2
     assert "original line 78, 8 lines; formatted line 78, 7 lines" in diagnostics[0]
@@ -193,7 +196,7 @@ def test_mixed_inert_files(baseline, monkeypatch):
     value = proposal()
     value["changed_paths"] = sorted([JAVA, path])
     value["patch"] += proposal(path, "old", "new")["patch"]
-    def run(c, w, e):
+    def run(c, w, e, **kwargs):
         assert (w / path).read_text() == ("old\n" if w.name == "baseline" else "new\n")
         return 0, ""
     monkeypatch.setattr(preflight, "_run", run)
@@ -203,7 +206,7 @@ def test_mixed_inert_files(baseline, monkeypatch):
 def test_authorized_build_change_deferred(baseline, monkeypatch):
     source, spec = baseline
     spec = replace(spec, protected_path_patterns=("control.txt",), write_path_patterns=(POM,))
-    monkeypatch.setattr(preflight, "_run", lambda *a: pytest.fail("must not execute changed POM"))
+    monkeypatch.setattr(preflight, "_run", lambda *a, **kw: pytest.fail("must not execute changed POM"))
     result = preflight.prevalidate(source, spec, proposal(POM, "<project/>", "<project />"), CONFIG)
     assert (result.status, result.reason) == ("SKIPPED", "FORMAT_UNSAFE_TO_PREFLIGHT")
 
@@ -238,5 +241,74 @@ def test_git_environment_isolated(baseline, monkeypatch, tmp_path):
         assert env["XDG_CONFIG_HOME"] != str(poison)
         return real(*args, **kwargs)
     monkeypatch.setattr(preflight.subprocess, "run", run)
-    monkeypatch.setattr(preflight, "_run", lambda *a: (0, ""))
+    monkeypatch.setattr(preflight, "_run", lambda *a, **kw: (0, ""))
     assert preflight.prevalidate(source, spec, proposal(), CONFIG).status == "PASS"
+
+
+def diagnostic(extra=""):
+    return ("[ERROR] The following files had format violations:\n"
+            "[ERROR]     src/main/java/Example.java\n"
+            "[ERROR]         @@ -1 +1 @@\n"
+            + extra + "[ERROR] Run 'mvn spotless:apply' to fix these violations.\n")
+
+
+def test_proposal_corrects_dirty_base(baseline, monkeypatch):
+    source, spec = baseline
+    (source / JAVA).write_text("class  Example {}\n")
+    git(source, "add", ".")
+    git(source, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "dirty")
+    spec = replace(spec, base_head_sha=git(source, "rev-parse", "HEAD"))
+    calls = []
+    def run(c, w, e, **kw):
+        calls.append(w.name)
+        return (1, diagnostic()) if "class  " in (w / JAVA).read_text() else (0, "")
+    monkeypatch.setattr(preflight, "_run", run)
+    result = preflight.prevalidate(source, spec, proposal(old="class  Example {}", new="class Example {}"), CONFIG)
+    assert result.status == "PASS"
+    assert calls == ["source"]
+
+
+@pytest.mark.parametrize("extra", [
+    "[ERROR]     src/main/java/Other.java\n[ERROR]         @@ -2 +2 @@\n",
+    "[ERROR]     src/main/java/Other.java\n",
+    "[ERROR]     ... (more violations)\n",
+])
+def test_mixed_attribution_not_charged(baseline, monkeypatch, extra):
+    source, spec = baseline
+    calls = []
+    def run(c, w, e, **kw):
+        calls.append(w.name)
+        return 1, diagnostic(extra)
+    monkeypatch.setattr(preflight, "_run", run)
+    result = preflight.prevalidate(source, spec, proposal(), CONFIG)
+    assert (result.status, result.reason) == ("INFRA_ERROR", "FORMAT_UNATTRIBUTED_OR_INCOMPLETE")
+    assert calls == ["source"]
+
+
+def test_incomplete_report_not_charged(baseline, monkeypatch):
+    source, spec = baseline
+    monkeypatch.setattr(preflight, "_run", lambda *a, **kw: (1, diagnostic().split("[ERROR] Run")[0]))
+    assert preflight.prevalidate(source, spec, proposal(), CONFIG).status == "INFRA_ERROR"
+
+
+def test_total_budget_shared_between_checks(baseline, monkeypatch):
+    source, spec = baseline
+    # Advance a fake monotonic clock during the two synthetic Spotless runs.
+    clock = [100.0]
+    monkeypatch.setattr(preflight.time, "monotonic", lambda: clock[0])
+    calls = []
+    def run(c, w, e, *, deadline):
+        calls.append((w.name, deadline))
+        clock[0] += 4
+        return (1, diagnostic()) if w.name == "source" else (0, "")
+    monkeypatch.setattr(preflight, "_run", run)
+    result = preflight.prevalidate(source, spec, proposal(), CONFIG, total_timeout_seconds=7)
+    assert (result.status, result.reason) == ("INFRA_ERROR", "FORMAT_TOTAL_TIMEOUT")
+    assert calls == [("source", 107.0), ("baseline", 107.0)]
+
+
+def test_total_budget_zero(baseline, monkeypatch):
+    source, spec = baseline
+    monkeypatch.setattr(preflight, "_run", lambda *a, **kw: pytest.fail("must not execute"))
+    result = preflight.prevalidate(source, spec, proposal(), CONFIG, total_timeout_seconds=0)
+    assert (result.status, result.reason) == ("INFRA_ERROR", "FORMAT_TOTAL_TIMEOUT")
