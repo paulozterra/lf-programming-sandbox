@@ -277,3 +277,40 @@ def test_producer_requires_exact_proof_and_three_replays(tmp_path, monkeypatch):
     assert calls == []
     with pytest.raises(ValueError, match="CONTROL_NOT_TRUSTED_MAIN"):
         p.prove_preacceptance(task, [7], "f" * 40, "synthetic")
+
+
+def test_checkout_log_signed_redirect_never_forwards_credentials(monkeypatch):
+    import io
+    import urllib.error
+    import urllib.request
+    from pilot.orchestrator import route_tool_defect as p
+
+    monkeypatch.setenv("GH_TOKEN", "synthetic-token")
+    calls = []
+    class Opener:
+        def open(self, request, timeout):
+            calls.append(request)
+            if len(calls) == 1:
+                raise urllib.error.HTTPError(request.full_url, 302, "redirect",
+                    {"Location": "https://storage.example/log?signature=synthetic"}, io.BytesIO())
+            return io.BytesIO(b"checkout evidence")
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *a: Opener())
+    assert p.read_checkout_log(123) == "checkout evidence"
+    assert calls[0].get_header("Authorization") == "Bearer synthetic-token"
+    assert calls[1].get_header("Authorization") is None
+
+
+def test_checkout_log_http_errors_fail_closed(monkeypatch):
+    import io
+    import urllib.error
+    import urllib.request
+    import pytest
+    from pilot.orchestrator import route_tool_defect as p
+
+    monkeypatch.setenv("GH_TOKEN", "synthetic-token")
+    class Opener:
+        def open(self, request, timeout):
+            raise urllib.error.HTTPError(request.full_url, 403, "denied", {}, io.BytesIO())
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *a: Opener())
+    with pytest.raises(ValueError, match="CONTROL_LOG_API_HTTP_403"):
+        p.read_checkout_log(123)

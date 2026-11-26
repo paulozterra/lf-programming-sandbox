@@ -291,6 +291,51 @@ def checkout_sha_from_log(log: str) -> str:
     return matches[0]
 
 
+def read_checkout_log(job_id: int) -> str:
+    """Fetch bounded GitHub job logs without forwarding credentials to storage."""
+    import os
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, request, fp, code, msg, headers, newurl):
+            return None
+
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not token or type(job_id) is not int or job_id <= 0:
+        deny("CONTROL_LOG_INPUT_INVALID")
+    opener = urllib.request.build_opener(NoRedirect())
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{REPO}/actions/jobs/{job_id}/logs",
+        headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28"})
+    limit = 2_000_000
+    try:
+        try:
+            with opener.open(request, timeout=25) as response:
+                raw = response.read(limit + 1)
+        except urllib.error.HTTPError as exc:
+            if exc.code != 302:
+                deny(f"CONTROL_LOG_API_HTTP_{exc.code}")
+            location = exc.headers.get("Location")
+            exc.close()
+            target = urllib.parse.urlsplit(location or "")
+            if (target.scheme != "https" or not target.hostname
+                    or target.username is not None or target.password is not None):
+                deny("CONTROL_LOG_REDIRECT_INVALID")
+            try:
+                with opener.open(urllib.request.Request(location), timeout=25) as response:
+                    raw = response.read(limit + 1)
+            except urllib.error.HTTPError as storage_exc:
+                deny(f"CONTROL_LOG_STORAGE_HTTP_{storage_exc.code}")
+    except (urllib.error.URLError, TimeoutError, OSError):
+        deny("CONTROL_LOG_TRANSPORT_FAILED")
+    if len(raw) > limit:
+        deny("CONTROL_LOG_SIZE_INVALID")
+    return raw.decode("utf-8", errors="strict")
+
+
 def attest_control_checkout(run_id: int, expected: str) -> None:
     response = api(f"actions/runs/{run_id}/jobs?per_page=100")
     jobs = response.get("jobs")
@@ -313,7 +358,7 @@ def attest_control_checkout(run_id: int, expected: str) -> None:
     if type(job.get("id")) is not int:
         deny("CONTROL_JOB_INVALID")
     # Never print or inspect exam contents; parse only the early checkout prefix.
-    log = sh("gh", "api", f"repos/{REPO}/actions/jobs/{job['id']}/logs")
+    log = read_checkout_log(job["id"])
     if checkout_sha_from_log(log) != expected:
         deny("CONTROL_CHECKOUT_SHA_MISMATCH")
 
