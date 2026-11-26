@@ -310,3 +310,4 @@
 | CHG-0521 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/757 |
 | CHG-0534 | EDITORIAL | Recuperar checks inconsistentes del Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/771 |
 | CHG-0542 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/780 |
+| CHG-0548 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
