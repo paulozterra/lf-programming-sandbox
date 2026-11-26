@@ -7,13 +7,12 @@
     "kind": "OWNER",
     "reference": "Owner: recuperación gobernada de defectos de herramientas previas a aceptación"
   },
-  "reason": "Acreditar falsos positivos mediante reproducción diferencial aislada y control corregido completo, con identidad histórica y registro durable por run. Ensayo CI temporal del PR 800 exclusivamente de lectura; no registra recuperaciones ni altera exámenes.",
+  "reason": "Acreditar falsos positivos mediante reproducción diferencial aislada y control corregido completo, con identidad histórica y registro durable por run, sin reanclar registro ni modificar examen. Ensayo temporal ejecutado en CI 45849729455, job 140012799686, sin registrar recuperaciones; evidencia en el PR.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
-      ".github/workflows/ci.yml",
       "pilot/orchestrator/route_tool_defect.py",
       "pilot/worker_v08/native_route_tool_defect.py",
       "pilot/worker_v08/test_t37_route_tool_defect.py",
