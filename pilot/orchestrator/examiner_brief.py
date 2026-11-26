@@ -45,10 +45,61 @@ def lot_for(lots: dict, write_paths: list[str]) -> dict:
     return rows[0]
 
 
+def source_fiche_rules(root: Path, requirement_ids: list[str]) -> dict:
+    """Resolve second-screen requirement IDs through their explicit source links.
+
+    The canonical trace is the lot REQ suffix, not a normalized guess at the
+    original rule code. Only a unique rule in the same source, with matching
+    evidence and effective-rule link, can authorize that alias.
+    """
+    wanted = {r for r in requirement_ids if isinstance(r, str) and r.startswith("REQ-")}
+    candidates: dict[str, list] = {}
+    for path in sorted((root / "analysis" / "fixtures").glob("*/source.json")):
+        if path.is_symlink():
+            continue
+        try:
+            data = json.loads(path.read_text("utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(data, dict) or data.get("schema_version") != "SECOND_SCREEN_SOURCE_V1":
+            continue
+        screen = data.get("screen_contract")
+        effective = data.get("effective_rules")
+        requirements = data.get("requirements")
+        if not isinstance(requirements, list):
+            continue
+        for req in requirements:
+            if not isinstance(req, dict) or req.get("requirement_id") not in wanted:
+                continue
+            canonical = req["requirement_id"][len("REQ-"):]
+            rows = candidates.setdefault(canonical, [])
+            source_code = req.get("source_requirement_id")
+            if not isinstance(source_code, str) or not isinstance(screen, dict) or not isinstance(effective, dict):
+                rows.append(None)
+                continue
+            rules = screen.get("rules")
+            refs = req.get("evidence_refs")
+            matches = [r for r in rules if isinstance(r, dict) and r.get("code") == source_code] if isinstance(rules, list) else []
+            link = effective.get(source_code)
+            if len(matches) != 1 or not isinstance(link, dict) or not isinstance(refs, list):
+                rows.append(None)
+                continue
+            rule = matches[0]
+            ref = rule.get("source_ref")
+            if (not isinstance(ref, str) or not ref or ref not in refs
+                    or link.get("code") != source_code or link.get("source_ref") != ref):
+                rows.append(None)
+                continue
+            rows.append({**link, **rule, "fixture": path.parent.name,
+                         "code": canonical, "source_rule_code": source_code})
+    return {code: rows[0] for code, rows in candidates.items()
+            if len(rows) == 1 and rows[0] is not None}
+
+
 def fiche_rules(root: Path, requirement_ids: list[str]) -> dict:
-    """Fiche rule text for each REQ-<code> of the lot (any fixture folder)."""
+    """Fiche text keyed by the canonical trace code of each lot requirement."""
     wanted = {r[len("REQ-"):] for r in requirement_ids if r.startswith("REQ-")}
-    found: dict[str, dict] = {}
+    found = source_fiche_rules(root, requirement_ids)
     for path in sorted((root / "analysis" / "fixtures").glob("*/effective_rules.json")):
         try:
             data = json.loads(path.read_text("utf-8"))
@@ -125,7 +176,7 @@ def build_brief(root: Path, request: str, task: str, write_paths: list[str],
                         "--family", "<area-lowercase>", "--version", "v1",
                         "--worktree", "<scratch>/main", "--reference", "<scratch>/ref",
                         "--mutants", "<scratch>/mut", "--derived-from", "<ficha y reglas>"],
-            "trace_kinds": ["rule:<CODE de la ficha del lote>", "contract:<ruta>",
+            "trace_kinds": ["rule:<CODE canónico mostrado en rules del lote>", "contract:<ruta>",
                             f"request:{request} <decisión>", "env:<build/arranque>"],
             "branch": f"exam/{task}",
             "paths": [f"pilot/holdouts/{task}.oracle.json.age",
