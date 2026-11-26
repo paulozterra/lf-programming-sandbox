@@ -8,11 +8,9 @@ from __future__ import annotations
 
 import argparse
 import base64
-import hashlib
 import json
 import os
 import re
-import subprocess
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -109,9 +107,10 @@ def steps(api, run):
         return {}
     rows = jobs[0].get("steps")
     require(isinstance(rows, list), "FORMAT_STEP_HISTORY_INVALID")
-    names = [s.get("name") for s in rows]
+    relevant = [s for s in rows if s.get("name") in (GATE, UPLOAD, WORKER)]
+    names = [s.get("name") for s in relevant]
     require(len(names) == len(set(names)), "FORMAT_STEP_HISTORY_DUPLICATE")
-    return {s["name"]: s.get("conclusion") for s in rows}
+    return {s["name"]: s.get("conclusion") for s in relevant}
 
 
 def envelope_at(api, task, sha):
@@ -177,7 +176,8 @@ def validate(data, task, run_id, sha, outcome, envelope=None):
                 and set(data["paths"]).issubset(envelope["proposal"]["changed_paths"]),
                 "FORMAT_EVIDENCE_HASH_MISMATCH")
     else:
-        require(all(isinstance(v, str) and SHA64.fullmatch(v) for v in hashes.values())
+        require((envelope is not None and all(isinstance(v, str) and SHA64.fullmatch(v) for v in hashes.values())
+                 and hashes == identity(envelope))
                 or (all(v is None for v in hashes.values()) and data["status"] in
                     ("INVALID_PROPOSAL", "INFRA_ERROR")), "FORMAT_EVIDENCE_HASH_INVALID")
     return data
@@ -189,14 +189,17 @@ def historical_rejections(api, command, repo, task, run_id, sha):
     current = [r for r in rows if r["id"] == run_id]
     require(len(current) == 1, "FORMAT_CURRENT_RUN_MISSING")
     trusted_run(current[0], repo)
-    require(proposal_sha(current[0], task) == sha, "FORMAT_CURRENT_RUN_MISMATCH")
+    require(proposal_sha(current[0], task) == sha and stamp(current[0].get("created_at")) >= boundary,
+            "FORMAT_CURRENT_RUN_MISMATCH")
     rejected = {}
     for row in sorted(rows, key=lambda r: r["id"]):
-        if row["id"] == run_id or not _recognized_run(row, task):
+        if row["id"] == run_id or not _recognized_run({**row, "run_attempt": 1}, task):
             continue
-        trusted_run(row, repo)
         if stamp(row.get("created_at")) < boundary:
             continue
+        # Re-running a GitHub run changes its attempt metadata. Never silently
+        # drop an earlier format rejection because somebody re-ran its job.
+        trusted_run(row, repo)
         if row["id"] > run_id and row.get("status") != "completed":
             continue  # newer queued runs have not executed under task concurrency
         require(row["id"] < run_id and row.get("status") == "completed",
@@ -214,7 +217,7 @@ def historical_rejections(api, command, repo, task, run_id, sha):
                 "FORMAT_EVIDENCE_NOT_ATTESTED")
         old_sha = proposal_sha(row, task)
         data = download(api, command, repo, row["id"])
-        envelope = envelope_at(api, task, old_sha) if data.get("status") == "FORMAT_FAIL" else None
+        envelope = envelope_at(api, task, old_sha) if any(data.get(k) is not None for k in HASHES) else None
         validate(data, task, row["id"], old_sha, outcome, envelope)
         if data["status"] == "FORMAT_FAIL":
             require(observed.get(WORKER) == "skipped", "FORMAT_WORKER_NOT_SKIPPED")
@@ -288,7 +291,7 @@ def main():
         observed = steps(api, run)
         require(observed.get(GATE) == "failure" and observed.get(UPLOAD) == "success",
                 "FORMAT_EVIDENCE_NOT_ATTESTED")
-        envelope = envelope_at(api, a.task, a.sha) if data.get("status") == "FORMAT_FAIL" else None
+        envelope = envelope_at(api, a.task, a.sha) if any(data.get(k) is not None for k in HASHES) else None
         validate(data, a.task, a.run_id, a.sha, "failure", envelope)
         if data["status"] == "FORMAT_FAIL":
             print(publish(_subprocess, api, repo, a.control, a.task, data))

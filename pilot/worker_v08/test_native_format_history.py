@@ -44,7 +44,7 @@ def scenario(monkeypatch, entries, current=9, current_sha=SHA, event="workflow_r
     env = {item[0]["display_title"].rsplit("-", 1)[-1]: item[2] for item in entries}
     monkeypatch.setattr(h, "cutover", lambda api: datetime(2026, 11, 26, tzinfo=timezone.utc))
     monkeypatch.setattr(h, "listed", lambda api: rows)
-    monkeypatch.setattr(h, "steps", lambda api, run: {h.GATE: "failure", h.UPLOAD: "success", h.WORKER: "skipped"})
+    monkeypatch.setattr(h, "steps", lambda api, run: {h.GATE: "success" if data[run["id"]]["status"] in h.CONTINUE else "failure", h.UPLOAD: "success", h.WORKER: "skipped"})
     monkeypatch.setattr(h, "download", lambda api, cmd, repo, rid: data[rid])
     monkeypatch.setattr(h, "envelope_at", lambda api, task, sha: env[sha])
     return h.historical_rejections(None, None, h.REPO, TASK, current, current_sha)
@@ -76,7 +76,7 @@ def test_duplicate_historical_patch_counted_once(monkeypatch):
     assert len(rejected) == 1
 
 
-@pytest.mark.parametrize("status", ["BASELINE_FAIL","INFRA_ERROR","INVALID_PROPOSAL"])
+@pytest.mark.parametrize("status", ["PASS","SKIPPED","BASELINE_FAIL","INFRA_ERROR","INVALID_PROPOSAL"])
 def test_nonformat_not_counted(monkeypatch,status):
     env = envelope()
     assert not scenario(monkeypatch, [(row(1,"1"*40),evidence(1,"1"*40,env,status),env)])
@@ -130,3 +130,55 @@ def test_functional_budget_precedes_format():
     assert text.index("Determine and gate attempt") < text.index("Admit independent format rejection budget") < text.index(h.GATE)
     assert text.index(h.UPLOAD) < text.index("Publish independent format feedback")
     assert "NATIVE_ATTEMPT" not in text.split("Admit independent format rejection budget",1)[1].split("      - name:",1)[0]
+
+
+def test_rerun_cannot_erase_rejection(monkeypatch):
+    prior = entries(1)[0]
+    prior[0]["run_attempt"] = 2
+    with pytest.raises(ValueError, match="FORMAT_RUN_UNTRUSTED"):
+        scenario(monkeypatch, [prior])
+
+
+def test_missing_post_cutover_gate_evidence(monkeypatch):
+    env = envelope()
+    with pytest.raises((ValueError, AttributeError, TypeError)):
+        scenario(monkeypatch, [(row(1,"1"*40),None,env)])
+
+
+@pytest.mark.parametrize("spent,expected", [(0,1),(3,None)])
+def test_original_functional_admission_unchanged(monkeypatch,tmp_path,spent,expected):
+    import native_run_history as functional
+    rows = [row(i,str(i)*40) for i in range(1,7)] + [row(9,SHA)]
+    proofs = {i: {"task_id":TASK,"attempt":i,"task_pack_sha256":"c"*64,"run_id":i}
+              for i in range(1,spent+1)}
+    monkeypatch.setattr(functional,"_api",lambda *a: {"total_count":len(rows),"workflow_runs":rows})
+    monkeypatch.setattr(functional,"_artifact_json",lambda b,t,rid,**kw:
+        {"schema_version":"LF_NATIVE_NO_ATTEMPT_V1","task_id":TASK,"run_id":rid,"attempt":1,"reason":"PRE_ATTEMPT"}
+        if kw.get("artifact_name") == functional._NO_ATTEMPT_ARTIFACT and rid not in proofs
+        else proofs.get(rid))
+    monkeypatch.setattr("native_route_defect.verified_migration",lambda *a,**kw:None)
+    monkeypatch.setattr("native_examiner_defect.verified_examiner_defects",lambda *a,**kw:{})
+    monkeypatch.setattr("native_route_tool_defect.verified_route_tool_defects",lambda *a,**kw:{})
+    monkeypatch.setattr("native_intake_defect.verified_intake_defects",lambda *a,**kw:{})
+    kwargs=dict(repository=h.REPO,token="offline",task=TASK,attempt=None,run_id=9,run_attempt=1,
+                sha=SHA,output=tmp_path/"functional.json",event="workflow_run",
+                proposal_branch="lf/native-proposal/"+TASK)
+    if expected is None:
+        with pytest.raises(ValueError,match="NATIVE_ATTEMPT_LIMIT_EXCEEDED"):
+            functional.admit_attempt(**kwargs)
+    else:
+        assert functional.admit_attempt(**kwargs)==expected
+
+
+def test_t23_pack_compatibility(monkeypatch,tmp_path):
+    import native_format_admission as admission
+    from unittest.mock import patch
+    monkeypatch.setattr(admission,"export",lambda *a:"d"*64)
+    monkeypatch.setattr(admission,"storage_path",lambda *a,**kw:tmp_path/"registration.json")
+    (tmp_path/"registration.json").write_text("{}")
+    mapping={"corrected_task_pack_sha256":"d"*64,"legacy_task_pack_sha256":"c"*64}
+    with patch("native_route_defect.verified_migration",return_value=mapping):
+        args=(tmp_path,tmp_path,TASK,{},envelope())
+        assert admission._check_pack(*args,route_retry=True,sha=SHA,attempt=1)
+        assert not admission._check_pack(*args,route_retry=True,sha=SHA,attempt=2)
+        assert not admission._check_pack(*args,route_retry=False,sha=SHA,attempt=1)
