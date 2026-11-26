@@ -115,7 +115,7 @@ def test_trace_must_cover_every_failure_code(tmp_path):
         pe.check_trace(script, {k: v for k, v in ok.items() if k != "EMAIL_LOGIN"},
                        tmp_path, tmp_path, "req-9")
     with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_RULE_UNKNOWN"):
-        pe.check_trace(script, dict(ok, BUILD="rule:SBX-NO-EXISTE-999"), tmp_path, tmp_path, "req-9")
+        pe.check_trace(script, dict(ok, BUILD="rule:STD-NO-EXISTE-999"), tmp_path, tmp_path, "req-9")
     with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_KIND_INVALID"):
         pe.check_trace(script, dict(ok, BUILD="porque sí"), tmp_path, tmp_path, "req-9")
     with pytest.raises(pe.ExamBlocked, match="EXAM_TRACE_REQUEST_MISMATCH"):
