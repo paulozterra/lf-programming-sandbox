@@ -236,26 +236,65 @@ def available() -> None:
 
 
 def _spawn(argv: list[str], root: Path) -> subprocess.Popen:
+    import tempfile
+    log = None
     try:
-        # Neither browser assertions nor child-server logs receive secrets.
-        return subprocess.Popen(argv, cwd=root, stdin=subprocess.DEVNULL,
-                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        log = tempfile.TemporaryFile()
+        proc = subprocess.Popen(argv, cwd=root, stdin=subprocess.DEVNULL,
+                                stdout=log, stderr=subprocess.STDOUT,
                                 start_new_session=True,
                                 env={**os.environ, "CI": "true", "NEXT_TELEMETRY_DISABLED": "1"})
+        proc._lf_log = log  # type: ignore[attr-defined]
+        return proc
     except OSError as exc:
+        if log is not None:
+            log.close()
+        print("APP_NO_ARRANCA_DETALLE: SPAWN_FAILED", file=sys.stderr)
         raise BrowserBlocked("APP_NO_ARRANCA") from exc
 
 
-def wait_local(port: int, proc: subprocess.Popen, seconds: int = 90) -> None:
+# Emit only fixed diagnostic categories, never arbitrary child-controlled text.
+# pread avoids altering the shared write offset while the process is alive.
+_DIAG_TAIL_BYTES = 64 * 1024
+_DIAG_PATTERNS = (
+    ("MAVEN_DEPENDENCY_TRANSFER", rb"downloading (?:from |spring-boot-maven-plugin)|could not (?:transfer|resolve)|non-resolvable parent pom"),
+    ("DATABASE_CONNECTION", rb"connection refused|failed to obtain jdbc connection|unable to obtain connection from database"),
+    ("PORT_IN_USE", rb"address already in use|port [0-9]+ was already in use|eaddrinuse"),
+    ("JAVA_START_FAILURE", rb"application failed to start|could not find or load main class|unsupportedclassversionerror"),
+    ("NODE_START_FAILURE", rb"cannot find module|module not found|next: not found"),
+)
+
+
+def _start_diagnosis(name: str, proc: subprocess.Popen, seconds: int) -> None:
+    code = proc.poll()
+    cause = f"TIMEOUT_{seconds}S" if code is None else f"EXIT_{code}"
+    print(f"APP_NO_ARRANCA_DETALLE: {name} {cause}", file=sys.stderr)
+    log = getattr(proc, "_lf_log", None)
+    if log is None:
+        return
+    try:
+        size = os.fstat(log.fileno()).st_size
+        raw = os.pread(log.fileno(), min(size, _DIAG_TAIL_BYTES),
+                       max(0, size - _DIAG_TAIL_BYTES)).lower()
+    except (OSError, ValueError):
+        return
+    for category, pattern in _DIAG_PATTERNS:
+        if re.search(pattern, raw):
+            print(f"APP_NO_ARRANCA_INDICIO: {name} {category}", file=sys.stderr)
+
+
+def wait_local(port: int, proc: subprocess.Popen, seconds: int = 90, name: str = "APP") -> None:
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         if proc.poll() is not None:
+            _start_diagnosis(name, proc, seconds)
             raise BrowserBlocked("APP_NO_ARRANCA")
         try:
             with socket.create_connection(("127.0.0.1", port), timeout=0.5):
                 return
         except OSError:
             time.sleep(0.3)
+    _start_diagnosis(name, proc, seconds)
     raise BrowserBlocked("APP_NO_ARRANCA")
 
 
@@ -268,6 +307,10 @@ def _stop(proc: subprocess.Popen) -> None:
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
         pass
+    finally:
+        log = getattr(proc, "_lf_log", None)
+        if log is not None:
+            log.close()
 
 
 APP_START_ATTEMPTS = 2
@@ -305,11 +348,11 @@ def _verify_once(root: Path, *, path: str, selector: str, text: str | None,
                           "spring-boot:run", "-Dspring-boot.run.arguments=--server.address=127.0.0.1"],
                          root)
         running.append(backend)
-        wait_local(BACKEND_PORT, backend)
+        wait_local(BACKEND_PORT, backend, name="BACKEND")
         frontend = _spawn(["npm", "--prefix", web["root"], "run", "dev",
                            "--", "--hostname", "127.0.0.1", "--port", str(FRONTEND_PORT)], root)
         running.append(frontend)
-        wait_local(FRONTEND_PORT, frontend)
+        wait_local(FRONTEND_PORT, frontend, name="FRONTEND")
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             try:
