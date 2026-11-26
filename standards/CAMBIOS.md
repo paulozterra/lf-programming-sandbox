@@ -309,3 +309,4 @@
 | CHG-0520 | EDITORIAL | Separar retiros E2 obsoletos del presupuesto de ensayos |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/756 |
 | CHG-0521 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/757 |
 | CHG-0534 | EDITORIAL | Recuperar checks inconsistentes del Train |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/771 |
+| CHG-0542 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/780 |
