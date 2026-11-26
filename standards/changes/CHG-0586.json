@@ -1,0 +1,37 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0586",
+  "title": "Resolver trazas del examinador desde fuentes de segunda pantalla",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: solucionar EXAM_TRACE_RULE_UNKNOWN en EXAM_REQUEST #831"
+  },
+  "reason": "Resolver la relación explícita entre requirement_id y source_requirement_id de SECOND_SCREEN_SOURCE_V1 en el brief y la validación de trazas. Rechazar enlaces ausentes, ambiguos o sin evidencia; conservar el alcance de lote T58 y la compatibilidad con fichas legacy. Regresión sintética sin examen ni registro real.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/examiner_brief.py",
+      "pilot/orchestrator/publish_exam.py",
+      "pilot/orchestrator/test_t58_auto_examiner.py",
+      "standards/changes/CHG-0586.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/835"
+  }
+}
