@@ -1,0 +1,262 @@
+{
+  "area": "BACKEND",
+  "note": "Reglas de negocio del lote copiadas del paquete A9 del pedido. Son obligatorias y prevalecen sobre cualquier suposición; las reglas técnicas (STD-*) están en lf_rules.md.",
+  "requirements": [
+    {
+      "acceptance_checks": [
+        "Cada intento de inicio de sesión fallido queda registrado en el almacén persistente con la referencia de la cuenta o el correo normalizado, la hora, el resultado y el correlation id; nunca la contraseña. El bloqueo por intentos se calcula desde ese registro, de modo que se mantiene aunque el servicio se reinicie. Rige la política del login existente (bloqueo tras 5 fallos durante 15 minutos)."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/335"
+      ],
+      "outcome": "Cada intento de inicio de sesión fallido queda registrado en el almacén persistente con la referencia de la cuenta o el correo normalizado, la hora, el resultado y el correlation id; nunca la contraseña. El bloqueo por intentos se calcula desde ese registro, de modo que se mantiene aunque el servicio se reinicie. Rige la política del login existente (bloqueo tras 5 fallos durante 15 minutos).",
+      "requirement_id": "REQ-SBX-B2B-R-DATA-ATTEMPTS-BACKEND",
+      "rule_code": "SBX-B2B-R-DATA-ATTEMPTS",
+      "rules": [
+        {
+          "categoria": "DATOS",
+          "rule_code": "SBX-B2B-R-DATA-ATTEMPTS",
+          "source_ref": "supabase://lf_ops.reglas/335",
+          "source_status": "VIGENTE",
+          "titulo": "Registro persistente de intentos fallidos",
+          "valor_config": {
+            "counted_outcomes": [
+              "INVALID_CREDENTIALS"
+            ],
+            "locked_response": {
+              "error_code": "SBX-B2B-E-RATE",
+              "http_status": 429,
+              "outcome": "RATE_LIMITED"
+            },
+            "lockout_source": "PERSISTED_ATTEMPTS",
+            "obligation_areas": [
+              "DATA",
+              "BACKEND"
+            ],
+            "origin": "SANDBOX_INTEGRATION",
+            "password_in_record": "DENY",
+            "record": [
+              "account_ref_or_normalized_email",
+              "occurred_at",
+              "outcome",
+              "correlation_id"
+            ],
+            "reset_on": "AUTHENTICATED",
+            "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+            "sandbox_policy": "EXISTING_LOGIN_POLICY",
+            "schema": {
+              "columns": {
+                "account_id": "bigint NULL, FK a sbx_b2b_accounts(id); NULL si el correo no existe",
+                "correlation_id": "varchar(64) NOT NULL",
+                "created_at": "timestamptz NOT NULL DEFAULT now(); momento del intento",
+                "email_normalized": "varchar(254) NOT NULL",
+                "id": "bigint identidad, PK",
+                "outcome": "varchar(24) NOT NULL, CHECK INVALID_CREDENTIALS | RATE_LIMITED",
+                "updated_at": "timestamptz NOT NULL DEFAULT now() (STD-DB-04); la tabla es de solo inserción"
+              },
+              "forbidden_columns": [
+                "password",
+                "password_hash",
+                "password_plain"
+              ],
+              "index": [
+                "(email_normalized, created_at)"
+              ],
+              "table": "sbx_b2b_login_attempts"
+            },
+            "standards": [
+              "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+            ],
+            "store": "SANDBOX_RELATIONAL_DB",
+            "survives_restart": true
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "La sesión emitida tras un resultado AUTHENTICATED se registra en el almacén persistente (solo el hash del token, la cuenta, creación, último uso, vencimiento y revocación). La inactividad y la concurrencia de sesiones se aplican desde ese registro. Cerrar sesión revoca el registro; un token revocado o vencido deja de ser válido aunque el servicio se reinicie."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/336"
+      ],
+      "outcome": "La sesión emitida tras un resultado AUTHENTICATED se registra en el almacén persistente (solo el hash del token, la cuenta, creación, último uso, vencimiento y revocación). La inactividad y la concurrencia de sesiones se aplican desde ese registro. Cerrar sesión revoca el registro; un token revocado o vencido deja de ser válido aunque el servicio se reinicie.",
+      "requirement_id": "REQ-SBX-B2B-R-DATA-SESSIONS-BACKEND",
+      "rule_code": "SBX-B2B-R-DATA-SESSIONS",
+      "rules": [
+        {
+          "categoria": "DATOS",
+          "rule_code": "SBX-B2B-R-DATA-SESSIONS",
+          "source_ref": "supabase://lf_ops.reglas/336",
+          "source_status": "VIGENTE",
+          "titulo": "Sesiones persistidas y revocables",
+          "valor_config": {
+            "idle_and_concurrency_source": "PERSISTED_SESSIONS",
+            "logout": "REVOKE",
+            "logout_auth": "Authorization: Bearer <token>",
+            "logout_endpoint": "POST /api/auth/logout",
+            "logout_response": {
+              "http_status": 204
+            },
+            "obligation_areas": [
+              "DATA",
+              "BACKEND"
+            ],
+            "origin": "SANDBOX_INTEGRATION",
+            "record": [
+              "token_hash",
+              "account_ref",
+              "created_at",
+              "last_seen_at",
+              "expires_at",
+              "revoked_at"
+            ],
+            "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+            "sandbox_policy": "EXISTING_LOGIN_POLICY",
+            "schema": {
+              "check": "expires_at > created_at",
+              "columns": {
+                "account_id": "bigint NOT NULL, FK a sbx_b2b_accounts(id)",
+                "created_at": "timestamptz NOT NULL DEFAULT now()",
+                "expires_at": "timestamptz NOT NULL",
+                "id": "bigint identidad, PK",
+                "last_seen_at": "timestamptz NOT NULL DEFAULT now()",
+                "revoked_at": "timestamptz NULL",
+                "token_hash": "char(64) NOT NULL UNIQUE, SHA-256 hex del token; el token nunca se guarda",
+                "updated_at": "timestamptz NOT NULL DEFAULT now(), mantenido por trigger (STD-DB-04)"
+              },
+              "table": "sbx_b2b_sessions"
+            },
+            "session_endpoint": "GET /api/auth/session",
+            "standards": [
+              "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+            ],
+            "store": "SANDBOX_RELATIONAL_DB",
+            "token_hash": "SHA-256 hex del token",
+            "token_storage": "HASH_ONLY"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Las cuentas que pueden iniciar sesión viven en el almacén persistente del sandbox (base relacional, migraciones Flyway versionadas que aplica el propio servicio al iniciar). Cada cuenta guarda correo, empresa, perfil y estado; la contraseña solo se guarda como hash. El correo es único sin distinguir mayúsculas. Los datos iniciales son ficticios y nunca incluyen contraseñas en claro. Las cuentas inactivas o restringidas no pueden autenticarse y se tratan como credenciales inválidas hacia afuera."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/334"
+      ],
+      "outcome": "Las cuentas que pueden iniciar sesión viven en el almacén persistente del sandbox (base relacional, migraciones Flyway versionadas que aplica el propio servicio al iniciar). Cada cuenta guarda correo, empresa, perfil y estado; la contraseña solo se guarda como hash. El correo es único sin distinguir mayúsculas. Los datos iniciales son ficticios y nunca incluyen contraseñas en claro. Las cuentas inactivas o restringidas no pueden autenticarse y se tratan como credenciales inválidas hacia afuera.",
+      "requirement_id": "REQ-SBX-B2B-R-DATA-USER-STORE-BACKEND",
+      "rule_code": "SBX-B2B-R-DATA-USER-STORE",
+      "rules": [
+        {
+          "categoria": "DATOS",
+          "rule_code": "SBX-B2B-R-DATA-USER-STORE",
+          "source_ref": "supabase://lf_ops.reglas/334",
+          "source_status": "VIGENTE",
+          "titulo": "Cuentas en el almacén persistente",
+          "valor_config": {
+            "account_fields": [
+              "email",
+              "password_hash",
+              "company_code",
+              "profile",
+              "status",
+              "created_at"
+            ],
+            "allowed_status": [
+              "ACTIVE",
+              "INACTIVE",
+              "RESTRICTED"
+            ],
+            "datasource_config": "El datasource de Spring debe resolver su conexión mediante las variables de entorno DB_URL, DB_USERNAME y DB_PASSWORD. No se permite almacenar usuarios, contraseñas ni credenciales por defecto en el repositorio, ni incluir credenciales en la URL. Solo la URL puede usar como valor por defecto local jdbc:postgresql://127.0.0.1:5432/pilot (Postgres efímero). Los jobs de Worker, CI y ensayo T40 deben proporcionar las tres variables a los procesos de aceptación y del oráculo desde su servicio Postgres desechable. Flyway aplica las migraciones al iniciar el servicio. No se requiere crear archivos .env.example ni otros .env.*.",
+            "email_uniqueness": "NORMALIZED_CASE_INSENSITIVE",
+            "engine": "postgres",
+            "migration_runner": "FLYWAY_AT_SERVICE_STARTUP",
+            "migrations_dir": "apps/time-service/src/main/resources/db/migration",
+            "migrations_location": "apps/time-service/src/main/resources/db/migration (classpath:db/migration)",
+            "obligation_areas": [
+              "DATA",
+              "BACKEND"
+            ],
+            "origin": "SANDBOX_INTEGRATION",
+            "password_storage": "HASH_ONLY",
+            "plaintext_password_in_seed": "DENY",
+            "rollback_dir": "apps/time-service/src/main/resources/db/rollback (fuera de la ubicación de Flyway)",
+            "schema": {
+              "allowed_profiles": [
+                "SBX_B2B_ADMIN_EMPRESA",
+                "SBX_B2B_APROBADOR",
+                "SBX_B2B_OPERADOR",
+                "SBX_B2B_LECTOR_AUDITOR"
+              ],
+              "columns": {
+                "company_code": "varchar(32) NOT NULL",
+                "created_at": "timestamptz NOT NULL DEFAULT now()",
+                "email": "varchar(254) NOT NULL, recortado; dominio en minúsculas",
+                "id": "bigint identidad, PK (STD-DB-02)",
+                "password_hash": "text NOT NULL, hash bcrypt ($2a$/$2b$/$2y$), nunca texto plano",
+                "profile": "varchar(40) NOT NULL, CHECK con allowed_profiles (STD-DB-05)",
+                "status": "varchar(12) NOT NULL DEFAULT 'ACTIVE', CHECK con allowed_status",
+                "updated_at": "timestamptz NOT NULL DEFAULT now(), mantenido por trigger (STD-DB-04)"
+              },
+              "seed": [
+                {
+                  "company_code": "SBX-EMP-001",
+                  "email": "demo@sandbox.test",
+                  "password_hash_source": "app.auth.default-password-bcrypt",
+                  "profile": "SBX_B2B_OPERADOR",
+                  "status": "ACTIVE"
+                },
+                {
+                  "company_code": "SBX-EMP-001",
+                  "email": "inactivo@sandbox.test",
+                  "profile": "SBX_B2B_LECTOR_AUDITOR",
+                  "status": "INACTIVE"
+                }
+              ],
+              "table": "sbx_b2b_accounts",
+              "unique": "lower(email)"
+            },
+            "seed": "FICTITIOUS_ONLY",
+            "service_runs_migrations": "ALLOW",
+            "standards": [
+              "STD-DB-01..09 aplican: tablas en plural snake_case, PK bigint identidad, nombres de constraints e índices por defecto de Postgres, created_at/updated_at, RLS activo sin privilegios a PUBLIC (STD-DB-06), migración V<n>__<descripcion>.sql con su rollback U<n>__<descripcion>.sql en el directorio de rollback: aplicar, revertir y reaplicar conservando los datos existentes (STD-DB-08)"
+            ],
+            "store": "SANDBOX_RELATIONAL_DB"
+          }
+        }
+      ]
+    },
+    {
+      "acceptance_checks": [
+        "Integración del sandbox (no es regla de LF): el servicio de login existente (POST /api/auth/login) acepta el correo electrónico como identificador; el usuario de prueba tiene el correo demo@sandbox.test. No se crea un segundo servicio de login; el acceso por usuario existente sigue funcionando."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/332"
+      ],
+      "outcome": "Integración del sandbox (no es regla de LF): el servicio de login existente (POST /api/auth/login) acepta el correo electrónico como identificador; el usuario de prueba tiene el correo demo@sandbox.test. No se crea un segundo servicio de login; el acceso por usuario existente sigue funcionando.",
+      "requirement_id": "REQ-SBX-B2B-R-INT-EMAIL-LOGIN",
+      "rule_code": "SBX-B2B-R-INT-EMAIL-LOGIN",
+      "rules": [
+        {
+          "categoria": "SECURITY",
+          "rule_code": "SBX-B2B-R-INT-EMAIL-LOGIN",
+          "source_ref": "supabase://lf_ops.reglas/332",
+          "source_status": "VIGENTE",
+          "titulo": "El login existente acepta correo",
+          "valor_config": {
+            "demo_email": "demo@sandbox.test",
+            "endpoint": "POST /api/auth/login",
+            "identifier": "email",
+            "keep_username_login": true,
+            "origin": "SANDBOX_INTEGRATION",
+            "second_login_service": "DENY"
+          }
+        }
+      ]
+    }
+  ],
+  "run": "req-652",
+  "schema_version": "LF_LOT_BUSINESS_RULES_V1"
+}
