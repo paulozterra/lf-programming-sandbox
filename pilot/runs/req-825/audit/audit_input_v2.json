@@ -1,0 +1,44 @@
+{
+  "acceptance_criteria": [
+    "RULE:FORMAT-CANARY-VALIDATION :: El servicio Java aislado valida un identificador no confiable mediante lista permitida: acepta únicamente canary-ok; cualquier otra cadena o null produce IllegalArgumentException con mensaje constante sin reflejar la entrada."
+  ],
+  "authority_refs": [
+    {
+      "expected_sha256": "4fba99686686c7e7315740fe7eb7009f86128af58c9a1db624ef7bdec148fe1c",
+      "resolution_status": "DECLARED_ONLY",
+      "resolved_revision": "e7bac8344af0a268a2f543bd97d5b6fbe7fa4bd1",
+      "uri": "github://paulozterra/lf-programming-sandbox@e7bac8344af0a268a2f543bd97d5b6fbe7fa4bd1/pilot/runs/req-825/analysis.json"
+    },
+    {
+      "expected_sha256": "8c34c8c7493b3b36a82953f9f8204dd5d0c3a641f913d5a2a4d537e0d48081fd",
+      "resolution_status": "DECLARED_ONLY",
+      "resolved_revision": "e7bac8344af0a268a2f543bd97d5b6fbe7fa4bd1",
+      "uri": "github://paulozterra/lf-programming-sandbox@e7bac8344af0a268a2f543bd97d5b6fbe7fa4bd1/pilot/runs/req-825/lots.json"
+    }
+  ],
+  "base_commit": "e7bac8344af0a268a2f543bd97d5b6fbe7fa4bd1",
+  "consumer_targets": [
+    "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryService.java"
+  ],
+  "entrypoints": [
+    "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryService.java"
+  ],
+  "evidence_destination": "pilot/runs/req-825/audit",
+  "freshness_budget_ms": null,
+  "ig_execution_required": false,
+  "new_e2e_requested": false,
+  "objective": "Auditar la implementación integrada del pedido req-825 contra su ficha (reglas) y sus contratos, leyendo el código real en e7bac8344af0.",
+  "performance_budget_ms": null,
+  "read_scope": [
+    "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryService.java",
+    "pilot/runs/req-825/analysis.json",
+    "pilot/runs/req-825/lots.json"
+  ],
+  "repository": "paulozterra/lf-programming-sandbox",
+  "sample_n": 1,
+  "schema_version": "LF_DEEP_AUDIT_INPUT_V2",
+  "write_scope": [
+    "TEST_LOCAL",
+    "UPDATE_DRAFT_PR"
+  ]
+}
