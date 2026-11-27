@@ -114,6 +114,9 @@ def _repo_with_merges(tmp_path):
     g = lambda *a: subprocess.run(["git", "-C", str(r), "-c", "user.name=t", "-c", "user.email=t@t", *a],
                                   check=True, capture_output=True, text=True).stdout.strip()
     g("init", "-q")
+    (r / "pilot/runs/req-9").mkdir(parents=True)
+    (r / "pilot/runs/req-9/analysis.json").write_text(json.dumps(ANALYSIS))
+    (r / "pilot/runs/req-9/lots.json").write_text(json.dumps(LOTS))
     shas = []
     for i in range(3):
         (r / f"f{i}").write_text(str(i))
@@ -126,9 +129,6 @@ def _repo_with_merges(tmp_path):
     (config_target / "projects").mkdir(parents=True, exist_ok=True)
     shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
     shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
-    (r / "pilot/runs/req-9").mkdir(parents=True)
-    (r / "pilot/runs/req-9/analysis.json").write_text("{}")
-    (r / "pilot/runs/req-9/lots.json").write_text("{}")
     (r / "pilot/audit/projects").mkdir(parents=True)
     for f in ("lf.json", "lf.audit-skill.manifest.json"):
         (r / "pilot/audit/projects" / f).write_text((ROOT / "pilot/audit/projects" / f).read_text())

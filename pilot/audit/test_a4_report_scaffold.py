@@ -75,7 +75,7 @@ def test_rebuilt_report_passes_the_skill_validator():
     with evidence_view(ROOT, AUDIT / "report.json", report, audit_input) as view:
         rebuilt = rs.assemble(draft_from(report), audit_input, skill, root=view)
         assert validate(rebuilt, view) == []
-    from validate_report import validate as validate_route
+    from pilot.audit.validate_report import validate as validate_route
     assert validate_route(AUDIT / "report.json", skill, ROOT) == []
 
 
@@ -84,8 +84,11 @@ def test_missing_rule_task_blocks():
     report = json.loads((AUDIT / "report.json").read_text())
     draft = draft_from(report)
     draft["tasks"].pop(next(iter(draft["tasks"])))
-    with pytest.raises(rs.ScaffoldError, match="SCAFFOLD_TASK_MISSING"):
-        rs.assemble(draft, json.loads((AUDIT / "audit_input_v2.json").read_text()), skill)
+    from historical_evidence import evidence_view
+    audit_input = json.loads((AUDIT / "audit_input_v2.json").read_text())
+    with evidence_view(ROOT, AUDIT / "report.json", report, audit_input) as view:
+        with pytest.raises(rs.ScaffoldError, match="SCAFFOLD_TASK_MISSING"):
+            rs.assemble(draft, audit_input, skill, root=view)
 
 
 def test_wrong_draft_schema_blocks(tmp_path):

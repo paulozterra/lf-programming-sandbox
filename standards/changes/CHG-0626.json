@@ -1,6 +1,7 @@
 {
   "affected": {
     "paths": [
+      "pilot/audit/build_input.py",
       "pilot/audit/historical_evidence.py",
       "pilot/audit/report_scaffold.py",
       "pilot/audit/test_a4_report_scaffold.py",

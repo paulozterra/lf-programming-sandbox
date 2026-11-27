@@ -69,15 +69,13 @@ def validate(report_file: Path, skill_dir: Path, root: Path = ROOT,
     if not isinstance(report, dict) or not isinstance(audit_input, dict):
         return ["AUDIT_REPORT_INVALID:NOT_OBJECT"]
     errors = route_checks(report, audit_input, ekb_codes)
-    if errors:
-        return errors
     try:
         with evidence_view(root, report_file, report, audit_input) as view:
-            return skill_checks(report, skill_dir, view)
+            return errors + skill_checks(report, skill_dir, view)
     except EvidenceError as exc:
-        return [str(exc)]
+        return errors + [str(exc)]
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
-        return ["AUDIT_PROVENANCE:UNRESOLVED"]
+        return errors + ["AUDIT_PROVENANCE:UNRESOLVED"]
 
 
 def main() -> int:
