@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 
 from pilot.native_registration_family import registration_family
+from pilot.orchestrator.lot_recovery import for_successor, public_task
 
 
 class LifecycleBlocked(ValueError):
@@ -52,11 +53,15 @@ def close_registered(api, sha: str, branch: str, git, root: Path) -> str:
         raise LifecycleBlocked("EXAM_REGISTRATION_NOT_MERGED")
     paths = list((storage_path("requests_root", root=root)).glob("*/chain_plan.json"))
     scopes = []
+    recovery = for_successor(root, task)
     for plan in paths:
         if plan.is_symlink() or plan.parent.is_symlink():
             raise LifecycleBlocked("EXAM_PLAN_PATH_INVALID")
         obj = json.loads(plan.read_text("utf-8"))
-        if any(item.get("task_name") == task for item in obj.get("bindings", [])):
+        if recovery and plan.parent.name == recovery["request_id"]:
+            public_task(root, plan.parent.name, task)
+            scopes.append(plan.parent.name)
+        elif any(item.get("task_name") == task for item in obj.get("bindings", [])):
             scopes.append(plan.parent.name)
     if len(scopes) != 1:
         raise LifecycleBlocked("EXAM_REQUEST_SCOPE_UNRESOLVED")

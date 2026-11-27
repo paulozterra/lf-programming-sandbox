@@ -16,6 +16,8 @@ import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 
+from pilot.orchestrator.lot_recovery import public_task
+
 import argparse
 import json
 import re
@@ -91,12 +93,13 @@ def pr_in_flight(open_prs: list, task: str) -> bool:
 def template_matches(root: Path, row: dict) -> bool:
     """The task must still be planned: its lot template exists on main with the
     same write paths. Requests re-planned or abandoned leave stale issues."""
-    path = root / "pilot" / "runs" / row["request"] / "templates" / f"{row['task']}.task.json"
-    if path.is_symlink() or not path.is_file():
-        return False
     try:
+        task = public_task(root, row["request"], row["task"], lot=row.get("lot"))
+        path = root / "pilot" / "runs" / row["request"] / "templates" / f"{task}.task.json"
+        if path.is_symlink() or not path.is_file():
+            return False
         spec = json.loads(path.read_text("utf-8")).get("task_spec", {})
-    except ValueError:
+    except (OSError, ValueError, KeyError, TypeError):
         return False
     return sorted(spec.get("write_path_patterns") or []) == sorted(row["write_paths"])
 

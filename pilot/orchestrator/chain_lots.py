@@ -792,7 +792,9 @@ def conflicted_request(row: dict, all_plans: list) -> str | None:
                        branch.removeprefix("lf/native-integration/")))
         matches = {request for request, _lots, _state, bindings in all_plans
                    if any(binding.get("task_name") == task
-                          for binding in bindings.values())}
+                          for binding in bindings.values())
+                   or any(row["successor_task"] == task
+                          for row in lot_recoveries(ROOT, request, bindings).values())}
         return next(iter(matches)) if len(matches) == 1 else None
     return None
 

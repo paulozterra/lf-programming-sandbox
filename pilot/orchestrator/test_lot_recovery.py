@@ -6,7 +6,7 @@ import pytest
 
 from pilot.orchestrator.lot_recovery import (
     POLICY, append_only, for_request, for_successor, load, parse,
-    require_unused, schedule_recovery, verify_original,
+    require_unused, schedule_recovery, verify_original, public_task,
 )
 
 
@@ -71,8 +71,23 @@ def test_trusted_git_history_and_exact_binding(tmp_path):
     path = tmp_path / POLICY
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps(authorization()))
+    folder = tmp_path / "pilot/runs/req-12"
+    template = folder / "templates/req12backend1.task.json"
+    template.parent.mkdir(parents=True)
+    template.write_text(json.dumps({"task_spec": {"write_path_patterns": ["src/a"]}}))
+    (folder / "chain_plan.json").write_text(json.dumps({"request_id": "req-12", "bindings": [{
+        "lot_id": "SOL-001", "task_name": "req12backend1",
+        "template_path": template.relative_to(tmp_path).as_posix()}]}))
     git("add", ".")
     git("commit", "-m", "owner enrollment")
+    assert public_task(tmp_path, "req-12", "req12backend12", lot="SOL-001") == "req12backend1"
+    from pilot.orchestrator.examiner_queue import template_matches
+    issue = {"request": "req-12", "task": "req12backend12", "lot": "SOL-001", "write_paths": ["src/a"]}
+    assert template_matches(tmp_path, issue)
+    assert not template_matches(tmp_path, dict(issue, task="req12backend13"))
+    assert not template_matches(tmp_path, dict(issue, lot="SOL-002"))
+    with pytest.raises(ValueError):
+        public_task(tmp_path, "req-13", "req12backend12")
     assert for_successor(tmp_path, "req12backend12")["lot_id"] == "SOL-001"
     assert for_successor(tmp_path, "req12backend13") is None
     assert for_request(tmp_path, "req-12", {"SOL-001": {"task_name": "req12backend1"}})

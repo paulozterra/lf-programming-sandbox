@@ -126,3 +126,23 @@ def verify_original(row, prior, forgiven, runs):
 def require_unused(prior):
     if prior:
         raise ValueError("LOT_RECOVERY_ATTEMPT_EXHAUSTED")
+
+
+def public_task(root, request, task, *, lot=None):
+    """Resolve only an owner-enrolled successor to its immutable public template."""
+    row = for_successor(root, task)
+    if row is None:
+        return task
+    require(row["request_id"] == request and (lot is None or row["lot_id"] == lot))
+    from pilot.config.project_config import storage_path
+    folder = storage_path("requests_root", root=root) / request
+    path = folder / "chain_plan.json"
+    require(path.is_file() and not path.is_symlink() and not folder.is_symlink())
+    plan = json.loads(path.read_text("utf-8"))
+    require(plan.get("request_id") == request)
+    bindings = [b for b in plan["bindings"] if b.get("lot_id") == row["lot_id"]]
+    original = row["original_task"]
+    expected = (folder / "templates" / f"{original}.task.json").relative_to(root).as_posix()
+    require(len(bindings) == 1 and bindings[0].get("task_name") == original
+            and bindings[0].get("template_path") == expected)
+    return original
