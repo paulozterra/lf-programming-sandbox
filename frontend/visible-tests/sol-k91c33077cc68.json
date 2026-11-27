@@ -1,0 +1,199 @@
+{
+  "covers": [
+    "REQ-SBX-B2B-R-A11Y-CONTRAST",
+    "REQ-SBX-B2B-R-A11Y-FORCED-COLORS",
+    "REQ-SBX-B2B-R-A11Y-INTERACTION",
+    "REQ-SBX-B2B-R-A11Y-MOTION",
+    "REQ-SBX-B2B-R-DESIGN-NO-HARDCODE",
+    "REQ-SBX-B2B-R-DESIGN-TOKENS",
+    "REQ-SBX-B2B-R-INT-RETURN",
+    "REQ-SBX-B2B-R-INT-SESSION-STORE",
+    "REQ-SBX-B2B-R-RESP-BREAKPOINTS",
+    "REQ-SBX-B2B-R-THEME-LIGHT",
+    "REQ-SBX-B2B-R-UX-ACTIONS",
+    "REQ-SBX-B2B-R-UX-RECOVERY",
+    "REQ-SBX-B2B-R-UX-SINGLE-FLIGHT"
+  ],
+  "cases": [
+    {
+      "id": "req652-characterization-contrast-cta",
+      "path": "/sbx-b2b-login",
+      "selector": "button[type='submit'].sbx-b2b-submit",
+      "text": "Acceder",
+      "css": {
+        "background-color": "rgb(16, 144, 68)",
+        "color": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "id": "req652-characterization-focus-hook-email",
+      "path": "/sbx-b2b-login",
+      "selector": "input#sbx-email.sbx-b2b-field.sbx-b2b-focus[required][autocomplete='username']",
+      "count": 1
+    },
+    {
+      "id": "req652-characterization-focus-hook-password",
+      "path": "/sbx-b2b-login",
+      "selector": "input#sbx-password.sbx-b2b-field.sbx-b2b-focus[type='password'][autocomplete='current-password']",
+      "count": 1
+    },
+    {
+      "id": "req652-characterization-toggle-touch",
+      "path": "/sbx-b2b-login",
+      "selector": "button[type='button'][aria-label='Mostrar contraseña'][aria-pressed='false'].sbx-b2b-focus",
+      "count": 1,
+      "css": {
+        "min-width": "48px",
+        "min-height": "48px"
+      }
+    },
+    {
+      "id": "req652-characterization-labels-email",
+      "path": "/sbx-b2b-login",
+      "selector": "label[for='sbx-email']",
+      "text": "Correo electrónico",
+      "count": 1
+    },
+    {
+      "id": "req652-characterization-labels-password",
+      "path": "/sbx-b2b-login",
+      "selector": "label[for='sbx-password']",
+      "text": "Contraseña",
+      "count": 1
+    },
+    {
+      "id": "req652-characterization-resting-animation",
+      "path": "/sbx-b2b-login",
+      "selector": ".sbx-b2b-form",
+      "css": {
+        "animation-name": "none"
+      }
+    },
+    {
+      "id": "req652-characterization-field-tokens",
+      "path": "/sbx-b2b-login",
+      "selector": "#sbx-email",
+      "css": {
+        "border-radius": "12px",
+        "padding-left": "48px",
+        "background-color": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "id": "req652-characterization-heading-token",
+      "path": "/sbx-b2b-login",
+      "selector": ".sbx-b2b-form h1",
+      "text": "Iniciar sesión",
+      "css": {
+        "font-size": "32px",
+        "font-weight": "700"
+      }
+    },
+    {
+      "id": "req652-characterization-return-query",
+      "path": "/sbx-b2b-login?next=/sbx-rem-list",
+      "selector": ".sbx-b2b-form h1",
+      "text": "Iniciar sesión",
+      "count": 1
+    },
+    {
+      "id": "req652-characterization-no-session-protected-route",
+      "path": "/sbx-rem-list",
+      "selector": ".sbx-b2b-form h1",
+      "text": "Iniciar sesión",
+      "count": 1
+    },
+    {
+      "id": "req652-characterization-desktop",
+      "path": "/sbx-b2b-login",
+      "selector": ".sbx-b2b-form",
+      "css": {
+        "max-width": "512px"
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "id": "req652-characterization-desktop-field-width",
+      "path": "/sbx-b2b-login",
+      "selector": "#sbx-email",
+      "box": {
+        "width": 512,
+        "tolerance_px": 2
+      },
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "id": "req652-characterization-tablet",
+      "path": "/sbx-b2b-login",
+      "selector": ".sbx-b2b-form",
+      "css": {
+        "max-width": "512px"
+      },
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      }
+    },
+    {
+      "id": "req652-characterization-mobile",
+      "path": "/sbx-b2b-login",
+      "selector": ".sbx-b2b-form",
+      "css": {
+        "max-width": "100%"
+      },
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "id": "req652-characterization-light-surface",
+      "path": "/sbx-b2b-login",
+      "selector": "main",
+      "css": {
+        "background-color": "rgb(253, 252, 250)",
+        "color": "rgb(15, 23, 42)"
+      }
+    },
+    {
+      "id": "req652-characterization-recovery-link",
+      "path": "/sbx-b2b-login",
+      "selector": ".sbx-b2b-form a[href='#']",
+      "text": "¿Olvidaste tu contraseña?",
+      "count": 1,
+      "css": {
+        "text-decoration-line": "underline"
+      }
+    },
+    {
+      "id": "req652-characterization-footer-actions",
+      "path": "/sbx-b2b-login",
+      "selector": "footer a[href='#'].sbx-b2b-focus",
+      "count": 3
+    },
+    {
+      "id": "req652-characterization-footer-privacy",
+      "path": "/sbx-b2b-login",
+      "selector": "footer a[href='#']:has-text('Política de privacidad')",
+      "count": 1
+    },
+    {
+      "id": "req652-characterization-footer-contact",
+      "path": "/sbx-b2b-login",
+      "selector": "footer a[href='#']:has-text('Contáctanos')",
+      "count": 1
+    },
+    {
+      "id": "req652-characterization-idle-single-flight",
+      "path": "/sbx-b2b-login",
+      "selector": "form.sbx-b2b-form:has(button[type='submit'][aria-busy='false']:not([disabled])):has(span[role='status'][aria-live='polite'])",
+      "count": 1
+    }
+  ]
+}
