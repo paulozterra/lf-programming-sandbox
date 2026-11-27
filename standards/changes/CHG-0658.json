@@ -1,0 +1,35 @@
+{
+  "affected": {
+    "paths": [
+      "pilot/runs/req-652/state.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0658.json"
+    ],
+    "rule_ids": [],
+    "term_ids": []
+  },
+  "approved_by": "paulozterra",
+  "artifacts": [],
+  "change_class": "EDITORIAL",
+  "change_id": "CHG-0658",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/915"
+  },
+  "existing_code_impact": {
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING",
+    "mode": "NEW_OR_MODIFIED_ONLY"
+  },
+  "reason": "CP36_MAX_VERIFIED_ATTEMPTS_EXCEEDED: req652backend22 agotó su única oportunidad adicional autorizada (1/1), Worker 46052645400 FAILURE, DEFECTO_PROPUESTA según dictamen independiente #890 comentario 7226765139 aceptado por el owner. El control positivo fue acreditado por exclusión durante el mismo run. Se preservan los tres intentos originales de req652backend2 y la excepción histórica 45751249784, el DAG, los dos lotes integrados y el registro de recuperación. El cambio de estado requiere revisión independiente y fusión gobernada por Train; no autoriza nuevos intentos.",
+  "requested_by": "agent:gpt",
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "security_pin_invalidation": {
+    "affected_artifacts": [],
+    "invalidates": false
+  },
+  "title": "CP3.6: encadenamiento gobernado req-652",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 CP3.6 encadenamiento automático"
+  }
+}
