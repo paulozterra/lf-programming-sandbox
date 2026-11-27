@@ -181,6 +181,9 @@ class API:
         if method == "POST" and path == "/issues/901/comments":
             self.comments.append({"user": {"login": BOT}, "body": body["body"]})
             return {}
+        if method == "GET":
+            from pilot.orchestrator.lifecycle_test_support import fake_api
+            return fake_api({})(path[1:])
         raise AssertionError((method, path))
 
     def pages(self, path):

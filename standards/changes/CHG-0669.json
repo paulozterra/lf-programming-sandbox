@@ -28,6 +28,9 @@
       "pilot/orchestrator/test_issue_intake.py",
       "pilot/orchestrator/test_r1_pg37_intake.py",
       "pilot/orchestrator/test_request_finalize.py",
+      "pilot/orchestrator/test_t17_4_conflict_recovery.py",
+      "pilot/orchestrator/test_t17_recovery_watchdog.py",
+      "pilot/orchestrator/test_t20_bot_ci_retry.py",
       "pilot/orchestrator/test_t46_1_bounded_replay.py",
       "pilot/orchestrator/test_t46_conflict_replay.py",
       "pilot/orchestrator/test_t49_1_cp35.py",
@@ -36,10 +39,15 @@
       "pilot/orchestrator/test_t50_pg37.py",
       "pilot/test_auto_integrate.py",
       "pilot/test_issue_intake_duplicate.py",
+      "pilot/test_request_failure_notify.py",
+      "pilot/test_t11_api_exams.py",
       "pilot/test_t12_concurrency.py",
       "pilot/test_t15_sweep.py",
+      "pilot/test_t17_3_sweep_wake.py",
+      "pilot/test_t23_1_registration_handoff.py",
       "pilot/test_t51_watchdog.py",
       "pilot/test_t9_2_handoff.py",
+      "pilot/test_t9_3_selector_notify.py",
       "pilot/test_t9_5_main_ci.py",
       "pilot/worker_v08/test_t22_feedback_delivery.py",
       "pilot/worker_v08/test_t35_feedback_unlabeled_issue.py",
@@ -61,6 +69,6 @@
   "requested_by": "owner",
   "approved_by": "paulozterra",
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/927"
   }
 }
