@@ -3,6 +3,8 @@ package lf.sandbox.time.auth;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import lf.sandbox.time.sbxb2blogin.SbxB2bLoginService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -25,6 +27,7 @@ public class AuthController {
     private final AuthUser authUser;
     private final BCryptPasswordEncoder passwordEncoder;
     private final String demoEmail;
+    private SbxB2bLoginService b2bService;
 
     public AuthController(
             AuthService authService,
@@ -35,6 +38,11 @@ public class AuthController {
         this.authUser = authUser;
         this.passwordEncoder = passwordEncoder;
         this.demoEmail = demoEmail;
+    }
+
+    @Autowired(required = false)
+    public void setB2bService(SbxB2bLoginService b2bService) {
+        this.b2bService = b2bService;
     }
 
     @PostMapping("/api/auth/login")
@@ -65,6 +73,17 @@ public class AuthController {
             return invalidCredentials(correlationId);
         }
         try {
+            if (b2bService != null) {
+                SbxB2bLoginService.B2bAuthOutcome result = b2bService.authenticateB2b(email, password, correlationId);
+                if ("AUTHENTICATED".equals(result.outcome())) {
+                    return ResponseEntity.ok(new B2bLoginResponse("AUTHENTICATED", correlationId, result.token()));
+                }
+                if ("RATE_LIMITED".equals(result.outcome())) {
+                    return ResponseEntity.status(429)
+                            .body(new B2bLoginFailure("RATE_LIMITED", correlationId, "SBX-B2B-E-RATE"));
+                }
+                return invalidCredentials(correlationId);
+            }
             boolean emailMatches =
                     email.length() <= 254 && EMAIL_PATTERN.matcher(email).matches() && matchesConfiguredEmail(email);
             if (!emailMatches) {
@@ -99,10 +118,23 @@ public class AuthController {
 
     @GetMapping("/api/auth/session")
     public ResponseEntity<?> session(@RequestHeader(name = "Authorization", required = false) String authorization) {
+        if (b2bService != null) {
+            var persistent = b2bService.checkB2bSession(authorization);
+            if (persistent.isPresent()) {
+                return ResponseEntity.ok(new SessionResponse(persistent.get()));
+            }
+        }
         return authService
                 .session(authorization)
                 .<ResponseEntity<?>>map(username -> ResponseEntity.ok(new SessionResponse(username)))
                 .orElseGet(AuthController::unauthorized);
+    }
+
+    @PostMapping("/api/auth/logout")
+    public ResponseEntity<?> logout(@RequestHeader(name = "Authorization", required = false) String authorization) {
+        return b2bService != null && b2bService.logout(authorization)
+                ? ResponseEntity.noContent().build()
+                : unauthorized();
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
