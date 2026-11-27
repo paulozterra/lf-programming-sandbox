@@ -12,6 +12,88 @@ from pilot.orchestrator.test_t72_dependencies import _scenario
 from pilot.workflow_python_commands import commands
 from pilot import train_handoff
 
+
+FORMAT_CANARY_PATHS = (
+    "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryController.java",
+    "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryService.java",
+)
+
+
+def _prepare_format_canary_create_base(root):
+    """Isolate CREATE in the disposable checkout, including its reuse ledger."""
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
+
+    assert git("branch", "--show-current") == "main"
+    assert not git("status", "--porcelain")
+    git("rm", "--ignore-unmatch", "--", *FORMAT_CANARY_PATHS)
+    # Once the real canary integrates, its attested registry entry must not
+    # turn this independent CREATE scenario into REUSE_AS_IS (or stale proof).
+    # Only the disposable copy and this exact target's entries are changed.
+    registry = root / "pilot/registry/implemented.json"
+    ledger = json.loads(registry.read_text(encoding="utf-8"))
+    assert ledger["schema_version"] == "T7_IMPLEMENTED_REGISTRY_V1"
+    original = ledger["entries"]
+    ledger["entries"] = [
+        row for row in original
+        if "FORMAT-CANARY-VALIDATION" not in row["rule_codes"]
+        and "REQ-FORMAT-CANARY-VALIDATION" not in row["requirement_ids"]
+        and not any(item["path"] in FORMAT_CANARY_PATHS for item in row["files"])
+    ]
+    if ledger["entries"] != original:
+        registry.write_text(json.dumps(ledger, sort_keys=True, separators=(",", ":")) + "\n",
+                            encoding="utf-8")
+        git("add", "--", "pilot/registry/implemented.json")
+    changed = git("diff", "--cached", "--name-only").splitlines()
+    assert set(changed) <= {*FORMAT_CANARY_PATHS, "pilot/registry/implemented.json"}
+    if changed:
+        git("-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+            "commit", "-m", "test: isolate format canary CREATE base")
+    base = git("rev-parse", "HEAD")
+    git("update-ref", "refs/remotes/origin/main", base)
+    assert not git("status", "--porcelain")
+    assert not git("ls-tree", "-r", "--name-only", base, "--", *FORMAT_CANARY_PATHS)
+    assert all(not (root / path).exists() for path in FORMAT_CANARY_PATHS)
+    return base
+
+
+@pytest.mark.parametrize("existing", [(), (FORMAT_CANARY_PATHS[1],), FORMAT_CANARY_PATHS])
+def test_format_canary_create_base_isolates_existing_components(tmp_path, existing):
+    # An isolated Git repository proves the preparation works before and
+    # after integration, independent of the disposable SQL selector.
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(tmp_path), *args], text=True).strip()
+
+    git("init", "-b", "main")
+    sentinel = tmp_path / "unrelated.txt"
+    sentinel.write_text("preserve\n", encoding="utf-8")
+    for rel in existing:
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("synthetic previously integrated component\n", encoding="utf-8")
+    unrelated = {"rule_codes": ["OTHER"], "requirement_ids": ["REQ-OTHER"],
+                 "files": [{"path": "unrelated.txt"}]}
+    entry = {"rule_codes": ["FORMAT-CANARY-VALIDATION"],
+             "requirement_ids": ["REQ-FORMAT-CANARY-VALIDATION"],
+             "files": [{"path": rel} for rel in existing]}
+    registry = tmp_path / "pilot/registry/implemented.json"
+    registry.parent.mkdir(parents=True)
+    registry.write_text(json.dumps({"schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
+                                    "entries": [unrelated, entry] if existing else [unrelated]}),
+                        encoding="utf-8")
+    git("add", ".")
+    git("-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+        "commit", "-m", "test: initial synthetic source")
+    before = git("rev-parse", "HEAD")
+    base = _prepare_format_canary_create_base(tmp_path)
+    assert (base != before) == bool(existing)
+    assert base == git("rev-parse", "refs/remotes/origin/main")
+    assert sentinel.read_text(encoding="utf-8") == "preserve\n"
+    assert json.loads(registry.read_text(encoding="utf-8"))["entries"] == [unrelated]
+    assert all(not (tmp_path / path).exists() for path in FORMAT_CANARY_PATHS)
+    assert _prepare_format_canary_create_base(tmp_path) == base
+
+
 @pytest.mark.skipif(
     os.environ.get("SELECTOR_EXP_DISPOSABLE_DB") != "YES"
     or os.environ.get("ATOMIZE_T1_SELECTOR") != "YES"
@@ -100,7 +182,7 @@ def test_format_canary_original_route_single_backend(tmp_path):
     # Only this disposable repository: local main simulates an authorized
     # source commit; no remote write or actual issue is made.
     git("switch", "-C", "main", base)
-    git("update-ref", "refs/remotes/origin/main", base)
+    base = _prepare_format_canary_create_base(root)
     slug = "req-9999579"
     folder = root / "pilot/runs" / slug
     folder.mkdir(parents=True)
@@ -142,10 +224,7 @@ def test_format_canary_original_route_single_backend(tmp_path):
     assert lot["area"] == "BACKEND" and lot["depends_on"] == []
     assert lot["requirement_ids"] == [rid]
     assert lot["profile_code"] == "PERFIL-PROG-BACKEND-SPRING-EXP"
-    paths = [
-        "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryController.java",
-        "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryService.java",
-    ]
+    paths = list(FORMAT_CANARY_PATHS)
     assert sorted(lot["write_paths"]) == paths
     assert all(not (root / path).exists() for path in paths)
     chain_path = root / "pilot/orchestrator/chain_plans" / (slug + ".json")
