@@ -62,7 +62,8 @@ def refresh(root: Path, request: str, completed: dict) -> list[str]:
              for path in proof.get("expected_files", []) if isinstance(path, str)}
     try:
         result = generate_chain.generate(str(root), request, refreshed,
-                                         persist=False, allow_source_drift=drift)
+                                         persist=False, allow_source_drift=drift,
+                                         completed=completed)
     except ProjectConfigError:
         raise
     except ValueError as exc:

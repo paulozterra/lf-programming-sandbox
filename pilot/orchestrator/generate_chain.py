@@ -221,16 +221,22 @@ def _unprotect_affected(root, protected, affected):
     return result
 
 
-def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
+def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset(),
+             completed=None):
     """Build the chain plan and task templates.
 
     persist=False returns {"plan": plan, "templates": {path: template}} without
     writing, so CP3.6 can regenerate a pending lot with the current generator.
     allow_source_drift lists files that already-integrated lots of the same
     request legitimately changed; their analysis-time reuse hashes are not
-    re-checked when regenerating later lots.
+    re-checked when regenerating later lots. completed carries the verified
+    CP3.6 merge receipts for preserving already-integrated characterization
+    templates during read-only regeneration, never during initial planning.
     """
     allow_source_drift=frozenset(allow_source_drift)
+    completed = {} if completed is None else completed
+    if completed and persist:
+        raise ValueError("T1_COMPLETED_REGENERATION_ONLY")
     folder=storage_path("requests_root", root=Path(root))/run
     report_path=folder/"reuse_assessment.json"
     reuse_rows=[]
@@ -316,6 +322,31 @@ def generate(root, run, lots, *, persist=True, allow_source_drift=frozenset()):
                      "holdout_metadata_path":f"pilot/runs/{run}/claude_meta/{task}.json"})
         paths=sorted(lot["write_paths"])
         enforce_generated_scope(lot["area"], paths)
+        if lot.get("lot_kind") == "CHARACTERIZATION" and lot["id"] in completed:
+            # A completed suite is historical evidence, not a new writable file.
+            # Keep its original binding/template; do not run CREATE admission
+            # on it or accidentally protect the suite against itself.
+            suite_root = _visible_suite_root()
+            proof = completed[lot["id"]]
+            if (not suite_root or len(paths) != 1
+                    or not paths[0].startswith(suite_root + "/")
+                    or proof.get("lot_id") != lot["id"]
+                    or proof.get("expected_files") != paths
+                    or paths[0] not in allow_source_drift):
+                raise ValueError("CARACTERIZACION_ALCANCE_INVALIDO")
+            suite = Path(root) / paths[0]
+            historical = Path(root) / tpath
+            if (not suite.is_file() or suite.is_symlink()
+                    or not historical.is_file() or historical.is_symlink()):
+                raise ValueError("CARACTERIZACION_ALCANCE_INVALIDO")
+            template = json.loads(historical.read_text(encoding="utf-8"))
+            spec = template.get("task_spec", {}) if isinstance(template, dict) else {}
+            if (not isinstance(spec, dict)
+                    or spec.get("task_id") != "LF-WORKER-NATIVE-" + task.upper()
+                    or spec.get("write_path_patterns") != paths):
+                raise ValueError("CARACTERIZACION_ALCANCE_INVALIDO")
+            output[tpath] = template
+            continue
         protected=lot_protection(lot["area"], paths)
         dependency_contract=lot.get("contract_context_ref")
         if dependency_contract and dependency_contract not in contract_by_path:
