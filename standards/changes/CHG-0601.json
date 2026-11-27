@@ -1,0 +1,33 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0601",
+  "title": "Inscripción exclusiva de req825backend1 en prevalidación nativa de formato",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: canary req-825, preparar inscripción Draft exclusiva, sin enviar propuestas ni fusionar"
+  },
+  "reason": "Inscribir únicamente req825backend1 en la política de activación existente CHG-0577; registro auténtico PR #840 CHG-0590, examen PR #839 y T40 45912986805 SUCCESS. Vincular al número del propio PR Draft una vez asignado. No cambiar aceptación registrada, otros pedidos ni protecciones.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_format_activation.json",
+      "standards/changes/CHG-0601.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {}
+}
