@@ -15,6 +15,7 @@ import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path
+from pilot.orchestrator.lot_recovery import public_task
 from analysis.host.fixture_normalize import normalize
 
 import argparse
@@ -265,13 +266,18 @@ def build_brief(root: Path, request: str, task: str, write_paths: list[str],
     if not TASK.fullmatch(task) or not SLUG.fullmatch(request):
         raise BriefBlocked("EXAMINER_BRIEF_IDENTITY_INVALID")
     folder = storage_path("requests_root", root=root) / request
-    template = _json(folder / "templates" / f"{task}.task.json")
+    try:
+        bound_task = public_task(root, request, task)
+    except (OSError, ValueError, KeyError, TypeError):
+        raise BriefBlocked("EXAMINER_BRIEF_IDENTITY_INVALID") from None
+    template = _json(folder / "templates" / f"{bound_task}.task.json")
     spec = template.get("task_spec")
     if not isinstance(spec, dict):
         raise BriefBlocked("EXAMINER_BRIEF_TEMPLATE_INVALID")
     if sorted(spec.get("write_path_patterns") or []) != sorted(write_paths):
         raise BriefBlocked("EXAMINER_BRIEF_SCOPE_MISMATCH")
     lot = lot_for(_json(folder / "lots.json"), write_paths)
+    public_task(root, request, task, lot=lot.get("id"))
     bound = (lot.get("characterized_requirement_ids") if lot.get("lot_kind") == "CHARACTERIZATION"
              else lot.get("requirement_ids"))
     if (not isinstance(bound, list) or not all(isinstance(r, str) for r in bound)

@@ -22,6 +22,7 @@ import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
+from pilot.orchestrator.lot_recovery import public_task
 from pilot.orchestrator.examiner_brief import BriefBlocked, require_lot_rules, resolve_fiche_rule
 
 import argparse
@@ -198,13 +199,14 @@ def visible_preflight(root: Path, request: str, task: str, worktree: Path,
     (Worker order) before publishing; fail with the first failing command."""
     folder = storage_path("requests_root", root=root) / request
     try:
-        spec = json.loads((folder / "templates" / f"{task}.task.json").read_text("utf-8"))["task_spec"]
+        bound_task = public_task(root, request, task)
+        spec = json.loads((folder / "templates" / f"{bound_task}.task.json").read_text("utf-8"))["task_spec"]
         commands = spec["acceptance_commands"]
     except (OSError, ValueError, KeyError, TypeError):
         raise ExamBlocked("EXAM_VISIBLE_COMMANDS_UNRESOLVED") from None
     if not isinstance(commands, list):
         raise ExamBlocked("EXAM_VISIBLE_COMMANDS_UNRESOLVED")
-    commands = commands + standards_commands(folder, task, commands)
+    commands = commands + standards_commands(folder, bound_task, commands)
     with tempfile.TemporaryDirectory(prefix="lf-exam-visible-") as tmp:
         candidate = clean_copy(worktree, Path(tmp) / "candidate")
         overlay(candidate, reference, candidate)
@@ -268,7 +270,8 @@ def check_trace_lot(root: Path, request: str, task: str, trace: dict) -> None:
     asked for (req-391: DATA v1 demanded seeds no DATA rule allows)."""
     folder = storage_path("requests_root", root=root) / request
     try:
-        spec = json.loads((folder / "templates" / f"{task}.task.json").read_text("utf-8"))["task_spec"]
+        bound_task = public_task(root, request, task)
+        spec = json.loads((folder / "templates" / f"{bound_task}.task.json").read_text("utf-8"))["task_spec"]
         lots = json.loads((folder / "lots.json").read_text("utf-8"))["lots"]
     except (OSError, ValueError, KeyError, TypeError):
         raise ExamBlocked("EXAM_TRACE_LOT_UNRESOLVED") from None
@@ -277,6 +280,7 @@ def check_trace_lot(root: Path, request: str, task: str, trace: dict) -> None:
     if len(rows) != 1:
         raise ExamBlocked("EXAM_TRACE_LOT_UNRESOLVED")
     lot = rows[0]
+    public_task(root, request, task, lot=lot.get("id"))
     bound = (lot.get("characterized_requirement_ids") if lot.get("lot_kind") == "CHARACTERIZATION"
              else lot.get("requirement_ids"))
     # Check every lot obligation before any reference build or publication,
@@ -332,8 +336,9 @@ def lint_overlay_scope(root: Path, request: str, task: str,
             reject()
         lots = json.loads(lots_path.read_text("utf-8"))
         plan = json.loads(plan_path.read_text("utf-8"))
+        bound_task = public_task(root, request, task)
         bindings = [row for row in plan["bindings"]
-                    if row.get("task_name") == task]
+                    if row.get("task_name") == bound_task]
         if len(bindings) != 1:
             reject()
         lot_rows = [row for row in lots["lots"]

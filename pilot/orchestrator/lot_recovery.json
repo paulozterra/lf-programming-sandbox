@@ -1,0 +1,22 @@
+{
+  "schema_version": "LF_LOT_RECOVERY_V1",
+  "recoveries": [
+    {
+      "request_id": "req-652",
+      "lot_id": "SOL-002",
+      "original_task": "req652backend2",
+      "successor_task": "req652backend22",
+      "original_run_ids": [
+        45751028452,
+        45751150685,
+        45882588365
+      ],
+      "forgiven_run_ids": [
+        45751249784
+      ],
+      "max_additional_attempts": 1,
+      "blocked_pr": 791,
+      "blocked_pr_head": "1591bc1c94b23a853a801228aeaafdd0b2027317"
+    }
+  ]
+}

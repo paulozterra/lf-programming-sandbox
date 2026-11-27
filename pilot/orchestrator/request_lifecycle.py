@@ -96,6 +96,7 @@ def request_for_task(task: str, *, root: Path = ROOT) -> str:
     registration = storage_path("registrations_root", task + ".json", root=root)
     if registration.is_symlink() or not registration.is_file():
         unresolved()
+    from pilot.orchestrator.lot_recovery import for_successor
     sources: dict[str, Path] = {}
     try:
         folders = [
@@ -112,6 +113,7 @@ def request_for_task(task: str, *, root: Path = ROOT) -> str:
                     unresolved()
                 continue
             sources[request] = path
+        continuation = for_successor(root, task)
         owners = []
         for request, path in sources.items():
             obj = json.loads(path.read_text(encoding="utf-8"))
@@ -119,8 +121,14 @@ def request_for_task(task: str, *, root: Path = ROOT) -> str:
             if (not isinstance(obj, dict) or obj.get("request_id") != request
                     or not isinstance(bindings, list)):
                 unresolved()
+            bound_task = (continuation["original_task"] if continuation and
+                          continuation["request_id"] == request else task)
             hits = [entry for entry in bindings if isinstance(entry, dict)
-                    and entry.get("task_name") == task]
+                    and entry.get("task_name") == bound_task]
+            if continuation and hits:
+                if (request != continuation["request_id"] or
+                        hits[0].get("lot_id") != continuation["lot_id"]):
+                    unresolved()
             if len(hits) > 1:
                 unresolved()
             if hits:

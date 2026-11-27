@@ -127,6 +127,9 @@ def select(control, task, workflow_sha, api):
     original = git_policy(control, workflow_sha)
     assert_append_only(original, current)
     if not eligible(control, task, original):
+        from pilot.orchestrator.lot_recovery import for_successor
+        if for_successor(control, task):
+            raise ValueError("LOT_RECOVERY_FORMAT_ACTIVATION_REQUIRED")
         return False
     boundary(api, task, original)
     return True

@@ -706,7 +706,7 @@ jobs:
       - name: CP3.6 verified Train merge DAG, three failures and 2-lot end-to-end simulation (NO MODEL)
         run: |
           python3 -m py_compile pilot/orchestrator/chain_contract.py pilot/orchestrator/chain_lots.py
-          python3 -m pytest -q pilot/orchestrator/test_chain_lots.py -p no:cacheprovider
+          python3 -m pytest -q pilot/orchestrator/test_chain_lots.py pilot/orchestrator/test_lot_recovery.py -p no:cacheprovider
           python3 -m unittest discover -s pilot/orchestrator -p 'test_cp36_sweep_api_budget.py' -v
           python3 -m unittest discover -s pilot/orchestrator -p 'test_chain_completion_reconcile.py' -v
           python3 -m unittest discover -s pilot/orchestrator -p 'test_registry_completion_mapping.py' -v
