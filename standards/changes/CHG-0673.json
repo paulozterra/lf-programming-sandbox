@@ -1,0 +1,37 @@
+{
+  "affected": {
+    "paths": [
+      "pilot/runs/req-652/H_REPORT.md",
+      "pilot/runs/req-652/evidence/SOL-Cf376a709e8a9-4d722957cfa0.json",
+      "pilot/runs/req-652/evidence/SOL-K91c33077cc68-6dbce5ac58a5.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0673.json"
+    ],
+    "rule_ids": [],
+    "term_ids": []
+  },
+  "approved_by": "paulozterra",
+  "artifacts": [],
+  "change_class": "EDITORIAL",
+  "change_id": "CHG-0673",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/931"
+  },
+  "existing_code_impact": {
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING",
+    "mode": "NEW_OR_MODIFIED_ONLY"
+  },
+  "reason": "CP3.7 pinned source-only evidence for verified integration merges at 907a245533e480f369ae31b0e376f9e432be0275; no production authority",
+  "requested_by": "agent:gpt",
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "security_pin_invalidation": {
+    "affected_artifacts": [],
+    "invalidates": false
+  },
+  "title": "CP3.6: encadenamiento gobernado req-652",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Paulo 2026-11-11 CP3.6 encadenamiento automático"
+  }
+}
