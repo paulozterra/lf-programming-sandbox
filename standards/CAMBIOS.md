@@ -326,4 +326,4 @@
 | CHG-0613 | EDITORIAL | CP3.6: encadenamiento gobernado req-825 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/864 |
 | CHG-0614 | EDITORIAL | CP3.6: encadenamiento gobernado req-825 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/865 |
 | CHG-0626 | EDITORIAL | T46: procedencia histórica de evidencias de auditoría |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/877 |
-| CHG-0627 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0627 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/878 |
