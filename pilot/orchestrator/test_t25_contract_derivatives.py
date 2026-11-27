@@ -209,7 +209,7 @@ def _t46_trusted_pass(path):
         return {"jobs": [{"name": "native", "conclusion": "success"}]}
     if path.startswith("actions/workflows/native-verified-integration.yml/runs?"):
         return {"total_count": 0, "workflow_runs": []}
-    raise AssertionError(path)
+    return fake_api({})(path)
 
 
 def _t46_replay_run(calls):

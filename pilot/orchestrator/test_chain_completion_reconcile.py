@@ -211,6 +211,28 @@ class TerminalCandidateTests(unittest.TestCase):
                                              "TRAIN", True, None, None, []),
                          [{"request": self.slug, "status": "REQUEST_CLOSED"}])
 
+    def test_terminal_plan_is_retained_without_disabling_healthy_plan(self):
+        import hashlib
+        candidate, _ = self.candidate()
+        healthy = self.root / "pilot/runs/req-901"
+        healthy.mkdir(parents=True)
+        for folder, state in ((self.folder, candidate),
+                              (healthy, {"stage": "LOTS_PLANNED", "request_id": "req-901"})):
+            state["lots_sha256"] = hashlib.sha256(cl.canonical(self.lots)).hexdigest()
+            (folder / "state.json").write_text(json.dumps(state))
+            (folder / "lots.json").write_text(json.dumps(self.lots))
+            (folder / "chain_plan.json").write_text(json.dumps({"bindings": self.bindings}))
+        with (patch.object(cl, "ROOT", self.root),
+              patch.object(cl, "validate_plan", return_value=self.bindings)):
+            rows = cl.plans()
+        self.assertEqual([row[0] for row in rows], [self.slug, "req-901"])
+        self.assertEqual(rows[0][2]["stage"], "FAILED_FINAL")
+        self.assertEqual(rows[1][2]["stage"], "LOTS_PLANNED")
+        with patch.object(cl, "request_state", side_effect=AssertionError("terminal cannot run")):
+            self.assertEqual(cl.process_one_plan(*rows[0], "e"*40, "TRAIN", True, None, None, []),
+                             [{"request": self.slug, "status": "REQUEST_CLOSED"}])
+        self.assertEqual(len(json.loads(self.ledger.read_text())["entries"]), 2)
+
     def test_terminal_owner_proof_prevents_reopening_and_partial_audit(self):
         from pilot.orchestrator import request_lifecycle as life
         from pilot.orchestrator.request_finalize import LocalView, terminal_outcome

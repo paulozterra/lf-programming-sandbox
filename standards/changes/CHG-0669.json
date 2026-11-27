@@ -31,6 +31,8 @@
       "pilot/orchestrator/test_t17_4_conflict_recovery.py",
       "pilot/orchestrator/test_t17_recovery_watchdog.py",
       "pilot/orchestrator/test_t20_bot_ci_retry.py",
+      "pilot/orchestrator/test_t24_1_sweep_and_attempts.py",
+      "pilot/orchestrator/test_t25_contract_derivatives.py",
       "pilot/orchestrator/test_t46_1_bounded_replay.py",
       "pilot/orchestrator/test_t46_conflict_replay.py",
       "pilot/orchestrator/test_t49_1_cp35.py",

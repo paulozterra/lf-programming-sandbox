@@ -115,6 +115,37 @@ class FinalizeTests(unittest.TestCase):
                 mod.close(root)
             self.assertEqual(api.ops, [("COMMENT",17),("PATCH","/issues/17"),("DELETE","/issues/17/labels/lf-request-blocked")])
 
+    def test_late_suspension_prevents_issue_patch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root, merged=("A", "B"))
+            outcome = mod.terminal_outcome(mod.LocalView(root), SLUG)
+            row = dict(slug=SLUG, issue=17, revision=TEST_MAIN, stage=outcome["stage"],
+                       fingerprint=outcome["fingerprint"], intervencion_manual=False)
+            (root / "manifest.json").write_text(json.dumps([row]))
+            class APIStub:
+                def __init__(self):
+                    self.paused = False
+                    self.ops = []
+                def issue(self, number):
+                    return {"number": number, "state": "open", "labels": []}
+                def comment(self, number, body):
+                    self.ops.append(("COMMENT", number))
+                    self.paused = True
+                def call(self, method, path, payload=None):
+                    if method != "GET":
+                        self.ops.append((method, path))
+                        return {}
+                    if path.startswith("/issues/17/comments?"):
+                        return []
+                    ledger = {SLUG: {"state": life.SUSPENDING,
+                                      "authorization_pr": 77}} if self.paused else {}
+                    return fake_api(ledger, root=root)(path.lstrip("/"))
+            api = APIStub()
+            with patch.object(mod, "ROOT", root), patch.object(mod, "API", return_value=api), patch.dict("os.environ", {"GH_TOKEN": "offline", "GITHUB_RUN_ID": "123", "GITHUB_REPOSITORY": "example/sandbox"}):
+                mod.close(root)
+            self.assertEqual(api.ops, [("COMMENT", 17)])
+
     def test_only_explicit_terminal_states(self):
         self.assertFalse({"LOTS_PLANNED", "BLOCKED", "INTEGRATION_PENDING"} & mod.TERMINAL)
         self.assertIn("FAILED_FINAL", mod.TERMINAL)
