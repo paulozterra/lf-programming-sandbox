@@ -1232,7 +1232,7 @@ def regenerate_template(root: Path, request: str, binding: dict, completed: dict
     try:
         result = generate_chain.generate(
             str(root), request, json.loads(lots_path.read_text("utf-8")),
-            persist=False, allow_source_drift=drift)
+            persist=False, allow_source_drift=drift, completed=completed)
     except ValueError as exc:
         code = str(exc).split(":", 1)[0]
         deny("TEMPLATE_REGENERATION_FAILED:" + (code if re.fullmatch(r"[A-Z0-9_]{1,80}", code)

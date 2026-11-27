@@ -1,0 +1,43 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0646",
+  "title": "T26: preservar caracterización integrada durante refresco de pendientes",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner 27/11: resolver CP36_PLAN_REFRESH_GENERATION_FAILED:CARACTERIZACION_ALCANCE_INVALIDO en run 46045085521 para req652backend22"
+  },
+  "reason": "La regeneración T26 recorría la caracterización ya integrada (#888) y aplicaba el control CREATE a la suite existente. Conservar su plantilla histórica solo durante regeneración no persistente con receipt del mismo lote y archivo exacto. Mantener admisión inicial, DAG, alcance, exámenes y contadores.",
+  "artifacts": [],
+  "derived": {
+    "generator": null,
+    "paths": [],
+    "attribution": "CP3.5_TRUSTED_GENERATOR_NOT_WORKER"
+  },
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/generate_chain.py",
+      "pilot/orchestrator/pending_plan_refresh.py",
+      "pilot/orchestrator/test_t26_affected_tests.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0646.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/903"
+  }
+}

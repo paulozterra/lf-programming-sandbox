@@ -249,3 +249,75 @@ def test_large_analysis_anchor_only_when_context_would_be_empty():
     source = (HERE / "generate_chain.py").read_text("utf-8")
     block = source.split('if not context_paths:', 1)
     assert len(block) == 2 and '/analysis.json' in block[1].split("\n", 2)[1]
+
+
+def test_completed_characterization_is_preserved_during_pending_refresh(tmp_path):
+    """T26 regression: a verified completed suite is not a new CREATE."""
+    from test_chain_lots import configure_root
+    from chain_contract import validate_plan
+    configure_root(tmp_path)
+    request = "req-1"
+    folder = tmp_path / "pilot/runs" / request
+    folder.mkdir(parents=True)
+    suite = "frontend/visible-tests/sol-k0123456789ab.json"
+    char = {"id": "SOL-K0123456789ab", "area": "FRONTEND",
+            "lot_kind": "CHARACTERIZATION", "requirement_ids": [],
+            "characterized_requirement_ids": ["REQ-KEEP"],
+            "characterized_files": ["frontend/src/app/x/page.tsx"],
+            "write_paths": [suite], "depends_on": []}
+    backend = {"id": "SOL-002", "area": "BACKEND", "requirement_ids": ["REQ-B"],
+               "write_paths": [SRC], "depends_on": []}
+    frontend = {"id": "SOL-001", "area": "FRONTEND", "requirement_ids": ["REQ-F"],
+                "write_paths": ["frontend/src/app/x/page.tsx"],
+                "depends_on": [char["id"], backend["id"]]}
+    lots = {"schema_version": "CP33_LOTS_CANDIDATE_V1",
+            "production_authority": False, "handoff_allowed": False,
+            "worker_invoked": False, "lots": [backend, char, frontend]}
+    before = generate_chain.generate(tmp_path, request, lots, persist=False)
+    bindings = validate_plan(before["plan"], lots, request)
+    for path, template in before["templates"].items():
+        generate_chain.save(tmp_path / path, template)
+    (folder / "lots.json").write_bytes(canonical(lots))
+    (folder / "state.json").write_bytes(canonical({
+        "lots_sha256": hashlib.sha256(canonical(lots)).hexdigest()}))
+    char_template = tmp_path / bindings[char["id"]]["template_path"]
+    original_template = char_template.read_bytes()
+    original_lots = (folder / "lots.json").read_bytes()
+    suite_file = tmp_path / suite
+    suite_file.parent.mkdir(parents=True, exist_ok=True)
+    suite_file.write_text('{"covers":["REQ-KEEP"],"cases":[]}\n', encoding="utf-8")
+    original_suite = suite_file.read_bytes()
+    receipt = {"lot_id": char["id"], "expected_files": [suite],
+               "merge_sha": "a" * 40, "integration_pr": 123,
+               "task_name": bindings[char["id"]]["task_name"]}
+    completed = {char["id"]: receipt}
+
+    # No proof, wrong lot or wrong file must never authorize existing suite.
+    with pytest.raises(ValueError, match="CARACTERIZACION_ALCANCE_INVALIDO"):
+        generate_chain.generate(tmp_path, request, lots, persist=False,
+                                allow_source_drift={suite})
+    for bad in (dict(receipt, lot_id=backend["id"]),
+                dict(receipt, expected_files=["frontend/visible-tests/other.json"])):
+        with pytest.raises(ValueError, match="CARACTERIZACION_ALCANCE_INVALIDO"):
+            generate_chain.generate(tmp_path, request, lots, persist=False,
+                                    allow_source_drift={suite},
+                                    completed={char["id"]: bad})
+
+    refreshed = generate_chain.generate(tmp_path, request, lots, persist=False,
+                                         allow_source_drift={suite}, completed=completed)
+    assert refreshed["plan"] == before["plan"]
+    assert refreshed["templates"][bindings[char["id"]]["template_path"]] == before["templates"][bindings[char["id"]]["template_path"]]
+    assert refreshed["templates"][bindings[backend["id"]]["template_path"]] == before["templates"][bindings[backend["id"]]["template_path"]]
+    changed = ppr.refresh(tmp_path, request, completed)
+    assert bindings[char["id"]]["template_path"] not in changed
+    assert ppr.refresh(tmp_path, request, completed) == []
+    assert char_template.read_bytes() == original_template
+    assert suite_file.read_bytes() == original_suite
+    assert (folder / "lots.json").read_bytes() == original_lots
+
+    # Completed evidence cannot be used for initial generation or a lost suite.
+    with pytest.raises(ValueError, match="T1_COMPLETED_REGENERATION_ONLY"):
+        generate_chain.generate(tmp_path, request, lots, completed=completed)
+    suite_file.unlink()
+    with pytest.raises(ValueError, match="CARACTERIZACION_ALCANCE_INVALIDO"):
+        ppr.refresh(tmp_path, request, completed)
