@@ -30,6 +30,7 @@ from contextlib import nullcontext
 import pilot.orchestrator.sweep_api_budget as budget
 
 from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN
+from pilot.orchestrator.lot_recovery import for_request as lot_recoveries, schedule_recovery
 from chain_contract import (ChainBlocked, BLOCK_CODE, FORMAT_BLOCK_CODE, attest_merge, blocked_state,
                             progress, validate_plan, verified_failures, deny)
 from native_lot_registration import canonical
@@ -560,7 +561,7 @@ def completed_lots(lots: dict, bindings: dict, history: list[tuple]) -> dict:
     return result
 
 
-def failed_lots(bindings: dict) -> dict[str, list[int]]:
+def failed_lots(bindings: dict, *, strict=False) -> dict[str, list[int]]:
     # The upstream native_run_history proof-reader handles signed artifact
     # redirects without passing credentials to storage and never opens oracles.
     from native_run_history import _artifact_json, _recognized_run
@@ -620,7 +621,7 @@ def failed_lots(bindings: dict) -> dict[str, list[int]]:
                     r, task, sha=row["proposal_commit_sha"]) for r in failures):
                 defects.setdefault(run_id, row["task_pack_sha256"])
         result[lot] = verified_failures(task, failures, proofs,
-                                       route_defects=defects)
+                                       route_defects={} if strict else defects)
     return result
 
 
@@ -1907,6 +1908,13 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                 if _state.get("stage") == "CHAIN_COMPLETE_CANDIDATE":
                     complete_tasks.add(task)
 
+    for request, _lots, _state, bindings in all_plans:
+        for row in lot_recoveries(ROOT, request, bindings).values():
+            task = row["successor_task"]
+            owners.setdefault(task, set()).add(request)
+            if _state.get("stage") == "CHAIN_COMPLETE_CANDIDATE":
+                complete_tasks.add(task)
+
     def pending_task_live(task: str) -> bool:
         # Do not inspect old proposal refs without a plan or after a verified
         # completion. Other recovery phases retain the normal task_live gate.
@@ -2042,6 +2050,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                 tasks = {value.get("task_name") for value in bindings.values()
                          if isinstance(value, dict)
                          and isinstance(value.get("task_name"), str)} - ci_retired_tasks
+                tasks.update(row["successor_task"] for row in lot_recoveries(ROOT, request, bindings).values()
+                             if row["successor_task"] not in ci_retired_tasks)
                 for outcome in replay_native_integration(
                         head, run, api, REPO, ROOT, allowed_tasks=tasks):
                     repair_outcomes.append({"request": request, **outcome})
@@ -2136,6 +2146,27 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     return outcomes or [{"status": "NO_RELEASE_OR_BLOCK"}]
 
 
+def retire_recovery_block(request, row):
+    """Close the exact superseded bot draft, retaining its branch and evidence."""
+    number = row["blocked_pr"]
+    pr = api(f"pulls/{number}")
+    if (pr.get("number") != number or pr.get("merged") is not False
+            or pr.get("user", {}).get("login") != "github-actions[bot]"
+            or pr.get("base", {}).get("ref") != "main"
+            or pr.get("head", {}).get("sha") != row["blocked_pr_head"]
+            or not re.fullmatch(r"lf/chain-blocked/" + re.escape(request)
+                                + r"-[0-9a-f]{12}", pr.get("head", {}).get("ref", ""))
+            or BLOCK_CODE not in pr.get("title", "")):
+        deny("LOT_RECOVERY_BLOCK_DRAFT_UNVERIFIED")
+    if pr.get("state") == "closed":
+        return
+    if pr.get("state") != "open" or pr.get("draft") is not True:
+        deny("LOT_RECOVERY_BLOCK_DRAFT_UNVERIFIED")
+    run("gh", "pr", "close", str(number), "--repo", REPO, "--comment",
+        "Superado por autorización de recuperación integrada en main para "
+        + row["lot_id"] + "; se conservan el historial, los tres intentos y la rama.")
+
+
 def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                      new_plan_request, manual_sha, history, *, format_exhausted=()) -> list[dict]:
     outcomes = []
@@ -2149,6 +2180,10 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
     # Historical Train receipts take precedence over attempt exhaustion.
     # Resolve completion before exam re-requests or the failed Worker ledger.
     completed = completed_lots(lots, bindings, history)
+    recoveries = lot_recoveries(ROOT, request, bindings)
+    for lot_id, row in recoveries.items():
+        if lot_id in completed and completed[lot_id]["task_name"] != row["successor_task"]:
+            deny("LOT_RECOVERY_COMPLETION_UNAUTHORIZED")
     if manual_sha is not None and not any(
             proof["merge_sha"] == manual_sha for proof in completed.values()):
         return outcomes
@@ -2162,7 +2197,8 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
         outcomes.append({"request": request, "status": "ALREADY_BLOCKED"})
         return outcomes
     format_lots = sorted(lot for lot, binding in bindings.items()
-                         if lot not in completed and binding["task_name"] in format_exhausted)
+                         if lot not in completed and (binding["task_name"] in format_exhausted
+                             or (lot in recoveries and recoveries[lot]["successor_task"] in format_exhausted)))
     if format_lots:
         result = {"stage":"BLOCKED", "reason_code":FORMAT_BLOCK_CODE,
                   "blocked_lot_ids":format_lots, "ready_lot_ids":[],
@@ -2171,14 +2207,27 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
     # Only the Train-merged native registration can complete its exam
     # issue. A ciphertext already on main permits draft preparation first.
     if kind == "TRAIN":
-        closed = complete_registered_exam_requests(request, bindings)
+        exam_bindings = dict(bindings)
+        exam_bindings.update({lot + '-recovery': dict(bindings[lot], task_name=row['successor_task'])
+                              for lot, row in recoveries.items()})
+        closed = complete_registered_exam_requests(request, exam_bindings)
         if closed:
             outcomes.append({"request": request, "status": "EXAM_ALREADY_REGISTERED",
                              "closed_exam_issues": closed})
     if request == new_plan_request or sweep:
         outcomes.extend(request_all_lot_exams(request, lots, bindings))
     failures = failed_lots(bindings)
-    result = progress(lots, completed, failures, bindings)
+    scheduling_failures = dict(failures)
+    for lot_id, row in recoveries.items():
+        if lot_id in completed:
+            continue
+        successor_failures = failed_lots({lot_id: {"task_name": row["successor_task"]}}, strict=True)
+        if schedule_recovery(row, failures.get(lot_id), successor_failures.get(lot_id)):
+            # Original failures remain authoritative; only scheduling is projected.
+            scheduling_failures.pop(lot_id)
+            if kind == "TRAIN":
+                retire_recovery_block(request, row)
+    result = progress(lots, completed, scheduling_failures, bindings)
     if result["stage"] == "BLOCKED":
         outcomes.append({"request": request, **block_request(request, state, result, head)})
         return outcomes
@@ -2192,7 +2241,14 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
         # Only public/source and template drift can require a new attempt.
         # Never overwrite a registered task or reuse an old examiner SHA.
         registered = storage_path("registrations_root", root=ROOT) / (task + ".json")
-        if registered.exists() or registered.is_symlink():
+        if lot_id in recoveries:
+            candidate = recoveries[lot_id]["successor_task"]
+            successor = storage_path("registrations_root", candidate + ".json", root=ROOT)
+            if successor.is_symlink():
+                deny("LOT_RECOVERY_REGISTRATION_INVALID")
+            if successor.is_file():
+                continue  # no second successor, including on later base drift
+        elif registered.exists() or registered.is_symlink():
             def relevant_base_diff(base_sha: str) -> set[str]:
                 run("git", "merge-base", "--is-ancestor", base_sha, head)
                 return set(run("git", "diff", "--name-only", base_sha, head).splitlines())

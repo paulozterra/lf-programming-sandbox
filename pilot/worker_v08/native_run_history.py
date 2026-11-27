@@ -258,41 +258,8 @@ def _recognized_run(run: dict, task: str, *, attempt: int | None = None,
     return False
 
 
-def admit_attempt(
-    *, repository: str, token: str, task: str, attempt: int | None,
-    run_id: int, run_attempt: int, sha: str, output: Path,
-    event: str = "workflow_dispatch", head_branch: str = "main",
-    proposal_branch: str | None = None, github_output: Path | None = None,
-    route_retry: bool = False,
-) -> int:
-    if (repository != "paulozterra/lf-programming-sandbox" or
-        not token or _TASK.fullmatch(task or "") is None or
-        (attempt is not None and (type(attempt) is not int or not 1 <= attempt <= 3)) or
-        type(run_id) is not int or run_id <= 0 or run_attempt != 1 or
-        not isinstance(sha, str) or _SHA40.fullmatch(sha) is None or
-        event not in ("workflow_run", "workflow_dispatch") or head_branch != "main" or
-        (event == "workflow_run" and
-         (attempt is not None or proposal_branch != "lf/native-proposal/" + task)) or
-        (event == "workflow_dispatch" and attempt is None)):
-        raise ValueError("NATIVE_ADMISSION_INPUT_INVALID")
-    results: list[dict] = []
-    for page in range(1, 11):
-        obj = _api(repository, token,
-                   f"actions/workflows/{_WORKFLOW}/runs?per_page=100&page={page}")
-        if obj.get("total_count", 0) > 1000 or not isinstance(obj.get("workflow_runs"), list):
-            raise ValueError("NATIVE_HISTORY_UNBOUNDED")
-        results.extend(obj["workflow_runs"])
-        if len(results) >= obj["total_count"]:
-            break
-    else:
-        raise ValueError("NATIVE_HISTORY_INCOMPLETE")
-    current = [r for r in results if r.get("id") == run_id]
-    if (len(current) != 1 or current[0].get("event") != event or
-        not _recognized_run(current[0], task, attempt=attempt,
-                            sha=sha,
-                            branch=proposal_branch,
-                            allow_legacy_manual=False)):
-        raise ValueError("NATIVE_CURRENT_RUN_NOT_ATTESTED")
+def _collect_prior(repository, token, task, run_id, sha, results, *,
+                   event=None, attempt=None, route_retry=False, current=(), strict=False):
     # Only a trusted, merged launcher-only migration may forgive a previously
     # spent proof. The immutable source run and original pack must still match.
     from native_route_defect import verified_migration
@@ -320,6 +287,9 @@ def admit_attempt(
         or _ROUTE_TITLE.fullmatch(current[0].get("display_title") or "") is None
     ):
         raise ValueError("NATIVE_ROUTE_RETRY_NOT_ATTESTED")
+    if strict:
+        # No further forgiveness may renew this one-use successor budget.
+        migration, examiner_defects = None, {}
     prior: list[dict] = []
     route_defect_run_ids: list[int] = []
     for run in results:
@@ -337,15 +307,17 @@ def admit_attempt(
         except ValueError as exc:
             if str(exc) != "NATIVE_PRIOR_PROOF_MISSING":
                 raise
-            if not _r3_pre_cutover(repository, token, run):
+            if strict or not _r3_pre_cutover(repository, token, run):
                 raise
             continue  # pre-merge expired proof: legacy never counted
         if proof is None:
             if run.get("status") != "completed":
+                if strict and run.get("status") == "in_progress":
+                    raise ValueError("LOT_RECOVERY_CONCURRENT_RUN")
                 continue
             if _no_attempt_attested(repository, token, run, task):
                 continue
-            if _r3_pre_cutover(repository, token, run):
+            if not strict and _r3_pre_cutover(repository, token, run):
                 continue  # pre-merge missing proof, legacy non-attempt
             raise ValueError("NATIVE_PRIOR_PROOF_MISSING")
         if (run["id"] >= run_id or run.get("status") != "completed" or
@@ -385,9 +357,61 @@ def admit_attempt(
                   if run.get("event") == "workflow_dispatch" else None)
         prior_sha = (match.group(2) if match is not None else
                      manual.group(4) if manual is not None else None)
-        if prior_sha == sha:
+        if sha is not None and prior_sha == sha:
             raise ValueError("NATIVE_DUPLICATE_PROPOSAL_SHA")
         prior.append(proof)
+    return prior, route_defect_run_ids
+
+
+def admit_attempt(
+    *, repository: str, token: str, task: str, attempt: int | None,
+    run_id: int, run_attempt: int, sha: str, output: Path,
+    event: str = "workflow_dispatch", head_branch: str = "main",
+    proposal_branch: str | None = None, github_output: Path | None = None,
+    route_retry: bool = False,
+) -> int:
+    if (repository != "paulozterra/lf-programming-sandbox" or
+        not token or _TASK.fullmatch(task or "") is None or
+        (attempt is not None and (type(attempt) is not int or not 1 <= attempt <= 3)) or
+        type(run_id) is not int or run_id <= 0 or run_attempt != 1 or
+        not isinstance(sha, str) or _SHA40.fullmatch(sha) is None or
+        event not in ("workflow_run", "workflow_dispatch") or head_branch != "main" or
+        (event == "workflow_run" and
+         (attempt is not None or proposal_branch != "lf/native-proposal/" + task)) or
+        (event == "workflow_dispatch" and attempt is None)):
+        raise ValueError("NATIVE_ADMISSION_INPUT_INVALID")
+    results: list[dict] = []
+    for page in range(1, 11):
+        obj = _api(repository, token,
+                   f"actions/workflows/{_WORKFLOW}/runs?per_page=100&page={page}")
+        if obj.get("total_count", 0) > 1000 or not isinstance(obj.get("workflow_runs"), list):
+            raise ValueError("NATIVE_HISTORY_UNBOUNDED")
+        results.extend(obj["workflow_runs"])
+        if len(results) >= obj["total_count"]:
+            break
+    else:
+        raise ValueError("NATIVE_HISTORY_INCOMPLETE")
+    current = [r for r in results if r.get("id") == run_id]
+    if (len(current) != 1 or current[0].get("event") != event or
+        not _recognized_run(current[0], task, attempt=attempt,
+                            sha=sha,
+                            branch=proposal_branch,
+                            allow_legacy_manual=False)):
+        raise ValueError("NATIVE_CURRENT_RUN_NOT_ATTESTED")
+    from pilot.orchestrator.lot_recovery import for_successor, verify_original, require_unused
+    control = Path(__file__).resolve().parents[2]
+    recovery = for_successor(control, task)
+    if recovery:
+        if route_retry:
+            raise ValueError("LOT_RECOVERY_ROUTE_RETRY_FORBIDDEN")
+        original, forgiven = _collect_prior(
+            repository, token, recovery["original_task"], run_id, None, results)
+        verify_original(recovery, original, forgiven, results)
+    prior, route_defect_run_ids = _collect_prior(
+        repository, token, task, run_id, sha, results, event=event,
+        attempt=attempt, route_retry=route_retry, current=current, strict=bool(recovery))
+    if recovery:
+        require_unused(prior)
     computed = len(prior) + 1
     if computed > 3:
         raise ValueError("NATIVE_ATTEMPT_LIMIT_EXCEEDED")
