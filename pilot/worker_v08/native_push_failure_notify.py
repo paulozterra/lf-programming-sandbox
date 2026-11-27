@@ -61,6 +61,17 @@ def notify(control, branch, sha, code):
     if (issue.get("number") != number or issue.get("state") != "open"
             or issue.get("pull_request")):
         return "NATIVE_PUSH_ALERT_ISSUE_UNVERIFIED"
+    from pilot.orchestrator.request_lifecycle import request_state, OPEN, inactive_reason, RequestStateError
+    def lifecycle():
+        try:
+            state = request_state(f"req-{number}", lambda path: json.loads(
+                command("gh", "api", f"repos/{REPO}/{path}")), root=Path(control))
+            return None if state == OPEN else inactive_reason(state)
+        except RequestStateError:
+            return "REQUEST_STATE_UNRESOLVED"
+    stop = lifecycle()
+    if stop:
+        return stop
     marker = f"<!-- LF_NATIVE_PUSH_REJECTED:{task}:{sha}:{code} -->"
     comments = json.loads(command("gh", "api",
                            f"repos/{REPO}/issues/{number}/comments?per_page=100"))
@@ -77,6 +88,9 @@ def notify(control, branch, sha, code):
                 "en pilot/worker_v08/native_tasks/" + task + ".json). "
                 "No se ejecutó el Worker y NO se cobró intento. "
                 "Genera el parche con `git diff` desde esa base y vuelve a enviarlo.")
+        stop = lifecycle()
+        if stop:
+            return stop
         command("gh", "issue", "comment", str(number), "--repo", REPO, "--body", body)
         return "NATIVE_PUSH_ALERT_COMMENTED"
     body = (marker + "\nWorker push rechazado: " + code + ". "
@@ -87,6 +101,9 @@ def notify(control, branch, sha, code):
             "Ver submission en pilot/runs/req-" + str(number) +
             "/proposal_requests/" + task + ".proposal-request.json. "
             "No se ejecutó ningún archivo del push.")
+    stop = lifecycle()
+    if stop:
+        return stop
     command("gh", "issue", "comment", str(number), "--repo", REPO, "--body", body)
     return "NATIVE_PUSH_ALERT_COMMENTED"
 
