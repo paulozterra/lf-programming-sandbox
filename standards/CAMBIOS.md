@@ -322,3 +322,4 @@
 | CHG-0590 | EDITORIAL | CP3.6: encadenamiento gobernado req-825 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/840 |
 | CHG-0601 | EDITORIAL | Inscripción exclusiva de req825backend1 en prevalidación nativa de formato |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/851 |
 | CHG-0606 | EDITORIAL | Aislar base CREATE de prueba T9.3 format canary |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/856 |
+| CHG-0609 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
