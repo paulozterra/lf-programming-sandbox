@@ -192,6 +192,8 @@ def test_main_worker_loader_precedes_reference_and_mutant_compilation(
     def reject_at_loader(raw, root):
         calls.append("worker_load")
         raise pe.ExamBlocked("EXAM_WORKER_LOADER_REJECTED:fixture")
+    from pilot.orchestrator.lifecycle_test_support import fake_api
+    monkeypatch.setattr("pilot.orchestrator.request_lifecycle.github_issue_api", fake_api({}))
     monkeypatch.setattr(pe, "worker_load", reject_at_loader)
     monkeypatch.setattr(pe, "exercise",
                         lambda *args: pytest.fail("exercise must not run"))

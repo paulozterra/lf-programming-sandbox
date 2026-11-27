@@ -192,6 +192,9 @@ def test_one_sweep_closes_legacy_red_registration_and_regenerates_next_chg(tmp_p
         raise AssertionError("Unexpected command: " + repr(args))
 
     def fake_api(path):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         if path == "issues/901":
             return {"number": 901, "state": "open"}
         assert "actions/workflows/ci.yml/runs?" in path
