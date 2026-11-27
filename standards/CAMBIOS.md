@@ -329,4 +329,4 @@
 | CHG-0634 | ADDITIVE | Continuación gobernada de lote agotado con oportunidad única |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/885 |
 | CHG-0635 | EDITORIAL | CP3.5: integración verificada nativa req652frontend3 (run 46033926974) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/888 |
 | CHG-0639 | EDITORIAL | Examinador automático: clon con historial completo (no --depth 1) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/894 |
-| CHG-0645 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0645 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/902 |
