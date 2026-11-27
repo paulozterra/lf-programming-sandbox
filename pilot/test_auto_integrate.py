@@ -68,6 +68,9 @@ class FakeAPI:
     def request(self, method, path, data=None):
         if method == "GET" and path.startswith("/pulls/"):
             return copy.deepcopy(self.item)
+        if method == "GET" and path == "/contents/pilot/orchestrator/request_lifecycle_control.json?ref=main":
+            from pilot.orchestrator.test_request_lifecycle_suspension import content
+            return content({})
         if method == "GET" and path.startswith("/contents/"):
             b = json.dumps(chg()).encode("utf-8")
             return {"type": "file", "size": len(b), "encoding": "base64",

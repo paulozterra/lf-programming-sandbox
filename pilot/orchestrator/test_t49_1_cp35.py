@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 
 import pytest
+from pilot.orchestrator.test_request_lifecycle_suspension import fake_api
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'pilot/orchestrator'))
 import native_verified_integration as cp35
@@ -37,7 +38,7 @@ def test_closed_rejects_before_branch_chg_or_pr(tmp_path, monkeypatch, state, va
     calls = []
     def gh(path):
         calls.append(("api", path))
-        return json.dumps({"number": 275, "state": state}).encode()
+        return json.dumps(fake_api({}, issue_state=state)(path.split(f"repos/{cp35.REPOSITORY}/", 1)[1])).encode()
     monkeypatch.setattr(cp35, "gh_api", gh)
     monkeypatch.setattr(cp35, "command",
                         lambda *_a, **_kw: pytest.fail("branch/CHG/PR side effect"))
