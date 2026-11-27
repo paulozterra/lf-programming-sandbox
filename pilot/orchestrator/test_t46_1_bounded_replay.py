@@ -45,6 +45,9 @@ def dispatch(identity, conclusion, *, status="completed", **changes):
 def fixture(history, *, source_row=None):
     calls = []
     def api(path):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         if path == f"actions/runs/{RUN}":
             return source() if source_row is None else source_row
         if path == f"actions/runs/{RUN}/jobs?per_page=100":
@@ -180,6 +183,9 @@ def test_t46_1_trusted_worker_parity_shared_table(change):
 def test_t46_1_notice_dedupes_by_failed_run_id():
     comments = []
     def api(path):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         assert path == "issues/123"
         return {"number": 123, "state": "open", "labels": [{"name": "lf-request"}]}
     def api_list(path):

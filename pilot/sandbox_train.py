@@ -560,7 +560,7 @@ def guard_request_lifecycle(number, pr, *, files=None):
     from pathlib import Path
     from orchestrator.request_lifecycle import (
         require_pr_open, RequestStateError, CONTROL_PATH, read_control,
-        validate_control_transition, verify_owner_label,
+        validate_control_transition, verify_owner_transition, verify_drain, SUSPENDED,
     )
     reader = lambda route: api("GET", "/" + route)
     try:
@@ -588,9 +588,12 @@ def guard_request_lifecycle(number, pr, *, files=None):
         if CONTROL_PATH in paths:
             previous = read_control(reader)
             current = read_control(reader, pr["head"]["sha"])
-            validate_control_transition(previous, current, number)
-            owner = pr["base"]["repo"]["full_name"].split("/")[0]
-            verify_owner_label(reader, number, owner)
+            slug = validate_control_transition(previous, current, number)
+            verify_owner_transition(reader, pr, slug,
+                                    previous.get(slug, {}).get("state", "ACTIVE"),
+                                    current[slug]["state"])
+            if current[slug]["state"] == SUSPENDED:
+                verify_drain(reader, slug, previous[slug])
             if any(path != CONTROL_PATH and path != "standards/CAMBIOS.md"
                    and not re.fullmatch(r"standards/changes/CHG-[0-9]{4,}[.]json", path)
                    for path in paths):
@@ -663,7 +666,8 @@ def run(number):
             merged = merge_with_retry(number, initial_head,
                                       {"sha": initial_head, "merge_method": "merge",
                                        "commit_title": f"Merge PR #{number} via sandbox-train"},
-                                      branch=latest["head"]["ref"])
+                                      branch=latest["head"]["ref"],
+                                      lifecycle_guard=lambda: guard_request_lifecycle(number, latest))
         except TrainError as exc:
             # Main may have moved between last read and merge; restart safely.
             if main_sha() != base or pr_data(number)["head"]["sha"] != initial_head:

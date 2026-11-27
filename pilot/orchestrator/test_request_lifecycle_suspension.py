@@ -106,3 +106,43 @@ def test_train_guard_resolves_unregistered_task_from_trusted_plan(monkeypatch):
                    "lf/exam-retire/req123backend1-123456789abc"):
         with pytest.raises(life.RequestStateError, match="REQUEST_SUSPENDED"):
             life.require_pr_open(branch, [], api)
+
+
+
+def test_owner_review_bound_to_exact_head_and_transition():
+    api = fake_api({SLUG: {"state": life.SUSPENDING, "authorization_pr": 77}})
+    def stale(path):
+        rows = api(path)
+        if path.startswith("pulls/77/reviews"):
+            rows[0]["commit_id"] = "d" * 40
+        return rows
+    with pytest.raises(life.RequestStateError, match=life.CODE):
+        life.require_open(SLUG, stale)
+
+
+def test_drain_refuses_legacy_run_and_exam_reservation():
+    entry = {"state": life.SUSPENDING, "authorization_pr": 77}
+    api = fake_api({SLUG: entry})
+    life.verify_drain(api, SLUG, entry)
+    def legacy(path):
+        if path.startswith("actions/runs?status=in_progress"):
+            return {"total_count": 1, "workflow_runs": [
+                {"id": 99, "path": ".github/workflows/worker-native.yml",
+                 "created_at": "2026-11-27T05:00:00Z", "run_attempt": 2, "head_branch": "main"}]}
+        return api(path)
+    def reserved(path):
+        if path.startswith("issues?state=open&labels=examiner-working"):
+            return [{"id": 98, "body": "- Pedido: `req-123`"}]
+        return api(path)
+    for reader in (legacy, reserved):
+        with pytest.raises(life.RequestStateError, match="REQUEST_DRAIN_PENDING"):
+            life.verify_drain(reader, SLUG, entry)
+
+
+def test_global_registry_not_a_suspension_bypass():
+    api = fake_api({SLUG: {"state": life.SUSPENDED, "authorization_pr": 77}})
+    life.require_pr_open("lf/implemented-registry/123456789abc",
+                         ["pilot/registry/implemented.json"], api)
+    with pytest.raises(life.RequestStateError, match=life.CODE):
+        life.require_pr_open("lf/implemented-registry/123456789abc",
+                             ["pilot/registry/implemented.json", "pilot/runs/req-123/state.json"], api)

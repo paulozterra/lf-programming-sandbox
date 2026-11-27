@@ -11,6 +11,7 @@ from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 
 import base64
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
@@ -133,7 +134,22 @@ def control_state(request: str, api) -> str:
             unresolved()
         if read_control(api, merge).get(request) != entry:
             unresolved()
-        verify_owner_label(api, number, repo.split("/")[0])
+        # The merge commit binds the approved head and the exact predecessor.
+        commit = api(f"commits/{merge}")
+        parents = commit.get("parents", [])
+        if (commit.get("sha") != merge or len(parents) != 2
+                or any(not SHA40.fullmatch(p.get("sha", "")) for p in parents)
+                or head.get("sha") != parents[1]["sha"]):
+            unresolved()
+        previous = read_control(api, parents[0]["sha"])
+        historical = read_control(api, merge)
+        if validate_control_transition(previous, historical, number) != request:
+            unresolved()
+        verify_owner_transition(api, pr, request,
+                                previous.get(request, {}).get("state", "ACTIVE"),
+                                entry["state"])
+        if read_control(api).get(request) != entry:
+            unresolved()
         return OPEN if entry["state"] == "ACTIVE" else entry["state"]
     except Exception as exc:
         raise RequestStateError(CODE) from exc
@@ -160,6 +176,119 @@ def verify_owner_label(api, number: int, owner: str) -> None:
         if (latest is None or latest.get("event") != "labeled"
                 or (latest.get("actor") or {}).get("login") != owner):
             unresolved()
+    except Exception as exc:
+        raise RequestStateError(CODE) from exc
+
+
+def _stamp(value):
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z", value):
+        unresolved()
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        unresolved()
+
+
+def _paged(api, path, field=None):
+    """Bounded complete collection, no authorization on truncation or duplicate IDs."""
+    rows, seen = [], set()
+    for page in range(1, 11):
+        data = api(path + ("&" if "?" in path else "?") + f"per_page=100&page={page}")
+        total = data.get("total_count") if field and isinstance(data, dict) else None
+        batch = data.get(field) if field and isinstance(data, dict) else data
+        if not isinstance(batch, list) or len(batch) > 100:
+            unresolved()
+        for row in batch:
+            if not isinstance(row, dict) or type(row.get("id")) is not int or row["id"] in seen:
+                unresolved()
+            seen.add(row["id"])
+            rows.append(row)
+        if len(batch) < 100:
+            if field and (type(total) is not int or total != len(rows)):
+                unresolved()
+            return rows
+    unresolved()
+
+
+def transition_marker(request, old, new, head):
+    marker = f"LF_LIFECYCLE_AUTHORIZE {request} {old}->{new} {head}"
+    if new == SUSPENDED:
+        marker += "\nDRAIN_CONFIRMED: external examiner sessions drained; no legacy replays authorized"
+    return marker
+
+
+def verify_owner_transition(api, pr, request, old, new):
+    """A ready label alone cannot authorize a different HEAD or transition.
+    An owner COMMENT review is permitted even on their own PR; no fake approval.
+    """
+    try:
+        number = pr["number"]
+        head = pr["head"]["sha"]
+        repo = pr["base"]["repo"]["full_name"]
+        if (not SHA40.fullmatch(head) or not isinstance(repo, str)
+                or pr["base"]["ref"] != "main" or pr["head"]["repo"]["full_name"] != repo):
+            unresolved()
+        owner = repo.split("/")[0]
+        verify_owner_label(api, number, owner)
+        marker = transition_marker(request, old, new, head)
+        reviews = _paged(api, f"pulls/{number}/reviews")
+        cutoff = _stamp(pr["merged_at"]) if pr.get("merged") else datetime.now(timezone.utc)
+        matches = [row for row in reviews if (row.get("user") or {}).get("login") == owner
+                   and row.get("state") in ("COMMENTED", "APPROVED")
+                   and row.get("commit_id") == head and row.get("body", "").strip() == marker
+                   and _stamp(row.get("submitted_at")) <= cutoff]
+        if not matches:
+            unresolved()
+    except Exception as exc:
+        raise RequestStateError(CODE) from exc
+
+
+# Only jobs that can change a request, including upstream dispatchers.
+DRAIN_WORKFLOWS = frozenset({
+    "worker-native.yml", "worker-native-trigger.yml", "worker-pilot.yml",
+    "exam-rehearsal.yml", "native-verified-integration.yml", "chain-lots.yml",
+    "pg37-evidence.yml", "auto-integrate.yml", "sandbox-train.yml",
+    "train-handoff.yml", "request-intake.yml", "request-finalize.yml",
+    "request-failure-watchdog.yml", "t7-request.yml", "r1-reconcile.yml",
+})
+
+
+def verify_drain(api, request, previous):
+    """SUSPENDED is a second transition, never inferred from the first label.
+    Conservatively drain ambiguous/old route jobs, plus examiner reservations.
+    The owner review separately attests external examiner sessions are drained.
+    No cancellation, rerun or other write is performed here.
+    """
+    try:
+        if previous.get("state") != SUSPENDING or control_state(request, api) != SUSPENDING:
+            unresolved()
+        prior = api(f"pulls/{previous['authorization_pr']}")
+        cutoff = _stamp(prior["merged_at"])
+        for status in ("queued", "in_progress", "waiting", "pending", "requested", "action_required"):
+            for run in _paged(api, f"actions/runs?status={status}", "workflow_runs"):
+                path = run.get("path", "")
+                if not isinstance(path, str) or not path:
+                    unresolved()
+                if path.split("@", 1)[0].rsplit("/", 1)[-1] not in DRAIN_WORKFLOWS:
+                    continue
+                # New trusted-main first attempts see SUSPENDING. Older runs,
+                # replays and ambiguous branch snapshots must drain first.
+                if (_stamp(run.get("created_at")) <= cutoff
+                        or run.get("run_attempt") != 1 or run.get("head_branch") != "main"):
+                    raise RequestStateError("REQUEST_DRAIN_PENDING")
+        for issue in _paged(api, "issues?state=open&labels=examiner-working"):
+            body = issue.get("body")
+            if not isinstance(body, str):
+                unresolved()
+            slugs = set(re.findall(r"(?m)^- Pedido: `(req-[1-9][0-9]*)`\s*$", body))
+            if len(slugs) != 1:
+                unresolved()
+            if request in slugs:
+                raise RequestStateError("REQUEST_DRAIN_PENDING")
+        if read_control(api).get(request) != previous:
+            unresolved()
+    except RequestStateError:
+        raise
     except Exception as exc:
         raise RequestStateError(CODE) from exc
 
@@ -348,6 +477,14 @@ def request_ids_for_pr(branch: str, paths: list[str], *, root: Path = ROOT) -> s
 
 def require_pr_open(branch: str, paths: list[str], api, *, root: Path = ROOT):
     control = read_control(api)
+    # Global historical registry is not a new implementation or admission.
+    # It may record merges that occurred before suspension; no other paths
+    # may travel under this branch family.
+    if branch.startswith("lf/implemented-registry/"):
+        if (not re.fullmatch(r"lf/implemented-registry/[0-9a-f]{12}", branch)
+                or paths != ["pilot/registry/implemented.json"]):
+            unresolved()
+        return
     if not control:
         return
     for slug in sorted(request_ids_for_pr(branch, paths, root=root)):

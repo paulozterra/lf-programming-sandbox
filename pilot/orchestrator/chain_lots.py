@@ -134,14 +134,14 @@ def api(path: str) -> dict:
             parsed = json.loads(raw)
         except ValueError:
             deny("GITHUB_RESPONSE_INVALID")
-        events = re.fullmatch(r"issues/[1-9][0-9]*/events\?per_page=100&page=[1-9][0-9]*", path)
+        events = re.fullmatch(r"(?:issues/[1-9][0-9]*/events|pulls/[1-9][0-9]*/reviews)\?per_page=100&page=[1-9][0-9]*", path)
         if not isinstance(parsed, list if events else dict):
             deny("GITHUB_RESPONSE_INVALID")
         return parsed
     # Mutable authorization inputs must not be memoized across effects.
     if (re.fullmatch(r"(issues|pulls)/[1-9][0-9]*", path)
             or path.startswith("contents/pilot/orchestrator/request_lifecycle_control.json?")
-            or re.fullmatch(r"issues/[1-9][0-9]*/events\?per_page=100&page=[1-9][0-9]*", path)):
+            or re.fullmatch(r"(?:issues/[1-9][0-9]*/events|pulls/[1-9][0-9]*/reviews)\?per_page=100&page=[1-9][0-9]*", path)):
         return fetch()
     return budget.read(path, fetch)
 
@@ -1163,6 +1163,7 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
                 run("gh", "label", "create", "exam-request", "--repo", REPO,
                     "--description", "Independent encrypted examination requested",
                     "--color", "D4C5F9")
+            require_open(request, lifecycle_api, root=ROOT)
             created = run("gh", "issue", "create", "--repo", REPO,
                           "--title", title, "--body", body, "--label", "exam-request")
             match = re.search(r"/issues/([1-9][0-9]*)\s*$", created)
@@ -1358,6 +1359,7 @@ def retire_stale_exam(request: str, task: str, head: str, reason: str | None = N
     """Open one bot PR deleting exactly the stale exam's files; close the
     registration drafts built on it. Policy C re-verifies staleness on main."""
     from stale_exam import exam_paths
+    require_open(request, lifecycle_api, root=ROOT)
     prefix = f"lf/exam-retire/{task}-"
     if pending_draft(prefix):
         return {"status": "EXAM_STALE_RETIRING"}
@@ -1374,7 +1376,9 @@ def retire_stale_exam(request: str, task: str, head: str, reason: str | None = N
         current_main = run("git", "ls-remote", "origin", "refs/heads/main", cwd=root).split()[0]
         if current_main != head:
             deny("MAIN_MOVED_BEFORE_DRAFT")
+        require_open(request, lifecycle_api, root=ROOT)
         run("git", "push", "--set-upstream", "origin", branch, cwd=root)
+        require_open(request, lifecycle_api, root=ROOT)
         why = (f"su referencia falla el ensayo T40 ({reason})" if reason
                else "se publicó antes de integrar una dependencia del lote")
         url = run("gh", "pr", "create", "--repo", REPO, "--base", "main", "--head", branch,
