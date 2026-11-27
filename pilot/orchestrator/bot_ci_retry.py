@@ -182,12 +182,16 @@ def retry_failed_bot_prs(head, run, api, repo, all_plans, route_ok,
                 continue
             origin = latest["id"]
             marker = f"<!-- LF_T20_CI_RETRY:{number}:{sha}:{origin} -->"
+            if allow_pr is not None and not allow_pr(number, branch):
+                continue
             run("gh", "pr", "comment", str(number), "--repo", repo,
                 "--body", marker + "\nT20: único reintento CI por HEAD " +
                 sha + ". Corrida previa fallida #" + str(origin) + ". No se modifican "
                 "archivos ni etiquetas.")
             # The comment is the durable one-attempt ledger even when dispatch
             # fails. A future sweep will not duplicate an uncertain dispatch.
+            if allow_pr is not None and not allow_pr(number, branch):
+                continue
             run("gh", "workflow", "run", "ci.yml", "--repo", repo,
                 "--ref", branch, "-f", f"pr_number={number}",
                 "-f", f"pr_sha={sha}")

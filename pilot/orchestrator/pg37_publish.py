@@ -104,7 +104,7 @@ def sweep(*,root=ROOT):
    if chain_lots.pending_draft(prefix):
     # Only supersede bot-authored drafts anchored to an older main; retain
     # same-base or human-authored review branches without modification.
-    chain_lots.close_stale_drafts(prefix,head[:12])
+    chain_lots.close_stale_drafts(prefix,head[:12],request)
     if chain_lots.pending_draft(prefix):continue
    history=chain_lots.first_parent_merges(request,root=root)
    if chain_lots.completed_lots(lots,bindings,history):ready.append(request)
