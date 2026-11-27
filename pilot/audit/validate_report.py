@@ -22,6 +22,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 from audit_config import AuditConfigError, load  # noqa: E402
+from historical_evidence import evidence_view, EvidenceError  # noqa: E402
 
 
 def route_checks(report: dict, audit_input: dict, ekb_codes: list[str] | None) -> list[str]:
@@ -67,7 +68,14 @@ def validate(report_file: Path, skill_dir: Path, root: Path = ROOT,
         return ["AUDIT_REPORT_INVALID:UNREADABLE"]
     if not isinstance(report, dict) or not isinstance(audit_input, dict):
         return ["AUDIT_REPORT_INVALID:NOT_OBJECT"]
-    return skill_checks(report, skill_dir, root) + route_checks(report, audit_input, ekb_codes)
+    errors = route_checks(report, audit_input, ekb_codes)
+    try:
+        with evidence_view(root, report_file, report, audit_input) as view:
+            return errors + skill_checks(report, skill_dir, view)
+    except EvidenceError as exc:
+        return errors + [str(exc)]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return errors + ["AUDIT_PROVENANCE:UNRESOLVED"]
 
 
 def main() -> int:

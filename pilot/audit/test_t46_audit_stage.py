@@ -114,6 +114,9 @@ def _repo_with_merges(tmp_path):
     g = lambda *a: subprocess.run(["git", "-C", str(r), "-c", "user.name=t", "-c", "user.email=t@t", *a],
                                   check=True, capture_output=True, text=True).stdout.strip()
     g("init", "-q")
+    (r / "pilot/runs/req-9").mkdir(parents=True)
+    (r / "pilot/runs/req-9/analysis.json").write_text(json.dumps(ANALYSIS))
+    (r / "pilot/runs/req-9/lots.json").write_text(json.dumps(LOTS))
     shas = []
     for i in range(3):
         (r / f"f{i}").write_text(str(i))
@@ -126,9 +129,6 @@ def _repo_with_merges(tmp_path):
     (config_target / "projects").mkdir(parents=True, exist_ok=True)
     shutil.copy2(config_source / "active_project.json", config_target / "active_project.json")
     shutil.copy2(config_source / "projects/sandbox.json", config_target / "projects/sandbox.json")
-    (r / "pilot/runs/req-9").mkdir(parents=True)
-    (r / "pilot/runs/req-9/analysis.json").write_text("{}")
-    (r / "pilot/runs/req-9/lots.json").write_text("{}")
     (r / "pilot/audit/projects").mkdir(parents=True)
     for f in ("lf.json", "lf.audit-skill.manifest.json"):
         (r / "pilot/audit/projects" / f).write_text((ROOT / "pilot/audit/projects" / f).read_text())
@@ -234,21 +234,118 @@ def test_route_checks_catch_every_breach():
                            "AUDIT_EKB_CODE_UNKNOWN:E-404"}
 
 
-def test_validate_runs_skill_validator(tmp_path):
+def _historical_case(tmp_path):
+    import hashlib
+    r = tmp_path / "repo"
+    r.mkdir()
+    def g(*args):
+        return subprocess.check_output(["git", "-C", str(r), "-c", "user.name=t",
+                                        "-c", "user.email=t@t", *args]).decode().strip()
+    g("init", "-q")
+    run = r / "pilot/runs/req-9"
+    run.mkdir(parents=True)
+    (run / "lots.json").write_text('{"lots":[{"id":"L1"}]}')
+    (run / "analysis.json").write_text("{}")
+    (r / "contract.yaml").write_bytes(b"historical\n")
+    g("add", ".")
+    g("commit", "-qm", "request closing")
+    base = g("rev-parse", "HEAD")
+    ledger = r / "pilot/registry/implemented.json"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text(json.dumps({"entries": [{"request":"req-9", "lot":"L1",
+                        "status":"ATTESTED", "merge_sha":base}]}))
+    g("add", ".")
+    g("commit", "-qm", "registry")
+    g("update-ref", "refs/remotes/origin/main", g("rev-parse", "HEAD"))
+    d = run / "audit"
+    d.mkdir()
+    capture = d / "capture.json"
+    capture.write_text('{"ok":true}')
+    audit_dir = "pilot/runs/req-9/audit"
+    inp = dict(INPUT, base_commit=base, repository="o/r", evidence_destination=audit_dir,
+               authority_refs=[{"uri": f"github://o/r@{base}/pilot/runs/req-9/{name}",
+                                "resolved_revision": base,
+                                "expected_sha256": hashlib.sha256((run / name).read_bytes()).hexdigest()}
+                               for name in ("analysis.json", "lots.json")])
+    rep = _report(ok=True, audit_context={"source_revision":base, "promotion_authorized":False},
+                  evidence_catalog=[{"id":"source", "capture_ref":"contract.yaml",
+                                     "capture_sha256":hashlib.sha256(b"historical\n").hexdigest()},
+                                    {"id":"capture", "capture_ref":audit_dir+"/capture.json#/ok",
+                                     "capture_sha256":hashlib.sha256(capture.read_bytes()).hexdigest()}])
+    (d / "audit_input_v2.json").write_text(json.dumps(inp))
+    file = d / "report.json"
+    file.write_text(json.dumps(rep))
     skill = tmp_path / "skill"
     (skill / "validators").mkdir(parents=True)
     (skill / "scripts").mkdir()
     (skill / "validators/validate_audit_v2.py").write_text(
-        "def validate(report, root):\n    return [] if report.get('ok') else ['SCHEMA:x']\n")
-    d = tmp_path / "pilot/runs/req-9/audit"
-    d.mkdir(parents=True)
-    (d / "audit_input_v2.json").write_text(json.dumps(INPUT))
-    (d / "report.json").write_text(json.dumps(_report(ok=True)))
+        "def validate(report, root):\n"
+        "    assert (root / 'contract.yaml').read_bytes() == b'historical\\n'\n"
+        "    assert (root / 'pilot/runs/req-9/audit/capture.json').read_text() == '{\\\"ok\\\":true}'\n"
+        "    return [] if report.get('ok') else ['SCHEMA:x']\n")
+    return r, file, rep, inp, skill, g
+
+
+def test_validate_runs_skill_validator(tmp_path):
+    r, file, rep, inp, skill, _ = _historical_case(tmp_path)
     sys.modules.pop("validate_audit_v2", None)
-    assert vr.validate(d / "report.json", skill, tmp_path, ["E-1"]) == []
-    (d / "report.json").write_text(json.dumps(_report()))
-    assert vr.validate(d / "report.json", skill, tmp_path, ["E-1"]) == ["SKILL:SCHEMA:x"]
+    assert vr.validate(file, skill, r, ["E-1"]) == []
+    rep.pop("ok")
+    file.write_text(json.dumps(rep))
+    assert vr.validate(file, skill, r, ["E-1"]) == ["SKILL:SCHEMA:x"]
     sys.modules.pop("validate_audit_v2", None)
+
+
+def test_evolved_source_is_valid_without_rehashing(tmp_path):
+    r, file, rep, inp, skill, g = _historical_case(tmp_path)
+    original = file.read_bytes()
+    (r / "contract.yaml").write_bytes(b"legitimate evolution\n")
+    g("add", "contract.yaml")
+    g("commit", "-qm", "MODIFY contract")
+    g("update-ref", "refs/remotes/origin/main", g("rev-parse", "HEAD"))
+    sys.modules.pop("validate_audit_v2", None)
+    assert vr.validate(file, skill, r, ["E-1"]) == []
+    assert file.read_bytes() == original
+    sys.modules.pop("validate_audit_v2", None)
+
+
+@pytest.mark.parametrize("case,code", [
+    ("wrong_hash", "CAPTURE_HASH_DRIFT"), ("invalid_hash", "HASH_INVALID"),
+    ("altered_capture", "CAPTURE_HASH_DRIFT"), ("unknown_commit", "REVISION_NOT_MAIN_HISTORY"),
+    ("wrong_close", "REVISION_NOT_REQUEST_CLOSE"), ("missing_source", "BLOB_UNRESOLVED"),
+    ("path_traversal", "PATH_INVALID"), ("missing_authority", "AUTHORITY_UNRESOLVED"),
+    ("paired_rewrite", "PUBLISHED_CAPTURE_CHANGED"),
+])
+def test_historical_evidence_fails_closed(tmp_path, case, code):
+    import hashlib
+    r, file, rep, inp, skill, g = _historical_case(tmp_path)
+    capture = file.parent / "capture.json"
+    if case == "wrong_hash":
+        rep["evidence_catalog"][0]["capture_sha256"] = "f"*64
+    elif case == "invalid_hash":
+        rep["evidence_catalog"][0]["capture_sha256"] = "x"
+    elif case == "altered_capture":
+        capture.write_text("changed")
+    elif case in ("unknown_commit", "wrong_close"):
+        sha = "f"*40 if case == "unknown_commit" else g("rev-parse", "HEAD")
+        rep["audit_context"]["source_revision"] = inp["base_commit"] = sha
+    elif case == "missing_source":
+        rep["evidence_catalog"][0]["capture_ref"] = "later-only.yaml"
+        (r / "later-only.yaml").write_bytes(b"historical\n")
+    elif case == "path_traversal":
+        rep["evidence_catalog"][0]["capture_ref"] = "../contract.yaml"
+    elif case == "missing_authority":
+        inp["authority_refs"] = []
+    elif case == "paired_rewrite":
+        g("add", ".")
+        g("commit", "-qm", "published audit")
+        g("update-ref", "refs/remotes/origin/main", g("rev-parse", "HEAD"))
+        capture.write_text("altered")
+        rep["evidence_catalog"][1]["capture_sha256"] = hashlib.sha256(capture.read_bytes()).hexdigest()
+    file.write_text(json.dumps(rep))
+    (file.parent / "audit_input_v2.json").write_text(json.dumps(inp))
+    assert any(code in e for e in vr.validate(file, skill, r, ["E-1"]))
+
 
 
 def test_ekb_strips_orm_only_parameters(tmp_path):

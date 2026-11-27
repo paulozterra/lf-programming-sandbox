@@ -58,9 +58,20 @@ def assemble(draft: dict, audit_input: dict, skill_dir: Path, root: Path = ROOT,
     base = audit_input["base_commit"]
     criteria = dict(c.split(" :: ", 1) for c in audit_input["acceptance_criteria"])
 
+    # A new audit must actually inspect its declared revision. Do not silently
+    # hash current code as historical evidence, or backdate a new capture.
+    audit_dir = audit_input.get("evidence_destination", "")
+    def capture_sha(ref):
+        name = ref.partition("#")[0]
+        digest = _sha(root, ref)
+        if not audit_dir or not name.startswith(audit_dir + "/"):
+            if hashlib.sha256(_at_commit(root, base, name)).hexdigest() != digest:
+                raise ScaffoldError("SCAFFOLD_FILE_CHANGED_SINCE_CLOSE:" + name)
+        return digest
+
     evidence = [{"id": e["id"], "kind": e["kind"], "origin": e["origin"], "capture_ref": e["ref"],
                  "source_execution_id": None, "observed_at": e.get("observed_at"), "collected_at": now,
-                 "claim": e["claim"], "capture_sha256": _sha(root, e["ref"])} for e in draft["evidence"]]
+                 "claim": e["claim"], "capture_sha256": capture_sha(e["ref"])} for e in draft["evidence"]]
     kinds = {e["id"]: e["kind"] for e in evidence}
 
     missing = sorted(set(criteria) - set(draft["tasks"]))
@@ -126,7 +137,7 @@ def assemble(draft: dict, audit_input: dict, skill_dir: Path, root: Path = ROOT,
     evidence.append({"id": "EV-COHORT", "kind": "NOT_MEASURED", "origin": "NONE", "capture_ref": cohort,
                      "source_execution_id": None, "observed_at": None, "collected_at": now,
                      "claim": "Sin corridas del pipeline LF para este pedido: cohorte vacía.",
-                     "capture_sha256": _sha(root, cohort)})
+                     "capture_sha256": capture_sha(cohort)})
     report = {
         "schema_version": "LF_DEEP_AUDIT_REPORT_V2", "phases": [1, 2, 3, 4, 5, 6],
         "checklist": draft["checklist"],

@@ -49,6 +49,7 @@
       "pilot/orchestrator/test_t20_bot_ci_retry.py",
       "pilot/orchestrator/test_t24_1_sweep_and_attempts.py",
       "pilot/orchestrator/test_t24_integration_replay.py",
+      "pilot/orchestrator/test_t25_contract_derivatives.py",
       "pilot/orchestrator/test_t31_publish_exam.py",
       "pilot/orchestrator/test_t46_1_bounded_replay.py",
       "pilot/orchestrator/test_t46_conflict_replay.py",

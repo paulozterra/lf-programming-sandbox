@@ -51,7 +51,10 @@ def test_rebuilds_req286_report_identically_in_judgement():
     skill = skill_dir()
     report = json.loads((AUDIT / "report.json").read_text())
     audit_input = json.loads((AUDIT / "audit_input_v2.json").read_text())
-    rebuilt = rs.assemble(draft_from(report), audit_input, skill, now=report["audit_context"]["started_at"])
+    from historical_evidence import evidence_view
+    with evidence_view(ROOT, AUDIT / "report.json", report, audit_input) as view:
+        rebuilt = rs.assemble(draft_from(report), audit_input, skill, root=view,
+                              now=report["audit_context"]["started_at"])
     for key in ("audit_tasks", "findings", "checklist", "completion"):
         assert rebuilt[key] == report[key], key
     # The 11-step ledger carries standard boilerplate; only its structure must match.
@@ -67,8 +70,13 @@ def test_rebuilt_report_passes_the_skill_validator():
     sys.path.insert(0, str(skill / "validators"))
     from validate_audit_v2 import validate
     report = json.loads((AUDIT / "report.json").read_text())
-    rebuilt = rs.assemble(draft_from(report), json.loads((AUDIT / "audit_input_v2.json").read_text()), skill)
-    assert validate(rebuilt, ROOT) == []
+    from historical_evidence import evidence_view
+    audit_input = json.loads((AUDIT / "audit_input_v2.json").read_text())
+    with evidence_view(ROOT, AUDIT / "report.json", report, audit_input) as view:
+        rebuilt = rs.assemble(draft_from(report), audit_input, skill, root=view)
+        assert validate(rebuilt, view) == []
+    from pilot.audit.validate_report import validate as validate_route
+    assert validate_route(AUDIT / "report.json", skill, ROOT) == []
 
 
 def test_missing_rule_task_blocks():
@@ -76,8 +84,11 @@ def test_missing_rule_task_blocks():
     report = json.loads((AUDIT / "report.json").read_text())
     draft = draft_from(report)
     draft["tasks"].pop(next(iter(draft["tasks"])))
-    with pytest.raises(rs.ScaffoldError, match="SCAFFOLD_TASK_MISSING"):
-        rs.assemble(draft, json.loads((AUDIT / "audit_input_v2.json").read_text()), skill)
+    from historical_evidence import evidence_view
+    audit_input = json.loads((AUDIT / "audit_input_v2.json").read_text())
+    with evidence_view(ROOT, AUDIT / "report.json", report, audit_input) as view:
+        with pytest.raises(rs.ScaffoldError, match="SCAFFOLD_TASK_MISSING"):
+            rs.assemble(draft, audit_input, skill, root=view)
 
 
 def test_wrong_draft_schema_blocks(tmp_path):
