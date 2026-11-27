@@ -196,6 +196,9 @@ class ManualRegistration(unittest.TestCase):
         from unittest.mock import patch
         class Api:
             def api(self, method, path, body=None):
+                from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+                if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+                    return content({})
                 if path.startswith("/pulls?"):
                     return [{"user": {"login": "github-actions[bot]"},
                              "head": {"ref": "lf/request/req-123"}}]
