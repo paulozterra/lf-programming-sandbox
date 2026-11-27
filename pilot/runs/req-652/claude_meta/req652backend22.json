@@ -1,0 +1,7 @@
+{
+  "holdout_ref": "pilot/holdouts/req652backend22.oracle.json.age",
+  "holdout_sha256": "f712500afa23b3816fda4dac6bde604a8abc496015eab6e6b8ec1161c72ffbc8",
+  "project_ref": "lf_java",
+  "written_by": "claude",
+  "derived_from": "ficha sbx_b2b_login (SBX-B2B-R-DATA-ATTEMPTS-BACKEND, SBX-B2B-R-DATA-SESSIONS-BACKEND, SBX-B2B-R-DATA-USER-STORE-BACKEND, SBX-B2B-R-INT-EMAIL-LOGIN)"
+}
