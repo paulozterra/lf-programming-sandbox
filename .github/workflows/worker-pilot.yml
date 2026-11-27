@@ -578,6 +578,8 @@ jobs:
     timeout-minutes: 35
     permissions:
       contents: read
+      issues: read
+      pull-requests: read
     services:
       postgres:
         image: postgres:17
@@ -672,6 +674,10 @@ jobs:
           tar -xzf "$archive" -C "$RUNNER_TEMP/age-extract"
           install -m 0755 "$RUNNER_TEMP/age-extract/age/age" "$RUNNER_TEMP/age-bin/age"
           "$RUNNER_TEMP/age-bin/age" --version | grep -Fq 'v1.3.2'
+      - name: Recheck lifecycle before registered API lot secrets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 control/pilot/worker_v08/request_lifecycle_gate.py --control control --task "$LOT_TASK"
       - name: Verify private encrypted oracle identity before API
         env:
           PILOT_HOLDOUT_AGE_KEY: ${{ secrets.PILOT_HOLDOUT_AGE_KEY }}
@@ -686,6 +692,10 @@ jobs:
             --expected-sha "$EXPECTED_SHA" \
             --private "$RUNNER_TEMP/api-lot-private" \
             --age-bin "$RUNNER_TEMP/age-bin/age"
+      - name: Recheck lifecycle before registered API lot execution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 control/pilot/worker_v08/request_lifecycle_gate.py --control control --task "$LOT_TASK"
       - name: Execute vendored verified Worker with generated acceptance
         id: worker
         env:

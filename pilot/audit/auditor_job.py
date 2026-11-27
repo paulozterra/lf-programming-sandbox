@@ -20,6 +20,8 @@ import sys as _project_sys
 from pathlib import Path as _project_Path
 _project_sys.path.insert(0, str(_project_Path(__file__).resolve().parents[2]))
 from pilot.config.project_config import storage_path, storage
+from pilot.audit import audit_lifecycle as al
+from pilot.orchestrator.request_lifecycle import RequestStateError
 
 import argparse
 import json
@@ -69,7 +71,7 @@ def parse_issue(issue: dict) -> tuple[str, str, dict]:
     marks, title, fence = MARK.findall(body), TITLE.match(issue.get("title") or ""), FENCE.findall(body)
     if len(marks) != 1 or not title or len(fence) != 1:
         raise JobError("AUDITOR_ISSUE_MALFORMED")
-    data = json.loads(fence[0])
+    data = al.strict_json(fence[0])
     if data.get("schema_version") != "LF_DEEP_AUDIT_INPUT_V2" or \
             data.get("evidence_destination") != f"pilot/runs/{marks[0]}/audit":
         raise JobError("AUDITOR_INPUT_MISMATCH")
@@ -82,13 +84,21 @@ def changed_outside(request: str, paths: list[str]) -> list[str]:
     return sorted(p for p in paths if not p.startswith(prefix))
 
 
+def live_reader(repo):
+    return lambda path: json.loads(gh(f"repos/{repo}/" + path))
+
+
 def prepare(issue_number: int, repo: str) -> dict:
-    request, project, data = parse_issue(json.loads(gh(f"repos/{repo}/issues/{issue_number}")))
+    reader = live_reader(repo)
+    request, project, data = al.require_audit_issue(issue_number, repo, reader, root=ROOT)
     if (ROOT / data["evidence_destination"]).exists():
         raise JobError("AUDITOR_AUDIT_ALREADY_PRESENT")
     if json.loads(gh(f"repos/{repo}/pulls?state=open&head={repo.split('/')[0]}:audit-{request}")):
         raise JobError("AUDITOR_PR_ALREADY_OPEN")
     out = ROOT / data["evidence_destination"]
+    if al.require_audit_issue(issue_number, repo, reader, root=ROOT,
+                              expected_request=request, expected_project=project)[2] != data:
+        raise JobError("AUDITOR_INPUT_CHANGED")
     out.mkdir(parents=True)
     (out / "audit_input_v2.json").write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     (out / "cohort_sample.json").write_text('{"rows": []}\n')
@@ -116,30 +126,63 @@ def finalize(request: str, project: str, skill_dir: Path) -> dict:
 
 def publish(request: str, project: str, issue: int, repo: str, summary: dict) -> int:
     branch = f"audit-{request}"
+    reader = live_reader(repo)
+    initial = al.require_audit_issue(issue, repo, reader, root=ROOT,
+                                     expected_request=request, expected_project=project)[2]
+    def guard():
+        if al.require_audit_issue(issue, repo, reader, root=ROOT,
+                                  expected_request=request, expected_project=project)[2] != initial:
+            raise JobError("AUDITOR_INPUT_CHANGED")
     git("checkout", "-b", branch)
     git("add", f"pilot/runs/{request}/audit")
     git("-c", f"user.name={BOT}", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com",
         "commit", "-qm", f"[AUDIT][{project}] {request}: informe de auditoría (SHADOW)")
+    # Also inspect committed changes: a clean worktree is not proof of scope.
+    parts = git("diff", "--name-status", "--no-renames", "-z", "origin/main...HEAD").split("\0")
+    if not parts or parts.pop() != "" or len(parts) % 2 or any(
+            status != "A" for status in parts[::2]):
+        raise JobError("AUDITOR_COMMIT_SCOPE_INVALID")
+    prefix = al.scope(request, parts[1::2])
+    from pilot.audit.historical_evidence import tree_blob
+    head = git("rev-parse", "HEAD").strip()
+    if al.strict_json(tree_blob(ROOT, head, prefix + "audit_input_v2.json")) != initial:
+        raise JobError("AUDITOR_INPUT_CHANGED")
+    ctx = al.strict_json(tree_blob(ROOT, head, prefix + "report.json")).get("audit_context", {})
+    if ctx.get("source_revision") != initial["base_commit"] or ctx.get("promotion_authorized") is not False:
+        raise JobError("AUDITOR_REPORT_PROVENANCE_INVALID")
+    # Reject symlinks/submodules even when they are under the audit directory.
+    for name in parts[1::2]:
+        tree_blob(ROOT, head, name)
+    guard()
     token = os.environ["GH_TOKEN"]
     subprocess.run(["git", "-C", str(ROOT), "push", "-q",
                     f"https://x-access-token:{token}@github.com/{repo}.git", f"HEAD:refs/heads/{branch}"],
                    check=True, capture_output=True)
+    guard()
     pr = json.loads(gh(f"repos/{repo}/pulls", data={
         "title": f"[AUDIT][{project}] {request}", "head": branch, "base": "main",
         "body": f"Auditoría automática del pedido `{request}` (issue #{issue}). Auditor: Claude, sin credencial de GitHub.\n\n"
                 f"Reglas: {summary['rules']} · hallazgos: {summary['findings']} ({summary['confirmed']} confirmados).\n"
                 "Validado antes de publicar (skill V2 + controles de la ruta); el CI añade el EKB en vivo. Modo SHADOW."}))
+    al.require_audit_pr(pr, reader, root=ROOT)
+    guard()
     gh(f"repos/{repo}/issues/{issue}/comments", data={"body":
        f"Informe en el PR #{pr['number']}: {summary['rules']} reglas, {summary['findings']} hallazgos "
        f"({summary['confirmed']} confirmados con reproductor). Se fusionará solo si el CI pasa."})
     for workflow in ("ci.yml", "audit-stage.yml"):
+        al.require_audit_pr(pr, reader, root=ROOT)
+        guard()
         gh("-X", "POST", f"repos/{repo}/actions/workflows/{workflow}/dispatches",
            data={"ref": branch, **({"inputs": {"project": project}} if workflow == "audit-stage.yml" else {})})
     return pr["number"]
 
 
 def land(pr_number: int, repo: str, timeout_s: int = 3600) -> str:
-    pr = json.loads(gh(f"repos/{repo}/pulls/{pr_number}"))
+    reader = live_reader(repo)
+    pr = reader(f"pulls/{pr_number}")
+    def guard():
+        al.require_audit_pr(pr, reader, root=ROOT)
+    guard()
     head = pr["head"]["sha"]
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
@@ -148,10 +191,21 @@ def land(pr_number: int, repo: str, timeout_s: int = 3600) -> str:
         if len(runs) >= 5 and not pending:
             bad = sorted(r["name"] for r in runs if r["conclusion"] not in ("success", "skipped", "neutral"))
             if bad:
+                guard()
                 gh(f"repos/{repo}/issues/{pr_number}/comments",
                    data={"body": "CI no pasó: " + ", ".join(bad) + ". El informe queda abierto para revisión."})
                 return "CI_FAILED"
+            try:
+                al.require_audit_check(reader, head)
+            except RequestStateError as exc:
+                if str(exc) != "AUDIT_STAGE_NOT_GREEN":
+                    raise
+                time.sleep(30)
+                continue
+            guard()
             gh(f"repos/{repo}/issues/{pr_number}/labels", data={"labels": ["ready-to-merge"]})
+            al.require_audit_check(reader, head)
+            guard()
             gh("-X", "POST", f"repos/{repo}/actions/workflows/sandbox-train.yml/dispatches",
                data={"ref": "main", "inputs": {"pr_number": str(pr_number)}})
             return "HANDED_TO_TRAIN"
@@ -159,9 +213,16 @@ def land(pr_number: int, repo: str, timeout_s: int = 3600) -> str:
     return "CI_TIMEOUT"
 
 
+def notify_blocked(issue, repo):
+    al.require_audit_issue(issue, repo, live_reader(repo), root=ROOT)
+    gh(f"repos/{repo}/issues/{issue}/comments",
+       data={"body": "La auditoría automática se detuvo; consultar la corrida A5."})
+    return {"outcome": "AUDIT_BLOCKED_NOTIFIED"}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("action", choices=["prepare", "finalize", "publish", "land"])
+    ap.add_argument("action", choices=["prepare", "finalize", "publish", "land", "notify-blocked"])
     ap.add_argument("--issue", type=int)
     ap.add_argument("--request")
     ap.add_argument("--project")
@@ -177,8 +238,10 @@ def main() -> int:
         elif a.action == "publish":
             summary = finalize(a.request, a.project, a.skill_dir)
             result = {"pr": publish(a.request, a.project, a.issue, a.repository, summary)}
-        else:
+        elif a.action == "land":
             result = {"outcome": land(a.pr, a.repository)}
+        else:
+            result = notify_blocked(a.issue, a.repository)
     except (JobError, OSError, ValueError, KeyError, subprocess.CalledProcessError) as exc:
         print(json.dumps({"status": "BLOCKED", "reason": str(exc)[:300]}))
         return 1

@@ -20,7 +20,7 @@ class T9(unittest.TestCase):
     def setUp(self):
         self.mod = load("issue_intake_t9", "issue_intake.py")
         self.issue = {
-            "number": 159,
+            "number": 159, "state": "open",
             "user": {"login": "paulozterra"},
             "created_at": "2026-11-14T15:00:00Z",
             "body": "### Pedido\n\nImplementa SBX-REM-LIST\nCon filtro q.\n",
@@ -38,6 +38,9 @@ class T9(unittest.TestCase):
         class API:
             def issue(self, number):
                 return self_data
+            def call(self, method, path, payload=None):
+                from pilot.orchestrator.lifecycle_test_support import fake_api
+                return fake_api({})(path[1:])
             def permission(self, author):
                 return "none"
             def comment(self, number, body):
@@ -59,6 +62,9 @@ class T9(unittest.TestCase):
             def permission(self, author):
                 return "write"
             def call(self, method, path, payload=None):
+                from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+                if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+                    return content({})
                 calls.append((method, path, payload))
                 if method == "GET":
                     return []
@@ -97,6 +103,21 @@ class T9(unittest.TestCase):
         expected = self.mod.expected_files(self.issue)
         with self.assertRaisesRegex(self.mod.Blocked, "PEDIDO_CONTENIDO_MODIFICADO"):
             self.mod.verify(API(), 159, "a" * 40, list(expected))
+
+    def test_suspended_intake_never_publishes(self):
+        from pilot.orchestrator.lifecycle_test_support import fake_api
+        api = fake_api({"req-159": {"state": "SUSPENDING", "authorization_pr": 77}})
+        issue = self.issue
+        class SuspendedAPI:
+            def issue(self, number):
+                return issue
+            def call(self, method, path, payload=None):
+                assert method == "GET"
+                return api(path[1:])
+        with patch.object(self.mod, "git") as git:
+            self.assertEqual(self.mod.intake(SuspendedAPI(), {"issue": issue}),
+                             "REQUEST_SUSPENDED")
+            git.assert_not_called()
 
     def test_form_is_not_arbitrary_issue_body(self):
         with self.assertRaisesRegex(self.mod.Blocked, "PEDIDO_FORMULARIO_INVALIDO"):

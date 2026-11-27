@@ -154,6 +154,8 @@ def recover(head: str, run, api, repo: str, root: Path, *, allowed_task, format_
                                      "reason": "R1_WORKER_PRIOR_ATTEMPT_REQUIRES_REVIEW"})
                     break
             else:
+                if not allowed_task(task):
+                    continue
                 run("gh", "workflow", "run", "worker-native.yml", "--repo", repo,
                     "--ref", "main", "-f", "task=" + task,
                     "-f", "proposal_commit_sha=" + sha, "-f", "attempt=1",

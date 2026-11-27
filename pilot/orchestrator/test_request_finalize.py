@@ -90,6 +90,9 @@ class FinalizeTests(unittest.TestCase):
                 def comment(self, number, body):
                     self.ops.append(("COMMENT", number))
                 def call(self, method, path, payload=None):
+                    from pilot.orchestrator.lifecycle_test_support import fake_api
+                    if method == "GET":
+                        return fake_api({})(path.lstrip("/"))
                     self.ops.append((method, path))
             instance = APIStub("token")
             with (patch.object(mod, "API", return_value=instance),

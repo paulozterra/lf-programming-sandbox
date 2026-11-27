@@ -109,7 +109,7 @@ def _failed_for_scope(api, run, repo: str, integration: dict) -> bool:
 
 
 def recover(head: str, run, api, repo: str, root: Path,
-            *, allowed_tasks: set[str] | None = None) -> list[dict]:
+            *, allowed_tasks: set[str] | None = None, allowed_task=None) -> list[dict]:
     """Idempotent CP3.6 dispatch; all GitHub effects through injected run/API."""
     if not re.fullmatch(r"[0-9a-f]{40}", head):
         raise ValueError("INTEGRATION_REPLAY_HEAD_INVALID")
@@ -163,6 +163,8 @@ def recover(head: str, run, api, repo: str, root: Path,
             continue
         if not _failed_for_scope(api, run, repo, failure):
             continue
+        if allowed_task is not None and not allowed_task(task):
+            continue
         run("gh", "workflow", "run", INTEGRATION, "--repo", repo, "--ref",
             "main", "-f", "source_run_id=" + str(source_id))
         scheduled.add(source_id)
@@ -173,7 +175,7 @@ def recover(head: str, run, api, repo: str, root: Path,
 
 
 def recover_unstarted(head: str, run, api, repo: str, root: Path,
-                      *, allowed_tasks: set[str]) -> list[dict]:
+                      *, allowed_tasks: set[str], allowed_task=None) -> list[dict]:
     """R1: reconcile immutable PASS Worker runs missing a CP3.5 execution.
 
     Cancelled/skipped CP3.5 runs are not delivery receipts. This reads only
@@ -218,6 +220,8 @@ def recover_unstarted(head: str, run, api, repo: str, root: Path,
                 outcomes.append({"status": "BLOCKED", "task": task,
                                  "reason": "R1_CP35_COMPLETED_FAILURE",
                                  "source_run_id": source_id})
+            continue
+        if allowed_task is not None and not allowed_task(task):
             continue
         run("gh", "workflow", "run", INTEGRATION, "--repo", repo,
             "--ref", "main", "-f", "source_run_id=" + str(source_id))

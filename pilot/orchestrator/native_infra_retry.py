@@ -102,6 +102,8 @@ def retry_native_infra(head, run, api, repo, control, *, allowed_task=None, form
             continue
         if check["task"] != task:
             continue
+        if allowed_task is not None and not allowed_task(task):
+            continue
         run("gh", "workflow", "run", "worker-native.yml", "--repo", repo,
             "--ref", "main", "-f", "task=" + task,
             "-f", "proposal_commit_sha=" + sha, "-f", "attempt=1",

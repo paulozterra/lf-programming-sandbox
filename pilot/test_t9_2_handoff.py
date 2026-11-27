@@ -30,6 +30,10 @@ class API:
         self.writes = []
 
     def call(self, method, path, body=None):
+        from pilot.orchestrator.lifecycle_test_support import fake_api, CONTROL
+        if method == "GET" and (path == f"/contents/{CONTROL}?ref=main" or
+                                (path.startswith("/issues/") and path[8:].isdigit())):
+            return fake_api({})(path[1:])
         if method == "GET" and path == "/pulls/777":
             return {"number": 777, "merged": True, "merge_commit_sha": SHA,
                     "base": {"ref": "main", "repo": {"full_name": handoff.REPO}},

@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse,json,os
 from pathlib import Path
 import chain_lots
-from pilot.orchestrator.request_lifecycle import request_state, RequestStateError, OPEN
+from pilot.orchestrator.request_lifecycle import request_state, RequestStateError, OPEN, inactive_reason, require_open
 from pg37_evidence import generate,render,canonical,digest
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -16,8 +16,9 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
  for request,lots,state,bindings in chain_lots.plans():
   try:
     try:
-     if request_state(request,chain_lots.api,root=root)!=OPEN:
-      results.append({"request":request,"status":"REQUEST_CLOSED"});continue
+     current=request_state(request,chain_lots.lifecycle_api,root=root)
+     if current!=OPEN:
+      results.append({"request":request,"status":inactive_reason(current)});continue
     except RequestStateError:
      results.append({"request":request,"status":"REQUEST_STATE_UNRESOLVED"});continue
     existing=root/"pilot"/"runs"/request/"H_REPORT.md"
@@ -55,8 +56,7 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
     report=render(request,records)
     def prepare(work):
      # A request may close during worktree setup; deny before writing evidence.
-     if request_state(request,chain_lots.api,root=root)!=OPEN:
-      raise RequestStateError("REQUEST_CLOSED")
+     require_open(request,chain_lots.lifecycle_api,root=root)
      paths=[]
      for row in records:
       target=work/"pilot"/"runs"/request/"evidence"/(row["lot_id"]+"-"+row["merge_sha"][:12]+".json")
@@ -69,8 +69,7 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
      paths.append(target.relative_to(work).as_posix())
      create=publisher or chain_lots.draft
      # Last observation before any PR/publication side effect.
-     if request_state(request,chain_lots.api,root=root)!=OPEN:
-      raise RequestStateError("REQUEST_CLOSED")
+     require_open(request,chain_lots.lifecycle_api,root=root)
      info=create(work,branch,request,paths,
        f"CP3.7 pinned source-only evidence for verified integration merges at {head}; no production authority",
        f"H_REPORT {request} PG06-PG14")
@@ -78,8 +77,9 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
              "all_candidates_complete":all(row["complete"] for row in records),**info}
     # Recheck immediately before the worktree publishes a draft evidence PR.
     try:
-     if request_state(request,chain_lots.api,root=root)!=OPEN:
-      results.append({"request":request,"status":"REQUEST_CLOSED"});continue
+     current=request_state(request,chain_lots.lifecycle_api,root=root)
+     if current!=OPEN:
+      results.append({"request":request,"status":inactive_reason(current)});continue
     except RequestStateError:
      results.append({"request":request,"status":"REQUEST_STATE_UNRESOLVED"});continue
     results.append(chain_lots.worktree(head,branch,prepare))
@@ -97,14 +97,14 @@ def sweep(*,root=ROOT):
  blocked=[]
  for request,lots,state,bindings in chain_lots.plans():
   try:
-   if request_state(request,chain_lots.api,root=root)!=OPEN:continue
+   if request_state(request,chain_lots.lifecycle_api,root=root)!=OPEN:continue
    report=storage_path("requests_root",root=root)/request/"H_REPORT.md"
    if report.exists() or report.is_symlink():continue
    prefix=f"lf/evidence/{request}-"
    if chain_lots.pending_draft(prefix):
     # Only supersede bot-authored drafts anchored to an older main; retain
     # same-base or human-authored review branches without modification.
-    chain_lots.close_stale_drafts(prefix,head[:12])
+    chain_lots.close_stale_drafts(prefix,head[:12],request)
     if chain_lots.pending_draft(prefix):continue
    history=chain_lots.first_parent_merges(request,root=root)
    if chain_lots.completed_lots(lots,bindings,history):ready.append(request)

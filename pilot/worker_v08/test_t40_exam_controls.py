@@ -176,3 +176,126 @@ def test_rehearsal_reports_reference_patch_rejection_category_and_path():
                              "acceptance": []}]}
     assert patch_rejection(receipt) == "PATCH_REJECTED: cumulative path is protected: a/B.java"
     assert patch_rejection({"attempts": [{"proposal_reason": "PATCH_APPLIED_IN_DISPOSABLE_WORKSPACE"}]}) is None
+
+# D22 R2: independent, adjacent authorization for each selected task.
+def _rehearsal_args(root, task, receipt, mode=()):
+    return ["exam_rehearsal", "--control", str(root), "--data", str(root),
+            "--private", str(root / "private"), "--task", task,
+            "--gate-receipt", str(receipt), *mode]
+
+
+@pytest.mark.parametrize("late", [False, True])
+def test_rehearsal_task_isolation_and_late_suspension(tmp_path, monkeypatch, capsys, late):
+    import os
+    from pilot.worker_v08 import exam_rehearsal as er
+    from pilot.orchestrator import request_lifecycle as life
+    from pilot.orchestrator.lifecycle_test_support import fake_api, SLUG, OTHER
+    a, b = "req123backend1", "req456backend1"
+    entries = {} if late else {OTHER: {"state": life.SUSPENDED, "authorization_pr": 77}}
+    monkeypatch.setattr(er, "checkout_sha", lambda root: "a"*40)
+    monkeypatch.setattr(life, "request_for_task", lambda task, **kw: {a: SLUG, b: OTHER}[task])
+    monkeypatch.setattr(life, "github_issue_api", fake_api(entries))
+    ran = []
+    def execute(control, data, task, private, age_bin, key):
+        assert not any(os.environ.get(k) for k in ("GH_TOKEN", "GITHUB_TOKEN", "ACTIONS_RUNTIME_TOKEN",
+                                                   "PILOT_HOLDOUT_AGE_KEY"))
+        assert key == "offline-key"
+        ran.append(task)
+        if late:
+            entries[OTHER] = {"state": life.SUSPENDING, "authorization_pr": 77}
+        return "REHEARSAL_PASS"
+    monkeypatch.setattr(er, "rehearse", execute)
+    for k in ("GH_TOKEN", "GITHUB_TOKEN", "ACTIONS_RUNTIME_TOKEN", "PILOT_HOLDOUT_AGE_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    # Initial suspension: try B first; A is still admitted. Late suspension:
+    # A runs first and B must revalidate after A, not reuse a grouped gate.
+    order = (a, b) if late else (b, a)
+    for task in order:
+        receipt = tmp_path / (task + ".json")
+        monkeypatch.setattr(sys, "argv", _rehearsal_args(tmp_path, task, receipt, ("--lifecycle-only",)))
+        result = er.main()
+        if task == b:
+            assert result == 1 and not receipt.exists()
+            continue
+        assert result == 0 and receipt.is_file()
+        monkeypatch.setenv("PILOT_HOLDOUT_AGE_KEY", "offline-key")
+        monkeypatch.setattr(sys, "argv", _rehearsal_args(tmp_path, task, receipt))
+        assert er.main() == 0 and not receipt.exists()
+    output = capsys.readouterr().out
+    assert ran == [a]
+    assert f"{a}: REHEARSAL_PASS" in output
+    assert f"{b}: REHEARSAL_SKIPPED_LIFECYCLE:REQUEST_SUSPENDED" in output
+    assert f"{b}: REHEARSAL_PASS" not in output
+
+
+def test_rehearsal_requires_one_use_task_and_checkout_bound_gate(tmp_path, monkeypatch, capsys):
+    from pilot.worker_v08 import exam_rehearsal as er
+    from pilot.orchestrator import request_lifecycle as life
+    from pilot.orchestrator.lifecycle_test_support import fake_api, SLUG
+    task = "req123backend1"
+    monkeypatch.setattr(er, "checkout_sha", lambda root: "a"*40)
+    monkeypatch.setattr(life, "request_for_task", lambda *a, **k: SLUG)
+    receipt = tmp_path / "gate.json"
+    er.authorize_task(tmp_path, tmp_path, task, receipt, api=fake_api({}))
+    with pytest.raises(ValueError, match="REHEARSAL_AUTHORIZATION_MISMATCH"):
+        er.consume_authorization(tmp_path, tmp_path, "req123backend2", receipt)
+    assert not receipt.exists()
+    with pytest.raises(ValueError, match="REHEARSAL_AUTHORIZATION_MISSING"):
+        er.consume_authorization(tmp_path, tmp_path, task, receipt)
+    er.authorize_task(tmp_path, tmp_path, task, receipt, api=fake_api({}))
+    monkeypatch.setattr(er, "checkout_sha", lambda root: "b"*40)
+    with pytest.raises(ValueError, match="REHEARSAL_AUTHORIZATION_MISMATCH"):
+        er.consume_authorization(tmp_path, tmp_path, task, receipt)
+    assert not receipt.exists()
+    monkeypatch.setattr(er, "rehearse", lambda *a: pytest.fail("executed without authorization"))
+    for k in ("GH_TOKEN", "GITHUB_TOKEN", "ACTIONS_RUNTIME_TOKEN"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setattr(sys, "argv", _rehearsal_args(tmp_path, task, receipt))
+    assert er.main() == 1
+    assert "REHEARSAL_PASS" not in capsys.readouterr().out
+
+
+def test_rehearsal_execution_rejects_github_credentials(tmp_path, monkeypatch, capsys):
+    from pilot.worker_v08 import exam_rehearsal as er
+    receipt = tmp_path / "gate.json"
+    monkeypatch.setenv("GH_TOKEN", "offline-test")
+    monkeypatch.setattr(er, "rehearse", lambda *a: pytest.fail("credential reached trial"))
+    monkeypatch.setattr(sys, "argv", _rehearsal_args(tmp_path, "req123backend1", receipt))
+    assert er.main() == 1
+    assert "REHEARSAL_FAIL:UNEXPECTED_GITHUB_CREDENTIAL" in capsys.readouterr().out
+
+
+def test_rehearsal_matrix_preserves_train_check_and_separates_credentials():
+    import yaml
+    wf = yaml.safe_load((ROOT / ".github/workflows/exam-rehearsal.yml").read_text("utf-8"))
+    jobs = wf["jobs"]
+    matrix = jobs["rehearse_task"]
+    assert matrix["strategy"]["fail-fast"] is False
+    assert matrix["strategy"]["max-parallel"] == 1
+    assert jobs["rehearse"]["needs"] == ["select", "rehearse_task"]
+    assert "always()" in jobs["rehearse"]["if"]
+    aggregate = jobs["rehearse"]["steps"][0]["run"]
+    assert 'test "$TASK_RESULT" = success' in aggregate
+    assert 'test "$TASK_RESULT" = skipped' in aggregate and "'[]'" in aggregate
+    gate, execution = matrix["steps"][-2:]
+    assert "--lifecycle-only --task" in gate["run"]
+    assert "--gate-receipt" in gate["run"] and "--gate-receipt" in execution["run"]
+    assert "GH_TOKEN" in gate["env"] and "PILOT_HOLDOUT_AGE_KEY" not in gate["env"]
+    assert "PILOT_HOLDOUT_AGE_KEY" in execution["env"] and "GH_TOKEN" not in execution["env"]
+    assert "unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN" in execution["run"]
+    assert wf["permissions"] == {"contents": "read", "issues": "read", "pull-requests": "read"}
+
+def test_rehearsal_stale_handoff_is_not_a_pass(tmp_path, monkeypatch):
+    from pilot.worker_v08 import exam_rehearsal as er
+    from pilot.orchestrator import request_lifecycle as life
+    from pilot.orchestrator.lifecycle_test_support import fake_api, SLUG
+    task = "req123backend1"
+    monkeypatch.setattr(er, "checkout_sha", lambda root: "a"*40)
+    monkeypatch.setattr(life, "request_for_task", lambda *a, **k: SLUG)
+    receipt = tmp_path / "gate.json"
+    monkeypatch.setattr(er.time, "monotonic_ns", lambda: 1)
+    er.authorize_task(tmp_path, tmp_path, task, receipt, api=fake_api({}))
+    monkeypatch.setattr(er.time, "monotonic_ns", lambda: er.GATE_MAX_AGE_NS + 2)
+    with pytest.raises(ValueError, match="REHEARSAL_AUTHORIZATION_EXPIRED"):
+        er.consume_authorization(tmp_path, tmp_path, task, receipt)
+    assert not receipt.exists()

@@ -26,7 +26,8 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 import build_input as bi  # noqa: E402
 from audit_config import AuditConfigError, load  # noqa: E402
-from pilot.orchestrator.request_lifecycle import request_state, RequestStateError, CLOSED_FINALIZED
+from pilot.orchestrator.request_lifecycle import require_finalized_audit, RequestStateError
+from pilot.audit import audit_lifecycle as al
 from pilot.config.project_config import storage, storage_path
 
 LABEL = "audit-request"
@@ -71,10 +72,29 @@ def close_done(repo: str, root: Path = ROOT) -> list[dict]:
         report = storage_path("requests_root", req, root=root) / "audit/report.json"
         if not report.is_file():
             continue
+        reader = lambda path: json.loads(gh(f"repos/{repo}/" + path))
+        try:
+            data = al.require_audit_issue(item["number"], repo, reader, root=root,
+                                          expected_request=req)[2]
+            from pilot.audit.historical_evidence import tree_blob
+            main = subprocess.check_output(["git", "-C", str(root), "rev-parse",
+                                            "refs/remotes/origin/main^{commit}"], text=True).strip()
+            prefix = f"pilot/runs/{req}/audit/"
+            if al.strict_json(tree_blob(root, main, prefix + "audit_input_v2.json")) != data:
+                continue
+            ctx = al.strict_json(tree_blob(root, main, prefix + "report.json")).get("audit_context", {})
+            if ctx.get("source_revision") != data["base_commit"] or ctx.get("promotion_authorized") is not False:
+                continue
+        except (RequestStateError, OSError, ValueError, KeyError, subprocess.SubprocessError):
+            continue
         head = subprocess.run(["git", "-C", str(root), "log", "-1", "--format=%H", "--", str(report)],
                               capture_output=True, text=True).stdout.strip()
+        if al.require_audit_issue(item["number"], repo, reader, root=root, expected_request=req)[2] != data:
+            raise RequestStateError("AUDIT_PROVENANCE_UNVERIFIED")
         gh(f"repos/{repo}/issues/{item['number']}/comments",
            data={"body": f"Informe de auditoría fusionado: `{storage()['requests_root']}/{req}/audit/report.json` (commit `{head}`). Se cierra."})
+        if al.require_audit_issue(item["number"], repo, reader, root=root, expected_request=req)[2] != data:
+            raise RequestStateError("AUDIT_PROVENANCE_UNVERIFIED")
         gh("-X", "PATCH", f"repos/{repo}/issues/{item['number']}", data={"state": "closed", "state_reason": "completed"})
         closed.append({"request": req, "issue": item["number"], "commit": head})
     return closed
@@ -89,7 +109,13 @@ def _finalized_request(request: str, repo: str, root: Path, api=None) -> bool:
     if not isinstance(repo, str) or "/" not in repo:
         raise RequestStateError("REQUEST_STATE_UNRESOLVED")
     transport = api or (lambda endpoint: json.loads(gh(f"repos/{repo}/" + endpoint)))
-    return request_state(request, transport, root=root) == CLOSED_FINALIZED
+    try:
+        require_finalized_audit(request, transport, root=root)
+    except RequestStateError as exc:
+        if str(exc) in ("AUDIT_REQUEST_NOT_FINALIZED", "REQUEST_SUSPENDED"):
+            return False
+        raise
+    return True
 
 
 def candidates(config: dict, plans, root: Path = ROOT, *, repository: str = "", api=None) -> list[str]:

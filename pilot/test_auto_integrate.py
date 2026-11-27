@@ -68,6 +68,9 @@ class FakeAPI:
     def request(self, method, path, data=None):
         if method == "GET" and path.startswith("/pulls/"):
             return copy.deepcopy(self.item)
+        if method == "GET" and path == "/contents/pilot/orchestrator/request_lifecycle_control.json?ref=main":
+            from pilot.orchestrator.lifecycle_test_support import content
+            return content({})
         if method == "GET" and path.startswith("/contents/"):
             b = json.dumps(chg()).encode("utf-8")
             return {"type": "file", "size": len(b), "encoding": "base64",
@@ -104,6 +107,9 @@ class PolicyTests(unittest.TestCase):
                  "pilot/runs/req-159/request_meta.json"]
         class Tampered(FakeAPI):
             def request(self, method, path, data=None):
+                from pilot.orchestrator.lifecycle_test_support import CONTROL
+                if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+                    return super().request(method, path, data)
                 if method == "GET" and path == "/issues/159":
                     return {"number": 159, "user": {"login": "paulozterra"},
                             "created_at": "2026-11-14T15:00:00Z",

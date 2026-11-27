@@ -57,7 +57,7 @@ def fixture(tmp_path, *, paths=None):
 
 def exercise(tmp_path, *, first=None, second=None, existing=False,
              logs="CP35_TASK_SCOPE_UNSAFE", job_status="failure",
-             worker_rows=None):
+             worker_rows=None, allowed_task=None):
     fixture(tmp_path)
     records = [first or failure()]
     if second is not None:
@@ -85,7 +85,7 @@ def exercise(tmp_path, *, first=None, second=None, existing=False,
         if args[:3] == ("gh", "workflow", "run"):
             return ""
         raise AssertionError(args)
-    result = replay.recover(HEAD, run, api, REPO, tmp_path)
+    result = replay.recover(HEAD, run, api, REPO, tmp_path, allowed_task=allowed_task)
     return result, calls
 
 
@@ -174,3 +174,11 @@ def test_replay_workflow_is_not_worker_and_rechecks_original_proof():
     auth = inspect.getsource(native_verified_integration.get_verified_patch)
     assert "verify_run(run, jobs, run_id)" in auth
     assert "native-attempt-proof" in inspect.getsource(native_verified_integration)
+
+
+def test_late_suspension_prevents_cp35_replay(tmp_path):
+    checked = []
+    result, calls = exercise(tmp_path, allowed_task=lambda task: checked.append(task) or False)
+    assert checked == [TASK]
+    assert result == []
+    assert not any(x[:3] == ("gh", "workflow", "run") for x in calls)

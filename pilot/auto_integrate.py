@@ -684,6 +684,13 @@ def evaluate_one(api, number):
     pr = api.request("GET", f"/pulls/{number}")
     paths = pr_files(api, number)
     kind = eligible_pr(pr, paths, api=api)
+    from pilot.orchestrator.request_lifecycle import require_pr_open, RequestStateError
+    def lifecycle_guard():
+        try:
+            require_pr_open(pr["head"]["ref"], paths, lambda route: api.request("GET", "/" + route))
+        except RequestStateError as exc:
+            block(str(exc))
+    lifecycle_guard()
     head = pr["head"]["sha"]
     if kind == "request":
         verify_issue_request(api, pr, paths)
@@ -732,7 +739,9 @@ def evaluate_one(api, number):
             or latest.get("head", {}).get("ref") != pr["head"].get("ref")
             or latest.get("base", {}).get("ref") != "main"):
         block("PR_CHANGED_BEFORE_LABEL")
+    lifecycle_guard()
     api.request("POST", f"/issues/{number}/labels", {"labels": [READY_LABEL]})
+    lifecycle_guard()
     # GITHUB_TOKEN labels do NOT trigger the pull_request:labeled workflow.
     api.request("POST", "/actions/workflows/sandbox-train.yml/dispatches",
                 {"ref": "main", "inputs": {"pr_number": str(number)}})

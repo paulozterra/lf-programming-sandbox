@@ -4,6 +4,7 @@ import json
 import pytest
 
 from pilot.worker_v08 import native_feedback_delivery as delivery
+from pilot.orchestrator.lifecycle_test_support import content, CONTROL
 from pilot.worker_v08.test_t22_feedback_delivery import PUBLIC, REPO, SHA, TASK, feedback_file, root
 
 
@@ -22,7 +23,7 @@ def test_unlabeled_request_issue_receives_feedback(tmp_path):
     control = root(tmp_path)
     visible = delivery.read_public(feedback_file(tmp_path), 1)
     comments = []
-    assert delivery.publish(_run(comments), lambda r: {"number": 901, "state": "open", "labels": []},
+    assert delivery.publish(_run(comments), lambda r: content({}) if r == f"contents/{CONTROL}?ref=main" else {"number": 901, "state": "open", "labels": []},
                             REPO, control, TASK, SHA, 1, visible,
                             "BLOCKED_OR_FAILED") == "FEEDBACK_PUBLISHED"
     assert delivery.marker(TASK, SHA, 1) in comments[0]["body"]

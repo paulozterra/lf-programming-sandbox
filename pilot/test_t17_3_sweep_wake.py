@@ -11,6 +11,7 @@ import unittest
 import yaml
 
 from pilot import auto_integrate as policy
+from pilot.orchestrator.lifecycle_test_support import content, CONTROL
 
 ROOT = Path(__file__).resolve().parents[1]
 CHAIN = ROOT / ".github/workflows/chain-lots.yml"
@@ -89,6 +90,8 @@ class PreviouslyGreenBotAPI:
         raise AssertionError("Unexpected read " + path)
 
     def request(self, method, path, data=None):
+        if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+            return content({})
         if method == "GET" and path == "/pulls/205":
             return deepcopy(self.item)
         if method == "GET" and path.startswith("/actions/workflows/sandbox-train.yml/runs"):

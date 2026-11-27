@@ -73,6 +73,9 @@ def test_train_failure_requires_bound_pr_and_sha_not_only_red_status():
         raise AssertionError(args)
 
     def api(path):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         if path == "issues/901":
             return {"number": 901, "state": "open"}
         if path == "pulls/205":
@@ -113,6 +116,9 @@ def test_two_branches_same_chg_first_merges_second_regenerates_same_sweep(tmp_pa
         raise AssertionError(args)
 
     def api(path):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         if path == "issues/901":
             return {"number": 901, "state": "open"}
         if path == "pulls/205":
@@ -198,6 +204,9 @@ def test_integration_reuses_trusted_cp35_dispatch():
         raise AssertionError(args)
 
     def source(path):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         if path == "issues/901":
             return {"number": 901, "state": "open"}
         if path == "actions/runs/2500":
@@ -237,11 +246,12 @@ def test_generated_t7_redispatches_trusted_request_merged_on_main():
             return ""
         raise AssertionError(args)
 
+    from pilot.orchestrator.lifecycle_test_support import fake_api
     with patch.object(chain_lots, "run", side_effect=command), \
          patch("pilot.auto_integrate.original_request_merge",
                return_value=HEAD), \
          patch.object(chain_lots, "conflicted_request", return_value="req-901"), \
-         patch.object(chain_lots, "api", return_value={"number": 901, "state": "open"}):
+         patch.object(chain_lots, "api", side_effect=fake_api({})):
         result = chain_lots.regenerate_conflicted(row, HEAD, [])
     assert result == {"status": "CONFLICT_T7_REDISPATCHED", "request": "req-901"}
     dispatch = next(x for x in calls if x[:3] == ("gh", "workflow", "run"))

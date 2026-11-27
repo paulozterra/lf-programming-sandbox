@@ -196,6 +196,9 @@ def test_nonmechanical_red_ci_never_authorizes_closing_pr():
 
 
 def _t46_trusted_pass(path):
+    from pilot.orchestrator.lifecycle_test_support import fake_api, CONTROL
+    if path in ("issues/186", f"contents/{CONTROL}?ref=main"):
+        return fake_api({})(path)
     if path == "actions/runs/" + str(SOURCE_ID):
         return {"created_at": "2026-11-17T10:00:00Z", "id": SOURCE_ID, "status": "completed", "conclusion": "success",
                 "run_attempt": 1, "event": "workflow_run", "head_branch": "main",

@@ -14,7 +14,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-from pilot.orchestrator.request_lifecycle import request_state, OPEN, RequestStateError
+from pilot.orchestrator.request_lifecycle import request_state, OPEN, RequestStateError, inactive_reason
 import re
 import subprocess
 import tempfile
@@ -170,7 +170,7 @@ def publish(run, api, repo: str, root: Path, task: str, sha: str,
     except RequestStateError as exc:
         raise FeedbackBlocked("REQUEST_STATE_UNRESOLVED") from exc
     if state != OPEN:
-        return "REQUEST_CLOSED"
+        return inactive_reason(state)
     issue = api(f"issues/{number}")
     # T35: the request identity is proven by issue_for_task (registered task
     # + trusted pilot/runs/req-N/request_meta.json on main). The lf-request
@@ -199,6 +199,12 @@ def publish(run, api, repo: str, root: Path, task: str, sha: str,
             + "```json\n" + json.dumps(feedback, ensure_ascii=False,
                                              sort_keys=True, indent=2)
             + "\n```")
+    try:
+        state = request_state("req-" + str(number), api, root=root)
+    except RequestStateError as exc:
+        raise FeedbackBlocked("REQUEST_STATE_UNRESOLVED") from exc
+    if state != OPEN:
+        return inactive_reason(state)
     run("gh", "issue", "comment", str(number), "--repo", repo, "--body", body)
     return "FEEDBACK_PUBLISHED"
 

@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
   issues: write
 
 jobs:
@@ -45,6 +46,8 @@ jobs:
             result=$?
             set -e
             if [ "$result" -eq 0 ]; then
+              python3 control/pilot/worker_v08/request_lifecycle_gate.py \
+                --control control --task "${PROPOSAL_BRANCH#lf/native-proposal/}"
               cat /tmp/native-guard.out
               exit 0
             fi

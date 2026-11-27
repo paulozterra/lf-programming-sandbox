@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from pilot.orchestrator import chain_lots
+from pilot.orchestrator.lifecycle_test_support import content, CONTROL
 from pilot.orchestrator.conflict_integration_replay import recover, ReplayBlocked
 
 REPO = chain_lots.REPO
@@ -34,6 +35,8 @@ def transport(*, unresolved=False, existing=False, pending=False, failing=False)
         raise AssertionError(args)
 
     def api(path):
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         if path == "issues/286":
             return {"number": 286, "state": "open"}
         if path == f"actions/runs/{RUN_ID}":
