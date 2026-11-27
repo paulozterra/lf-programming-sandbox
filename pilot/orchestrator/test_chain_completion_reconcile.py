@@ -75,8 +75,8 @@ class CompletionTests(unittest.TestCase):
         self.assertEqual(result["status"], "CHAIN_COMPLETE_DRAFT_PENDING")
         self.assertEqual(result["retired_blocked_prs"], [267])
         self.assertEqual([c.args for c in close.call_args_list],
-                         [("lf/chain-blocked/req-186-", "ffffffffffff"),
-                          ("lf/chain-complete/req-186-", "ffffffffffff")])
+                         [("lf/chain-blocked/req-186-", "ffffffffffff", "req-186"),
+                          ("lf/chain-complete/req-186-", "ffffffffffff", "req-186")])
 
     def test_stale_completion_candidate_from_older_main_is_superseded(self):
         with (patch.object(cl, "close_stale_drafts", side_effect=[[], [376]]) as close,
@@ -86,7 +86,7 @@ class CompletionTests(unittest.TestCase):
                 "req-186", {"stage": "LOTS_PLANNED"},
                 self.lots, self.receipts, "f" * 40, sweep=True)
         self.assertEqual(result["status"], "CHAIN_COMPLETE_DRAFT")
-        self.assertEqual(close.call_args_list[1].args, ("lf/chain-complete/req-186-", "ffffffffffff"))
+        self.assertEqual(close.call_args_list[1].args, ("lf/chain-complete/req-186-", "ffffffffffff", "req-186"))
         wt.assert_called_once()
 
     def test_pg37_sweep_retires_bot_draft_from_older_main(self):
@@ -112,7 +112,7 @@ class CompletionTests(unittest.TestCase):
                                return_value={})):
                 self.assertEqual(pg37.sweep(root=root),
                                  [{"status": "R1_CP37_NO_MISSING_EVIDENCE"}])
-            close.assert_called_once_with("lf/evidence/req-186-", "ffffffffffff")
+            close.assert_called_once_with("lf/evidence/req-186-", "ffffffffffff", "req-186")
 
     def test_pg37_sweep_does_not_override_pending_current_review(self):
         with tempfile.TemporaryDirectory() as directory:

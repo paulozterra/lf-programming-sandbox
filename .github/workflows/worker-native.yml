@@ -45,6 +45,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
   actions: read
   issues: write
 
@@ -296,6 +297,11 @@ jobs:
         env:
           TASK_BASE_SHA: ${{ steps.task.outputs.base_sha }}
         run: git -C control merge-base --is-ancestor "$TASK_BASE_SHA" HEAD
+      - name: Admit live request before native attempt accounting
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NATIVE_TASK: ${{ steps.source.outputs.task }}
+        run: python3 control/pilot/worker_v08/request_lifecycle_gate.py --control control --task "$NATIVE_TASK"
       - name: Determine and gate attempt from trusted GitHub history
         id: history
         env:

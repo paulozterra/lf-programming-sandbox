@@ -5,6 +5,7 @@ import sys
 from types import SimpleNamespace
 
 import pytest
+from pilot.orchestrator.lifecycle_test_support import fake_api
 from pilot.orchestrator import request_lifecycle as lc
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'pilot/worker_v08'))
@@ -25,10 +26,9 @@ def seed(tmp_path, owners=("req-275",)):
 
 def api(state, *, fail=False):
     def call(path):
-        assert path == "issues/275"
         if fail:
             raise OSError("unavailable")
-        return {"number": 275, "state": state}
+        return fake_api({}, issue_state=state)(path)
     return call
 
 

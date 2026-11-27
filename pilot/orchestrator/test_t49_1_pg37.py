@@ -4,6 +4,7 @@ import json
 import sys
 from pathlib import Path
 import pytest
+from pilot.orchestrator.lifecycle_test_support import fake_api, content
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -28,7 +29,7 @@ def setup(tmp_path, monkeypatch, state):
     monkeypatch.setattr(stage.chain_lots, "pending_draft", lambda *_: False)
     monkeypatch.setattr(stage.chain_lots, "run", lambda *_: "")
     monkeypatch.setattr(stage.chain_lots, "api",
-                        lambda path: {"number": 275, "state": state})
+                        fake_api({}, issue_state=state))
     monkeypatch.setattr(stage, "render", lambda *_: "# H_REPORT real")
     monkeypatch.setattr(stage.chain_lots, "worktree",
                         lambda _head, _branch, fn: fn(tmp_path))
@@ -58,7 +59,7 @@ def test_cp37_rechecks_before_publication(tmp_path, monkeypatch):
     folder = setup(tmp_path, monkeypatch, "open")
     states = iter(["open", "closed"])
     monkeypatch.setattr(stage.chain_lots, "api",
-                        lambda path: {"number": 275, "state": next(states)})
+                        lambda path: content({}) if path.startswith("contents/") else {"number": 275, "state": next(states)})
     monkeypatch.setattr(stage.chain_lots, "worktree",
                         lambda *_: pytest.fail("worktree created after closure"))
     result = stage.reconcile(42, root=tmp_path,

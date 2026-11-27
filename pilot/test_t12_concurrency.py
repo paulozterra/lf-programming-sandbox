@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, str(Path(__file__).resolve().parent / "orchestrator"))
 from pilot import request_duplicate as dup, auto_integrate as policy
 from pilot.orchestrator import issue_intake, chain_lots
+from pilot.orchestrator.lifecycle_test_support import fake_api
 
 
 def configured_root(root: Path) -> Path:
@@ -28,6 +29,9 @@ class IssueAPI:
         self.recent = recent
         self.writes = []
     def call(self, method, path, payload=None):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+            return content({})
         if method == "GET" and path.startswith("/issues?state=open&labels=lf-request&"):
             return self.recent
         if method == "GET" and path == "/labels?per_page=100":
@@ -169,7 +173,7 @@ class Tests(unittest.TestCase):
             bind={"task_name":"task202","template_path":"pilot/runs/req-901/templates/task202.task.json"}
             lot={"id":"SOL-1","area":"CONTRATO","requirement_ids":["REQ-ONE"]}
             state=ExamGit()
-            with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"api",return_value={"number":901,"state":"open"}),patch.object(chain_lots,"run",side_effect=state):
+            with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"api",side_effect=fake_api({})),patch.object(chain_lots,"run",side_effect=state):
                 a=chain_lots.request_missing_exam("req-901",bind,lot)
                 b=chain_lots.request_missing_exam("req-901",bind,lot)
             self.assertEqual(state.created,1)
@@ -202,7 +206,7 @@ class Tests(unittest.TestCase):
                 with mutex:
                     return chain_lots.request_missing_exam("req-901",binding,lot)
             with patch.object(chain_lots,"ROOT",root), \
-                 patch.object(chain_lots,"api",return_value={"number":901,"state":"open"}),patch.object(chain_lots,"run",side_effect=git):
+                 patch.object(chain_lots,"api",side_effect=fake_api({})),patch.object(chain_lots,"run",side_effect=git):
                 with ThreadPoolExecutor(max_workers=2) as pool:
                     results=list(pool.map(lambda _:worker(),range(2)))
             self.assertEqual(git.created,1)
@@ -236,7 +240,7 @@ class Tests(unittest.TestCase):
             git=ExamGit();git.existing=[row]
             bind={"task_name":"task202","template_path":"pilot/runs/req-901/templates/task202.task.json"}
             lot={"id":"SOL-1","area":"CONTRATO","requirement_ids":["REQ-ONE"]}
-            with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"api",return_value={"number":901,"state":"open"}),patch.object(chain_lots,"run",side_effect=git):
+            with patch.object(chain_lots,"ROOT",root),patch.object(chain_lots,"api",side_effect=fake_api({})),patch.object(chain_lots,"run",side_effect=git):
                 self.assertEqual(chain_lots.request_missing_exam(
                     "req-901",bind,lot)["reason_code"],"EXAM_REQUEST_CLOSED_UNVERIFIED")
                 reg=root/"pilot/worker_v08/native_tasks/task202.json"

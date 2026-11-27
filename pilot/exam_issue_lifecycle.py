@@ -68,6 +68,10 @@ def close_registered(api, sha: str, branch: str, git, root: Path) -> str:
     slug = scopes[0]
     if not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", slug):
         raise LifecycleBlocked("EXAM_REQUEST_SCOPE_UNRESOLVED")
+    from pilot.orchestrator.request_lifecycle import require_open
+    def guard():
+        require_open(slug, lambda path: api.call("GET", "/" + path), root=root)
+    guard()
     issue = issue_for(api, task, slug)
     if issue is None:
         return "EXAM_ISSUE_ALREADY_CLOSED_OR_ABSENT"
@@ -77,7 +81,9 @@ def close_registered(api, sha: str, branch: str, git, root: Path) -> str:
     comment = (f"Examen integrado: tarea `{task}` registrada en main "
                f"mediante Train, commit `{sha}`. "
                "La cadena continúa según dependencias y verificación de CI.")
+    guard()
     api.call("POST", f"/issues/{number}/comments", {"body": comment})
+    guard()
     api.call("PATCH", f"/issues/{number}", {"state": "closed",
                                             "state_reason": "completed"})
     return "EXAM_ISSUE_CLOSED"

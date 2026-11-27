@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from pilot.worker_v08 import native_feedback_delivery as delivery
+from pilot.orchestrator.lifecycle_test_support import content, CONTROL, fake_api
 
 TASK, SHA, REPO = "synthetic1", "a" * 40, delivery.REPO
 PUBLIC = {"schema_version": delivery.SCHEMA, "attempt": 1,
@@ -38,6 +39,8 @@ def test_synthetic_public_feedback_comment_once(tmp_path):
     calls = []
 
     def api(route):
+        if route == f"contents/{CONTROL}?ref=main":
+            return content({})
         assert route == "issues/901"
         return {"number": 901, "state": "open", "labels": [{"name": "lf-request"}]}
 
@@ -104,6 +107,8 @@ def test_recover_existing_native_run_verifies_sha_and_proof_then_comments_once(t
     comments = []
     dispatched = []
     def api(route):
+        if route == f"contents/{CONTROL}?ref=main":
+            return content({})
         if route == f"actions/runs/{rid}/jobs?per_page=100":
             return {"total_count": 1, "jobs": [{"name": "native", "steps": [
                 {"name": "Execute original run_verified_worker using native proposal (single attempt)",
@@ -150,6 +155,8 @@ def test_recovery_does_not_publish_without_spent_worker_step(tmp_path):
             "repository": {"full_name": REPO},
             "display_title": f"lf-native-infra-retry-{TASK}-{SHA}"}
     def api(route):
+        if route == f"contents/{CONTROL}?ref=main":
+            return content({})
         assert route == "actions/runs/999/jobs?per_page=100"
         return {"total_count": 1, "jobs": [{"name": "native", "steps": [
             {"name": "Execute original run_verified_worker using native proposal (single attempt)",
@@ -187,3 +194,20 @@ def test_non_issue_backed_historical_worker_does_not_block_recovery(tmp_path):
         lambda *_: (_ for _ in ()).throw(AssertionError("No GitHub IO")),
         lambda *_: (_ for _ in ()).throw(AssertionError("No GitHub IO")),
         REPO, tmp_path, item) == "FEEDBACK_NO_SOURCE_ISSUE"
+
+
+def test_feedback_late_suspension_prevents_comment(tmp_path):
+    control = root(tmp_path)
+    visible = delivery.read_public(feedback_file(tmp_path), 1)
+    paused = fake_api({"req-901": {"state": "SUSPENDING", "authorization_pr": 77}})
+    active = fake_api({})
+    observed = []
+    def api(route):
+        return (paused if observed else active)(route)
+    def run(*args):
+        assert args[:2] == ("gh", "api")
+        observed.append(args)
+        return "[]"
+    assert delivery.publish(run, api, REPO, control, TASK, SHA, 1, visible,
+                            "BLOCKED_OR_FAILED") == "REQUEST_SUSPENDED"
+    assert len(observed) == 1

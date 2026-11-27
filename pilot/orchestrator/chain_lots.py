@@ -29,7 +29,7 @@ import tempfile
 from contextlib import nullcontext
 import pilot.orchestrator.sweep_api_budget as budget
 
-from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN
+from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN, inactive_reason
 from pilot.orchestrator.lot_recovery import for_request as lot_recoveries, schedule_recovery
 from chain_contract import (ChainBlocked, BLOCK_CODE, FORMAT_BLOCK_CODE, attest_merge, blocked_state,
                             progress, validate_plan, verified_failures, deny)
@@ -135,10 +135,21 @@ def api(path: str) -> dict:
             parsed = json.loads(raw)
         except ValueError:
             deny("GITHUB_RESPONSE_INVALID")
-        if not isinstance(parsed, dict):
+        events = re.fullmatch(r"(?:issues/[1-9][0-9]*/events|pulls/[1-9][0-9]*/reviews)\?per_page=100&page=[1-9][0-9]*", path)
+        if not isinstance(parsed, list if events else dict):
             deny("GITHUB_RESPONSE_INVALID")
         return parsed
+    # Mutable authorization inputs must not be memoized across effects.
+    if (re.fullmatch(r"(issues|pulls)/[1-9][0-9]*", path)
+            or path.startswith("contents/pilot/orchestrator/request_lifecycle_control.json?")
+            or re.fullmatch(r"(?:issues/[1-9][0-9]*/events|pulls/[1-9][0-9]*/reviews)\?per_page=100&page=[1-9][0-9]*", path)):
+        return fetch()
     return budget.read(path, fetch)
+
+
+def lifecycle_api(path: str):
+    """Authorization reads must never reuse the sweep budget's cached snapshot."""
+    return api(path)
 
 
 def api_list(path: str, *, max_pages: int = 10) -> list[dict]:
@@ -269,7 +280,7 @@ def main_ci_decision(head: str) -> str:
 
 def sweep_request_enabled(request: str) -> bool:
     """Only open, non-discarded issue-backed requests can be resumed."""
-    return request_state(request, api, root=ROOT) == OPEN
+    return request_state(request, lifecycle_api, root=ROOT) == OPEN
 
 
 def merged_integration(head: str) -> tuple[dict, set[str]]:
@@ -656,6 +667,7 @@ def chg(root: Path, number: int, request: str, reason: str,
 def draft(root: Path, branch: str, request: str, paths: list[str],
           reason: str, title: str) -> dict:
     # Caller has already committed the prepared native task on this branch.
+    require_open(request, lifecycle_api, root=ROOT)
     number = next_chg(root)
     entry = chg(root, number, request, reason, paths)
     run("git", "add", "--", *paths, str(entry.relative_to(root)), cwd=root)
@@ -666,11 +678,13 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     confirm_class_after_commit(root, entry)
     if run("git", "ls-remote", "origin", "refs/heads/main", cwd=root).split()[0] != run("git", "merge-base", "origin/main", "HEAD", cwd=root):
         deny("MAIN_MOVED_BEFORE_DRAFT")
+    require_open(request, lifecycle_api, root=ROOT)
     run("git", "push", "--set-upstream", "origin", branch, cwd=root)
     body = (f"CP3.6 · {reason}\n\n"
             f"CHG-{number:04d}; revisión independiente Claude, "
             f"Paulo decide ready-to-merge, Train fusiona. "
             f"No merge ni etiqueta automáticos.")
+    require_open(request, lifecycle_api, root=ROOT)
     url = run("gh", "pr", "create", "--repo", REPO, "--base", "main",
               "--head", branch, "--draft",
               "--title", f"[DRAFT][CP3.6][CHG-{number:04d}] {title}",
@@ -681,7 +695,9 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     synchronize(root, kind, chg_file=entry.relative_to(root).as_posix())
     run("git", "commit", "-m", "[CP3.6] link reviewable draft evidence", cwd=root)
     run("python3", "standards/tools/changes.py", "check", "--base", "origin/main", cwd=root)
+    require_open(request, lifecycle_api, root=ROOT)
     run("git", "push", "origin", branch, cwd=root)
+    require_open(request, lifecycle_api, root=ROOT)
     run("gh", "workflow", "run", "ci.yml", "--repo", REPO, "--ref", branch, cwd=root)
     return {"draft_pr": url, "head_sha": run("git", "rev-parse", "HEAD", cwd=root)}
 
@@ -697,7 +713,7 @@ def worktree(base: str, branch: str, callback):
             run("git", "worktree", "remove", "--force", str(directory))
 
 
-def close_stale_drafts(prefix: str, current: str) -> list[int]:
+def close_stale_drafts(prefix: str, current: str, request: str | None = None) -> list[int]:
     """Close bot drafts generated for an older main; they can never pass the
     exact-main content check, and leaving them open blocks regeneration."""
     rows = json.loads(run("gh", "pr", "list", "--repo", REPO, "--state", "open",
@@ -710,13 +726,15 @@ def close_stale_drafts(prefix: str, current: str) -> list[int]:
         login = str((item.get("author") or {}).get("login", "")) if isinstance(item, dict) else ""
         if (ref.startswith(prefix) and ref != prefix + current
                 and login in ("app/github-actions", "github-actions[bot]", "github-actions")):
+            if request is not None:
+                require_open(request, lifecycle_api, root=ROOT)
             run("gh", "pr", "close", str(int(item["number"])), "--repo", REPO, "--delete-branch",
                 "--comment", "Superado: main avanzó a " + current + "; se regenera sobre el main actual.")
             closed.append(int(item["number"]))
     return closed
 
 
-def close_failed_old_registration_drafts(task: str, head: str) -> list[int]:
+def close_failed_old_registration_drafts(task: str, head: str, request: str | None = None) -> list[int]:
     """T17 sweep: retire only bot Drafts broken by the old CHG renderer.
 
     A red CI alone is insufficient: the PR must have a CHG but omit the
@@ -765,6 +783,8 @@ def close_failed_old_registration_drafts(task: str, head: str) -> list[int]:
                     for p in names)
                 or "standards/CAMBIOS.md" in names):
             continue
+        if request is not None:
+            require_open(request, lifecycle_api, root=ROOT)
         run("gh", "pr", "close", str(number), "--repo", REPO, "--delete-branch",
             "--comment", "T17: CI rojo y CHG sin vista CAMBIOS; borrador obsoleto. "
             "La cadena regenera el registro sobre main verificado " + head[:12] + ".")
@@ -804,7 +824,7 @@ def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> N
     request = conflicted_request(row, all_plans)
     if not request or not re.fullmatch(r"req-[1-9][0-9]*", request):
         return
-    require_open(request, api, root=ROOT)
+    require_open(request, lifecycle_api, root=ROOT)
     number = int(request[4:])
     issue = api(f"issues/{number}")
     if (issue.get("number") != number or issue.get("pull_request")
@@ -819,6 +839,7 @@ def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> N
            for comment in comments if isinstance(comment, dict)
            and (comment.get("user") or {}).get("login") == "github-actions[bot]"):
         return
+    require_open(request, lifecycle_api, root=ROOT)
     run("gh", "issue", "comment", str(number), "--repo", REPO, "--body",
         marker + "\nT17.4 watchdog: PR generado #" + str(row["number"])
         + " retirado por conflicto con main. Regeneración no automática ("
@@ -836,7 +857,7 @@ def notify_failed_conflict_replay(row: dict, all_plans: list,
             or type(failed_run_id) is not int or failed_run_id <= 0):
         return
     try:
-        require_open(request, api, root=ROOT)
+        require_open(request, lifecycle_api, root=ROOT)
         number = int(request[4:])
         issue = api(f"issues/{number}")
         if (issue.get("number") != number or issue.get("pull_request")
@@ -852,6 +873,7 @@ def notify_failed_conflict_replay(row: dict, all_plans: list,
                for c in comments
                if (c.get("user") or {}).get("login") == "github-actions[bot]"):
             return
+        require_open(request, lifecycle_api, root=ROOT)
         run("gh", "issue", "comment", str(number), "--repo", REPO,
             "--body", marker + "\nCP3.6 BLOCKED: "
             "CONFLICT_RECOVERY_CP35_PREVIOUSLY_FAILED. "
@@ -870,8 +892,9 @@ def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
         request = conflicted_request(row, all_plans)
         if request is None:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
-        if request_state(request, api, root=ROOT) != OPEN:
-            return {"status": "REQUEST_CLOSED", "request": request}
+        current = request_state(request, lifecycle_api, root=ROOT)
+        if current != OPEN:
+            return {"status": inactive_reason(current), "request": request}
     if kind == "registration":
         # The existing ready-lot loop regenerates this branch *after* retirement
         # in the current sweep, using next_chg from current main.
@@ -886,13 +909,15 @@ def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
             return {"status": "CONFLICT_REGEN_BLOCKED", "reason": "T7_REQUEST_AMBIGUOUS"}
         from pilot.auto_integrate import original_request_merge
         source = original_request_merge(request, ROOT)
+        require_open(request, lifecycle_api, root=ROOT)
         run("gh", "workflow", "run", "t7-request.yml", "--repo", REPO,
             "--ref", "main", "-f", "slug=" + request,
             "-f", "merge_sha=" + source, "-f", "rerun=true")
         return {"status": "CONFLICT_T7_REDISPATCHED", "request": request}
     if kind == "integration":
         from pilot.orchestrator.conflict_integration_replay import recover
-        return recover(row, run, api, REPO)
+        return recover(row, run, api, REPO,
+                       before_dispatch=lambda: require_open(request, lifecycle_api, root=ROOT))
     comment_unrecoverable_conflict(row, all_plans, "NO_TRUSTED_REGENERATOR")
     return {"status": "CONFLICT_REGEN_BLOCKED", "reason": "NO_TRUSTED_REGENERATOR"}
 
@@ -1035,7 +1060,7 @@ def exam_notice(request: str, key: str, reason: str, number: int | None = None) 
     """Best-effort deduped typed notice, never permission to publish again."""
     marker = f"<!-- LF_EXAM_NOTICE:{key}:{reason} -->"
     try:
-        require_open(request, api, root=ROOT)
+        require_open(request, lifecycle_api, root=ROOT)
         original = api("issues/" + request[4:])
         if (original.get("number") != int(request[4:])
                 or original.get("state") != "open"):
@@ -1043,6 +1068,7 @@ def exam_notice(request: str, key: str, reason: str, number: int | None = None) 
         comments = api_list("issues/" + request[4:] + "/comments")
         if any(marker in str(c.get("body", "")) for c in comments):
             return
+        require_open(request, lifecycle_api, root=ROOT)
         run("gh", "issue", "comment", request[4:], "--repo", REPO, "--body",
             marker + "\nCP3.6 BLOCKED: " + reason + " para " + key +
             (f"; exam_issue=#{number}" if number else ""))
@@ -1057,9 +1083,11 @@ def reconcile_exam_duplicates(matches: list, request: str, key: str) -> dict:
     for duplicate in opened[1:]:
         n = duplicate["number"]
         # Comment first; if either step fails, caller must block (no create).
+        require_open(request, lifecycle_api, root=ROOT)
         run("gh", "issue", "comment", str(n), "--repo", REPO,
             "--body", f"Duplicado de #{original['number']} para {key}. "
                       f"Se conserva la solicitud original.")
+        require_open(request, lifecycle_api, root=ROOT)
         run("gh", "api", "-X", "PATCH", f"repos/{REPO}/issues/{n}",
             "-f", "state=closed", "-f", "state_reason=duplicate")
     exam_notice(request, key, "EXAM_REQUEST_DUPLICATE_OPEN", original["number"])
@@ -1090,6 +1118,7 @@ def complete_registered_exam_requests(request: str, bindings: dict) -> list[int]
             number = row.get("number")
             if type(number) is not int or number <= 0:
                 deny("EXAM_REQUEST_LIST_UNTRUSTED")
+            require_open(request, lifecycle_api, root=ROOT)
             run("gh", "issue", "close", str(number), "--repo", REPO,
                 "--reason", "completed")
             closed.append(number)
@@ -1100,9 +1129,9 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
     """Single publication per (request, task, canonical template) per process."""
     task = binding["task_name"]
     try:
-        require_open(request, api, root=ROOT)
+        require_open(request, lifecycle_api, root=ROOT)
     except RequestStateError as exc:
-        return {"status": ("REQUEST_CLOSED" if str(exc) == "REQUEST_CLOSED"
+        return {"status": (str(exc) if str(exc) in ("REQUEST_CLOSED", "REQUEST_SUSPENDED")
                            else "BLOCKED"), "reason_code": str(exc), "task": task}
     try:
         key = exam_key(request, binding)
@@ -1148,6 +1177,7 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
                 run("gh", "label", "create", "exam-request", "--repo", REPO,
                     "--description", "Independent encrypted examination requested",
                     "--color", "D4C5F9")
+            require_open(request, lifecycle_api, root=ROOT)
             created = run("gh", "issue", "create", "--repo", REPO,
                           "--title", title, "--body", body, "--label", "exam-request")
             match = re.search(r"/issues/([1-9][0-9]*)\s*$", created)
@@ -1200,9 +1230,9 @@ def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict
 def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dict | None:
     """Inspect admission before any generated commit or native preparation."""
     try:
-        require_open(request, api, root=ROOT)
+        require_open(request, lifecycle_api, root=ROOT)
     except RequestStateError as exc:
-        return {"status": ("REQUEST_CLOSED" if str(exc) == "REQUEST_CLOSED"
+        return {"status": (str(exc) if str(exc) in ("REQUEST_CLOSED", "REQUEST_SUSPENDED")
                            else "BLOCKED"), "reason_code": str(exc)}
     require_green_base(head, api)
     protected_test_conflict(ROOT, lot, binding)
@@ -1260,7 +1290,7 @@ def publish_pending_plan_refresh(request: str, binding: dict, completed: dict,
     task = binding["task_name"]
     branch = f"lf/native-registration/plan-{task}-{head[:12]}"
     # A plan draft built on an older main can never match the current plan.
-    close_stale_drafts(f"lf/native-registration/plan-{task}-", head[:12])
+    close_stale_drafts(f"lf/native-registration/plan-{task}-", head[:12], request)
     if (pending_draft(f"lf/native-registration/plan-{task}-")
             or run("git", "ls-remote", "--heads", "origin", branch)):
         return {"status": "PLAN_REFRESH_PENDING", "task": task, "branch": branch}
@@ -1291,7 +1321,7 @@ def open_heads_with(prefix: str) -> list[str]:
             and str(item.get("headRefName", "")).startswith(prefix)]
 
 
-def close_registration_drafts(task: str, comment: str) -> list[int]:
+def close_registration_drafts(task: str, comment: str, request: str | None = None) -> list[int]:
     rows = json.loads(run("gh", "pr", "list", "--repo", REPO, "--state", "open",
                           "--limit", "100", "--json", "number,headRefName,author"))
     if not isinstance(rows, list):
@@ -1302,6 +1332,8 @@ def close_registration_drafts(task: str, comment: str) -> list[int]:
         login = str((item.get("author") or {}).get("login", "")) if isinstance(item, dict) else ""
         if (ref.startswith(f"lf/native-registration/{task}-")
                 and login in ("app/github-actions", "github-actions[bot]", "github-actions")):
+            if request is not None:
+                require_open(request, lifecycle_api, root=ROOT)
             run("gh", "pr", "close", str(int(item["number"])), "--repo", REPO, "--delete-branch",
                 "--comment", comment)
             closed.append(int(item["number"]))
@@ -1319,7 +1351,7 @@ def rehearsal_reason(task: str, failed: dict) -> str:
     return found[-1] if found else "REHEARSAL_FAIL"
 
 
-def signal_exam_retry(task: str) -> str:
+def signal_exam_retry(task: str, request: str | None = None) -> str:
     """Event for the examiner routine: label the open exam request of a task
     whose exam was retired with `exam-retry` (GitHub `labeled` event), so it is
     rewritten in minutes instead of waiting for the hourly backup run. The
@@ -1331,6 +1363,8 @@ def signal_exam_retry(task: str) -> str:
                 labels = {str(l.get("name")) for l in issue.get("labels", []) if isinstance(l, dict)}
                 if EXAM_RETRY_LABEL in labels or "examiner-working" in labels:
                     return "EXAM_RETRY_ALREADY_SIGNALED"
+                if request is not None:
+                    require_open(request, lifecycle_api, root=ROOT)
                 run("gh", "issue", "edit", str(int(issue["number"])), "--repo", REPO,
                     "--add-label", EXAM_RETRY_LABEL)
                 return "EXAM_RETRY_SIGNALED"
@@ -1343,12 +1377,13 @@ def retire_stale_exam(request: str, task: str, head: str, reason: str | None = N
     """Open one bot PR deleting exactly the stale exam's files; close the
     registration drafts built on it. Policy C re-verifies staleness on main."""
     from stale_exam import exam_paths
+    require_open(request, lifecycle_api, root=ROOT)
     prefix = f"lf/exam-retire/{task}-"
     if pending_draft(prefix):
         return {"status": "EXAM_STALE_RETIRING"}
     closed = close_registration_drafts(
         task, "Examen retirado (E2): se reescribe sobre el main actual y la tarea se "
-              "registrará con el examen nuevo.")
+              "registrará con el examen nuevo.", request)
     branch = prefix + head[:12]
     def create(root: Path):
         present = [p for p in exam_paths(request, task) if (root / p).is_file()]
@@ -1359,7 +1394,9 @@ def retire_stale_exam(request: str, task: str, head: str, reason: str | None = N
         current_main = run("git", "ls-remote", "origin", "refs/heads/main", cwd=root).split()[0]
         if current_main != head:
             deny("MAIN_MOVED_BEFORE_DRAFT")
+        require_open(request, lifecycle_api, root=ROOT)
         run("git", "push", "--set-upstream", "origin", branch, cwd=root)
+        require_open(request, lifecycle_api, root=ROOT)
         why = (f"su referencia falla el ensayo T40 ({reason})" if reason
                else "se publicó antes de integrar una dependencia del lote")
         url = run("gh", "pr", "create", "--repo", REPO, "--base", "main", "--head", branch,
@@ -1371,10 +1408,12 @@ def retire_stale_exam(request: str, task: str, head: str, reason: str | None = N
             for issue in listed_exam_requests():
                 if (isinstance(issue, dict) and issue.get("state") == "open"
                         and str(issue.get("title", "")).endswith(task)):
+                    require_open(request, lifecycle_api, root=ROOT)
                     run("gh", "issue", "comment", str(int(issue["number"])), "--repo", REPO,
                         "--body", "Examen retirado (E2): la referencia no pasa el ensayo T40 en la "
                         f"base actual — `{reason}`. Reescribir el examen y su referencia "
                         "considerando ese comando visible.", cwd=root)
+        require_open(request, lifecycle_api, root=ROOT)
         run("gh", "workflow", "run", "ci.yml", "--repo", REPO, "--ref", branch, cwd=root)
         return {"status": "EXAM_STALE_RETIRE_PROPOSED", "retire_pr": url, "closed_registrations": closed}
     return worktree(head, branch, create)
@@ -1570,6 +1609,8 @@ def per_request_block(request: str, phase: str, exc: Exception) -> dict:
     code = safe_failure_code(exc)
     if code in GLOBAL_SWEEP_ERRORS:
         raise exc
+    if code == "REQUEST_SUSPENDED":
+        return {"request": request, "status": code, "phase": phase, "reason": code, "code": code}
     if code in ("REQUEST_STATE_UNRESOLVED", "REQUEST_CLOSED"):
         return {"request": request, "status": "BLOCKED", "phase": phase,
                 "reason": code, "code": code}
@@ -1586,6 +1627,7 @@ def per_request_block(request: str, phase: str, exc: Exception) -> dict:
                     marker in str(c.get("body", "")) for c in comments
                     if isinstance(c, dict) and (c.get("user") or {}).get("login")
                     == "github-actions[bot]"):
+                    require_open(request, lifecycle_api, root=ROOT)
                     run("gh", "issue", "comment", str(number), "--repo", REPO,
                         "--body", marker + "\\nCP3.6 BLOCKED: " + code
                         + " durante " + phase + ". La ruta continúa con otros pedidos.")
@@ -1695,6 +1737,7 @@ def comment_task_pack_mismatch(request: str, task: str) -> None:
            if isinstance(row, dict) and
            (row.get("user") or {}).get("login") == "github-actions[bot]"):
         return
+    require_open(request, lifecycle_api, root=ROOT)
     run("gh", "issue", "comment", str(issue_number), "--repo", REPO,
         "--body", marker + "\nTASK_PACK_HASH_MISMATCH: no se publica el paquete de "
         + task + ". La regeneración desde la base registrada no coincide "
@@ -1726,13 +1769,13 @@ def reconcile_complete_chain(request: str, state: dict, lots: dict,
     """Only the route retires superseded bot BLOCKED drafts; main changes via Train."""
     if not sweep:
         return {"status": "CHAIN_COMPLETE_CANDIDATE"}
-    retired = close_stale_drafts(f"lf/chain-blocked/{request}-", head[:12])
+    retired = close_stale_drafts(f"lf/chain-blocked/{request}-", head[:12], request)
     if state["stage"] == "CHAIN_COMPLETE_CANDIDATE":
         return {"status": "CHAIN_COMPLETE_CANDIDATE", "retired_blocked_prs": retired}
     prefix = f"lf/chain-complete/{request}-"
     # Like CP3.7 evidence drafts: a bot candidate anchored to an older main
     # (e.g. conflicting after other merges) is superseded, then regenerated.
-    close_stale_drafts(prefix, head[:12])
+    close_stale_drafts(prefix, head[:12], request)
     if pending_draft(prefix):
         return {"status": "CHAIN_COMPLETE_DRAFT_PENDING", "retired_blocked_prs": retired}
     branch = prefix + head[:12]
@@ -1936,7 +1979,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             return False
         if len(candidates) != 1:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
-        return request_state(next(iter(candidates)), api, root=ROOT) == OPEN
+        return request_state(next(iter(candidates)), lifecycle_api, root=ROOT) == OPEN
 
     def candidate_live(row: dict) -> bool:
         if row["kind"] == "implemented-registry":
@@ -1944,7 +1987,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         request = conflicted_request(row, all_plans)
         if request is None:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
-        return request_state(request, api, root=ROOT) == OPEN
+        return request_state(request, lifecycle_api, root=ROOT) == OPEN
 
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
     # can hide a Train failure, including when no owner plans are active.
@@ -2045,9 +2088,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             try:
                 if not route_request_metadata(request):
                     continue
-                if request_state(request, api, root=ROOT) != OPEN:
+                current = request_state(request, lifecycle_api, root=ROOT)
+                if current != OPEN:
                     repair_outcomes.append({"request": request,
-                                            "status": "REQUEST_CLOSED"})
+                                            "status": inactive_reason(current)})
                     continue
                 tasks = {value.get("task_name") for value in bindings.values()
                          if isinstance(value, dict)
@@ -2055,10 +2099,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                 tasks.update(row["successor_task"] for row in lot_recoveries(ROOT, request, bindings).values()
                              if row["successor_task"] not in ci_retired_tasks)
                 for outcome in replay_native_integration(
-                        head, run, api, REPO, ROOT, allowed_tasks=tasks):
+                        head, run, api, REPO, ROOT, allowed_tasks=tasks, allowed_task=task_live):
                     repair_outcomes.append({"request": request, **outcome})
                 for outcome in recover_unstarted_integration(
-                        head, run, api, REPO, ROOT, allowed_tasks=tasks):
+                        head, run, api, REPO, ROOT, allowed_tasks=tasks, allowed_task=task_live):
                     repair_outcomes.append({"request": request, **outcome})
             except (ChainBlocked, IntegrationBlocked, AdmissionBlocked,
                     OSError, ValueError, KeyError) as exc:
@@ -2071,9 +2115,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                                         "status": "SKIPPED_NOT_ROUTE_REQUEST"})
                 continue
             try:
-                if request_state(request, api, root=ROOT) != OPEN:
+                current = request_state(request, lifecycle_api, root=ROOT)
+                if current != OPEN:
                     repair_outcomes.append({"request": request,
-                                            "status": "REQUEST_CLOSED"})
+                                            "status": inactive_reason(current)})
                     continue
             except RequestStateError:
                 repair_outcomes.append({"request": request, "status": "BLOCKED",
@@ -2164,6 +2209,7 @@ def retire_recovery_block(request, row):
         return
     if pr.get("state") != "open" or pr.get("draft") is not True:
         deny("LOT_RECOVERY_BLOCK_DRAFT_UNVERIFIED")
+    require_open(request, lifecycle_api, root=ROOT)
     run("gh", "pr", "close", str(number), "--repo", REPO, "--comment",
         "Superado por autorización de recuperación integrada en main para "
         + row["lot_id"] + "; se conservan el historial, los tres intentos y la rama.")
@@ -2173,12 +2219,12 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                      new_plan_request, manual_sha, history, *, format_exhausted=()) -> list[dict]:
     outcomes = []
     try:
-        current = request_state(request, api, root=ROOT)
+        current = request_state(request, lifecycle_api, root=ROOT)
     except RequestStateError:
         return [{"request": request, "status": "BLOCKED",
                  "reason_code": "REQUEST_STATE_UNRESOLVED"}]
     if current != OPEN:
-        return [{"request": request, "status": "REQUEST_CLOSED"}]
+        return [{"request": request, "status": inactive_reason(current)}]
     # Historical Train receipts take precedence over attempt exhaustion.
     # Resolve completion before exam re-requests or the failed Worker ledger.
     completed = completed_lots(lots, bindings, history)
@@ -2269,7 +2315,7 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
             chosen["holdout_metadata_path"] = str(
                 metadata.with_name(candidate + metadata.suffix))
         if sweep:
-            retired = close_failed_old_registration_drafts(candidate, head)
+            retired = close_failed_old_registration_drafts(candidate, head, request)
             if retired:
                 outcomes.append({"request": request, "lot_id": lot_id,
                                  "status": "STALE_REGISTRATION_RETIRED",
@@ -2313,7 +2359,7 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                                  "status": "REGISTRATION_WITHOUT_EXAM_CLOSED",
                                  "closed_prs": close_registration_drafts(
                                      task, "El examen de esta tarea fue retirado (E2); "
-                                           "se registrará con el examen nuevo.")})
+                                           "se registrará con el examen nuevo.", request)})
                 continue
             outcomes.append({"request": request, "lot_id": lot_id,
                              "status": "ALREADY_PREPARED"})
@@ -2327,7 +2373,7 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
         if admission is not None:
             from stale_exam import exam_retired
             if candidate == task and exam_retired(ROOT, task):
-                admission = {**admission, "exam_retry": signal_exam_retry(task)}
+                admission = {**admission, "exam_retry": signal_exam_retry(task, request)}
             outcomes.append({"request": request, "lot_id": lot_id, **admission})
             continue
         outcomes.append({"request": request, "lot_id": lot_id,

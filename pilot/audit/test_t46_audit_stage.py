@@ -393,21 +393,40 @@ def test_trigger_issue_carries_marker_and_input():
 # ---- A4 issue lifecycle --------------------------------------------------
 def test_close_done_closes_only_requests_with_merged_report(tmp_path, monkeypatch):
     import request_trigger as rt
-    (tmp_path / "pilot/runs/req-a/audit").mkdir(parents=True)
-    (tmp_path / "pilot/runs/req-a/audit/report.json").write_text("{}")
+    from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+    root, report_file, _report, data, _skill, git = _historical_case(tmp_path)
+    data["schema_version"] = "LF_DEEP_AUDIT_INPUT_V2"
+    (report_file.parent / "audit_input_v2.json").write_text(json.dumps(data))
+    (report_file.parent.parent / "H_REPORT.md").write_text("# finalized")
+    git("add", ".")
+    git("commit", "-qm", "merged audit and report")
+    git("update-ref", "refs/remotes/origin/main", git("rev-parse", "HEAD"))
+    issue = {"number": 91, "state": "open", "title": "[AUDIT][lf] req-9",
+             "user": {"login": "github-actions[bot]"}, "labels": [{"name": "audit-request"}],
+             "body": "<!-- audit-request:req-9 -->\n```json\n" + json.dumps(data) + "\n```"}
     calls = []
-    issues = [{"number": 1, "body": "<!-- audit-request:req-a -->"},
-              {"number": 2, "body": "<!-- audit-request:req-b -->"},
-              {"number": 3, "body": "sin marca"}]
+    issues = [issue, {"number": 92, "body": "<!-- audit-request:req-10 -->"},
+              {"number": 93, "body": "sin marca"}]
 
     def fake_gh(*args, data=None):
         calls.append((args, data))
-        return json.dumps(issues) if args[0].endswith("state=open&per_page=100") else "{}"
+        endpoint = args[0]
+        if endpoint.endswith("state=open&per_page=100"):
+            return json.dumps(issues)
+        if data is not None:
+            return "{}"
+        if endpoint.endswith("/issues/91"):
+            return json.dumps(issue)
+        if endpoint.endswith("/issues/9"):
+            return json.dumps({"number": 9, "state": "closed"})
+        if endpoint.endswith(f"/contents/{CONTROL}?ref=main"):
+            return json.dumps(content({}))
+        pytest.fail("unexpected audit API " + endpoint)
     monkeypatch.setattr(rt, "gh", fake_gh)
-    closed = rt.close_done("o/r", root=tmp_path)
-    assert [c["issue"] for c in closed] == [1]
-    patches = [c for c in calls if c[0][0] == "-X"]
-    assert len(patches) == 1 and patches[0][0][2].endswith("/issues/1") and patches[0][1]["state"] == "closed"
+    closed = rt.close_done("o/r", root=root)
+    assert [row["issue"] for row in closed] == [91]
+    patches = [row for row in calls if row[0][0] == "-X"]
+    assert len(patches) == 1 and patches[0][0][2].endswith("/issues/91") and patches[0][1]["state"] == "closed"
 
 
 # ---- A7 skill bytes independent of the environment's git settings -------

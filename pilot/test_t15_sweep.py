@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "orchestrator"))
 from pilot.orchestrator import chain_lots
+from pilot.orchestrator.lifecycle_test_support import fake_api
 
 HEAD = "a" * 40
 
@@ -91,7 +92,7 @@ class SweepTests(unittest.TestCase):
                  patch.object(chain_lots, "check_main", return_value=HEAD), \
                  patch.object(chain_lots, "main_ci_decision", return_value="GREEN"), \
                  patch.object(chain_lots, "plans", return_value=[("req-901", lots, state, binding)]), \
-                 patch.object(chain_lots, "api", return_value={"number":901,"state":"open"}), \
+                 patch.object(chain_lots, "api", side_effect=fake_api({})), \
                  patch.object(chain_lots, "first_parent_merges", return_value=[]), \
                  patch.object(chain_lots, "completed_lots", return_value={}), \
                  patch.object(chain_lots, "failed_lots", return_value={}), \

@@ -99,6 +99,9 @@ def test_failed_lots_reads_exact_verified_t23_migration_and_keeps_one_real_attem
               ATTEMPT_ONE: _proof(ATTEMPT_ONE, 1, CURRENT_PACK)}
     seen = []
     def api(path):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         assert path.startswith("actions/workflows/worker-native.yml/runs?")
         return {"total_count": len(rows), "workflow_runs": rows}
     with patch.object(chain_lots, "ROOT", tmp_path), \
@@ -131,6 +134,9 @@ def test_full_sweep_dispatches_immutable_pass_and_continues_other_request(tmp_pa
     dispatched = []
     failed_ledger_reads = []
     def api(path):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         if path in ("issues/186", "issues/901"):
             return {"number": int(path.split("/")[-1]), "state": "open"}
         if path == f"actions/workflows/{INTEGRATION}/runs?per_page=100":

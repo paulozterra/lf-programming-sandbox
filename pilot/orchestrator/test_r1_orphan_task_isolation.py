@@ -122,7 +122,8 @@ def test_t23_sweep_bad_owner_does_not_prevent_healthy_evidence(
     def inspected(_run, _api, _repo, _root, row):
         return {"task": row["display_title"], "run_id": row["id"],
                 "request": 286, "sha": SHA}
-    def comment(*args):
+    def comment(*args, allowed_task=None):
+        assert allowed_task is not None and allowed_task(args[3]["task"])
         actions.append(("comment", args[3]["task"]))
         return "ROUTE_DEFECT_RECORDED"
     def prepare(*args):

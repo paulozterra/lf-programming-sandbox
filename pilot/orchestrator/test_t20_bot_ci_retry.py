@@ -156,6 +156,12 @@ class API:
         self.calls = []
 
     def api(self, method, path, body=None):
+
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+
+        if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+
+            return content({})
         self.calls.append((method, path, body))
         if path.startswith("/pulls?state=open&head="):
             return [details()]

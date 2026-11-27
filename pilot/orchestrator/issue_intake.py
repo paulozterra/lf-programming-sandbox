@@ -147,13 +147,32 @@ def git(*args):
     subprocess.run(["git", *args], check=True)
 
 
+def require_intake_open(api: API, number: int):
+    from pilot.orchestrator.request_lifecycle import require_open, RequestStateError
+    def reader(path):
+        if path == f"issues/{number}":
+            return api.issue(number)
+        return api.call("GET", "/" + path)
+    try:
+        require_open(f"req-{number}", reader)
+    except RequestStateError as exc:
+        raise Blocked(str(exc)) from exc
+
+
 def intake(api: API, event: dict):
     issue_event = event.get("issue", {})
     info = metadata(issue_event)
     issue = api.issue(info["issue"])
     if metadata(issue) != info:
         raise Blocked("PEDIDO_EVENTO_NO_COINCIDE")
+    try:
+        require_intake_open(api, info["issue"])
+    except Blocked as exc:
+        if str(exc) in ("REQUEST_SUSPENDED", "REQUEST_CLOSED"):
+            return str(exc)
+        raise
     if not allowed_permission(api.permission(info["author"])):
+        require_intake_open(api, info["issue"])
         api.comment(info["issue"], ERROR)
         return ERROR
     files = expected_files(issue)
@@ -180,6 +199,7 @@ def intake(api: API, event: dict):
         except DuplicateBlocked as exc:
             raise Blocked(str(exc)) from exc
         if original is not None:
+            require_intake_open(api, info["issue"])
             mark(api, info["issue"], original)
             return "PEDIDO_POSIBLE_DUPLICADO"
     git("fetch", "--no-tags", "origin", "main")
@@ -196,11 +216,14 @@ def intake(api: API, event: dict):
         "commit", "-m", f"T9 issue #{info['issue']} request")
     from pilot.orchestrator.generated_branch_standards import synchronize
     synchronize(Path.cwd(), "request")
+    require_intake_open(api, info["issue"])
     git("push", "--set-upstream", "origin", branch)
+    require_intake_open(api, info["issue"])
     pr = api.call("POST", "/pulls", {
         "title": f"[T9] Pedido #{info['issue']} ({slug})",
         "head": branch, "base": "main", "draft": False,
         "body": f"Entrada automática desde #{info['issue']}. Solo contiene request.md y request_meta.json."})
+    require_intake_open(api, info["issue"])
     api.comment(info["issue"], f"Pedido registrado: {pr['html_url']}")
     return pr["html_url"]
 
@@ -271,6 +294,7 @@ def sweep(api: API) -> list[dict]:
                                          prs[0].get("head", {}).get("sha") or "")):
                     raise Blocked("R1_INTAKE_PR_UNRESOLVED")
                 pr = prs[0]
+                require_intake_open(api, number)
                 api.call("POST", "/actions/workflows/ci.yml/dispatches",
                          {"ref": branch, "inputs": {
                              "pr_number": str(pr["number"]),
