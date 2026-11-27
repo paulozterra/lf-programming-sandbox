@@ -61,6 +61,7 @@
       "pilot/test_t14_exam_requests.py",
       "pilot/test_t15_sweep.py",
       "pilot/test_t17_3_sweep_wake.py",
+      "pilot/test_t23_1_registration_handoff.py",
       "pilot/test_t9_2_handoff.py",
       "pilot/test_t9_5_main_ci.py",
       "pilot/train_handoff.py",
