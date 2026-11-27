@@ -328,4 +328,4 @@
 | CHG-0626 | EDITORIAL | T46: procedencia histórica de evidencias de auditoría |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/877 |
 | CHG-0634 | ADDITIVE | Continuación gobernada de lote agotado con oportunidad única |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/885 |
 | CHG-0635 | EDITORIAL | CP3.5: integración verificada nativa req652frontend3 (run 46033926974) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/888 |
-| CHG-0638 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0638 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
