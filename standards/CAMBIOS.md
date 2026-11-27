@@ -320,3 +320,4 @@
 | CHG-0579 | EDITORIAL | Ficha sintética BACKEND exclusiva DEMO-FORMAT-CANARY |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/824 |
 | CHG-0586 | EDITORIAL | Resolver trazas del examinador desde fuentes de segunda pantalla |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/835 |
 | CHG-0590 | EDITORIAL | CP3.6: encadenamiento gobernado req-825 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/840 |
+| CHG-0600 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
