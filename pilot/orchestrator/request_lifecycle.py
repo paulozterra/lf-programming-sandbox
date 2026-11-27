@@ -347,5 +347,9 @@ def request_ids_for_pr(branch: str, paths: list[str], *, root: Path = ROOT) -> s
 
 
 def require_pr_open(branch: str, paths: list[str], api, *, root: Path = ROOT):
+    control = read_control(api)
+    if not control:
+        return
     for slug in sorted(request_ids_for_pr(branch, paths, root=root)):
-        require_open(slug, api, root=root)
+        if slug in control:
+            require_open(slug, api, root=root)

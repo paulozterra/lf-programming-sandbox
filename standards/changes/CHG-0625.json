@@ -13,6 +13,7 @@
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/ci.yml",
       "pilot/auto_integrate.py",
       "pilot/orchestrator/REQUEST_SUSPENSION.md",
       "pilot/orchestrator/chain_lots.py",
@@ -25,6 +26,7 @@
       "pilot/orchestrator/test_request_lifecycle_suspension.py",
       "pilot/orchestrator/test_t49_lifecycle.py",
       "pilot/sandbox_train.py",
+      "pilot/test_t12_concurrency.py",
       "pilot/worker_v08/request_lifecycle_gate.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0625.json"

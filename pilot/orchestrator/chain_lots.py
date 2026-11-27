@@ -134,18 +134,21 @@ def api(path: str) -> dict:
             parsed = json.loads(raw)
         except ValueError:
             deny("GITHUB_RESPONSE_INVALID")
-        if not isinstance(parsed, dict):
+        events = re.fullmatch(r"issues/[1-9][0-9]*/events\?per_page=100&page=[1-9][0-9]*", path)
+        if not isinstance(parsed, list if events else dict):
             deny("GITHUB_RESPONSE_INVALID")
         return parsed
+    # Mutable authorization inputs must not be memoized across effects.
+    if (re.fullmatch(r"(issues|pulls)/[1-9][0-9]*", path)
+            or path.startswith("contents/pilot/orchestrator/request_lifecycle_control.json?")
+            or re.fullmatch(r"issues/[1-9][0-9]*/events\?per_page=100&page=[1-9][0-9]*", path)):
+        return fetch()
     return budget.read(path, fetch)
 
 
 def lifecycle_api(path: str):
     """Authorization reads must never reuse the sweep budget's cached snapshot."""
-    response = json.loads(github_api_raw(path))
-    if not isinstance(response, (dict, list)):
-        deny("GITHUB_RESPONSE_INVALID")
-    return response
+    return api(path)
 
 
 def api_list(path: str, *, max_pages: int = 10) -> list[dict]:

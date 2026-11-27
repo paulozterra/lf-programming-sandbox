@@ -20,7 +20,7 @@ def content(entries):
 
 def fake_api(entries, *, historical=None, issue_state="open"):
     def api(path):
-        if path.startswith("issues/"):
+        if path.startswith("issues/") and path.split("/")[-1].isdigit():
             return {"number": int(path.split("/")[1]), "state": issue_state,
                     "labels": [{"name": "lf-request-blocked"}]}
         if path == f"contents/{CONTROL}?ref=main":
