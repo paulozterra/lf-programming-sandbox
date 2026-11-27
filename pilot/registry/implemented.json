@@ -465,8 +465,35 @@
       ],
       "rule_codes": [],
       "status": "ATTESTED"
+    },
+    {
+      "area": "BACKEND",
+      "endpoints": [],
+      "files": [
+        {
+          "path": "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryService.java",
+          "sha256": "1977c2e88532b21a5ea7cea763c3e6631061fca308ec314ebee8c5ff71775bf6"
+        }
+      ],
+      "lot": "SOL-001",
+      "merge_sha": "e7bac8344af0a268a2f543bd97d5b6fbe7fa4bd1",
+      "reasons": [
+        "CONTRACT_ENDPOINTS_NOT_DERIVABLE",
+        "INTEGRATED_FILES_MISSING"
+      ],
+      "request": "req-825",
+      "requirement_ids": [
+        "REQ-FORMAT-CANARY-VALIDATION"
+      ],
+      "rule_codes": [
+        "FORMAT-CANARY-VALIDATION"
+      ],
+      "status": "NO_DERIVABLE",
+      "unchanged_paths": [
+        "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryController.java"
+      ]
     }
   ],
   "schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
-  "source_main_sha": "4d722957cfa01d3539ac978e1ab9de6570757836"
+  "source_main_sha": "e7bac8344af0a268a2f543bd97d5b6fbe7fa4bd1"
 }
