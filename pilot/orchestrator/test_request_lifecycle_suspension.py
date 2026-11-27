@@ -183,7 +183,12 @@ def test_maintenance_cannot_edit_suspended_task_artifacts(monkeypatch):
     monkeypatch.setattr(life, "request_for_task", lambda *a, **k: SLUG)
     api = fake_api({SLUG: {"state": life.SUSPENDED, "authorization_pr": 77}})
     for path in ("pilot/worker_v08/native_tasks/demo.json", "pilot/holdouts/demo.oracle.json.age",
-                 "pilot/orchestrator/chain_plans/req-123.json", "pilot/native_proposals/demo.json"):
+                 "pilot/orchestrator/chain_plans/req-123.json", "pilot/native_proposals/demo.json",
+                 "pilot/orchestrator/evidence_inputs/req-123/SOL-001.json",
+                 ".lf/worker-context/demo/receipt.json",
+                 "pilot/worker_v08/route_tool_defects/demo/99.json",
+                 "pilot/worker_v08/examiner_defects/demo.json",
+                 "pilot/worker_v08/intake_defects/demo.json"):
         with pytest.raises(life.RequestStateError, match="REQUEST_SUSPENDED"):
             life.require_pr_open("maintenance", [path], api)
 

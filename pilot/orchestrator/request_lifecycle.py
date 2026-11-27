@@ -464,10 +464,16 @@ def request_ids_for_pr(branch: str, paths: list[str], *, root: Path = ROOT) -> s
                 (m := re.match(r"pilot/runs/(req-[1-9][0-9]*)/", path))}
     requests.update(m.group(1) for path in paths if
                     (m := re.fullmatch(r"pilot/orchestrator/chain_plans/(req-[1-9][0-9]*)[.]json", path)))
+    requests.update(m.group(1) for path in paths if
+                    (m := re.match(r"pilot/orchestrator/evidence_inputs/(req-[1-9][0-9]*)/", path)))
     for path in paths:
         m = re.fullmatch(r"pilot/(?:worker_v08/(?:native_tasks|route_migrations)|native_proposals)/([a-z][a-z0-9_-]{0,31})[.]json", path)
         if m is None:
             m = re.fullmatch(r"pilot/holdouts/([a-z][a-z0-9_-]{0,31})[.](?:oracle|reference)[.]json[.]age", path)
+        if m is None:
+            m = re.fullmatch(r"pilot/worker_v08/(?:examiner_defects|intake_defects|route_tool_defects)/([a-z][a-z0-9_-]{0,31})(?:/[1-9][0-9]*)?[.]json", path)
+        if m is None:
+            m = re.match(r"[.]lf/worker-context/([a-z][a-z0-9_-]{0,31})/", path)
         if m:
             requests.add(request_for_task(m.group(1), root=root, registered=False))
     task = None
