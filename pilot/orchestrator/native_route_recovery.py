@@ -156,7 +156,7 @@ def _comments(run, repo: str, number: int, api_list=None) -> list[dict]:
 
 
 def comment_defect(run, api, repo: str, evidence: dict,
-                   api_list=None) -> str:
+                   api_list=None, *, allowed_task=None) -> str:
     task, sha = evidence["task"], evidence["sha"]
     number, run_id = evidence["request"], evidence["run_id"]
     marker = f"<!-- {MARKER}:{task}:{sha}:{run_id} -->"
@@ -180,6 +180,8 @@ def comment_defect(run, api, repo: str, evidence: dict,
             + "no a una evaluación válida del código propuesto. "
             + "La ruta preparará una corrección del registro y reintentará el mismo SHA "
             + "sin que el constructor reenvíe la propuesta.")
+    if allowed_task is not None and not allowed_task(task):
+        return "REQUEST_INACTIVE"
     run("gh", "issue", "comment", str(number), "--repo", repo, "--body", body)
     return "ROUTE_DEFECT_RECORDED"
 
@@ -257,7 +259,7 @@ def prepare_repair(head, run, api, repo, root, evidence, worktree, draft,
 
 
 def comment_resubmit(run, api, repo: str, number: int, task: str,
-                     sha: str, reason: str, api_list=None) -> str:
+                     sha: str, reason: str, api_list=None, *, allowed_task=None) -> str:
     marker = f"<!-- LF_NATIVE_ROUTE_RESUBMIT:{task}:{sha} -->"
     issue = api(f"issues/{number}")
     if issue.get("number") != number or "lf-request" not in {
@@ -272,6 +274,8 @@ def comment_resubmit(run, api, repo: str, number: int, task: str,
            + sha + "`: " + reason
            + ". Consulta el proposal-request.json actualizado en main y "
            + "vuelve a enviar un sobre con su task_pack_sha256 y base registrados.")
+    if allowed_task is not None and not allowed_task(task):
+        return "REQUEST_INACTIVE"
     run("gh", "issue", "comment", str(number), "--repo", repo, "--body", msg)
     return "ROUTE_DEFECT_RESUBMIT_NOTIFIED"
 
@@ -325,13 +329,15 @@ def replay_corrected(head, run, api, repo: str, root: Path,
         comment_defect(run, api, repo, {
             "request": request, "task": task, "sha": sha,
             "run_id": migration_info["source_run_id"], "attempt": 1,
-        }, api_list)
+        }, api_list, allowed_task=allowed_task)
+        if allowed_task is not None and not allowed_task(task):
+            continue
         branch = "lf/native-proposal/" + task
         remote = run("git", "ls-remote", "origin", "refs/heads/" + branch).split()
         if len(remote) != 2 or remote[0] != sha or remote[1] != "refs/heads/" + branch:
             results.append({"status": comment_resubmit(
                 run, api, repo, request, task, sha,
-                "la rama original ya no apunta al SHA enviado", api_list)})
+                "la rama original ya no apunta al SHA enviado", api_list, allowed_task=allowed_task)})
             continue
         run("git", "fetch", "--no-tags", "origin", sha)
         try:
@@ -342,7 +348,7 @@ def replay_corrected(head, run, api, repo: str, root: Path,
         except (ProposalPushBlocked, ValueError):
             results.append({"status": comment_resubmit(
                 run, api, repo, request, task, sha,
-                "el sobre original ya no supera la validación de procedencia", api_list)})
+                "el sobre original ya no supera la validación de procedencia", api_list, allowed_task=allowed_task)})
             continue
         if (not isinstance(envelope, dict)
                 or set(envelope) != {"task_pack_sha256", "proposal_sha256", "proposal", "author"}
@@ -355,7 +361,9 @@ def replay_corrected(head, run, api, repo: str, root: Path,
                 or envelope.get("task_pack_sha256") != migration_info["legacy_task_pack_sha256"]):
             results.append({"status": comment_resubmit(
                 run, api, repo, request, task, sha,
-                "el SHA del paquete original difiere del paquete histórico certificado", api_list)})
+                "el SHA del paquete original difiere del paquete histórico certificado", api_list, allowed_task=allowed_task)})
+            continue
+        if allowed_task is not None and not allowed_task(task):
             continue
         run("gh", "workflow", "run", "worker-native.yml", "--repo", repo, "--ref", "main",
             "-f", "task=" + task, "-f", "proposal_commit_sha=" + sha,
@@ -391,11 +399,11 @@ def sweep(head, run, api, repo, root, worktree, draft, pending_draft,
             results.append({"task": evidence["task"], "status": "REQUEST_CLOSED"})
             continue
         results.append({"status": comment_defect(run, api, repo, evidence,
-                                                   api_list),
+                                                   api_list, allowed_task=allowed_task),
                         "task": evidence["task"], "run_id": item["id"]})
         # One generated CHG / Draft per sweep; subsequent tasks follow after
         # Train advances main, avoiding two bot branches claiming one CHG.
-        if not scheduled:
+        if not scheduled and (allowed_task is None or allowed_task(evidence["task"])):
             registration = prepare_repair(head, run, api, repo, root,
                                           evidence, worktree, draft, pending_draft)
             results.append(registration)

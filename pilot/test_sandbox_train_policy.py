@@ -26,6 +26,13 @@ def sample_pr(draft=False, fork=False):
 
 
 class PolicyTests(unittest.TestCase):
+    def setUp(self):
+        # These original Train tests isolate the merge/CI protocol. Dedicated
+        # D22 regressions exercise the new lifecycle guard itself.
+        guard = patch.object(train, "guard_request_lifecycle")
+        guard.start()
+        self.addCleanup(guard.stop)
+
     def test_no_target_no_custom_secrets_no_external_privileges(self):
         data = WORKFLOW.read_text()
         self.assertNotIn("pull_request_target", data)

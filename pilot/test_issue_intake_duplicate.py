@@ -27,6 +27,9 @@ class Fake:
         return "write"
 
     def call(self, method, path, payload=None):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+            return content({})
         if method == "GET" and path.startswith("/pulls?state=all"):
             return [self.pr] if self.pr is not None else []
         if method == "GET" and path.startswith("/issues?state=open&labels=lf-request&"):
@@ -43,7 +46,7 @@ class Fake:
 
 class DuplicateTests(unittest.TestCase):
     def test_opened_then_labeled_single_pr_single_dispatch(self):
-        issue = {"number": 160, "user": {"login": "paulozterra"},
+        issue = {"number": 160, "state": "open", "user": {"login": "paulozterra"},
                  "created_at": "2026-11-14T16:00:00Z",
                  "body": "### Pedido\n\nImplementa SBX-REM-LIST\n"}
         api = Fake(issue)

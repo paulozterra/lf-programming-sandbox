@@ -133,7 +133,7 @@ def guard_pending_retirement(branch):
         raise TrainError(f"POLICY_C_RETIRO_PENDIENTE task={task} retire_pr=#{retire}")
 
 
-def merge_with_retry(number, head, payload, *, branch, clock=None, sleep=None):
+def merge_with_retry(number, head, payload, *, branch, clock=None, sleep=None, lifecycle_guard=None):
     """GitHub may still report required checks as 'expected' a few seconds
     after they completed, a required check may still be running on the same
     HEAD, and a merge PUT can lose its connection. Re-read the PR before every
@@ -144,6 +144,8 @@ def merge_with_retry(number, head, payload, *, branch, clock=None, sleep=None):
     in_progress_deadline = None
     while True:
         guard_pending_retirement(branch)
+        if lifecycle_guard is not None:
+            lifecycle_guard()
         try:
             return api("PUT", f"/pulls/{number}/merge", payload)
         except TrainError as exc:
@@ -448,7 +450,7 @@ def recover_inconsistent_ci_job(sha, missing, found, recovery_attempts):
     return "RECOVERY_REQUESTED"
 
 
-def await_checks(number, sha, dispatched_heads=None):
+def await_checks(number, sha, dispatched_heads=None, *, lifecycle_guard=None):
     dispatched_heads = dispatched_heads if dispatched_heads is not None else set()
     required = REQUIRED + ((REHEARSAL_CHECK,) if needs_rehearsal(number) else ())
     start = time.monotonic()
@@ -466,6 +468,8 @@ def await_checks(number, sha, dispatched_heads=None):
             return None  # changed: restart against new SHA
         # T52: approve first. A bot push may create an action_required run; once
         # approved it supplies the checks, so it must not trigger a second CI.
+        if lifecycle_guard is not None:
+            lifecycle_guard(number, pr)
         approve_pending_runs(sha)
         elapsed = time.monotonic() - start
         if (sha not in dispatched_heads and elapsed >= CI_MISSING_GRACE_SECONDS
@@ -477,6 +481,8 @@ def await_checks(number, sha, dispatched_heads=None):
             if pending and pending_since is None:
                 pending_since = now
             if not pending or now - pending_since >= CI_APPROVAL_GRACE_SECONDS:
+                if lifecycle_guard is not None:
+                    lifecycle_guard(number, pr)
                 dispatch_updated_head_ci(pr["head"]["ref"], sha)
                 dispatched_heads.add(sha)
                 print(json.dumps({"event": "ci_missing_fallback_dispatch", "head": sha,
@@ -488,6 +494,8 @@ def await_checks(number, sha, dispatched_heads=None):
         if (REHEARSAL_CHECK in required and ("rehearsal", sha) not in dispatched_heads
                 and time.monotonic() - start >= CI_MISSING_GRACE_SECONDS
                 and not rehearsal_runs_for_head(sha)):
+            if lifecycle_guard is not None:
+                lifecycle_guard(number, pr)
             dispatch_rehearsal(pr["head"]["ref"], sha)
             dispatched_heads.add(("rehearsal", sha))
         found = {name: value for name, value in checks_for_head(sha).items()
@@ -554,11 +562,83 @@ def dispatch_updated_head_ci(branch, sha):
                       "head_sha": sha}), flush=True)
 
 
+def guard_request_lifecycle(number, pr, *, files=None):
+    from pathlib import Path
+    from orchestrator.request_lifecycle import (
+        require_pr_open, RequestStateError, CONTROL_PATH, read_control,
+        validate_control_transition, verify_owner_transition, verify_drain, SUSPENDED,
+    )
+    reader = lambda route: api("GET", "/" + route)
+    try:
+        if files is None:
+            files = []
+            for page in range(1, 11):
+                rows = api("GET", f"/pulls/{number}/files?per_page=100&page={page}")
+                if not isinstance(rows, list):
+                    raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+                files.extend(rows)
+                if len(rows) < 100:
+                    break
+            else:
+                raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        if len(files) != pr.get("changed_files"):
+            raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        paths = []
+        for row in files:
+            if not isinstance(row, dict) or not isinstance(row.get("filename"), str):
+                raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+            paths.append(row["filename"])
+            if row.get("previous_filename"):
+                paths.append(row["previous_filename"])
+        require_pr_open(pr["head"]["ref"], paths, reader, root=Path(__file__).resolve().parents[1])
+        if CONTROL_PATH in paths:
+            previous = read_control(reader)
+            current = read_control(reader, pr["head"]["sha"])
+            slug = validate_control_transition(previous, current, number)
+            verify_owner_transition(reader, pr, slug,
+                                    previous.get(slug, {}).get("state", "ACTIVE"),
+                                    current[slug]["state"])
+            if current[slug]["state"] == SUSPENDED:
+                run_id = os.environ.get("GITHUB_RUN_ID", "")
+                verify_drain(reader, slug, previous[slug],
+                             current_train_id=int(run_id) if run_id.isdecimal() else None)
+            if any(path != CONTROL_PATH and path != "standards/CAMBIOS.md"
+                   and not re.fullmatch(r"standards/changes/CHG-[0-9]{4,}[.]json", path)
+                   for path in paths):
+                raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+    except RequestStateError as exc:
+        raise TrainError(str(exc)) from exc
+
+
+def guard_registry_merge(pr):
+    """An owner label never substitutes for the global ledger's historical proof."""
+    if not pr["head"]["ref"].startswith("lf/implemented-registry/"):
+        return
+    from pilot.auto_integrate import GitHub, eligible_pr, pr_files, verify_generated_content, REPOSITORY, PolicyBlocked
+    import subprocess
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    local = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+    if local != main_sha():
+        raise TrainError("REGISTRY_MAIN_DRIFT")
+    reader = GitHub(os.environ["GH_TOKEN"], REPOSITORY)
+    try:
+        paths = pr_files(reader, pr["number"])
+        kind = eligible_pr(pr, paths, api=reader)
+        if kind != "implemented-registry":
+            raise TrainError("REGISTRY_SCOPE_INVALID")
+        verify_generated_content(reader, pr, paths, kind)
+    except PolicyBlocked as exc:
+        raise TrainError(str(exc)) from exc
+
+
 def run(number):
     dispatched_heads = set()
     prepared_heads = set()
     for attempt in range(MAX_RESTARTS + 1):
-        pr = ready_if_labeled_draft(number, pr_data(number))
+        candidate = pr_data(number)
+        guard_request_lifecycle(number, candidate)
+        pr = ready_if_labeled_draft(number, candidate)
         check_pr(pr)
         initial_head = pr["head"]["sha"]
         base = main_sha()
@@ -581,6 +661,7 @@ def run(number):
                 # Verify propagated SHA, then dispatch checks for the new HEAD.
                 updated = wait_for_pushed_head(number, merged_head)
                 if merged_head not in dispatched_heads:
+                    guard_request_lifecycle(number, updated)
                     dispatch_updated_head_ci(updated["head"]["ref"], merged_head)
                     dispatched_heads.add(merged_head)
                 continue
@@ -588,7 +669,9 @@ def run(number):
             # validated HEAD without another push or a new Actions run.
         if compare["status"] not in ("ahead", "identical"):
             raise TrainError("BRANCH_NOT_MERGEABLE " + compare["status"])
-        evidence = await_checks(number, initial_head, dispatched_heads)
+        guard_request_lifecycle(number, pr)
+        evidence = await_checks(number, initial_head, dispatched_heads,
+                                lifecycle_guard=guard_request_lifecycle)
         if evidence is None:
             continue
         latest = pr_data(number)
@@ -611,11 +694,17 @@ def run(number):
                                       base, initial_head, files)
         except RetirementBlocked as exc:
             raise TrainError(str(exc)) from exc
+        def before_merge():
+            if main_sha() != base:
+                raise TrainError("MAIN_MOVED_BEFORE_MERGE_RETRY")
+            guard_request_lifecycle(number, latest)
+            guard_registry_merge(latest)
         try:
             merged = merge_with_retry(number, initial_head,
                                       {"sha": initial_head, "merge_method": "merge",
                                        "commit_title": f"Merge PR #{number} via sandbox-train"},
-                                      branch=latest["head"]["ref"])
+                                      branch=latest["head"]["ref"],
+                                      lifecycle_guard=before_merge)
         except TrainError as exc:
             # Main may have moved between last read and merge; restart safely.
             if main_sha() != base or pr_data(number)["head"]["sha"] != initial_head:

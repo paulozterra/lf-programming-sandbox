@@ -33,6 +33,9 @@ class API:
                     if self.open_issue else [])
         raise AssertionError(path)
     def request(self, method, path, data=None):
+        from pilot.orchestrator.lifecycle_test_support import fake_api, CONTROL
+        if method == "GET" and (path == f"/contents/{CONTROL}?ref=main" or path == "/issues/901"):
+            return fake_api({})(path[1:])
         if method == "GET" and path == "/collaborators/examiner/permission":
             return {"permission": "write"}
         if method == "GET" and path == "/issues?state=open&labels=exam-request&per_page=100":

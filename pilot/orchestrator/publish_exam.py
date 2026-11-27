@@ -401,6 +401,12 @@ def encrypt_roundtrip(raw: bytes, recipient: Path, identity: Path | None, out: P
         raise ExamBlocked("EXAM_ENCRYPTION_ROUNDTRIP_MISMATCH")
 
 
+def lifecycle_api(path):
+    """Read live authorization via the examiner's authenticated gh session."""
+    return json.loads(subprocess.run(["gh", "api", "repos/paulozterra/lf-programming-sandbox/" + path],
+                                     check=True, capture_output=True, text=True, timeout=30).stdout)
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--task", required=True)
@@ -427,10 +433,16 @@ def main() -> int:
                    help="T40: exam already published unchanged; only add its reference")
     a = p.parse_args()
     try:
+        from pilot.orchestrator.request_lifecycle import require_open, request_for_task, RequestStateError
+        def lifecycle_guard():
+            if request_for_task(a.task, root=ROOT, registered=False) != a.request:
+                raise ExamBlocked("EXAM_REQUEST_UNVERIFIED")
+            require_open(a.request, lifecycle_api, root=ROOT)
         if not TASK.fullmatch(a.task):
             raise ExamBlocked("EXAM_TASK_INVALID")
         if a.worktree.resolve() == ROOT.resolve():
             raise ExamBlocked("EXAM_WORKTREE_MUST_BE_SCRATCH")
+        lifecycle_guard()
         script = a.script.read_text("utf-8")
         lint_script(script)
         lint_timeout(a.timeout)
@@ -456,6 +468,7 @@ def main() -> int:
         cipher = ROOT / "pilot/holdouts" / f"{a.task}.oracle.json.age"
         ref_cipher = ROOT / "pilot/holdouts" / f"{a.task}.reference.json.age"
         recipient = ROOT / "pilot/holdouts/recipient.txt"
+        lifecycle_guard()
         if a.add_reference:
             meta_file = storage_path("requests_root", root=ROOT) / a.request / "claude_meta" / f"{a.task}.json"
             try:
@@ -482,7 +495,7 @@ def main() -> int:
             "holdout_sha256": hashlib.sha256(raw).hexdigest(),
             "project_ref": a.project_ref, "written_by": "claude",
             "derived_from": a.derived_from}, indent=2, ensure_ascii=False) + "\n", "utf-8")
-    except ExamBlocked as exc:
+    except (ExamBlocked, RequestStateError) as exc:
         print(str(exc))
         return 1
     print(json.dumps({"status": "EXAM_READY_TO_PUBLISH", "task": a.task,

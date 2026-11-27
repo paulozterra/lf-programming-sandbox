@@ -325,6 +325,7 @@
 | CHG-0606 | EDITORIAL | Aislar base CREATE de prueba T9.3 format canary |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/856 |
 | CHG-0613 | EDITORIAL | CP3.6: encadenamiento gobernado req-825 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/864 |
 | CHG-0614 | EDITORIAL | CP3.6: encadenamiento gobernado req-825 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/865 |
+| CHG-0625 | ADDITIVE | D22: suspensión gobernada por pedido en request_lifecycle |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/876 |
 | CHG-0626 | EDITORIAL | T46: procedencia histórica de evidencias de auditoría |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/877 |
 | CHG-0634 | ADDITIVE | Continuación gobernada de lote agotado con oportunidad única |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/885 |
 | CHG-0635 | EDITORIAL | CP3.5: integración verificada nativa req652frontend3 (run 46033926974) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/888 |

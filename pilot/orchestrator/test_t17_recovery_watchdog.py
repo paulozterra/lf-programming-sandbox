@@ -76,6 +76,9 @@ def test_watchdog_comments_verified_generated_ci_without_label():
     calls = []
     class FakeAPI:
         def api(self, method, path, body=None):
+            from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+            if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+                return content({})
             calls.append((method, path, body))
             if "lf/native-registration/t17fake-" in path:
                 return [{"number": 987, "head": {
@@ -192,6 +195,9 @@ def test_one_sweep_closes_legacy_red_registration_and_regenerates_next_chg(tmp_p
         raise AssertionError("Unexpected command: " + repr(args))
 
     def fake_api(path):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         if path == "issues/901":
             return {"number": 901, "state": "open"}
         assert "actions/workflows/ci.yml/runs?" in path

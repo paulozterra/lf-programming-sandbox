@@ -1,5 +1,6 @@
 """T50: CP3.7 isolates one blocked request from an otherwise healthy chain."""
 import json
+from pilot.orchestrator.lifecycle_test_support import fake_api
 
 from pilot.orchestrator import pg37_publish as pub
 
@@ -20,7 +21,7 @@ def test_bad_request_does_not_prevent_healthy_h_report(tmp_path, monkeypatch):
     monkeypatch.setattr(cl, "plans",
         lambda: [(req, lots, {}, {}) for req in requests])
     monkeypatch.setattr(cl, "api",
-        lambda _path: {"number": int(_path.split("/")[-1]), "state": "open"})
+        fake_api({}))
     monkeypatch.setattr(cl, "first_parent_merges",
         lambda req, **_kw: [(sha, {}, {"src/example.py"})])
     def complete(_lots, _bindings, history):

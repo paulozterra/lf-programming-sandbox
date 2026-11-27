@@ -13,7 +13,14 @@ def test_intake_sweep_rebuilds_missing_request_and_dispatches_exact_ci(monkeypat
     state = {"created": False, "dispatched": []}
 
     class API:
+        def issue(self, number):
+            assert number == 901
+            return issue
+
         def call(self, method, path, payload=None):
+            from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+            if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+                return content({})
             if method == "GET" and path.startswith("/issues?"):
                 return [issue]
             if method == "GET" and path == "/issues/901/events?per_page=100":

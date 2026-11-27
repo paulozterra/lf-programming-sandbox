@@ -161,7 +161,7 @@ def _dispatch_history(api, repo: str, run_id: int, created_at: str) -> list[dict
     block("CONFLICT_RECOVERY_DISPATCH_HISTORY_UNRESOLVED")
 
 
-def recover(row: dict, run, api, repo: str) -> dict:
+def recover(row: dict, run, api, repo: str, *, before_dispatch=None) -> dict:
     branch = row.get("branch")
     match = BRANCH.fullmatch(branch) if isinstance(branch, str) else None
     if not match:
@@ -205,6 +205,8 @@ def recover(row: dict, run, api, repo: str) -> dict:
                 "step": INTEGRATION, "source_run_id": run_id,
                 "failed_run_id": failed[0]["id"], "task": task}
 
+    if before_dispatch is not None:
+        before_dispatch()
     run("gh", "workflow", "run", INTEGRATION, "--repo", repo,
         "--ref", "main", "-f", "source_run_id=" + str(run_id))
     return {"status": "CONFLICT_INTEGRATION_REDISPATCHED",

@@ -38,6 +38,11 @@ class FakeClock:
 
 
 class RacePolicyTests(unittest.TestCase):
+    def setUp(self):
+        guard = patch.object(train, "guard_request_lifecycle")
+        guard.start()
+        self.addCleanup(guard.stop)
+
     def test_delayed_pr_head_after_push_waits_then_dispatches(self):
         clock = FakeClock()
         old, new = pr(), pr("b" * 40)

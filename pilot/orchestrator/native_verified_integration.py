@@ -406,10 +406,10 @@ def reconstruct_existing_branch(root: Path, branch: str, patch: bytes,
 def _require_live_task(root: Path, task: str) -> None:
     try:
         require_task_open(task, root=root,
-                          api=lambda path: obj(gh_api(f"repos/{REPOSITORY}/" + path)))
+                          api=lambda path: json.loads(gh_api(f"repos/{REPOSITORY}/" + path)))
     except RequestStateError as exc:
         code = str(exc)
-        block("REQUEST_CLOSED" if code == "REQUEST_CLOSED" else "REQUEST_STATE_UNRESOLVED")
+        block(code if code in ("REQUEST_CLOSED", "REQUEST_SUSPENDED") else "REQUEST_STATE_UNRESOLVED")
 
 
 def publish(root: Path, run_id: int, patch: bytes, status: dict, proof: dict) -> dict:

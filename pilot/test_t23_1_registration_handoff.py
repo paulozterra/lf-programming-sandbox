@@ -147,6 +147,9 @@ def test_actual_exam_issue_closure_only_with_matching_registration_and_scope(tmp
     comments = []
     class ExamAPI:
         def call(self, method, path, body=None):
+            from pilot.orchestrator.lifecycle_test_support import fake_api, CONTROL
+            if method == "GET" and (path == "/issues/901" or path == f"/contents/{CONTROL}?ref=main"):
+                return fake_api({})(path[1:])
             if method == "GET" and path.startswith("/issues?"):
                 return [{
                     "number": 981, "state": "open",
