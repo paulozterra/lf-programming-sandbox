@@ -139,7 +139,7 @@ def test_source_code_direct_push_reports_scope_failure_and_issue_comment(tmp_pat
                                    "labels": [{"name": "lf-request"}]})
             if args[-1].endswith("/comments?per_page=100"):
                 return "[]"
-            return json.dumps(reader(args[-1].split("/", 2)[2]))
+            return json.dumps(reader(args[-1].removeprefix(f"repos/{notifier.REPO}/")))
         if args[:3] == ("gh", "issue", "comment"):
             comments.append(args)
             return ""
