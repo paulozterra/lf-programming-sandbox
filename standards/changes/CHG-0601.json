@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0601",
+  "title": "Inscripción exclusiva de req825backend1 en prevalidación nativa de formato",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: canary req-825, preparar inscripción Draft exclusiva, sin enviar propuestas ni fusionar"
+  },
+  "reason": "Inscribir únicamente req825backend1 en la política de activación existente CHG-0577, anclada al propio PR #851. Registro auténtico PR #840 CHG-0590, examen PR #839, T40 45912986805 y CI main 45915100540 SUCCESS. Hashes de task-pack, plantilla, lotes y 11 archivos de contexto comprobados; sin cambiar aceptación registrada, otros pedidos ni protecciones.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_format_activation.json",
+      "standards/changes/CHG-0601.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/851"
+  }
+}
