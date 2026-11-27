@@ -100,3 +100,54 @@ def test_trusted_git_history_and_exact_binding(tmp_path):
     git("commit", "-m", "attempt rewrite")
     with pytest.raises(ValueError):
         load(tmp_path)
+
+
+def test_worker_admission_one_use_and_concurrent_run(tmp_path, monkeypatch):
+    import sys
+    from pathlib import Path
+    from pilot.orchestrator import lot_recovery
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "worker_v08"))
+    import native_run_history as history
+    import native_route_defect
+    import native_examiner_defect
+    import native_route_tool_defect
+    import native_intake_defect
+
+    row = authorization()["recoveries"][0]
+    old, new = row["original_task"], row["successor_task"]
+    sha = "c" * 40
+    pack = "a" * 64
+    def run(n, task, status="completed"):
+        return {"id": n, "head_branch": "main", "run_attempt": 1,
+                "event": "workflow_run", "status": status,
+                "conclusion": "failure" if status == "completed" else None,
+                "display_title": "lf-native-auto-lf/native-proposal/" + task + "-" + sha}
+    runs = [run(n, old) for n in [10, 11, 12, 13]] + [run(20, new, "in_progress")]
+    proofs = {n: {"run_id": n, "task_id": old, "attempt": a, "task_pack_sha256": pack}
+              for n, a in [(10, 1), (11, 2), (12, 3), (13, 3)]}
+    monkeypatch.setattr(lot_recovery, "for_successor", lambda root, task: row if task == new else None)
+    monkeypatch.setattr(history, "_api", lambda *args: {"total_count": len(runs), "workflow_runs": runs})
+    monkeypatch.setattr(history, "_artifact_json", lambda repo, token, n: proofs.get(n))
+    monkeypatch.setattr(native_route_defect, "verified_migration", lambda *a: None)
+    monkeypatch.setattr(native_examiner_defect, "verified_examiner_defects", lambda *a: {})
+    monkeypatch.setattr(native_intake_defect, "verified_intake_defects", lambda *a: {})
+    monkeypatch.setattr(native_route_tool_defect, "verified_route_tool_defects",
+                        lambda root, task, record: {12: {"task_pack_sha256": pack,
+                            "proposal_commit_sha": sha}} if task == old else {})
+    def admit():
+        return history.admit_attempt(repository="paulozterra/lf-programming-sandbox",
+            token="test", task=new, attempt=None, run_id=20, run_attempt=1,
+            sha=sha, output=tmp_path / "admission.json", event="workflow_run",
+            proposal_branch="lf/native-proposal/" + new)
+    assert admit() == 1
+    assert json.loads((tmp_path / "admission.json").read_text())["prior_run_ids"] == []
+    runs.append(run(16, new, "in_progress"))
+    with pytest.raises(ValueError, match="LOT_RECOVERY_CONCURRENT_RUN"):
+        admit()
+    runs.pop()
+    spent = run(15, new)
+    spent["display_title"] = spent["display_title"].replace(sha, "d" * 40)
+    runs.append(spent)
+    proofs[15] = {"run_id": 15, "task_id": new, "attempt": 1, "task_pack_sha256": pack}
+    with pytest.raises(ValueError, match="LOT_RECOVERY_ATTEMPT_EXHAUSTED"):
+        admit()
