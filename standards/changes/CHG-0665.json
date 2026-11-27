@@ -1,0 +1,39 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0665",
+  "title": "D22: mantenimiento protegido del Train (tramo 2/2)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: separación F1.A/D22 autorizada en dos tramos; preparar mantenimiento protegido por CHG-0534/#771 tras integración #920 y CI de main 46073116889; merge excepcional pendiente de decisión expresa"
+  },
+  "reason": "Completar D22 con el Train y sus pruebas ratificados en #876 comentario 7228302357 sobre 9f90b81f11c5736bcc895b74e728be544fe83d41. Restaurar exclusivamente cinco blobs de tooling y pruebas; conservar CHG-0625 integrado por #920, normalización EOF ratificada en #920 comentario 7228732995 y registro vacío. Clasificación según C9 vigente: sin cambios de artefactos normativos, standards/tools ni ci.yml; verificar resultado efectivo en CI. No altera candado de tooling, REQUIRED ni protecciones. INTERVENCION_MANUAL: SI — reconciliación autorizada, merge excepcional no autorizado.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/audit/test_t49_1_audit.py",
+      "pilot/sandbox_train.py",
+      "pilot/test_sandbox_train_policy.py",
+      "pilot/test_sandbox_train_recovery.py",
+      "pilot/test_sandbox_train_retry.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0665.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/876"
+  }
+}

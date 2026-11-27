@@ -302,6 +302,21 @@ def test_audit_land_never_dispatches_after_state_changes(historical_route, monke
     assert len(writes) == (1 if late == "after_label" else 0)
 
 
+def test_train_audit_gate_revalidates_exact_finalized_request(historical_route, monkeypatch):
+    monkeypatch.syspath_prepend(str(HERE.parent))
+    train = importlib.import_module("sandbox_train")
+    r = historical_route
+    monkeypatch.setattr(train, "__file__", str(r.root / "pilot/sandbox_train.py"))
+    def reader(method, path, *args, **kwargs):
+        assert method == "GET"
+        return r.api(path.lstrip("/"))
+    monkeypatch.setattr(train, "api", reader)
+    train.guard_request_lifecycle(902, r.pr)
+    r.state["issue"] = "open"
+    with pytest.raises(train.TrainError, match="AUDIT_REQUEST_NOT_FINALIZED"):
+        train.guard_request_lifecycle(902, r.pr)
+
+
 def test_audit_stage_receipt_must_be_latest_and_exact(historical_route):
     from pilot.audit import audit_lifecycle as al
     from pilot.orchestrator import request_lifecycle as life

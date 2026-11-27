@@ -46,6 +46,22 @@ class MergeRetry(unittest.TestCase):
         with self.assertRaisesRegex(train.TrainError, "HEAD_CHANGED_DURING_MERGE_RETRY"):
             self.run_with([lag], [{"merged": False, "head": {"sha": "b" * 40}}])
 
+    def test_suspension_between_retries_stops_second_put(self):
+        calls = []
+        def api(method, path, payload=None, expected=(200,)):
+            calls.append(method)
+            if method == "PUT":
+                raise train.TrainError("HTTP 502 PUT /pulls/118/merge: bad gateway")
+            return {"merged": False, "head": {"sha": HEAD}}
+        guard = mock.Mock(side_effect=[None, train.TrainError("REQUEST_SUSPENDED")])
+        with mock.patch.object(train, "api", side_effect=api), \
+                mock.patch.object(train.time, "sleep"):
+            with self.assertRaisesRegex(train.TrainError, "REQUEST_SUSPENDED"):
+                train.merge_with_retry(118, HEAD, {"sha": HEAD}, branch="feature/x",
+                                       lifecycle_guard=guard)
+        self.assertEqual(calls.count("PUT"), 1)
+        self.assertEqual(guard.call_count, 2)
+
     def test_real_rejection_not_retried(self):
         with self.assertRaisesRegex(train.TrainError, "409"):
             self.run_with([train.TrainError("HTTP 409 PUT /pulls/118/merge: Head branch was modified")], [])
