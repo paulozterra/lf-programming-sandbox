@@ -7,9 +7,12 @@ El examinador es **independiente del constructor**: el constructor (GPT u otro) 
 ## 0. ¿Hay trabajo?
 
 ```bash
-git clone --depth 1 https://github.com/paulozterra/lf-programming-sandbox main
+git clone https://github.com/paulozterra/lf-programming-sandbox main   # historial completo, nunca --depth
+test "$(git -C main rev-parse --is-shallow-repository)" = false || exit 1   # EXAMINER_CLONE_SHALLOW
 cd main && python3 pilot/orchestrator/examiner_queue.py > /tmp/queue.json
 ```
+
+El clon debe tener historial completo: `lot_recovery.py` (CHG-0634) exige un repositorio no superficial y, con `--depth 1`, la cola clasifica como `stale` pedidos vigentes (caso #890, `req652backend22`).
 
 - `pending` vacío → terminar sin hacer nada más (respuesta de una línea: "sin exámenes pendientes"). Es el caso normal y debe costar casi nada.
 - `stale`: solicitudes de tareas ya no planificadas o de pedidos cerrados. **Nunca** se examinan. Se informan en el resumen final, no se tocan.
@@ -53,7 +56,7 @@ El lote no implementa nada: GPT debe **describir el comportamiento actual** de `
 ## 4. Validar y cifrar
 
 ```bash
-git clone --depth 1 https://github.com/paulozterra/lf-programming-sandbox /tmp/examiner/<task>/main
+git clone https://github.com/paulozterra/lf-programming-sandbox /tmp/examiner/<task>/main   # historial completo
 python3 pilot/orchestrator/publish_exam.py --task <task> --request <req> \
   --script /tmp/examiner/<task>/exam.py --trace /tmp/examiner/<task>/trace.json \
   --family <area en minúsculas> --version v1 --worktree /tmp/examiner/<task>/main \
