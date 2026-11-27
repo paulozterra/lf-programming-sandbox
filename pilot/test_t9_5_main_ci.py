@@ -52,6 +52,10 @@ class API:
         self.push_probe = push_probe
 
     def call(self, method, path, body=None):
+        from pilot.orchestrator.lifecycle_test_support import fake_api, CONTROL
+        if method == "GET" and (path == f"/contents/{CONTROL}?ref=main" or
+                                (path.startswith("/issues/") and path[8:].isdigit())):
+            return fake_api({})(path[1:])
         self.calls.append((method, path, body))
         if method == "GET" and path == "/git/ref/heads/main":
             return {"object": {"sha": SHA}}

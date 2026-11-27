@@ -101,6 +101,8 @@ def close(out: Path):
         if issue.get("state") == "closed":
             continue
         # The artifact is uploaded before any closure, so the report is available.
+        if not enabled(row["slug"]):
+            continue
         api.comment(row["issue"], f"Ruta finalizada: {row['stage']}.\n"
                     f"Intervención manual: {row['intervencion_manual']}.\n"
                     f"Informe de intervención: {url} (artefacto t9-intervention-reports, "

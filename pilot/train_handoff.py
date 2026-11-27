@@ -379,8 +379,14 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
         raise HandoffBlocked("HANDOFF_MAP_GATE_UNDEFINED")
     slug_for_stage = (merged_request_slug(pr, sha)
                       if item.get("correlate_request_slug") else None)
+    from pilot.orchestrator.request_lifecycle import request_state, OPEN, inactive_reason
+    request = match.group(1) if item["input_kind"] == "slug" else slug_for_stage
+    def current():
+        if not request:
+            raise HandoffBlocked("HANDOFF_REQUEST_SCOPE_UNRESOLVED")
+        return request_state(request, lambda path: api.call("GET", "/" + path))
     # All Train merges get their own CI. The gate is closed BEFORE CP3.6.
-    if item["workflow"] == "chain-lots.yml" and re.fullmatch(
+    if current() == OPEN and item["workflow"] == "chain-lots.yml" and re.fullmatch(
             r"lf/generated-t7/[0-9a-f]{12}(?:-req-[1-9][0-9]*)?", branch):
         comment_analysis_report(api, sha, slug_for_stage)
     # Every Train merge, including feat/*, is CI-gated before a sweep.
@@ -400,6 +406,11 @@ def dispatch(api: Github, number: int, sha: str, train_run_id: int,
                   "base_sha": sha}
     else:
         raise HandoffBlocked("HANDOFF_INPUT_KIND_INVALID")
+    state = current()
+    if state != OPEN:
+        sweep = dispatch_chain_sweep(api, sha)
+        return {"status": inactive_reason(state), "branch": branch,
+                "main_ci": ci, "sweep": sweep}
     api.call("POST", f"/actions/workflows/{item['workflow']}/dispatches",
              {"ref": "main", "inputs": inputs})
     sweep = dispatch_chain_sweep(api, sha)

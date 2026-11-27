@@ -18,6 +18,8 @@ cd main && python3 pilot/orchestrator/examiner_queue.py > /tmp/queue.json
 
 ## 1. Reclamar la tarea
 
+D22: desde un checkout de main vigente, con `GITHUB_REPOSITORY` apuntando al repositorio y `GH_TOKEN` autorizado para lectura, ejecutar `python3 pilot/orchestrator/request_lifecycle.py --request <req>` antes de reclamar, etiquetar, comentar, publicar archivos, abrir PR o despachar CI. Repetir justo antes de cada efecto, incluso tras una espera. Si devuelve `REQUEST_SUSPENDED`, `REQUEST_CLOSED` o `REQUEST_STATE_UNRESOLVED`, terminar sin publicación ni reintento. Una reserva ya existente no autoriza continuar; el owner debe coordinar su drenaje. La rutina externa debe adoptar este procedimiento antes de acreditar SUSPENDED.
+
 Poner la etiqueta `examiner-working` al issue (evita que otra corrida la tome), quitar `exam-retry` si la tiene y comentar: "Examinador automático: escribiendo el examen".
 
 Disparo: la rutina de evento reacciona a un issue `exam-request` **abierto** (examen nuevo) y a un issue **etiquetado** `exam-retry` (reintento). La ruta pone `exam-retry` cuando se integra un retiro E2; el owner la pone al desbloquear un `examiner-blocked`. La corrida horaria es solo respaldo.
