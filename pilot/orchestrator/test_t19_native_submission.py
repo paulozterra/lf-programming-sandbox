@@ -116,7 +116,8 @@ def test_published_request_alone_builds_valid_envelope_for_guard_and_worker(tmp_
     assert json.loads(response.output_text) == proposal
 
 
-def test_source_code_direct_push_reports_scope_failure_and_issue_comment(tmp_path):
+@pytest.mark.parametrize("suspended", [False, True])
+def test_source_code_direct_push_reports_scope_failure_and_issue_comment(tmp_path, suspended):
     root, main, request, _spec = setup_repo(tmp_path)
     bad = root / PATH
     bad.parent.mkdir(parents=True)
@@ -129,6 +130,8 @@ def test_source_code_direct_push_reports_scope_failure_and_issue_comment(tmp_pat
                                branch="lf/native-proposal/" + TASK)
     real = notifier.command
     comments = []
+    from pilot.orchestrator.lifecycle_test_support import fake_api
+    reader = fake_api({REQUEST: {"state": "SUSPENDING", "authorization_pr": 77}} if suspended else {})
     def command(*args):
         if args[:2] == ("gh", "api"):
             if args[-1].endswith("/issues/901"):
@@ -136,13 +139,17 @@ def test_source_code_direct_push_reports_scope_failure_and_issue_comment(tmp_pat
                                    "labels": [{"name": "lf-request"}]})
             if args[-1].endswith("/comments?per_page=100"):
                 return "[]"
+            return json.dumps(reader(args[-1].split("/", 2)[2]))
         if args[:3] == ("gh", "issue", "comment"):
             comments.append(args)
             return ""
         return real(*args)
     with patch.object(notifier, "command", side_effect=command):
         assert notifier.notify(root, "lf/native-proposal/" + TASK, head,
-                      "NATIVE_PUSH_SCOPE_INVALID") == "NATIVE_PUSH_ALERT_COMMENTED"
+                      "NATIVE_PUSH_SCOPE_INVALID") == ("REQUEST_SUSPENDED" if suspended else "NATIVE_PUSH_ALERT_COMMENTED")
+    if suspended:
+        assert comments == []
+        return
     assert len(comments) == 1
     assert "NATIVE_PUSH_SCOPE_INVALID" in comments[0][-1]
     assert "pilot/native_proposals/" + TASK + ".json" in comments[0][-1]
