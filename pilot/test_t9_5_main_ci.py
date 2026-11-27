@@ -100,6 +100,12 @@ class NotificationAPI:
         self.labels = [{"name": "lf-request"}]
 
     def api(self, method, path, body=None):
+
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+
+        if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+
+            return content({})
         if method == "GET" and path == "/pulls/177":
             return {"number":177, "merged":True, "merge_commit_sha":SHA,
                     "base":{"ref":"main","repo":{"full_name":REPO}},
@@ -256,6 +262,9 @@ class Tests(unittest.TestCase):
     def test_pg37_resolves_from_verified_bot_pr_and_files(self):
         class Source:
             def api(self, method, path, body=None):
+                from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+                if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+                    return content({})
                 self_url = "lf/generated-t7/dacf5a8db725"
                 if path.startswith("/pulls?state=all&head="):
                     return [{"number": 177, "head": {"ref": self_url},

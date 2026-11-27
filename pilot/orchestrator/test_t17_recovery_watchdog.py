@@ -76,6 +76,9 @@ def test_watchdog_comments_verified_generated_ci_without_label():
     calls = []
     class FakeAPI:
         def api(self, method, path, body=None):
+            from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+            if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+                return content({})
             calls.append((method, path, body))
             if "lf/native-registration/t17fake-" in path:
                 return [{"number": 987, "head": {

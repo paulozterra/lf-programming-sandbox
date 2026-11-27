@@ -38,6 +38,12 @@ class SimulatedGithub:
         self.labels = [{"name": "lf-request"}]
 
     def api(self, method, path, body=None):
+
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+
+        if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+
+            return content({})
         if method == "GET" and path.startswith("/pulls?state=all&head="):
             return [{"user": {"login": "github-actions[bot]"},
                      "head": {"ref": "lf/request/req-167"}}]

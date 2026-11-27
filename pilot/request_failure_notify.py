@@ -377,6 +377,16 @@ class Github:
         raise ValueError("RUTA_NOTIFIER_PAGINATION")
 
 
+def notification_lifecycle(api, number):
+    """A watchdog notice is a request mutation, not merely observation."""
+    from pilot.orchestrator.request_lifecycle import request_state, OPEN, inactive_reason, RequestStateError
+    try:
+        state = request_state(f"req-{number}", lambda path: api.api("GET", "/" + path))
+        return None if state == OPEN else inactive_reason(state)
+    except RequestStateError:
+        return "REQUEST_STATE_UNRESOLVED"
+
+
 def emit(api: Github, run: dict, jobs: list[dict]) -> str:
     # CI for a generated branch can have no issue in its run-name. Resolve
     # its bot PR and committed task/plan before using the standard notifier.
@@ -440,6 +450,9 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
     if any((marker in str(c.get("body", "")) or legacy in str(c.get("body", "")))
            for c in comments if c.get("user", {}).get("login") == "github-actions[bot]"):
         return "RUTA_ALREADY_NOTIFIED"
+    stop = notification_lifecycle(api, number)
+    if stop:
+        return stop
     # T17 only comments on generated PR CI failures; it must not add labels.
     if "lf-request-blocked" not in labels and linked_ci is None:
         try:
@@ -449,6 +462,9 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
             if error.code not in (404, 422):
                 raise
             # On first use bootstrap the repository label, then retry.
+            stop = notification_lifecycle(api, number)
+            if stop:
+                return stop
             try:
                 api.api("POST", "/labels", {
                     "name": "lf-request-blocked",
@@ -457,11 +473,17 @@ def emit(api: Github, run: dict, jobs: list[dict]) -> str:
             except urllib.error.HTTPError as race:
                 if race.code != 422:
                     raise
+            stop = notification_lifecycle(api, number)
+            if stop:
+                return stop
             api.api("POST", f"/issues/{number}/labels",
                     {"labels": ["lf-request-blocked"]})
     ci_link = run.get("main_ci_url")
     extra = (f"CI exacto de main: {ci_link}\n" if isinstance(ci_link, str)
              and ci_link.startswith("https://github.com/" + REPO + "/actions/runs/") else "")
+    stop = notification_lifecycle(api, number)
+    if stop:
+        return stop
     api.api("POST", f"/issues/{number}/comments",
             {"body": f"{marker}\nRuta bloqueada: `{code}`.\nCorrida: {url}\n"
                      + extra + "El pedido permanece abierto para revisión."})
@@ -518,8 +540,9 @@ def notify_global_cp36_sweep(api: Github, run: dict) -> str:
             meta = json.loads(raw)
         except (KeyError, TypeError, ValueError, urllib.error.HTTPError):
             continue
-        if isinstance(meta, dict) and meta.get("issue") == number:
+        if isinstance(meta, dict) and meta.get("issue") == number and not notification_lifecycle(api, number):
             targets.append(number)
+    request_targets = set(targets)
     if not targets:
         title = "[LF ROUTE ALERT] CP3.6 global sweep"
         alerts = api.pages("/issues?state=open")
@@ -537,6 +560,8 @@ def notify_global_cp36_sweep(api: Github, run: dict) -> str:
         comments = api.pages(f"/issues/{number}/comments")
         if any(marker in str(item.get("body", "")) for item in comments
                if isinstance(item, dict)):
+            continue
+        if number in request_targets and notification_lifecycle(api, number):
             continue
         api.api("POST", f"/issues/{number}/comments", {
             "body": marker + "\nCP3.6: fallo global del barrido; ningún pedido "
@@ -635,6 +660,9 @@ def notify_t20_retry_exhaustion(api: Github, run: dict) -> str:
             "/actions/runs/" + str(run["id"]) +
             ". No se volverá a despachar para ese HEAD. "
             "Revisar infraestructura/Playwright; no se agregaron etiquetas.")
+    stop = notification_lifecycle(api, number)
+    if stop:
+        return stop
     api.api("POST", f"/issues/{number}/comments", {"body": body})
     return "T20_RETRY_EXHAUSTION_NOTIFIED"
 

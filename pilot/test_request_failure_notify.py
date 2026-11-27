@@ -17,6 +17,12 @@ class Fake:
         self.labels = [{"name": "lf-request"}]
 
     def api(self, method, path, body=None):
+
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+
+        if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+
+            return content({})
         if method == "GET" and path == "/issues/160":
             return {"number": 160, "state": "open", "labels": self.labels}
         if method == "POST":
@@ -62,6 +68,9 @@ class Tests(unittest.TestCase):
     def test_non_bot_request_branch_cannot_notify(self):
         class Untrusted(Fake):
             def api(self, method, path, body=None):
+                from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+                if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+                    return content({})
                 if method == "GET" and path.startswith("/pulls?state=all"):
                     return [{"user": {"login": "human"},
                              "head": {"ref": "lf/request/req-160"}}]
@@ -90,6 +99,9 @@ class Tests(unittest.TestCase):
         class Survey(Fake):
             existing_ci = False
             def api(self, method, path, body=None):
+                from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+                if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+                    return content({})
                 if method == "GET" and path.startswith("/issues?state=open"):
                     return [{"number": 160, "state": "open",
                              "created_at": "2026-11-14T15:00:00Z"}]
@@ -121,6 +133,18 @@ class Tests(unittest.TestCase):
         self.assertEqual(stalled["failure_code"], "PEDIDO_WORKFLOW_SIN_AVANCE")
         self.assertEqual(notify.emit(api, stalled, []), "RUTA_NOTIFIED")
         self.assertIn("PEDIDO_WORKFLOW_SIN_AVANCE", api.comments[0]["body"])
+
+    def test_suspended_watchdog_does_not_mutate_issue(self):
+        from pilot.orchestrator.lifecycle_test_support import fake_api, CONTROL
+        paused = fake_api({"req-160": {"state": "SUSPENDING", "authorization_pr": 77}})
+        class Suspended(Fake):
+            def api(self, method, path, body=None):
+                if method == "GET" and path != "/issues/160":
+                    return paused(path[1:])
+                return super().api(method, path, body)
+        api = Suspended()
+        self.assertEqual(notify.emit(api, self.run_obj(), []), "REQUEST_SUSPENDED")
+        self.assertEqual(api.writes, [])
 
     def test_timeout_code(self):
         run = self.run_obj()
