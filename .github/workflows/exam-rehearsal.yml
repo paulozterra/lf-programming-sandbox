@@ -20,6 +20,8 @@ on:
 
 permissions:
   contents: read
+  issues: read
+  pull-requests: read
 
 concurrency:
   group: lf-exam-rehearsal-${{ github.event.pull_request.number || inputs.task }}
@@ -226,6 +228,26 @@ jobs:
           install -m 0755 "$RUNNER_TEMP/age-extract/age/age" "$RUNNER_TEMP/age-bin/age"
           "$RUNNER_TEMP/age-bin/age" --version | grep -Fq 'v1.3.2'
 # <<< ENVIRONMENT
+      - name: Check live request lifecycle before rehearsal
+        if: steps.boot.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          TASK_INPUT: ${{ inputs.task }}
+        run: |
+          set -euo pipefail
+          if [ -n "$TASK_INPUT" ]; then
+            sel=(--task "$TASK_INPUT")
+          elif [ -n "$BASE_SHA" ]; then
+            sel=(--changed-since "$BASE_SHA")
+          else
+            # Train-dispatched on a bot branch: compare with trusted main.
+            sel=(--changed-since "$(git -C data merge-base HEAD origin/main)")
+          fi
+          python3 control/pilot/worker_v08/exam_rehearsal.py \
+            --control control --data data --private "$RUNNER_TEMP/rehearsal-private" \
+            --lifecycle-only "${sel[@]}"
+
       - name: Rehearse changed exams with the original Worker
         if: steps.boot.outputs.ready == 'true'
         env:

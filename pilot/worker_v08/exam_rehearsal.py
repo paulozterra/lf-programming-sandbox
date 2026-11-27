@@ -95,6 +95,7 @@ def main() -> int:
     p.add_argument("--data", type=Path, required=True)
     p.add_argument("--private", type=Path, required=True)
     p.add_argument("--age-bin", default="age")
+    p.add_argument("--lifecycle-only", action="store_true")
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--task")
     g.add_argument("--changed-since")
@@ -107,6 +108,18 @@ def main() -> int:
         return 1
     if not tasks:
         print("REHEARSAL_NOTHING_TO_DO")
+        return 0
+    if a.lifecycle_only:
+        from pilot.orchestrator.request_lifecycle import (
+            require_open, request_for_task, github_issue_api, RequestStateError)
+        try:
+            for task in tasks:
+                request = request_for_task(task, root=a.control, registered=False)
+                require_open(request, github_issue_api, root=a.control)
+        except RequestStateError as exc:
+            print(str(exc))
+            return 1
+        print("REHEARSAL_LIFECYCLE_OPEN")
         return 0
     failed = False
     for task in tasks:

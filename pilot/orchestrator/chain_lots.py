@@ -666,6 +666,7 @@ def chg(root: Path, number: int, request: str, reason: str,
 def draft(root: Path, branch: str, request: str, paths: list[str],
           reason: str, title: str) -> dict:
     # Caller has already committed the prepared native task on this branch.
+    require_open(request, lifecycle_api, root=ROOT)
     number = next_chg(root)
     entry = chg(root, number, request, reason, paths)
     run("git", "add", "--", *paths, str(entry.relative_to(root)), cwd=root)
@@ -676,11 +677,13 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     confirm_class_after_commit(root, entry)
     if run("git", "ls-remote", "origin", "refs/heads/main", cwd=root).split()[0] != run("git", "merge-base", "origin/main", "HEAD", cwd=root):
         deny("MAIN_MOVED_BEFORE_DRAFT")
+    require_open(request, lifecycle_api, root=ROOT)
     run("git", "push", "--set-upstream", "origin", branch, cwd=root)
     body = (f"CP3.6 · {reason}\n\n"
             f"CHG-{number:04d}; revisión independiente Claude, "
             f"Paulo decide ready-to-merge, Train fusiona. "
             f"No merge ni etiqueta automáticos.")
+    require_open(request, lifecycle_api, root=ROOT)
     url = run("gh", "pr", "create", "--repo", REPO, "--base", "main",
               "--head", branch, "--draft",
               "--title", f"[DRAFT][CP3.6][CHG-{number:04d}] {title}",
@@ -691,7 +694,9 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
     synchronize(root, kind, chg_file=entry.relative_to(root).as_posix())
     run("git", "commit", "-m", "[CP3.6] link reviewable draft evidence", cwd=root)
     run("python3", "standards/tools/changes.py", "check", "--base", "origin/main", cwd=root)
+    require_open(request, lifecycle_api, root=ROOT)
     run("git", "push", "origin", branch, cwd=root)
+    require_open(request, lifecycle_api, root=ROOT)
     run("gh", "workflow", "run", "ci.yml", "--repo", REPO, "--ref", branch, cwd=root)
     return {"draft_pr": url, "head_sha": run("git", "rev-parse", "HEAD", cwd=root)}
 
@@ -1099,6 +1104,7 @@ def complete_registered_exam_requests(request: str, bindings: dict) -> list[int]
             number = row.get("number")
             if type(number) is not int or number <= 0:
                 deny("EXAM_REQUEST_LIST_UNTRUSTED")
+            require_open(request, lifecycle_api, root=ROOT)
             run("gh", "issue", "close", str(number), "--repo", REPO,
                 "--reason", "completed")
             closed.append(number)
@@ -1111,7 +1117,7 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
     try:
         require_open(request, lifecycle_api, root=ROOT)
     except RequestStateError as exc:
-        return {"status": ("REQUEST_CLOSED" if str(exc) == "REQUEST_CLOSED"
+        return {"status": (str(exc) if str(exc) in ("REQUEST_CLOSED", "REQUEST_SUSPENDED")
                            else "BLOCKED"), "reason_code": str(exc), "task": task}
     try:
         key = exam_key(request, binding)
@@ -1211,7 +1217,7 @@ def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dic
     try:
         require_open(request, lifecycle_api, root=ROOT)
     except RequestStateError as exc:
-        return {"status": ("REQUEST_CLOSED" if str(exc) == "REQUEST_CLOSED"
+        return {"status": (str(exc) if str(exc) in ("REQUEST_CLOSED", "REQUEST_SUSPENDED")
                            else "BLOCKED"), "reason_code": str(exc)}
     require_green_base(head, api)
     protected_test_conflict(ROOT, lot, binding)

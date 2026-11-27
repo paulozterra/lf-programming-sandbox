@@ -14,6 +14,7 @@
     "term_ids": [],
     "paths": [
       ".github/workflows/ci.yml",
+      ".github/workflows/exam-rehearsal.yml",
       "pilot/auto_integrate.py",
       "pilot/orchestrator/REQUEST_SUSPENSION.md",
       "pilot/orchestrator/chain_lots.py",
@@ -32,6 +33,7 @@
       "pilot/sandbox_train.py",
       "pilot/test_auto_integrate.py",
       "pilot/test_t12_concurrency.py",
+      "pilot/worker_v08/exam_rehearsal.py",
       "pilot/worker_v08/request_lifecycle_gate.py",
       "pilot/worker_v08/test_t49_1_worker.py",
       "standards/CAMBIOS.md",
