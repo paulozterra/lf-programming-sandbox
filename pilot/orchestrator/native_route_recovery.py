@@ -259,7 +259,7 @@ def prepare_repair(head, run, api, repo, root, evidence, worktree, draft,
 
 
 def comment_resubmit(run, api, repo: str, number: int, task: str,
-                     sha: str, reason: str, api_list=None) -> str:
+                     sha: str, reason: str, api_list=None, *, allowed_task=None) -> str:
     marker = f"<!-- LF_NATIVE_ROUTE_RESUBMIT:{task}:{sha} -->"
     issue = api(f"issues/{number}")
     if issue.get("number") != number or "lf-request" not in {
@@ -274,6 +274,8 @@ def comment_resubmit(run, api, repo: str, number: int, task: str,
            + sha + "`: " + reason
            + ". Consulta el proposal-request.json actualizado en main y "
            + "vuelve a enviar un sobre con su task_pack_sha256 y base registrados.")
+    if allowed_task is not None and not allowed_task(task):
+        return "REQUEST_INACTIVE"
     run("gh", "issue", "comment", str(number), "--repo", repo, "--body", msg)
     return "ROUTE_DEFECT_RESUBMIT_NOTIFIED"
 
@@ -335,7 +337,7 @@ def replay_corrected(head, run, api, repo: str, root: Path,
         if len(remote) != 2 or remote[0] != sha or remote[1] != "refs/heads/" + branch:
             results.append({"status": comment_resubmit(
                 run, api, repo, request, task, sha,
-                "la rama original ya no apunta al SHA enviado", api_list)})
+                "la rama original ya no apunta al SHA enviado", api_list, allowed_task=allowed_task)})
             continue
         run("git", "fetch", "--no-tags", "origin", sha)
         try:
@@ -346,7 +348,7 @@ def replay_corrected(head, run, api, repo: str, root: Path,
         except (ProposalPushBlocked, ValueError):
             results.append({"status": comment_resubmit(
                 run, api, repo, request, task, sha,
-                "el sobre original ya no supera la validación de procedencia", api_list)})
+                "el sobre original ya no supera la validación de procedencia", api_list, allowed_task=allowed_task)})
             continue
         if (not isinstance(envelope, dict)
                 or set(envelope) != {"task_pack_sha256", "proposal_sha256", "proposal", "author"}
@@ -359,7 +361,7 @@ def replay_corrected(head, run, api, repo: str, root: Path,
                 or envelope.get("task_pack_sha256") != migration_info["legacy_task_pack_sha256"]):
             results.append({"status": comment_resubmit(
                 run, api, repo, request, task, sha,
-                "el SHA del paquete original difiere del paquete histórico certificado", api_list)})
+                "el SHA del paquete original difiere del paquete histórico certificado", api_list, allowed_task=allowed_task)})
             continue
         if allowed_task is not None and not allowed_task(task):
             continue
