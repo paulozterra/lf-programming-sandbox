@@ -7,7 +7,7 @@
     "kind": "OWNER",
     "reference": "Owner: canary req-825, preparar inscripción Draft exclusiva, sin enviar propuestas ni fusionar"
   },
-  "reason": "Inscribir únicamente req825backend1 en la política de activación existente CHG-0577; registro auténtico PR #840 CHG-0590, examen PR #839 y T40 45912986805 SUCCESS. Vincular al número del propio PR Draft una vez asignado. No cambiar aceptación registrada, otros pedidos ni protecciones.",
+  "reason": "Inscribir únicamente req825backend1 en la política de activación existente CHG-0577, anclada al propio PR #851. Registro auténtico PR #840 CHG-0590, examen PR #839, T40 45912986805 y CI main 45915100540 SUCCESS. Hashes de task-pack, plantilla, lotes y 11 archivos de contexto comprobados; sin cambiar aceptación registrada, otros pedidos ni protecciones.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -29,5 +29,7 @@
   },
   "requested_by": "owner",
   "approved_by": "paulozterra",
-  "evidence": {}
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/851"
+  }
 }
