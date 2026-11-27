@@ -332,4 +332,4 @@
 | CHG-0646 | EDITORIAL | T26: preservar caracterización integrada durante refresco de pendientes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/903 |
 | CHG-0647 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/904 |
 | CHG-0654 | EDITORIAL | Inscripción exclusiva de req652backend22 en prevalidación nativa de formato |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/911 |
-| CHG-0658 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra |  |
+| CHG-0658 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/915 |
