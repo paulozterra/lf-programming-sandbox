@@ -29,7 +29,7 @@ import tempfile
 from contextlib import nullcontext
 import pilot.orchestrator.sweep_api_budget as budget
 
-from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN
+from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN, inactive_reason
 from chain_contract import (ChainBlocked, BLOCK_CODE, FORMAT_BLOCK_CODE, attest_merge, blocked_state,
                             progress, validate_plan, verified_failures, deny)
 from native_lot_registration import canonical
@@ -867,8 +867,9 @@ def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
         request = conflicted_request(row, all_plans)
         if request is None:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
-        if request_state(request, api, root=ROOT) != OPEN:
-            return {"status": "REQUEST_CLOSED", "request": request}
+        current = request_state(request, api, root=ROOT)
+        if current != OPEN:
+            return {"status": inactive_reason(current), "request": request}
     if kind == "registration":
         # The existing ready-lot loop regenerates this branch *after* retirement
         # in the current sweep, using next_chg from current main.
@@ -2035,9 +2036,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             try:
                 if not route_request_metadata(request):
                     continue
-                if request_state(request, api, root=ROOT) != OPEN:
+                current = request_state(request, api, root=ROOT)
+                if current != OPEN:
                     repair_outcomes.append({"request": request,
-                                            "status": "REQUEST_CLOSED"})
+                                            "status": inactive_reason(current)})
                     continue
                 tasks = {value.get("task_name") for value in bindings.values()
                          if isinstance(value, dict)
@@ -2059,9 +2061,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                                         "status": "SKIPPED_NOT_ROUTE_REQUEST"})
                 continue
             try:
-                if request_state(request, api, root=ROOT) != OPEN:
+                current = request_state(request, api, root=ROOT)
+                if current != OPEN:
                     repair_outcomes.append({"request": request,
-                                            "status": "REQUEST_CLOSED"})
+                                            "status": inactive_reason(current)})
                     continue
             except RequestStateError:
                 repair_outcomes.append({"request": request, "status": "BLOCKED",
@@ -2145,7 +2148,7 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
         return [{"request": request, "status": "BLOCKED",
                  "reason_code": "REQUEST_STATE_UNRESOLVED"}]
     if current != OPEN:
-        return [{"request": request, "status": "REQUEST_CLOSED"}]
+        return [{"request": request, "status": inactive_reason(current)}]
     # Historical Train receipts take precedence over attempt exhaustion.
     # Resolve completion before exam re-requests or the failed Worker ledger.
     completed = completed_lots(lots, bindings, history)

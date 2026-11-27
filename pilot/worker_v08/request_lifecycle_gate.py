@@ -31,7 +31,7 @@ def main() -> int:
     except RequestStateError as exc:
         # Never include any untrusted issue response or token in a job log.
         reason = str(exc)
-        print("REQUEST_CLOSED" if reason == "REQUEST_CLOSED"
+        print(reason if reason in ("REQUEST_CLOSED", "REQUEST_SUSPENDED")
               else "REQUEST_STATE_UNRESOLVED", file=sys.stderr)
         return 1
     except Exception:

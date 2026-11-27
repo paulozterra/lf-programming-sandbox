@@ -325,3 +325,4 @@
 | CHG-0606 | EDITORIAL | Aislar base CREATE de prueba T9.3 format canary |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/856 |
 | CHG-0613 | EDITORIAL | CP3.6: encadenamiento gobernado req-825 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/864 |
 | CHG-0614 | EDITORIAL | CP3.6: encadenamiento gobernado req-825 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/865 |
+| CHG-0625 | EDITORIAL | D22: suspensión gobernada por pedido en request_lifecycle |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/876 |
