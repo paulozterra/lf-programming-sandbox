@@ -331,4 +331,4 @@
 | CHG-0639 | EDITORIAL | Examinador automático: clon con historial completo (no --depth 1) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/894 |
 | CHG-0646 | EDITORIAL | T26: preservar caracterización integrada durante refresco de pendientes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/903 |
 | CHG-0647 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/904 |
-| CHG-0653 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
+| CHG-0653 | EDITORIAL | CP3.6: encadenamiento gobernado req-286 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/910 |
