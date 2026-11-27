@@ -160,3 +160,29 @@ def test_bootstrap_empty_policy_and_trusted_main_train():
         assert b"guard_request_lifecycle" not in old_train
     workflow = (root / ".github/workflows/sandbox-train.yml").read_text()
     assert "ref: main" in workflow
+
+
+def test_drain_blocks_old_snapshot_even_if_created_after_cutoff():
+    entry = {"state": life.SUSPENDING, "authorization_pr": 77}
+    api = fake_api({SLUG: entry})
+    def delayed(path):
+        if path.startswith("actions/runs?status=in_progress"):
+            return {"total_count": 1, "workflow_runs": [
+                {"id": 99, "path": ".github/workflows/t7-request.yml",
+                 "created_at": "2026-11-27T07:00:00Z", "run_attempt": 1,
+                 "head_branch": "main", "head_sha": "d" * 40}]}
+        if path.startswith("compare/"):
+            return {"status": "behind", "base_commit": {"sha": MERGE},
+                    "merge_base_commit": {"sha": "d" * 40}}
+        return api(path)
+    with pytest.raises(life.RequestStateError, match="REQUEST_DRAIN_PENDING"):
+        life.verify_drain(delayed, SLUG, entry)
+
+
+def test_maintenance_cannot_edit_suspended_task_artifacts(monkeypatch):
+    monkeypatch.setattr(life, "request_for_task", lambda *a, **k: SLUG)
+    api = fake_api({SLUG: {"state": life.SUSPENDED, "authorization_pr": 77}})
+    for path in ("pilot/worker_v08/native_tasks/demo.json", "pilot/holdouts/demo.oracle.json.age",
+                 "pilot/orchestrator/chain_plans/req-123.json", "pilot/native_proposals/demo.json"):
+        with pytest.raises(life.RequestStateError, match="REQUEST_SUSPENDED"):
+            life.require_pr_open("maintenance", [path], api)

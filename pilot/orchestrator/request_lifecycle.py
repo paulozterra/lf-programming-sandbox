@@ -141,6 +141,9 @@ def control_state(request: str, api) -> str:
                 or any(not SHA40.fullmatch(p.get("sha", "")) for p in parents)
                 or head.get("sha") != parents[1]["sha"]):
             unresolved()
+        if (commit.get("commit", {}).get("message", "").splitlines()[:1]
+                != [f"Merge PR #{number} via sandbox-train"]):
+            unresolved()
         previous = read_control(api, parents[0]["sha"])
         historical = read_control(api, merge)
         if validate_control_transition(previous, historical, number) != request:
@@ -253,7 +256,7 @@ DRAIN_WORKFLOWS = frozenset({
 })
 
 
-def verify_drain(api, request, previous):
+def verify_drain(api, request, previous, *, current_train_id=None):
     """SUSPENDED is a second transition, never inferred from the first label.
     Conservatively drain ambiguous/old route jobs, plus examiner reservations.
     The owner review separately attests external examiner sessions are drained.
@@ -264,17 +267,34 @@ def verify_drain(api, request, previous):
             unresolved()
         prior = api(f"pulls/{previous['authorization_pr']}")
         cutoff = _stamp(prior["merged_at"])
+        merge = prior.get("merge_commit_sha")
+        if not isinstance(merge, str) or not SHA40.fullmatch(merge):
+            unresolved()
         for status in ("queued", "in_progress", "waiting", "pending", "requested", "action_required"):
             for run in _paged(api, f"actions/runs?status={status}", "workflow_runs"):
                 path = run.get("path", "")
                 if not isinstance(path, str) or not path:
                     unresolved()
-                if path.split("@", 1)[0].rsplit("/", 1)[-1] not in DRAIN_WORKFLOWS:
+                workflow = path.split("@", 1)[0].rsplit("/", 1)[-1]
+                if workflow not in DRAIN_WORKFLOWS:
+                    continue
+                # The serial Train performing this exact transition is not a
+                # competing request executor. Never exempt another run.
+                if (workflow == "sandbox-train.yml" and run["id"] == current_train_id
+                        and run.get("status") == "in_progress" and run.get("run_attempt") == 1):
                     continue
                 # New trusted-main first attempts see SUSPENDING. Older runs,
                 # replays and ambiguous branch snapshots must drain first.
                 if (_stamp(run.get("created_at")) <= cutoff
                         or run.get("run_attempt") != 1 or run.get("head_branch") != "main"):
+                    raise RequestStateError("REQUEST_DRAIN_PENDING")
+                sha = run.get("head_sha")
+                if not isinstance(sha, str) or not SHA40.fullmatch(sha):
+                    unresolved()
+                relation = api(f"compare/{merge}...{sha}")
+                if (relation.get("status") not in ("ahead", "identical")
+                        or (relation.get("base_commit") or {}).get("sha") != merge
+                        or (relation.get("merge_base_commit") or {}).get("sha") != merge):
                     raise RequestStateError("REQUEST_DRAIN_PENDING")
         for issue in _paged(api, "issues?state=open&labels=examiner-working"):
             body = issue.get("body")
@@ -442,6 +462,14 @@ def request_ids_for_pr(branch: str, paths: list[str], *, root: Path = ROOT) -> s
         unresolved()
     requests = {m.group(1) for path in paths if
                 (m := re.match(r"pilot/runs/(req-[1-9][0-9]*)/", path))}
+    requests.update(m.group(1) for path in paths if
+                    (m := re.fullmatch(r"pilot/orchestrator/chain_plans/(req-[1-9][0-9]*)[.]json", path)))
+    for path in paths:
+        m = re.fullmatch(r"pilot/(?:worker_v08/(?:native_tasks|route_migrations)|native_proposals)/([a-z][a-z0-9_-]{0,31})[.]json", path)
+        if m is None:
+            m = re.fullmatch(r"pilot/holdouts/([a-z][a-z0-9_-]{0,31})[.](?:oracle|reference)[.]json[.]age", path)
+        if m:
+            requests.add(request_for_task(m.group(1), root=root, registered=False))
     task = None
     if branch.startswith("lf/native-registration/"):
         family, task = registration_family(branch)
@@ -485,6 +513,8 @@ def require_pr_open(branch: str, paths: list[str], api, *, root: Path = ROOT):
                 or paths != ["pilot/registry/implemented.json"]):
             unresolved()
         return
+    if "pilot/registry/implemented.json" in paths:
+        unresolved()
     if not control:
         return
     for slug in sorted(request_ids_for_pr(branch, paths, root=root)):

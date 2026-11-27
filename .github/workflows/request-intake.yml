@@ -44,7 +44,7 @@ jobs:
           result="$(python3 -m pilot.workflow_entrypoint pilot/orchestrator/issue_intake.py)"
           printf '%s\n' "$result"
           # opened + labeled both fire; only the run that created the PR dispatches ci.
-          if [ "$result" = "PEDIDO_YA_REGISTRADO" ] || [ "$result" = "PEDIDO_POSIBLE_DUPLICADO" ]; then
+          if [ "$result" = "PEDIDO_YA_REGISTRADO" ] || [ "$result" = "PEDIDO_POSIBLE_DUPLICADO" ] || [ "$result" = "REQUEST_SUSPENDED" ] || [ "$result" = "REQUEST_CLOSED" ]; then
             echo "created=false" >> "$GITHUB_OUTPUT"
           else
             echo "created=true" >> "$GITHUB_OUTPUT"
@@ -58,6 +58,7 @@ jobs:
           if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null; then
             number="$(gh pr view "$branch" --repo "$GITHUB_REPOSITORY" --json number --jq '.number')"
             head_sha="$(gh pr view "$branch" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq '.headRefOid')"
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/request_lifecycle.py --request "req-${{ github.event.issue.number }}"
             gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$branch" \
               -f pr_number="$number" -f pr_sha="$head_sha"
           fi

@@ -599,7 +599,9 @@ def guard_request_lifecycle(number, pr, *, files=None):
                                     previous.get(slug, {}).get("state", "ACTIVE"),
                                     current[slug]["state"])
             if current[slug]["state"] == SUSPENDED:
-                verify_drain(reader, slug, previous[slug])
+                run_id = os.environ.get("GITHUB_RUN_ID", "")
+                verify_drain(reader, slug, previous[slug],
+                             current_train_id=int(run_id) if run_id.isdecimal() else None)
             if any(path != CONTROL_PATH and path != "standards/CAMBIOS.md"
                    and not re.fullmatch(r"standards/changes/CHG-[0-9]{4,}[.]json", path)
                    for path in paths):

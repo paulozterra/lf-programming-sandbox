@@ -34,7 +34,8 @@ def fake_api(entries, *, historical=None, issue_state="open"):
         if path == f"contents/{CONTROL}?ref={PARENT}":
             return content(prior())
         if path == f"commits/{MERGE}":
-            return {"sha": MERGE, "parents": [{"sha": PARENT}, {"sha": HEAD}]}
+            return {"sha": MERGE, "parents": [{"sha": PARENT}, {"sha": HEAD}],
+                    "commit": {"message": "Merge PR #77 via sandbox-train"}}
         if path == "pulls/77":
             return {"number": 77, "merged": True, "merge_commit_sha": MERGE,
                     "merged_at": "2026-11-27T06:00:00Z",

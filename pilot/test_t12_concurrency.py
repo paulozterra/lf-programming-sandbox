@@ -29,6 +29,9 @@ class IssueAPI:
         self.recent = recent
         self.writes = []
     def call(self, method, path, payload=None):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
+            return content({})
         if method == "GET" and path.startswith("/issues?state=open&labels=lf-request&"):
             return self.recent
         if method == "GET" and path == "/labels?per_page=100":
