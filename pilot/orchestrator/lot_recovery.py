@@ -68,15 +68,20 @@ def append_only(previous, current):
 
 def load(root: Path):
     path = root / POLICY
-    if not path.exists() and not path.is_symlink():
+    missing = not path.exists() and not path.is_symlink()
+    # Preserve the no-policy case for non-Git synthetic test roots only.
+    if missing and not (root / ".git").exists():
         return {}
-    require(path.is_file() and not path.is_symlink())
-    rows = parse(path.read_bytes())
     def git(*args):
         return subprocess.check_output(["git", "-C", str(root), *args], timeout=20)
     require(git("rev-parse", "--is-shallow-repository").strip() == b"false")
     commits = git("log", "--first-parent", "--full-history", "--format=%H",
                   "HEAD", "--", POLICY).decode("ascii").splitlines()
+    if missing:
+        require(not commits)  # a previously enrolled policy must never disappear
+        return {}
+    require(path.is_file() and not path.is_symlink())
+    rows = parse(path.read_bytes())
     require(0 < len(commits) <= 1000)
     prior = {}
     for commit in reversed(commits):

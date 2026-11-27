@@ -151,3 +151,27 @@ def test_worker_admission_one_use_and_concurrent_run(tmp_path, monkeypatch):
     proofs[15] = {"run_id": 15, "task_id": new, "attempt": 1, "task_pack_sha256": pack}
     with pytest.raises(ValueError, match="LOT_RECOVERY_ATTEMPT_EXHAUSTED"):
         admit()
+
+
+def test_previously_registered_manifest_cannot_be_deleted(tmp_path):
+    def git(*args):
+        subprocess.run(["git", "-C", str(tmp_path), *args], check=True,
+                       capture_output=True)
+    git("init")
+    git("config", "user.email", "test@example.invalid")
+    git("config", "user.name", "Test")
+    git("commit", "--allow-empty", "-m", "initial main")
+    assert load(tmp_path) == {}
+    path = tmp_path / POLICY
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(authorization()))
+    git("add", ".")
+    git("commit", "-m", "owner enrollment")
+    assert load(tmp_path) == parse(path.read_bytes())
+    path.unlink()
+    with pytest.raises(ValueError, match="LOT_RECOVERY_AUTHORIZATION_INVALID"):
+        load(tmp_path)
+    git("add", "-u")
+    git("commit", "-m", "delete previously enrolled policy")
+    with pytest.raises(ValueError, match="LOT_RECOVERY_AUTHORIZATION_INVALID"):
+        load(tmp_path)
