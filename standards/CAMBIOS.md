@@ -334,3 +334,4 @@
 | CHG-0647 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/904 |
 | CHG-0654 | EDITORIAL | Inscripción exclusiva de req652backend22 en prevalidación nativa de formato |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/911 |
 | CHG-0665 | EDITORIAL | D22: mantenimiento protegido del Train (tramo 2/2) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/876 |
+| CHG-0672 | ADDITIVE | CP3.6: encadenamiento gobernado req-286 |  | paulozterra |  |
