@@ -393,7 +393,7 @@ def test_trigger_issue_carries_marker_and_input():
 # ---- A4 issue lifecycle --------------------------------------------------
 def test_close_done_closes_only_requests_with_merged_report(tmp_path, monkeypatch):
     import request_trigger as rt
-    from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+    from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response
     root, report_file, _report, data, _skill, git = _historical_case(tmp_path)
     data["schema_version"] = "LF_DEEP_AUDIT_INPUT_V2"
     (report_file.parent / "audit_input_v2.json").write_text(json.dumps(data))
@@ -421,6 +421,8 @@ def test_close_done_closes_only_requests_with_merged_report(tmp_path, monkeypatc
             return json.dumps({"number": 9, "state": "closed"})
         if endpoint.endswith(f"/contents/{CONTROL}?ref=main"):
             return json.dumps(content({}))
+        if endpoint.endswith("/git/ref/heads/main"):
+            return json.dumps(main_response("git/ref/heads/main", revision=git("rev-parse","HEAD")))
         pytest.fail("unexpected audit API " + endpoint)
     monkeypatch.setattr(rt, "gh", fake_gh)
     closed = rt.close_done("o/r", root=root)

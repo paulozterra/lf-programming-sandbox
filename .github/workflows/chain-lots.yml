@@ -39,6 +39,14 @@ on:
         required: false
         type: boolean
         default: false
+      terminal_request:
+        description: Owner-selected request for a terminal candidate (no automatic close)
+        required: false
+        type: string
+      terminal_result:
+        description: FAILED_FINAL or CANCELLED_FINAL; exact green main required
+        required: false
+        type: string
       retry_attempt:
         description: T27 bounded transient retry number, 0 through 2
         required: false
@@ -101,7 +109,7 @@ jobs:
         if: ${{ inputs.base_sha != '' }}
         env:
           EXPECTED_BASE: ${{ inputs.base_sha }}
-          REQUEST_SLUG: ${{ inputs.request_slug }}
+          REQUEST_SLUG: ${{ inputs.terminal_request || inputs.request_slug }}
         run: |
           set -euo pipefail
           [[ "$EXPECTED_BASE" =~ ^[0-9a-f]{40}$ ]]
@@ -122,12 +130,22 @@ jobs:
         env:
           CP36_PACK_OUT: ${{ runner.temp }}/cp36-proposal-packs
           SWEEP_BASE: ${{ steps.chain_base.outputs.sha }}
+          TERMINAL_REQUEST: ${{ inputs.terminal_request }}
+          TERMINAL_RESULT: ${{ inputs.terminal_result }}
+          TERMINAL_ACTOR: ${{ github.actor }}
+          TERMINAL_OWNER: ${{ github.repository_owner }}
           # T56: read-only EKB secret for the lot's ekb.md. Only trusted main
           # code runs here (no proposal is executed); it never prints content.
           LF_EKB_READONLY_URL: ${{ secrets.LF_EKB_READONLY_URL }}
         run: |
-          set -o pipefail
-          if [ "${{ inputs.sweep }}" = "true" ]; then
+          set -eo pipefail
+          if [ -n "$TERMINAL_REQUEST$TERMINAL_RESULT" ]; then
+            test "${{ github.event_name }}" = workflow_dispatch
+            test "$TERMINAL_ACTOR" = "$TERMINAL_OWNER"
+            test "${{ inputs.sweep }}" != true
+            test -z "$INTEGRATION_PR$NEW_PLAN_REQUEST$SOURCE_RUN_ID$MERGE_PR"
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --terminal-request "$TERMINAL_REQUEST" --terminal-result "$TERMINAL_RESULT" --base-sha "$SWEEP_BASE"
+          elif [ "${{ inputs.sweep }}" = "true" ]; then
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --sweep --base-sha "$SWEEP_BASE" | tee "$RUNNER_TEMP/cp36-sweep-outcomes.json"
           elif [ -n "$INTEGRATION_PR" ]; then
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/chain_lots.py --integration-pr "$INTEGRATION_PR"

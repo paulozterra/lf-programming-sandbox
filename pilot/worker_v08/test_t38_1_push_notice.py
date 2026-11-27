@@ -8,7 +8,7 @@ SHA = "a" * 40
 def _run(monkeypatch, code, labels, *, suspend=False):
     calls = []
 
-    from pilot.orchestrator.lifecycle_test_support import fake_api, CONTROL
+    from pilot.orchestrator.lifecycle_test_support import fake_api, CONTROL, main_response
     def fake(*args):
         calls.append(args)
         if args[:2] == ("gh", "api") and args[2].startswith(f"repos/{n.REPO}/"):
@@ -16,6 +16,8 @@ def _run(monkeypatch, code, labels, *, suspend=False):
             if path == f"contents/{CONTROL}?ref=main":
                 paused = suspend and any("/comments?" in str(x) for x in calls)
                 return json.dumps(fake_api({"req-286": {"state":"SUSPENDING","authorization_pr":77}} if paused else {})(path))
+            if path == "git/ref/heads/main" or (path.startswith("contents/") and path.endswith("?ref="+"e"*40)):
+                return json.dumps(main_response(path))
             if path.startswith(("contents/", "pulls/", "commits/", "issues/77/events")):
                 return json.dumps(fake_api({"req-286": {"state":"SUSPENDING","authorization_pr":77}})(path))
         if args[:2] == ("gh", "api") and args[2].endswith("/issues/286"):

@@ -16,11 +16,11 @@ def pr(kind="integration"):
     return {
         "number": 129, "state": "open", "draft": True, "changed_files": 2,
         "base": {"ref": "main", "repo": {"full_name": ai.REPOSITORY}},
-        "head": {"ref": ("lf/native-registration/sandbox-aaaaaaaaaaaa" if kind == "registration"
-                         else "lf/native-" + kind + "/sandbox"), "sha": HEAD,
+        "head": {"ref": ("lf/native-registration/p4be-aaaaaaaaaaaa" if kind == "registration"
+                         else "lf/native-" + kind + "/p4be-run-" + str(RUN)), "sha": HEAD,
                  "repo": {"full_name": ai.REPOSITORY}},
         "user": {"login": ai.BOT}, "labels": [],
-        "body": "Task: f5backend · run: " + str(RUN),
+        "body": "Task: p4be · run: " + str(RUN),
     }
 
 def paths():
@@ -33,12 +33,12 @@ def checks():
             for i, name in enumerate(ai.REQUIRED)]
 
 def proof(attempt):
-    return {"task_id": "f5backend", "attempt": attempt, "run_id": RUN,
+    return {"task_id": "p4be", "attempt": attempt, "run_id": RUN,
             "task_pack_sha256": "1" * 64}
 
 def status(attempt):
     return {"schema_version": "LF_NATIVE_RESULT_SUMMARY_V1",
-            "task_id": "f5backend", "attempt": attempt,
+            "task_id": "p4be", "attempt": attempt,
             "task_pack_sha256": "1" * 64, "status": "PASS",
             "production_authority": False, "receipt_authenticated": False,
             "authority": "REAL_SANDBOX_UNAUTHENTICATED"}
@@ -50,7 +50,7 @@ def native_run():
 
 def chg():
     return {"schema_version": "LF_STANDARD_CHANGE_V1", "change_id": "CHG-0085",
-            "title": "CP3.5: integración verificada nativa f5backend (run " + str(RUN) + ")",
+            "title": "CP3.5: integración verificada nativa p4be (run " + str(RUN) + ")",
             "reason": "Parche nativo PASS " + str(RUN)}
 
 class FakeAPI:
@@ -111,11 +111,14 @@ class PolicyTests(unittest.TestCase):
                 if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
                     return super().request(method, path, data)
                 if method == "GET" and path == "/issues/159":
-                    return {"number": 159, "user": {"login": "paulozterra"},
+                    return {"number": 159, "state": "open", "user": {"login": "paulozterra"},
                             "created_at": "2026-11-14T15:00:00Z",
                             "body": "### Pedido\n\nOriginal"}
                 if method == "GET" and path == "/collaborators/paulozterra/permission":
                     return {"permission": "admin"}
+                if method == "GET" and (path == "/git/ref/heads/main" or (path.startswith("/contents/") and path.endswith("?ref="+"e"*40))):
+                    from pilot.orchestrator.lifecycle_test_support import main_response
+                    return main_response(path.lstrip("/"))
                 if method == "GET" and path.startswith("/contents/"):
                     raw = b"tampered"
                     return {"type": "file", "size": len(raw), "encoding": "base64",
@@ -243,10 +246,10 @@ class T7GeneratedPolicyTests(unittest.TestCase):
 
     def test_generated_prs_label_and_dispatch_without_manual_label(self):
         cases = [
-            ("lf/generated-t7", ["pilot/runs/sample/analysis.json",
-                                  "pilot/runs/sample/state.json",
-                                  "pilot/runs/sample/chain_plan.json",
-                                  "pilot/runs/sample/templates/module.skeleton.json"]),
+            ("lf/generated-t7", ["pilot/runs/p4-prioridad/analysis.json",
+                                  "pilot/runs/p4-prioridad/state.json",
+                                  "pilot/runs/p4-prioridad/chain_plan.json",
+                                  "pilot/runs/p4-prioridad/templates/module.skeleton.json"]),
             ("lf/implemented-registry", ["pilot/registry/implemented.json"]),
         ]
         for family, allowed in cases:
@@ -273,7 +276,7 @@ class T7GeneratedPolicyTests(unittest.TestCase):
 
     def test_extra_paths_and_human_author_block_before_label(self):
         for family, allowed in (
-            ("lf/generated-t7", ["pilot/runs/sample/analysis.json"]),
+            ("lf/generated-t7", ["pilot/runs/p4-prioridad/analysis.json"]),
             ("lf/implemented-registry", ["pilot/registry/implemented.json"]),
         ):
             with self.subTest(family=family):
@@ -354,7 +357,7 @@ class T7GeneratedPolicyTests(unittest.TestCase):
             self._registry_check(same, raw=b'{"entries":[{"request":"req-1"}],"schema_version":"T7_IMPLEMENTED_REGISTRY_V1","source_main_sha":"' + b"b" * 40 + b'"}')
 
     def test_generated_analysis_drift_blocks_without_label(self):
-        allowed = ["pilot/runs/sample/analysis.json"]
+        allowed = ["pilot/runs/p4-prioridad/analysis.json"]
         item = self.generated("lf/generated-t7", allowed)
         api = FakeAPI(item, allowed, self.generated_checks())
         from types import SimpleNamespace
@@ -393,11 +396,11 @@ class T7GeneratedPolicyTests(unittest.TestCase):
         self.assertEqual(actor(BOT_EMAIL, "github-actions[bot]"), "BOT")
         with patch("orchestrator.intervention_report.write_paths", return_value=[]):
             self.assertIn("pilot/registry/implemented.json",
-                          scope_paths("sample", [], rev="HEAD"))
-        for path in ("pilot/runs/sample/analysis.json",
-                     "pilot/runs/sample/chain_plan.json",
+                          scope_paths("p4-prioridad", [], rev="HEAD"))
+        for path in ("pilot/runs/p4-prioridad/analysis.json",
+                     "pilot/runs/p4-prioridad/chain_plan.json",
                      "pilot/registry/implemented.json"):
-            self.assertEqual(classify(path, "BOT", "sample")[0], "AUTOMATIC")
+            self.assertEqual(classify(path, "BOT", "p4-prioridad")[0], "AUTOMATIC")
 
 
 if __name__ == "__main__":

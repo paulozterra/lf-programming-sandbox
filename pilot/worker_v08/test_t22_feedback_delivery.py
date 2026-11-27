@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from pilot.worker_v08 import native_feedback_delivery as delivery
-from pilot.orchestrator.lifecycle_test_support import content, CONTROL, fake_api
+from pilot.orchestrator.lifecycle_test_support import content, CONTROL, fake_api, main_response
 
 TASK, SHA, REPO = "synthetic1", "a" * 40, delivery.REPO
 PUBLIC = {"schema_version": delivery.SCHEMA, "attempt": 1,
@@ -41,8 +41,9 @@ def test_synthetic_public_feedback_comment_once(tmp_path):
     def api(route):
         if route == f"contents/{CONTROL}?ref=main":
             return content({})
-        assert route == "issues/901"
-        return {"number": 901, "state": "open", "labels": [{"name": "lf-request"}]}
+        if route == "issues/901":
+            return {"number": 901, "state": "open", "labels": [{"name": "lf-request"}]}
+        return main_response(route, control)
 
     def run(*args):
         calls.append(args)
@@ -119,7 +120,7 @@ def test_recover_existing_native_run_verifies_sha_and_proof_then_comments_once(t
                 {"name": "native-visible-feedback-and-cost", "workflow_run": {"id": rid}}]}
         if route == "issues/901":
             return {"number": 901, "state": "open", "labels": [{"name": "lf-request"}]}
-        raise AssertionError(route)
+        return main_response(route, control)
     def run(*args):
         if args[:3] == ("gh", "run", "download"):
             name = args[args.index("--name") + 1]

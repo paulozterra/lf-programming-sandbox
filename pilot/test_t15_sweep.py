@@ -112,7 +112,8 @@ class SweepTests(unittest.TestCase):
     def test_closed_discarded_request_ignored(self):
         rows = {"req-901": {"number": 901, "state": "closed", "state_reason": "not_planned"},
                 "req-902": {"number": 902, "state": "closed", "state_reason": "duplicate"}}
-        with patch.object(chain_lots, "api", side_effect=lambda p: rows["req-" + p.split("/")[-1]]):
+        from pilot.orchestrator.lifecycle_test_support import fake_api
+        with patch.object(chain_lots, "api", side_effect=lambda p: rows["req-" + p.split("/")[-1]] if p.startswith("issues/") else fake_api({})(p)):
             self.assertFalse(chain_lots.sweep_request_enabled("req-901"))
             self.assertFalse(chain_lots.sweep_request_enabled("req-902"))
         with patch.object(chain_lots, "check_main", return_value=HEAD), \
@@ -121,7 +122,7 @@ class SweepTests(unittest.TestCase):
                  ("req-901", {}, {"stage": "LOTS_PLANNED"}, {}),
                  ("req-902", {}, {"stage": "LOTS_PLANNED"}, {})]), \
              patch.object(chain_lots, "first_parent_merges", return_value=[]), \
-             patch.object(chain_lots, "api", side_effect=lambda p: rows["req-" + p.split("/")[-1]]), \
+             patch.object(chain_lots, "api", side_effect=lambda p: rows["req-" + p.split("/")[-1]] if p.startswith("issues/") else fake_api({})(p)), \
              patch.object(chain_lots, "request_all_lot_exams") as request, \
              patch.object(chain_lots, "retire_conflicted_generated", return_value=[]), \
              patch.object(chain_lots, "prepare_successor") as prepare:

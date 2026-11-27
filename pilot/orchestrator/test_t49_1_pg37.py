@@ -4,7 +4,7 @@ import json
 import sys
 from pathlib import Path
 import pytest
-from pilot.orchestrator.lifecycle_test_support import fake_api, content
+from pilot.orchestrator.lifecycle_test_support import fake_api, content, evidence_fixture, main_response, CONTROL
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -29,7 +29,7 @@ def setup(tmp_path, monkeypatch, state):
     monkeypatch.setattr(stage.chain_lots, "pending_draft", lambda *_: False)
     monkeypatch.setattr(stage.chain_lots, "run", lambda *_: "")
     monkeypatch.setattr(stage.chain_lots, "api",
-                        fake_api({}, issue_state=state))
+                        fake_api({}, issue_state=state, root=tmp_path))
     monkeypatch.setattr(stage, "render", lambda *_: "# H_REPORT real")
     monkeypatch.setattr(stage.chain_lots, "worktree",
                         lambda _head, _branch, fn: fn(tmp_path))
@@ -44,8 +44,7 @@ def test_cp37_h_report_before_close_and_no_pr_after_close(tmp_path, monkeypatch,
         published.append(list(paths))
         return {"pr": 1}
     result = stage.reconcile(42, root=tmp_path,
-        evidence_generator=lambda *_args: {"lot_id": "SOL-001",
-            "merge_sha": "a"*40, "complete": True}, publisher=publish)
+        evidence_generator=lambda *_args: evidence_fixture("req-275", "SOL-001", "a"*40, ["src/main.py"]), publisher=publish)
     if state == "open":
         assert result[0]["status"] == "EVIDENCE_DRAFT_CREATED"
         assert (folder / "H_REPORT.md").read_text() == "# H_REPORT real"
@@ -59,12 +58,11 @@ def test_cp37_rechecks_before_publication(tmp_path, monkeypatch):
     folder = setup(tmp_path, monkeypatch, "open")
     states = iter(["open", "closed"])
     monkeypatch.setattr(stage.chain_lots, "api",
-                        lambda path: content({}) if path.startswith("contents/") else {"number": 275, "state": next(states)})
+                        lambda path: (content({}) if path == f"contents/{CONTROL}?ref=main" else {"number": 275, "state": next(states)} if path == "issues/275" else main_response(path, tmp_path)))
     monkeypatch.setattr(stage.chain_lots, "worktree",
                         lambda *_: pytest.fail("worktree created after closure"))
     result = stage.reconcile(42, root=tmp_path,
-        evidence_generator=lambda *_a: {"lot_id": "SOL-001",
-             "merge_sha": "a"*40, "complete": True})
+        evidence_generator=lambda *_a: evidence_fixture("req-275", "SOL-001", "a"*40, ["src/main.py"]))
     assert result[0]["status"] == "REQUEST_CLOSED"
     assert not (folder / "H_REPORT.md").exists()
 
@@ -101,5 +99,38 @@ def test_cp37_reopened_request_never_overwrites_existing_report(tmp_path, monkey
     monkeypatch.setattr(stage.chain_lots, "worktree",
                         lambda *_: pytest.fail("overwrote historical evidence"))
     assert stage.reconcile(42, root=tmp_path) == [
-        {"request": "req-275", "status": "REPORT_ALREADY_PRESENT"}]
+        {"request": "req-275", "status": "BLOCKED", "code": "CP37_EXISTING_REPORT_UNRESOLVED"}]
     assert (folder / "H_REPORT.md").read_text() == "# existing report"
+
+
+def test_incremental_report_only_generates_missing_lot(tmp_path, monkeypatch):
+    from pilot.orchestrator.pg37_evidence import render
+    folder = setup(tmp_path, monkeypatch, "open")
+    monkeypatch.setattr(stage, "render", render)
+    old = evidence_fixture("req-275", "SOL-001", "a"*40, ["src/main.py"])
+    (folder / "evidence").mkdir()
+    old_path = folder / "evidence" / ("SOL-001-"+"a"*12+".json")
+    old_path.write_text(json.dumps(old, indent=2))
+    before = old_path.read_bytes()
+    (folder / "H_REPORT.md").write_text(render("req-275", [old]))
+    lots = {"lots": [{"id": "SOL-001", "write_paths": ["src/main.py"]},
+                     {"id": "SOL-002", "write_paths": ["src/other.py"]}]}
+    monkeypatch.setattr(stage.chain_lots, "plans", lambda: [("req-275", lots, {}, {})])
+    monkeypatch.setattr(stage.chain_lots, "first_parent_merges",
+                         lambda *_a, **_kw: [("a"*40, {}, {"src/main.py"}), ("b"*40, {}, {"src/other.py"})])
+    monkeypatch.setattr(stage.chain_lots, "completed_lots", lambda *_: {
+        "SOL-001": {"merge_sha": "a"*40}, "SOL-002": {"merge_sha": "b"*40}})
+    generated, published = [], []
+    def generate(root, request, lot, sha, changed, *_):
+        generated.append(lot["id"])
+        return evidence_fixture(request, lot["id"], sha, changed)
+    def publish(_work, _branch, _request, paths, *_):
+        published.extend(paths)
+        return {"pr": 1}
+    assert stage.reconcile(42, root=tmp_path, evidence_generator=generate, publisher=publish)[0]["status"] == "EVIDENCE_DRAFT_CREATED"
+    assert generated == ["SOL-002"]
+    assert old_path.read_bytes() == before
+    assert str(old_path.relative_to(tmp_path)) not in published
+    assert "SOL-002" in (folder / "H_REPORT.md").read_text()
+    assert stage.reconcile(42, root=tmp_path, evidence_generator=generate, publisher=publish)[0]["status"] == "REPORT_ALREADY_PRESENT"
+    assert generated == ["SOL-002"]

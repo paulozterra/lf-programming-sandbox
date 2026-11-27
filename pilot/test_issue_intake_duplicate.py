@@ -27,7 +27,7 @@ class Fake:
         return "write"
 
     def call(self, method, path, payload=None):
-        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response
         if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
             return content({})
         if method == "GET" and path.startswith("/pulls?state=all"):
@@ -38,6 +38,8 @@ class Fake:
             self.created += 1
             self.pr = {"html_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/170"}
             return self.pr
+        if method == "GET":
+            return main_response(path.lstrip("/"))
         raise AssertionError((method, path))
 
     def comment(self, n, body):

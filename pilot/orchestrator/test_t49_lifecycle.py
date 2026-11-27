@@ -27,28 +27,30 @@ def fixture(tmp_path, *, finalized=False):
     return config
 
 
-def api_for(state, reason=None):
+def api_for(state, reason=None, root=None):
     def api(path):
-        assert path == "issues/275"
-        return {"number": 275, "state": state, "state_reason": reason}
+        from pilot.orchestrator.lifecycle_test_support import fake_api
+        if path == "issues/275":
+            return {"number": 275, "state": state, "state_reason": reason}
+        return fake_api({}, issue_state=state, root=root)(path)
     return api
 
 
 def test_closed_not_planned_is_cancelled(tmp_path):
     fixture(tmp_path)
-    assert request_state("req-275", api_for("closed", "not_planned"),
+    assert request_state("req-275", api_for("closed", "not_planned", root=tmp_path),
                          root=tmp_path) == CLOSED_CANCELLED
 
 
 def test_closed_completed_without_proof_still_cancelled(tmp_path):
     fixture(tmp_path)
-    assert request_state("req-275", api_for("closed", "completed"),
+    assert request_state("req-275", api_for("closed", "completed", root=tmp_path),
                          root=tmp_path) == CLOSED_CANCELLED
 
 
 def test_closed_verified_is_finalized(tmp_path):
     fixture(tmp_path, finalized=True)
-    assert request_state("req-275", api_for("closed", "not_planned"),
+    assert request_state("req-275", api_for("closed", "not_planned", root=tmp_path),
                          root=tmp_path) == CLOSED_FINALIZED
 
 
@@ -57,22 +59,18 @@ def test_t49_canonical_finalization_parity(tmp_path, finalized):
     fixture(tmp_path, finalized=finalized)
     folder = tmp_path / "pilot/runs/req-275"
     expected = verified_chain_complete(folder, root=tmp_path)
-    actual = request_state("req-275", api_for("closed"), root=tmp_path)
+    actual = request_state("req-275", api_for("closed", root=tmp_path), root=tmp_path)
     assert (actual == CLOSED_FINALIZED) is expected
     assert actual == (CLOSED_FINALIZED if expected else CLOSED_CANCELLED)
 
 
 def test_reopened_uses_fresh_issue_state(tmp_path):
     fixture(tmp_path, finalized=True)
-    state = {"value": "closed"}
-    def api(path):
-        if path.startswith("contents/"):
-            from pilot.orchestrator.lifecycle_test_support import content
-            return content({})
-        return {"number": 275, "state": state["value"]}
-    assert request_state("req-275", api, root=tmp_path) == CLOSED_FINALIZED
-    state["value"] = "open"
-    assert request_state("req-275", api, root=tmp_path) == OPEN
+    from pilot.orchestrator.lifecycle_test_support import fake_api
+    assert request_state("req-275", fake_api({}, issue_state="closed", root=tmp_path),
+                         root=tmp_path) == CLOSED_FINALIZED
+    assert request_state("req-275", fake_api({}, issue_state="open", root=tmp_path,
+                         reopened=True), root=tmp_path) == CLOSED_FINALIZED
 
 
 def test_api_failure_and_invalid_issue_are_unresolved(tmp_path):
@@ -102,7 +100,7 @@ def test_train_closed_289_regression_never_requests_exam(tmp_path, monkeypatch):
     fixture(tmp_path)
     from pilot.orchestrator import chain_lots as chain
     monkeypatch.setattr(chain, "ROOT", tmp_path)
-    monkeypatch.setattr(chain, "api", api_for("closed", "not_planned"))
+    monkeypatch.setattr(chain, "api", api_for("closed", "not_planned", root=tmp_path))
     def forbidden(*args, **kwargs):
         raise AssertionError("closed TRAIN attempted a publication")
     monkeypatch.setattr(chain, "request_all_lot_exams", forbidden)
@@ -135,7 +133,7 @@ def test_exam_notice_never_comments_on_closed(tmp_path, monkeypatch):
     fixture(tmp_path)
     from pilot.orchestrator import chain_lots as chain
     monkeypatch.setattr(chain, "ROOT", tmp_path)
-    monkeypatch.setattr(chain, "api", api_for("closed", "completed"))
+    monkeypatch.setattr(chain, "api", api_for("closed", "completed", root=tmp_path))
     monkeypatch.setattr(chain, "run", lambda *_a, **_k:
                         pytest.fail("commented on closed request"))
     chain.exam_notice("req-275", "key", "EXAMEN_PENDIENTE")
@@ -146,7 +144,7 @@ def test_conflict_notice_suppressed_for_closed(tmp_path, monkeypatch):
     from pilot.orchestrator import chain_lots as chain
     monkeypatch.setattr(chain, "ROOT", tmp_path)
     monkeypatch.setattr(chain, "conflicted_request", lambda *_: "req-275")
-    monkeypatch.setattr(chain, "api", api_for("closed", "not_planned"))
+    monkeypatch.setattr(chain, "api", api_for("closed", "not_planned", root=tmp_path))
     monkeypatch.setattr(chain, "run", lambda *_a, **_k:
                         pytest.fail("notice published despite closed issue"))
     chain.notify_failed_conflict_replay({"number": 500}, [], 1234)
@@ -160,7 +158,7 @@ def test_worker_feedback_suppressed_for_closed(tmp_path, monkeypatch):
                         {"schema_version": "test"})
     def forbidden(*_a, **_kw):
         pytest.fail("feedback published despite closed issue")
-    result = feedback.publish(forbidden, api_for("closed", "completed"),
+    result = feedback.publish(forbidden, api_for("closed", "completed", root=tmp_path),
                               "org/repo", tmp_path, "task202", "a" * 40,
                               1, {}, "FAIL")
     assert result == "REQUEST_CLOSED"

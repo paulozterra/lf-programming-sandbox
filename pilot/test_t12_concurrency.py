@@ -41,6 +41,8 @@ class IssueAPI:
         if method in ("POST", "PATCH"):
             self.writes.append((method, path, payload))
             return {"html_url":"https://github.com/org/repo/pull/222"}
+        if method == "GET":
+            return fake_api({})(path[1:])
         raise AssertionError((method,path))
     def issue(self, number):
         return next(x for x in self.recent if x["number"]==number)

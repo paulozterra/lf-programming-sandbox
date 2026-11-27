@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import pytest
 
-from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response, fake_api
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -31,8 +31,7 @@ def proof(root, complete):
 def test_audit_state_matrix(tmp_path, state, complete, eligible):
     proof(tmp_path, complete)
     assert rt._finalized_request("req-275", "o/r", tmp_path,
-          api=lambda path: content({}) if path == f"contents/{CONTROL}?ref=main"
-          else {"number": 275, "state": state}) is eligible
+          api=fake_api({}, issue_state=state, root=tmp_path)) is eligible
 
 
 def test_audit_unreadable_state_blocks(tmp_path):
@@ -72,6 +71,8 @@ def test_forced_audit_creates_only_finalized_issue(tmp_path, monkeypatch,
         if endpoint.endswith("/issues") and data is not None:
             created.append(data)
             return json.dumps({"number": 999})
+        if data is None:
+            return json.dumps(main_response(endpoint.removeprefix("repos/o/r/"), tmp_path))
         pytest.fail("unexpected GitHub side effect " + endpoint)
     monkeypatch.setattr(rt, "gh", gh)
     monkeypatch.setattr(sys, "argv", ["request_trigger", "--project", "lf",
@@ -99,6 +100,8 @@ def test_audit_second_live_check_prevents_issue(tmp_path, monkeypatch):
             return json.dumps({"number": 275, "state": next(states)})
         if "issues?labels=" in endpoint:
             return "[]"
+        if data is None:
+            return json.dumps(main_response(endpoint.removeprefix("repos/o/r/"), tmp_path))
         pytest.fail("created audit after issue reopened")
     monkeypatch.setattr(rt, "gh", gh)
     monkeypatch.setattr(sys, "argv", ["request_trigger", "--project", "lf",
@@ -156,7 +159,9 @@ def historical_route(tmp_path):
                     "content": base64.b64encode(raw).decode()}
         if path.startswith("actions/workflows/audit-stage.yml/runs?"):
             return {"total_count": len(runs), "workflow_runs": runs}
-        return fake_api(entries, issue_state=state["issue"])(path)
+        if path == "git/ref/heads/main":
+            return main_response(path, root, revision=git("rev-parse", "refs/remotes/origin/main"))
+        return fake_api(entries, issue_state=state["issue"], root=root)(path)
 
     return SimpleNamespace(root=root, report_file=report_file, data=data, issue=issue,
                            pr=pr, files=files, blobs=blobs, state=state, entries=entries,
@@ -190,7 +195,11 @@ def test_historical_audit_after_suspension_resume_and_finalization(historical_ro
     with pytest.raises(life.RequestStateError, match="REQUEST_SUSPENDED"):
         gate()
     r.entries["req-9"]["state"] = "ACTIVE"
+    # The live trusted main, not an uncommitted workspace deletion, controls eligibility.
     (r.report_file.parent.parent / "H_REPORT.md").unlink()
+    import subprocess
+    subprocess.run(["git", "-C", str(r.root), "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-am", "remove report"], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(r.root), "update-ref", "refs/remotes/origin/main", "HEAD"], check=True)
     with pytest.raises(life.RequestStateError, match="AUDIT_REQUEST_NOT_FINALIZED"):
         gate()
 

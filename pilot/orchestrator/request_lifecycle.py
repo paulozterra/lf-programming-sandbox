@@ -16,7 +16,11 @@ import json
 from pathlib import Path
 import re
 
-from pilot.orchestrator.request_finalize import verified_chain_complete
+from pilot.orchestrator.request_finalize import (
+    verified_chain_complete, current_view, read_state, terminal_outcome,
+    terminal_intent, legacy_complete, request_path, FinalizationError,
+    DECIDED, SUCCESS_STAGES, MainView, decode,
+)
 from pilot.config.project_config import ProjectConfigError, storage, storage_path, template_path_pattern, repo_storage
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,6 +35,7 @@ CONTROL_STATES = {SUSPENDING, SUSPENDED, "ACTIVE"}
 SHA40 = re.compile(r"[0-9a-f]{40}\Z")
 CLOSED_FINALIZED = "CLOSED_FINALIZED"
 CLOSED_CANCELLED = "CLOSED_CANCELLED"
+CLOSED_FAILED = "CLOSED_FAILED"
 CODE = "REQUEST_STATE_UNRESOLVED"
 
 
@@ -336,22 +341,13 @@ def validate_control_transition(previous: dict, current: dict, number: int) -> s
 def inactive_reason(state: str) -> str:
     if state in (SUSPENDING, SUSPENDED):
         return "REQUEST_SUSPENDED"
-    if state in (CLOSED_FINALIZED, CLOSED_CANCELLED):
+    if state in (CLOSED_FINALIZED, CLOSED_CANCELLED, CLOSED_FAILED):
         return "REQUEST_CLOSED"
     unresolved()
 
 
-def request_state(request: str, api, *, root: Path = ROOT,
-                  allowlist: Path | None = None) -> str:
-    """Freshly resolve a GitHub issue before each external effect boundary."""
-    if not isinstance(request, str):
-        unresolved()
-    match = REQUEST.fullmatch(request)
-    if match is None:
-        if _synthetic_allowed(request, allowlist or ALLOWLIST):
-            return OPEN
-        unresolved()
-    number = int(match.group(1))
+def _issue(request, api):
+    number = int(REQUEST.fullmatch(request).group(1))
     try:
         item = api("issues/" + str(number))
     except Exception as exc:
@@ -360,9 +356,94 @@ def request_state(request: str, api, *, root: Path = ROOT,
             or item["number"] != number or item.get("pull_request")
             or item.get("state") not in ("open", "closed")):
         unresolved()
-    if item["state"] == "open":
-        return control_state(request, api)
-    return CLOSED_FINALIZED if _finalized(request, root) else CLOSED_CANCELLED
+    return item
+
+
+def _terminal_provenance(request, state, view, api):
+    """A failure/cancellation record must be the exact owner-reviewed Train merge."""
+    proof = state["terminal"]
+    number = proof["authorization_pr"]
+    pr = api(f"pulls/{number}")
+    merge = pr.get("merge_commit_sha")
+    if (pr.get("number") != number or pr.get("merged") is not True
+            or not isinstance(merge, str) or not SHA40.fullmatch(merge)
+            or pr.get("base", {}).get("ref") != "main"
+            or pr.get("head", {}).get("ref") !=
+                f"lf/chain-terminal/{request}-{proof['base_sha'][:12]}"):
+        unresolved()
+    commit = api(f"commits/{merge}")
+    parents = commit.get("parents", [])
+    if (commit.get("sha") != merge or len(parents) != 2
+            or parents[0].get("sha") != proof["base_sha"]
+            or parents[1].get("sha") != pr.get("head", {}).get("sha")
+            or commit.get("commit", {}).get("message", "").splitlines()[:1]
+                != [f"Merge PR #{number} via sandbox-train"]):
+        unresolved()
+    if merge != view.revision:
+        comparison = api(f"compare/{merge}...{view.revision}")
+        if (comparison.get("behind_by") != 0
+                or comparison.get("merge_base_commit", {}).get("sha") != merge):
+            unresolved()
+    path = request_path(request) + "/state.json"
+    if (view.at(merge).read(path) != view.read(path)
+            or view.at(parents[1]["sha"]).read(path) != view.read(path)):
+        unresolved()
+    old = read_state(view.at(proof["base_sha"]), request)
+    verify_owner_transition(api, pr, request, old["stage"], state["stage"])
+
+
+def _terminal_classification(request, issue, api, root):
+    view = current_view(api, root)
+    state = read_state(view, request)
+    if issue["state"] == "closed" and "terminal" not in state and state.get("stage") not in DECIDED:
+        return CLOSED_FINALIZED if legacy_complete(view, request) else CLOSED_CANCELLED
+    try:
+        outcome = terminal_outcome(view, request, state)
+    except FinalizationError:
+        # Historical success declarations without a proof never authorized
+        # work, and D22 classified already-closed unproven issues as cancelled.
+        if (issue["state"] == "closed" and state.get("stage") in SUCCESS_STAGES
+                and "terminal" not in state):
+            outcome = None
+        else:
+            raise
+    if outcome is not None:
+        if outcome["stage"] in DECIDED:
+            _terminal_provenance(request, state, view, api)
+        return {"FAILED_FINAL": CLOSED_FAILED,
+                "CANCELLED_FINAL": CLOSED_CANCELLED,
+                "CHAIN_COMPLETE_VERIFIED": CLOSED_FINALIZED}[outcome["stage"]]
+    if terminal_intent(state) and issue["state"] == "open":
+        unresolved()
+    if issue["state"] == "open" and (state or legacy_complete(view, request)):
+        # Legacy reports may be incomplete. Preserve historical closures,
+        # but an actually open, never-closed request must be able to finish
+        # its report before new T9 completion. No retroactive rewrite.
+        events = _paged(api, f"issues/{issue['number']}/events")
+        if any(row.get("event") == "closed" for row in events):
+            return CLOSED_FINALIZED if legacy_complete(view, request) else CLOSED_CANCELLED
+    return CLOSED_CANCELLED if issue["state"] == "closed" else OPEN
+
+
+def request_state(request: str, api, *, root: Path = ROOT,
+                  allowlist: Path | None = None) -> str:
+    """Resolve issue, D22 control, and terminal authority from trusted main."""
+    if not isinstance(request, str):
+        unresolved()
+    match = REQUEST.fullmatch(request)
+    if match is None:
+        if _synthetic_allowed(request, allowlist or ALLOWLIST):
+            return OPEN
+        unresolved()
+    try:
+        issue = _issue(request, api)
+        if issue["state"] == "open":
+            control = control_state(request, api)
+            if control != OPEN:
+                return control
+        return _terminal_classification(request, issue, api, root)
+    except Exception as exc:
+        raise RequestStateError(CODE) from exc
 
 
 def require_open(request: str, api, *, root: Path = ROOT) -> None:
@@ -371,13 +452,54 @@ def require_open(request: str, api, *, root: Path = ROOT) -> None:
         raise RequestStateError(inactive_reason(state))
 
 
+def require_administrative_close(row, api, *, root: Path = ROOT, closed=False):
+    """T9-only permission; never grants functional admission."""
+    try:
+        request = row["slug"]
+        if (not isinstance(request, str) or not REQUEST.fullmatch(request)
+                or type(row["issue"]) is not int or row["issue"] != int(request[4:])):
+            unresolved()
+        issue = _issue(request, api)
+        if issue["state"] != ("closed" if closed else "open"):
+            unresolved()
+        if control_state(request, api) != OPEN:
+            raise RequestStateError("REQUEST_SUSPENDED")
+        view = current_view(api, root)
+        if view.revision != row["revision"]:
+            unresolved()
+        state = read_state(view, request)
+        outcome = terminal_outcome(view, request, state)
+        meta = decode(view.read(request_path(request) + "/request_meta.json"))
+        if (not isinstance(meta, dict) or meta.get("issue") != row["issue"]
+                or outcome is None or outcome["stage"] != row["stage"]
+                or outcome["fingerprint"] != row["fingerprint"]):
+            unresolved()
+        if outcome["stage"] in DECIDED:
+            _terminal_provenance(request, state, view, api)
+        if current_view(api, root).revision != view.revision:
+            unresolved()
+        if control_state(request, api) != OPEN:
+            raise RequestStateError("REQUEST_SUSPENDED")
+        return True
+    except RequestStateError:
+        raise
+    except Exception as exc:
+        raise RequestStateError(CODE) from exc
+
+
 def require_finalized_audit(request: str, api, *, root: Path = ROOT) -> None:
     """Historical audit only: a closed proof never overrides suspension."""
     if not isinstance(request, str) or not REQUEST.fullmatch(request):
         unresolved()
-    state = request_state(request, api, root=root)
-    if state in (SUSPENDING, SUSPENDED):
-        raise RequestStateError("REQUEST_SUSPENDED")
+    issue = _issue(request, api)
+    if issue["state"] != "closed":
+        if control_state(request, api) != OPEN:
+            raise RequestStateError("REQUEST_SUSPENDED")
+        raise RequestStateError("AUDIT_REQUEST_NOT_FINALIZED")
+    try:
+        state = _terminal_classification(request, issue, api, root)
+    except Exception as exc:
+        raise RequestStateError(CODE) from exc
     if state != CLOSED_FINALIZED:
         raise RequestStateError("AUDIT_REQUEST_NOT_FINALIZED")
     if control_state(request, api) != OPEN:
@@ -519,14 +641,23 @@ def request_ids_for_pr(branch: str, paths: list[str], *, root: Path = ROOT) -> s
     elif branch.startswith(("lf/native-integration/", "lf/exam-retire/", "exam/", "lf/exam/")):
         unresolved()
     direct = re.fullmatch(r"lf/request/(req-[1-9][0-9]*)", branch)
-    generated = re.fullmatch(r"lf/(?:chain-complete|chain-blocked|evidence)/(req-[1-9][0-9]*)-[0-9a-f]{12}", branch)
+    generated = re.fullmatch(r"lf/(?:chain-complete|chain-blocked|chain-terminal|evidence)/(req-[1-9][0-9]*)-[0-9a-f]{12}", branch)
     if direct or generated:
         owner = (direct or generated).group(1)
         if requests and requests != {owner}:
             unresolved()
         requests.add(owner)
-    if branch.startswith("lf/generated-t7/") and not requests:
-        unresolved()
+    if branch.startswith("lf/generated-t7/"):
+        # The one explicitly enrolled historic non-issue route is still
+        # permitted; arbitrary synthetic names must not acquire admission.
+        for path in paths:
+            match = re.match(r"pilot/runs/([a-z][a-z0-9_-]{0,63})/", path)
+            if match and not REQUEST.fullmatch(match[1]):
+                if not _synthetic_allowed(match[1], ALLOWLIST):
+                    unresolved()
+                requests.add(match[1])
+        if not requests:
+            unresolved()
     return requests
 
 
@@ -550,11 +681,57 @@ def require_pr_open(branch: str, paths: list[str], api, *, root: Path = ROOT, pr
         return
     if "pilot/registry/implemented.json" in paths:
         unresolved()
-    if not control:
-        return
-    for slug in sorted(request_ids_for_pr(branch, paths, root=root)):
-        if slug in control:
+    requests = request_ids_for_pr(branch, paths, root=root)
+    if branch.startswith("lf/chain-terminal/") and (len(requests) != 1
+            or request_path(next(iter(requests))) + "/state.json" not in paths):
+        unresolved()
+    for slug in sorted(requests):
+        require_open(slug, api, root=root)
+    # A terminal transition is an ordinary governed state PR, not a bypass
+    # for an already terminal request. Check the exact head using trusted
+    # code, and reject terminal declarations from any other PR family.
+    for slug in sorted(requests):
+        if not REQUEST.fullmatch(slug):
+            continue  # explicitly allowlisted historical non-issue route
+        state_path = request_path(slug) + "/state.json"
+        if state_path not in paths:
+            continue
+        if pr is None:
+            # Existing non-PR unit callers exercise only the admission gate.
+            # The production Train always supplies the actual PR.
+            continue
+        view = current_view(api, root)
+        try:
+            proposed = read_state(view.at(pr["head"]["sha"]), slug)
+            if not terminal_intent(proposed):
+                if branch.startswith("lf/chain-terminal/"):
+                    unresolved()
+                continue
+            proof = proposed.get("terminal")
+            if (proposed.get("stage") not in DECIDED or not isinstance(proof, dict)
+                    or requests != {slug} or proof.get("authorization_pr") != pr["number"]
+                    or proof.get("base_sha") != view.revision
+                    or branch != f"lf/chain-terminal/{slug}-{view.revision[:12]}"
+                    or any(path not in (state_path, request_path(slug) + "/H_REPORT.md",
+                                        "standards/CAMBIOS.md")
+                           and not re.fullmatch(r"standards/changes/CHG-[0-9]{4}\.json", path)
+                           for path in paths)):
+                unresolved()
+            old = read_state(view, slug)
+            verify_owner_transition(api, pr, slug, old["stage"], proposed["stage"])
+            # Import only trusted control code; never execute a PR checkout.
+            import sys
+            module_dir = str(Path(__file__).resolve().parent)
+            if module_dir not in sys.path:
+                sys.path.insert(0, module_dir)
+            import chain_lots
+            chain_lots.verify_terminal_draft(slug, proposed, view.revision,
+                                             view.at(pr["head"]["sha"]), paths)
+            if current_view(api, root).revision != view.revision:
+                unresolved()
             require_open(slug, api, root=root)
+        except Exception as exc:
+            raise RequestStateError(CODE) from exc
 
 
 def main():

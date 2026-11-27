@@ -1,6 +1,6 @@
 """T50: CP3.7 isolates one blocked request from an otherwise healthy chain."""
 import json
-from pilot.orchestrator.lifecycle_test_support import fake_api
+from pilot.orchestrator.lifecycle_test_support import fake_api, evidence_fixture
 
 from pilot.orchestrator import pg37_publish as pub
 
@@ -36,8 +36,7 @@ def test_bad_request_does_not_prevent_healthy_h_report(tmp_path, monkeypatch):
     monkeypatch.setattr(cl, "worktree", lambda _head, _branch, fn: fn(tmp_path))
     monkeypatch.setattr(pub, "render", lambda *_: "# H_REPORT")
     results = pub.reconcile(100, root=tmp_path,
-        evidence_generator=lambda *_: {"lot_id": "SOL-001",
-            "merge_sha": sha, "complete": True},
+        evidence_generator=lambda *_: evidence_fixture("req-286", "SOL-001", sha, ["src/example.py"]),
         publisher=lambda *_: {"pr": 999})
     assert results[0] == {"request": "req-186", "status": "BLOCKED",
                           "code": "CP36_CHAIN_HISTORY_INCOMPLETE"}
