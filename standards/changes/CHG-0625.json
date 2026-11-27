@@ -54,6 +54,8 @@
       "pilot/orchestrator/test_request_lifecycle_suspension.py",
       "pilot/orchestrator/test_t17_4_conflict_recovery.py",
       "pilot/orchestrator/test_t17_recovery_watchdog.py",
+      "pilot/orchestrator/test_t18_1_sweep_isolation.py",
+      "pilot/orchestrator/test_t18_task_pack_publication.py",
       "pilot/orchestrator/test_t19_native_submission.py",
       "pilot/orchestrator/test_t20_bot_ci_retry.py",
       "pilot/orchestrator/test_t24_1_sweep_and_attempts.py",

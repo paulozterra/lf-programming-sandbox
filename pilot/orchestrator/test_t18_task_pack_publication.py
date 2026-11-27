@@ -1,6 +1,8 @@
 """T18 offline: packed-registration hash, historical repair, sweep, human audit."""
 from __future__ import annotations
 
+from pilot.orchestrator.lifecycle_test_support import fake_api
+
 import hashlib
 import json
 from pathlib import Path
@@ -194,7 +196,7 @@ def test_next_sweep_repairs_registered_task_without_reregistering(tmp_path):
                       return_value=existing), \
          patch.object(chain_lots, "worktree", side_effect=fake_worktree), \
          patch.object(chain_lots, "draft", side_effect=fake_draft), \
-         patch.object(chain_lots, "api", return_value={"number": 901, "state": "open"}), \
+         patch.object(chain_lots, "api", side_effect=fake_api({})), \
          patch.object(chain_lots, "sweep_request_enabled", return_value=False), \
          patch.multiple(chain_lots,
                         recover_pending_worker=lambda *a, **kw: [],
