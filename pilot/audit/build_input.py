@@ -82,12 +82,22 @@ def build(request: str, project: str, repository: str, completed: dict, lots: di
     if not files:
         raise AuditInputError("AUDIT_INPUT_NO_INTEGRATED_FILES")
     run_dir = f"pilot/runs/{request}"
+    from historical_evidence import tree_blob, EvidenceError
     refs = []
+    historical = {}
     for rel in (f"{run_dir}/analysis.json", f"{run_dir}/lots.json"):
-        data = (root / rel).read_bytes()
+        try:
+            data = tree_blob(root, base, rel)
+            historical[rel] = json.loads(data)
+        except (EvidenceError, ValueError, TypeError) as exc:
+            raise AuditInputError("AUDIT_INPUT_HISTORICAL_AUTHORITY_UNRESOLVED") from exc
         refs.append({"uri": f"github://{repository}@{base}/{rel}",
                      "expected_sha256": hashlib.sha256(data).hexdigest(),
                      "resolved_revision": base, "resolution_status": "DECLARED_ONLY"})
+    # The producer and consumer must agree with the closing revision; refuse
+    # a changed analysis or lot plan instead of creating contradictory input.
+    if historical[f"{run_dir}/analysis.json"] != analysis or historical[f"{run_dir}/lots.json"] != lots:
+        raise AuditInputError("AUDIT_INPUT_HISTORICAL_AUTHORITY_DRIFT")
     consumers = sorted({f for lot in lots["lots"] if lot["depends_on"]
                         for f in completed[lot["id"]].get("expected_files", [])
                         if not f.startswith(NOT_CODE)}) or files

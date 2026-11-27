@@ -1,0 +1,40 @@
+{
+  "affected": {
+    "paths": [
+      "pilot/audit/build_input.py",
+      "pilot/audit/historical_evidence.py",
+      "pilot/audit/report_scaffold.py",
+      "pilot/audit/test_a4_report_scaffold.py",
+      "pilot/audit/test_t46_audit_stage.py",
+      "pilot/audit/validate_report.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0626.json"
+    ],
+    "rule_ids": [],
+    "term_ids": []
+  },
+  "approved_by": "paulozterra",
+  "artifacts": [],
+  "change_class": "EDITORIAL",
+  "change_id": "CHG-0626",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/877"
+  },
+  "existing_code_impact": {
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING",
+    "mode": "NEW_OR_MODIFIED_ONLY"
+  },
+  "reason": "T46 verificaba capturas históricas contra archivos posteriores al cierre. Resolver fuentes por blobs del commit acreditado y conservar los hashes originales, las capturas de auditoría y el validador fijado. Regresiones offline para evolución y manipulación.",
+  "requested_by": "agent:gpt",
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "security_pin_invalidation": {
+    "affected_artifacts": [],
+    "invalidates": false
+  },
+  "title": "T46: procedencia histórica de evidencias de auditoría",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Autorización explícita del owner 2026-11-27: supervisión PR #876 y defecto histórico EV-OAS"
+  }
+}
