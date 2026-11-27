@@ -16,7 +16,7 @@
   "change_class": "EDITORIAL",
   "change_id": "CHG-0620",
   "evidence": {
-    "pr_url": ""
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/871"
   },
   "existing_code_impact": {
     "baseline_ref": "standards/baseline/",
