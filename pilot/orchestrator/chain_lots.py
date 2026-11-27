@@ -140,6 +140,14 @@ def api(path: str) -> dict:
     return budget.read(path, fetch)
 
 
+def lifecycle_api(path: str):
+    """Authorization reads must never reuse the sweep budget's cached snapshot."""
+    response = json.loads(github_api_raw(path))
+    if not isinstance(response, (dict, list)):
+        deny("GITHUB_RESPONSE_INVALID")
+    return response
+
+
 def api_list(path: str, *, max_pages: int = 10) -> list[dict]:
     """GitHub REST collection, validated in the real list shape.
 
@@ -268,7 +276,7 @@ def main_ci_decision(head: str) -> str:
 
 def sweep_request_enabled(request: str) -> bool:
     """Only open, non-discarded issue-backed requests can be resumed."""
-    return request_state(request, api, root=ROOT) == OPEN
+    return request_state(request, lifecycle_api, root=ROOT) == OPEN
 
 
 def merged_integration(head: str) -> tuple[dict, set[str]]:
@@ -801,7 +809,7 @@ def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> N
     request = conflicted_request(row, all_plans)
     if not request or not re.fullmatch(r"req-[1-9][0-9]*", request):
         return
-    require_open(request, api, root=ROOT)
+    require_open(request, lifecycle_api, root=ROOT)
     number = int(request[4:])
     issue = api(f"issues/{number}")
     if (issue.get("number") != number or issue.get("pull_request")
@@ -833,7 +841,7 @@ def notify_failed_conflict_replay(row: dict, all_plans: list,
             or type(failed_run_id) is not int or failed_run_id <= 0):
         return
     try:
-        require_open(request, api, root=ROOT)
+        require_open(request, lifecycle_api, root=ROOT)
         number = int(request[4:])
         issue = api(f"issues/{number}")
         if (issue.get("number") != number or issue.get("pull_request")
@@ -867,7 +875,7 @@ def regenerate_conflicted(row: dict, head: str, all_plans: list) -> dict:
         request = conflicted_request(row, all_plans)
         if request is None:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
-        current = request_state(request, api, root=ROOT)
+        current = request_state(request, lifecycle_api, root=ROOT)
         if current != OPEN:
             return {"status": inactive_reason(current), "request": request}
     if kind == "registration":
@@ -1033,7 +1041,7 @@ def exam_notice(request: str, key: str, reason: str, number: int | None = None) 
     """Best-effort deduped typed notice, never permission to publish again."""
     marker = f"<!-- LF_EXAM_NOTICE:{key}:{reason} -->"
     try:
-        require_open(request, api, root=ROOT)
+        require_open(request, lifecycle_api, root=ROOT)
         original = api("issues/" + request[4:])
         if (original.get("number") != int(request[4:])
                 or original.get("state") != "open"):
@@ -1098,7 +1106,7 @@ def request_missing_exam(request: str, binding: dict, lot: dict) -> dict:
     """Single publication per (request, task, canonical template) per process."""
     task = binding["task_name"]
     try:
-        require_open(request, api, root=ROOT)
+        require_open(request, lifecycle_api, root=ROOT)
     except RequestStateError as exc:
         return {"status": ("REQUEST_CLOSED" if str(exc) == "REQUEST_CLOSED"
                            else "BLOCKED"), "reason_code": str(exc), "task": task}
@@ -1198,7 +1206,7 @@ def request_all_lot_exams(request: str, lots: dict, bindings: dict) -> list[dict
 def admit_registration(request: str, binding: dict, lot: dict, head: str) -> dict | None:
     """Inspect admission before any generated commit or native preparation."""
     try:
-        require_open(request, api, root=ROOT)
+        require_open(request, lifecycle_api, root=ROOT)
     except RequestStateError as exc:
         return {"status": ("REQUEST_CLOSED" if str(exc) == "REQUEST_CLOSED"
                            else "BLOCKED"), "reason_code": str(exc)}
@@ -1927,7 +1935,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             return False
         if len(candidates) != 1:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
-        return request_state(next(iter(candidates)), api, root=ROOT) == OPEN
+        return request_state(next(iter(candidates)), lifecycle_api, root=ROOT) == OPEN
 
     def candidate_live(row: dict) -> bool:
         if row["kind"] == "implemented-registry":
@@ -1935,7 +1943,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         request = conflicted_request(row, all_plans)
         if request is None:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
-        return request_state(request, api, root=ROOT) == OPEN
+        return request_state(request, lifecycle_api, root=ROOT) == OPEN
 
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
     # can hide a Train failure, including when no owner plans are active.
@@ -2036,7 +2044,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             try:
                 if not route_request_metadata(request):
                     continue
-                current = request_state(request, api, root=ROOT)
+                current = request_state(request, lifecycle_api, root=ROOT)
                 if current != OPEN:
                     repair_outcomes.append({"request": request,
                                             "status": inactive_reason(current)})
@@ -2061,7 +2069,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                                         "status": "SKIPPED_NOT_ROUTE_REQUEST"})
                 continue
             try:
-                current = request_state(request, api, root=ROOT)
+                current = request_state(request, lifecycle_api, root=ROOT)
                 if current != OPEN:
                     repair_outcomes.append({"request": request,
                                             "status": inactive_reason(current)})
@@ -2143,7 +2151,7 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                      new_plan_request, manual_sha, history, *, format_exhausted=()) -> list[dict]:
     outcomes = []
     try:
-        current = request_state(request, api, root=ROOT)
+        current = request_state(request, lifecycle_api, root=ROOT)
     except RequestStateError:
         return [{"request": request, "status": "BLOCKED",
                  "reason_code": "REQUEST_STATE_UNRESOLVED"}]

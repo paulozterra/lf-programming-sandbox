@@ -133,12 +133,33 @@ def control_state(request: str, api) -> str:
             unresolved()
         if read_control(api, merge).get(request) != entry:
             unresolved()
-        relation = api(f"compare/{merge}...main")
-        if (not isinstance(relation, dict)
-                or relation.get("status") not in ("ahead", "identical")
-                or relation.get("behind_by") != 0):
-            unresolved()
+        verify_owner_label(api, number, repo.split("/")[0])
         return OPEN if entry["state"] == "ACTIVE" else entry["state"]
+    except Exception as exc:
+        raise RequestStateError(CODE) from exc
+
+
+def verify_owner_label(api, number: int, owner: str) -> None:
+    """Only a fresh owner label, not a bot label or a PR description."""
+    latest = None
+    try:
+        for page in range(1, 11):
+            rows = api(f"issues/{number}/events?per_page=100&page={page}")
+            if not isinstance(rows, list) or len(rows) > 100:
+                unresolved()
+            for row in rows:
+                if not isinstance(row, dict):
+                    unresolved()
+                if (row.get("event") in ("labeled", "unlabeled")
+                        and (row.get("label") or {}).get("name") == "ready-to-merge"):
+                    latest = row
+            if len(rows) < 100:
+                break
+        else:
+            unresolved()
+        if (latest is None or latest.get("event") != "labeled"
+                or (latest.get("actor") or {}).get("login") != owner):
+            unresolved()
     except Exception as exc:
         raise RequestStateError(CODE) from exc
 
@@ -201,7 +222,7 @@ def require_open(request: str, api, *, root: Path = ROOT) -> None:
         raise RequestStateError(inactive_reason(state))
 
 
-def request_for_task(task: str, *, root: Path = ROOT) -> str:
+def request_for_task(task: str, *, root: Path = ROOT, registered: bool = True) -> str:
     """Resolve a task against unique, trusted main chain plans; never proposal data.
 
     Both historical and per-request plans are supported. Duplicate copies for
@@ -210,7 +231,7 @@ def request_for_task(task: str, *, root: Path = ROOT) -> str:
     if not isinstance(task, str) or not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", task):
         unresolved()
     registration = storage_path("registrations_root", task + ".json", root=root)
-    if registration.is_symlink() or not registration.is_file():
+    if registration.is_symlink() or (registered and not registration.is_file()):
         unresolved()
     sources: dict[str, Path] = {}
     try:
@@ -255,7 +276,7 @@ def request_for_task(task: str, *, root: Path = ROOT) -> str:
         raise RequestStateError(CODE) from exc
 
 
-def github_issue_api(path: str) -> dict:
+def github_issue_api(path: str):
     """Read GitHub state with the trusted job token, never an input-provided token."""
     import os
     import subprocess
@@ -268,7 +289,7 @@ def github_issue_api(path: str) -> dict:
         env={**os.environ, "GH_TOKEN": token},
         capture_output=True, text=True, timeout=30, check=True)
     response = json.loads(result.stdout)
-    if not isinstance(response, dict):
+    if not isinstance(response, (dict, list)):
         unresolved()
     return response
 
@@ -278,3 +299,53 @@ def require_task_open(task: str, *, root: Path = ROOT, api=None) -> str:
     request = request_for_task(task, root=root)
     require_open(request, api or github_issue_api, root=root)
     return request
+
+
+def request_ids_for_pr(branch: str, paths: list[str], *, root: Path = ROOT) -> set[str]:
+    """Resolve affected requests from trusted plan bindings and exact route paths.
+    General infrastructure PRs and the historical global registry are not a
+    request continuation. The caller must supply the complete file list.
+    """
+    from pilot.native_registration_family import registration_family
+
+    if not isinstance(branch, str) or not isinstance(paths, list) or not all(
+            isinstance(p, str) for p in paths):
+        unresolved()
+    requests = {m.group(1) for path in paths if
+                (m := re.match(r"pilot/runs/(req-[1-9][0-9]*)/", path))}
+    task = None
+    if branch.startswith("lf/native-registration/"):
+        family, task = registration_family(branch)
+        if family not in ("registration", "auxiliary") or task is None:
+            unresolved()
+    else:
+        for pattern in (
+                r"lf/native-integration/([a-z][a-z0-9_-]{0,31})-run-[1-9][0-9]*",
+                r"lf/exam-retire/([a-z][a-z0-9_-]{0,31})-[0-9a-f]{12}",
+                r"(?:lf/)?exam/([a-z][a-z0-9_-]{0,31})"):
+            match = re.fullmatch(pattern, branch)
+            if match:
+                task = match.group(1)
+                break
+    if task:
+        owner = request_for_task(task, root=root, registered=False)
+        if requests and requests != {owner}:
+            unresolved()
+        requests.add(owner)
+    elif branch.startswith(("lf/native-integration/", "lf/exam-retire/", "exam/", "lf/exam/")):
+        unresolved()
+    direct = re.fullmatch(r"lf/request/(req-[1-9][0-9]*)", branch)
+    generated = re.fullmatch(r"lf/(?:chain-complete|chain-blocked|evidence)/(req-[1-9][0-9]*)-[0-9a-f]{12}", branch)
+    if direct or generated:
+        owner = (direct or generated).group(1)
+        if requests and requests != {owner}:
+            unresolved()
+        requests.add(owner)
+    if branch.startswith("lf/generated-t7/") and not requests:
+        unresolved()
+    return requests
+
+
+def require_pr_open(branch: str, paths: list[str], api, *, root: Path = ROOT):
+    for slug in sorted(request_ids_for_pr(branch, paths, root=root)):
+        require_open(slug, api, root=root)

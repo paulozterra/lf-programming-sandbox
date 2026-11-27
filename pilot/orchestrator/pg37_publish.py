@@ -16,7 +16,7 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
  for request,lots,state,bindings in chain_lots.plans():
   try:
     try:
-     current=request_state(request,chain_lots.api,root=root)
+     current=request_state(request,chain_lots.lifecycle_api,root=root)
      if current!=OPEN:
       results.append({"request":request,"status":inactive_reason(current)});continue
     except RequestStateError:
@@ -56,7 +56,7 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
     report=render(request,records)
     def prepare(work):
      # A request may close during worktree setup; deny before writing evidence.
-     require_open(request,chain_lots.api,root=root)
+     require_open(request,chain_lots.lifecycle_api,root=root)
      paths=[]
      for row in records:
       target=work/"pilot"/"runs"/request/"evidence"/(row["lot_id"]+"-"+row["merge_sha"][:12]+".json")
@@ -69,7 +69,7 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
      paths.append(target.relative_to(work).as_posix())
      create=publisher or chain_lots.draft
      # Last observation before any PR/publication side effect.
-     require_open(request,chain_lots.api,root=root)
+     require_open(request,chain_lots.lifecycle_api,root=root)
      info=create(work,branch,request,paths,
        f"CP3.7 pinned source-only evidence for verified integration merges at {head}; no production authority",
        f"H_REPORT {request} PG06-PG14")
@@ -77,7 +77,7 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
              "all_candidates_complete":all(row["complete"] for row in records),**info}
     # Recheck immediately before the worktree publishes a draft evidence PR.
     try:
-     current=request_state(request,chain_lots.api,root=root)
+     current=request_state(request,chain_lots.lifecycle_api,root=root)
      if current!=OPEN:
       results.append({"request":request,"status":inactive_reason(current)});continue
     except RequestStateError:
@@ -97,7 +97,7 @@ def sweep(*,root=ROOT):
  blocked=[]
  for request,lots,state,bindings in chain_lots.plans():
   try:
-   if request_state(request,chain_lots.api,root=root)!=OPEN:continue
+   if request_state(request,chain_lots.lifecycle_api,root=root)!=OPEN:continue
    report=storage_path("requests_root",root=root)/request/"H_REPORT.md"
    if report.exists() or report.is_symlink():continue
    prefix=f"lf/evidence/{request}-"

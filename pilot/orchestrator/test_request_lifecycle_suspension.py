@@ -31,8 +31,8 @@ def fake_api(entries, *, historical=None, issue_state="open"):
             return {"number": 77, "merged": True, "merge_commit_sha": MERGE,
                     "base": {"ref": "main", "repo": {"full_name": "example/sandbox"}},
                     "head": {"repo": {"full_name": "example/sandbox"}}}
-        if path == f"compare/{MERGE}...main":
-            return {"status": "ahead", "behind_by": 0}
+        if path == "issues/77/events?per_page=100&page=1":
+            return [{"event": "labeled", "actor": {"login": "example"}, "label": {"name": "ready-to-merge"}}]
         raise AssertionError(path)
     return api
 
@@ -102,3 +102,38 @@ def test_governed_transition_no_delete_no_shortcut():
                               (pending, resumed, 79), (suspended, resumed, 80)]:
         with pytest.raises(life.RequestStateError, match=life.CODE):
             life.validate_control_transition(before, after, n)
+
+
+def test_unknown_owner_authorization_fails_closed():
+    api = fake_api({SLUG: {"state": life.SUSPENDED, "authorization_pr": 77}})
+    def bad(path):
+        if path.startswith("issues/77/events"):
+            return [{"event": "labeled", "actor": {"login": "github-actions[bot]"},
+                     "label": {"name": "ready-to-merge"}}]
+        return api(path)
+    with pytest.raises(life.RequestStateError, match=life.CODE):
+        life.require_open(SLUG, bad)
+
+
+@pytest.mark.parametrize("branch, paths", [
+    ("lf/request/req-123", ["pilot/runs/req-123/request.md"]),
+    ("lf/chain-blocked/req-123-123456789abc", ["pilot/runs/req-123/state.json"]),
+    ("lf/evidence/req-123-123456789abc", ["pilot/runs/req-123/H_REPORT.md"]),
+    ("lf/generated-t7/123456789abc", ["pilot/runs/req-123/lots.json"]),
+    ("maintenance", ["pilot/runs/req-123/analysis.json"]),
+])
+def test_existing_pending_pr_cannot_cross_suspension(branch, paths):
+    api = fake_api({SLUG: {"state": life.SUSPENDED, "authorization_pr": 77}})
+    with pytest.raises(life.RequestStateError, match="REQUEST_SUSPENDED"):
+        life.require_pr_open(branch, paths, api)
+
+
+def test_train_guard_resolves_unregistered_task_from_trusted_plan(monkeypatch):
+    monkeypatch.setattr(life, "request_for_task", lambda task, **kwargs: SLUG)
+    api = fake_api({SLUG: {"state": life.SUSPENDING, "authorization_pr": 77}})
+    for branch in ("exam/req123backend1",
+                   "lf/native-registration/req123backend1-123456789abc",
+                   "lf/native-integration/req123backend1-run-999",
+                   "lf/exam-retire/req123backend1-123456789abc"):
+        with pytest.raises(life.RequestStateError, match="REQUEST_SUSPENDED"):
+            life.require_pr_open(branch, [], api)

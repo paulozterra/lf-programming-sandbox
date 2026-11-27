@@ -81,11 +81,22 @@ def prepare(out: Path):
 
 def close(out: Path):
     api = API(os.environ["GH_TOKEN"])
+    from pilot.orchestrator.request_lifecycle import require_open, RequestStateError
+    def enabled(slug):
+        try:
+            require_open(slug, lambda route: api.call("GET", "/" + route))
+            return True
+        except RequestStateError as exc:
+            if str(exc) in ("REQUEST_CLOSED", "REQUEST_SUSPENDED"):
+                return False
+            raise
     run_id = os.environ["GITHUB_RUN_ID"]
     manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     url = (f"https://github.com/{os.environ['GITHUB_REPOSITORY']}"
            f"/actions/runs/{run_id}")
     for row in manifest:
+        if not enabled(row["slug"]):
+            continue
         issue = api.issue(row["issue"])
         if issue.get("state") == "closed":
             continue
@@ -94,6 +105,8 @@ def close(out: Path):
                     f"Intervención manual: {row['intervencion_manual']}.\n"
                     f"Informe de intervención: {url} (artefacto t9-intervention-reports, "
                     f"archivo {row['slug']}-INTERVENTION_REPORT.md).")
+        if not enabled(row["slug"]):
+            continue
         api.call("PATCH", f"/issues/{row['issue']}", {"state": "closed"})
         # A historically blocked request may later complete via a verified
         # Train integration. Only a successful completion clears that label.

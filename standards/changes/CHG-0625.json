@@ -13,12 +13,18 @@
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      "pilot/auto_integrate.py",
       "pilot/orchestrator/REQUEST_SUSPENSION.md",
       "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/examiner_queue.py",
       "pilot/orchestrator/pg37_publish.py",
+      "pilot/orchestrator/publish_exam.py",
+      "pilot/orchestrator/request_finalize.py",
       "pilot/orchestrator/request_lifecycle.py",
       "pilot/orchestrator/request_lifecycle_control.json",
       "pilot/orchestrator/test_request_lifecycle_suspension.py",
+      "pilot/orchestrator/test_t49_lifecycle.py",
+      "pilot/sandbox_train.py",
       "pilot/worker_v08/request_lifecycle_gate.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0625.json"

@@ -133,7 +133,7 @@ def guard_pending_retirement(branch):
         raise TrainError(f"POLICY_C_RETIRO_PENDIENTE task={task} retire_pr=#{retire}")
 
 
-def merge_with_retry(number, head, payload, *, branch, clock=None, sleep=None):
+def merge_with_retry(number, head, payload, *, branch, clock=None, sleep=None, lifecycle_guard=None):
     """GitHub may still report required checks as 'expected' a few seconds
     after they completed, a required check may still be running on the same
     HEAD, and a merge PUT can lose its connection. Re-read the PR before every
@@ -144,6 +144,8 @@ def merge_with_retry(number, head, payload, *, branch, clock=None, sleep=None):
     in_progress_deadline = None
     while True:
         guard_pending_retirement(branch)
+        if lifecycle_guard is not None:
+            lifecycle_guard()
         try:
             return api("PUT", f"/pulls/{number}/merge", payload)
         except TrainError as exc:
@@ -554,11 +556,56 @@ def dispatch_updated_head_ci(branch, sha):
                       "head_sha": sha}), flush=True)
 
 
+def guard_request_lifecycle(number, pr, *, files=None):
+    from pathlib import Path
+    from orchestrator.request_lifecycle import (
+        require_pr_open, RequestStateError, CONTROL_PATH, read_control,
+        validate_control_transition, verify_owner_label,
+    )
+    reader = lambda route: api("GET", "/" + route)
+    try:
+        if files is None:
+            files = []
+            for page in range(1, 11):
+                rows = api("GET", f"/pulls/{number}/files?per_page=100&page={page}")
+                if not isinstance(rows, list):
+                    raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+                files.extend(rows)
+                if len(rows) < 100:
+                    break
+            else:
+                raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        if len(files) != pr.get("changed_files"):
+            raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        paths = []
+        for row in files:
+            if not isinstance(row, dict) or not isinstance(row.get("filename"), str):
+                raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+            paths.append(row["filename"])
+            if row.get("previous_filename"):
+                paths.append(row["previous_filename"])
+        require_pr_open(pr["head"]["ref"], paths, reader, root=Path(__file__).resolve().parents[1])
+        if CONTROL_PATH in paths:
+            previous = read_control(reader)
+            current = read_control(reader, pr["head"]["sha"])
+            validate_control_transition(previous, current, number)
+            owner = pr["base"]["repo"]["full_name"].split("/")[0]
+            verify_owner_label(reader, number, owner)
+            if any(path != CONTROL_PATH and path != "standards/CAMBIOS.md"
+                   and not re.fullmatch(r"standards/changes/CHG-[0-9]{4,}[.]json", path)
+                   for path in paths):
+                raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+    except RequestStateError as exc:
+        raise TrainError(str(exc)) from exc
+
+
 def run(number):
     dispatched_heads = set()
     prepared_heads = set()
     for attempt in range(MAX_RESTARTS + 1):
-        pr = ready_if_labeled_draft(number, pr_data(number))
+        candidate = pr_data(number)
+        guard_request_lifecycle(number, candidate)
+        pr = ready_if_labeled_draft(number, candidate)
         check_pr(pr)
         initial_head = pr["head"]["sha"]
         base = main_sha()
@@ -588,6 +635,7 @@ def run(number):
             # validated HEAD without another push or a new Actions run.
         if compare["status"] not in ("ahead", "identical"):
             raise TrainError("BRANCH_NOT_MERGEABLE " + compare["status"])
+        guard_request_lifecycle(number, pr)
         evidence = await_checks(number, initial_head, dispatched_heads)
         if evidence is None:
             continue

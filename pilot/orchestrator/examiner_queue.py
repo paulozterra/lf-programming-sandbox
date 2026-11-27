@@ -106,12 +106,13 @@ def request_number(slug: str) -> int:
 
 
 def build_queue(issues: list, open_prs: list, root: Path = ROOT,
-                open_requests: set[int] | None = None) -> dict:
+                open_requests: set[int] | None = None,
+                suspended_requests: set[int] | None = None) -> dict:
     """open_requests: numbers of request issues still open (None = not checked)."""
     if not isinstance(issues, list) or not isinstance(open_prs, list):
         raise QueueBlocked("EXAMINER_QUEUE_UNVERIFIED")
     seen: dict[str, dict] = {}
-    pending, blocked, in_flight, duplicates, stale = [], [], [], [], []
+    pending, blocked, in_flight, duplicates, stale, suspended = [], [], [], [], [], []
     for issue in issues:
         row = parse_request(issue)
         if row is None:
@@ -121,6 +122,10 @@ def build_queue(issues: list, open_prs: list, root: Path = ROOT,
             continue
         seen[row["task"]] = row
         if exam_published(root, row["task"]):
+            continue
+        if suspended_requests is not None and request_number(row["request"]) in suspended_requests:
+            row.pop("blocked"), row.pop("working")
+            suspended.append(row)
             continue
         if (not template_matches(root, row)
                 or (open_requests is not None
@@ -141,6 +146,7 @@ def build_queue(issues: list, open_prs: list, root: Path = ROOT,
             "blocked": sorted(blocked, key=key),
             "in_flight": sorted(in_flight, key=key),
             "stale": sorted(stale, key=key),
+            "suspended": sorted(suspended, key=key),
             "duplicates": sorted(set(duplicates))}
 
 
@@ -172,14 +178,19 @@ def main() -> int:
         issues = _gh_pages(f"repos/{args.repo}/issues?state=open&labels={LABEL}&per_page=100")
         prs = _gh_pages(f"repos/{args.repo}/pulls?state=open&per_page=100")
         slugs = {row["request"] for row in map(parse_request, issues) if row}
-        open_requests = set()
+        from pilot.orchestrator.request_lifecycle import request_state, OPEN, SUSPENDING, SUSPENDED
+        def lifecycle_api(path):
+            return json.loads(subprocess.run(
+                ["gh", "api", f"repos/{args.repo}/{path}"],
+                check=True, capture_output=True, text=True, timeout=30).stdout)
+        open_requests, suspended_requests = set(), set()
         for slug in sorted(slugs):
-            state = json.loads(subprocess.run(
-                ["gh", "api", f"repos/{args.repo}/issues/{request_number(slug)}"],
-                check=True, capture_output=True, text=True).stdout).get("state")
-            if state == "open":
+            state = request_state(slug, lifecycle_api, root=args.root)
+            if state == OPEN:
                 open_requests.add(request_number(slug))
-        print(json.dumps(build_queue(issues, prs, args.root, open_requests),
+            elif state in (SUSPENDING, SUSPENDED):
+                suspended_requests.add(request_number(slug))
+        print(json.dumps(build_queue(issues, prs, args.root, open_requests, suspended_requests),
                          ensure_ascii=False, indent=1))
     except (QueueBlocked, subprocess.CalledProcessError, ValueError) as exc:
         print(json.dumps({"status": "EXAMINER_QUEUE_UNVERIFIED",
