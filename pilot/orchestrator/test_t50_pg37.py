@@ -1,6 +1,6 @@
 """T50: CP3.7 isolates one blocked request from an otherwise healthy chain."""
 import json
-from pilot.orchestrator.test_request_lifecycle_suspension import fake_api
+from pilot.orchestrator.lifecycle_test_support import fake_api
 
 from pilot.orchestrator import pg37_publish as pub
 

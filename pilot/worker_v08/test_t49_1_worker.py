@@ -5,7 +5,7 @@ import sys
 from types import SimpleNamespace
 
 import pytest
-from pilot.orchestrator.test_request_lifecycle_suspension import fake_api
+from pilot.orchestrator.lifecycle_test_support import fake_api
 from pilot.orchestrator import request_lifecycle as lc
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'pilot/worker_v08'))

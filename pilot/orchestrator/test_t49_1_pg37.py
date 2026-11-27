@@ -4,7 +4,7 @@ import json
 import sys
 from pathlib import Path
 import pytest
-from pilot.orchestrator.test_request_lifecycle_suspension import fake_api, content
+from pilot.orchestrator.lifecycle_test_support import fake_api, content
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))

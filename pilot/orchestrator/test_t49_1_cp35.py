@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 
 import pytest
-from pilot.orchestrator.test_request_lifecycle_suspension import fake_api
+from pilot.orchestrator.lifecycle_test_support import fake_api
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'pilot/orchestrator'))
 import native_verified_integration as cp35

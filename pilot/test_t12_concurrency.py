@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, str(Path(__file__).resolve().parent / "orchestrator"))
 from pilot import request_duplicate as dup, auto_integrate as policy
 from pilot.orchestrator import issue_intake, chain_lots
-from pilot.orchestrator.test_request_lifecycle_suspension import fake_api
+from pilot.orchestrator.lifecycle_test_support import fake_api
 
 
 def configured_root(root: Path) -> Path:

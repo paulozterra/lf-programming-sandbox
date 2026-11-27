@@ -67,7 +67,7 @@ def test_reopened_uses_fresh_issue_state(tmp_path):
     state = {"value": "closed"}
     def api(path):
         if path.startswith("contents/"):
-            from pilot.orchestrator.test_request_lifecycle_suspension import content
+            from pilot.orchestrator.lifecycle_test_support import content
             return content({})
         return {"number": 275, "state": state["value"]}
     assert request_state("req-275", api, root=tmp_path) == CLOSED_FINALIZED

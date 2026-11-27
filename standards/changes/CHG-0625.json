@@ -19,6 +19,7 @@
       "pilot/orchestrator/REQUEST_SUSPENSION.md",
       "pilot/orchestrator/chain_lots.py",
       "pilot/orchestrator/examiner_queue.py",
+      "pilot/orchestrator/lifecycle_test_support.py",
       "pilot/orchestrator/native_verified_integration.py",
       "pilot/orchestrator/pg37_publish.py",
       "pilot/orchestrator/publish_exam.py",

@@ -69,7 +69,7 @@ class FakeAPI:
         if method == "GET" and path.startswith("/pulls/"):
             return copy.deepcopy(self.item)
         if method == "GET" and path == "/contents/pilot/orchestrator/request_lifecycle_control.json?ref=main":
-            from pilot.orchestrator.test_request_lifecycle_suspension import content
+            from pilot.orchestrator.lifecycle_test_support import content
             return content({})
         if method == "GET" and path.startswith("/contents/"):
             b = json.dumps(chg()).encode("utf-8")
