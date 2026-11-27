@@ -35,6 +35,7 @@
       "pilot/orchestrator/request_lifecycle.py",
       "pilot/orchestrator/request_lifecycle_control.json",
       "pilot/orchestrator/test_issue_intake.py",
+      "pilot/orchestrator/test_r1_pg37_intake.py",
       "pilot/orchestrator/test_request_finalize.py",
       "pilot/orchestrator/test_request_lifecycle_suspension.py",
       "pilot/orchestrator/test_t17_4_conflict_recovery.py",
