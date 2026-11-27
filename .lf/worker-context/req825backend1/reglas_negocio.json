@@ -1,0 +1,33 @@
+{
+  "area": "BACKEND",
+  "note": "Reglas de negocio del lote copiadas del paquete A9 del pedido. Son obligatorias y prevalecen sobre cualquier suposición; las reglas técnicas (STD-*) están en lf_rules.md.",
+  "requirements": [
+    {
+      "acceptance_checks": [
+        "canary-ok se acepta; null, cadena vacía y ../canary-ok se rechazan con IllegalArgumentException y mensaje constante."
+      ],
+      "evidence_refs": [
+        "supabase://lf_ops.reglas/957901"
+      ],
+      "outcome": "El servicio Java aislado valida un identificador no confiable mediante lista permitida: acepta únicamente canary-ok; cualquier otra cadena o null produce IllegalArgumentException con mensaje constante sin reflejar la entrada.",
+      "requirement_id": "REQ-FORMAT-CANARY-VALIDATION",
+      "rule_code": "FORMAT-CANARY-VALIDATION",
+      "rules": [
+        {
+          "categoria": "security",
+          "rule_code": "FORMAT-CANARY-VALIDATION",
+          "source_ref": "supabase://lf_ops.reglas/957901",
+          "source_status": "VIGENTE",
+          "titulo": "Validación de seguridad de identificador",
+          "valor_config": {
+            "obligation_areas": [
+              "BACKEND"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "run": "req-825",
+  "schema_version": "LF_LOT_BUSINESS_RULES_V1"
+}
