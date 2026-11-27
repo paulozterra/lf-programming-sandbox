@@ -186,3 +186,20 @@ def test_maintenance_cannot_edit_suspended_task_artifacts(monkeypatch):
                  "pilot/orchestrator/chain_plans/req-123.json", "pilot/native_proposals/demo.json"):
         with pytest.raises(life.RequestStateError, match="REQUEST_SUSPENDED"):
             life.require_pr_open("maintenance", [path], api)
+
+
+def test_late_suspension_preserves_stale_draft(monkeypatch):
+    from pilot.orchestrator import chain_lots as cl
+    import json
+    paused = fake_api({SLUG: {"state": life.SUSPENDING, "authorization_pr": 77}})
+    calls = []
+    def command(*args, **kw):
+        calls.append(args)
+        assert args[:3] == ("gh", "pr", "list")
+        return json.dumps([{"number": 99, "headRefName": "lf/evidence/req-123-" + "a"*12,
+                            "author": {"login": "github-actions[bot]"}}])
+    monkeypatch.setattr(cl, "run", command)
+    monkeypatch.setattr(cl, "lifecycle_api", paused)
+    with pytest.raises(life.RequestStateError, match="REQUEST_SUSPENDED"):
+        cl.close_stale_drafts("lf/evidence/req-123-", "b"*12, SLUG)
+    assert len(calls) == 1
