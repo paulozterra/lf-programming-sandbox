@@ -93,7 +93,7 @@ def _linked_request(run, api, repo, number, branch, all_plans, route_ok,
 
 
 def _notify_exhausted(run, api, repo, number, branch, sha, source, latest,
-                      all_plans, route_ok):
+                      all_plans, route_ok, api_list=None, *, allow_pr=None):
     issue = _linked_request(run, api, repo, number, branch, all_plans,
                             route_ok, api_list)
     if issue is None:
@@ -110,6 +110,8 @@ def _notify_exhausted(run, api, repo, number, branch, sha, source, latest,
             " (corrida original " + str(source) + ", reintento " + link + "). "
             "CI_RETRY_EXHAUSTED: requiere revisión del fallo de infraestructura "
             "o del job; CP3.6 no reintentará de nuevo ese HEAD. Sin etiquetas.")
+    if allow_pr is not None and not allow_pr(number, branch):
+        return "REQUEST_INACTIVE"
     run("gh", "issue", "comment", str(issue), "--repo", repo, "--body", body)
     return "CI_RETRY_ISSUE_NOTIFIED"
 
@@ -167,7 +169,7 @@ def retry_failed_bot_prs(head, run, api, repo, all_plans, route_ok,
                         and type(latest.get("id")) is int and latest["id"] > original):
                     status = _notify_exhausted(
                         run, api, repo, number, branch, sha, original,
-                        latest, all_plans, route_ok, api_list)
+                        latest, all_plans, route_ok, api_list, allow_pr=allow_pr)
                 outcomes.append({"pr": number, "head_sha": sha, "status": status})
                 continue
             if (latest.get("status") != "completed"

@@ -156,7 +156,7 @@ def _comments(run, repo: str, number: int, api_list=None) -> list[dict]:
 
 
 def comment_defect(run, api, repo: str, evidence: dict,
-                   api_list=None) -> str:
+                   api_list=None, *, allowed_task=None) -> str:
     task, sha = evidence["task"], evidence["sha"]
     number, run_id = evidence["request"], evidence["run_id"]
     marker = f"<!-- {MARKER}:{task}:{sha}:{run_id} -->"
@@ -180,6 +180,8 @@ def comment_defect(run, api, repo: str, evidence: dict,
             + "no a una evaluación válida del código propuesto. "
             + "La ruta preparará una corrección del registro y reintentará el mismo SHA "
             + "sin que el constructor reenvíe la propuesta.")
+    if allowed_task is not None and not allowed_task(task):
+        return "REQUEST_INACTIVE"
     run("gh", "issue", "comment", str(number), "--repo", repo, "--body", body)
     return "ROUTE_DEFECT_RECORDED"
 
@@ -325,7 +327,9 @@ def replay_corrected(head, run, api, repo: str, root: Path,
         comment_defect(run, api, repo, {
             "request": request, "task": task, "sha": sha,
             "run_id": migration_info["source_run_id"], "attempt": 1,
-        }, api_list)
+        }, api_list, allowed_task=allowed_task)
+        if allowed_task is not None and not allowed_task(task):
+            continue
         branch = "lf/native-proposal/" + task
         remote = run("git", "ls-remote", "origin", "refs/heads/" + branch).split()
         if len(remote) != 2 or remote[0] != sha or remote[1] != "refs/heads/" + branch:
@@ -393,11 +397,11 @@ def sweep(head, run, api, repo, root, worktree, draft, pending_draft,
             results.append({"task": evidence["task"], "status": "REQUEST_CLOSED"})
             continue
         results.append({"status": comment_defect(run, api, repo, evidence,
-                                                   api_list),
+                                                   api_list, allowed_task=allowed_task),
                         "task": evidence["task"], "run_id": item["id"]})
         # One generated CHG / Draft per sweep; subsequent tasks follow after
         # Train advances main, avoiding two bot branches claiming one CHG.
-        if not scheduled:
+        if not scheduled and (allowed_task is None or allowed_task(evidence["task"])):
             registration = prepare_repair(head, run, api, repo, root,
                                           evidence, worktree, draft, pending_draft)
             results.append(registration)

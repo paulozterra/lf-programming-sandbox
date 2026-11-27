@@ -836,6 +836,7 @@ def comment_unrecoverable_conflict(row: dict, all_plans: list, reason: str) -> N
            for comment in comments if isinstance(comment, dict)
            and (comment.get("user") or {}).get("login") == "github-actions[bot]"):
         return
+    require_open(request, lifecycle_api, root=ROOT)
     run("gh", "issue", "comment", str(number), "--repo", REPO, "--body",
         marker + "\nT17.4 watchdog: PR generado #" + str(row["number"])
         + " retirado por conflicto con main. Regeneración no automática ("
@@ -869,6 +870,7 @@ def notify_failed_conflict_replay(row: dict, all_plans: list,
                for c in comments
                if (c.get("user") or {}).get("login") == "github-actions[bot]"):
             return
+        require_open(request, lifecycle_api, root=ROOT)
         run("gh", "issue", "comment", str(number), "--repo", REPO,
             "--body", marker + "\nCP3.6 BLOCKED: "
             "CONFLICT_RECOVERY_CP35_PREVIOUSLY_FAILED. "
