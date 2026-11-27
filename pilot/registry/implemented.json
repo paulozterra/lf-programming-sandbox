@@ -492,8 +492,29 @@
       "unchanged_paths": [
         "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryController.java"
       ]
+    },
+    {
+      "area": "FRONTEND",
+      "endpoints": [],
+      "files": [
+        {
+          "path": "frontend/visible-tests/sol-k91c33077cc68.json",
+          "sha256": "5d05244c4883a90008db3d3565f1516949581b85cab0ffc4a970cd7f0de5e077"
+        }
+      ],
+      "lot": "SOL-K91c33077cc68",
+      "lot_kind": "CHARACTERIZATION",
+      "merge_sha": "6dbce5ac58a574773814ca1aced0395977a88d5a",
+      "reasons": [
+        "CHARACTERIZATION_NOT_IMPLEMENTATION",
+        "CONTRACT_ENDPOINTS_NOT_DERIVABLE"
+      ],
+      "request": "req-652",
+      "requirement_ids": [],
+      "rule_codes": [],
+      "status": "NO_DERIVABLE"
     }
   ],
   "schema_version": "T7_IMPLEMENTED_REGISTRY_V1",
-  "source_main_sha": "e7bac8344af0a268a2f543bd97d5b6fbe7fa4bd1"
+  "source_main_sha": "6dbce5ac58a574773814ca1aced0395977a88d5a"
 }
