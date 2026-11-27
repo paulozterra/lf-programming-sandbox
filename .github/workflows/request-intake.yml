@@ -41,7 +41,11 @@ jobs:
             echo "created=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          result="$(python3 -m pilot.workflow_entrypoint pilot/orchestrator/issue_intake.py)"
+          result="$(python3 -m pilot.workflow_entrypoint pilot/orchestrator/issue_intake.py)" || {
+            status=$?
+            printf '%s\n' "$result"
+            exit "$status"
+          }
           printf '%s\n' "$result"
           # opened + labeled both fire; only the run that created the PR dispatches ci.
           if [ "$result" = "PEDIDO_YA_REGISTRADO" ] || [ "$result" = "PEDIDO_POSIBLE_DUPLICADO" ]; then
