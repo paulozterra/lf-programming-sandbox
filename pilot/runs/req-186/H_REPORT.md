@@ -1,0 +1,63 @@
+# H_REPORT — req-186
+
+Evidencia candidata sin autoridad productiva ni admisión real de Testing.
+
+| Lote | Merge | Etapas | Estado |
+|---|---|---|---|
+| SOL-Ca97f5811893a | `b2dc9b5b7a01768c06b16a9e3d99dbf3abee8107` | 9 (7 bloqueadas) | BLOCKED_EVIDENCE_INCOMPLETE |
+| SOL-002 | `2b376e85d79d4915a61f31f9c4838f9c261009e4` | 9 (7 bloqueadas) | BLOCKED_EVIDENCE_INCOMPLETE |
+| SOL-001 | `5b0430ef7b2bc5497ef48fe8b7996e4447a31829` | 9 (7 bloqueadas) | BLOCKED_EVIDENCE_INCOMPLETE |
+
+## Evidencia por lote
+
+### SOL-Ca97f5811893a
+Huella: `1f3cfdc55e5e252c2bf01994d211e77250bae861e9b251b9099ab0ab556cb00e`
+Requisitos A9: SIN_TRAZA_VERIFICABLE
+
+| Etapa | Estado | Código |
+|---|---|---|
+| PG-06 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-07 | OBSERVED_MERGE_ONLY | sin autoridad |
+| PG-08 | BLOCKED | CP37_AREA_UNKNOWN |
+| PG-09 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-10 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-11 | BLOCKED | CP37_REQUIREMENT_TRACE_BLOCKED |
+| PG-12 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-13 | LOCAL_TEST_PASS_ONLY | sin autoridad |
+| PG-14 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+
+### SOL-002
+Huella: `b21ba61ee34ab97b2e1553ee49b5f5b015ff9d63cf94b63ff6624d2470f11c90`
+Requisitos A9: SIN_TRAZA_VERIFICABLE
+
+| Etapa | Estado | Código |
+|---|---|---|
+| PG-06 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-07 | OBSERVED_MERGE_ONLY | sin autoridad |
+| PG-08 | BLOCKED | CP37_BUILD_LINT_NOT_PASS |
+| PG-09 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-10 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-11 | BLOCKED | CP37_REQUIREMENT_TRACE_BLOCKED |
+| PG-12 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-13 | LOCAL_TEST_PASS_ONLY | sin autoridad |
+| PG-14 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+
+### SOL-001
+Huella: `7cf4ba031fdc6233a11003dbb800f6ad2ce2afd120d0d99abecce4457eb4efb7`
+Requisitos A9: SIN_TRAZA_VERIFICABLE
+
+| Etapa | Estado | Código |
+|---|---|---|
+| PG-06 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-07 | OBSERVED_MERGE_ONLY | sin autoridad |
+| PG-08 | BLOCKED | CP37_BUILD_LINT_NOT_PASS |
+| PG-09 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-10 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-11 | BLOCKED | CP37_REQUIREMENT_TRACE_BLOCKED |
+| PG-12 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+| PG-13 | LOCAL_TEST_PASS_ONLY | sin autoridad |
+| PG-14 | BLOCKED | CP37_PINNED_INPUTS_MISSING |
+
+## Límites
+
+No se ejecutan oráculos ocultos, Supabase productivo ni Testing real. La ausencia de entradas originales permanece BLOCKED.
