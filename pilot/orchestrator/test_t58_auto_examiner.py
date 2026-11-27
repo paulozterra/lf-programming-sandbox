@@ -497,7 +497,8 @@ def test_missing_bound_requirement_blocks_brief_cli_and_all_non_fiche_traces(tmp
     trace = scratch / "trace.json"
     trace.write_text(json.dumps({"FAIL": "env:build"}))
     from pilot.orchestrator.lifecycle_test_support import fake_api
-    monkeypatch.setattr("pilot.orchestrator.request_lifecycle.github_issue_api", fake_api({}))
+    monkeypatch.setattr(pe, "lifecycle_api", fake_api({}))
+    monkeypatch.setattr("pilot.orchestrator.request_lifecycle.request_for_task", lambda *a, **k: REQ)
     monkeypatch.setattr(pe, "ROOT", root)
     monkeypatch.setattr(pe, "worker_load", lambda *args: None)
     monkeypatch.setattr(pe, "lint_overlay_scope", lambda *args: pytest.fail("must block before overlay"))

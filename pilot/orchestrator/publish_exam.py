@@ -396,6 +396,12 @@ def encrypt_roundtrip(raw: bytes, recipient: Path, identity: Path | None, out: P
         raise ExamBlocked("EXAM_ENCRYPTION_ROUNDTRIP_MISMATCH")
 
 
+def lifecycle_api(path):
+    """Read live authorization via the examiner's authenticated gh session."""
+    return json.loads(subprocess.run(["gh", "api", "repos/paulozterra/lf-programming-sandbox/" + path],
+                                     check=True, capture_output=True, text=True, timeout=30).stdout)
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--task", required=True)
@@ -423,9 +429,6 @@ def main() -> int:
     a = p.parse_args()
     try:
         from pilot.orchestrator.request_lifecycle import require_open, request_for_task, RequestStateError
-        def lifecycle_api(path):
-            return json.loads(subprocess.run(["gh", "api", "repos/paulozterra/lf-programming-sandbox/" + path],
-                                             check=True, capture_output=True, text=True, timeout=30).stdout)
         def lifecycle_guard():
             if request_for_task(a.task, root=ROOT, registered=False) != a.request:
                 raise ExamBlocked("EXAM_REQUEST_UNVERIFIED")
