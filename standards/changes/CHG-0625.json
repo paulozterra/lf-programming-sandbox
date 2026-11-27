@@ -5,14 +5,15 @@
   "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
-    "reference": "Owner: autorización explícita D22 posterior al canary req-825"
+    "reference": "Owner: autorización explícita D22 posterior al canary req-825; autorización específica del owner para R1/R2 tras revisión independiente #876 comentario 7227625664"
   },
-  "reason": "Separar suspensión de bloqueo funcional/cierre, conservar historial y denegar efectos nuevos de forma cerrada mediante autorización versionada. PR Draft en construcción; no inscribe pedidos.",
+  "reason": "Separar suspensión de bloqueo funcional/cierre, conservar historial y denegar efectos nuevos de forma cerrada mediante autorización versionada. PR Draft en construcción; no inscribe pedidos. Correcciones R1/R2 del dictamen independiente #876 comentario 7227625664: auditoría histórica finalizada con procedencia y alcance exclusivos; admisión T40 individual y aislada sin credenciales GitHub en el ensayo.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
     "term_ids": [],
     "paths": [
+      ".github/workflows/audit-auditor.yml",
       ".github/workflows/ci.yml",
       ".github/workflows/exam-rehearsal.yml",
       ".github/workflows/native-verified-integration.yml",
@@ -24,6 +25,10 @@
       ".github/workflows/worker-native-trigger.yml",
       ".github/workflows/worker-native.yml",
       ".github/workflows/worker-pilot.yml",
+      "pilot/audit/audit_lifecycle.py",
+      "pilot/audit/auditor_job.py",
+      "pilot/audit/request_trigger.py",
+      "pilot/audit/test_t46_audit_stage.py",
       "pilot/audit/test_t49_1_audit.py",
       "pilot/auto_integrate.py",
       "pilot/ekb/test_t56_phase2.py",
@@ -97,6 +102,7 @@
       "pilot/worker_v08/test_t22_feedback_delivery.py",
       "pilot/worker_v08/test_t35_feedback_unlabeled_issue.py",
       "pilot/worker_v08/test_t38_1_push_notice.py",
+      "pilot/worker_v08/test_t40_exam_controls.py",
       "pilot/worker_v08/test_t49_1_worker.py",
       "standards/CAMBIOS.md",
       "standards/changes/CHG-0625.json"

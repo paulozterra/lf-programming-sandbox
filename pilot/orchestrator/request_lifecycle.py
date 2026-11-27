@@ -371,6 +371,19 @@ def require_open(request: str, api, *, root: Path = ROOT) -> None:
         raise RequestStateError(inactive_reason(state))
 
 
+def require_finalized_audit(request: str, api, *, root: Path = ROOT) -> None:
+    """Historical audit only: a closed proof never overrides suspension."""
+    if not isinstance(request, str) or not REQUEST.fullmatch(request):
+        unresolved()
+    state = request_state(request, api, root=root)
+    if state in (SUSPENDING, SUSPENDED):
+        raise RequestStateError("REQUEST_SUSPENDED")
+    if state != CLOSED_FINALIZED:
+        raise RequestStateError("AUDIT_REQUEST_NOT_FINALIZED")
+    if control_state(request, api) != OPEN:
+        raise RequestStateError("REQUEST_SUSPENDED")
+
+
 def request_for_task(task: str, *, root: Path = ROOT, registered: bool = True) -> str:
     """Resolve a task against unique, trusted main chain plans; never proposal data.
 
@@ -517,7 +530,15 @@ def request_ids_for_pr(branch: str, paths: list[str], *, root: Path = ROOT) -> s
     return requests
 
 
-def require_pr_open(branch: str, paths: list[str], api, *, root: Path = ROOT):
+def require_pr_open(branch: str, paths: list[str], api, *, root: Path = ROOT, pr=None):
+    # Historical audit is a separate, tightly scoped circuit. Check even when
+    # the suspension ledger is empty; a mixed PR cannot acquire this exception.
+    from pilot.audit.audit_lifecycle import is_audit_scope, require_audit_pr
+    if is_audit_scope(branch, paths):
+        if not isinstance(pr, dict) or pr.get("head", {}).get("ref") != branch:
+            unresolved()
+        require_audit_pr(pr, api, root=root, expected_paths=paths)
+        return
     control = read_control(api)
     # Global historical registry is not a new implementation or admission.
     # It may record merges that occurred before suspension; no other paths

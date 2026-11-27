@@ -28,8 +28,53 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  rehearse:
+  select:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    outputs:
+      tasks: ${{ steps.tasks.outputs.tasks }}
+    steps:
+      - name: Checkout trusted main for selection
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          path: control
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout candidate data for selection
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: data
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select individual rehearsal tasks (no execution)
+        id: tasks
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          TASK_INPUT: ${{ inputs.task }}
+        run: |
+          set -euo pipefail
+          if [ -n "$TASK_INPUT" ]; then
+            sel=(--task "$TASK_INPUT")
+          elif [ -n "$BASE_SHA" ]; then
+            sel=(--changed-since "$BASE_SHA")
+          else
+            sel=(--changed-since "$(git -C data merge-base HEAD origin/main)")
+          fi
+          tasks="$(python3 control/pilot/worker_v08/exam_rehearsal.py \
+            --control control --data data --private "$RUNNER_TEMP/rehearsal-private" \
+            --select-only "${sel[@]}")"
+          printf 'tasks=%s\n' "$tasks" >> "$GITHUB_OUTPUT"
+
+  rehearse_task:
+    needs: select
+    if: needs.select.result == 'success' && needs.select.outputs.tasks != '[]'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        task: ${{ fromJSON(needs.select.outputs.tasks) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     services:
@@ -59,7 +104,7 @@ jobs:
         with:
           ref: refs/heads/main
           path: control
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
       - name: Checkout PR or main as data only (no execution)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -71,7 +116,7 @@ jobs:
       - name: Bootstrap guard (rehearsal tool must already be on trusted main)
         id: boot
         run: |
-          if [ -f control/pilot/worker_v08/exam_rehearsal.py ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; else echo "EXAM_REHEARSAL_NOT_ON_MAIN_YET"; echo "ready=false" >> "$GITHUB_OUTPUT"; fi
+          if [ -f control/pilot/worker_v08/exam_rehearsal.py ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; else echo "EXAM_REHEARSAL_NOT_ON_MAIN_YET"; exit 1; fi
 # >>> ENVIRONMENT (verbatim from worker-native.yml)
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -228,42 +273,51 @@ jobs:
           install -m 0755 "$RUNNER_TEMP/age-extract/age/age" "$RUNNER_TEMP/age-bin/age"
           "$RUNNER_TEMP/age-bin/age" --version | grep -Fq 'v1.3.2'
 # <<< ENVIRONMENT
-      - name: Check live request lifecycle before rehearsal
+      - name: Check live request lifecycle for this task
         if: steps.boot.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          TASK_INPUT: ${{ inputs.task }}
+          TASK_INPUT: ${{ matrix.task }}
         run: |
           set -euo pipefail
-          if [ -n "$TASK_INPUT" ]; then
-            sel=(--task "$TASK_INPUT")
-          elif [ -n "$BASE_SHA" ]; then
-            sel=(--changed-since "$BASE_SHA")
-          else
-            # Train-dispatched on a bot branch: compare with trusted main.
-            sel=(--changed-since "$(git -C data merge-base HEAD origin/main)")
-          fi
           python3 control/pilot/worker_v08/exam_rehearsal.py \
             --control control --data data --private "$RUNNER_TEMP/rehearsal-private" \
-            --lifecycle-only "${sel[@]}"
+            --gate-receipt "$RUNNER_TEMP/rehearsal-authorization.json" \
+            --lifecycle-only --task "$TASK_INPUT"
 
-      - name: Rehearse changed exams with the original Worker
+      - name: Rehearse this authorized task with the original Worker
         if: steps.boot.outputs.ready == 'true'
         env:
           PILOT_HOLDOUT_AGE_KEY: ${{ secrets.PILOT_HOLDOUT_AGE_KEY }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          TASK_INPUT: ${{ inputs.task }}
+          TASK_INPUT: ${{ matrix.task }}
         run: |
           set -euo pipefail
-          if [ -n "$TASK_INPUT" ]; then
-            sel=(--task "$TASK_INPUT")
-          elif [ -n "$BASE_SHA" ]; then
-            sel=(--changed-since "$BASE_SHA")
-          else
-            # Train-dispatched on a bot branch: compare with trusted main.
-            sel=(--changed-since "$(git -C data merge-base HEAD origin/main)")
-          fi
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN
           python3 control/pilot/worker_v08/exam_rehearsal.py \
             --control control --data data --private "$RUNNER_TEMP/rehearsal-private" \
-            --age-bin "$RUNNER_TEMP/age-bin/age" "${sel[@]}"
+            --gate-receipt "$RUNNER_TEMP/rehearsal-authorization.json" \
+            --age-bin "$RUNNER_TEMP/age-bin/age" --task "$TASK_INPUT"
+
+  # Retain the exact required Train check name. A denied/failed task cannot
+  # yield a green aggregate, but fail-fast:false lets unrelated tasks run.
+  rehearse:
+    needs: [select, rehearse_task]
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-24.04
+    env:
+      SELECT_RESULT: ${{ needs.select.result }}
+      TASK_RESULT: ${{ needs.rehearse_task.result }}
+      TASKS: ${{ needs.select.outputs.tasks }}
+    steps:
+      - name: Require all selected rehearsals to complete
+        run: |
+          set -euo pipefail
+          test "$SELECT_RESULT" = success
+          if [ "$TASKS" = '[]' ]; then
+            test "$TASK_RESULT" = skipped
+            echo REHEARSAL_NOTHING_TO_DO
+          else
+            test -n "$TASKS"
+            test "$TASK_RESULT" = success
+            echo REHEARSAL_SELECTION_COMPLETE
+          fi

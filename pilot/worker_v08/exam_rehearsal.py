@@ -24,6 +24,10 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
+
+# A delayed/replayed step cannot reuse an old local admission.
+GATE_MAX_AGE_NS = 60 * 1_000_000_000
 
 TASK = re.compile(r"[a-z][a-z0-9_-]{0,31}\Z")
 WATCHED = re.compile(
@@ -89,47 +93,108 @@ def rehearse(control: Path, data: Path, task: str, private: Path, age_bin: str,
             + (" patch=" + patch if isinstance(patch, str) and patch else ""))
 
 
+def checkout_sha(root: Path) -> str:
+    sha = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
+                         check=True, capture_output=True, text=True).stdout.strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", sha):
+        raise ValueError("REHEARSAL_CHECKOUT_UNVERIFIED")
+    return sha
+
+
+def gate_binding(control: Path, data: Path, task: str) -> dict:
+    if not TASK.fullmatch(task):
+        raise ValueError("REHEARSAL_TASK_INVALID")
+    return {"task": task, "control_sha": checkout_sha(control),
+            "data_sha": checkout_sha(data)}
+
+
+def authorize_task(control: Path, data: Path, task: str, receipt: Path, *, api=None):
+    """Trusted step with read-only GitHub token; never decrypt or run tests."""
+    from pilot.orchestrator.request_lifecycle import (
+        require_open, request_for_task, github_issue_api)
+    binding = gate_binding(control, data, task)
+    request = request_for_task(task, root=control, registered=False)
+    require_open(request, api or github_issue_api, root=control)
+    binding["authorized_at_ns"] = time.monotonic_ns()
+    # An exclusive, runner-local, one-use handoff. No token or exam data.
+    with receipt.open("x", encoding="utf-8") as handle:
+        json.dump(binding, handle)
+
+
+def consume_authorization(control: Path, data: Path, task: str, receipt: Path):
+    """Adjacent secret-free handoff, bound to this task and both checkouts."""
+    if receipt.is_symlink() or not receipt.is_file():
+        raise ValueError("REHEARSAL_AUTHORIZATION_MISSING")
+    try:
+        binding = json.loads(receipt.read_text("utf-8"))
+    finally:
+        receipt.unlink()
+    if not isinstance(binding, dict):
+        raise ValueError("REHEARSAL_AUTHORIZATION_MISMATCH")
+    stamp = binding.pop("authorized_at_ns", None)
+    if binding != gate_binding(control, data, task):
+        raise ValueError("REHEARSAL_AUTHORIZATION_MISMATCH")
+    if type(stamp) is not int or not 0 <= time.monotonic_ns() - stamp <= GATE_MAX_AGE_NS:
+        raise ValueError("REHEARSAL_AUTHORIZATION_EXPIRED")
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--control", type=Path, required=True)
     p.add_argument("--data", type=Path, required=True)
     p.add_argument("--private", type=Path, required=True)
     p.add_argument("--age-bin", default="age")
-    p.add_argument("--lifecycle-only", action="store_true")
+    p.add_argument("--gate-receipt", type=Path)
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--lifecycle-only", action="store_true")
+    mode.add_argument("--select-only", action="store_true")
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--task")
     g.add_argument("--changed-since")
     a = p.parse_args()
     import os
-    key = os.environ.get("PILOT_HOLDOUT_AGE_KEY", "")
-    tasks = [a.task] if a.task else changed_tasks(a.data, a.changed_since)
+    from pilot.orchestrator.request_lifecycle import RequestStateError
     if a.task and not TASK.fullmatch(a.task):
         print("REHEARSAL_FAIL:TASK_INVALID")
         return 1
-    if not tasks:
-        print("REHEARSAL_NOTHING_TO_DO")
+    if a.select_only:
+        tasks = [a.task] if a.task else changed_tasks(a.data, a.changed_since)
+        print(json.dumps(tasks, separators=(",", ":")))
         return 0
+    # The workflow selects first, then each task has its own adjacent gate
+    # and rehearsal. No grouped execution or transferable authorization.
+    if not a.task or a.gate_receipt is None:
+        print("REHEARSAL_FAIL:INDIVIDUAL_AUTHORIZATION_REQUIRED")
+        return 1
     if a.lifecycle_only:
-        from pilot.orchestrator.request_lifecycle import (
-            require_open, request_for_task, github_issue_api, RequestStateError)
         try:
-            for task in tasks:
-                request = request_for_task(task, root=a.control, registered=False)
-                require_open(request, github_issue_api, root=a.control)
+            authorize_task(a.control, a.data, a.task, a.gate_receipt)
         except RequestStateError as exc:
-            print(str(exc))
+            code = str(exc)
+            if code not in ("REQUEST_SUSPENDED", "REQUEST_CLOSED", "REQUEST_STATE_UNRESOLVED"):
+                code = "REQUEST_STATE_UNRESOLVED"
+            print(f"{a.task}: REHEARSAL_SKIPPED_LIFECYCLE:{code}")
             return 1
-        print("REHEARSAL_LIFECYCLE_OPEN")
+        except Exception:
+            print(f"{a.task}: REHEARSAL_SKIPPED_LIFECYCLE:REQUEST_STATE_UNRESOLVED")
+            return 1
+        print(f"{a.task}: REHEARSAL_LIFECYCLE_OPEN")
         return 0
-    failed = False
-    for task in tasks:
-        try:
-            verdict = rehearse(a.control, a.data, task, a.private / task, a.age_bin, key)
-        except Exception as exc:  # never print exam content
-            verdict = "REHEARSAL_FAIL:ERROR_" + type(exc).__name__
-        print(f"{task}: {verdict}")
-        failed |= verdict.startswith("REHEARSAL_FAIL")
-    return 1 if failed else 0
+
+    # The execution step never receives a GitHub token. The AGE key is used
+    # only by trusted decryption, removed from inherited command environment.
+    # The pinned Worker still builds its own isolated acceptance environment.
+    if any(os.environ.get(k) for k in ("GH_TOKEN", "GITHUB_TOKEN", "ACTIONS_RUNTIME_TOKEN")):
+        print(f"{a.task}: REHEARSAL_FAIL:UNEXPECTED_GITHUB_CREDENTIAL")
+        return 1
+    key = os.environ.pop("PILOT_HOLDOUT_AGE_KEY", "")
+    try:
+        consume_authorization(a.control, a.data, a.task, a.gate_receipt)
+        verdict = rehearse(a.control, a.data, a.task, a.private / a.task, a.age_bin, key)
+    except Exception as exc:  # never print exam content
+        verdict = "REHEARSAL_FAIL:ERROR_" + type(exc).__name__
+    print(f"{a.task}: {verdict}")
+    return 1 if verdict.startswith("REHEARSAL_FAIL") else 0
 
 
 if __name__ == "__main__":

@@ -498,6 +498,30 @@ def await_checks(number, sha, dispatched_heads=None, *, lifecycle_guard=None):
                 lifecycle_guard(number, pr)
             dispatch_rehearsal(pr["head"]["ref"], sha)
             dispatched_heads.add(("rehearsal", sha))
+        audit_ready = True
+        if pr["head"]["ref"].startswith("audit-"):
+            from pilot.audit.audit_lifecycle import latest_audit_run
+            try:
+                audit_run = latest_audit_run(lambda route: api("GET", "/" + route), sha)
+            except ValueError as exc:
+                raise TrainError(str(exc)) from exc
+            audit_ready = bool(audit_run and audit_run.get("status") == "completed"
+                               and audit_run.get("conclusion") == "success")
+            if audit_run and audit_run.get("status") == "completed" and not audit_ready:
+                raise TrainError("AUDIT_STAGE_NOT_GREEN")
+            # A Train reconciliation changes HEAD and the old T46 receipt no
+            # longer authorizes land. Use the existing workflow once if absent.
+            if (audit_run is None and elapsed >= CI_MISSING_GRACE_SECONDS
+                    and ("audit-stage", sha) not in dispatched_heads):
+                if lifecycle_guard is None:
+                    raise TrainError("AUDIT_LIFECYCLE_GUARD_REQUIRED")
+                lifecycle_guard(number, pr)
+                title = re.fullmatch(r"\[AUDIT\]\[([a-z0-9_-]{1,40})\] req-[1-9][0-9]*", pr.get("title", ""))
+                if not title:
+                    raise TrainError("AUDIT_SCOPE_UNVERIFIED")
+                api("POST", "/actions/workflows/audit-stage.yml/dispatches",
+                    {"ref": pr["head"]["ref"], "inputs": {"project": title.group(1)}}, expected=(204,))
+                dispatched_heads.add(("audit-stage", sha))
         found = {name: value for name, value in checks_for_head(sha).items()
                  if name not in TRAIN_OWN_CHECKS}
         failed = [name for name in required if name in found and found[name]["conclusion"] not in (None, "success")]
@@ -512,6 +536,9 @@ def await_checks(number, sha, dispatched_heads=None, *, lifecycle_guard=None):
                          and value["conclusion"] not in ("success", "skipped", "neutral")}
             if extra_bad:
                 raise TrainError("EXTRA_CHECK_FAILED " + json.dumps(extra_bad))
+            if not audit_ready:
+                time.sleep(POLL_SECONDS)
+                continue
             return {name: found[name] for name in required}
         if missing != last_missing:
             inconsistent_since = time.monotonic()
@@ -564,7 +591,7 @@ def dispatch_updated_head_ci(branch, sha):
 
 def guard_request_lifecycle(number, pr, *, files=None):
     from pathlib import Path
-    from orchestrator.request_lifecycle import (
+    from pilot.orchestrator.request_lifecycle import (
         require_pr_open, RequestStateError, CONTROL_PATH, read_control,
         validate_control_transition, verify_owner_transition, verify_drain, SUSPENDED,
     )
@@ -590,7 +617,7 @@ def guard_request_lifecycle(number, pr, *, files=None):
             paths.append(row["filename"])
             if row.get("previous_filename"):
                 paths.append(row["previous_filename"])
-        require_pr_open(pr["head"]["ref"], paths, reader, root=Path(__file__).resolve().parents[1])
+        require_pr_open(pr["head"]["ref"], paths, reader, root=Path(__file__).resolve().parents[1], pr=pr)
         if CONTROL_PATH in paths:
             previous = read_control(reader)
             current = read_control(reader, pr["head"]["sha"])
@@ -697,6 +724,12 @@ def run(number):
         def before_merge():
             if main_sha() != base:
                 raise TrainError("MAIN_MOVED_BEFORE_MERGE_RETRY")
+            if latest["head"]["ref"].startswith("audit-"):
+                from pilot.audit.audit_lifecycle import require_audit_check
+                try:
+                    require_audit_check(lambda route: api("GET", "/" + route), initial_head)
+                except ValueError as exc:
+                    raise TrainError(str(exc)) from exc
             guard_request_lifecycle(number, latest)
             guard_registry_merge(latest)
         try:
