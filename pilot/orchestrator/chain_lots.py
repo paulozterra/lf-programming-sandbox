@@ -2217,7 +2217,7 @@ def process_one_plan(request, lots, state, bindings, head, kind, sweep,
     if request == new_plan_request or sweep:
         outcomes.extend(request_all_lot_exams(request, lots, bindings))
     failures = failed_lots(bindings)
-    scheduling_failures = dict(failures)
+    scheduling_failures = dict(failures) if recoveries else failures
     for lot_id, row in recoveries.items():
         if lot_id in completed:
             continue
