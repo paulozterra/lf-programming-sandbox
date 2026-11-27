@@ -490,3 +490,21 @@ def require_pr_open(branch: str, paths: list[str], api, *, root: Path = ROOT):
     for slug in sorted(request_ids_for_pr(branch, paths, root=root)):
         if slug in control:
             require_open(slug, api, root=root)
+
+
+def main():
+    """Live admission check for request-bound workflow steps."""
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--request", required=True)
+    args = parser.parse_args()
+    try:
+        require_open(args.request, github_issue_api)
+    except RequestStateError as exc:
+        print(str(exc))
+        raise SystemExit(1) from exc
+    print("REQUEST_OPEN")
+
+
+if __name__ == "__main__":
+    main()

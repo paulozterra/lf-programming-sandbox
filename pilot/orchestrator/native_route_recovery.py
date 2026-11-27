@@ -357,6 +357,8 @@ def replay_corrected(head, run, api, repo: str, root: Path,
                 run, api, repo, request, task, sha,
                 "el SHA del paquete original difiere del paquete histórico certificado", api_list)})
             continue
+        if allowed_task is not None and not allowed_task(task):
+            continue
         run("gh", "workflow", "run", "worker-native.yml", "--repo", repo, "--ref", "main",
             "-f", "task=" + task, "-f", "proposal_commit_sha=" + sha,
             "-f", "attempt=1", "-f", "route_retry=true")

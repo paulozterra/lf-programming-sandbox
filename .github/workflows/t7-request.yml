@@ -45,6 +45,7 @@ jobs:
       - name: Checkout trusted main, not an untrusted proposal
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          ref: refs/heads/main
           fetch-depth: 0
           persist-credentials: true
       - name: Python 3.12
@@ -77,18 +78,23 @@ jobs:
             echo "found=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          base="$(git rev-parse HEAD)"
+          git merge-base --is-ancestor "$GITHUB_SHA" "$base"
+          echo "base_sha=$base" >> "$GITHUB_OUTPUT"
           echo "found=true" >> "$GITHUB_OUTPUT"
           while IFS= read -r file; do
             slug="$(basename "$(dirname "$file")")"
+            python3 -m pilot.workflow_entrypoint pilot/orchestrator/request_lifecycle.py --request "$slug"
             python3 -m pilot.workflow_entrypoint pilot/orchestrator/t7_entry.py --root . \
-              --request-id "$slug" --base-head-sha "$GITHUB_SHA"
+              --request-id "$slug" --base-head-sha "$base"
           done < "$RUNNER_TEMP/t7-requests.txt"
       - name: Stage generated evidence only in a governed Draft PR
         if: steps.resolve.outputs.found == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          short_sha="$(printf '%s' "$GITHUB_SHA" | cut -c1-12)"
+          base="${{ steps.resolve.outputs.base_sha }}"
+          short_sha="$(printf '%s' "$base" | cut -c1-12)"
           branch="lf/generated-t7/$short_sha"
           if [ "${{ inputs.rerun || 'false' }}" = "true" ] || [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
             # T33.2: plain path parsing (the escaped sed never matched, so every
@@ -121,12 +127,21 @@ jobs:
               -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
               commit -m 'T7 generated request analysis, reuse assessment and chain'
           python3 -m pilot.workflow_entrypoint pilot/orchestrator/generated_branch_standards.py \
-            --kind generated-t7 --base "$GITHUB_SHA"
+            --kind generated-t7 --base "$base"
+          guard_requests() {
+            while IFS= read -r file; do
+              slug="$(basename "$(dirname "$file")")"
+              python3 -m pilot.workflow_entrypoint pilot/orchestrator/request_lifecycle.py --request "$slug"
+            done < "$RUNNER_TEMP/t7-requests.txt"
+          }
+          guard_requests
           git push --set-upstream origin "$branch"
+          guard_requests
           gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
             --draft --title "[DRAFT][T7] generated admission for $short_sha" \
             --body "Trusted main request input; A1-A9 candidate, source-derived reuse, intake, planning and chain. Owner/Train governance retained. No oracle, model, labels, or direct push to main."
           # PRs created with GITHUB_TOKEN do not automatically trigger CI.
+          guard_requests
           gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
       - name: Stop selector's disposable database
         if: always()

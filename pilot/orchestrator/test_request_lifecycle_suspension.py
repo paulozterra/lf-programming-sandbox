@@ -146,3 +146,17 @@ def test_global_registry_not_a_suspension_bypass():
     with pytest.raises(life.RequestStateError, match=life.CODE):
         life.require_pr_open("lf/implemented-registry/123456789abc",
                              ["pilot/registry/implemented.json", "pilot/runs/req-123/state.json"], api)
+
+
+def test_bootstrap_empty_policy_and_trusted_main_train():
+    import subprocess
+    root = life.ROOT
+    subprocess.run(["git", "rev-parse", "--verify", "origin/main"], cwd=root, check=True,
+                   capture_output=True)
+    tree = subprocess.check_output(["git", "ls-tree", "origin/main", "--", CONTROL], cwd=root)
+    if not tree:
+        assert life.parse_control((root / CONTROL).read_bytes()) == {}
+        old_train = subprocess.check_output(["git", "show", "origin/main:pilot/sandbox_train.py"], cwd=root)
+        assert b"guard_request_lifecycle" not in old_train
+    workflow = (root / ".github/workflows/sandbox-train.yml").read_text()
+    assert "ref: main" in workflow
