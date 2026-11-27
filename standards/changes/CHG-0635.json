@@ -1,0 +1,40 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0635",
+  "title": "CP3.5: integración verificada nativa req652frontend3 (run 46033926974)",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "CP3.5 autorizado por Paulo; PR draft automático de PASS nativo"
+  },
+  "reason": "Parche originado exclusivamente en native-verified-patch de la corrida nativa PASS 46033926974, SHA-256 e5a69d2640f3400d4a1965ac4d8b1e6e20ef320cf370dc40251a36090deee294; rutas y bytes aplicados sin reconstruir propuesta, sin exámenes ni aprobación automática.",
+  "artifacts": [],
+  "derived": {
+    "generator": null,
+    "paths": [],
+    "attribution": "CP3.5_TRUSTED_GENERATOR_NOT_WORKER"
+  },
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "frontend/visible-tests/sol-k91c33077cc68.json",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0635.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "agent:gpt",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/888"
+  }
+}
