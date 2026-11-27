@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0606",
+  "title": "Aislar base CREATE de prueba T9.3 format canary",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: corregir bloqueo de integración #855 sin modificar propuesta verificada"
+  },
+  "reason": "La prueba T9.3 CREATE heredaba componentes canary del checkout del PR de integración (run 45933060904, job 140290842906). Preparar un commit local desechable sin los dos componentes objetivo ni su evidencia de reutilización, anclar T7 a ese commit, conservar aserciones y acreditar casos vacío, parcial y completo. No modifica la ruta productiva ni los datos reales.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/test_t9_3_e2e.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0606.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/856"
+  }
+}
