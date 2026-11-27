@@ -330,4 +330,4 @@
 | CHG-0635 | EDITORIAL | CP3.5: integración verificada nativa req652frontend3 (run 46033926974) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/888 |
 | CHG-0639 | EDITORIAL | Examinador automático: clon con historial completo (no --depth 1) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/894 |
 | CHG-0646 | EDITORIAL | T26: preservar caracterización integrada durante refresco de pendientes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/903 |
-| CHG-0648 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra |  |
+| CHG-0648 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/905 |
