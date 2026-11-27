@@ -1,6 +1,7 @@
 {
   "schema_version": "LF_NATIVE_FORMAT_ACTIVATION_V1",
   "tasks": {
-    "req825backend1": 851
+    "req825backend1": 851,
+    "req652backend22": 911
   }
 }

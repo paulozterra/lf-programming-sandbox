@@ -1,0 +1,35 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0654",
+  "title": "Inscripción exclusiva de req652backend22 en prevalidación nativa de formato",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: activar Spotless exclusivamente para req652backend22 tras registro #904 y T40 PASS"
+  },
+  "reason": "Inscribir únicamente req652backend22 mediante la política existente CHG-0577, con frontera del propio PR #911. Registro #904 CHG-0647 integrado en 970d205e0aa8f6522f7c9f44d3bc51082ef0ecaa; T40 46047210826 REHEARSAL_PASS; CI main 46047959794 SUCCESS. El registro contiene std-be-05-spotless-check. Conservar req825backend1:851, aceptación, examen, DAG, protecciones e historial de intentos.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/worker_v08/native_format_activation.json",
+      "standards/changes/CHG-0654.json",
+      "standards/CAMBIOS.md"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/911"
+  }
+}
