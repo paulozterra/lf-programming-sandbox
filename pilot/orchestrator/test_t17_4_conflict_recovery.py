@@ -116,6 +116,9 @@ def test_two_branches_same_chg_first_merges_second_regenerates_same_sweep(tmp_pa
         raise AssertionError(args)
 
     def api(path):
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        if path == f"contents/{CONTROL}?ref=main":
+            return content({})
         if path == "issues/901":
             return {"number": 901, "state": "open"}
         if path == "pulls/205":
