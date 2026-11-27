@@ -1,0 +1,1 @@
+{"accept":["canary-ok"],"reject":[null,"","CANARY-OK","canary-ok ","canary-ok\n"," canary-ok","canary_ok","canary-okx","cаnary-ok","<script>alert(1)</script>","canary-ok\u0000","' OR 1=1 --"],"expected_message":"FORMAT_CANARY_INVALID_INPUT","timing_iterations":200000}

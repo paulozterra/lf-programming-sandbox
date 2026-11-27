@@ -1,0 +1,574 @@
+{
+  "schema_version": "LF_DEEP_AUDIT_REPORT_V2",
+  "phases": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "checklist": [
+    {
+      "ekb_code": "LF-PE-STEP70-RUN-CLOSED-EKB-ENFORCEMENT-OPEN-20261031-005",
+      "applies": true,
+      "reason": "La única regla tiene verificación trazada propia en esta auditoría (reproductor ejecutado), no solo el PASS del pedido.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-BE-RUN",
+        "EV-LOTS"
+      ],
+      "evidence_kind": "MEASURED_THIS_AUDIT"
+    },
+    {
+      "ekb_code": "IG-M1013-REPOSITORY-REPAIR-POLICY-054",
+      "applies": true,
+      "reason": "El gate del lote corresponde a su trabajo: regla BACKEND en lote BACKEND.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-ANA",
+        "EV-LOTS"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    },
+    {
+      "ekb_code": "LF-PE10A-ASSERTION-CONTRACT-PASSWHEN-NULL-READY-20261027-001",
+      "applies": true,
+      "reason": "El caso null del contrato está cubierto: null se rechaza con el mismo mensaje constante.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-SVC",
+        "EV-BE-RUN"
+      ],
+      "evidence_kind": "MEASURED_THIS_AUDIT"
+    },
+    {
+      "ekb_code": "LF-PROMO-INDEPENDENT-JUDGE-OWNER-20261114-001",
+      "applies": true,
+      "reason": "Esta auditoría no concede promoción: promotion_authorized=false; autoridad del owner separada.",
+      "result": "REVIEWED",
+      "evidence_refs": [
+        "EV-LOTS"
+      ],
+      "evidence_kind": "CODE_READ_ONLY"
+    }
+  ],
+  "audit_context": {
+    "audit_id": "AUDIT-req-825-2026-11-27",
+    "source_revision": "e7bac8344af0a268a2f543bd97d5b6fbe7fa4bd1",
+    "started_at": "2026-11-27T20:10:40Z",
+    "source_execution_id": null,
+    "source_run_started_at": null,
+    "new_e2e_executed": false,
+    "ig_execution_required": false,
+    "ig_invocation_verified": false,
+    "promotion_authorized": false,
+    "authority_ref": null
+  },
+  "audit_tasks": [
+    {
+      "id": "RULE:FORMAT-CANARY-VALIDATION",
+      "description": "El servicio Java aislado valida un identificador no confiable mediante lista permitida: acepta únicamente canary-ok; cualquier otra cadena o null produce IllegalArgumentException con mensaje constante sin reflejar la entrada.",
+      "status": "VERIFIED",
+      "evidence_refs": [
+        "EV-SVC",
+        "EV-BE-RUN",
+        "EV-LOTS"
+      ],
+      "reason": "CUMPLE: \"canary-ok\".equals(identifier) (línea 6) acepta solo canary-ok; null y 12 variantes lanzan IllegalArgumentException(\"FORMAT_CANARY_INVALID_INPUT\") (línea 7) sin reflejar la entrada (medido). Regla asignada correctamente al lote BACKEND SOL-001; el controlador declarado en write_paths no se creó, coherente con 'servicio aislado'."
+    }
+  ],
+  "evidence_catalog": [
+    {
+      "id": "EV-SVC",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "apps/time-service/src/main/java/lf/sandbox/time/formatcanary/FormatCanaryService.java",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-27T20:10:40Z",
+      "claim": "Servicio leído línea a línea en e7bac83 (11 líneas): lista permitida por igualdad exacta con el literal, null-safe, mensaje constante.",
+      "capture_sha256": "1977c2e88532b21a5ea7cea763c3e6631061fca308ec314ebee8c5ff71775bf6"
+    },
+    {
+      "id": "EV-ANA",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-825/analysis.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-27T20:10:40Z",
+      "claim": "Análisis: una regla FORMAT-CANARY-VALIDATION, área BACKEND, frente API_CONTRACT.",
+      "capture_sha256": "4fba99686686c7e7315740fe7eb7009f86128af58c9a1db624ef7bdec148fe1c"
+    },
+    {
+      "id": "EV-LOTS",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-825/lots.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-27T20:10:40Z",
+      "claim": "Un lote SOL-001 BACKEND con REQ-FORMAT-CANARY-VALIDATION; write_paths declara también FormatCanaryController.java, que no existe en e7bac83.",
+      "capture_sha256": "8c34c8c7493b3b36a82953f9f8204dd5d0c3a641f913d5a2a4d537e0d48081fd"
+    },
+    {
+      "id": "EV-BE-RUN",
+      "kind": "MEASURED_THIS_AUDIT",
+      "origin": "LOCAL_HELPER",
+      "capture_ref": "pilot/runs/req-825/audit/evidence/backend_repro.json",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-27T20:10:40Z",
+      "claim": "Reproductor Java ejecutado contra el servicio de e7bac83: 1 aceptado y 12 rechazos (null, vacío, mayúsculas, espacios, salto de línea, NUL, homoglifo cirílico, inyecciones), todos con el mensaje constante; ~443 ns por llamada.",
+      "capture_sha256": "6bb23529d3fc71d0ece63a6e8ce6c4b5fbfdb0be364884d008f92767113a4c8c"
+    },
+    {
+      "id": "EV-BE-SRC",
+      "kind": "CODE_READ_ONLY",
+      "origin": "SOURCE_FILE",
+      "capture_ref": "pilot/runs/req-825/audit/evidence/FormatCanaryAuditReproducer.java",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-27T20:10:40Z",
+      "claim": "Código del reproductor; entradas en repro_args.json.",
+      "capture_sha256": "d1587f875e0b7071300ce92ffa532ff95403284ea733b7ec814075ae57a42231"
+    },
+    {
+      "id": "EV-COHORT",
+      "kind": "NOT_MEASURED",
+      "origin": "NONE",
+      "capture_ref": "pilot/runs/req-825/audit/cohort_sample.json#/rows",
+      "source_execution_id": null,
+      "observed_at": null,
+      "collected_at": "2026-11-27T20:10:40Z",
+      "claim": "Sin corridas del pipeline LF para este pedido: cohorte vacía.",
+      "capture_sha256": "31851727f99a25b3937454c6cf95bd6ec9f602351ca1572375f7f1bdd3baef64"
+    }
+  ],
+  "steps": [
+    {
+      "order": 0,
+      "name": "Paso LF 0",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 10,
+      "name": "Paso LF 10",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 20,
+      "name": "Paso LF 20",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 30,
+      "name": "Paso LF 30",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 40,
+      "name": "Paso LF 40",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 45,
+      "name": "Paso LF 45",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 47,
+      "name": "Paso LF 47",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 50,
+      "name": "Paso LF 50",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 60,
+      "name": "Paso LF 60",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 70,
+      "name": "Paso LF 70",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    },
+    {
+      "order": 80,
+      "name": "Paso LF 80",
+      "execution_id": null,
+      "reported_status": "NOT_APPLICABLE_ROUTE_REQUEST",
+      "what_worked": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "behavior_status": "NOT_EXECUTED",
+      "runtime_origin": "NONE",
+      "evidence_kind": "NOT_MEASURED",
+      "evidence_refs": [],
+      "resolved_receipts": [],
+      "unresolved": [
+        "Sin corrida LF para este pedido."
+      ],
+      "confidence": "HIGH",
+      "confidence_reason": "La ruta no ejecuta los pasos LF.",
+      "receipt_ref": null
+    }
+  ],
+  "hops": [
+    {
+      "id": "HOP-0-10",
+      "from_step": 0,
+      "to_step": 10,
+      "sender": "paso 0",
+      "receiver": "paso 10",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-10-20",
+      "from_step": 10,
+      "to_step": 20,
+      "sender": "paso 10",
+      "receiver": "paso 20",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-20-30",
+      "from_step": 20,
+      "to_step": 30,
+      "sender": "paso 20",
+      "receiver": "paso 30",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-30-40",
+      "from_step": 30,
+      "to_step": 40,
+      "sender": "paso 30",
+      "receiver": "paso 40",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-40-45",
+      "from_step": 40,
+      "to_step": 45,
+      "sender": "paso 40",
+      "receiver": "paso 45",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-45-47",
+      "from_step": 45,
+      "to_step": 47,
+      "sender": "paso 45",
+      "receiver": "paso 47",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-47-50",
+      "from_step": 47,
+      "to_step": 50,
+      "sender": "paso 47",
+      "receiver": "paso 50",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-50-60",
+      "from_step": 50,
+      "to_step": 60,
+      "sender": "paso 50",
+      "receiver": "paso 60",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-60-70",
+      "from_step": 60,
+      "to_step": 70,
+      "sender": "paso 60",
+      "receiver": "paso 70",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    },
+    {
+      "id": "HOP-70-80",
+      "from_step": 70,
+      "to_step": 80,
+      "sender": "paso 70",
+      "receiver": "paso 80",
+      "fields_sent": [],
+      "fields_lost": [],
+      "run_binding": "NOT_APPLICABLE",
+      "hash_binding": "NOT_APPLICABLE",
+      "hash_semantics": "No aplica.",
+      "applicability_reason": "El pedido de la ruta no se ejecuta por el pipeline LF de 11 pasos; se audita el código integrado.",
+      "evidence_refs": [],
+      "unverified": []
+    }
+  ],
+  "sql_queries": [],
+  "pass_emitters": [],
+  "pass_scan_scope": {
+    "files": [],
+    "literal_scan_complete": false,
+    "dynamic_emissions_complete": false,
+    "limitations": [
+      "Inventario de emisores PASS no aplica al código de producto."
+    ]
+  },
+  "run_sample": {
+    "query": "corridas LF del pedido",
+    "requested_n": 1,
+    "sampled_runs": 0,
+    "metrics": {
+      "sampled_runs": 0,
+      "run_status_counts": {},
+      "persisted_pass_steps": 0,
+      "pass_missing_evidence_ref": 0,
+      "pass_missing_evidence_ref_percent": null,
+      "pass_empty_payload": 0,
+      "ig_reported_runs": 0,
+      "ig_reported_without_invocation": 0,
+      "ig_reported_without_invocation_percent": null,
+      "confirmed_false_pass_rate": null,
+      "interpretation": "Pointer presence and naming anomalies are indicators, not semantic false-PASS classification. IG may be optional."
+    },
+    "evidence_refs": [
+      "EV-COHORT"
+    ],
+    "limitations": [
+      "El pedido no tiene corridas del pipeline LF."
+    ]
+  },
+  "contracts": [],
+  "findings": [],
+  "limitations": [
+    "Reproductor local del servicio aislado compilado desde e7bac83, sin Spring ni controlador (no existe en el commit).",
+    "Tiempos medidos en el equipo del auditor; solo comparativos.",
+    "Códigos EKB del checklist validados en vivo por el CI, no por el auditor.",
+    "Modo SHADOW: el informe no bloquea el pedido ni autoriza efectos."
+  ],
+  "completion": {
+    "lot_coverage_percent": 100.0,
+    "flow_verdict": "FLOW_NOT_ACCREDITED",
+    "flow_reasons": [
+      "NO_NEW_E2E_EXECUTION",
+      "STEP_NOT_ACCREDITED:0",
+      "STEP_NOT_ACCREDITED:10",
+      "STEP_NOT_ACCREDITED:20",
+      "STEP_NOT_ACCREDITED:30",
+      "STEP_NOT_ACCREDITED:40",
+      "STEP_NOT_ACCREDITED:45",
+      "STEP_NOT_ACCREDITED:47",
+      "STEP_NOT_ACCREDITED:50",
+      "STEP_NOT_ACCREDITED:60",
+      "STEP_NOT_ACCREDITED:70",
+      "STEP_NOT_ACCREDITED:80",
+      "HOP_RUN_NOT_ACCREDITED:HOP-0-10",
+      "HOP_RUN_NOT_ACCREDITED:HOP-10-20",
+      "HOP_RUN_NOT_ACCREDITED:HOP-20-30",
+      "HOP_RUN_NOT_ACCREDITED:HOP-30-40",
+      "HOP_RUN_NOT_ACCREDITED:HOP-40-45",
+      "HOP_RUN_NOT_ACCREDITED:HOP-45-47",
+      "HOP_RUN_NOT_ACCREDITED:HOP-47-50",
+      "HOP_RUN_NOT_ACCREDITED:HOP-50-60",
+      "HOP_RUN_NOT_ACCREDITED:HOP-60-70",
+      "HOP_RUN_NOT_ACCREDITED:HOP-70-80"
+    ],
+    "unknown_scope": [
+      "Exposición HTTP (FormatCanaryController declarado en lots.json pero ausente)"
+    ]
+  }
+}

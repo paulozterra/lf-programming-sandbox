@@ -1,0 +1,137 @@
+[
+ {
+  "kind": "accept",
+  "input": "canary-ok",
+  "outcome": "ACCEPTED",
+  "message": null,
+  "returned": "canary-ok",
+  "message_reflects_input": false,
+  "first_call_ns": 4213,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": null,
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 41072,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": "",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 6252,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": "CANARY-OK",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 12047,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": "canary-ok ",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 6537,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": "canary-ok\n",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 6022,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": " canary-ok",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 17588,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": "canary_ok",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 6532,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": "canary-okx",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 4386,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": "cаnary-ok",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 4847,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": "<script>alert(1)</script>",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 7833,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": "canary-ok\u0000",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 6880,
+  "pass": true
+ },
+ {
+  "kind": "reject",
+  "input": "' OR 1=1 --",
+  "outcome": "IAE",
+  "message": "FORMAT_CANARY_INVALID_INPUT",
+  "returned": null,
+  "message_reflects_input": false,
+  "first_call_ns": 7268,
+  "pass": true
+ },
+ {
+  "kind": "timing",
+  "iterations": 200000,
+  "avg_ns": 442.9
+ }
+]
