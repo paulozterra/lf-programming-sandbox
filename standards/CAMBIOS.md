@@ -325,7 +325,7 @@
 | CHG-0606 | EDITORIAL | Aislar base CREATE de prueba T9.3 format canary |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/856 |
 | CHG-0613 | EDITORIAL | CP3.6: encadenamiento gobernado req-825 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/864 |
 | CHG-0614 | EDITORIAL | CP3.6: encadenamiento gobernado req-825 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/865 |
-| CHG-0625 | ADDITIVE | D22: suspensión gobernada por pedido en request_lifecycle |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/876 |
+| CHG-0625 | ADDITIVE | D22: núcleo de suspensión gobernada por pedido |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/876 |
 | CHG-0626 | EDITORIAL | T46: procedencia histórica de evidencias de auditoría |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/877 |
 | CHG-0634 | ADDITIVE | Continuación gobernada de lote agotado con oportunidad única |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/885 |
 | CHG-0635 | EDITORIAL | CP3.5: integración verificada nativa req652frontend3 (run 46033926974) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/888 |
@@ -333,3 +333,4 @@
 | CHG-0646 | EDITORIAL | T26: preservar caracterización integrada durante refresco de pendientes |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/903 |
 | CHG-0647 | EDITORIAL | CP3.6: encadenamiento gobernado req-652 |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/904 |
 | CHG-0654 | EDITORIAL | Inscripción exclusiva de req652backend22 en prevalidación nativa de formato |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/911 |
+| CHG-0665 | EDITORIAL | D22: mantenimiento protegido del Train (tramo 2/2) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/876 |

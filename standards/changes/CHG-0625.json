@@ -1,13 +1,13 @@
 {
   "schema_version": "LF_STANDARD_CHANGE_V1",
   "change_id": "CHG-0625",
-  "title": "D22: suspensión gobernada por pedido en request_lifecycle",
+  "title": "D22: núcleo de suspensión gobernada por pedido",
   "change_class": "ADDITIVE",
   "trigger": {
     "kind": "OWNER",
-    "reference": "Owner: autorización explícita D22 posterior al canary req-825; autorización específica del owner para R1/R2 tras revisión independiente #876 comentario 7227625664"
+    "reference": "Owner: autorización explícita D22 posterior al canary req-825; autorización específica del owner para R1/R2 tras revisión independiente #876 comentario 7227625664; owner autoriza separación gobernada en dos tramos tras ratificación #876 comentario 7228302357"
   },
-  "reason": "Separar suspensión de bloqueo funcional/cierre, conservar historial y denegar efectos nuevos de forma cerrada mediante autorización versionada. PR Draft en construcción; no inscribe pedidos. Correcciones R1/R2 del dictamen independiente #876 comentario 7227625664: auditoría histórica finalizada con procedencia y alcance exclusivos; admisión T40 individual y aislada sin credenciales GitHub en el ensayo.",
+  "reason": "Separar suspensión de bloqueo funcional/cierre, conservar historial y denegar efectos nuevos de forma cerrada mediante autorización versionada. PR Draft en construcción; no inscribe pedidos. Correcciones R1/R2 del dictamen independiente #876 comentario 7227625664: auditoría histórica finalizada con procedencia y alcance exclusivos; admisión T40 individual y aislada sin credenciales GitHub en el ensayo. Tramo 1/2: núcleo con control vacío, sin activar suspensiones; Train protegido y cuatro regresiones de tooling reservados al segundo tramo, incluida exclusivamente la prueba test_train_audit_gate_revalidates_exact_finalized_request. Referencia de bytes: 9f90b81f11c5736bcc895b74e728be544fe83d41. INTERVENCION_MANUAL: SI — separación autorizada.",
   "artifacts": [],
   "affected": {
     "rule_ids": [],
@@ -76,13 +76,9 @@
       "pilot/orchestrator/test_t50_pg37.py",
       "pilot/orchestrator/test_t58_auto_examiner.py",
       "pilot/request_failure_notify.py",
-      "pilot/sandbox_train.py",
       "pilot/test_auto_integrate.py",
       "pilot/test_issue_intake_duplicate.py",
       "pilot/test_request_failure_notify.py",
-      "pilot/test_sandbox_train_policy.py",
-      "pilot/test_sandbox_train_recovery.py",
-      "pilot/test_sandbox_train_retry.py",
       "pilot/test_t11_api_exams.py",
       "pilot/test_t12_concurrency.py",
       "pilot/test_t14_exam_requests.py",

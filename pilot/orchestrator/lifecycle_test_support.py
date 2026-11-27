@@ -55,5 +55,3 @@ def fake_api(entries, *, historical=None, issue_state="open"):
             return [{"event": "labeled", "actor": {"login": "example"}, "label": {"name": "ready-to-merge"}}]
         raise AssertionError(path)
     return api
-
-
