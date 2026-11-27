@@ -276,8 +276,10 @@ def budget(rejected, hashes):
 def publish(command, api, repo, control, task, data):
     # Only the separate write-capable trusted step calls this function.
     number = issue_for_task(control, task)
-    if request_state("req-" + str(number), api, root=control) != OPEN:
-        return "FORMAT_REQUEST_CLOSED"
+    from pilot.orchestrator.request_lifecycle import inactive_reason
+    state = request_state("req-" + str(number), api, root=control)
+    if state != OPEN:
+        return "FORMAT_" + inactive_reason(state)
     issue = api(f"issues/{number}")
     require(issue.get("number") == number and not issue.get("pull_request")
             and issue.get("state") == "open", "FORMAT_ISSUE_INVALID")
@@ -301,6 +303,9 @@ def publish(command, api, repo, control, task, data):
             + ("\nCorrige el formato y presenta un parche diferente." if status == "FORMAT_FAIL"
                else "\nRevisa la propuesta registrada." if status == "INVALID_PROPOSAL"
                else "\nDefecto de base: requiere revisión del owner; no imputable al constructor."))
+    state = request_state("req-" + str(number), api, root=control)
+    if state != OPEN:
+        return "FORMAT_" + inactive_reason(state)
     command("gh", "issue", "comment", str(number), "--repo", repo, "--body", body)
     return "FORMAT_FEEDBACK_PUBLISHED"
 
