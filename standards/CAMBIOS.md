@@ -335,3 +335,4 @@
 | CHG-0654 | EDITORIAL | Inscripción exclusiva de req652backend22 en prevalidación nativa de formato |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/911 |
 | CHG-0665 | EDITORIAL | D22: mantenimiento protegido del Train (tramo 2/2) |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/876 |
 | CHG-0669 | EDITORIAL | F1.B: cierre formal terminal y evidencia incremental por reutilización |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/927 |
+| CHG-0674 | EDITORIAL | CP3.6: encadenamiento gobernado p4-prioridad |  | paulozterra | https://github.com/paulozterra/lf-programming-sandbox/pull/932 |
