@@ -19,7 +19,7 @@ import re
 from pilot.orchestrator.request_finalize import (
     verified_chain_complete, current_view, read_state, terminal_outcome,
     terminal_intent, legacy_complete, request_path, FinalizationError,
-    DECIDED, SUCCESS_STAGES, MainView, decode,
+    DECIDED, SUCCESS_STAGES, MainView, decode, validate_shared_registry,
 )
 from pilot.config.project_config import ProjectConfigError, storage, storage_path, template_path_pattern, repo_storage
 
@@ -163,24 +163,39 @@ def control_state(request: str, api) -> str:
         raise RequestStateError(CODE) from exc
 
 
-def verify_owner_label(api, number: int, owner: str) -> None:
-    """Only a fresh owner label, not a bot label or a PR description."""
+def verify_owner_label(api, number: int, owner: str, *, cutoff=None, events=None) -> None:
+    """Live label admission or an independently bounded historical observation."""
     latest = None
     try:
-        for page in range(1, 11):
-            rows = api(f"issues/{number}/events?per_page=100&page={page}")
-            if not isinstance(rows, list) or len(rows) > 100:
-                unresolved()
+        if cutoff is not None:
+            rows = events if events is not None else _paged(api, f"issues/{number}/events")
+            eligible = []
             for row in rows:
-                if not isinstance(row, dict):
-                    unresolved()
                 if (row.get("event") in ("labeled", "unlabeled")
                         and (row.get("label") or {}).get("name") == "ready-to-merge"):
-                    latest = row
-            if len(rows) < 100:
-                break
+                    stamp = _stamp(row.get("created_at"))
+                    if stamp > cutoff:
+                        continue
+                    # A same-second label is ambiguous without finer ordering.
+                    if stamp == cutoff:
+                        unresolved()
+                    eligible.append((stamp, row["id"], row))
+            latest = max(eligible, default=(None, None, None))[-1]
         else:
-            unresolved()
+            for page in range(1, 11):
+                rows = api(f"issues/{number}/events?per_page=100&page={page}")
+                if not isinstance(rows, list) or len(rows) > 100:
+                    unresolved()
+                for row in rows:
+                    if not isinstance(row, dict):
+                        unresolved()
+                    if (row.get("event") in ("labeled", "unlabeled")
+                            and (row.get("label") or {}).get("name") == "ready-to-merge"):
+                        latest = row
+                if len(rows) < 100:
+                    break
+            else:
+                unresolved()
         if (latest is None or latest.get("event") != "labeled"
                 or (latest.get("actor") or {}).get("login") != owner):
             unresolved()
@@ -225,7 +240,7 @@ def transition_marker(request, old, new, head):
     return marker
 
 
-def verify_owner_transition(api, pr, request, old, new):
+def verify_owner_transition(api, pr, request, old, new, *, historical=False):
     """A ready label alone cannot authorize a different HEAD or transition.
     An owner COMMENT review is permitted even on their own PR; no fake approval.
     """
@@ -237,14 +252,35 @@ def verify_owner_transition(api, pr, request, old, new):
                 or pr["base"]["ref"] != "main" or pr["head"]["repo"]["full_name"] != repo):
             unresolved()
         owner = repo.split("/")[0]
-        verify_owner_label(api, number, owner)
+        cutoff = _stamp(pr["merged_at"]) if pr.get("merged") else datetime.now(timezone.utc)
+        if historical and pr.get("merged") is not True:
+            unresolved()
+        events = _paged(api, f"issues/{number}/events") if historical else None
+        verify_owner_label(api, number, owner, cutoff=cutoff if historical else None, events=events)
         marker = transition_marker(request, old, new, head)
         reviews = _paged(api, f"pulls/{number}/reviews")
-        cutoff = _stamp(pr["merged_at"]) if pr.get("merged") else datetime.now(timezone.utc)
-        matches = [row for row in reviews if (row.get("user") or {}).get("login") == owner
-                   and row.get("state") in ("COMMENTED", "APPROVED")
-                   and row.get("commit_id") == head and row.get("body", "").strip() == marker
-                   and _stamp(row.get("submitted_at")) <= cutoff]
+        def authorized_at_cutoff(row):
+            if ((row.get("user") or {}).get("login") != owner
+                    or row.get("commit_id") != head or row.get("body", "").strip() != marker):
+                return False
+            stamp = _stamp(row.get("submitted_at"))
+            if not historical:
+                return row.get("state") in ("COMMENTED", "APPROVED") and stamp <= cutoff
+            if stamp >= cutoff:
+                return False
+            if row.get("state") in ("COMMENTED", "APPROVED"):
+                return True
+            # A later dismissal of an APPROVED review does not rewrite its
+            # prior authorization. Require the exact dismissal event and
+            # original state; never infer an approval from DISMISSED alone.
+            if row.get("state") == "DISMISSED":
+                dismissed = [event for event in events if event.get("event") == "review_dismissed"
+                             and (event.get("dismissed_review") or {}).get("review_id") == row["id"]]
+                return (len(dismissed) == 1
+                        and (dismissed[0]["dismissed_review"].get("state") or "").lower() in ("approved", "commented")
+                        and _stamp(dismissed[0].get("created_at")) > cutoff)
+            return False
+        matches = [row for row in reviews if authorized_at_cutoff(row)]
         if not matches:
             unresolved()
     except Exception as exc:
@@ -389,11 +425,11 @@ def _terminal_provenance(request, state, view, api):
             or view.at(parents[1]["sha"]).read(path) != view.read(path)):
         unresolved()
     old = read_state(view.at(proof["base_sha"]), request)
-    verify_owner_transition(api, pr, request, old["stage"], state["stage"])
+    verify_owner_transition(api, pr, request, old["stage"], state["stage"], historical=True)
 
 
-def _terminal_classification(request, issue, api, root):
-    view = current_view(api, root)
+def _terminal_classification(request, issue, api, root, *, view=None):
+    view = view if view is not None else current_view(api, root)
     state = read_state(view, request)
     if issue["state"] == "closed" and "terminal" not in state and state.get("stage") not in DECIDED:
         return CLOSED_FINALIZED if legacy_complete(view, request) else CLOSED_CANCELLED
@@ -436,14 +472,34 @@ def request_state(request: str, api, *, root: Path = ROOT,
             return OPEN
         unresolved()
     try:
+        view = current_view(api, root)
         issue = _issue(request, api)
-        if issue["state"] == "open":
-            control = control_state(request, api)
-            if control != OPEN:
-                return control
-        return _terminal_classification(request, issue, api, root)
+        control = control_state(request, api) if issue["state"] == "open" else None
+        result = (control if control not in (None, OPEN)
+                  else _terminal_classification(request, issue, api, root, view=view))
+        _revalidate_observations(request, api, root, view, issue, control)
+        return result
     except Exception as exc:
         raise RequestStateError(CODE) from exc
+
+
+def _revalidate_observations(request, api, root, view, issue, control):
+    """Bracket the live D22 and issue reads with the same immutable main SHA.
+
+    Reject observable changes within a decision. GitHub has no atomic
+    read/modify transaction across refs, issues and labels: a change after
+    the final observation and before the caller's effect remains possible.
+    """
+    if current_view(api, root).revision != view.revision:
+        unresolved()
+    if control is not None:
+        latest = control_state(request, api)
+        if latest != control:
+            unresolved()
+    if _issue(request, api) != issue:
+        unresolved()
+    if current_view(api, root).revision != view.revision:
+        unresolved()
 
 
 def require_open(request: str, api, *, root: Path = ROOT) -> None:
@@ -459,14 +515,16 @@ def require_administrative_close(row, api, *, root: Path = ROOT, closed=False):
         if (not isinstance(request, str) or not REQUEST.fullmatch(request)
                 or type(row["issue"]) is not int or row["issue"] != int(request[4:])):
             unresolved()
+        view = current_view(api, root)
         issue = _issue(request, api)
         if issue["state"] != ("closed" if closed else "open"):
             unresolved()
-        if control_state(request, api) != OPEN:
+        control = control_state(request, api)
+        if control != OPEN:
             raise RequestStateError("REQUEST_SUSPENDED")
-        view = current_view(api, root)
         if view.revision != row["revision"]:
             unresolved()
+        validate_shared_registry(view)
         state = read_state(view, request)
         outcome = terminal_outcome(view, request, state)
         meta = decode(view.read(request_path(request) + "/request_meta.json"))
@@ -476,10 +534,7 @@ def require_administrative_close(row, api, *, root: Path = ROOT, closed=False):
             unresolved()
         if outcome["stage"] in DECIDED:
             _terminal_provenance(request, state, view, api)
-        if current_view(api, root).revision != view.revision:
-            unresolved()
-        if control_state(request, api) != OPEN:
-            raise RequestStateError("REQUEST_SUSPENDED")
+        _revalidate_observations(request, api, root, view, issue, control)
         return True
     except RequestStateError:
         raise

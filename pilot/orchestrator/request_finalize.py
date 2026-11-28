@@ -17,7 +17,7 @@ from urllib.error import HTTPError
 from pathlib import Path
 import re
 
-from pilot.orchestrator.issue_intake import API
+from pilot.orchestrator.issue_intake import API, Blocked
 from pilot.orchestrator.intervention_report import markdown, report
 from pilot.config.project_config import storage_path, storage
 
@@ -166,6 +166,18 @@ def read_state(view, slug):
 
 def terminal_intent(state):
     return state.get("stage") in TERMINAL or "terminal" in state
+
+
+def validate_shared_registry(view):
+    """A corrupt or unavailable shared ledger is not a local request error."""
+    try:
+        raw = view.read("pilot/registry/implemented.json")
+        ledger = decode(raw)
+        if (not isinstance(ledger, dict) or not isinstance(ledger.get("entries"), list)
+                or any(not isinstance(row, dict) for row in ledger["entries"])):
+            deny()
+    except (ValueError, OSError, TypeError, KeyError, subprocess.SubprocessError) as exc:
+        raise GlobalCloseError("T9_GLOBAL_REGISTRY_INVALID") from exc
 
 
 def lot_registry(view, slug):
@@ -359,12 +371,19 @@ def prepare(out: Path):
     out.mkdir(parents=True, exist_ok=True)
     revision = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"],
                                        text=True, timeout=15).strip()
+    validate_shared_registry(LocalView(ROOT))
     rows = []
     for slug, meta, stage in terminal_requests():
-        outcome = terminal_outcome(LocalView(ROOT), slug)
-        r = report(slug, rev=revision, with_labels=False)
+        try:
+            outcome = terminal_outcome(LocalView(ROOT), slug)
+            r = report(slug, rev=revision, with_labels=False)
+            rendered = markdown(r)
+        except (ValueError, KeyError, TypeError) as exc:
+            print(f"T9_LOCAL_REPORT_FAILURE:{slug}:{type(exc).__name__}")
+            continue
+        # Git subprocess failure or output filesystem failure is global.
         path = out / f"{slug}-INTERVENTION_REPORT.md"
-        path.write_text(markdown(r), encoding="utf-8")
+        path.write_text(rendered, encoding="utf-8")
         rows.append({"slug": slug, "issue": meta["issue"], "stage": stage,
                      "fingerprint": outcome["fingerprint"], "revision": revision,
                      "intervencion_manual": r["intervencion_manual"]})
@@ -374,49 +393,110 @@ def prepare(out: Path):
     return rows
 
 
-def close(out: Path):
-    api = API(os.environ["GH_TOKEN"])
+class LocalCloseError(ValueError):
+    pass
+
+
+class GlobalCloseError(RuntimeError):
+    pass
+
+
+def _causes(exc):
+    while exc is not None:
+        yield exc
+        exc = exc.__cause__
+
+
+def _close_call(api, method, path, payload=None):
+    try:
+        result = api.call(method, path, payload)
+        if method == "GET" and path == "/git/ref/heads/main":
+            if (not isinstance(result, dict) or result.get("ref") != "refs/heads/main"
+                    or not isinstance(result.get("object"), dict)
+                    or result["object"].get("type") != "commit"
+                    or not isinstance(result["object"].get("sha"), str)
+                    or not SHA.fullmatch(result["object"]["sha"])):
+                raise GlobalCloseError("T9_GLOBAL_MAIN_INVALID")
+        if method == "GET" and path == "/contents/pilot/orchestrator/request_lifecycle_control.json?ref=main":
+            from pilot.orchestrator.request_lifecycle import read_control, RequestStateError
+            try:
+                read_control(lambda _: result)
+            except RequestStateError as exc:
+                raise GlobalCloseError("T9_GLOBAL_CONTROL_INVALID") from exc
+        return result
+    except (Blocked, HTTPError, json.JSONDecodeError) as exc:
+        status = next((x.code for x in _causes(exc) if isinstance(x, HTTPError)), None)
+        # Only request-specific 404/410/422 is local. Auth, throttling,
+        # transport, malformed global responses and server errors must surface.
+        if method == "GET" and status == 404 and path.startswith("/contents/") and "/req-" in path:
+            raise
+        if re.fullmatch(r"/issues/[1-9][0-9]*(?:/comments(?:[?].*)?|/labels/lf-request-blocked)?", path) and status in (404, 410, 422):
+            raise LocalCloseError("T9_LOCAL_ISSUE_FAILURE") from exc
+        raise GlobalCloseError("T9_GLOBAL_API_FAILURE") from exc
+
+
+def _close_one(api, row, url):
     from pilot.orchestrator.request_lifecycle import (
         require_administrative_close, RequestStateError, _paged)
-    reader = lambda route: api.call("GET", "/" + route)
+    reader = lambda route: _close_call(api, "GET", "/" + route)
+
+    def enabled(*, closed=False):
+        try:
+            return require_administrative_close(row, reader, root=ROOT, closed=closed)
+        except (RequestStateError, FinalizationError) as exc:
+            for cause in _causes(exc):
+                if isinstance(cause, GlobalCloseError):
+                    raise cause
+            return False
+
+    path = f"/issues/{row['issue']}"
+    issue = reader(path[1:])
+    if not isinstance(issue, dict) or issue.get("state") not in ("open", "closed"):
+        raise LocalCloseError("T9_LOCAL_ISSUE_INVALID")
+    if issue["state"] == "closed":
+        if row["stage"] == "CHAIN_COMPLETE_VERIFIED" and "lf-request-blocked" in {x.get("name") for x in issue.get("labels", [])} and enabled(closed=True):
+            _close_call(api, "DELETE", path + "/labels/lf-request-blocked")
+        return
+    if not enabled():
+        return
+    marker = f"<!-- LF_TERMINAL_CLOSE:{row['slug']}:{row['fingerprint']} -->"
+    comments = _paged(reader, path[1:] + "/comments")
+    if not any((c.get("user") or {}).get("login") == BOT
+               and c.get("body", "").startswith(marker) for c in comments):
+        if not enabled():
+            return
+        _close_call(api, "POST", path + "/comments", {"body": f"{marker}\nRuta finalizada: {row['stage']}.\n"
+                    f"Intervención manual: {row['intervencion_manual']}.\n"
+                    f"Informe de intervención: {url} (artefacto t9-intervention-reports, "
+                    f"archivo {row['slug']}-INTERVENTION_REPORT.md)."})
+    if not enabled():
+        return
+    reason = "completed" if row["stage"] == "CHAIN_COMPLETE_VERIFIED" else "not_planned"
+    _close_call(api, "PATCH", path, {"state": "closed", "state_reason": reason})
+    if row["stage"] == "CHAIN_COMPLETE_VERIFIED":
+        issue = reader(path[1:])
+        if "lf-request-blocked" in {x.get("name") for x in issue.get("labels", [])} and enabled(closed=True):
+            _close_call(api, "DELETE", path + "/labels/lf-request-blocked")
+
+
+def close(out: Path):
+    from pilot.orchestrator.request_lifecycle import RequestStateError
+    api = API(os.environ["GH_TOKEN"])
     run_id = os.environ["GITHUB_RUN_ID"]
     manifest = decode((out / "manifest.json").read_bytes())
+    if not isinstance(manifest, list):
+        deny()
     url = (f"https://github.com/{os.environ['GITHUB_REPOSITORY']}"
            f"/actions/runs/{run_id}")
     for row in manifest:
-        def enabled(*, closed=False):
-            try:
-                return require_administrative_close(row, reader, root=ROOT, closed=closed)
-            except (RequestStateError, FinalizationError):
-                return False
-
-        issue = api.issue(row["issue"])
-        if issue.get("state") == "closed":
-            # A crash after PATCH but before label removal is recoverable.
-            if row["stage"] == "CHAIN_COMPLETE_VERIFIED" and enabled(closed=True):
-                if "lf-request-blocked" in {x.get("name") for x in issue.get("labels", [])}:
-                    api.call("DELETE", f"/issues/{row['issue']}/labels/lf-request-blocked")
-            continue
-        if not enabled():
-            continue
-        marker = f"<!-- LF_TERMINAL_CLOSE:{row['slug']}:{row['fingerprint']} -->"
-        comments = _paged(reader, f"issues/{row['issue']}/comments")
-        if not any((c.get("user") or {}).get("login") == BOT
-                   and c.get("body", "").startswith(marker) for c in comments):
-            if not enabled():
-                continue
-            api.comment(row["issue"], f"{marker}\nRuta finalizada: {row['stage']}.\n"
-                        f"Intervención manual: {row['intervencion_manual']}.\n"
-                        f"Informe de intervención: {url} (artefacto t9-intervention-reports, "
-                        f"archivo {row['slug']}-INTERVENTION_REPORT.md).")
-        if not enabled():
-            continue
-        reason = "completed" if row["stage"] == "CHAIN_COMPLETE_VERIFIED" else "not_planned"
-        api.call("PATCH", f"/issues/{row['issue']}", {"state": "closed", "state_reason": reason})
-        if row["stage"] == "CHAIN_COMPLETE_VERIFIED" and enabled(closed=True):
-            issue = api.issue(row["issue"])
-            if "lf-request-blocked" in {x.get("name") for x in issue.get("labels", [])}:
-                api.call("DELETE", f"/issues/{row['issue']}/labels/lf-request-blocked")
+        try:
+            if (not isinstance(row, dict) or not isinstance(row.get("slug"), str)
+                    or not re.fullmatch(r"req-[1-9][0-9]*", row["slug"])
+                    or type(row.get("issue")) is not int or row["issue"] != int(row["slug"][4:])):
+                raise LocalCloseError("T9_LOCAL_MANIFEST_ROW_INVALID")
+            _close_one(api, row, url)
+        except (LocalCloseError, RequestStateError, FinalizationError, KeyError, TypeError) as exc:
+            print(f"T9_LOCAL_CLOSE_FAILURE:{row.get('slug', 'unknown') if isinstance(row, dict) else 'unknown'}:{type(exc).__name__}")
 
 
 if __name__ == "__main__":

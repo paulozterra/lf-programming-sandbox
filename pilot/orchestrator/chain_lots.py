@@ -2089,6 +2089,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         if ci_status != "GREEN":
             return [{"status": ci_status, "head_sha": head}]
     all_plans = plans()
+    terminal_plans = {request for request, _lots, state, _bindings in all_plans
+                      if terminal_intent(state)}
     owners = {}
     complete_tasks = set()
     for request, _lots, _state, bindings in all_plans:
@@ -2126,7 +2128,7 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         if len(candidates) != 1:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
         request = next(iter(candidates))
-        if any(row[0] == request and terminal_intent(row[2]) for row in all_plans):
+        if request in terminal_plans:
             return False
         return request_state(request, lifecycle_api, root=ROOT) == OPEN
 
@@ -2136,6 +2138,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         request = conflicted_request(row, all_plans)
         if request is None:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        if request in terminal_plans:
+            return False
         return request_state(request, lifecycle_api, root=ROOT) == OPEN
 
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
@@ -2176,6 +2180,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             # Only registered, actively owned tasks can have format evidence.
             # Do not query Actions for plans still awaiting registration.
             registration = storage_path("registrations_root", task + ".json", root=ROOT)
+            if len(owners.get(task, ())) == 1 and next(iter(owners[task])) in terminal_plans:
+                return False
             return (registration.is_file() and not registration.is_symlink()
                     and format_recovery.enabled(task) and task_live(task))
         recoveries = (
@@ -2234,6 +2240,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     # back a different request's attested CP3.5 replay.
     if sweep:
         for request, _lots, _state, bindings in all_plans:
+            if terminal_intent(_state):
+                continue
             try:
                 if not route_request_metadata(request):
                     continue
@@ -2259,6 +2267,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                     per_request_block(request, "INTEGRATION_REPLAY", exc))
     if sweep:
         for request, _lots, _state, bindings in all_plans:
+            if terminal_intent(_state):
+                continue
             if not route_request_metadata(request):
                 repair_outcomes.append({"request": request,
                                         "status": "SKIPPED_NOT_ROUTE_REQUEST"})

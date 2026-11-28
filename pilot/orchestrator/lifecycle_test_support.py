@@ -86,7 +86,7 @@ def fake_api(entries, *, historical=None, issue_state="open", root=None, reopene
         if path.startswith("issues?state=open&labels=examiner-working"):
             return []
         if path == "issues/77/events?per_page=100&page=1":
-            return [{"event": "labeled", "actor": {"login": "example"}, "label": {"name": "ready-to-merge"}}]
+            return [{"id": 100, "event": "labeled", "actor": {"login": "example"}, "label": {"name": "ready-to-merge"}, "created_at": "2026-11-27T05:58:00Z"}]
         if path.startswith("issues/") and "/events?per_page=100&page=" in path:
             return [{"id": 999, "event": "closed"}] if reopened else []
         return main_response(path, root)

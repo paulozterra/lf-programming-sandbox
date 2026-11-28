@@ -56,7 +56,7 @@ def test_cp37_h_report_before_close_and_no_pr_after_close(tmp_path, monkeypatch,
 
 def test_cp37_rechecks_before_publication(tmp_path, monkeypatch):
     folder = setup(tmp_path, monkeypatch, "open")
-    states = iter(["open", "closed"])
+    states = iter(["open", "open", "closed", "closed"])
     monkeypatch.setattr(stage.chain_lots, "api",
                         lambda path: (content({}) if path == f"contents/{CONTROL}?ref=main" else {"number": 275, "state": next(states)} if path == "issues/275" else main_response(path, tmp_path)))
     monkeypatch.setattr(stage.chain_lots, "worktree",
