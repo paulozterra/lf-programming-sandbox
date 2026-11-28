@@ -376,7 +376,15 @@ def prepare(out: Path):
     for slug, meta, stage in terminal_requests():
         try:
             outcome = terminal_outcome(LocalView(ROOT), slug)
-            r = report(slug, rev=revision, with_labels=False)
+            try:
+                r = report(slug, rev=revision, with_labels=False)
+            except SystemExit as exc:
+                # The producer reports absent intake history with this exact code.
+                # Other exits (including successful exit codes) are not local errors.
+                if exc.code != "REQUEST_NOT_FOUND":
+                    raise
+                print(f"T9_LOCAL_REPORT_FAILURE:{slug}:REQUEST_NOT_FOUND")
+                continue
             rendered = markdown(r)
         except (ValueError, KeyError, TypeError) as exc:
             print(f"T9_LOCAL_REPORT_FAILURE:{slug}:{type(exc).__name__}")
@@ -500,11 +508,16 @@ def close(out: Path):
 
 
 if __name__ == "__main__":
+    # The workflow wrapper uses runpy with run_name="__main__".
+    # Execute the canonical package functions so lifecycle and T9 share
+    # the same exception classes, including GlobalCloseError.
+    from pilot.orchestrator.request_finalize import close as canonical_close, prepare as canonical_prepare
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True)
     parser.add_argument("--close", action="store_true")
     args = parser.parse_args()
     if args.close:
-        close(Path(args.out))
+        canonical_close(Path(args.out))
     else:
-        prepare(Path(args.out))
+        canonical_prepare(Path(args.out))

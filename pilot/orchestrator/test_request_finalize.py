@@ -12,24 +12,25 @@ from pilot.orchestrator.pg37_evidence import render
 
 SLUG = "req-17"
 
-def fixture(root, *, lots=("A", "B"), merged=("A",), report=True):
+def fixture(root, *, lots=("A", "B"), merged=("A",), report=True, slug=SLUG):
     install_project_config(root)
-    folder = root / "pilot/runs" / SLUG
+    folder = root / "pilot/runs" / slug
     folder.mkdir(parents=True)
-    (folder / "request_meta.json").write_text(json.dumps({"issue": 17}))
-    (folder / "state.json").write_text(json.dumps({"stage": "LOTS_PLANNED", "request_id": SLUG}))
+    (folder / "request_meta.json").write_text(json.dumps({"issue": int(slug[4:])}))
+    (folder / "state.json").write_text(json.dumps({"stage": "LOTS_PLANNED", "request_id": slug}))
     (folder / "lots.json").write_text(json.dumps({"lots": [{"id": x} for x in lots]}))
     ledger = root / "pilot/registry/implemented.json"
-    ledger.parent.mkdir(parents=True)
-    ledger.write_text(json.dumps({"entries": [
-        {"request": SLUG, "lot": x, "merge_sha": "a"*40,
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    entries = json.loads(ledger.read_text())["entries"] if ledger.exists() else []
+    ledger.write_text(json.dumps({"entries": entries + [
+        {"request": slug, "lot": x, "merge_sha": "a"*40,
          "status": "NO_DERIVABLE" if x == "A" else "ATTESTED"} for x in merged]}))
-    records = [evidence_fixture(SLUG, x, "a"*40) for x in merged]
+    records = [evidence_fixture(slug, x, "a"*40) for x in merged]
     (folder / "evidence").mkdir()
     for row in records:
         (folder / "evidence" / (row["lot_id"] + "-" + "a"*12 + ".json")).write_text(json.dumps(row))
     if report:
-        (folder / "H_REPORT.md").write_text(render(SLUG, records))
+        (folder / "H_REPORT.md").write_text(render(slug, records))
     return folder
 
 
@@ -251,6 +252,96 @@ class FinalizeTests(unittest.TestCase):
             with patch.object(mod,"ROOT",root), patch.object(mod.subprocess,"check_output",return_value=TEST_MAIN):
                 with self.assertRaises(mod.GlobalCloseError):
                     mod.prepare(root)
+
+    def test_real_report_missing_request_history_continues(self):
+        import subprocess
+        from pilot.orchestrator import intervention_report as producer
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(root), *args],
+                                               text=True, stderr=subprocess.DEVNULL).strip()
+            git("init")
+            git("config", "user.name", "Fixture")
+            git("config", "user.email", "fixture@example.invalid")
+            git("commit", "--allow-empty", "-m", "base")
+            fixture(root, merged=("A", "B"))
+            healthy = fixture(root, merged=("A", "B"), slug="req-18")
+            (healthy / "request.md").write_text("synthetic request\n")
+            git("add", ".")
+            git("commit", "-m", "two terminal fixtures, only one with intake history")
+            out = root / "reports"
+            with patch.object(mod, "ROOT", root), patch.object(producer, "ROOT", root):
+                self.assertEqual([row[0] for row in mod.terminal_requests()], ["req-17", "req-18"])
+                with self.assertRaises(SystemExit) as missing:
+                    producer.report("req-17", rev=git("rev-parse", "HEAD"), with_labels=False)
+                self.assertEqual(missing.exception.code, "REQUEST_NOT_FOUND")
+                prepared = mod.prepare(out)
+                self.assertEqual([row["slug"] for row in prepared], ["req-18"])
+                self.assertEqual(json.loads((out / "manifest.json").read_text()), prepared)
+                self.assertTrue((out / "req-18-INTERVENTION_REPORT.md").is_file())
+                self.assertFalse((out / "req-17-INTERVENTION_REPORT.md").exists())
+                for error in (SystemExit("REQUEST_ID_INVALID"), SystemExit(0), KeyboardInterrupt()):
+                    with self.subTest(error=repr(error)), patch.object(mod, "report", side_effect=error):
+                        with self.assertRaises(type(error)) as raised:
+                            mod.prepare(out)
+                        self.assertIs(raised.exception, error)
+
+    def test_real_t9_entrypoint_distinguishes_global_and_local_guard_failures(self):
+        import sys
+        from pilot import workflow_entrypoint
+        from pilot.orchestrator import issue_intake
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = fixture(root, merged=("A", "B"))
+            fixture(root, merged=("A", "B"), slug="req-18")
+            rows = []
+            for n in (17, 18):
+                slug = f"req-{n}"
+                outcome = mod.terminal_outcome(mod.LocalView(root), slug)
+                rows.append(dict(slug=slug, issue=n, revision=TEST_MAIN,
+                                 stage=outcome["stage"], fingerprint=outcome["fingerprint"],
+                                 intervencion_manual="NO"))
+            (root / "manifest.json").write_text(json.dumps(rows))
+            ledger = root / "pilot/registry/implemented.json"
+            report_path = first / "H_REPORT.md"
+            original_ledger, original_report = ledger.read_bytes(), report_path.read_bytes()
+            class APIStub:
+                def __init__(self):
+                    self.ops, self.reads, self.closed = [], [], set()
+                def call(self, method, path, payload=None):
+                    if method == "GET":
+                        self.reads.append(path)
+                        if "/comments?" in path:
+                            return []
+                        if path in ("/issues/17", "/issues/18"):
+                            n = int(path.rsplit("/", 1)[1])
+                            return {"number": n, "state": "closed" if n in self.closed else "open", "labels": []}
+                        return fake_api({}, root=root)(path[1:])
+                    self.ops.append((method, path))
+                    if method == "PATCH":
+                        self.closed.add(int(path.rsplit("/", 1)[1]))
+                    return {}
+            for scenario in ("global", "local", "healthy"):
+                with self.subTest(scenario=scenario):
+                    ledger.write_bytes(b"{" if scenario == "global" else original_ledger)
+                    report_path.write_bytes(b"invalid local report" if scenario == "local" else original_report)
+                    api = APIStub()
+                    # Execute the actual workflow wrapper and its runpy __main__ path.
+                    # Stub only the API boundary; the administrative guard is real.
+                    with patch.object(mod, "ROOT", root), patch.object(mod, "API", return_value=api), patch.object(issue_intake, "API", return_value=api), patch.object(sys, "argv", ["pilot.workflow_entrypoint", "pilot/orchestrator/request_finalize.py", "--out", str(root), "--close"]), patch.object(sys, "path", sys.path.copy()), patch.dict("os.environ", {"GH_TOKEN":"offline", "GITHUB_RUN_ID":"123", "GITHUB_REPOSITORY":"example/sandbox"}):
+                        if scenario == "global":
+                            with self.assertRaisesRegex(mod.GlobalCloseError, "T9_GLOBAL_REGISTRY_INVALID"):
+                                workflow_entrypoint.main()
+                            self.assertIn(f"/contents/pilot/registry/implemented.json?ref={TEST_MAIN}", api.reads)
+                            self.assertNotIn("/issues/18", api.reads)
+                            self.assertEqual(api.ops, [])
+                        else:
+                            self.assertEqual(workflow_entrypoint.main(), 0)
+                            expected = [("POST", "/issues/18/comments"), ("PATCH", "/issues/18")]
+                            if scenario == "healthy":
+                                expected = [("POST", "/issues/17/comments"), ("PATCH", "/issues/17")] + expected
+                            self.assertEqual(api.ops, expected)
 
     def test_local_issue_failure_continues_global_api_failure_does_not(self):
         from urllib.error import HTTPError
