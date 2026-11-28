@@ -183,11 +183,12 @@ def test_t46_1_trusted_worker_parity_shared_table(change):
 def test_t46_1_notice_dedupes_by_failed_run_id():
     comments = []
     def api(path):
-        from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+        from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response
         if path == f"contents/{CONTROL}?ref=main":
             return content({})
-        assert path == "issues/123"
-        return {"number": 123, "state": "open", "labels": [{"name": "lf-request"}]}
+        if path == "issues/123":
+            return {"number": 123, "state": "open", "labels": [{"name": "lf-request"}]}
+        return main_response(path)
     def api_list(path):
         assert path == "issues/123/comments"
         return [{"body": text, "user": {"login": "github-actions[bot]"}}

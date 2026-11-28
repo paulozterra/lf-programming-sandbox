@@ -93,6 +93,9 @@ def test_watchdog_comments_verified_generated_ci_without_label():
                         "labels": [{"name": "lf-request"}]}
             if method == "POST" and path == "/issues/999/comments":
                 return {}
+            if method == "GET":
+                from pilot.orchestrator.lifecycle_test_support import fake_api
+                return fake_api({})(path[1:])
             raise AssertionError((method, path))
         def pages(self, path):
             return []
@@ -200,7 +203,9 @@ def test_one_sweep_closes_legacy_red_registration_and_regenerates_next_chg(tmp_p
             return content({})
         if path == "issues/901":
             return {"number": 901, "state": "open"}
-        assert "actions/workflows/ci.yml/runs?" in path
+        if "actions/workflows/ci.yml/runs?" not in path:
+            from pilot.orchestrator.lifecycle_test_support import fake_api as lifecycle_api
+            return lifecycle_api({})(path)
         return {"total_count": 2, "workflow_runs": [
             {"id": 43729617525, "head_sha": sha, "head_branch": branch,
              "event": "pull_request", "status": "completed",

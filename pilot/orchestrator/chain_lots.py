@@ -31,7 +31,11 @@ import pilot.orchestrator.sweep_api_budget as budget
 
 from pilot.orchestrator.request_lifecycle import request_state, require_open, RequestStateError, OPEN, inactive_reason
 from pilot.orchestrator.lot_recovery import for_request as lot_recoveries, schedule_recovery
-from chain_contract import (ChainBlocked, BLOCK_CODE, FORMAT_BLOCK_CODE, attest_merge, blocked_state,
+from pilot.orchestrator.request_finalize import (
+    TERMINAL, DECIDED, TERMINAL_SCHEMA, LocalView, lot_registry,
+    verified_report, validate_exhaustion, request_path, terminal_intent,
+)
+from chain_contract import (ChainBlocked, BLOCK_CODE, FORMAT_BLOCK_CODE, TRIES, attest_merge, blocked_state,
                             progress, validate_plan, verified_failures, deny)
 from native_lot_registration import canonical
 from native_verified_integration import IntegrationBlocked, next_chg
@@ -141,6 +145,7 @@ def api(path: str) -> dict:
         return parsed
     # Mutable authorization inputs must not be memoized across effects.
     if (re.fullmatch(r"(issues|pulls)/[1-9][0-9]*", path)
+            or path == "git/ref/heads/main"
             or path.startswith("contents/pilot/orchestrator/request_lifecycle_control.json?")
             or re.fullmatch(r"(?:issues/[1-9][0-9]*/events|pulls/[1-9][0-9]*/reviews)\?per_page=100&page=[1-9][0-9]*", path)):
         return fetch()
@@ -359,7 +364,7 @@ def plans() -> list[tuple[str, dict, dict, dict]]:
         plan = json.loads(file.read_text("utf-8"))
         lots = json.loads((folder / "lots.json").read_text("utf-8"))
         state = json.loads((folder / "state.json").read_text("utf-8"))
-        if state.get("stage") not in ("LOTS_PLANNED", "BLOCKED", "CHAIN_COMPLETE_CANDIDATE"):
+        if state.get("stage") not in ({"LOTS_PLANNED", "BLOCKED", "CHAIN_COMPLETE_CANDIDATE"} | TERMINAL):
             deny("CHAIN_STAGE_INVALID")
         if state.get("lots_sha256") != hashlib.sha256(canonical(lots)).hexdigest():
             deny("CHAIN_STATE_LOTS_DRIFT")
@@ -665,7 +670,7 @@ def chg(root: Path, number: int, request: str, reason: str,
 
 
 def draft(root: Path, branch: str, request: str, paths: list[str],
-          reason: str, title: str) -> dict:
+          reason: str, title: str, *, after_create=None) -> dict:
     # Caller has already committed the prepared native task on this branch.
     require_open(request, lifecycle_api, root=ROOT)
     number = next_chg(root)
@@ -689,6 +694,9 @@ def draft(root: Path, branch: str, request: str, paths: list[str],
               "--head", branch, "--draft",
               "--title", f"[DRAFT][CP3.6][CHG-{number:04d}] {title}",
               "--body", body, cwd=root)
+    if after_create is not None:
+        after_create(root, url)
+        run("git", "add", "--", *paths, cwd=root)
     document = json.loads(entry.read_text("utf-8"))
     document["evidence"]["pr_url"] = url
     entry.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", "utf-8")
@@ -1799,14 +1807,152 @@ def block_request(request: str, state: dict, result: dict, head: str) -> dict:
         target = storage_path("requests_root", root=root) / request / "state.json"
         target.write_bytes(canonical(blocked_state(state, result)))
         review = draft(root, branch, request, [target.relative_to(root).as_posix()],
-                       reason_code + " after three Actions-proven " +
-                       ("unique format rejections" if reason_code == FORMAT_BLOCK_CODE else "failed attempts") + "; "
+                       reason_code + " after exhaustion of the effective Actions-proven " +
+                       ("format rejection limit" if reason_code == FORMAT_BLOCK_CODE else "attempt budget") + "; "
                        "state update requires owner-reviewed Train merge.",
                        f"BLOCKED {request} ({reason_code})")
         return {"status": "BLOCKED_PENDING_OWNER_MERGE", "reason_code": reason_code,
                 **review}
     return worktree(head, branch, process)
 
+
+
+def effective_terminal_exhaustion(request, lots, bindings, completed):
+    """Reuse the spent-attempt ledger and the owner-enrolled successor budget.
+    No general budget rewrite, forgiveness, or new attempt is authorized here.
+    """
+    failures = failed_lots(bindings)
+    recoveries = lot_recoveries(ROOT, request, bindings)
+    exhausted = {}
+    for lot, binding in bindings.items():
+        if lot in completed:
+            continue
+        original = failures.get(lot, [])
+        recovery = recoveries.get(lot)
+        if recovery is not None:
+            successor = recovery["successor_task"]
+            spent = failed_lots({lot: {"task_name": successor}}, strict=True).get(lot, [])
+            if schedule_recovery(recovery, original, spent):
+                deny("TERMINAL_RECOVERY_STILL_AVAILABLE")
+            limit = recovery["max_additional_attempts"]
+            if len(spent) != limit:
+                deny("TERMINAL_RECOVERY_BUDGET_INVALID")
+            exhausted[lot] = {"task": successor, "max_attempts": limit,
+                              "run_ids": spent, "original_run_ids": original}
+        elif len(original) == TRIES:
+            exhausted[lot] = {"task": binding["task_name"], "max_attempts": TRIES,
+                              "run_ids": original, "original_run_ids": []}
+    validate_exhaustion(exhausted, set(bindings) - set(completed))
+    return exhausted
+
+
+def terminal_candidate_state(request, lots, state, bindings, head, result, number):
+    """Reconstruct exact terminal candidate from current main, never from a PR.
+    History takes precedence, including legitimate late Train merges.
+    """
+    if (result not in DECIDED or not re.fullmatch(r"req-[1-9][0-9]*", request)
+            or state.get("request_id") != request or terminal_intent(state)
+            or state.get("stage") not in ("LOTS_PLANNED", "BLOCKED", "CHAIN_COMPLETE_CANDIDATE")):
+        deny("TERMINAL_STATE_INVALID")
+    history = first_parent_merges(request)
+    completed = completed_lots(lots, bindings, history)
+    expected = {lot["id"] for lot in lots["lots"]}
+    if not expected or set(completed) == expected:
+        deny("TERMINAL_SUCCESS_TAKES_PRECEDENCE")
+    recoveries = lot_recoveries(ROOT, request, bindings)
+    for lot, row in recoveries.items():
+        if lot in completed and completed[lot]["task_name"] != row["successor_task"]:
+            deny("LOT_RECOVERY_COMPLETION_UNAUTHORIZED")
+    view = LocalView(ROOT)
+    ids, registered = lot_registry(view, request)
+    merged = {lot: row["merge_sha"] for lot, row in completed.items()}
+    if ids is None or set(ids) != expected or registered != merged:
+        deny("TERMINAL_REGISTRY_NOT_CURRENT")
+    exhausted = (effective_terminal_exhaustion(request, lots, bindings, completed)
+                 if result == "FAILED_FINAL" else {})
+    path = request_path(request) + "/H_REPORT.md"
+    empty_report = None
+    if not merged and view.read(path) is None:
+        from pilot.orchestrator.pg37_evidence import render
+        empty_report = render(request, []).encode("utf-8")
+        report_sha = hashlib.sha256(empty_report).hexdigest()
+    else:
+        report_sha = verified_report(view, request, ids, merged)
+    candidate = dict(state, stage=result, completed_lot_ids=sorted(merged),
+                     completed_merge_shas=merged, production_authority=False,
+                     handoff_allowed=False, downstream_authorized=False,
+                     terminal={"schema_version": TERMINAL_SCHEMA, "base_sha": head,
+                               "authorization_pr": number,
+                               "completed_merge_shas": merged,
+                               "report_sha256": report_sha, "exhaustion": exhausted})
+    candidate.pop("blocked_lot_ids", None)
+    candidate["reason_code"] = BLOCK_CODE if result == "FAILED_FINAL" else "OWNER_CANCELLED"
+    if exhausted:
+        candidate["blocked_lot_ids"] = sorted(exhausted)
+    return candidate, empty_report
+
+
+def _terminal_plan(request):
+    rows = [row for row in plans() if row[0] == request]
+    if len(rows) != 1:
+        deny("TERMINAL_PLAN_UNRESOLVED")
+    return rows[0]
+
+
+def verify_terminal_draft(request, proposed, head, candidate_view, paths):
+    """Called by trusted lifecycle/Train before merge. Recompute the budget
+    and current first-parent history, never accept candidate-authored receipts.
+    """
+    if check_main() != head or main_ci_decision(head) != "GREEN":
+        deny("TERMINAL_MAIN_NOT_CURRENT")
+    _, lots, state, bindings = _terminal_plan(request)
+    expected, empty_report = terminal_candidate_state(
+        request, lots, state, bindings, head, proposed["stage"],
+        proposed["terminal"]["authorization_pr"])
+    report_path = request_path(request) + "/H_REPORT.md"
+    if proposed != expected or (report_path in paths) != (empty_report is not None):
+        deny("TERMINAL_CANDIDATE_DRIFT")
+    if empty_report is not None and candidate_view.read(report_path) != empty_report:
+        deny("TERMINAL_REPORT_DRIFT")
+
+
+def prepare_terminal_draft(request, result, base_sha):
+    """Explicit owner-selected request only. The existing Train still owns merge."""
+    head = check_main()
+    if head != base_sha or main_ci_decision(head) != "GREEN":
+        deny("TERMINAL_MAIN_NOT_CURRENT")
+    require_open(request, lifecycle_api, root=ROOT)
+    _, lots, state, bindings = _terminal_plan(request)
+    candidate, empty_report = terminal_candidate_state(request, lots, state, bindings,
+                                                       head, result, 0)
+    prefix = f"lf/chain-terminal/{request}-"
+    branch = prefix + head[:12]
+    close_stale_drafts(prefix, head[:12], request)
+    if pending_draft(prefix) or run("git", "ls-remote", "--heads", "origin", branch):
+        return {"status": "TERMINAL_DRAFT_PENDING", "request": request}
+    def prepare(work):
+        state_path = request_path(request) + "/state.json"
+        report_path = request_path(request) + "/H_REPORT.md"
+        target = work / state_path
+        target.write_bytes(canonical(candidate))
+        paths = [state_path]
+        if empty_report is not None:
+            (work / report_path).write_bytes(empty_report)
+            paths.append(report_path)
+
+        def link(root, url):
+            match = re.fullmatch(r"https://github[.]com/" + re.escape(REPO) + r"/pull/([1-9][0-9]*)", url)
+            if not match:
+                deny("TERMINAL_PR_ID_INVALID")
+            candidate["terminal"]["authorization_pr"] = int(match.group(1))
+            (root / state_path).write_bytes(canonical(candidate))
+
+        return draft(work, branch, request, paths,
+                     "Explicit terminal decision; existing history, effective budget and H_REPORT "
+                     "verified. Owner must review exact HEAD with LF_LIFECYCLE_AUTHORIZE "
+                     f"{request} {state['stage']}->{result} <HEAD> before Train.",
+                     f"{result} {request}", after_create=link)
+    return worktree(head, branch, prepare)
 
 
 def draft_implemented_registry(root: Path, branch: str, head: str) -> dict:
@@ -1943,6 +2089,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         if ci_status != "GREEN":
             return [{"status": ci_status, "head_sha": head}]
     all_plans = plans()
+    terminal_plans = {request for request, _lots, state, _bindings in all_plans
+                      if terminal_intent(state)}
     owners = {}
     complete_tasks = set()
     for request, _lots, _state, bindings in all_plans:
@@ -1950,14 +2098,14 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             task = binding.get("task_name") if isinstance(binding, dict) else None
             if isinstance(task, str):
                 owners.setdefault(task, set()).add(request)
-                if _state.get("stage") == "CHAIN_COMPLETE_CANDIDATE":
+                if _state.get("stage") in ({"CHAIN_COMPLETE_CANDIDATE"} | TERMINAL):
                     complete_tasks.add(task)
 
     for request, _lots, _state, bindings in all_plans:
         for row in lot_recoveries(ROOT, request, bindings).values():
             task = row["successor_task"]
             owners.setdefault(task, set()).add(request)
-            if _state.get("stage") == "CHAIN_COMPLETE_CANDIDATE":
+            if _state.get("stage") in ({"CHAIN_COMPLETE_CANDIDATE"} | TERMINAL):
                 complete_tasks.add(task)
 
     def pending_task_live(task: str) -> bool:
@@ -1979,7 +2127,10 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             return False
         if len(candidates) != 1:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
-        return request_state(next(iter(candidates)), lifecycle_api, root=ROOT) == OPEN
+        request = next(iter(candidates))
+        if request in terminal_plans:
+            return False
+        return request_state(request, lifecycle_api, root=ROOT) == OPEN
 
     def candidate_live(row: dict) -> bool:
         if row["kind"] == "implemented-registry":
@@ -1987,6 +2138,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
         request = conflicted_request(row, all_plans)
         if request is None:
             raise RequestStateError("REQUEST_STATE_UNRESOLVED")
+        if request in terminal_plans:
+            return False
         return request_state(request, lifecycle_api, root=ROOT) == OPEN
 
     # Global conflict retirement runs before ALREADY_PREPARED / ALREADY_LABELED
@@ -2027,6 +2180,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             # Only registered, actively owned tasks can have format evidence.
             # Do not query Actions for plans still awaiting registration.
             registration = storage_path("registrations_root", task + ".json", root=ROOT)
+            if len(owners.get(task, ())) == 1 and next(iter(owners[task])) in terminal_plans:
+                return False
             return (registration.is_file() and not registration.is_symlink()
                     and format_recovery.enabled(task) and task_live(task))
         recoveries = (
@@ -2085,6 +2240,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
     # back a different request's attested CP3.5 replay.
     if sweep:
         for request, _lots, _state, bindings in all_plans:
+            if terminal_intent(_state):
+                continue
             try:
                 if not route_request_metadata(request):
                     continue
@@ -2110,6 +2267,8 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
                     per_request_block(request, "INTEGRATION_REPLAY", exc))
     if sweep:
         for request, _lots, _state, bindings in all_plans:
+            if terminal_intent(_state):
+                continue
             if not route_request_metadata(request):
                 repair_outcomes.append({"request": request,
                                         "status": "SKIPPED_NOT_ROUTE_REQUEST"})
@@ -2178,6 +2337,9 @@ def process(event_run_id: int | None = None, integration_pr: int | None = None,
             deny("EXAM_PLAN_NOT_READY")
     outcomes = list(conflict_outcomes)
     for request, lots, state, bindings in all_plans:
+        if terminal_intent(state):
+            outcomes.append({"request": request, "status": "REQUEST_CLOSED"})
+            continue
         try:
             with budget.phase("CHAIN"):
                 outcomes.extend(process_one_plan(
@@ -2218,6 +2380,8 @@ def retire_recovery_block(request, row):
 def process_one_plan(request, lots, state, bindings, head, kind, sweep,
                      new_plan_request, manual_sha, history, *, format_exhausted=()) -> list[dict]:
     outcomes = []
+    if terminal_intent(state):
+        return [{"request": request, "status": "REQUEST_CLOSED"}]
     try:
         current = request_state(request, lifecycle_api, root=ROOT)
     except RequestStateError:
@@ -2392,8 +2556,24 @@ def main() -> int:
     parser.add_argument("--new-plan-pr", type=int)
     parser.add_argument("--sweep", action="store_true")
     parser.add_argument("--base-sha")
+    parser.add_argument("--terminal-request")
+    parser.add_argument("--terminal-result", choices=sorted(DECIDED))
     args = parser.parse_args()
     try:
+        if args.terminal_request is not None or args.terminal_result is not None:
+            if (os.environ.get("GITHUB_REPOSITORY") != REPO
+                    or not os.environ.get("GH_TOKEN")
+                    or not args.terminal_request or not re.fullmatch(r"req-[1-9][0-9]*", args.terminal_request)
+                    or args.terminal_result not in DECIDED
+                    or not re.fullmatch(r"[0-9a-f]{40}", args.base_sha or "")
+                    or args.sweep or args.source_run_id is not None
+                    or args.integration_pr is not None or args.new_plan_request is not None
+                    or args.new_plan_pr is not None):
+                deny("TERMINAL_CONTEXT_INVALID")
+            print(json.dumps(prepare_terminal_draft(args.terminal_request,
+                                                     args.terminal_result, args.base_sha),
+                             sort_keys=True))
+            return 0
         if (os.environ.get("GITHUB_REPOSITORY") != REPO
                 or not os.environ.get("GH_TOKEN")
                 or (args.sweep and (args.source_run_id is not None

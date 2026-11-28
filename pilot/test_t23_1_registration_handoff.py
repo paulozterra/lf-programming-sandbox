@@ -158,6 +158,8 @@ def test_actual_exam_issue_closure_only_with_matching_registration_and_scope(tmp
                     "labels": [{"name": "exam-request"}],
                     "body": f"- Pedido: `req-901`\n- Task ID: `{TASK}`",
                 }]
+            if method == "GET":
+                return fake_api({})(path[1:])
             comments.append((method, path, body))
             return {}
     def git(*parts):

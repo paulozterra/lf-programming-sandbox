@@ -5,9 +5,37 @@ import argparse,json,os
 from pathlib import Path
 import chain_lots
 from pilot.orchestrator.request_lifecycle import request_state, RequestStateError, OPEN, inactive_reason, require_open
-from pg37_evidence import generate,render,canonical,digest
+from pg37_evidence import generate,render,canonical,digest,validate_record
+from pilot.config.project_config import storage_path
 
 ROOT=Path(__file__).resolve().parents[2]
+def report_progress(root,request,lots,completed):
+ """Reuse exact existing per-lot evidence. A foreign/malformed report is not
+ permission to overwrite historical bytes, even on an open issue.
+ """
+ folder=storage_path("requests_root",root=root)/request
+ target=folder/"H_REPORT.md"
+ if target.is_symlink():raise ValueError("CP37_REPORT_SYMLINK")
+ known={}
+ missing=[]
+ for lot in lots["lots"]:
+  receipt=completed.get(lot["id"])
+  if receipt is None:continue
+  sha=receipt["merge_sha"]
+  path=folder/"evidence"/(lot["id"]+"-"+sha[:12]+".json")
+  if path.is_symlink() or path.parent.is_symlink():
+   raise ValueError("CP37_EVIDENCE_SYMLINK")
+  if not path.exists():
+   missing.append(lot)
+   continue
+  row=validate_record(json.loads(path.read_text("utf-8")),request,lot["id"],sha)
+  known[lot["id"]]=row
+ existing=target.read_bytes() if target.exists() else None
+ if existing is not None and existing!=render(request,list(known.values())).encode("utf-8"):
+  raise ValueError("CP37_EXISTING_REPORT_UNRESOLVED")
+ return folder,known,missing,existing is not None and not missing
+
+
 def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=None):
  head=chain_lots.check_main()
  if chain_lots.event_kind(source_run_id,head)!="TRAIN":
@@ -21,20 +49,28 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
       results.append({"request":request,"status":inactive_reason(current)});continue
     except RequestStateError:
      results.append({"request":request,"status":"REQUEST_STATE_UNRESOLVED"});continue
-    existing=root/"pilot"/"runs"/request/"H_REPORT.md"
-    if existing.exists() or existing.is_symlink():
-     results.append({"request":request,"status":"REPORT_ALREADY_PRESENT"});continue
     history=chain_lots.first_parent_merges(request,root=root)
     completed=chain_lots.completed_lots(lots,bindings,history)
     if not completed:continue
+    folder,known,missing,current=report_progress(root,request,lots,completed)
+    if current:
+     results.append({"request":request,"status":"REPORT_ALREADY_PRESENT"});continue
+    # Keep historical bytes. Check their changed paths against the same
+    # verified Train merge before including them in the aggregate.
     records=[]
+    new=[]
     for lot in lots["lots"]:
      receipt=completed.get(lot["id"])
      if receipt is None:continue
      history_item=next((h for h in history if h[0]==receipt["merge_sha"]),None)
      if history_item is None:raise ValueError("CP37_MERGE_NOT_IN_HISTORY")
      changed=set(history_item[2])&set(lot["write_paths"])
-     folder=root/"pilot"/"runs"/request
+     if lot["id"] in known:
+      row=known[lot["id"]]
+      if row.get("changed_paths")!=sorted(changed):
+       raise ValueError("CP37_EXISTING_EVIDENCE_SCOPE_DRIFT")
+      records.append(row)
+      continue
      afile=folder/"analysis.json"
      pfile=root/"pilot"/"orchestrator"/"evidence_inputs"/request/(lot["id"]+".json")
      if not afile.is_file() or afile.is_symlink() or pfile.is_symlink():
@@ -48,34 +84,36 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
       evidence["input_status"]="BLOCKED_CP37_EVIDENCE_INPUTS_MISSING"
       evidence["complete"]=False
       evidence["evidence_sha256"]=digest({k:v for k,v in evidence.items() if k!="evidence_sha256"})
+     validate_record(evidence,request,lot["id"],receipt["merge_sha"])
      records.append(evidence)
+     new.append(evidence)
     if not records:continue
     branch=f"lf/evidence/{request}-{head[:12]}"
     if chain_lots.pending_draft(f"lf/evidence/{request}-") or chain_lots.run("git","ls-remote","--heads","origin",branch):
      results.append({"request":request,"status":"REPORT_DRAFT_ALREADY_PRESENT"});continue
-    report=render(request,records)
+    summary=render(request,records)
     def prepare(work):
-     # A request may close during worktree setup; deny before writing evidence.
      require_open(request,chain_lots.lifecycle_api,root=root)
      paths=[]
-     for row in records:
-      target=work/"pilot"/"runs"/request/"evidence"/(row["lot_id"]+"-"+row["merge_sha"][:12]+".json")
+     work_folder=storage_path("requests_root",root=work)/request
+     for row in new:
+      target=work_folder/"evidence"/(row["lot_id"]+"-"+row["merge_sha"][:12]+".json")
+      if target.exists() or target.is_symlink():
+       raise ValueError("CP37_EVIDENCE_ALREADY_PRESENT")
       target.parent.mkdir(parents=True,exist_ok=True)
       target.write_bytes(canonical(row)+b"\n")
       paths.append(target.relative_to(work).as_posix())
-     target=work/"pilot"/"runs"/request/"H_REPORT.md"
+     target=work_folder/"H_REPORT.md"
      target.parent.mkdir(parents=True,exist_ok=True)
-     target.write_text(report,encoding="utf-8")
+     target.write_text(summary,encoding="utf-8")
      paths.append(target.relative_to(work).as_posix())
      create=publisher or chain_lots.draft
-     # Last observation before any PR/publication side effect.
      require_open(request,chain_lots.lifecycle_api,root=root)
      info=create(work,branch,request,paths,
        f"CP3.7 pinned source-only evidence for verified integration merges at {head}; no production authority",
        f"H_REPORT {request} PG06-PG14")
      return {"request":request,"status":"EVIDENCE_DRAFT_CREATED","lot_count":len(records),
              "all_candidates_complete":all(row["complete"] for row in records),**info}
-    # Recheck immediately before the worktree publishes a draft evidence PR.
     try:
      current=request_state(request,chain_lots.lifecycle_api,root=root)
      if current!=OPEN:
@@ -85,8 +123,8 @@ def reconcile(source_run_id,*,root=ROOT,evidence_generator=generate,publisher=No
     results.append(chain_lots.worktree(head,branch,prepare))
   except (chain_lots.ChainBlocked,ValueError,OSError,KeyError,RuntimeError) as exc:
    raw=str(exc)
-   code=raw if raw.startswith('CP36_') and len(raw)<240 else 'CP37_LOCAL_FAILURE'
-   results.append({'request':request,'status':'BLOCKED','code':code})
+   code=raw if raw.startswith(("CP36_","CP37_")) and len(raw)<240 else "CP37_LOCAL_FAILURE"
+   results.append({"request":request,"status":"BLOCKED","code":code})
  return results or [{"status":"NO_MERGED_LOTS_FOR_REPORT"}]
 
 def sweep(*,root=ROOT):
@@ -98,8 +136,6 @@ def sweep(*,root=ROOT):
  for request,lots,state,bindings in chain_lots.plans():
   try:
    if request_state(request,chain_lots.lifecycle_api,root=root)!=OPEN:continue
-   report=storage_path("requests_root",root=root)/request/"H_REPORT.md"
-   if report.exists() or report.is_symlink():continue
    prefix=f"lf/evidence/{request}-"
    if chain_lots.pending_draft(prefix):
     # Only supersede bot-authored drafts anchored to an older main; retain
@@ -107,7 +143,10 @@ def sweep(*,root=ROOT):
     chain_lots.close_stale_drafts(prefix,head[:12],request)
     if chain_lots.pending_draft(prefix):continue
    history=chain_lots.first_parent_merges(request,root=root)
-   if chain_lots.completed_lots(lots,bindings,history):ready.append(request)
+   completed=chain_lots.completed_lots(lots,bindings,history)
+   if not completed:continue
+   _,_,_,current=report_progress(root,request,lots,completed)
+   if not current:ready.append(request)
   except (RequestStateError,chain_lots.ChainBlocked,OSError,ValueError,KeyError) as exc:
    blocked.append({"request":request,"status":"BLOCKED",
                    "code":"R1_CP37_STATE_UNRESOLVED"})

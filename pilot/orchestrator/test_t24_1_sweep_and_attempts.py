@@ -5,6 +5,7 @@ import ast
 import json
 from pathlib import Path
 from unittest.mock import patch
+from contextlib import ExitStack
 
 import pytest
 
@@ -154,7 +155,8 @@ def test_full_sweep_dispatches_immutable_pass_and_continues_other_request(tmp_pa
                 "name": "integrate", "conclusion": "failure",
                 "steps": [{"name": "Integrate PASS artifact into a draft PR with C9 and head-specific CI",
                            "conclusion": "failure"}]}]}
-        raise AssertionError(path)
+        from pilot.orchestrator.lifecycle_test_support import fake_api
+        return fake_api({})(path)
     def run(*args, **kwargs):
         if args[:3] == ("git", "ls-remote", "origin"):
             return ""
@@ -168,32 +170,28 @@ def test_full_sweep_dispatches_immutable_pass_and_continues_other_request(tmp_pa
         task = next(iter(bindings.values()))["task_name"]
         failed_ledger_reads.append(task)
         return {next(iter(bindings)): [ATTEMPT_ONE] if task == TASK else []}
-    with patch.object(chain_lots, "ROOT", tmp_path), \
-         patch.object(chain_lots, "check_main", return_value=HEAD), \
-         patch.object(chain_lots, "main_ci_decision", return_value="GREEN"), \
-         patch.object(chain_lots, "plans", return_value=plan), \
-         patch.object(chain_lots, "route_request_metadata", return_value=True), \
-         patch.object(chain_lots, "retire_conflicted_generated", return_value=[]), \
-         patch.object(chain_lots, "retry_failed_bot_prs", return_value=[]), \
-         patch.multiple(chain_lots,
-                         retry_native_infra=lambda *a, **kw: [],
-                         recover_pending_worker=lambda *a, **kw: [],
-                         recover_unstarted_integration=lambda *a, **kw: [],
-                         sync_implemented_registry=lambda *a, **kw: {"status": "REGISTRY_CURRENT"}), \
-         patch.object(chain_lots, "recover_native_feedback", return_value=[]), \
-         patch.object(chain_lots, "recover_route_defects", return_value=[]), \
-         patch.object(chain_lots, "publish_missing_registered_pack", return_value=None), \
-         patch.object(chain_lots, "publish_legacy_submission_contract", return_value=None), \
-         patch.object(chain_lots, "first_parent_merges", return_value=[]), \
-         patch.object(chain_lots, "sweep_request_enabled", return_value=True), \
-         patch.object(chain_lots, "complete_registered_exam_requests", return_value=[]), \
-         patch.object(chain_lots, "request_all_lot_exams", return_value=[]), \
-         patch.object(chain_lots, "completed_lots", return_value={}), \
-         patch.object(chain_lots, "failed_lots", side_effect=read_failed_lots), \
-         patch.object(chain_lots, "progress", return_value={
-             "stage": "CHAIN_READY", "ready_lot_ids": []}), \
-         patch.object(chain_lots, "api", side_effect=api), \
-         patch.object(chain_lots, "run", side_effect=run):
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(chain_lots, 'ROOT', tmp_path))
+        stack.enter_context(patch.object(chain_lots, 'check_main', return_value=HEAD))
+        stack.enter_context(patch.object(chain_lots, 'main_ci_decision', return_value='GREEN'))
+        stack.enter_context(patch.object(chain_lots, 'plans', return_value=plan))
+        stack.enter_context(patch.object(chain_lots, 'route_request_metadata', return_value=True))
+        stack.enter_context(patch.object(chain_lots, 'retire_conflicted_generated', return_value=[]))
+        stack.enter_context(patch.object(chain_lots, 'retry_failed_bot_prs', return_value=[]))
+        stack.enter_context(patch.multiple(chain_lots, retry_native_infra=lambda *a, **kw: [], recover_pending_worker=lambda *a, **kw: [], recover_unstarted_integration=lambda *a, **kw: [], sync_implemented_registry=lambda *a, **kw: {'status': 'REGISTRY_CURRENT'}))
+        stack.enter_context(patch.object(chain_lots, 'recover_native_feedback', return_value=[]))
+        stack.enter_context(patch.object(chain_lots, 'recover_route_defects', return_value=[]))
+        stack.enter_context(patch.object(chain_lots, 'publish_missing_registered_pack', return_value=None))
+        stack.enter_context(patch.object(chain_lots, 'publish_legacy_submission_contract', return_value=None))
+        stack.enter_context(patch.object(chain_lots, 'first_parent_merges', return_value=[]))
+        stack.enter_context(patch.object(chain_lots, 'sweep_request_enabled', return_value=True))
+        stack.enter_context(patch.object(chain_lots, 'complete_registered_exam_requests', return_value=[]))
+        stack.enter_context(patch.object(chain_lots, 'request_all_lot_exams', return_value=[]))
+        stack.enter_context(patch.object(chain_lots, 'completed_lots', return_value={}))
+        stack.enter_context(patch.object(chain_lots, 'failed_lots', side_effect=read_failed_lots))
+        stack.enter_context(patch.object(chain_lots, 'progress', return_value={'stage': 'CHAIN_READY', 'ready_lot_ids': []}))
+        stack.enter_context(patch.object(chain_lots, 'api', side_effect=api))
+        stack.enter_context(patch.object(chain_lots, 'run', side_effect=run))
         results = chain_lots.process(sweep=True, base_sha=HEAD)
     assert failed_ledger_reads == [TASK, "othertask"]
     assert len(dispatched) == 1

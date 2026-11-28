@@ -18,7 +18,7 @@ def test_intake_sweep_rebuilds_missing_request_and_dispatches_exact_ci(monkeypat
             return issue
 
         def call(self, method, path, payload=None):
-            from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+            from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response
             if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
                 return content({})
             if method == "GET" and path.startswith("/issues?"):
@@ -32,6 +32,8 @@ def test_intake_sweep_rebuilds_missing_request_and_dispatches_exact_ci(monkeypat
             if method == "POST" and path == "/actions/workflows/ci.yml/dispatches":
                 state["dispatched"].append(payload)
                 return {}
+            if method == "GET":
+                return main_response(path.lstrip("/"))
             raise AssertionError((method, path, payload))
 
     def intake(_api, event):
@@ -62,6 +64,7 @@ def test_cp37_sweep_uses_completed_train_and_missing_report(tmp_path, monkeypatc
     monkeypatch.setattr(pg37_publish, "request_state", lambda *a, **kw: "OPEN")
     monkeypatch.setattr(project_config, "storage_path",
                         lambda _key, *, root: tmp_path / "requests")
+    monkeypatch.setattr(pg37_publish, "storage_path", lambda _key, *, root: tmp_path / "requests")
     monkeypatch.setattr(pg37_publish.chain_lots, "pending_draft", lambda *a: False)
     monkeypatch.setattr(pg37_publish.chain_lots, "first_parent_merges",
                         lambda *a, **kw: [(HEAD, {}, [])])
@@ -81,7 +84,13 @@ def test_cp37_sweep_uses_completed_train_and_missing_report(tmp_path, monkeypatc
     result = pg37_publish.sweep(root=tmp_path)
     assert result == [{"status": "EVIDENCE_DRAFT_CREATED"}]
     assert calls == [12345]
-    (folder / "H_REPORT.md").write_text("published")
+    import json
+    from pilot.orchestrator.lifecycle_test_support import evidence_fixture
+    from pilot.orchestrator.pg37_evidence import render
+    record = evidence_fixture("req-901", "L1", HEAD)
+    (folder / "evidence").mkdir()
+    (folder / "evidence" / ("L1-"+HEAD[:12]+".json")).write_text(json.dumps(record))
+    (folder / "H_REPORT.md").write_text(render("req-901", [record]))
     assert pg37_publish.sweep(root=tmp_path) == [
         {"status": "R1_CP37_NO_MISSING_EVIDENCE"}]
     assert calls == [12345]

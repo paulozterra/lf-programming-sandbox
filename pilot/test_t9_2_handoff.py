@@ -45,6 +45,8 @@ class API:
         if method == "POST":
             self.writes.append((path, body))
             return {}
+        if method == "GET":
+            return fake_api({})(path[1:])
         raise AssertionError((method, path, body))
 
 

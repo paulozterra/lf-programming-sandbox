@@ -58,7 +58,7 @@ class API:
             return fake_api({})(path[1:])
         self.calls.append((method, path, body))
         if method == "GET" and path == "/git/ref/heads/main":
-            return {"object": {"sha": SHA}}
+            return {"ref":"refs/heads/main","object":{"sha":SHA,"type":"commit"}}
         if method == "GET" and "/jobs?filter=latest" in path:
             return green_jobs()
         if method == "GET" and path.startswith("/actions/workflows/ci.yml/runs?"):
@@ -80,6 +80,11 @@ class API:
         if method == "GET" and path == "/commits/" + SHA:
             return {"sha": SHA, "parents": [{"sha": "c"*40},{"sha":"b"*40}],
                     "commit":{"message":"Merge PR #177 via sandbox-train"}}
+        if method == "GET":
+            from pilot.orchestrator.lifecycle_test_support import main_response
+            if "/events?" in path:
+                return []
+            return main_response(path[1:], revision=SHA)
         raise AssertionError((method,path,body))
 
 
@@ -132,6 +137,9 @@ class NotificationAPI:
                 self.comments.append({"user":{"login":"github-actions[bot]"},
                                       "body":body["body"]})
             return {}
+        if method == "GET":
+            from pilot.orchestrator.lifecycle_test_support import fake_api
+            return fake_api({})(path[1:])
         raise AssertionError((method,path,body))
 
     def pages(self,path):

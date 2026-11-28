@@ -24,11 +24,11 @@ def seed(tmp_path, owners=("req-275",)):
     return tmp_path
 
 
-def api(state, *, fail=False):
+def api(state, *, fail=False, root=None, reopened=False):
     def call(path):
         if fail:
             raise OSError("unavailable")
-        return fake_api({}, issue_state=state)(path)
+        return fake_api({}, issue_state=state, root=root, reopened=reopened)(path)
     return call
 
 
@@ -63,16 +63,17 @@ def test_state_matrix(tmp_path, state, proof, expect):
     seed(tmp_path)
     if proof:
         attest(tmp_path)
-    assert lc.request_state("req-275", api(state), root=tmp_path) == expect
+    assert lc.request_state("req-275", api(state, root=tmp_path), root=tmp_path) == expect
     if expect != lc.OPEN:
         with pytest.raises(lc.RequestStateError, match="REQUEST_CLOSED"):
-            lc.require_task_open("item1", root=tmp_path, api=api(state))
+            lc.require_task_open("item1", root=tmp_path, api=api(state, root=tmp_path))
 
 
 def test_reopened_and_github_read_error(tmp_path):
     seed(tmp_path)
     attest(tmp_path)
-    assert lc.require_task_open("item1", root=tmp_path, api=api("open")) == "req-275"
+    with pytest.raises(lc.RequestStateError, match="REQUEST_CLOSED"):
+        lc.require_task_open("item1", root=tmp_path, api=api("open", root=tmp_path, reopened=True))
     with pytest.raises(lc.RequestStateError, match=lc.CODE):
         lc.require_task_open("item1", root=tmp_path, api=api("closed", fail=True))
 

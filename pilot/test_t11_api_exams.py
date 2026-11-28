@@ -43,6 +43,9 @@ class API:
         if method in ("POST", "PATCH"):
             self.writes.append((method, path, data))
             return {}
+        if method == "GET":
+            from pilot.orchestrator.lifecycle_test_support import fake_api
+            return fake_api({})(path[1:])
         raise AssertionError((method, path))
 
 

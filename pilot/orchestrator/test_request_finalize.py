@@ -1,5 +1,4 @@
-"""T9 terminal-only close test: candidates and provisional reports do not close."""
-import importlib.util
+"""F1.B/T9: use existing terminal evidence and administrative-only closure."""
 import json
 import tempfile
 from pathlib import Path
@@ -7,112 +6,383 @@ import unittest
 from unittest.mock import patch
 
 from pilot.config.testing import install_project_config
+from pilot.orchestrator import request_finalize as mod, request_lifecycle as life
+from pilot.orchestrator.lifecycle_test_support import fake_api, evidence_fixture, TEST_MAIN
+from pilot.orchestrator.pg37_evidence import render
 
-HERE = Path(__file__).resolve().parent
+SLUG = "req-17"
 
-
-def load():
-    spec = importlib.util.spec_from_file_location("request_finalize_t9",
-                                                  HERE / "request_finalize.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+def fixture(root, *, lots=("A", "B"), merged=("A",), report=True, slug=SLUG):
+    install_project_config(root)
+    folder = root / "pilot/runs" / slug
+    folder.mkdir(parents=True)
+    (folder / "request_meta.json").write_text(json.dumps({"issue": int(slug[4:])}))
+    (folder / "state.json").write_text(json.dumps({"stage": "LOTS_PLANNED", "request_id": slug}))
+    (folder / "lots.json").write_text(json.dumps({"lots": [{"id": x} for x in lots]}))
+    ledger = root / "pilot/registry/implemented.json"
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    entries = json.loads(ledger.read_text())["entries"] if ledger.exists() else []
+    ledger.write_text(json.dumps({"entries": entries + [
+        {"request": slug, "lot": x, "merge_sha": "a"*40,
+         "status": "NO_DERIVABLE" if x == "A" else "ATTESTED"} for x in merged]}))
+    records = [evidence_fixture(slug, x, "a"*40) for x in merged]
+    (folder / "evidence").mkdir()
+    for row in records:
+        (folder / "evidence" / (row["lot_id"] + "-" + "a"*12 + ".json")).write_text(json.dumps(row))
+    if report:
+        (folder / "H_REPORT.md").write_text(render(slug, records))
+    return folder
 
 
 class FinalizeTests(unittest.TestCase):
-    def test_candidate_h_report_does_not_close(self):
-        mod = load()
+    def test_candidate_and_exhaustion_without_decision_do_not_close(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            install_project_config(root)
-            folder = root / "pilot/runs/req-17"
-            folder.mkdir(parents=True)
-            (folder / "request_meta.json").write_text(
-                json.dumps({"issue": 17, "author": "owner",
-                            "date": "2026-11-14T15:00:00Z"}))
-            (folder / "state.json").write_text(
-                json.dumps({"stage": "LOTS_PLANNED"}))
-            (folder / "H_REPORT.md").write_text("# candidate")
-            with patch.object(mod, "ROOT", root):
-                self.assertEqual(list(mod.terminal_requests()), [])
-                (folder / "state.json").write_text(
-                    json.dumps({"stage": "COMPLETED"}))
-                self.assertEqual(list(mod.terminal_requests())[0][2], "COMPLETED")
+            folder = fixture(root)
+            for stage in ("LOTS_PLANNED", "BLOCKED", "CHAIN_COMPLETE_CANDIDATE"):
+                (folder / "state.json").write_text(json.dumps({"stage": stage}))
+                with patch.object(mod, "ROOT", root):
+                    self.assertEqual(list(mod.terminal_requests()), [])
+            (folder / "state.json").write_text(json.dumps({"stage": "FAILED_FINAL"}))
+            with self.assertRaises(mod.FinalizationError):
+                mod.terminal_outcome(mod.LocalView(root), SLUG)
 
-    def test_all_merged_lots_and_final_report_allow_closure(self):
-        mod = load()
+    def test_all_merged_lots_and_current_report_required(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            install_project_config(root)
-            folder = root / "pilot/runs/req-17"
-            folder.mkdir(parents=True)
-            ledger = root / "pilot/registry/implemented.json"
-            ledger.parent.mkdir(parents=True)
-            (folder / "request_meta.json").write_text(
-                json.dumps({"issue": 17, "author": "owner",
-                            "date": "2026-11-14T15:00:00Z"}))
-            (folder / "state.json").write_text(json.dumps({"stage": "LOTS_PLANNED"}))
-            (folder / "lots.json").write_text(json.dumps(
-                {"lots": [{"id": "SOL-001"}, {"id": "SOL-002"}]}))
-            (folder / "H_REPORT.md").write_text("# Final")
-            ledger.write_text(json.dumps({"entries": [
-                {"request": "req-17", "lot": "SOL-001", "merge_sha": "a" * 40,
-                 "status": "ATTESTED"}]}))
+            folder = fixture(root, merged=("A", "B"))
             with patch.object(mod, "ROOT", root):
+                self.assertEqual(list(mod.terminal_requests())[0][2], "CHAIN_COMPLETE_VERIFIED")
+                (folder / "H_REPORT.md").write_text(render(SLUG, [evidence_fixture(SLUG, "A", "a"*40)]))
                 self.assertEqual(list(mod.terminal_requests()), [])
-                ledger.write_text(json.dumps({"entries": [
-                    {"request": "req-17", "lot": n, "merge_sha": "a" * 40,
-                     "status": "ATTESTED"} for n in ("SOL-001", "SOL-002")]}))
-                self.assertEqual(list(mod.terminal_requests())[0][2],
-                                 "CHAIN_COMPLETE_VERIFIED")
-                (folder / "state.json").write_text(
-                    json.dumps({"stage": "CHAIN_COMPLETE_CANDIDATE"}))
-                self.assertEqual(list(mod.terminal_requests())[0][2],
-                                 "CHAIN_COMPLETE_VERIFIED")
                 (folder / "H_REPORT.md").unlink()
                 self.assertEqual(list(mod.terminal_requests()), [])
 
-    def test_completion_clears_stale_block_label_only_after_close(self):
-        mod = load()
+    def test_administrative_gate_is_distinct_and_live(self):
         with tempfile.TemporaryDirectory() as directory:
-            out = Path(directory)
-            (out / "manifest.json").write_text(json.dumps([
-                {"issue": 186, "slug": "req-186", "stage": "CHAIN_COMPLETE_VERIFIED",
-                 "intervencion_manual": False},
-                {"issue": 286, "slug": "req-286", "stage": "FAILED_FINAL",
-                 "intervencion_manual": True}]))
+            root = Path(directory)
+            folder = fixture(root, merged=("A", "B"))
+            outcome = mod.terminal_outcome(mod.LocalView(root), SLUG)
+            row = dict(slug=SLUG, issue=17, revision=TEST_MAIN,
+                       stage=outcome["stage"], fingerprint=outcome["fingerprint"])
+            api = fake_api({}, root=root)
+            self.assertEqual(life.request_state(SLUG, api, root=root), life.CLOSED_FINALIZED)
+            with self.assertRaisesRegex(life.RequestStateError, "REQUEST_CLOSED"):
+                life.require_open(SLUG, api, root=root)
+            self.assertTrue(life.require_administrative_close(row, api, root=root))
+            paused = fake_api({SLUG: {"state": life.SUSPENDING, "authorization_pr": 77}}, root=root)
+            with self.assertRaisesRegex(life.RequestStateError, "REQUEST_SUSPENDED"):
+                life.require_administrative_close(row, paused, root=root)
+            for bad in (dict(row, revision="b"*40), dict(row, fingerprint="0"*64)):
+                with self.assertRaises(life.RequestStateError):
+                    life.require_administrative_close(bad, api, root=root)
+            (folder / "H_REPORT.md").write_text("tampered")
+            with self.assertRaises(life.RequestStateError):
+                life.require_administrative_close(row, api, root=root)
+
+    def test_close_revalidates_and_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root, merged=("A", "B"))
+            outcome = mod.terminal_outcome(mod.LocalView(root), SLUG)
+            row = dict(slug=SLUG, issue=17, revision=TEST_MAIN, stage=outcome["stage"],
+                       fingerprint=outcome["fingerprint"], intervencion_manual=False)
+            (root / "manifest.json").write_text(json.dumps([row]))
             class APIStub:
-                def __init__(self, token):
-                    self.ops = []
+                def __init__(self):
+                    self.ops, self.comments = [], []
+                    self.state, self.blocked = "open", True
                 def issue(self, number):
-                    return {"state": "open", "labels": [
-                        {"name": "lf-request-blocked"}]}
+                    return {"number": number, "state": self.state,
+                            "labels": [{"name": "lf-request-blocked"}] if self.blocked else []}
                 def comment(self, number, body):
                     self.ops.append(("COMMENT", number))
+                    self.comments.append({"id": 1, "user": {"login": mod.BOT}, "body": body})
                 def call(self, method, path, payload=None):
-                    from pilot.orchestrator.lifecycle_test_support import fake_api
                     if method == "GET":
-                        return fake_api({})(path.lstrip("/"))
+                        if path == "/issues/17":
+                            return self.issue(17)
+                        if path.startswith("/issues/17/comments?"):
+                            return self.comments
+                        return fake_api({}, issue_state=self.state, root=root)(path.lstrip("/"))
+                    if method == "POST":
+                        return self.comment(17, payload["body"])
                     self.ops.append((method, path))
-            instance = APIStub("token")
-            with (patch.object(mod, "API", return_value=instance),
-                  patch.dict("os.environ", {"GH_TOKEN": "token",
-                            "GITHUB_RUN_ID": "123",
-                            "GITHUB_REPOSITORY": "paulozterra/lf-programming-sandbox"})):
-                mod.close(out)
-            self.assertIn(("DELETE", "/issues/186/labels/lf-request-blocked"),
-                          instance.ops)
-            self.assertNotIn(("DELETE", "/issues/286/labels/lf-request-blocked"),
-                             instance.ops)
-            self.assertLess(instance.ops.index(("PATCH", "/issues/186")),
-                            instance.ops.index(("DELETE", "/issues/186/labels/lf-request-blocked")))
+                    if method == "PATCH":
+                        self.state = "closed"
+                    if method == "DELETE":
+                        self.blocked = False
+            api = APIStub()
+            with patch.object(mod, "ROOT", root), patch.object(mod, "API", return_value=api), patch.dict("os.environ", {"GH_TOKEN": "offline", "GITHUB_RUN_ID": "123", "GITHUB_REPOSITORY": "example/sandbox"}):
+                mod.close(root)
+                mod.close(root)
+            self.assertEqual(api.ops, [("COMMENT",17),("PATCH","/issues/17"),("DELETE","/issues/17/labels/lf-request-blocked")])
+
+    def test_late_suspension_prevents_issue_patch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root, merged=("A", "B"))
+            outcome = mod.terminal_outcome(mod.LocalView(root), SLUG)
+            row = dict(slug=SLUG, issue=17, revision=TEST_MAIN, stage=outcome["stage"],
+                       fingerprint=outcome["fingerprint"], intervencion_manual=False)
+            (root / "manifest.json").write_text(json.dumps([row]))
+            class APIStub:
+                def __init__(self):
+                    self.paused = False
+                    self.ops = []
+                def issue(self, number):
+                    return {"number": number, "state": "open", "labels": []}
+                def comment(self, number, body):
+                    self.ops.append(("COMMENT", number))
+                    self.paused = True
+                def call(self, method, path, payload=None):
+                    if method == "POST":
+                        return self.comment(17, payload["body"])
+                    if method != "GET":
+                        self.ops.append((method, path))
+                        return {}
+                    if path.startswith("/issues/17/comments?"):
+                        return []
+                    ledger = {SLUG: {"state": life.SUSPENDING,
+                                      "authorization_pr": 77}} if self.paused else {}
+                    return fake_api(ledger, root=root)(path.lstrip("/"))
+            api = APIStub()
+            with patch.object(mod, "ROOT", root), patch.object(mod, "API", return_value=api), patch.dict("os.environ", {"GH_TOKEN": "offline", "GITHUB_RUN_ID": "123", "GITHUB_REPOSITORY": "example/sandbox"}):
+                mod.close(root)
+            self.assertEqual(api.ops, [("COMMENT", 17)])
+
+    def test_guard_rejects_observed_main_control_and_issue_drift(self):
+        from pilot.orchestrator.lifecycle_test_support import CONTROL, content, main_response
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root, merged=("A", "B"))
+            outcome = mod.terminal_outcome(mod.LocalView(root), SLUG)
+            row = dict(slug=SLUG, issue=17, revision=TEST_MAIN,
+                       stage=outcome["stage"], fingerprint=outcome["fingerprint"])
+            ledger = root / "pilot/registry/implemented.json"
+            original = ledger.read_bytes()
+            for effect in ("admission", "administrative"):
+                if effect == "admission":
+                    entries = json.loads(original)
+                    entries["entries"] = entries["entries"][:1]
+                    ledger.write_text(json.dumps(entries))
+                    self.assertEqual(life.request_state(SLUG, fake_api({}, root=root), root=root), life.OPEN)
+                else:
+                    ledger.write_bytes(original)
+                    self.assertTrue(life.require_administrative_close(row, fake_api({}, root=root), root=root))
+                for fault in ("main_after_first_control", "main_during_last_control",
+                              "control_during_outcome", "issue_during_outcome"):
+                    with self.subTest(effect=effect, fault=fault):
+                        state = {"sha": TEST_MAIN, "controls": 0, "issues": 0}
+                        def api(path):
+                            if path == "git/ref/heads/main":
+                                return main_response(path, root, state["sha"])
+                            if path == f"contents/{CONTROL}?ref=main":
+                                state["controls"] += 1
+                                if fault == "main_after_first_control" and state["controls"] == 1:
+                                    state["sha"] = "b"*40
+                                if fault == "main_during_last_control" and state["controls"] == 2:
+                                    state["sha"] = "b"*40
+                                if fault == "control_during_outcome" and state["controls"] >= 2:
+                                    return fake_api({SLUG: {"state":life.SUSPENDING,"authorization_pr":77}}, root=root)(path)
+                                return content({})
+                            if path == "issues/17":
+                                state["issues"] += 1
+                                return {"number":17,"state":"closed" if fault == "issue_during_outcome" and state["issues"] > 1 else "open"}
+                            if path.startswith("contents/") and path.endswith("?ref="+TEST_MAIN):
+                                return main_response(path, root)
+                            return fake_api({SLUG: {"state":life.SUSPENDING,"authorization_pr":77}}, root=root)(path)
+                        with self.assertRaises(life.RequestStateError):
+                            if effect == "admission":
+                                life.request_state(SLUG, api, root=root)
+                            else:
+                                life.require_administrative_close(row, api, root=root)
+
+    def test_reopen_during_delete_guard_prevents_label_effect(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root, merged=("A", "B"))
+            outcome = mod.terminal_outcome(mod.LocalView(root), SLUG)
+            row = dict(slug=SLUG, issue=17, revision=TEST_MAIN, stage=outcome["stage"],
+                       fingerprint=outcome["fingerprint"], intervencion_manual="NO")
+            (root / "manifest.json").write_text(json.dumps([row]))
+            class APIStub:
+                def __init__(self):
+                    self.ops, self.closed_reads = [], 0
+                    self.closed = False
+                def call(self, method, path, payload=None):
+                    if method == "GET":
+                        if path == "/issues/17":
+                            if self.closed:
+                                self.closed_reads += 1
+                            # First post-PATCH read and guard initial read see
+                            # closed, final read sees reopened.
+                            return {"number":17, "state":"closed" if self.closed and self.closed_reads < 3 else "open",
+                                    "labels":[{"name":"lf-request-blocked"}]}
+                        if "/comments?" in path:
+                            return []
+                        return fake_api({}, root=root)(path[1:])
+                    self.ops.append((method,path))
+                    if method == "PATCH":
+                        self.closed = True
+            api = APIStub()
+            with patch.object(mod,"ROOT",root), patch.object(mod,"API",return_value=api), patch.dict("os.environ", {"GH_TOKEN":"offline","GITHUB_RUN_ID":"123","GITHUB_REPOSITORY":"example/sandbox"}):
+                mod.close(root)
+            self.assertEqual(api.ops, [("POST","/issues/17/comments"),("PATCH","/issues/17")])
+            self.assertGreaterEqual(api.closed_reads, 3)
+
+    def test_local_report_error_continues_but_global_git_error_surfaces(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture(root, merged=("A", "B"))
+            rows = [("req-17", {"issue":17}, "CHAIN_COMPLETE_VERIFIED"),
+                    ("req-18", {"issue":18}, "CHAIN_COMPLETE_VERIFIED")]
+            def result(slug, **_kw):
+                if slug == "req-17":
+                    raise ValueError("invalid local evidence")
+                return {"intervencion_manual":"NO"}
+            with patch.object(mod,"ROOT",root), patch.object(mod,"terminal_requests",return_value=rows), patch.object(mod,"terminal_outcome",return_value={"fingerprint":"a"*64}), patch.object(mod.subprocess,"check_output",return_value=TEST_MAIN), patch.object(mod,"report",side_effect=result), patch.object(mod,"markdown",return_value="report"):
+                prepared = mod.prepare(root)
+                self.assertEqual([r["slug"] for r in prepared], ["req-18"])
+                with patch.object(mod,"report",side_effect=subprocess.CalledProcessError(128,["git"])):
+                    with self.assertRaises(subprocess.CalledProcessError):
+                        mod.prepare(root)
+            (root / "pilot/registry/implemented.json").write_text("{")
+            with patch.object(mod,"ROOT",root), patch.object(mod.subprocess,"check_output",return_value=TEST_MAIN):
+                with self.assertRaises(mod.GlobalCloseError):
+                    mod.prepare(root)
+
+    def test_real_report_missing_request_history_continues(self):
+        import subprocess
+        from pilot.orchestrator import intervention_report as producer
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(root), *args],
+                                               text=True, stderr=subprocess.DEVNULL).strip()
+            git("init")
+            git("config", "user.name", "Fixture")
+            git("config", "user.email", "fixture@example.invalid")
+            git("commit", "--allow-empty", "-m", "base")
+            fixture(root, merged=("A", "B"))
+            healthy = fixture(root, merged=("A", "B"), slug="req-18")
+            (healthy / "request.md").write_text("synthetic request\n")
+            git("add", ".")
+            git("commit", "-m", "two terminal fixtures, only one with intake history")
+            out = root / "reports"
+            with patch.object(mod, "ROOT", root), patch.object(producer, "ROOT", root):
+                self.assertEqual([row[0] for row in mod.terminal_requests()], ["req-17", "req-18"])
+                with self.assertRaises(SystemExit) as missing:
+                    producer.report("req-17", rev=git("rev-parse", "HEAD"), with_labels=False)
+                self.assertEqual(missing.exception.code, "REQUEST_NOT_FOUND")
+                prepared = mod.prepare(out)
+                self.assertEqual([row["slug"] for row in prepared], ["req-18"])
+                self.assertEqual(json.loads((out / "manifest.json").read_text()), prepared)
+                self.assertTrue((out / "req-18-INTERVENTION_REPORT.md").is_file())
+                self.assertFalse((out / "req-17-INTERVENTION_REPORT.md").exists())
+                for error in (SystemExit("REQUEST_ID_INVALID"), SystemExit(0), KeyboardInterrupt()):
+                    with self.subTest(error=repr(error)), patch.object(mod, "report", side_effect=error):
+                        with self.assertRaises(type(error)) as raised:
+                            mod.prepare(out)
+                        self.assertIs(raised.exception, error)
+
+    def test_real_t9_entrypoint_distinguishes_global_and_local_guard_failures(self):
+        import sys
+        from pilot import workflow_entrypoint
+        from pilot.orchestrator import issue_intake
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = fixture(root, merged=("A", "B"))
+            fixture(root, merged=("A", "B"), slug="req-18")
+            rows = []
+            for n in (17, 18):
+                slug = f"req-{n}"
+                outcome = mod.terminal_outcome(mod.LocalView(root), slug)
+                rows.append(dict(slug=slug, issue=n, revision=TEST_MAIN,
+                                 stage=outcome["stage"], fingerprint=outcome["fingerprint"],
+                                 intervencion_manual="NO"))
+            (root / "manifest.json").write_text(json.dumps(rows))
+            ledger = root / "pilot/registry/implemented.json"
+            report_path = first / "H_REPORT.md"
+            original_ledger, original_report = ledger.read_bytes(), report_path.read_bytes()
+            class APIStub:
+                def __init__(self):
+                    self.ops, self.reads, self.closed = [], [], set()
+                def call(self, method, path, payload=None):
+                    if method == "GET":
+                        self.reads.append(path)
+                        if "/comments?" in path:
+                            return []
+                        if path in ("/issues/17", "/issues/18"):
+                            n = int(path.rsplit("/", 1)[1])
+                            return {"number": n, "state": "closed" if n in self.closed else "open", "labels": []}
+                        return fake_api({}, root=root)(path[1:])
+                    self.ops.append((method, path))
+                    if method == "PATCH":
+                        self.closed.add(int(path.rsplit("/", 1)[1]))
+                    return {}
+            for scenario in ("global", "local", "healthy"):
+                with self.subTest(scenario=scenario):
+                    ledger.write_bytes(b"{" if scenario == "global" else original_ledger)
+                    report_path.write_bytes(b"invalid local report" if scenario == "local" else original_report)
+                    api = APIStub()
+                    # Execute the actual workflow wrapper and its runpy __main__ path.
+                    # Stub only the API boundary; the administrative guard is real.
+                    with patch.object(mod, "ROOT", root), patch.object(mod, "API", return_value=api), patch.object(issue_intake, "API", return_value=api), patch.object(sys, "argv", ["pilot.workflow_entrypoint", "pilot/orchestrator/request_finalize.py", "--out", str(root), "--close"]), patch.object(sys, "path", sys.path.copy()), patch.dict("os.environ", {"GH_TOKEN":"offline", "GITHUB_RUN_ID":"123", "GITHUB_REPOSITORY":"example/sandbox"}):
+                        if scenario == "global":
+                            with self.assertRaisesRegex(mod.GlobalCloseError, "T9_GLOBAL_REGISTRY_INVALID"):
+                                workflow_entrypoint.main()
+                            self.assertIn(f"/contents/pilot/registry/implemented.json?ref={TEST_MAIN}", api.reads)
+                            self.assertNotIn("/issues/18", api.reads)
+                            self.assertEqual(api.ops, [])
+                        else:
+                            self.assertEqual(workflow_entrypoint.main(), 0)
+                            expected = [("POST", "/issues/18/comments"), ("PATCH", "/issues/18")]
+                            if scenario == "healthy":
+                                expected = [("POST", "/issues/17/comments"), ("PATCH", "/issues/17")] + expected
+                            self.assertEqual(api.ops, expected)
+
+    def test_local_issue_failure_continues_global_api_failure_does_not(self):
+        from urllib.error import HTTPError
+        from pilot.orchestrator.issue_intake import Blocked
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            rows = [dict(slug=f"req-{n}",issue=n,stage="FAILED_FINAL",revision=TEST_MAIN,
+                         fingerprint="a"*64,intervencion_manual="NO") for n in (17,18)]
+            (root / "manifest.json").write_text(json.dumps(rows))
+            for where in ("issue","comments","post","patch"):
+                for status in (404,422,403,429,500):
+                    with self.subTest(where=where,status=status):
+                        class APIStub:
+                            def __init__(self):
+                                self.ops = []
+                            def call(self, method, path, payload=None):
+                                failing = {"issue":("GET","/issues/17"),
+                                           "comments":("GET","/issues/17/comments?per_page=100&page=1"),
+                                           "post":("POST","/issues/17/comments"),
+                                           "patch":("PATCH","/issues/17")}[where]
+                                if (method,path) == failing:
+                                    raise Blocked("PEDIDO_API_FAILED") from HTTPError(path,status,"error",{},None)
+                                if method == "GET":
+                                    if "/comments?" in path:
+                                        return []
+                                    return {"number":int(path.rsplit("/",1)[-1]),"state":"open","labels":[]}
+                                self.ops.append((method,path))
+                        api = APIStub()
+                        with patch.object(mod,"API",return_value=api), patch.object(life,"require_administrative_close",return_value=True), patch.dict("os.environ", {"GH_TOKEN":"offline","GITHUB_RUN_ID":"123","GITHUB_REPOSITORY":"example/sandbox"}):
+                            if status in (404,422):
+                                mod.close(root)
+                                self.assertIn(("PATCH","/issues/18"),api.ops)
+                            else:
+                                with self.assertRaises(mod.GlobalCloseError):
+                                    mod.close(root)
+                                self.assertNotIn(("PATCH","/issues/18"),api.ops)
 
     def test_only_explicit_terminal_states(self):
-        mod = load()
-        self.assertNotIn("LOTS_PLANNED", mod.TERMINAL)
-        self.assertNotIn("BLOCKED", mod.TERMINAL)
-        self.assertNotIn("INTEGRATION_PENDING", mod.TERMINAL)
-
+        self.assertFalse({"LOTS_PLANNED", "BLOCKED", "INTEGRATION_PENDING"} & mod.TERMINAL)
+        self.assertIn("FAILED_FINAL", mod.TERMINAL)
+        self.assertIn("CANCELLED_FINAL", mod.TERMINAL)
 
 if __name__ == "__main__":
     unittest.main()

@@ -196,7 +196,7 @@ class ManualRegistration(unittest.TestCase):
         from unittest.mock import patch
         class Api:
             def api(self, method, path, body=None):
-                from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+                from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response
                 if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
                     return content({})
                 if path.startswith("/pulls?"):
@@ -206,6 +206,8 @@ class ManualRegistration(unittest.TestCase):
                     return {"number": 123, "state": "open", "labels": []}
                 if method == "POST":
                     return {}
+                if method == "GET":
+                    return main_response(path.lstrip("/"))
                 raise AssertionError(path)
             def pages(self, path):
                 return []

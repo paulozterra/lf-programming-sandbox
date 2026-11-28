@@ -62,9 +62,11 @@ class T9(unittest.TestCase):
             def permission(self, author):
                 return "write"
             def call(self, method, path, payload=None):
-                from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+                from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response
                 if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
                     return content({})
+                if method == "GET" and (path == "/git/ref/heads/main" or path.startswith("/contents/")):
+                    return main_response(path.lstrip("/"))
                 calls.append((method, path, payload))
                 if method == "GET":
                     return []

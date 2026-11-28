@@ -1,0 +1,76 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0669",
+  "title": "F1.B: cierre formal terminal y evidencia incremental por reutilización",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: autorización explícita implementación mínima F1.B sobre 907a245533e480f369ae31b0e376f9e432be0275; diagnóstico de reutilización aprobado; revisión independiente y merge pendientes"
+  },
+  "reason": "Extender CP3.6, CP3.7 y T9 existentes: FAILED_FINAL/CANCELLED_FINAL acreditados por historia y presupuesto efectivo, CLOSED_FAILED, cierre administrativo distinto de admisión funcional, evidencia H_REPORT incremental y revalidación exacta de main. Preservar BLOCKED recuperable, D22 histórico y registro de implementación. req-652 exclusivamente fixture offline. Adaptar pruebas existentes al contrato de autoridad viva; sin cambios en tooling protegido, workflows nuevos, solicitudes reales o Supabase. Correcciones acotadas del dictamen independiente 7230174619 (R1/R2/R3): autorización terminal histórica efectiva antes del merge, exactos HEAD y predecesor, sin dependencia de retiro/re-etiquetado posterior; revalidación coherente main/control D22/issue al límite de cada efecto (persiste la ventana no atómica posterior a la última lectura de GitHub); exclusión funcional de terminales en CP3.6 con reconstrucción histórica intacta y aislamiento local de T9 sin ocultar fallos globales. Regresiones positivas/negativas offline; sin alterar los diez criterios conformes ni reclamar ratificación. Corrección residual autorizada CA-14 del dictamen 7234957242: T9 aísla exclusivamente SystemExit(REQUEST_NOT_FOUND) del productor existente y conserva otros exits y fallos globales; el CLI ejecuta las funciones del módulo canónico para mantener la identidad de GlobalCloseError bajo el entrypoint real. Regresiones con historia Git real ausente, siguiente pedido sano, y wrapper real con ledger global inválido, evidencia local inválida y ambos pedidos sanos. R1/R2/CP3.6 y los otros 16 CA acreditados permanecen sin cambios.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      ".github/workflows/chain-lots.yml",
+      ".github/workflows/request-finalize.yml",
+      "pilot/audit/test_t46_audit_stage.py",
+      "pilot/audit/test_t49_1_audit.py",
+      "pilot/ekb/test_t56_phase2.py",
+      "pilot/orchestrator/chain_lots.py",
+      "pilot/orchestrator/lifecycle_test_support.py",
+      "pilot/orchestrator/pg37_evidence.py",
+      "pilot/orchestrator/pg37_publish.py",
+      "pilot/orchestrator/request_finalize.py",
+      "pilot/orchestrator/request_lifecycle.py",
+      "pilot/orchestrator/test_chain_completion_reconcile.py",
+      "pilot/orchestrator/test_issue_intake.py",
+      "pilot/orchestrator/test_r1_pg37_intake.py",
+      "pilot/orchestrator/test_request_finalize.py",
+      "pilot/orchestrator/test_t17_4_conflict_recovery.py",
+      "pilot/orchestrator/test_t17_recovery_watchdog.py",
+      "pilot/orchestrator/test_t20_bot_ci_retry.py",
+      "pilot/orchestrator/test_t24_1_sweep_and_attempts.py",
+      "pilot/orchestrator/test_t25_contract_derivatives.py",
+      "pilot/orchestrator/test_t46_1_bounded_replay.py",
+      "pilot/orchestrator/test_t46_conflict_replay.py",
+      "pilot/orchestrator/test_t49_1_cp35.py",
+      "pilot/orchestrator/test_t49_1_pg37.py",
+      "pilot/orchestrator/test_t49_lifecycle.py",
+      "pilot/orchestrator/test_t50_pg37.py",
+      "pilot/test_auto_integrate.py",
+      "pilot/test_issue_intake_duplicate.py",
+      "pilot/test_request_failure_notify.py",
+      "pilot/test_t11_api_exams.py",
+      "pilot/test_t12_concurrency.py",
+      "pilot/test_t15_sweep.py",
+      "pilot/test_t17_3_sweep_wake.py",
+      "pilot/test_t23_1_registration_handoff.py",
+      "pilot/test_t51_watchdog.py",
+      "pilot/test_t9_2_handoff.py",
+      "pilot/test_t9_3_selector_notify.py",
+      "pilot/test_t9_5_main_ci.py",
+      "pilot/worker_v08/test_t22_feedback_delivery.py",
+      "pilot/worker_v08/test_t35_feedback_unlabeled_issue.py",
+      "pilot/worker_v08/test_t38_1_push_notice.py",
+      "pilot/worker_v08/test_t49_1_worker.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0669.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/927"
+  }
+}

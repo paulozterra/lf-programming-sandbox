@@ -82,7 +82,8 @@ def test_train_failure_requires_bound_pr_and_sha_not_only_red_status():
             return detail
         if path.startswith("actions/workflows/sandbox-train.yml/runs?"):
             return {"total_count": 400, "workflow_runs": [failed]}
-        raise AssertionError(path)
+        from pilot.orchestrator.lifecycle_test_support import fake_api
+        return fake_api({})(path)
 
     assert recovery._train_conflict(log, 205, OLD)
     assert not recovery._train_conflict(log, 206, OLD)
@@ -125,7 +126,8 @@ def test_two_branches_same_chg_first_merges_second_regenerates_same_sweep(tmp_pa
             return detail
         if path.startswith("actions/workflows/ci.yml/runs?"):
             return {"total_count": 0, "workflow_runs": []}
-        raise AssertionError(path)
+        from pilot.orchestrator.lifecycle_test_support import fake_api
+        return fake_api({})(path)
 
     lots = {"schema_version": "CP33_LOTS_CANDIDATE_V1",
             "production_authority": False, "handoff_allowed": False,
@@ -220,7 +222,8 @@ def test_integration_reuses_trusted_cp35_dispatch():
             return {"jobs": [{"name": "native", "conclusion": "success"}]}
         if path.startswith("actions/workflows/native-verified-integration.yml/runs?"):
             return {"total_count": 0, "workflow_runs": []}
-        raise AssertionError(path)
+        from pilot.orchestrator.lifecycle_test_support import fake_api
+        return fake_api({})(path)
 
     with patch.object(chain_lots, "run", side_effect=command), \
          patch.object(chain_lots, "api", side_effect=source), \

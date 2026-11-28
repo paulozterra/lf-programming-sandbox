@@ -137,15 +137,32 @@ def generate(root,request,lot,merge_sha,changed,packet,analysis,*,build_runner=b
  report["complete"]=all(x["status"] not in ("BLOCKED","LOCAL_CHECKS_PASS_PINNED_INPUT_BLOCKED") for x in report["stages"].values()) and report["requirements"].get("status")!="BLOCKED"
  report["evidence_sha256"]=digest(report)
  return report
+def validate_record(row,request,lot_id,merge_sha):
+ """Check the existing CP3.7 evidence envelope, not the outcome of a PG."""
+ if (not isinstance(row,dict) or row.get("schema_version")!="CP37_LOT_EVIDENCE_V1"
+     or row.get("request_id")!=request or row.get("lot_id")!=lot_id
+     or row.get("merge_sha")!=merge_sha or not SHA.fullmatch(merge_sha)
+     or row.get("production_authority") is not False or row.get("handoff_allowed") is not False
+     or type(row.get("complete")) is not bool or not isinstance(row.get("requirements"),dict)
+     or not isinstance(row.get("stages"),dict)
+     or set(row["stages"])!=set(STAGES)|{"PG-07"}
+     or any(not isinstance(x,dict) or x.get("production_authority") is not False
+            or not isinstance(x.get("status"),str) for x in row["stages"].values())
+     or row.get("evidence_sha256")!=digest({k:v for k,v in row.items() if k!="evidence_sha256"})):
+  raise ValueError("CP37_EVIDENCE_INVALID")
+ return row
+
+
 def render(request,rows):
  lines=[f"# H_REPORT — {request}","","Evidencia candidata sin autoridad productiva ni admisión real de Testing.","","| Lote | Merge | Etapas | Estado |","|---|---|---|---|"]
  for r in rows:
   blocked=sum(x["status"]=="BLOCKED" for x in r["stages"].values())
   lines.append(f"| {r['lot_id']} | `{r['merge_sha']}` | {len(r['stages'])} ({blocked} bloqueadas) | {'CANDIDATE_ONLY' if r['complete'] else 'BLOCKED_EVIDENCE_INCOMPLETE'} |")
+ if not rows: lines.append("| — | — | 0 | SIN_LOTES_INTEGRADOS |")
  lines+=["","## Evidencia por lote",""]
  for r in rows:
   lines += [f"### {r['lot_id']}",f"Huella: `{r['evidence_sha256']}`","Requisitos A9: "+(", ".join("`"+x+"`" for x in r["requirements"].get("requirements_from_analysis",[])) or "SIN_TRAZA_VERIFICABLE"),"","| Etapa | Estado | Código |","|---|---|---|"]
-  for stage,e in r["stages"].items():
+  for stage,e in sorted(r["stages"].items()):
    lines.append(f"| {stage} | {e['status']} | {e.get('reason_code','sin autoridad')} |")
   lines.append("")
  lines+=["## Límites","", "No se ejecutan oráculos ocultos, Supabase productivo ni Testing real. La ausencia de entradas originales permanece BLOCKED.", ""]

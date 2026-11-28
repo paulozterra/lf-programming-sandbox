@@ -6,6 +6,7 @@ on:
     paths:
       - 'pilot/runs/req-*/state.json'
       - 'pilot/runs/req-*/H_REPORT.md'
+      - 'pilot/registry/implemented.json'
   schedule:
     - cron: '13 */2 * * *'
   workflow_dispatch:

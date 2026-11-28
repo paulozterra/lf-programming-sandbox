@@ -50,7 +50,7 @@ def test_source_conclusion_idempotence_uses_existing_issue_comments():
             self.comments = []
             self.writes = []
         def api(self, method, path, body=None):
-            from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+            from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response
             if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
                 return content({})
             if method == "GET" and path == "/issues/160":
@@ -59,6 +59,8 @@ def test_source_conclusion_idempotence_uses_existing_issue_comments():
                 self.writes.append(body)
                 self.comments.append({"user": {"login": "github-actions[bot]"}, "body": body["body"]})
                 return {}
+            if method == "GET":
+                return main_response(path.lstrip("/"))
             raise AssertionError((method, path))
         def pages(self, path):
             return self.comments
@@ -86,7 +88,7 @@ def test_missing_workflow_run_event_is_caught_by_targeted_manual_id(monkeypatch,
         def __init__(self, token):
             assert token == "token"
         def api(self, method, path, body=None):
-            from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+            from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response
             if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
                 return content({})
             requested.append((method, path))
@@ -111,7 +113,7 @@ def test_missing_event_recovers_failure_via_existing_sweep(monkeypatch, capsys):
         def __init__(self, token):
             assert token == "token"
         def api(self, method, path, body=None):
-            from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+            from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response
             if method == "GET" and path == f"/contents/{CONTROL}?ref=main":
                 return content({})
             assert path.startswith("/actions/runs?per_page=100&page=")

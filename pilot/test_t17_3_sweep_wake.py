@@ -105,6 +105,9 @@ class PreviouslyGreenBotAPI:
             if path == "/issues/205/labels":
                 self.item["labels"].append({"name": policy.READY_LABEL})
             return {}
+        if method == "GET":
+            from pilot.orchestrator.lifecycle_test_support import fake_api
+            return fake_api({})(path[1:])
         raise AssertionError("Unexpected request " + method + " " + path)
 
 

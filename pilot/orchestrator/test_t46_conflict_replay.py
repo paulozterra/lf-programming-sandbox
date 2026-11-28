@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from pilot.orchestrator import chain_lots
-from pilot.orchestrator.lifecycle_test_support import content, CONTROL
+from pilot.orchestrator.lifecycle_test_support import content, CONTROL, main_response
 from pilot.orchestrator.conflict_integration_replay import recover, ReplayBlocked
 
 REPO = chain_lots.REPO
@@ -57,7 +57,7 @@ def transport(*, unresolved=False, existing=False, pending=False, failing=False)
                 "path": ".github/workflows/native-verified-integration.yml",
                 "repository": {"full_name": REPO},
             }] if pending else []}
-        raise AssertionError(path)
+        return main_response(path)
 
     return run, api, commands
 

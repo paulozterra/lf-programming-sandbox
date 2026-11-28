@@ -73,8 +73,9 @@ def test_cp35_unresolved_and_multiple_owners_deny(tmp_path, monkeypatch):
 def test_cp35_t46_source_run_replay_uses_same_gate(tmp_path, monkeypatch, capsys):
     setup(tmp_path)
     monkeypatch.setenv("GITHUB_REPOSITORY", cp35.REPOSITORY)
-    monkeypatch.setattr(cp35, "gh_api",
-                        lambda _: json.dumps({"number": 275, "state": "closed"}).encode())
+    from pilot.orchestrator.lifecycle_test_support import fake_api
+    monkeypatch.setattr(cp35, "gh_api", lambda path: json.dumps(
+        fake_api({}, issue_state="closed", root=tmp_path)(path.removeprefix("repos/" + cp35.REPOSITORY + "/"))).encode())
     monkeypatch.setattr(cp35, "get_verified_patch",
                         lambda _id: (b"patch", {"task_id": "item1"}, {"task_id": "item1"}))
     monkeypatch.setattr(cp35, "command",
