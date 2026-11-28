@@ -51,3 +51,21 @@ def test_original_producer_registry_versions():
  assert STAGES["PG-09"][1].endswith("_v2")
  assert STAGES["PG-12"][1].endswith("_v2")
  assert STAGES["PG-14"][1].endswith("_v2")
+
+def test_pg06_reuses_c4_without_granting_authority(monkeypatch):
+ from pg37_evidence import run_stage
+ fixture=Path(__file__).resolve().parents[1]/"lf_producers_pinned/pg06_preflight_candidate/tests"
+ monkeypatch.syspath_prepend(str(fixture))
+ from test_pg06_c1_c5_chain_v1 import make_chain
+ x=make_chain()
+ original={"pg05_exit":x["exit"],"pg01_currentness_binding":x["currentness"]}
+ assert run_stage("PG-06",{"producer_inputs":{"PG-06":original}})==x["c1"]
+ full=dict(original,toolchain_catalog=x["catalog"],environment_observations=x["env"],
+           a7_material_front_coverage=x["a7"],solution_reversibility_plans=x["plans"],
+           baseline_observations=x["baseline"])
+ result=run_stage("PG-06",{"producer_inputs":{"PG-06":full}})
+ assert result["baseline_candidate"]==x["c4"]
+ assert result["production_authority"] is False
+ assert result["baseline_candidate"]["build_lint_executed_by_this_component"] is False
+ with pytest.raises(ValueError,match="SHAPE_DRIFT"):
+  run_stage("PG-06",{"producer_inputs":{"PG-06":dict(original,baseline_observations=x["baseline"])}})

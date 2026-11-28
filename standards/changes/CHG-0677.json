@@ -1,0 +1,38 @@
+{
+  "schema_version": "LF_STANDARD_CHANGE_V1",
+  "change_id": "CHG-0677",
+  "title": "F1.C: congelación verificable de condiciones del ejercicio por reutilización",
+  "change_class": "EDITORIAL",
+  "trigger": {
+    "kind": "OWNER",
+    "reference": "Owner: autorización explícita de F1.C tras cierre operativo F1.B en #927, comentario 7235427094; revisión independiente y merge pendientes"
+  },
+  "reason": "Reutilizar el informe T0 y la procedencia histórica Git/Train, los sellos CP3.4/T18/T19, los controles de F1.A/F1.B y los productores fijados PG06 C1-C4 en CP3.7. Derivar identidad de intake, baseline Git, huella de ruta, hashes de entradas y sellos por tarea; detectar drift histórico incluso revertido y separar cambios de condiciones de avance funcional y recuperación autorizada. Conservar el límite terminal acreditado. Registrar candidatos C4 vinculados al SHA sin simular recibos, ejecución ni autoridad. Si falta evidencia del baseline, mantener no acreditado; F6 no se adelanta. Regresiones offline, sin nuevas fases, esquemas paralelos, protecciones, workflows, cambios de pedidos reales ni acceso a oráculos ocultos o Supabase.",
+  "artifacts": [],
+  "affected": {
+    "rule_ids": [],
+    "term_ids": [],
+    "paths": [
+      "pilot/orchestrator/intervention_report.py",
+      "pilot/orchestrator/pg37_evidence.py",
+      "pilot/orchestrator/test_intervention_report.py",
+      "pilot/orchestrator/test_pg37_evidence.py",
+      "standards/CAMBIOS.md",
+      "standards/changes/CHG-0677.json"
+    ]
+  },
+  "existing_code_impact": {
+    "mode": "NEW_OR_MODIFIED_ONLY",
+    "baseline_ref": "standards/baseline/",
+    "expected_direction": "NON_INCREASING"
+  },
+  "security_pin_invalidation": {
+    "invalidates": false,
+    "affected_artifacts": []
+  },
+  "requested_by": "owner",
+  "approved_by": "paulozterra",
+  "evidence": {
+    "pr_url": "https://github.com/paulozterra/lf-programming-sandbox/pull/935"
+  }
+}

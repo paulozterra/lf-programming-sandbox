@@ -22,6 +22,8 @@ def canonical(v):
 def digest(v): return hashlib.sha256(canonical(v)).hexdigest()
 def pinned(stage):
  directory,module,_,_=STAGES[stage]
+ return pinned_module(directory,module)
+def pinned_module(directory,module):
  path=(PIN/directory/"tools").resolve()
  if not path.is_dir():raise ValueError("CP37_PINNED_PRODUCER_MISSING")
  if str(path) not in sys.path:sys.path.insert(0,str(path))
@@ -43,6 +45,17 @@ def run_stage(stage,packet):
  data=packet.get("producer_inputs",{}).get(stage)
  if not isinstance(data,dict) or any(key not in data for key in names):
   raise ValueError("CP37_PINNED_INPUTS_MISSING")
+ if stage=="PG-06" and set(data)==set(names)|{"toolchain_catalog","environment_observations","a7_material_front_coverage","solution_reversibility_plans","baseline_observations"}:
+  # Reuse the exact pinned C1-C4 chain; observations are supplied, never fabricated.
+  directory=STAGES[stage][0]
+  upstream=data["pg05_exit"]
+  c1=method(pg05_exit=upstream,pg01_currentness_binding=data["pg01_currentness_binding"])
+  c2=pinned_module(directory,"pg06_c2_toolchain_environment_candidate_v1").prepare_pg06_c2(pg05_exit=upstream,pg06_c1=c1,toolchain_catalog=data["toolchain_catalog"],environment_observations=data["environment_observations"])
+  c3=pinned_module(directory,"pg06_c3_reversibility_plan_candidate_v1").prepare_pg06_c3(pg05_exit=upstream,pg06_c1=c1,pg06_c2=c2,a7_material_front_coverage=data["a7_material_front_coverage"],solution_reversibility_plans=data["solution_reversibility_plans"])
+  c4=pinned_module(directory,"pg06_c4_baseline_capture_candidate_v1").prepare_pg06_c4(pg05_exit=upstream,pg06_c1=c1,pg06_c2=c2,pg06_c3=c3,baseline_observations=data["baseline_observations"])
+  if any(x.get("production_authority") is not False or x.get("handoff_allowed") is not False for x in (c1,c2,c3,c4)):
+   raise ValueError("CP37_PINNED_OUTPUT_AUTHORITY_INVALID")
+  return {"currentness_candidate":c1,"baseline_candidate":c4,"production_authority":False,"handoff_allowed":False}
  if set(data)!=set(names):raise ValueError("CP37_PINNED_INPUTS_SHAPE_DRIFT")
  if stage=="PG-12":
   with contextlib.redirect_stdout(io.StringIO()) as stream:
